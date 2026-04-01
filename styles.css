@@ -79,7 +79,8 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   min-width: 180px;
 }
 
-.admin-panel {
+.admin-panel,
+.user-panel {
   min-height: 44px;
   display: flex;
   justify-content: flex-end;

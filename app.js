@@ -14,6 +14,7 @@ const logoutButton = document.getElementById('logoutButton');
 const authMessage = document.getElementById('authMessage');
 
 const adminPanel = document.getElementById('adminPanel');
+const userPanel = document.getElementById('userPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
 
 const searchInput = document.getElementById('searchInput');
@@ -284,6 +285,7 @@ function updateAuthUI() {
   const isLoggedIn = Boolean(currentUser);
 
   loginForm.style.display = isLoggedIn ? 'none' : 'flex';
+  userPanel.style.display = isLoggedIn ? 'flex' : 'none';
   adminPanel.style.display = isAdmin ? 'flex' : 'none';
 
   if (!isAdmin) {
