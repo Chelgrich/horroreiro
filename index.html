@@ -273,18 +273,8 @@
   Сначала модуль кастомных select, потом основная логика.
   ========================================================== -->
   <script src="custom-select.js"></script>
-  <script src="/env"></script>
-
-  <script>
-    if (!window.__ENV__) {
-      console.warn('ENV не загружен, используем локальный fallback');
-  
-      window.__ENV__ = {
-        SUPABASE_URL: 'https://uogzcozbnosfguyfbvhe.supabase.co',
-        SUPABASE_ANON_KEY: 'sb_publishable_trS_-TlQwFqcM59nELIdsw_ygVI6B0j'
-      };
-    }
-  </script>
+<script src="/env"></script>
+<script src="app.js"></script>
 </body>
 
 </html>
