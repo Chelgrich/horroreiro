@@ -49,8 +49,6 @@ const countriesInput = document.getElementById('countriesInput');
 JS-БЛОК 2. ПОДКЛЮЧЕНИЕ К SUPABASE
 Создаёт клиент Supabase для работы с базой, auth и storage.
 ========================================================== */
-const ADMIN_UID = 'e58715e7-3ac8-4d97-b755-3320e0f09496';
-
 const SUPABASE_URL = window.__ENV__?.SUPABASE_URL;
 const SUPABASE_ANON_KEY = window.__ENV__?.SUPABASE_ANON_KEY;
 
@@ -68,6 +66,7 @@ JS-БЛОК 3. ГЛОБАЛЬНОЕ СОСТОЯНИЕ ПРИЛОЖЕНИЯ
 Хранит данные каталога, пользователя и состояние интерфейса.
 ========================================================== */
 let currentUser = null;
+let currentUserRole = null;
 let isAdmin = false;
 let allMovies = [];
 let allMovieRatings = [];
@@ -110,7 +109,31 @@ function debounce(callback, delay = 200) {
 }
 
 function updateAdminStatus() {
-  isAdmin = Boolean(currentUser && currentUser.id === ADMIN_UID);
+  isAdmin = Boolean(currentUser && currentUserRole === 'admin');
+}
+
+async function loadCurrentUserRole() {
+  if (!currentUser) {
+    currentUserRole = null;
+    updateAdminStatus();
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('role')
+    .eq('id', currentUser.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Ошибка загрузки роли пользователя:', error);
+    currentUserRole = null;
+    updateAdminStatus();
+    return;
+  }
+
+  currentUserRole = data?.role ?? 'user';
+  updateAdminStatus();
 }
 
 /* =========================================================
@@ -888,7 +911,7 @@ async function restoreSession() {
   }
 
   currentUser = data.session?.user ?? null;
-  updateAdminStatus();
+  await loadCurrentUserRole();
   updateAuthUI();
 }
 
@@ -912,7 +935,7 @@ async function login(event) {
   }
 
   currentUser = data.user ?? null;
-  updateAdminStatus();
+  await loadCurrentUserRole();
   loginPassword.value = '';
   updateAuthUI();
   renderMovies();
@@ -961,6 +984,7 @@ async function logout() {
   }
 
   currentUser = null;
+  currentUserRole = null;
   isAdmin = false;
   updateAuthUI();
   renderMovies();
@@ -1368,9 +1392,9 @@ async function init() {
 
   bindCustomSelectGlobalEvents();
 
-  supabaseClient.auth.onAuthStateChange((_event, session) => {
+  supabaseClient.auth.onAuthStateChange(async (_event, session) => {
     currentUser = session?.user ?? null;
-    updateAdminStatus();
+    await loadCurrentUserRole();
     updateAuthUI();
     renderMovies();
   });
