@@ -66,6 +66,10 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   gap: 4px;
 }
 
+.auth-controls.auth-controls-pending {
+  visibility: hidden;
+}
+
 .login-form {
   min-height: 44px;
   display: grid;
