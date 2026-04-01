@@ -88,11 +88,18 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   min-width: 180px;
 }
 
+.auth-actions {
+  min-height: 44px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
 .admin-panel,
 .user-panel {
   min-height: 44px;
   display: flex;
-  justify-content: flex-end;
   align-items: center;
   gap: 10px;
 }
