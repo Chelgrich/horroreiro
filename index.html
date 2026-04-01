@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
   <!-- =========================================================
   HTML-БЛОК 1. СЛУЖЕБНАЯ ЧАСТЬ ДОКУМЕНТА
@@ -9,16 +10,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Фильмы</title>
 
-  <link
-    href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
-    rel="stylesheet"
-  >
-  <link
-    href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap"
-    rel="stylesheet"
-  >
+  <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
   <!-- =========================================================
   HTML-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
@@ -63,23 +60,14 @@
     <div id="movieModal" class="modal" style="display: none;">
       <div class="modal-backdrop" id="movieModalBackdrop"></div>
 
-      <div
-        class="modal-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="formTitle"
-      >
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="formTitle">
         <!-- =========================================================
         HTML-БЛОК 5. ШАПКА МОДАЛЬНОГО ОКНА
         Заголовок формы и кнопка закрытия.
         ========================================================== -->
         <div class="modal-header">
           <h2 id="formTitle">Добавить фильм</h2>
-          <button
-            type="button"
-            id="closeMovieModalButton"
-            class="secondary-button"
-          >
+          <button type="button" id="closeMovieModalButton" class="secondary-button">
             Закрыть
           </button>
         </div>
@@ -163,12 +151,7 @@
 
           <div class="form-actions">
             <button type="submit" id="submitButton">Добавить фильм</button>
-            <button
-              type="button"
-              id="cancelEditButton"
-              class="secondary-button"
-              style="display: none;"
-            >
+            <button type="button" id="cancelEditButton" class="secondary-button" style="display: none;">
               Отмена редактирования
             </button>
           </div>
@@ -190,11 +173,7 @@
       <div class="filters">
         <div class="form-row">
           <label for="searchInput">Поиск:</label>
-          <input
-            type="text"
-            id="searchInput"
-            placeholder="Название, оригинальное название, режиссёр"
-          >
+          <input type="text" id="searchInput" placeholder="Название, оригинальное название, режиссёр">
         </div>
 
         <div class="form-row">
@@ -287,6 +266,8 @@
   Сначала модуль кастомных select, потом основная логика.
   ========================================================== -->
   <script src="custom-select.js"></script>
-  <script src="app.js"></script>
+<script src="/env.js"></script>
+<script src="app.js"></script>
 </body>
+
 </html>

@@ -51,9 +51,16 @@ JS-БЛОК 2. ПОДКЛЮЧЕНИЕ К SUPABASE
 ========================================================== */
 const ADMIN_UID = 'e58715e7-3ac8-4d97-b755-3320e0f09496';
 
+const SUPABASE_URL = window.__ENV__?.SUPABASE_URL;
+const SUPABASE_ANON_KEY = window.__ENV__?.SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('Не заданы переменные окружения SUPABASE_URL и SUPABASE_ANON_KEY');
+}
+
 const supabaseClient = window.supabase.createClient(
-  'https://uogzcozbnosfguyfbvhe.supabase.co',
-  'sb_publishable_trS_-TlQwFqcM59nELIdsw_ygVI6B0j'
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
 );
 
 /* =========================================================
