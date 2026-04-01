@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <!-- =========================================================
+  HTML-БЛОК 1. СЛУЖЕБНАЯ ЧАСТЬ ДОКУМЕНТА
+  Мета-теги, заголовок страницы, шрифты и подключение стилей.
+  ========================================================== -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Фильмы</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <!-- =========================================================
+  HTML-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
+  Оборачивает весь интерфейс каталога.
+  ========================================================== -->
+  <main class="page">
+
+    <!-- =========================================================
+    HTML-БЛОК 3. ШАПКА СТРАНИЦЫ
+    Заголовок проекта, форма авторизации и админ-панель.
+    ========================================================== -->
+    <header class="page-header">
+      <div class="page-header-top">
+        <h1>Хоррорейро</h1>
+
+        <div id="authControls" class="auth-controls">
+          <form id="loginForm" class="login-form">
+            <input type="email" id="loginEmail" placeholder="Email">
+            <input type="password" id="loginPassword" placeholder="Пароль">
+            <button type="submit">Войти</button>
+            <button type="button" id="registerButton" class="secondary-button">
+              Регистрация
+            </button>
+          </form>
+
+          <div id="adminPanel" class="admin-panel" style="display: none;">
+            <button id="openAddMovieButton" type="button">Добавить фильм</button>
+            <button id="logoutButton" type="button" class="secondary-button">
+              Выйти
+            </button>
+          </div>
+
+          <p id="authMessage" class="auth-message"></p>
+        </div>
+      </div>
+    </header>
+
+    <!-- =========================================================
+    HTML-БЛОК 4. МОДАЛЬНОЕ ОКНО ФИЛЬМА
+    Обёртка модального окна для добавления и редактирования фильма.
+    ========================================================== -->
+    <div id="movieModal" class="modal" style="display: none;">
+      <div class="modal-backdrop" id="movieModalBackdrop"></div>
+
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+        <!-- =========================================================
+        HTML-БЛОК 5. ШАПКА МОДАЛЬНОГО ОКНА
+        Заголовок формы и кнопка закрытия.
+        ========================================================== -->
+        <div class="modal-header">
+          <h2 id="formTitle">Добавить фильм</h2>
+          <button type="button" id="closeMovieModalButton" class="secondary-button">
+            Закрыть
+          </button>
+        </div>
+
+        <!-- =========================================================
+        HTML-БЛОК 6. ФОРМА ДОБАВЛЕНИЯ / РЕДАКТИРОВАНИЯ ФИЛЬМА
+        Используется и для создания нового фильма, и для редактирования.
+        ========================================================== -->
+        <form id="movieForm" class="movie-form">
+          <div class="form-row">
+            <label for="title">Название:</label>
+            <input type="text" id="title" required>
+          </div>
+
+          <div class="form-row">
+            <label for="originalTitle">Оригинальное название:</label>
+            <input type="text" id="originalTitle">
+          </div>
+
+          <div class="form-row">
+            <label for="year">Год:</label>
+            <input type="number" id="year" min="1888" max="2100">
+          </div>
+
+          <div class="form-row">
+            <label for="releaseMonth">Месяц:</label>
+            <select id="releaseMonth">
+              <option value="">Не выбран</option>
+              <option value="1">Январь</option>
+              <option value="2">Февраль</option>
+              <option value="3">Март</option>
+              <option value="4">Апрель</option>
+              <option value="5">Май</option>
+              <option value="6">Июнь</option>
+              <option value="7">Июль</option>
+              <option value="8">Август</option>
+              <option value="9">Сентябрь</option>
+              <option value="10">Октябрь</option>
+              <option value="11">Ноябрь</option>
+              <option value="12">Декабрь</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="releaseYear">Год релиза:</label>
+            <input type="number" id="releaseYear" min="1900" max="2100" placeholder="2026">
+          </div>
+
+          <div class="form-row">
+            <label for="sortOrder">Порядок внутри месяца:</label>
+            <input type="number" id="sortOrder" min="1" step="1" placeholder="1">
+          </div>
+
+          <div class="form-row">
+            <label for="director">Режиссёр:</label>
+            <input type="text" id="director">
+          </div>
+
+          <div class="form-row">
+            <label for="posterUrl">Постер (URL):</label>
+            <input type="url" id="posterUrl" placeholder="https://example.com/poster.jpg">
+          </div>
+
+          <div class="form-row">
+            <label for="posterFile">Постер (файл):</label>
+            <input type="file" id="posterFile" accept="image/*">
+            <small class="field-hint">
+              Если выбран файл, он будет использован вместо URL.
+            </small>
+          </div>
+
+          <div class="form-row">
+            <label for="genresInput">Жанры (через запятую):</label>
+            <input type="text" id="genresInput" placeholder="Ужасы, Триллер">
+          </div>
+
+          <div class="form-row">
+            <label for="countriesInput">Страны (через запятую):</label>
+            <input type="text" id="countriesInput" placeholder="США, Великобритания">
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" id="submitButton">Добавить фильм</button>
+            <button type="button" id="cancelEditButton" class="secondary-button" style="display: none;">
+              Отмена редактирования
+            </button>
+          </div>
+        </form>
+
+        <!-- =========================================================
+        HTML-БЛОК 7. СЛУЖЕБНОЕ СООБЩЕНИЕ ФОРМЫ
+        Показывает статусы сохранения и ошибки.
+        ========================================================== -->
+        <p id="formMessage" class="form-message"></p>
+      </div>
+    </div>
+
+    <!-- =========================================================
+    HTML-БЛОК 8. ПАНЕЛЬ ФИЛЬТРОВ И СОРТИРОВКИ
+    Поиск, фильтрация каталога и сброс выбранных параметров.
+    ========================================================== -->
+    <section class="section">
+      <div class="filters">
+        <div class="form-row">
+          <label for="searchInput">Поиск:</label>
+          <input type="text" id="searchInput" placeholder="Название, оригинальное название, режиссёр">
+        </div>
+
+        <div class="form-row">
+          <label for="genreFilter">Жанр:</label>
+          <select id="genreFilter"></select>
+        </div>
+
+        <div class="form-row">
+          <label for="countryFilter">Страна:</label>
+          <select id="countryFilter"></select>
+        </div>
+
+        <div class="form-row">
+          <label for="ratingFilter">Рейтинг от:</label>
+          <select id="ratingFilter">
+            <option value="">Любой</option>
+            <option value="1">1+</option>
+            <option value="2">2+</option>
+            <option value="3">3+</option>
+            <option value="4">4+</option>
+            <option value="5">5+</option>
+            <option value="6">6+</option>
+            <option value="7">7+</option>
+            <option value="8">8+</option>
+            <option value="9">9+</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="monthFilter">Месяц:</label>
+          <select id="monthFilter">
+            <option value="">Все месяцы</option>
+            <option value="1">Январь</option>
+            <option value="2">Февраль</option>
+            <option value="3">Март</option>
+            <option value="4">Апрель</option>
+            <option value="5">Май</option>
+            <option value="6">Июнь</option>
+            <option value="7">Июль</option>
+            <option value="8">Август</option>
+            <option value="9">Сентябрь</option>
+            <option value="10">Октябрь</option>
+            <option value="11">Ноябрь</option>
+            <option value="12">Декабрь</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="yearFilter">Год:</label>
+          <select id="yearFilter">
+            <option value="">Все годы</option>
+          </select>
+        </div>
+
+        <div class="filter-reset">
+          <button id="resetFilters" type="button" class="secondary-button">
+            Сбросить все фильтры
+          </button>
+        </div>
+
+        <div class="form-row filter-sort">
+          <label for="sortMode">Сортировка:</label>
+          <select id="sortMode">
+            <option value="default">Сначала новые</option>
+            <option value="oldest">Сначала старые</option>
+            <option value="alphabet">По алфавиту</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+    HTML-БЛОК 9. СПИСОК ФИЛЬМОВ
+    Контейнер, в который JavaScript вставляет карточки фильмов.
+    ========================================================== -->
+    <section class="section">
+      <div id="movies" class="movies-list">Загрузка...</div>
+    </section>
+  </main>
+
+  <!-- =========================================================
+  HTML-БЛОК 10. ПОДКЛЮЧЕНИЕ БИБЛИОТЕКИ SUPABASE
+  Клиент для работы с базой, авторизацией и storage.
+  ========================================================== -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- =========================================================
+  HTML-БЛОК 11. ПОДКЛЮЧЕНИЕ ОСНОВНОГО JAVASCRIPT-ФАЙЛА
+  Логика приложения каталога фильмов.
+  ========================================================== -->
+  <script src="custom-select.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
