@@ -290,7 +290,7 @@ function updateAuthUI() {
   adminPanel.style.display = isAdmin ? 'flex' : 'none';
 
   if (authControls) {
-    authControls.classList.remove('auth-controls-pending');
+    document.documentElement.classList.remove('auth-pending');
   }
 
   if (!isAdmin) {
@@ -1420,6 +1420,7 @@ async function init() {
   ]);
 
   initCustomSelects();
+  document.documentElement.classList.remove('custom-selects-pending');
   renderMovies();
 }
 
