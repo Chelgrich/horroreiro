@@ -752,7 +752,14 @@ async function addMovie(event) {
       fetchMovies(),
       fetchMovieRatings()
     ]);
-
+  
+    initCustomSelects();
+  
+    const filtersBlock = document.querySelector('.filters');
+    if (filtersBlock) {
+      filtersBlock.classList.remove('filters-pending');
+    }
+  
     renderMovies();
   } catch (error) {
     console.error('Ошибка при добавлении фильма:', error);
