@@ -956,7 +956,10 @@ async function register() {
 
   const { error } = await supabaseClient.auth.signUp({
     email,
-    password
+    password,
+    options: {
+      emailRedirectTo: window.location.origin
+    }
   });
 
   if (error) {
