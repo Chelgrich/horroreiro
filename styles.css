@@ -2,8 +2,13 @@
 CSS-БЛОК 1. БАЗОВЫЕ СТИЛИ ДОКУМЕНТА
 Общие параметры страницы, типографика и базовое поведение.
 ========================================================== */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
+  overflow-y: scroll;
   font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-weight: 500;
   letter-spacing: 0.2px;
