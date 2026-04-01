@@ -1,0 +1,721 @@
+/* =========================================================
+CSS-БЛОК 1. БАЗОВЫЕ СТИЛИ ДОКУМЕНТА
+Общие параметры страницы, типографика и базовое поведение.
+========================================================== */
+/* =========================================================
+CSS-БЛОК 1. БАЗОВЫЕ СТИЛИ ДОКУМЕНТА
+Общие параметры страницы, типографика и базовое поведение.
+========================================================== */
+body {
+  margin: 0;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  line-height: 1.5;
+  color: #f2f2f2;
+  background: #111315;
+
+  color-scheme: dark;
+  /* ВАЖНО */
+}
+
+h1 {
+  margin: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  letter-spacing: 2px;
+  line-height: 44px;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+/* =========================================================
+CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
+Ограничивает ширину и задаёт внешние отступы приложения.
+========================================================== */
+.page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* =========================================================
+CSS-БЛОК 3. ШАПКА СТРАНИЦЫ
+Верхняя зона с заголовком, авторизацией и админ-панелью.
+========================================================== */
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* =========================================================
+CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
+Форма входа, админ-панель и служебные сообщения.
+========================================================== */
+.auth-controls {
+  flex: 1;
+  max-width: 720px;
+  margin-left: auto;
+  /* ключевое — прижимаем вправо */
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  /* выравниваем содержимое вправо */
+  gap: 4px;
+}
+
+.login-form {
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: 200px 200px auto auto;
+  justify-content: end;
+  /* ключевое */
+  gap: 10px;
+  align-items: center;
+}
+
+.login-form input {
+  min-width: 180px;
+}
+
+.admin-panel {
+  min-height: 44px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-message {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 14px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.2;
+  color: #98a2ad;
+  text-align: right;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.auth-message.is-hidden {
+  opacity: 0;
+}
+
+.auth-message.is-error {
+  color: #ff7b72;
+}
+
+.auth-message.is-success {
+  color: #56d364;
+}
+
+/* =========================================================
+CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
+Унифицированное оформление смысловых блоков страницы.
+========================================================== */
+.section {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: #1a1d21;
+  border: 1px solid #2a2f36;
+  border-radius: 8px;
+}
+
+/* =========================================================
+CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
+Контейнер модалки, затемнение и диалог с прокруткой.
+========================================================== */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.modal-dialog {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  max-width: 720px;
+  max-height: calc(100vh - 80px);
+  margin: 40px auto;
+  padding: 20px;
+  overflow-y: auto;
+  background: #1b1f24;
+  border: 1px solid #2c323a;
+  border-radius: 10px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modal-header h2 {
+  margin: 0;
+}
+
+/* =========================================================
+CSS-БЛОК 7. СТРУКТУРА ФОРМ
+Строки формы, группы действий и служебные подписи.
+========================================================== */
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.form-message {
+  min-height: 24px;
+  margin: 12px 0 0;
+  color: #d7dbe0;
+}
+
+.field-hint {
+  font-size: 12px;
+  color: #9aa3ad;
+}
+
+/* =========================================================
+CSS-БЛОК 8. ПОЛЯ ВВОДА
+Общий вид input, select и наследование шрифта для controls.
+========================================================== */
+input,
+select,
+button {
+  font: inherit;
+}
+
+input {
+  padding: 10px 12px;
+  color: #f2f2f2;
+  background: #121519;
+  border: 1px solid #313842;
+  border-radius: 6px;
+}
+
+select {
+  padding: 10px 12px;
+  color: #f2f2f2;
+  background: #121519;
+  border: 1px solid #313842;
+  border-radius: 6px;
+}
+
+input::placeholder {
+  color: #7f8894;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: #5c6b7c;
+  box-shadow: 0 0 0 3px rgba(92, 107, 124, 0.2);
+}
+
+/* =========================================================
+CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
+Прячет нативный select и отображает поверх него кастомную
+оболочку со своим списком опций.
+========================================================== */
+.form-row.has-custom-select {
+  position: relative;
+}
+
+.form-row.has-custom-select select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.custom-select {
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+.custom-select-trigger {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 40px 10px 12px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #f2f2f2;
+  background: #121519;
+  border: 1px solid #313842;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.custom-select-trigger::after {
+  content: '';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 12px;
+  height: 8px;
+  transform: translateY(-50%);
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%239aa3ad' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 12px 8px;
+  pointer-events: none;
+  transition: transform 0.18s ease;
+}
+
+.custom-select.is-open .custom-select-trigger {
+  border-color: #5c6b7c;
+  box-shadow: 0 0 0 3px rgba(92, 107, 124, 0.2);
+}
+
+.custom-select.is-open {
+  z-index: 30;
+}
+
+.custom-select.is-open .custom-select-trigger::after {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.custom-select-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-select.is-placeholder-selected .custom-select-label {
+  color: #9aa3ad;
+}
+
+.custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 6px;
+  background: #161a1f;
+  border: 1px solid #313842;
+  border-radius: 8px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+}
+
+.custom-select.open-up .custom-select-dropdown {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.custom-select-option {
+  width: 100%;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  display: block;
+  color: #e3e8ee;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.custom-select-option:hover,
+.custom-select-option.is-hovered {
+  background: #222831;
+}
+
+.custom-select-option.is-selected {
+  background: #283240;
+  color: #ffffff;
+}
+
+.custom-select-option.is-placeholder {
+  color: #9aa3ad;
+}
+
+/* =========================================================
+CSS-БЛОК 9. КНОПКИ
+Основной и вторичный стиль кнопок.
+========================================================== */
+button {
+  padding: 10px 14px;
+  color: #ffffff;
+  cursor: pointer;
+  background: #5b8cff;
+  border: 1px solid #5b8cff;
+  border-radius: 6px;
+}
+
+button:hover {
+  opacity: 0.92;
+}
+
+.secondary-button {
+  color: #e7ebf0;
+  background: #1a1f26;
+  border-color: #353d48;
+}
+
+/* =========================================================
+CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
+Сетка фильтров, сортировки и кнопки сброса.
+========================================================== */
+.filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.filter-reset {
+  width: 100%;
+  grid-column: 1 / 2;
+  justify-self: stretch;
+}
+
+.filter-reset button {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.filter-sort {
+  grid-column: 3 / 4;
+}
+
+.filter-reset,
+.filter-sort {
+  margin-top: 36px;
+}
+
+.filters .form-row {
+  margin-bottom: 0;
+}
+
+/* =========================================================
+CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
+Контейнер карточек каталога.
+========================================================== */
+.movies-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+/* =========================================================
+CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
+Базовое оформление карточки и текстового содержимого.
+========================================================== */
+.movie-card {
+  box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* чуть увеличили ритм */
+  padding: 16px 30px 24px;
+  /* ключевое: больше по бокам + снизу */
+  background: #15191d;
+  border: 1px solid #2a3038;
+  border-radius: 8px;
+}
+
+.movie-card h3 {
+  margin: 6px 0;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #ffffff;
+}
+
+.meta-label {
+  font-weight: 700;
+  color: #666;
+}
+
+.movie-card p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: #e3e8ee;
+}
+
+.movie-card p+p {
+  margin-top: 4px;
+}
+
+.movie-card p:first-of-type {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #1f242b;
+}
+
+.movie-card p:nth-last-of-type(1) {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #1f242b;
+}
+
+.movie-card p:last-of-type {
+  margin-bottom: 0;
+}
+
+/* =========================================================
+CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
+Фиксированная вертикальная зона постера в пропорции 2:3.
+========================================================== */
+.movie-poster-wrapper {
+  position: relative;
+  width: calc(100% + 32px);
+  aspect-ratio: 2 / 3;
+  flex: 0 0 auto;
+  overflow: hidden;
+  background: #0f1114;
+  border: 1px solid #2c333b;
+  border-radius: 6px;
+  margin: -4px -16px 14px;
+}
+
+.movie-poster {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+
+.movie-poster.is-loaded {
+  opacity: 1;
+}
+
+.movie-poster-skeleton {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.04) 0%,
+      rgba(255, 255, 255, 0.09) 50%,
+      rgba(255, 255, 255, 0.04) 100%
+    ),
+    #171b20;
+  background-size: 200% 100%;
+  animation: poster-skeleton-shimmer 1.4s linear infinite;
+  transition: opacity 0.2s ease;
+}
+
+.movie-poster-skeleton.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes poster-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.movie-poster-placeholder {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  color: #8f98a3;
+  text-align: center;
+  background: #111418;
+  border: 1px dashed #2f3741;
+}
+
+/* =========================================================
+CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
+Средний рейтинг, счётчик голосов и кнопки пользовательской оценки.
+========================================================== */
+.movie-rating-block {
+  margin-top: auto;
+}
+
+.movie-rating-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.movie-rating-value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.movie-rating-meta {
+  font-size: 14px;
+  color: #9da6b1;
+}
+
+.movie-user-rating {
+  margin-top: 14px;
+}
+
+.movie-user-rating-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e6ebf0;
+}
+
+.movie-user-rating-stars {
+  display: flex;
+  justify-content: space-between;
+  /* ключевое */
+  align-items: center;
+  width: 100%;
+}
+
+.rating-star-btn {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+  margin: 0;
+
+  font-size: 26px;
+  /* увеличили */
+  line-height: 1;
+
+  letter-spacing: 0;
+  text-align: center;
+
+  color: #4a525c;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+
+  transition: color 0.15s ease, transform 0.12s ease;
+}
+
+.rating-star-btn.is-hovered {
+  color: #8e99a6;
+}
+
+.rating-star-btn.is-active {
+  color: #f5c518;
+}
+
+/* =========================================================
+CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
+Кнопки редактирования и удаления фильма.
+========================================================== */
+.movie-card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+}
+
+/* =========================================================
+CSS-БЛОК 16. АДАПТИВНОСТЬ
+Перестройка сеток и элементов на узких экранах.
+========================================================== */
+@media (max-width: 1200px) {
+  .movies-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .movies-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 16px;
+  }
+
+  .page-header-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .auth-controls {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .login-form,
+  .admin-panel {
+    justify-content: stretch;
+  }
+
+  .login-form input,
+  .login-form button,
+  .admin-panel button {
+    width: 100%;
+  }
+
+  .section {
+    padding: 16px;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-dialog {
+    max-height: calc(100vh - 32px);
+    margin: 16px;
+  }
+
+  .modal-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .movies-list {
+    grid-template-columns: 1fr;
+  }
+}
