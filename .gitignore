@@ -47,3 +47,9 @@ wrangler.jsonc.bak
 *.log
 *.bak
 *.swp
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
