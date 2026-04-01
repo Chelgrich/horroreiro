@@ -13,14 +13,14 @@ function createCustomSelectManager(config) {
     let customSelectInstances = [];
   
     function closeCustomSelect(instance) {
-        if (!instance) {
-          return;
-        }
-    
-        instance.root.classList.remove('is-open', 'open-up');
-        instance.dropdown.hidden = true;
-        instance.trigger.setAttribute('aria-expanded', 'false');
+      if (!instance) {
+        return;
       }
+  
+      instance.root.classList.remove('is-open', 'open-up');
+      instance.dropdown.hidden = true;
+      instance.trigger.setAttribute('aria-expanded', 'false');
+    }
   
     function closeAllCustomSelects(exceptElement = null) {
       customSelectInstances.forEach(instance => {
@@ -228,7 +228,7 @@ function createCustomSelectManager(config) {
           typeaheadTimer = null;
         }, 700);
       }
-
+  
       function openCustomSelectWithFocus() {
         dropdown.hidden = false;
         updateCustomSelectDirection(instance);
@@ -325,16 +325,16 @@ function createCustomSelectManager(config) {
         const isCharacterKey = event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
   
         if (!isOpen && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
-            event.preventDefault();
-            openCustomSelectForKeyboardNavigation();
-            return;
-          }
+          event.preventDefault();
+          openCustomSelectForKeyboardNavigation();
+          return;
+        }
   
-          if (isCharacterKey) {
-            openCustomSelectForTypeahead();
-    
-            typeaheadBuffer += event.key;
-            scheduleTypeaheadReset();
+        if (isCharacterKey) {
+          openCustomSelectForTypeahead();
+  
+          typeaheadBuffer += event.key;
+          scheduleTypeaheadReset();
   
           if (focusOptionBySearch(typeaheadBuffer)) {
             event.preventDefault();
@@ -372,14 +372,14 @@ function createCustomSelectManager(config) {
         }
   
         if (event.key === 'Escape') {
-            event.preventDefault();
-            closeCustomSelectWithReset();
-            trigger.focus();
-          }
-    
-          if (event.key === 'Tab') {
-            closeCustomSelectWithReset();
-          }
+          event.preventDefault();
+          closeCustomSelectWithReset();
+          trigger.focus();
+        }
+  
+        if (event.key === 'Tab') {
+          closeCustomSelectWithReset();
+        }
       });
   
       return instance;

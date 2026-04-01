@@ -2,10 +2,6 @@
 CSS-БЛОК 1. БАЗОВЫЕ СТИЛИ ДОКУМЕНТА
 Общие параметры страницы, типографика и базовое поведение.
 ========================================================== */
-/* =========================================================
-CSS-БЛОК 1. БАЗОВЫЕ СТИЛИ ДОКУМЕНТА
-Общие параметры страницы, типографика и базовое поведение.
-========================================================== */
 body {
   margin: 0;
   font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -14,9 +10,7 @@ body {
   line-height: 1.5;
   color: #f2f2f2;
   background: #111315;
-
   color-scheme: dark;
-  /* ВАЖНО */
 }
 
 h1 {
@@ -66,12 +60,9 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   flex: 1;
   max-width: 720px;
   margin-left: auto;
-  /* ключевое — прижимаем вправо */
-
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  /* выравниваем содержимое вправо */
   gap: 4px;
 }
 
@@ -80,7 +71,6 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   display: grid;
   grid-template-columns: 200px 200px auto auto;
   justify-content: end;
-  /* ключевое */
   gap: 10px;
   align-items: center;
 }
@@ -265,6 +255,7 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
 }
 
 .custom-select-trigger {
+  position: relative;
   width: 100%;
   min-height: 44px;
   padding: 10px 40px 10px 12px;
@@ -446,9 +437,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   display: flex;
   flex-direction: column;
   gap: 8px;
-  /* чуть увеличили ритм */
   padding: 16px 30px 24px;
-  /* ключевое: больше по бокам + снизу */
   background: #15191d;
   border: 1px solid #2a3038;
   border-radius: 8px;
@@ -474,7 +463,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   color: #e3e8ee;
 }
 
-.movie-card p+p {
+.movie-card p + p {
   margin-top: 4px;
 }
 
@@ -607,7 +596,6 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 .movie-user-rating-stars {
   display: flex;
   justify-content: space-between;
-  /* ключевое */
   align-items: center;
   width: 100%;
 }
@@ -617,22 +605,16 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   display: flex;
   align-items: center;
   justify-content: center;
-
   padding: 0;
   margin: 0;
-
   font-size: 26px;
-  /* увеличили */
   line-height: 1;
-
   letter-spacing: 0;
   text-align: center;
-
   color: #4a525c;
   cursor: pointer;
   background: transparent;
   border: none;
-
   transition: color 0.15s ease, transform 0.12s ease;
 }
 

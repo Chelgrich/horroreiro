@@ -208,6 +208,10 @@ function resetFormToCreateMode() {
   submitButton.textContent = 'Добавить фильм';
   cancelEditButton.style.display = 'none';
   formMessage.textContent = '';
+
+  if (typeof refreshCustomSelect === 'function') {
+    refreshCustomSelect(releaseMonthInput);
+  }
 }
 
 function fillFormForEdit(movie) {
@@ -233,6 +237,10 @@ function fillFormForEdit(movie) {
   submitButton.textContent = 'Сохранить изменения';
   cancelEditButton.style.display = 'inline-block';
   formMessage.textContent = '';
+
+  if (typeof refreshCustomSelect === 'function') {
+    refreshCustomSelect(releaseMonthInput);
+  }
 
   openMovieModal();
 }
@@ -1058,7 +1066,6 @@ function renderMovies() {
     filteredMovies.sort((a, b) =>
       String(a.title || '').localeCompare(String(b.title || ''), 'ru')
     );
-
   } else if (selectedSortMode === 'oldest') {
     filteredMovies.sort((a, b) => {
       const yearA = a.release_year ?? Infinity;
@@ -1080,9 +1087,7 @@ function renderMovies() {
 
       return orderA - orderB;
     });
-
   } else {
-    // default — сначала новые
     filteredMovies.sort((a, b) => {
       const yearA = a.release_year ?? -Infinity;
       const yearB = b.release_year ?? -Infinity;
@@ -1126,12 +1131,13 @@ function renderMovies() {
       <div class="movie-rating-summary">
         <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
         <span class="movie-rating-meta">
-          (${votesCount} ${votesCount === 1
-        ? 'оценка'
-        : votesCount >= 2 && votesCount <= 4
-          ? 'оценки'
-          : 'оценок'
-      })
+          (${votesCount} ${
+            votesCount === 1
+              ? 'оценка'
+              : votesCount >= 2 && votesCount <= 4
+                ? 'оценки'
+                : 'оценок'
+          })
         </span>
       </div>
     `;
@@ -1141,10 +1147,10 @@ function renderMovies() {
         <div class="movie-user-rating-label">Ваша оценка</div>
         <div class="movie-user-rating-stars" data-current-rating="${currentUserRating ?? 0}">
           ${Array.from({ length: 10 }, (_, index) => {
-      const value = index + 1;
-      const isActive = currentUserRating !== null && value <= currentUserRating;
+            const value = index + 1;
+            const isActive = currentUserRating !== null && value <= currentUserRating;
 
-      return `
+            return `
               <button
                 type="button"
                 class="rating-star-btn ${isActive ? 'is-active' : ''}"
@@ -1155,29 +1161,29 @@ function renderMovies() {
                 ★
               </button>
             `;
-    }).join('')}
+          }).join('')}
         </div>
       </div>
     ` : '';
 
     const posterHtml = `
-    <div class="movie-poster-wrapper">
-      ${
-        movie.poster_url
-          ? `
-            <div class="movie-poster-skeleton" aria-hidden="true"></div>
-            <img
-              class="movie-poster"
-              src="${movie.poster_url}"
-              alt="Постер фильма ${movie.title}"
-              loading="lazy"
-              decoding="async"
-            >
-          `
-          : `<div class="movie-poster-placeholder">Нет постера</div>`
-      }
-    </div>
-  `;
+      <div class="movie-poster-wrapper">
+        ${
+          movie.poster_url
+            ? `
+              <div class="movie-poster-skeleton" aria-hidden="true"></div>
+              <img
+                class="movie-poster"
+                src="${movie.poster_url}"
+                alt="Постер фильма ${movie.title}"
+                loading="lazy"
+                decoding="async"
+              >
+            `
+            : `<div class="movie-poster-placeholder">Нет постера</div>`
+        }
+      </div>
+    `;
 
     card.innerHTML = `
       ${posterHtml}
