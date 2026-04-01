@@ -755,11 +755,7 @@ async function addMovie(event) {
   
     initCustomSelects();
   
-    const filtersBlock = document.querySelector('.filters');
-    if (filtersBlock) {
-      filtersBlock.classList.remove('filters-pending');
-    }
-  
+    initCustomSelects();
     renderMovies();
   } catch (error) {
     console.error('Ошибка при добавлении фильма:', error);

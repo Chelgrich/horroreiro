@@ -246,11 +246,16 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
   position: relative;
 }
 
+.form-row select {
+  visibility: visible;
+}
+
 .form-row.has-custom-select select {
   position: absolute;
   inset: 0;
   opacity: 0;
   pointer-events: none;
+  visibility: hidden;
 }
 
 .custom-select {
@@ -421,9 +426,6 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
   margin-bottom: 0;
 }
 
-.filters.filters-pending {
-  visibility: hidden;
-}
 /* =========================================================
 CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 Контейнер карточек каталога.
