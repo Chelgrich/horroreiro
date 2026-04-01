@@ -504,6 +504,8 @@ async function uploadPosterFile(file) {
     return null;
   }
 
+  console.log('[uploadPosterFile] file:', file.name, file.size, file.type);
+
   const fileExtension = file.name.includes('.')
     ? file.name.split('.').pop().toLowerCase()
     : 'jpg';
@@ -710,13 +712,18 @@ async function addMovie(event) {
   }
 
   try {
+    console.log('[addMovie] start');
+
     let finalPosterUrl = posterUrl || null;
 
     if (posterFile) {
+      console.log('[addMovie] uploading poster');
       formMessage.textContent = 'Загружаю постер...';
       finalPosterUrl = await uploadPosterFile(posterFile);
+      console.log('[addMovie] poster uploaded:', finalPosterUrl);
     }
 
+    console.log('[addMovie] inserting movie');
     formMessage.textContent = 'Сохраняю...';
 
     const { data: insertedMovie, error: insertMovieError } = await supabaseClient
@@ -736,11 +743,15 @@ async function addMovie(event) {
       .select()
       .single();
 
+    console.log('[addMovie] insert result:', insertedMovie, insertMovieError);
+
     if (insertMovieError) {
       throw insertMovieError;
     }
 
+    console.log('[addMovie] replacing relations');
     await replaceMovieRelations(insertedMovie.id, genreNames, countryNames);
+    console.log('[addMovie] relations replaced');
 
     formMessage.textContent = 'Фильм успешно добавлен.';
     closeMovieModal();
