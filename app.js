@@ -6,7 +6,6 @@ const movieModal = document.getElementById('movieModal');
 const movieModalBackdrop = document.getElementById('movieModalBackdrop');
 const closeMovieModalButton = document.getElementById('closeMovieModalButton');
 
-const authControls = document.getElementById('authControls');
 const loginForm = document.getElementById('loginForm');
 const loginEmail = document.getElementById('loginEmail');
 const loginPassword = document.getElementById('loginPassword');
@@ -288,10 +287,6 @@ function updateAuthUI() {
   loginForm.style.display = isLoggedIn ? 'none' : 'flex';
   userPanel.style.display = isLoggedIn ? 'flex' : 'none';
   adminPanel.style.display = isAdmin ? 'flex' : 'none';
-
-  if (authControls) {
-    document.documentElement.classList.remove('auth-pending');
-  }
 
   if (!isAdmin) {
     resetFormToCreateMode();
@@ -1420,7 +1415,6 @@ async function init() {
   ]);
 
   initCustomSelects();
-  document.documentElement.classList.remove('custom-selects-pending');
   renderMovies();
 }
 

@@ -66,10 +66,6 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   gap: 4px;
 }
 
-html.auth-pending .auth-controls {
-  visibility: hidden;
-}
-
 .login-form {
   min-height: 44px;
   display: grid;
@@ -244,11 +240,6 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
 ========================================================== */
 .form-row.has-custom-select {
   position: relative;
-}
-
-html.custom-selects-pending .filters .form-row select,
-html.custom-selects-pending .movie-form .form-row select {
-  visibility: hidden;
 }
 
 .form-row select {
