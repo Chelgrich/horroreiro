@@ -1210,6 +1210,40 @@ function getUserRatingControlsHtml(currentUserRating) {
   `;
 }
 
+function getPosterHtml(movie, isWatchedByCurrentUser) {
+  return `
+    <div class="movie-poster-wrapper">
+      ${
+        movie.poster_url
+          ? `
+            <div class="movie-poster-skeleton" aria-hidden="true"></div>
+            <img
+              class="movie-poster"
+              src="${movie.poster_url}"
+              alt="Постер фильма ${movie.title}"
+              loading="lazy"
+              decoding="async"
+            >
+          `
+          : `<div class="movie-poster-placeholder">Нет постера</div>`
+      }
+
+      ${
+        isWatchedByCurrentUser
+          ? `
+            <div class="movie-watched-icon" aria-label="Просмотрено" title="Просмотрено">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </div>
+          `
+          : ''
+      }
+    </div>
+  `;
+}
+
 function renderMovies() {
   if (!moviesLoadedSuccessfully) {
     return;
