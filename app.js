@@ -948,7 +948,21 @@ async function login(event) {
 
   if (error) {
     console.error('Ошибка входа:', error);
-    showAuthMessage('Ошибка входа. Проверь email и пароль.', 'error');
+  
+    const errorText = String(error.message || '').toLowerCase();
+  
+    if (
+      errorText.includes('email not confirmed') ||
+      errorText.includes('email_not_confirmed')
+    ) {
+      showAuthMessage(
+        'Почта ещё не подтверждена. Открой письмо от сервиса, подтверди e-mail и затем попробуй войти снова.',
+        'error'
+      );
+      return;
+    }
+  
+    showAuthMessage('Ошибка входа. Проверь e-mail и пароль.', 'error');
     return;
   }
 
@@ -987,11 +1001,11 @@ async function register() {
   }
 
   loginPassword.value = '';
+  loginEmail.focus();
 
   showAuthMessage(
-    'Аккаунт создан. Если включено подтверждение почты, заверши его в письме.',
-    'success',
-    true
+    'Регистрация почти завершена. Открой письмо, подтверди e-mail и только потом входи в аккаунт. Без подтверждения почты вход не сработает.',
+    'success'
   );
 }
 
