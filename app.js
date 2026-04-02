@@ -26,6 +26,7 @@ const ratingFilter = document.getElementById('ratingFilter');
 const monthFilter = document.getElementById('monthFilter');
 const yearFilter = document.getElementById('yearFilter');
 const watchedFilter = document.getElementById('watchedFilter');
+const watchedFilterRow = document.getElementById('watchedFilterRow');
 const sortMode = document.getElementById('sortMode');
 const resetFiltersBtn = document.getElementById('resetFilters');
 
@@ -314,6 +315,15 @@ function updateAuthUI() {
 
   if (authControls) {
     authControls.classList.remove('auth-controls-pending');
+  }
+
+  if (watchedFilterRow && watchedFilter) {
+    watchedFilterRow.style.display = isLoggedIn ? 'flex' : 'none';
+
+    if (!isLoggedIn) {
+      watchedFilter.value = '';
+      refreshCustomSelect(watchedFilter);
+    }
   }
 
   if (!isAdmin) {
@@ -1154,13 +1164,13 @@ function renderMovies() {
     );
   }
 
-  if (selectedWatched === 'watched') {
+  if (currentUser && selectedWatched === 'watched') {
     filteredMovies = filteredMovies.filter(movie =>
       getCurrentUserRating(movie.id) !== null
     );
   }
 
-  if (selectedWatched === 'unwatched') {
+  if (currentUser && selectedWatched === 'unwatched') {
     filteredMovies = filteredMovies.filter(movie =>
       getCurrentUserRating(movie.id) === null
     );
