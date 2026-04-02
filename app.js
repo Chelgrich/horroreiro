@@ -113,6 +113,17 @@ function debounce(callback, delay = 200) {
   };
 }
 
+function withTimeout(promise, timeoutMs, timeoutMessage) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(timeoutMessage));
+      }, timeoutMs);
+    })
+  ]);
+}
+
 function updateAdminStatus() {
   isAdmin = Boolean(currentUser && currentUserRole === 'admin');
 }
@@ -586,12 +597,24 @@ async function uploadPosterFile(file) {
   const fileName = `${crypto.randomUUID()}.${safeExtension}`;
   const filePath = `movies/${fileName}`;
 
-  const { error: uploadError } = await supabaseClient.storage
-    .from('posters')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false
-    });
+  console.log('[uploadPosterFile] request', {
+    bucket: 'posters',
+    filePath,
+    fileExtension,
+    safeExtension
+  });
+
+  const { error: uploadError } = await withTimeout(
+    supabaseClient.storage
+      .from('posters')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type || undefined
+      }),
+    20000,
+    'Таймаут загрузки постера в Supabase Storage'
+  );
 
   if (uploadError) {
     console.error('[uploadPosterFile] uploadError', uploadError);
@@ -870,7 +893,7 @@ async function addMovie(event) {
     await reloadCatalogData();
   } catch (error) {
     console.error('Ошибка при добавлении фильма:', error);
-    formMessage.textContent = 'Ошибка при добавлении фильма. Смотри консоль F12.';
+    formMessage.textContent = `Ошибка при добавлении фильма: ${error.message || 'Смотри консоль F12.'}`;
   }
 }
 
