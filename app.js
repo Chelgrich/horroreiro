@@ -765,8 +765,6 @@ async function addMovie(event) {
     ]);
   
     initCustomSelects();
-  
-    initCustomSelects();
     renderMovies();
   } catch (error) {
     console.error('Ошибка при добавлении фильма:', error);

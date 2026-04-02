@@ -81,7 +81,7 @@
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 
-Они не хранятся в репозитории и отдаются через Cloudflare Pages Function `/env.js`.
+Они не хранятся в репозитории и отдаются через Cloudflare Pages Function `/env`.
 
 ## Настройка Cloudflare Pages
 
