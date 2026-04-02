@@ -1154,10 +1154,15 @@ function renderMovies() {
     );
   }
 
-  if (selectedYear) {
+  if (selectedWatched === 'watched') {
     filteredMovies = filteredMovies.filter(movie =>
-      movie.release_year !== null &&
-      Number(movie.release_year) === Number(selectedYear)
+      getCurrentUserRating(movie.id) !== null
+    );
+  }
+
+  if (selectedWatched === 'unwatched') {
+    filteredMovies = filteredMovies.filter(movie =>
+      getCurrentUserRating(movie.id) === null
     );
   }
 
