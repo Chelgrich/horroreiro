@@ -904,7 +904,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .login-form {
     width: 100%;
     min-width: 0;
-    display: flex !important;
     flex-direction: column;
     gap: 10px;
   }
@@ -917,7 +916,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .auth-actions {
     width: 100%;
     min-width: 0;
-    display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
@@ -928,6 +926,12 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     width: 100%;
     min-width: 0;
     justify-content: stretch;
+  }
+
+  .admin-panel[style*="display: none"],
+  .user-panel[style*="display: none"],
+  .login-form[style*="display: none"] {
+    display: none !important;
   }
 
   .admin-panel button,
