@@ -299,6 +299,11 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(92, 107, 124, 0.2);
 }
 
+.filters input {
+  height: 44px;
+  padding: 0 12px;
+}
+
 /* =========================================================
 CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
 Прячет нативный select и отображает поверх него кастомную
@@ -480,11 +485,6 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
   grid-template-columns: repeat(3, minmax(180px, 1fr));
   gap: 14px;
   align-items: end;
-}
-
-.filters input {
-  height: 44px;
-  padding: 0 12px;
 }
 
 .filter-reset {
@@ -920,11 +920,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .filter-reset button {
     width: 100%;
     min-width: 0;
-  }
-
-  .filters input {
-    height: 44px;
-    padding: 0 12px;
   }
 
   .filters,
