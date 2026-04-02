@@ -46,14 +46,12 @@ CSS-БЛОК 3. ШАПКА СТРАНИЦЫ
 Верхняя зона с заголовком, авторизацией и админ-панелью.
 ========================================================== */
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .page-header-feedback {
-  min-height: 52px;
-  margin-top: 0;
-  display: flex;
-  align-items: flex-start;
+  min-height: 66px;
+  margin-top: 14px;
 }
 
 .page-header-top {
