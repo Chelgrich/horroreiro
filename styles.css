@@ -107,25 +107,31 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 
 .auth-toast {
   width: 100%;
+  min-height: 52px;
   box-sizing: border-box;
   margin-top: 14px;
   padding: 12px 14px;
   background: rgba(20, 24, 29, 0.96);
-  border: 1px solid #313842;
+  border: 1px solid transparent;
   border-radius: 10px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0);
   opacity: 0;
   transform: translateY(-4px);
-  transition: opacity 0.22s ease, transform 0.22s ease, border-color 0.22s ease, background-color 0.22s ease;
+  visibility: hidden;
+  transition: opacity 0.22s ease, transform 0.22s ease, border-color 0.22s ease, background-color 0.22s ease, box-shadow 0.22s ease;
 }
 
 .auth-toast.is-visible {
   opacity: 1;
   transform: translateY(0);
+  visibility: visible;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
 }
 
 .auth-toast.is-hidden {
-  display: none;
+  opacity: 0;
+  transform: translateY(-4px);
+  visibility: hidden;
 }
 
 .auth-toast.is-error {
@@ -140,6 +146,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 
 .auth-message {
   margin: 0;
+  min-height: 19px;
   font-size: 13px;
   line-height: 1.45;
   color: #c7d0da;
