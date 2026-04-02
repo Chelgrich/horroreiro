@@ -286,9 +286,7 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
   min-height: 44px;
   padding: 10px 40px 10px 12px;
   box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
+  display: block;
   text-align: left;
   color: #f2f2f2;
   background: #121519;
@@ -327,9 +325,10 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
 }
 
 .custom-select-label {
-  flex: 1;
-  min-width: 0;
   display: block;
+  width: 100%;
+  min-width: 0;
+  padding-right: 8px;
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
