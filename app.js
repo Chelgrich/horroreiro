@@ -703,7 +703,11 @@ async function addMovie(event) {
     ? posterFileInput.files[0]
     : null;
 
-  const genreNames = parseCommaSeparated(genresInput.value);
+  let genreNames = parseCommaSeparated(genresInput.value);
+
+  if (!genreNames.some(name => normalizeSearchText(name) === 'ужасы')) {
+    genreNames = ['Ужасы', ...genreNames];
+  }
   const countryNames = parseCommaSeparated(countriesInput.value);
 
   if (!title) {
@@ -784,7 +788,11 @@ async function updateMovie(event) {
     ? posterFileInput.files[0]
     : null;
 
-  const genreNames = parseCommaSeparated(genresInput.value);
+  let genreNames = parseCommaSeparated(genresInput.value);
+
+  if (!genreNames.some(name => normalizeSearchText(name) === 'ужасы')) {
+    genreNames = ['Ужасы', ...genreNames];
+  }
   const countryNames = parseCommaSeparated(countriesInput.value);
 
   if (!title) {
