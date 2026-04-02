@@ -1003,7 +1003,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .filters {
-    display: grid !important;
     grid-template-columns: 1fr !important;
     gap: 14px;
     align-items: stretch;
