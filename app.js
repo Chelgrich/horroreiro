@@ -1245,8 +1245,9 @@ function renderMovies() {
   filteredMovies.forEach(movie => {
     const card = document.createElement('article');
     const currentUserRating = getCurrentUserRating(movie.id);
+    const isWatchedByCurrentUser = currentUserRating !== null;
 
-    card.className = currentUserRating !== null
+    card.className = isWatchedByCurrentUser
       ? 'movie-card movie-card-rated'
       : 'movie-card';
 
