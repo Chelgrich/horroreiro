@@ -903,7 +903,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-height: 0;
     flex-direction: column;
     align-items: stretch;
-    flex-wrap: nowrap;
     gap: 12px;
   }
 
@@ -914,7 +913,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     height: auto;
     min-height: 0;
     margin-left: 0;
-    display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
