@@ -363,6 +363,26 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
   transition: transform 0.18s ease;
 }
 
+.form-row-watched .custom-select-trigger {
+  padding-left: 38px;
+}
+
+.form-row-watched .custom-select-trigger::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='12' cy='12' r='3' fill='white'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
+  background-position: center;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
 .custom-select.is-open .custom-select-trigger {
   border-color: #5c6b7c;
   box-shadow: 0 0 0 3px rgba(92, 107, 124, 0.2);

@@ -25,6 +25,7 @@ const countryFilter = document.getElementById('countryFilter');
 const ratingFilter = document.getElementById('ratingFilter');
 const monthFilter = document.getElementById('monthFilter');
 const yearFilter = document.getElementById('yearFilter');
+const watchedFilter = document.getElementById('watchedFilter');
 const sortMode = document.getElementById('sortMode');
 const resetFiltersBtn = document.getElementById('resetFilters');
 
@@ -332,6 +333,7 @@ const filterCustomSelectElements = [
   ratingFilter,
   monthFilter,
   yearFilter,
+  watchedFilter,
   sortMode
 ].filter(Boolean);
 
@@ -1108,6 +1110,7 @@ function renderMovies() {
   const minRating = ratingFilter.value;
   const selectedMonth = monthFilter.value;
   const selectedYear = yearFilter.value;
+  const selectedWatched = watchedFilter.value;
   const selectedSortMode = sortMode.value;
   const searchQuery = searchInput.value;
 
@@ -1141,6 +1144,13 @@ function renderMovies() {
     filteredMovies = filteredMovies.filter(movie =>
       movie.release_month !== null &&
       Number(movie.release_month) === Number(selectedMonth)
+    );
+  }
+
+  if (selectedYear) {
+    filteredMovies = filteredMovies.filter(movie =>
+      movie.release_year !== null &&
+      Number(movie.release_year) === Number(selectedYear)
     );
   }
 
@@ -1423,6 +1433,7 @@ countryFilter.addEventListener('change', renderMovies);
 ratingFilter.addEventListener('change', renderMovies);
 monthFilter.addEventListener('change', renderMovies);
 yearFilter.addEventListener('change', renderMovies);
+watchedFilter.addEventListener('change', renderMovies);
 sortMode.addEventListener('change', renderMovies);
 
 resetFiltersBtn.addEventListener('click', () => {
@@ -1432,6 +1443,7 @@ resetFiltersBtn.addEventListener('click', () => {
   ratingFilter.value = '';
   monthFilter.value = '';
   yearFilter.value = '';
+  watchedFilter.value = '';
 
   filterCustomSelectElements
     .filter(selectElement => selectElement !== sortMode)
