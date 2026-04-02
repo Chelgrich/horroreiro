@@ -546,6 +546,22 @@ function isMovieWatchedByCurrentUser(movieId) {
   return getCurrentUserRating(movieId) !== null;
 }
 
+function resetFilterControls() {
+  searchInput.value = '';
+  genreFilter.value = '';
+  countryFilter.value = '';
+  ratingFilter.value = '';
+  monthFilter.value = '';
+  yearFilter.value = '';
+  watchedFilter.value = '';
+
+  filterCustomSelectElements
+    .filter(selectElement => selectElement !== sortMode)
+    .forEach(selectElement => {
+      refreshCustomSelect(selectElement);
+    });
+}
+
 /* =========================================================
 JS-БЛОК 12. РАБОТА С POSTER STORAGE
 Загружает новый постер, определяет storage-путь и удаляет
