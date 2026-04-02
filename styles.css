@@ -107,13 +107,15 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 
 .auth-message {
   width: 100%;
+  max-width: 420px;
   box-sizing: border-box;
   min-height: 14px;
   margin: 0;
   font-size: 12px;
-  line-height: 1.2;
+  line-height: 1.4;
   color: #98a2ad;
-  text-align: right;
+  text-align: left;
+  word-break: break-word;
   opacity: 1;
   transition: opacity 0.3s ease;
 }
