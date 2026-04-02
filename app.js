@@ -1260,6 +1260,17 @@ function getPosterHtml(movie, isWatchedByCurrentUser) {
   `;
 }
 
+function renderEmptyState() {
+  container.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-state-title">Ничего не найдено</div>
+      <div class="empty-state-text">
+        Попробуй изменить фильтры, очистить поиск или сбросить параметры отбора.
+      </div>
+    </div>
+  `;
+}
+
 function renderMovies() {
   if (!moviesLoadedSuccessfully) {
     return;
