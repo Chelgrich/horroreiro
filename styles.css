@@ -967,23 +967,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-width: 0;
   }
 
-  .filters input,
-  .filters select,
-  .filters .custom-select,
-  .filters .custom-select-trigger,
-  .filter-reset button {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .filters,
-  .filters .form-row,
-  .filter-reset,
-  .filter-sort {
-    width: 100%;
-    min-width: 0;
-  }
-
   .filter-reset,
   .filter-sort {
     grid-column: auto;
@@ -996,15 +979,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .filter-sort {
     order: 9;
-  }
-
-  .filter-sort .custom-select,
-  .filters .custom-select,
-  .filters input,
-  .filters select,
-  .filter-reset button {
-    width: 100%;
-    min-width: 0;
   }
 
   .modal-dialog {
