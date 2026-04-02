@@ -1114,6 +1114,18 @@ function renderMoviesSkeleton(cardsCount = 8) {
   `).join('');
 }
 
+function getVotesLabel(votesCount) {
+  if (votesCount === 1) {
+    return 'оценка';
+  }
+
+  if (votesCount >= 2 && votesCount <= 4) {
+    return 'оценки';
+  }
+
+  return 'оценок';
+}
+
 function sortMovies(movies, selectedSortMode) {
   if (selectedSortMode === 'alphabet') {
     movies.sort((a, b) =>
