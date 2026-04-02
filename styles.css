@@ -109,15 +109,18 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   width: 100%;
   max-width: 420px;
   box-sizing: border-box;
-  min-height: 14px;
+  height: 40px;
   margin: 0;
   font-size: 12px;
   line-height: 1.4;
   color: #98a2ad;
   text-align: left;
   word-break: break-word;
+  display: flex;
+  align-items: center;
   opacity: 1;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
+  overflow: hidden;
 }
 
 .auth-message.is-hidden {
