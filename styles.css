@@ -822,9 +822,15 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .movies-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .movies-list {
+    grid-template-columns: 1fr;
   }
 
   .page {
@@ -955,17 +961,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movies-list {
     grid-template-columns: 1fr;
   }
-}
-
-@media (max-width: 900px) {
-  .page {
-    padding: 16px;
-    overflow-x: hidden;
-  }
 
   .login-form {
-    width: 100%;
-    min-width: 0;
     flex-direction: column;
     gap: 10px;
   }
@@ -975,33 +972,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-width: 0;
   }
 
-  .auth-actions {
-    width: 100%;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .admin-panel,
-  .user-panel {
-    width: 100%;
-    min-width: 0;
-    justify-content: stretch;
-    margin: 0;
-  }
-
   .admin-panel[style*="display: none"],
   .user-panel[style*="display: none"],
   .login-form[style*="display: none"] {
     display: none !important;
-  }
-
-  .admin-panel button,
-  .user-panel button {
-    width: 100%;
-    min-width: 0;
   }
 
   .filters {
@@ -1022,26 +996,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     justify-self: stretch;
   }
 
-  .filters input,
-  .filters select,
-  .filters .custom-select,
-  .filters .custom-select-trigger,
-  .filter-reset button,
-  .filter-sort button {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .modal-dialog {
-    width: auto;
-    max-height: calc(100vh - 32px);
-    margin: 16px;
-  }
-
-  .movies-list {
-    grid-template-columns: 1fr !important;
-  }
-
   .movie-card {
     padding: 16px 16px 20px;
   }
@@ -1051,10 +1005,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     margin: -4px -16px 14px;
   }
 
-  .auth-toast {
-    margin-top: 12px;
-  }
-
+  /* mobile toast */
   .page-header-feedback {
     min-height: 0;
     height: 0;
