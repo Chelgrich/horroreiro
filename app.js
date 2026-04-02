@@ -858,7 +858,7 @@ async function addMovie(event) {
     formMessage.textContent = 'Сохраняю...';
     console.log('[addMovie] before insert movie');
 
-    const { data: insertedMovie, error: insertMovieError } = await withTimeout(
+    const { error: insertMovieError } = await withTimeout(
       supabaseClient
         .from('movies')
         .insert({
@@ -872,9 +872,7 @@ async function addMovie(event) {
           release_year: releaseYear ? Number(releaseYear) : null,
           sort_order: sortOrder ? Number(sortOrder) : null,
           owner_id: currentUser.id
-        })
-        .select()
-        .single(),
+        }),
       20000,
       'Таймаут сохранения фильма в таблицу movies'
     );
@@ -882,6 +880,26 @@ async function addMovie(event) {
     if (insertMovieError) {
       console.error('[addMovie] insertMovieError', insertMovieError);
       throw insertMovieError;
+    }
+
+    console.log('[addMovie] movie inserted without return payload');
+
+    const { data: insertedMovie, error: insertedMovieFetchError } = await withTimeout(
+      supabaseClient
+        .from('movies')
+        .select('id')
+        .eq('owner_id', currentUser.id)
+        .eq('title', title)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single(),
+      20000,
+      'Таймаут чтения id только что созданного фильма'
+    );
+
+    if (insertedMovieFetchError) {
+      console.error('[addMovie] insertedMovieFetchError', insertedMovieFetchError);
+      throw insertedMovieFetchError;
     }
 
     console.log('[addMovie] insertedMovie', insertedMovie);
