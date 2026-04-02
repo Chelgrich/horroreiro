@@ -482,6 +482,11 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
   align-items: end;
 }
 
+.filters input {
+  height: 44px;
+  padding: 0 12px;
+}
+
 .filter-reset {
   width: 100%;
   grid-column: 1 / 2;
