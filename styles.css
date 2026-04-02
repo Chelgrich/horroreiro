@@ -923,8 +923,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .login-form {
     width: 100%;
     min-width: 0;
-    grid-template-columns: minmax(0, 1fr);
-    justify-content: stretch;
   }
 
   .auth-actions {
