@@ -1017,10 +1017,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     align-items: stretch;
   }
 
-  .movies-list {
-    grid-template-columns: 1fr;
-  }
-
   .login-form {
     flex-direction: column;
     gap: 10px;
