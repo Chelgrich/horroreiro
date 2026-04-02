@@ -908,6 +908,13 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 }
 
 @media (max-width: 900px) {
+
+  h1 {
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+  }
+
   .movies-list {
     grid-template-columns: 1fr;
   }
