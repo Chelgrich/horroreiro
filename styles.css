@@ -49,6 +49,11 @@ CSS-БЛОК 3. ШАПКА СТРАНИЦЫ
   margin-bottom: 24px;
 }
 
+.page-header-feedback {
+  min-height: 66px;
+  margin-top: 14px;
+}
+
 .page-header-top {
   display: flex;
   justify-content: space-between;
@@ -111,7 +116,6 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   width: 100%;
   min-height: 52px;
   box-sizing: border-box;
-  margin-top: 14px;
   padding: 12px 14px;
   background: rgba(20, 24, 29, 0.96);
   border: 1px solid transparent;
@@ -120,6 +124,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   opacity: 0;
   transform: translateY(-4px);
   visibility: hidden;
+  pointer-events: none;
   transition: opacity 0.22s ease, transform 0.22s ease, border-color 0.22s ease, background-color 0.22s ease, box-shadow 0.22s ease;
 }
 
@@ -1055,6 +1060,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .auth-toast {
+    margin-top: 12px;
+  }
+
+  .page-header-feedback {
+    min-height: 74px;
     margin-top: 12px;
   }
 }
