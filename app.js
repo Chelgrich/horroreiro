@@ -115,6 +115,16 @@ function updateAdminStatus() {
   isAdmin = Boolean(currentUser && currentUserRole === 'admin');
 }
 
+function normalizeAdditionalGenreNames(value) {
+  const genreNames = parseCommaSeparated(value);
+
+  if (!genreNames.some(name => normalizeSearchText(name) === 'ужасы')) {
+    return ['Ужасы', ...genreNames];
+  }
+
+  return genreNames;
+}
+
 async function loadCurrentUserRole() {
   if (!currentUser) {
     currentUserRole = null;
@@ -474,6 +484,18 @@ async function fetchMovieRatings() {
   allMovieRatings = data || [];
 }
 
+async function reloadCatalogData() {
+  await Promise.all([
+    loadGenres(),
+    loadCountries(),
+    fetchMovies(),
+    fetchMovieRatings()
+  ]);
+
+  initCustomSelects();
+  renderMovies();
+}
+
 /* =========================================================
 JS-БЛОК 11. РАСЧЁТ И ЧТЕНИЕ ОЦЕНОК
 Собирает оценки фильма, считает средний рейтинг и находит
@@ -715,11 +737,7 @@ async function addMovie(event) {
     ? posterFileInput.files[0]
     : null;
 
-  let genreNames = parseCommaSeparated(genresInput.value);
-
-  if (!genreNames.some(name => normalizeSearchText(name) === 'ужасы')) {
-    genreNames = ['Ужасы', ...genreNames];
-  }
+  const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseCommaSeparated(countriesInput.value);
 
   if (!title) {
@@ -764,15 +782,7 @@ async function addMovie(event) {
     closeMovieModal();
     resetFormToCreateMode();
 
-    await Promise.all([
-      loadGenres(),
-      loadCountries(),
-      fetchMovies(),
-      fetchMovieRatings()
-    ]);
-  
-    initCustomSelects();
-    renderMovies();
+    await reloadCatalogData();
   } catch (error) {
     console.error('Ошибка при добавлении фильма:', error);
     formMessage.textContent = 'Ошибка при добавлении фильма. Смотри консоль F12.';
@@ -800,11 +810,7 @@ async function updateMovie(event) {
     ? posterFileInput.files[0]
     : null;
 
-  let genreNames = parseCommaSeparated(genresInput.value);
-
-  if (!genreNames.some(name => normalizeSearchText(name) === 'ужасы')) {
-    genreNames = ['Ужасы', ...genreNames];
-  }
+  const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseCommaSeparated(countriesInput.value);
 
   if (!title) {
@@ -859,14 +865,7 @@ async function updateMovie(event) {
     closeMovieModal();
     resetFormToCreateMode();
 
-    await Promise.all([
-      loadGenres(),
-      loadCountries(),
-      fetchMovies(),
-      fetchMovieRatings()
-    ]);
-
-    renderMovies();
+    await reloadCatalogData();
   } catch (error) {
     console.error('Ошибка при редактировании фильма:', error);
     formMessage.textContent = 'Ошибка при редактировании фильма. Смотри консоль F12.';
@@ -911,12 +910,7 @@ async function deleteMovie(movieId, movieTitle) {
       resetFormToCreateMode();
     }
 
-    await Promise.all([
-      fetchMovies(),
-      fetchMovieRatings()
-    ]);
-
-    renderMovies();
+    await reloadCatalogData();
 
     formMessage.textContent = `Фильм "${movieTitle}" удалён.`;
   } catch (error) {
@@ -1473,15 +1467,7 @@ async function init() {
     renderMovies();
   });
 
-  await Promise.all([
-    loadGenres(),
-    loadCountries(),
-    fetchMovies(),
-    fetchMovieRatings()
-  ]);
-
-  initCustomSelects();
-  renderMovies();
+  await reloadCatalogData();
 }
 
 /* =========================================================
