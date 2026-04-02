@@ -1100,7 +1100,12 @@ async function saveUserMovieRating(movieId, ratingValue) {
     }
 
     await fetchMovieRatings();
-    renderMovies();
+
+    if (watchedFilter.value || ratingFilter.value !== '') {
+      renderMovies();
+    } else {
+      rerenderMovieCard(movieId);
+    }
   } catch (error) {
     console.error('Ошибка сохранения оценки фильма:', error);
   }
@@ -1336,8 +1341,9 @@ function createMovieCard(movie) {
   const isWatchedByCurrentUser = currentUserRating !== null;
 
   card.className = isWatchedByCurrentUser
-    ? 'movie-card movie-card-rated'
-    : 'movie-card';
+  ? 'movie-card movie-card-rated'
+  : 'movie-card';
+  card.dataset.movieId = String(movie.id);
 
   const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
   const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
@@ -1412,6 +1418,25 @@ function createMovieCard(movie) {
   });
 
   return card;
+}
+
+function rerenderMovieCard(movieId) {
+  const existingCard = container.querySelector(`[data-movie-id="${movieId}"]`);
+
+  if (!existingCard) {
+    renderMovies();
+    return;
+  }
+
+  const movie = allMovies.find(item => String(item.id) === String(movieId));
+
+  if (!movie) {
+    renderMovies();
+    return;
+  }
+
+  const newCard = createMovieCard(movie);
+  existingCard.replaceWith(newCard);
 }
 
 function getFilteredMovies() {
