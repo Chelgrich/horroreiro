@@ -1114,6 +1114,60 @@ function renderMoviesSkeleton(cardsCount = 8) {
   `).join('');
 }
 
+function sortMovies(movies, selectedSortMode) {
+  if (selectedSortMode === 'alphabet') {
+    movies.sort((a, b) =>
+      String(a.title || '').localeCompare(String(b.title || ''), 'ru')
+    );
+    return;
+  }
+
+  if (selectedSortMode === 'oldest') {
+    movies.sort((a, b) => {
+      const yearA = a.release_year ?? Infinity;
+      const yearB = b.release_year ?? Infinity;
+
+      if (yearA !== yearB) {
+        return yearA - yearB;
+      }
+
+      const monthA = a.release_month ?? Infinity;
+      const monthB = b.release_month ?? Infinity;
+
+      if (monthA !== monthB) {
+        return monthA - monthB;
+      }
+
+      const orderA = a.sort_order ?? Infinity;
+      const orderB = b.sort_order ?? Infinity;
+
+      return orderA - orderB;
+    });
+    return;
+  }
+
+  movies.sort((a, b) => {
+    const yearA = a.release_year ?? -Infinity;
+    const yearB = b.release_year ?? -Infinity;
+
+    if (yearB !== yearA) {
+      return yearB - yearA;
+    }
+
+    const monthA = a.release_month ?? -Infinity;
+    const monthB = b.release_month ?? -Infinity;
+
+    if (monthB !== monthA) {
+      return monthB - monthA;
+    }
+
+    const orderA = a.sort_order ?? -Infinity;
+    const orderB = b.sort_order ?? -Infinity;
+
+    return orderB - orderA;
+  });
+}
+
 function renderMovies() {
   if (!moviesLoadedSuccessfully) {
     return;
