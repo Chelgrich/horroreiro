@@ -804,9 +804,26 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 
 .movie-rating-summary {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.movie-rating-summary-main {
+  min-width: 0;
+  display: flex;
   align-items: baseline;
   gap: 8px;
-  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.remove-rating-inline-btn {
+  height: 30px;
+  padding: 0 10px;
+  flex: 0 0 auto;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .movie-rating-value {

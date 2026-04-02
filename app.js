@@ -1066,6 +1066,34 @@ JS-БЛОК 20. ПОЛЬЗОВАТЕЛЬСКИЕ ОЦЕНКИ
 Позволяет авторизованному пользователю поставить или обновить
 свою оценку фильму.
 ========================================================== */
+async function removeUserMovieRating(movieId) {
+  if (!currentUser) {
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from('movie_ratings')
+      .delete()
+      .eq('movie_id', movieId)
+      .eq('user_id', currentUser.id);
+
+    if (error) {
+      throw error;
+    }
+
+    await fetchMovieRatings();
+
+    if (watchedFilter.value || ratingFilter.value !== '') {
+      renderMovies();
+    } else {
+      rerenderMovieCard(movieId);
+    }
+  } catch (error) {
+    console.error('Ошибка удаления оценки фильма:', error);
+  }
+}
+
 async function saveUserMovieRating(movieId, ratingValue) {
   if (!currentUser) {
     return;
@@ -1351,13 +1379,28 @@ function createMovieCard(movie) {
   const votesCount = getMovieRatings(movie.id).length;
 
   const ratingSummaryHtml = `
-    <div class="movie-rating-summary">
+  <div class="movie-rating-summary">
+    <div class="movie-rating-summary-main">
       <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
       <span class="movie-rating-meta">
         (${votesCount} ${getVotesLabel(votesCount)})
       </span>
     </div>
-  `;
+    ${
+      currentUserRating !== null
+        ? `
+          <button
+            type="button"
+            class="remove-rating-inline-btn secondary-button"
+            data-remove-rating="true"
+          >
+            Удалить оценку
+          </button>
+        `
+        : ''
+    }
+  </div>
+`;
 
   const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
   const posterHtml = getPosterHtml(movie, isWatchedByCurrentUser);
@@ -1389,6 +1432,7 @@ function createMovieCard(movie) {
   const deleteBtn = card.querySelector('.delete-movie-btn');
   const starsContainer = card.querySelector('.movie-user-rating-stars');
   const voteButtons = card.querySelectorAll('.rating-star-btn');
+  const removeRatingBtn = card.querySelector('.remove-rating-inline-btn');
   const posterImage = card.querySelector('.movie-poster');
   const posterSkeleton = card.querySelector('.movie-poster-skeleton');
 
@@ -1416,6 +1460,12 @@ function createMovieCard(movie) {
     starsContainer,
     voteButtons
   });
+
+  if (removeRatingBtn) {
+    removeRatingBtn.addEventListener('click', () => {
+      removeUserMovieRating(movie.id);
+    });
+  }
 
   return card;
 }
