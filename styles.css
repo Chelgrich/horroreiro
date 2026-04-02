@@ -1077,7 +1077,35 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .page-header-feedback {
-    min-height: 74px;
-    margin-top: 12px;
+    min-height: 0;
+    height: 0;
+    margin-top: 0;
+  }
+
+  .auth-toast {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1100;
+    width: auto;
+    min-height: 0;
+    margin-top: 0;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0);
+  }
+
+  .auth-toast.is-visible {
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  }
+
+  .auth-toast.is-hidden {
+    opacity: 0;
+    transform: translateY(8px);
+    visibility: hidden;
+  }
+
+  .auth-message {
+    font-size: 12px;
+    line-height: 1.4;
   }
 }
