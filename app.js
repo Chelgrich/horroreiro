@@ -858,22 +858,26 @@ async function addMovie(event) {
     formMessage.textContent = 'Сохраняю...';
     console.log('[addMovie] before insert movie');
 
-    const { data: insertedMovie, error: insertMovieError } = await supabaseClient
-      .from('movies')
-      .insert({
-        title,
-        original_title: originalTitle || null,
-        year: year ? Number(year) : null,
-        director: director || null,
-        rating: 0,
-        poster_url: finalPosterUrl,
-        release_month: releaseMonth ? Number(releaseMonth) : null,
-        release_year: releaseYear ? Number(releaseYear) : null,
-        sort_order: sortOrder ? Number(sortOrder) : null,
-        owner_id: currentUser.id
-      })
-      .select()
-      .single();
+    const { data: insertedMovie, error: insertMovieError } = await withTimeout(
+      supabaseClient
+        .from('movies')
+        .insert({
+          title,
+          original_title: originalTitle || null,
+          year: year ? Number(year) : null,
+          director: director || null,
+          rating: 0,
+          poster_url: finalPosterUrl,
+          release_month: releaseMonth ? Number(releaseMonth) : null,
+          release_year: releaseYear ? Number(releaseYear) : null,
+          sort_order: sortOrder ? Number(sortOrder) : null,
+          owner_id: currentUser.id
+        })
+        .select()
+        .single(),
+      20000,
+      'Таймаут сохранения фильма в таблицу movies'
+    );
 
     if (insertMovieError) {
       console.error('[addMovie] insertMovieError', insertMovieError);
@@ -881,9 +885,15 @@ async function addMovie(event) {
     }
 
     console.log('[addMovie] insertedMovie', insertedMovie);
+    console.log('[addMovie] before replaceMovieRelations');
 
-    await replaceMovieRelations(insertedMovie.id, genreNames, countryNames);
+    await withTimeout(
+      replaceMovieRelations(insertedMovie.id, genreNames, countryNames),
+      20000,
+      'Таймаут сохранения связей фильма'
+    );
 
+    console.log('[addMovie] after replaceMovieRelations');
     console.log('[addMovie] success', insertedMovie.id);
 
     formMessage.textContent = 'Фильм успешно добавлен.';
