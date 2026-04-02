@@ -1292,11 +1292,7 @@ function bindPosterLoadState(posterImage, posterSkeleton) {
   }, { once: true });
 }
 
-function renderMovies() {
-  if (!moviesLoadedSuccessfully) {
-    return;
-  }
-
+function getFilteredMovies() {
   const selectedGenre = genreFilter.value;
   const selectedCountry = countryFilter.value;
   const minRating = ratingFilter.value;
@@ -1359,6 +1355,16 @@ function renderMovies() {
   }
 
   sortMovies(filteredMovies, selectedSortMode);
+
+  return filteredMovies;
+}
+
+function renderMovies() {
+  if (!moviesLoadedSuccessfully) {
+    return;
+  }
+
+  const filteredMovies = getFilteredMovies();
 
   if (filteredMovies.length === 0) {
     renderEmptyState();
