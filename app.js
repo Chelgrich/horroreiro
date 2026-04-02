@@ -542,6 +542,10 @@ function getCurrentUserRating(movieId) {
   return userRatingRow ? Number(userRatingRow.rating) : null;
 }
 
+function isMovieWatchedByCurrentUser(movieId) {
+  return getCurrentUserRating(movieId) !== null;
+}
+
 /* =========================================================
 JS-БЛОК 12. РАБОТА С POSTER STORAGE
 Загружает новый постер, определяет storage-путь и удаляет
