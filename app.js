@@ -1499,20 +1499,7 @@ watchedFilter.addEventListener('change', renderMovies);
 sortMode.addEventListener('change', renderMovies);
 
 resetFiltersBtn.addEventListener('click', () => {
-  searchInput.value = '';
-  genreFilter.value = '';
-  countryFilter.value = '';
-  ratingFilter.value = '';
-  monthFilter.value = '';
-  yearFilter.value = '';
-  watchedFilter.value = '';
-
-  filterCustomSelectElements
-    .filter(selectElement => selectElement !== sortMode)
-    .forEach(selectElement => {
-      refreshCustomSelect(selectElement);
-    });
-
+  resetFilterControls();
   renderMovies();
 });
 
