@@ -55,11 +55,12 @@ CSS-БЛОК 3. ШАПКА СТРАНИЦЫ
 }
 
 .page-header-top {
+  min-height: 94px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 /* =========================================================
@@ -70,13 +71,13 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   flex: 1;
   min-width: 0;
   max-width: 720px;
-  min-height: 92px;
+  height: 94px;
   margin-left: auto;
   display: grid;
   grid-template-rows: 44px 44px;
   align-content: start;
   justify-items: stretch;
-  gap: 4px;
+  gap: 6px;
 }
 
 .auth-controls.auth-controls-pending {
@@ -101,6 +102,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  align-self: start;
   gap: 10px;
 }
 
@@ -819,15 +821,18 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .page-header-top {
+    min-height: 0;
     flex-direction: column;
     align-items: stretch;
+    flex-wrap: nowrap;
   }
 
   .auth-controls {
     width: 100%;
     min-width: 0;
     max-width: none;
-    min-height: auto;
+    height: auto;
+    min-height: 0;
     margin-left: 0;
     display: flex;
     flex-direction: column;
@@ -953,7 +958,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     width: 100%;
     max-width: none;
     min-width: 0;
-    min-height: auto;
+    height: auto;
+    min-height: 0;
     margin-left: 0;
     display: flex;
     flex-direction: column;
