@@ -449,6 +449,30 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   align-items: start;
 }
 
+.empty-state {
+  grid-column: 1 / -1;
+  padding: 36px 24px;
+  text-align: center;
+  background: #15191d;
+  border: 1px solid #2a3038;
+  border-radius: 8px;
+}
+
+.empty-state-title {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #ffffff;
+}
+
+.empty-state-text {
+  max-width: 520px;
+  margin: 10px auto 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: #9da6b1;
+}
+
 /* =========================================================
 CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 Базовое оформление карточки и текстового содержимого.
