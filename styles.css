@@ -55,10 +55,10 @@ CSS-БЛОК 3. ШАПКА СТРАНИЦЫ
 }
 
 .page-header-top {
-  min-height: 94px;
+  height: 46px;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
   flex-wrap: nowrap;
 }
@@ -71,13 +71,12 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   flex: 1;
   min-width: 0;
   max-width: 720px;
-  height: 94px;
+  height: 46px;
   margin-left: auto;
-  display: grid;
-  grid-template-rows: 44px 44px;
-  align-content: start;
-  justify-items: stretch;
-  gap: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .auth-controls.auth-controls-pending {
@@ -85,12 +84,9 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .login-form {
-  min-height: 44px;
-  display: grid;
-  grid-template-columns: 200px 200px auto auto;
-  justify-content: end;
-  gap: 10px;
+  display: flex;
   align-items: center;
+  gap: 10px;
 }
 
 .login-form input {
@@ -98,11 +94,8 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .auth-actions {
-  min-height: 44px;
   display: flex;
-  justify-content: flex-end;
   align-items: center;
-  align-self: start;
   gap: 10px;
 }
 
@@ -171,6 +164,12 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   color: #b6f0c0;
 }
 
+.login-form input,
+.login-form button,
+.admin-panel button,
+.user-panel button {
+  height: 36px;
+}
 /* =========================================================
 CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 Унифицированное оформление смысловых блоков страницы.
