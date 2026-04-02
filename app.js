@@ -12,6 +12,7 @@ const loginEmail = document.getElementById('loginEmail');
 const loginPassword = document.getElementById('loginPassword');
 const registerButton = document.getElementById('registerButton');
 const logoutButton = document.getElementById('logoutButton');
+const authToast = document.getElementById('authToast');
 const authMessage = document.getElementById('authMessage');
 
 const adminPanel = document.getElementById('adminPanel');
@@ -165,7 +166,7 @@ JS-БЛОК 6. РАБОТА С СООБЩЕНИЯМИ АВТОРИЗАЦИИ
 Показывает, очищает и автоматически скрывает статусы auth-блока.
 ========================================================== */
 function showAuthMessage(text, type = 'info', autoHide = false) {
-  if (!authMessage) {
+  if (!authMessage || !authToast) {
     return;
   }
 
@@ -175,30 +176,39 @@ function showAuthMessage(text, type = 'info', autoHide = false) {
   }
 
   authMessage.textContent = text;
-  authMessage.classList.remove('is-hidden', 'is-error', 'is-success');
+  authToast.classList.remove('is-hidden', 'is-error', 'is-success');
+  authMessage.classList.remove('is-error', 'is-success');
 
   if (type === 'error') {
+    authToast.classList.add('is-error');
     authMessage.classList.add('is-error');
   }
 
   if (type === 'success') {
+    authToast.classList.add('is-success');
     authMessage.classList.add('is-success');
   }
 
+  requestAnimationFrame(() => {
+    authToast.classList.add('is-visible');
+  });
+
   if (autoHide) {
     authMessageTimer = setTimeout(() => {
-      authMessage.classList.add('is-hidden');
+      authToast.classList.remove('is-visible');
 
       setTimeout(() => {
+        authToast.classList.add('is-hidden');
+        authToast.classList.remove('is-error', 'is-success');
+        authMessage.classList.remove('is-error', 'is-success');
         authMessage.textContent = '';
-        authMessage.classList.remove('is-hidden', 'is-error', 'is-success');
-      }, 300);
-    }, 2000);
+      }, 250);
+    }, 2600);
   }
 }
 
 function clearAuthMessage() {
-  if (!authMessage) {
+  if (!authMessage || !authToast) {
     return;
   }
 
@@ -207,8 +217,10 @@ function clearAuthMessage() {
     authMessageTimer = null;
   }
 
+  authToast.classList.remove('is-visible', 'is-error', 'is-success');
+  authToast.classList.add('is-hidden');
+  authMessage.classList.remove('is-error', 'is-success');
   authMessage.textContent = '';
-  authMessage.classList.remove('is-hidden', 'is-error', 'is-success');
 }
 
 /* =========================================================

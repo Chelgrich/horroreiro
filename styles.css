@@ -105,34 +105,57 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   gap: 10px;
 }
 
-.auth-message {
-  width: 100%;
-  max-width: 420px;
+.auth-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1100;
+  width: min(420px, calc(100vw - 32px));
+  padding: 12px 14px;
   box-sizing: border-box;
-  height: 40px;
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.4;
-  color: #98a2ad;
-  text-align: left;
-  word-break: break-word;
-  display: flex;
-  align-items: center;
-  opacity: 1;
-  transition: opacity 0.25s ease;
-  overflow: hidden;
+  background: rgba(20, 24, 29, 0.96);
+  border: 1px solid #313842;
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
 }
 
-.auth-message.is-hidden {
+.auth-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.auth-toast.is-hidden {
   opacity: 0;
+  transform: translateY(8px);
+}
+
+.auth-toast.is-error {
+  border-color: rgba(255, 123, 114, 0.45);
+}
+
+.auth-toast.is-success {
+  border-color: rgba(86, 211, 100, 0.45);
+}
+
+.auth-message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #c7d0da;
+  text-align: left;
+  word-break: break-word;
 }
 
 .auth-message.is-error {
-  color: #ff7b72;
+  color: #ffb4ae;
 }
 
 .auth-message.is-success {
-  color: #56d364;
+  color: #8ee7a0;
 }
 
 /* =========================================================
@@ -1017,5 +1040,12 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movie-poster-wrapper {
     width: calc(100% + 32px);
     margin: -4px -16px 14px;
+  }
+
+  .auth-toast {
+    right: 16px;
+    left: 16px;
+    bottom: 16px;
+    width: auto;
   }
 }
