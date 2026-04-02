@@ -1271,6 +1271,27 @@ function renderEmptyState() {
   `;
 }
 
+function bindPosterLoadState(posterImage, posterSkeleton) {
+  if (!posterImage || !posterSkeleton) {
+    return;
+  }
+
+  const handlePosterReady = () => {
+    posterImage.classList.add('is-loaded');
+    posterSkeleton.classList.add('is-hidden');
+  };
+
+  if (posterImage.complete) {
+    handlePosterReady();
+    return;
+  }
+
+  posterImage.addEventListener('load', handlePosterReady, { once: true });
+  posterImage.addEventListener('error', () => {
+    posterSkeleton.classList.add('is-hidden');
+  }, { once: true });
+}
+
 function renderMovies() {
   if (!moviesLoadedSuccessfully) {
     return;
