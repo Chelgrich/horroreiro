@@ -928,13 +928,15 @@ async function restoreSession() {
 
   if (error) {
     console.error('Ошибка получения сессии:', error);
-    currentUser = null;
-    updateAdminStatus();
-    updateAuthUI();
+    await applyCurrentSessionUser(null);
     return;
   }
 
-  currentUser = data.session?.user ?? null;
+  await applyCurrentSessionUser(data.session?.user ?? null);
+}
+
+async function applyCurrentSessionUser(user) {
+  currentUser = user ?? null;
   await loadCurrentUserRole();
   updateAuthUI();
 }
@@ -972,10 +974,8 @@ async function login(event) {
     return;
   }
 
-  currentUser = data.user ?? null;
-  await loadCurrentUserRole();
+  await applyCurrentSessionUser(data.user ?? null);
   loginPassword.value = '';
-  updateAuthUI();
   renderMovies();
 
   showAuthMessage('Вход выполнен.', 'success', true);
@@ -1024,10 +1024,7 @@ async function logout() {
     return;
   }
 
-  currentUser = null;
-  currentUserRole = null;
-  isAdmin = false;
-  updateAuthUI();
+  await applyCurrentSessionUser(null);
   renderMovies();
   showAuthMessage('Вы вышли из аккаунта.', 'success', true);
 }
@@ -1461,9 +1458,7 @@ async function init() {
   bindCustomSelectGlobalEvents();
 
   supabaseClient.auth.onAuthStateChange(async (_event, session) => {
-    currentUser = session?.user ?? null;
-    await loadCurrentUserRole();
-    updateAuthUI();
+    await applyCurrentSessionUser(session?.user ?? null);
     renderMovies();
   });
 
