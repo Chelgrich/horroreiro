@@ -1340,14 +1340,7 @@ function renderMovies() {
   sortMovies(filteredMovies, selectedSortMode);
 
   if (filteredMovies.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-title">Ничего не найдено</div>
-        <div class="empty-state-text">
-          Попробуй изменить фильтры, очистить поиск или сбросить параметры отбора.
-        </div>
-      </div>
-    `;
+    renderEmptyState();
     return;
   }
 
