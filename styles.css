@@ -945,10 +945,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-width: 0;
   }
 
-  .login-form > * {
-    min-width: 0;
-  }
-
   .auth-message {
     text-align: left;
   }
