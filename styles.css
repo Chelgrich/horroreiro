@@ -316,6 +316,11 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
   box-shadow: 0 0 0 3px rgba(92, 107, 124, 0.2);
 }
 
+.custom-select:not(.is-placeholder-selected) .custom-select-trigger:hover .custom-select-label,
+.custom-select:not(.is-placeholder-selected).is-open .custom-select-label {
+  color: #ffffff;
+}
+
 .custom-select.is-open {
   z-index: 30;
 }
@@ -330,13 +335,18 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
   min-width: 0;
   padding-right: 8px;
   text-align: left;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  color: #edf2f7;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: color 0.18s ease, opacity 0.18s ease;
 }
 
 .custom-select.is-placeholder-selected .custom-select-label {
-  color: #9aa3ad;
+  font-weight: 400;
+  color: #8f99a5;
 }
 
 .custom-select-dropdown {
