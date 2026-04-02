@@ -828,10 +828,12 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .page-header-top {
+    height: auto;
     min-height: 0;
     flex-direction: column;
     align-items: stretch;
     flex-wrap: nowrap;
+    gap: 12px;
   }
 
   .auth-controls {
@@ -844,6 +846,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
   }
 
   .login-form {
@@ -957,8 +960,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .page-header-top {
+    height: auto;
+    min-height: 0;
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
   }
 
   .auth-controls {
@@ -971,6 +977,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
   }
 
   .login-form {
@@ -988,6 +995,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .auth-actions {
     width: 100%;
     min-width: 0;
+    display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
@@ -998,6 +1006,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     width: 100%;
     min-width: 0;
     justify-content: stretch;
+    margin: 0;
   }
 
   .admin-panel[style*="display: none"],
