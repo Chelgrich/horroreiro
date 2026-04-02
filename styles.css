@@ -266,7 +266,10 @@ button {
 }
 
 input {
-  padding: 10px 12px;
+  height: 36px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
   color: #f2f2f2;
   background: #121519;
   border: 1px solid #313842;
@@ -441,7 +444,11 @@ CSS-БЛОК 9. КНОПКИ
 Основной и вторичный стиль кнопок.
 ========================================================== */
 button {
-  padding: 10px 14px;
+  height: 36px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: #ffffff;
   cursor: pointer;
   background: #5b8cff;
@@ -454,6 +461,7 @@ button:hover {
 }
 
 .secondary-button {
+  height: 36px;
   color: #e7ebf0;
   background: #1a1f26;
   border-color: #353d48;
