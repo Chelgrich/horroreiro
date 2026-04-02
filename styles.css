@@ -963,27 +963,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     overflow-x: hidden;
   }
 
-  .page-header-top {
-    height: auto;
-    min-height: 0;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .auth-controls {
-    width: 100%;
-    max-width: none;
-    min-width: 0;
-    height: auto;
-    min-height: 0;
-    margin-left: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
   .login-form {
     width: 100%;
     min-width: 0;
@@ -1025,14 +1004,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-width: 0;
   }
 
-  .auth-message {
-    text-align: left;
-  }
-
-  .section {
-    padding: 16px;
-  }
-
   .filters {
     display: grid !important;
     grid-template-columns: 1fr !important;
@@ -1065,11 +1036,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     width: auto;
     max-height: calc(100vh - 32px);
     margin: 16px;
-  }
-
-  .modal-header {
-    flex-direction: column;
-    align-items: stretch;
   }
 
   .movies-list {
