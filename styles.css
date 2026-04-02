@@ -881,3 +881,109 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 900px) {
+  .page {
+    padding: 16px;
+    overflow-x: hidden;
+  }
+
+  .page-header-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .auth-controls {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin-left: 0;
+    align-items: stretch;
+  }
+
+  .login-form {
+    width: 100%;
+    min-width: 0;
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .login-form > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .auth-actions {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .admin-panel,
+  .user-panel {
+    width: 100%;
+    min-width: 0;
+    justify-content: stretch;
+  }
+
+  .admin-panel button,
+  .user-panel button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .auth-message {
+    text-align: left;
+  }
+
+  .section {
+    padding: 16px;
+  }
+
+  .filters {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+    align-items: stretch;
+  }
+
+  .filters > *,
+  .filters .form-row,
+  .filter-reset,
+  .filter-sort {
+    width: 100%;
+    min-width: 0;
+    grid-column: 1 / -1 !important;
+    margin-top: 0 !important;
+    justify-self: stretch;
+  }
+
+  .filters input,
+  .filters select,
+  .filters .custom-select,
+  .filters .custom-select-trigger,
+  .filter-reset button,
+  .filter-sort button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .modal-dialog {
+    width: auto;
+    max-height: calc(100vh - 32px);
+    margin: 16px;
+  }
+
+  .modal-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .movies-list {
+    grid-template-columns: 1fr !important;
+  }
+}
