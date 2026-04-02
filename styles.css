@@ -563,6 +563,11 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   border-radius: 8px;
 }
 
+.movie-card-rated {
+  border-color: rgba(91, 140, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(91, 140, 255, 0.18);
+}
+
 .movie-card-skeleton {
   pointer-events: none;
 }

@@ -1215,13 +1215,16 @@ function renderMovies() {
 
   filteredMovies.forEach(movie => {
     const card = document.createElement('article');
-    card.className = 'movie-card';
+    const currentUserRating = getCurrentUserRating(movie.id);
+
+    card.className = currentUserRating !== null
+      ? 'movie-card movie-card-rated'
+      : 'movie-card';
 
     const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
     const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
     const averageRating = getMovieAverageRating(movie.id);
     const votesCount = getMovieRatings(movie.id).length;
-    const currentUserRating = getCurrentUserRating(movie.id);
 
     const ratingSummaryHtml = `
       <div class="movie-rating-summary">
