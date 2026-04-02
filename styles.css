@@ -106,21 +106,17 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .auth-toast {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  z-index: 1100;
-  width: min(420px, calc(100vw - 32px));
-  padding: 12px 14px;
+  width: 100%;
   box-sizing: border-box;
+  margin-top: 14px;
+  padding: 12px 14px;
   background: rgba(20, 24, 29, 0.96);
   border: 1px solid #313842;
   border-radius: 10px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
   opacity: 0;
-  transform: translateY(8px);
-  pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+  transform: translateY(-4px);
+  transition: opacity 0.22s ease, transform 0.22s ease, border-color 0.22s ease, background-color 0.22s ease;
 }
 
 .auth-toast.is-visible {
@@ -129,16 +125,17 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .auth-toast.is-hidden {
-  opacity: 0;
-  transform: translateY(8px);
+  display: none;
 }
 
 .auth-toast.is-error {
-  border-color: rgba(255, 123, 114, 0.45);
+  background: rgba(58, 24, 24, 0.92);
+  border-color: rgba(255, 123, 114, 0.4);
 }
 
 .auth-toast.is-success {
-  border-color: rgba(86, 211, 100, 0.45);
+  background: rgba(20, 46, 29, 0.92);
+  border-color: rgba(86, 211, 100, 0.38);
 }
 
 .auth-message {
@@ -151,11 +148,11 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .auth-message.is-error {
-  color: #ffb4ae;
+  color: #ffd0cb;
 }
 
 .auth-message.is-success {
-  color: #8ee7a0;
+  color: #b6f0c0;
 }
 
 /* =========================================================
@@ -1043,9 +1040,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .auth-toast {
-    right: 16px;
-    left: 16px;
-    bottom: 16px;
-    width: auto;
+    margin-top: 12px;
   }
 }

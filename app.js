@@ -176,7 +176,7 @@ function showAuthMessage(text, type = 'info', autoHide = false) {
   }
 
   authMessage.textContent = text;
-  authToast.classList.remove('is-hidden', 'is-error', 'is-success');
+  authToast.classList.remove('is-hidden', 'is-error', 'is-success', 'is-visible');
   authMessage.classList.remove('is-error', 'is-success');
 
   if (type === 'error') {
