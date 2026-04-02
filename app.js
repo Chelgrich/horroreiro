@@ -1426,21 +1426,7 @@ function renderMovies() {
     const posterImage = card.querySelector('.movie-poster');
     const posterSkeleton = card.querySelector('.movie-poster-skeleton');
 
-    if (posterImage && posterSkeleton) {
-      const handlePosterReady = () => {
-        posterImage.classList.add('is-loaded');
-        posterSkeleton.classList.add('is-hidden');
-      };
-
-      if (posterImage.complete) {
-        handlePosterReady();
-      } else {
-        posterImage.addEventListener('load', handlePosterReady, { once: true });
-        posterImage.addEventListener('error', () => {
-          posterSkeleton.classList.add('is-hidden');
-        }, { once: true });
-      }
-    }
+    bindPosterLoadState(posterImage, posterSkeleton);
 
     if (actionsBlock && !editBtn && !deleteBtn) {
       actionsBlock.remove();
