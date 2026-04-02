@@ -1051,6 +1051,26 @@ async function saveUserMovieRating(movieId, ratingValue) {
 JS-БЛОК 21. ОТРИСОВКА КАТАЛОГА ФИЛЬМОВ
 Применяет поиск, фильтры и сортировку, затем выводит карточки.
 ========================================================== */
+function renderMoviesSkeleton(cardsCount = 8) {
+  container.innerHTML = Array.from({ length: cardsCount }, () => `
+    <article class="movie-card movie-card-skeleton">
+      <div class="movie-poster-wrapper movie-poster-wrapper-skeleton">
+        <div class="movie-poster-skeleton" aria-hidden="true"></div>
+      </div>
+
+      <div class="movie-text-skeleton movie-text-skeleton-title"></div>
+      <div class="movie-text-skeleton"></div>
+      <div class="movie-text-skeleton"></div>
+      <div class="movie-text-skeleton"></div>
+      <div class="movie-text-skeleton"></div>
+
+      <div class="movie-rating-block">
+        <div class="movie-text-skeleton movie-rating-skeleton"></div>
+      </div>
+    </article>
+  `).join('');
+}
+
 function renderMovies() {
   if (!moviesLoadedSuccessfully) {
     return;
@@ -1404,7 +1424,7 @@ JS-БЛОК 23. ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
 загружает данные и запускает первую отрисовку.
 ========================================================== */
 async function init() {
-  container.innerHTML = 'Загрузка...';
+  renderMoviesSkeleton();
 
   await restoreSession();
 

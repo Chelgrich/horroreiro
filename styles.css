@@ -466,7 +466,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 }
 
 .empty-state-text {
-  max-width: 520px;
+  max-width: 540px;
   margin: 10px auto 0;
   font-size: 15px;
   line-height: 1.45;
@@ -487,6 +487,66 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   background: #15191d;
   border: 1px solid #2a3038;
   border-radius: 8px;
+}
+
+.movie-card-skeleton {
+  pointer-events: none;
+}
+
+.movie-card-skeleton .movie-poster-wrapper {
+  margin-bottom: 14px;
+}
+
+.movie-text-skeleton,
+.movie-rating-skeleton {
+  border-radius: 6px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.04) 0%,
+      rgba(255, 255, 255, 0.09) 50%,
+      rgba(255, 255, 255, 0.04) 100%
+    ),
+    #171b20;
+  background-size: 200% 100%;
+  animation: poster-skeleton-shimmer 1.4s linear infinite;
+}
+
+.movie-text-skeleton {
+  height: 14px;
+  margin-top: 2px;
+}
+
+.movie-text-skeleton-title {
+  width: 72%;
+  height: 24px;
+  margin-top: 0;
+}
+
+.movie-card-skeleton .movie-text-skeleton:nth-of-type(3) {
+  width: 88%;
+}
+
+.movie-card-skeleton .movie-text-skeleton:nth-of-type(4) {
+  width: 94%;
+}
+
+.movie-card-skeleton .movie-text-skeleton:nth-of-type(5) {
+  width: 81%;
+}
+
+.movie-card-skeleton .movie-text-skeleton:nth-of-type(6) {
+  width: 76%;
+}
+
+.movie-rating-skeleton {
+  width: 120px;
+  height: 24px;
+  margin-top: 8px;
+}
+
+.movie-poster-wrapper-skeleton {
+  background: #0f1114;
 }
 
 .movie-card h3 {
