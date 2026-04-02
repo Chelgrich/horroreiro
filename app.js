@@ -1292,6 +1292,112 @@ function bindPosterLoadState(posterImage, posterSkeleton) {
   }, { once: true });
 }
 
+function createMovieCard(movie) {
+  const card = document.createElement('article');
+  const currentUserRating = getCurrentUserRating(movie.id);
+  const isWatchedByCurrentUser = currentUserRating !== null;
+
+  card.className = isWatchedByCurrentUser
+    ? 'movie-card movie-card-rated'
+    : 'movie-card';
+
+  const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
+  const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
+  const averageRating = getMovieAverageRating(movie.id);
+  const votesCount = getMovieRatings(movie.id).length;
+
+  const ratingSummaryHtml = `
+    <div class="movie-rating-summary">
+      <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
+      <span class="movie-rating-meta">
+        (${votesCount} ${getVotesLabel(votesCount)})
+      </span>
+    </div>
+  `;
+
+  const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
+  const posterHtml = getPosterHtml(movie, isWatchedByCurrentUser);
+
+  card.innerHTML = `
+    ${posterHtml}
+    <h3>${movie.title}</h3>
+    <p>Оригинальное название: ${movie.original_title ?? '-'}</p>
+    <p>Год: ${movie.year ?? '-'}</p>
+    <p>Режиссёр: ${movie.director ?? '-'}</p>
+    <p>Жанры: ${genres || '-'}</p>
+    <p>Страны: ${countries || '-'}</p>
+
+    <div class="movie-rating-block">
+      ${ratingSummaryHtml}
+      ${userRatingControlsHtml}
+    </div>
+
+    <div class="movie-card-actions">
+      ${isAdmin ? `
+        <button type="button" class="edit-movie-btn">Редактировать</button>
+        <button type="button" class="delete-movie-btn secondary-button">Удалить</button>
+      ` : ''}
+    </div>
+  `;
+
+  const actionsBlock = card.querySelector('.movie-card-actions');
+  const editBtn = card.querySelector('.edit-movie-btn');
+  const deleteBtn = card.querySelector('.delete-movie-btn');
+  const starsContainer = card.querySelector('.movie-user-rating-stars');
+  const voteButtons = card.querySelectorAll('.rating-star-btn');
+  const posterImage = card.querySelector('.movie-poster');
+  const posterSkeleton = card.querySelector('.movie-poster-skeleton');
+
+  bindPosterLoadState(posterImage, posterSkeleton);
+
+  if (actionsBlock && !editBtn && !deleteBtn) {
+    actionsBlock.remove();
+  }
+
+  if (editBtn) {
+    editBtn.addEventListener('click', () => {
+      fillFormForEdit(movie);
+    });
+  }
+
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', () => {
+      deleteMovie(movie.id, movie.title);
+    });
+  }
+
+  if (starsContainer && voteButtons.length > 0) {
+    const applyStarState = (activeValue, mode = 'selected') => {
+      voteButtons.forEach(button => {
+        const buttonValue = Number(button.dataset.ratingValue);
+        const isFilled = buttonValue <= activeValue;
+
+        button.classList.toggle('is-hovered', mode === 'hover' && isFilled);
+        button.classList.toggle('is-active', mode === 'selected' && isFilled);
+      });
+    };
+
+    voteButtons.forEach(button => {
+      button.addEventListener('mouseenter', () => {
+        const hoverValue = Number(button.dataset.ratingValue);
+        applyStarState(hoverValue, 'hover');
+      });
+
+      button.addEventListener('click', () => {
+        const ratingValue = Number(button.dataset.ratingValue);
+        saveUserMovieRating(movie.id, ratingValue);
+      });
+    });
+
+    starsContainer.addEventListener('mouseleave', () => {
+      const selectedValue = currentUserRating ?? 0;
+      applyStarState(selectedValue, 'selected');
+    });
+  }
+
+  return card;
+}
+
 function getFilteredMovies() {
   const selectedGenre = genreFilter.value;
   const selectedCountry = countryFilter.value;
@@ -1374,110 +1480,8 @@ function renderMovies() {
   container.innerHTML = '';
 
   filteredMovies.forEach(movie => {
-    const card = document.createElement('article');
-    const currentUserRating = getCurrentUserRating(movie.id);
-    const isWatchedByCurrentUser = currentUserRating !== null;
-
-    card.className = isWatchedByCurrentUser
-      ? 'movie-card movie-card-rated'
-      : 'movie-card';
-
-    const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
-    const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
-    const averageRating = getMovieAverageRating(movie.id);
-    const votesCount = getMovieRatings(movie.id).length;
-
-    const ratingSummaryHtml = `
-      <div class="movie-rating-summary">
-        <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
-        <span class="movie-rating-meta">
-          (${votesCount} ${getVotesLabel(votesCount)})
-        </span>
-      </div>
-    `;
-
-    const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
-
-    const posterHtml = getPosterHtml(movie, isWatchedByCurrentUser);
-
-    card.innerHTML = `
-      ${posterHtml}
-      <h3>${movie.title}</h3>
-      <p>Оригинальное название: ${movie.original_title ?? '-'}</p>
-      <p>Год: ${movie.year ?? '-'}</p>
-      <p>Режиссёр: ${movie.director ?? '-'}</p>
-      <p>Жанры: ${genres || '-'}</p>
-      <p>Страны: ${countries || '-'}</p>
-
-      <div class="movie-rating-block">
-        ${ratingSummaryHtml}
-        ${userRatingControlsHtml}
-      </div>
-
-      <div class="movie-card-actions">
-        ${isAdmin ? `
-          <button type="button" class="edit-movie-btn">Редактировать</button>
-          <button type="button" class="delete-movie-btn secondary-button">Удалить</button>
-        ` : ''}
-      </div>
-    `;
-
+    const card = createMovieCard(movie);
     container.appendChild(card);
-
-    const actionsBlock = card.querySelector('.movie-card-actions');
-    const editBtn = card.querySelector('.edit-movie-btn');
-    const deleteBtn = card.querySelector('.delete-movie-btn');
-    const starsContainer = card.querySelector('.movie-user-rating-stars');
-    const voteButtons = card.querySelectorAll('.rating-star-btn');
-    const posterImage = card.querySelector('.movie-poster');
-    const posterSkeleton = card.querySelector('.movie-poster-skeleton');
-
-    bindPosterLoadState(posterImage, posterSkeleton);
-
-    if (actionsBlock && !editBtn && !deleteBtn) {
-      actionsBlock.remove();
-    }
-
-    if (editBtn) {
-      editBtn.addEventListener('click', () => {
-        fillFormForEdit(movie);
-      });
-    }
-
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', () => {
-        deleteMovie(movie.id, movie.title);
-      });
-    }
-
-    if (starsContainer && voteButtons.length > 0) {
-      const applyStarState = (activeValue, mode = 'selected') => {
-        voteButtons.forEach(button => {
-          const buttonValue = Number(button.dataset.ratingValue);
-          const isFilled = buttonValue <= activeValue;
-
-          button.classList.toggle('is-hovered', mode === 'hover' && isFilled);
-          button.classList.toggle('is-active', mode === 'selected' && isFilled);
-        });
-      };
-
-      voteButtons.forEach(button => {
-        button.addEventListener('mouseenter', () => {
-          const hoverValue = Number(button.dataset.ratingValue);
-          applyStarState(hoverValue, 'hover');
-        });
-
-        button.addEventListener('click', () => {
-          const ratingValue = Number(button.dataset.ratingValue);
-          saveUserMovieRating(movie.id, ratingValue);
-        });
-      });
-
-      starsContainer.addEventListener('mouseleave', () => {
-        const selectedValue = currentUserRating ?? 0;
-        applyStarState(selectedValue, 'selected');
-      });
-    }
   });
 }
 
