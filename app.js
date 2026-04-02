@@ -349,9 +349,11 @@ async function loadGenres() {
     return;
   }
 
-  genreFilter.innerHTML = '<option value="">Все</option>';
+  genreFilter.innerHTML = '<option value="">Все доп. жанры</option>';
 
-  data.forEach(item => {
+  data
+  .filter(item => normalizeSearchText(item.name) !== 'ужасы')
+  .forEach(item => {
     const option = document.createElement('option');
     option.value = item.name;
     option.textContent = item.name;
