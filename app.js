@@ -1315,29 +1315,7 @@ function renderMovies() {
       </div>
     `;
 
-    const userRatingControlsHtml = currentUser ? `
-      <div class="movie-user-rating">
-        <div class="movie-user-rating-label">Ваша оценка</div>
-        <div class="movie-user-rating-stars" data-current-rating="${currentUserRating ?? 0}">
-          ${Array.from({ length: 10 }, (_, index) => {
-            const value = index + 1;
-            const isActive = currentUserRating !== null && value <= currentUserRating;
-
-            return `
-              <button
-                type="button"
-                class="rating-star-btn ${isActive ? 'is-active' : ''}"
-                data-rating-value="${value}"
-                aria-label="Оценка ${value} из 10"
-                title="${value}"
-              >
-                ★
-              </button>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    ` : '';
+    const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
 
     const posterHtml = `
       <div class="movie-poster-wrapper">
