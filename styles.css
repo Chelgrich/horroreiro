@@ -907,18 +907,13 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 }
 
-@media (max-width: 900px) {
-
-  h1 {
-    justify-content: center;
-    text-align: center;
-    width: 100%;
-  }
-
+@media (max-width: 680px) {
   .movies-list {
     grid-template-columns: 1fr;
   }
+}
 
+@media (max-width: 900px) {
   .page {
     padding: 16px;
   }
@@ -1027,7 +1022,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .filters {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
     align-items: stretch;
   }
@@ -1038,9 +1033,19 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .filter-sort {
     width: 100%;
     min-width: 0;
-    grid-column: 1 / -1;
     margin-top: 0;
     justify-self: stretch;
+  }
+
+  .filters .form-row,
+  .filter-reset,
+  .filter-sort {
+    grid-column: auto;
+  }
+
+  .filter-reset,
+  .filter-sort {
+    grid-column: span 2;
   }
 
   .movie-card {
@@ -1080,9 +1085,28 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     transform: translateY(8px);
     visibility: hidden;
   }
+  
+  h1 {
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+  }
 
   .auth-message {
     font-size: 12px;
     line-height: 1.4;
+  }
+}
+
+@media (max-width: 680px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .filters > *,
+  .filters .form-row,
+  .filter-reset,
+  .filter-sort {
+    grid-column: 1 / -1;
   }
 }
