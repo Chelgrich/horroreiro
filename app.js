@@ -1313,7 +1313,7 @@ function renderMovies() {
         }
 
         ${
-          currentUserRating !== null
+          isWatchedByCurrentUser
             ? `
               <div class="movie-watched-icon" aria-label="Просмотрено" title="Просмотрено">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
