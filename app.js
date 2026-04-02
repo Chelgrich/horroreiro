@@ -504,8 +504,6 @@ async function uploadPosterFile(file) {
     return null;
   }
 
-  console.log('[uploadPosterFile] file:', file.name, file.size, file.type);
-
   const fileExtension = file.name.includes('.')
     ? file.name.split('.').pop().toLowerCase()
     : 'jpg';
@@ -574,8 +572,6 @@ async function ensureGenres(names) {
     return [];
   }
 
-  console.log('[ensureGenres] names:', names);
-
   const rowsToUpsert = names.map(name => ({ name }));
 
   const { error: upsertError } = await supabaseClient
@@ -586,8 +582,6 @@ async function ensureGenres(names) {
     throw upsertError;
   }
 
-  console.log('[ensureGenres] upsert ok');
-
   const { data, error } = await supabaseClient
     .from('genres')
     .select('id, name')
@@ -596,8 +590,6 @@ async function ensureGenres(names) {
   if (error) {
     throw error;
   }
-
-  console.log('[ensureGenres] select result:', data);
 
   return data;
 }
@@ -607,8 +599,6 @@ async function ensureCountries(names) {
     return [];
   }
 
-  console.log('[ensureCountries] names:', names);
-
   const rowsToUpsert = names.map(name => ({ name }));
 
   const { error: upsertError } = await supabaseClient
@@ -619,8 +609,6 @@ async function ensureCountries(names) {
     throw upsertError;
   }
 
-  console.log('[ensureCountries] upsert ok');
-
   const { data, error } = await supabaseClient
     .from('countries')
     .select('id, name')
@@ -629,8 +617,6 @@ async function ensureCountries(names) {
   if (error) {
     throw error;
   }
-
-  console.log('[ensureCountries] select result:', data);
 
   return data;
 }
@@ -641,21 +627,9 @@ JS-БЛОК 14. ОБНОВЛЕНИЕ СВЯЗЕЙ ФИЛЬМА
 с жанрами и странами.
 ========================================================== */
 async function replaceMovieRelations(movieId, genreNames, countryNames) {
-  console.log('[replaceMovieRelations] start', {
-    movieId,
-    genreNames,
-    countryNames
-  });
-
-  console.log('[replaceMovieRelations] ensureGenres');
   const genreRows = await ensureGenres(genreNames);
-  console.log('[replaceMovieRelations] genreRows:', genreRows);
-
-  console.log('[replaceMovieRelations] ensureCountries');
   const countryRows = await ensureCountries(countryNames);
-  console.log('[replaceMovieRelations] countryRows:', countryRows);
 
-  console.log('[replaceMovieRelations] delete movie_genres');
   const { error: deleteGenresError } = await supabaseClient
     .from('movie_genres')
     .delete()
@@ -665,7 +639,6 @@ async function replaceMovieRelations(movieId, genreNames, countryNames) {
     throw deleteGenresError;
   }
 
-  console.log('[replaceMovieRelations] delete movie_countries');
   const { error: deleteCountriesError } = await supabaseClient
     .from('movie_countries')
     .delete()
@@ -682,8 +655,6 @@ async function replaceMovieRelations(movieId, genreNames, countryNames) {
       position: index
     }));
 
-    console.log('[replaceMovieRelations] insert movie_genres:', movieGenreRows);
-
     const { error } = await supabaseClient
       .from('movie_genres')
       .insert(movieGenreRows);
@@ -699,8 +670,6 @@ async function replaceMovieRelations(movieId, genreNames, countryNames) {
       country_id: country.id
     }));
 
-    console.log('[replaceMovieRelations] insert movie_countries:', movieCountryRows);
-
     const { error } = await supabaseClient
       .from('movie_countries')
       .insert(movieCountryRows);
@@ -709,8 +678,6 @@ async function replaceMovieRelations(movieId, genreNames, countryNames) {
       throw error;
     }
   }
-
-  console.log('[replaceMovieRelations] done');
 }
 
 /* =========================================================
@@ -743,18 +710,13 @@ async function addMovie(event) {
   }
 
   try {
-    console.log('[addMovie] start');
-
     let finalPosterUrl = posterUrl || null;
 
     if (posterFile) {
-      console.log('[addMovie] uploading poster');
       formMessage.textContent = 'Загружаю постер...';
       finalPosterUrl = await uploadPosterFile(posterFile);
-      console.log('[addMovie] poster uploaded:', finalPosterUrl);
     }
 
-    console.log('[addMovie] inserting movie');
     formMessage.textContent = 'Сохраняю...';
 
     const { data: insertedMovie, error: insertMovieError } = await supabaseClient
@@ -774,15 +736,11 @@ async function addMovie(event) {
       .select()
       .single();
 
-    console.log('[addMovie] insert result:', insertedMovie, insertMovieError);
-
     if (insertMovieError) {
       throw insertMovieError;
     }
 
-    console.log('[addMovie] replacing relations');
     await replaceMovieRelations(insertedMovie.id, genreNames, countryNames);
-    console.log('[addMovie] relations replaced');
 
     formMessage.textContent = 'Фильм успешно добавлен.';
     closeMovieModal();
