@@ -113,17 +113,6 @@ function debounce(callback, delay = 200) {
   };
 }
 
-function withTimeout(promise, timeoutMs, timeoutMessage) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error(timeoutMessage));
-      }, timeoutMs);
-    })
-  ]);
-}
-
 function updateAdminStatus() {
   isAdmin = Boolean(currentUser && currentUserRole === 'admin');
 }
@@ -578,58 +567,58 @@ JS-БЛОК 12. РАБОТА С POSTER STORAGE
 Загружает новый постер, определяет storage-путь и удаляет
 старый файл при замене.
 ========================================================== */
-async function uploadPosterFile(file) {
-  if (!file) {
-    return null;
+async function replaceMovieRelations(movieId, genreNames, countryNames) {
+  const genreRows = await ensureGenres(genreNames);
+  const countryRows = await ensureCountries(countryNames);
+
+  const { error: deleteGenresError } = await supabaseClient
+    .from('movie_genres')
+    .delete()
+    .eq('movie_id', movieId);
+
+  if (deleteGenresError) {
+    throw deleteGenresError;
   }
 
-  console.log('[uploadPosterFile] start', {
-    name: file.name,
-    size: file.size,
-    type: file.type
-  });
+  const { error: deleteCountriesError } = await supabaseClient
+    .from('movie_countries')
+    .delete()
+    .eq('movie_id', movieId);
 
-  const fileExtension = file.name.includes('.')
-    ? file.name.split('.').pop().toLowerCase()
-    : 'jpg';
-
-  const safeExtension = fileExtension.replace(/[^a-z0-9]/g, '') || 'jpg';
-  const fileName = `${crypto.randomUUID()}.${safeExtension}`;
-  const filePath = `movies/${fileName}`;
-
-  console.log('[uploadPosterFile] request', {
-    bucket: 'posters',
-    filePath,
-    fileExtension,
-    safeExtension
-  });
-
-  const { error: uploadError } = await withTimeout(
-    supabaseClient.storage
-      .from('posters')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: file.type || undefined
-      }),
-    20000,
-    'Таймаут загрузки постера в Supabase Storage'
-  );
-
-  if (uploadError) {
-    console.error('[uploadPosterFile] uploadError', uploadError);
-    throw uploadError;
+  if (deleteCountriesError) {
+    throw deleteCountriesError;
   }
 
-  console.log('[uploadPosterFile] uploaded', { filePath });
+  if (genreRows.length > 0) {
+    const movieGenreRows = genreRows.map((genre, index) => ({
+      movie_id: movieId,
+      genre_id: genre.id,
+      position: index
+    }));
 
-  const { data } = supabaseClient.storage
-    .from('posters')
-    .getPublicUrl(filePath);
+    const { error } = await supabaseClient
+      .from('movie_genres')
+      .insert(movieGenreRows);
 
-  console.log('[uploadPosterFile] publicUrl', data?.publicUrl);
+    if (error) {
+      throw error;
+    }
+  }
 
-  return data.publicUrl;
+  if (countryRows.length > 0) {
+    const movieCountryRows = countryRows.map(country => ({
+      movie_id: movieId,
+      country_id: country.id
+    }));
+
+    const { error } = await supabaseClient
+      .from('movie_countries')
+      .insert(movieCountryRows);
+
+    if (error) {
+      throw error;
+    }
+  }
 }
 
 function extractPosterStoragePath(publicUrl) {
@@ -825,21 +814,6 @@ async function addMovie(event) {
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseCommaSeparated(countriesInput.value);
 
-  console.log('[addMovie] start', {
-    title,
-    originalTitle,
-    year,
-    releaseMonth,
-    releaseYear,
-    sortOrder,
-    director,
-    posterUrl,
-    hasPosterFile: Boolean(posterFile),
-    genreNames,
-    countryNames,
-    currentUserId: currentUser?.id
-  });
-
   if (!title) {
     formMessage.textContent = 'Название обязательно.';
     return;
@@ -850,69 +824,44 @@ async function addMovie(event) {
 
     if (posterFile) {
       formMessage.textContent = 'Загружаю постер...';
-      console.log('[addMovie] before uploadPosterFile');
       finalPosterUrl = await uploadPosterFile(posterFile);
-      console.log('[addMovie] after uploadPosterFile', finalPosterUrl);
     }
 
     formMessage.textContent = 'Сохраняю...';
-    console.log('[addMovie] before insert movie');
 
-    const { error: insertMovieError } = await withTimeout(
-      supabaseClient
-        .from('movies')
-        .insert({
-          title,
-          original_title: originalTitle || null,
-          year: year ? Number(year) : null,
-          director: director || null,
-          rating: 0,
-          poster_url: finalPosterUrl,
-          release_month: releaseMonth ? Number(releaseMonth) : null,
-          release_year: releaseYear ? Number(releaseYear) : null,
-          sort_order: sortOrder ? Number(sortOrder) : null,
-          owner_id: currentUser.id
-        }),
-      20000,
-      'Таймаут сохранения фильма в таблицу movies'
-    );
+    const { error: insertMovieError } = await supabaseClient
+      .from('movies')
+      .insert({
+        title,
+        original_title: originalTitle || null,
+        year: year ? Number(year) : null,
+        director: director || null,
+        rating: 0,
+        poster_url: finalPosterUrl,
+        release_month: releaseMonth ? Number(releaseMonth) : null,
+        release_year: releaseYear ? Number(releaseYear) : null,
+        sort_order: sortOrder ? Number(sortOrder) : null,
+        owner_id: currentUser.id
+      });
 
     if (insertMovieError) {
-      console.error('[addMovie] insertMovieError', insertMovieError);
       throw insertMovieError;
     }
 
-    console.log('[addMovie] movie inserted without return payload');
-
-    const { data: insertedMovie, error: insertedMovieFetchError } = await withTimeout(
-      supabaseClient
-        .from('movies')
-        .select('id')
-        .eq('owner_id', currentUser.id)
-        .eq('title', title)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single(),
-      20000,
-      'Таймаут чтения id только что созданного фильма'
-    );
+    const { data: insertedMovie, error: insertedMovieFetchError } = await supabaseClient
+      .from('movies')
+      .select('id')
+      .eq('owner_id', currentUser.id)
+      .eq('title', title)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
 
     if (insertedMovieFetchError) {
-      console.error('[addMovie] insertedMovieFetchError', insertedMovieFetchError);
       throw insertedMovieFetchError;
     }
 
-    console.log('[addMovie] insertedMovie', insertedMovie);
-    console.log('[addMovie] before replaceMovieRelations');
-
-    await withTimeout(
-      replaceMovieRelations(insertedMovie.id, genreNames, countryNames),
-      20000,
-      'Таймаут сохранения связей фильма'
-    );
-
-    console.log('[addMovie] after replaceMovieRelations');
-    console.log('[addMovie] success', insertedMovie.id);
+    await replaceMovieRelations(insertedMovie.id, genreNames, countryNames);
 
     formMessage.textContent = 'Фильм успешно добавлен.';
     closeMovieModal();
@@ -921,7 +870,7 @@ async function addMovie(event) {
     await reloadCatalogData();
   } catch (error) {
     console.error('Ошибка при добавлении фильма:', error);
-    formMessage.textContent = `Ошибка при добавлении фильма: ${error.message || 'Смотри консоль F12.'}`;
+    formMessage.textContent = 'Ошибка при добавлении фильма. Смотри консоль F12.';
   }
 }
 
