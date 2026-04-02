@@ -71,6 +71,14 @@ function createCustomSelectManager(config) {
   
         optionButton.addEventListener('click', () => {
           select.value = option.value;
+          updateCustomSelectLabel(select, label, root);
+
+          dropdown.querySelectorAll('.custom-select-option').forEach(button => {
+            const isSelected = button.dataset.value === select.value;
+            button.classList.toggle('is-selected', isSelected);
+            button.setAttribute('aria-selected', String(isSelected));
+          });
+
           select.dispatchEvent(new Event('change', { bubbles: true }));
           closeCustomSelect(instance);
         });
