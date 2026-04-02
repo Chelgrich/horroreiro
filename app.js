@@ -1280,13 +1280,7 @@ function renderMovies() {
       <div class="movie-rating-summary">
         <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
         <span class="movie-rating-meta">
-          (${votesCount} ${
-            votesCount === 1
-              ? 'оценка'
-              : votesCount >= 2 && votesCount <= 4
-                ? 'оценки'
-                : 'оценок'
-          })
+          (${votesCount} ${getVotesLabel(votesCount)})
         </span>
       </div>
     `;
