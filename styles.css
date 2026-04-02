@@ -760,9 +760,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movies-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
 
-@media (max-width: 640px) {
   .page {
     padding: 16px;
   }
@@ -783,7 +781,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .login-form {
     width: 100%;
     min-width: 0;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     justify-content: stretch;
   }
 
@@ -809,6 +807,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-width: 0;
   }
 
+  .login-form > * {
+    min-width: 0;
+  }
+
   .auth-message {
     text-align: left;
   }
@@ -817,8 +819,21 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     padding: 16px;
   }
 
-  .filters {
-    grid-template-columns: 1fr;
+  .filters > * {
+    min-width: 0;
+  }
+
+  .filters .form-row {
+    min-width: 0;
+  }
+
+  .filters input,
+  .filters select,
+  .filters .custom-select,
+  .filters .custom-select-trigger,
+  .filter-reset button {
+    width: 100%;
+    min-width: 0;
   }
 
   .filters,
