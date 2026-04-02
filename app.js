@@ -1011,6 +1011,10 @@ async function login(event) {
   renderMovies();
 
   showAuthMessage('Вход выполнен.', 'success', true);
+
+  if (typeof ym === 'function') {
+    ym(108369182, 'reachGoal', 'email_confirmed_login');
+  }
 }
 
 async function register() {
@@ -1045,6 +1049,10 @@ async function register() {
     'Регистрация почти завершена. Открой письмо, подтверди e-mail и только потом входи в аккаунт. Без подтверждения почты вход не сработает.',
     'success'
   );
+
+  if (typeof ym === 'function') {
+    ym(108369182, 'reachGoal', 'register');
+  }
 }
 
 async function logout() {
@@ -1083,6 +1091,10 @@ async function removeUserMovieRating(movieId) {
     }
 
     await fetchMovieRatings();
+
+    if (typeof ym === 'function') {
+      ym(108369182, 'reachGoal', 'rate_movie');
+    }
 
     if (watchedFilter.value || ratingFilter.value !== '') {
       renderMovies();
@@ -1561,6 +1573,19 @@ function renderMovies() {
     return;
   }
 
+  const hasActiveFilters =
+  searchInput.value.trim() !== '' ||
+  genreFilter.value ||
+  countryFilter.value ||
+  ratingFilter.value !== '' ||
+  monthFilter.value ||
+  yearFilter.value ||
+  (currentUser && watchedFilter.value);
+
+  if (hasActiveFilters && typeof ym === 'function') {
+    ym(108369182, 'reachGoal', 'use_filters');
+  }
+
   const filteredMovies = getFilteredMovies();
 
   if (filteredMovies.length === 0) {
@@ -1608,7 +1633,13 @@ ratingFilter.addEventListener('change', renderMovies);
 monthFilter.addEventListener('change', renderMovies);
 yearFilter.addEventListener('change', renderMovies);
 watchedFilter.addEventListener('change', renderMovies);
-sortMode.addEventListener('change', renderMovies);
+sortMode.addEventListener('change', () => {
+  if (typeof ym === 'function') {
+    ym(108369182, 'reachGoal', 'use_sort');
+  }
+
+  renderMovies();
+});
 
 resetFiltersBtn.addEventListener('click', () => {
   resetFilterControls();
