@@ -992,11 +992,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     margin-top: 0;
   }
 
-  .filter-sort {
+  .filter-reset {
     order: 8;
   }
 
-  .filter-reset {
+  .filter-sort {
     order: 9;
   }
 
