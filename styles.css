@@ -684,6 +684,37 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   margin: -4px -16px 14px;
 }
 
+.movie-watched-icon {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #5b8cff;
+  border-radius: 6px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.movie-watched-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.movie-watched-icon svg circle {
+  fill: #ffffff;
+  stroke: none;
+}
+
 .movie-poster {
   display: block;
   width: 100%;

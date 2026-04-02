@@ -1281,6 +1281,19 @@ function renderMovies() {
             `
             : `<div class="movie-poster-placeholder">Нет постера</div>`
         }
+
+        ${
+          currentUserRating !== null
+            ? `
+              <div class="movie-watched-icon" aria-label="Просмотрено" title="Просмотрено">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </div>
+            `
+            : ''
+        }
       </div>
     `;
 
