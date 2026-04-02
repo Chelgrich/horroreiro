@@ -1100,11 +1100,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .filter-sort {
     grid-column: 1 / -1;
   }
-
-  .movie-card {
-    padding: 16px 16px 20px;
-  }
-
+  
   .movie-poster-wrapper {
     width: calc(100% + 32px);
     margin: -4px -16px 14px;
