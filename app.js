@@ -1292,6 +1292,44 @@ function bindPosterLoadState(posterImage, posterSkeleton) {
   }, { once: true });
 }
 
+function bindMovieRatingControls({
+  movieId,
+  currentUserRating,
+  starsContainer,
+  voteButtons
+}) {
+  if (!starsContainer || voteButtons.length === 0) {
+    return;
+  }
+
+  const applyStarState = (activeValue, mode = 'selected') => {
+    voteButtons.forEach(button => {
+      const buttonValue = Number(button.dataset.ratingValue);
+      const isFilled = buttonValue <= activeValue;
+
+      button.classList.toggle('is-hovered', mode === 'hover' && isFilled);
+      button.classList.toggle('is-active', mode === 'selected' && isFilled);
+    });
+  };
+
+  voteButtons.forEach(button => {
+    button.addEventListener('mouseenter', () => {
+      const hoverValue = Number(button.dataset.ratingValue);
+      applyStarState(hoverValue, 'hover');
+    });
+
+    button.addEventListener('click', () => {
+      const ratingValue = Number(button.dataset.ratingValue);
+      saveUserMovieRating(movieId, ratingValue);
+    });
+  });
+
+  starsContainer.addEventListener('mouseleave', () => {
+    const selectedValue = currentUserRating ?? 0;
+    applyStarState(selectedValue, 'selected');
+  });
+}
+
 function createMovieCard(movie) {
   const card = document.createElement('article');
   const currentUserRating = getCurrentUserRating(movie.id);
@@ -1366,34 +1404,12 @@ function createMovieCard(movie) {
     });
   }
 
-  if (starsContainer && voteButtons.length > 0) {
-    const applyStarState = (activeValue, mode = 'selected') => {
-      voteButtons.forEach(button => {
-        const buttonValue = Number(button.dataset.ratingValue);
-        const isFilled = buttonValue <= activeValue;
-
-        button.classList.toggle('is-hovered', mode === 'hover' && isFilled);
-        button.classList.toggle('is-active', mode === 'selected' && isFilled);
-      });
-    };
-
-    voteButtons.forEach(button => {
-      button.addEventListener('mouseenter', () => {
-        const hoverValue = Number(button.dataset.ratingValue);
-        applyStarState(hoverValue, 'hover');
-      });
-
-      button.addEventListener('click', () => {
-        const ratingValue = Number(button.dataset.ratingValue);
-        saveUserMovieRating(movie.id, ratingValue);
-      });
-    });
-
-    starsContainer.addEventListener('mouseleave', () => {
-      const selectedValue = currentUserRating ?? 0;
-      applyStarState(selectedValue, 'selected');
-    });
-  }
+  bindMovieRatingControls({
+    movieId: movie.id,
+    currentUserRating,
+    starsContainer,
+    voteButtons
+  });
 
   return card;
 }
