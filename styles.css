@@ -63,6 +63,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 ========================================================== */
 .auth-controls {
   flex: 1;
+  min-width: 0;
   max-width: 720px;
   margin-left: auto;
   display: flex;
@@ -219,6 +220,8 @@ CSS-БЛОК 8. ПОЛЯ ВВОДА
 input,
 select,
 button {
+  max-width: 100%;
+  box-sizing: border-box;
   font: inherit;
 }
 
@@ -772,17 +775,42 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .auth-controls {
     width: 100%;
     min-width: 0;
+    max-width: none;
+    margin-left: 0;
+    align-items: stretch;
   }
 
-  .login-form,
-  .admin-panel {
+  .login-form {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+
+  .auth-actions {
+    width: 100%;
+    min-height: 0;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-panel,
+  .user-panel {
+    width: 100%;
+    min-height: 0;
     justify-content: stretch;
   }
 
   .login-form input,
   .login-form button,
-  .admin-panel button {
+  .admin-panel button,
+  .user-panel button {
     width: 100%;
+    min-width: 0;
+  }
+
+  .auth-message {
+    text-align: left;
   }
 
   .section {
@@ -791,6 +819,37 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .filters {
     grid-template-columns: 1fr;
+  }
+
+  .filters,
+  .filters .form-row,
+  .filter-reset,
+  .filter-sort {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filter-reset,
+  .filter-sort {
+    grid-column: auto;
+    margin-top: 0;
+  }
+
+  .filter-sort {
+    order: 8;
+  }
+
+  .filter-reset {
+    order: 9;
+  }
+
+  .filter-sort .custom-select,
+  .filters .custom-select,
+  .filters input,
+  .filters select,
+  .filter-reset button {
+    width: 100%;
+    min-width: 0;
   }
 
   .modal-dialog {
