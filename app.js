@@ -1170,13 +1170,13 @@ function renderMovies() {
 
   if (currentUser && selectedWatched === 'watched') {
     filteredMovies = filteredMovies.filter(movie =>
-      getCurrentUserRating(movie.id) !== null
+      isMovieWatchedByCurrentUser(movie.id)
     );
   }
 
   if (currentUser && selectedWatched === 'unwatched') {
     filteredMovies = filteredMovies.filter(movie =>
-      getCurrentUserRating(movie.id) === null
+      !isMovieWatchedByCurrentUser(movie.id)
     );
   }
 
