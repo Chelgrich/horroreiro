@@ -917,6 +917,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-width: 0;
   }
 
+  .filters input {
+    height: 44px;
+    padding: 0 12px;
+  }
+
   .filters,
   .filters .form-row,
   .filter-reset,
