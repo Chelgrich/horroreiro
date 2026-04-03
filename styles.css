@@ -797,23 +797,9 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   width: 36px;
   height: 36px;
   padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  color: #f2f2f2;
-  text-decoration: none;
-
-  background: #121519;
-  border: 1px solid #313842;
-  border-radius: 8px; /* твоё скругление */
-
-  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+  display: block; /* больше не нужен flex */
+  overflow: hidden; /* важно для скругления */
+  border-radius: 8px;
 }
 
 .movie-external-link:hover {
@@ -829,10 +815,11 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
 }
 
 .movie-external-link-icon {
-  width: 20px;
-  height: 20px;
+  width: 100%;
+  height: 100%;
   display: block;
-  object-fit: contain; /* важно: разные пропорции SVG выравниваются */
+  object-fit: cover; /* иконка заполняет контейнер полностью */
+  border-radius: 8px; /* скругляем саму иконку */
 }
 
 .movie-external-link.is-kinopoisk .movie-external-link-icon-svg {
