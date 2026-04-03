@@ -1132,7 +1132,23 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 0.28s ease;
+  transform: scale(1);
+  transition:
+    opacity 0.28s ease,
+    transform 0.35s ease,
+    filter 0.25s ease;
+}
+
+/* Постер чуть оживает при hover всей карточки */
+.movie-card:hover .movie-poster {
+  transform: scale(1.035);
+  filter: brightness(1.04);
+}
+
+/* Чуть слабее эффект для клавиатурного фокуса */
+.movie-card:focus-within .movie-poster {
+  transform: scale(1.02);
+  filter: brightness(1.03);
 }
 
 .movie-poster.is-loaded {
