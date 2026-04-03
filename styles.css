@@ -794,8 +794,8 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
 }
 
 .movie-external-link {
-  min-width: 34px;
-  height: 28px;
+  min-width: 42px;
+  height: 30px;
   padding: 0 10px;
   box-sizing: border-box;
   display: inline-flex;
@@ -806,7 +806,7 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   background: #121519;
   border: 1px solid #313842;
   border-radius: 999px;
-  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease, color 0.18s ease;
 }
 
 .movie-external-link:hover {
@@ -815,21 +815,30 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   transform: translateY(-1px);
 }
 
-.movie-external-link span {
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
+.movie-external-link-icon-svg {
+  display: block;
+  width: 100%;
+  height: 16px;
+  max-width: 44px;
 }
 
-.movie-external-link.is-kinopoisk span {
-  letter-spacing: 0.2px;
+.movie-external-link.is-kinopoisk .movie-external-link-icon-svg {
+  width: 42px;
 }
 
-.movie-external-link.is-imdb span,
-.movie-external-link.is-letterboxd span,
-.movie-external-link.is-rottentomatoes span {
-  letter-spacing: 0.3px;
+.movie-external-link.is-imdb .movie-external-link-icon-svg {
+  width: 42px;
+  height: 15px;
+}
+
+.movie-external-link.is-letterboxd .movie-external-link-icon-svg {
+  width: 34px;
+  height: 14px;
+}
+
+.movie-external-link.is-rottentomatoes .movie-external-link-icon-svg {
+  width: 22px;
+  height: 18px;
 }
 
 .movie-watched-icon {
