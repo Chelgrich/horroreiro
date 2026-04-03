@@ -70,6 +70,9 @@ const supabaseClient = window.supabase.createClient(
 JS-БЛОК 3. ГЛОБАЛЬНОЕ СОСТОЯНИЕ ПРИЛОЖЕНИЯ
 Хранит данные каталога, пользователя и состояние интерфейса.
 ========================================================== */
+const APP_BUILD_VERSION = '2026-04-03-1';
+const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
+
 let currentUser = null;
 let currentUserRole = null;
 let isAdmin = false;
@@ -79,6 +82,31 @@ let editingMovieId = null;
 let isModalOpen = false;
 let moviesLoadedSuccessfully = false;
 let authMessageTimer = null;
+
+function applyBuildVersionSoftResetIfNeeded() {
+  const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
+
+  if (savedBuildVersion === APP_BUILD_VERSION) {
+    return false;
+  }
+
+  try {
+    sessionStorage.clear();
+
+    // точечно чистим только наши ключи (если появятся в будущем)
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('horroreiro_')) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    localStorage.setItem(APP_VERSION_STORAGE_KEY, APP_BUILD_VERSION);
+  } catch (error) {
+    console.warn('Ошибка при soft-reset версии сборки:', error);
+  }
+
+  return true;
+}
 
 /* =========================================================
 JS-БЛОК 4. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ОБЩЕГО НАЗНАЧЕНИЯ
@@ -1706,6 +1734,13 @@ JS-БЛОК 23. ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
 ========================================================== */
 async function init() {
   renderMoviesSkeleton();
+
+  const wasResetApplied = applyBuildVersionSoftResetIfNeeded();
+
+  if (wasResetApplied) {
+    window.location.reload();
+    return;
+  }
 
   await restoreSession();
 
