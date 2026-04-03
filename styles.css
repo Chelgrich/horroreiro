@@ -750,6 +750,10 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   margin-top: 4px;
 }
 
+.filters-modal-dialog .custom-select-dropdown {
+  max-height: min(420px, calc(100vh - 220px)); /* даём спискам больше воздуха внутри модалки */
+}
+
 .filter-reset {
   width: 100%;
   grid-column: 1 / 2;
