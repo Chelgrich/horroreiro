@@ -598,6 +598,46 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
   flex: 0 0 auto;
 }
 
+.active-filters-bar {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.active-filter-chip {
+  min-height: 32px;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #e7ebf0;
+  background: #14191f;
+  border: 1px solid #2d3640;
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.active-filter-chip-remove {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #cfd6de;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.active-filter-chip-remove:hover {
+  opacity: 1;
+}
+
 .filters {
   display: grid;
   grid-template-columns: repeat(3, minmax(180px, 1fr));
