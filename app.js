@@ -695,6 +695,32 @@ function extractPosterStoragePath(publicUrl) {
   return path || null;
 }
 
+async function uploadPosterFile(file) {
+  if (!file) {
+    return null;
+  }
+
+  const fileExtension = String(file.name || 'jpg').split('.').pop() || 'jpg';
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExtension}`;
+  const storagePath = fileName; // bucket уже posters, поэтому без лишнего вложенного префикса
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from('posters')
+    .upload(storagePath, file, {
+      upsert: false
+    });
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = supabaseClient.storage
+    .from('posters')
+    .getPublicUrl(storagePath);
+
+  return data?.publicUrl || null;
+}
+
 async function deletePosterFileByUrl(publicUrl) {
   const storagePath = extractPosterStoragePath(publicUrl);
 
