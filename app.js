@@ -99,6 +99,7 @@ let isMovieFormSubmitting = false;
 let ratingRequestInFlight = new Set();
 let ratingFeedbackTimers = new Map();
 let watchlistFeedbackTimers = new Map();
+let watchlistRequestInFlight = new Set();
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -1675,14 +1676,33 @@ async function toggleMovieWatchlist(movieId) {
     return;
   }
 
+  const movieKey = String(movieId);
+
+  if (watchlistRequestInFlight.has(movieKey)) {
+    return;
+  }
+
+  watchlistRequestInFlight.add(movieKey);
+  rerenderMovieCard(movieId);
+
   if (isMovieWatchedByCurrentUser(movieId)) {
     return;
   }
 
-  if (isMovieInCurrentUserWatchlist(movieId)) {
-    await removeMovieFromWatchlist(movieId);
-  } else {
-    await addMovieToWatchlist(movieId);
+  try {
+    if (isMovieInCurrentUserWatchlist(movieId)) {
+      await removeMovieFromWatchlist(movieId);
+    } else {
+      await addMovieToWatchlist(movieId);
+    }
+  } finally {
+    watchlistRequestInFlight.delete(movieKey);
+
+    if (watchlistFilter.value) {
+      renderMovies();
+    } else {
+      rerenderMovieCard(movieId);
+    }
   }
 }
 
@@ -2267,6 +2287,7 @@ card.innerHTML = `
   const removeRatingBtn = card.querySelector('.remove-rating-inline-btn');
   const watchlistToggleBtn = card.querySelector('[data-watchlist-toggle="true"]');
   const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
+  const isWatchlistBusy = watchlistRequestInFlight.has(String(movie.id));
   const posterImage = card.querySelector('.movie-poster');
   const posterSkeleton = card.querySelector('.movie-poster-skeleton');
 
@@ -2304,6 +2325,8 @@ card.innerHTML = `
   }
 
   if (watchlistToggleBtn) {
+    watchlistToggleBtn.disabled = isWatchlistBusy;
+  
     watchlistToggleBtn.addEventListener('click', () => {
       toggleMovieWatchlist(movie.id);
     });
