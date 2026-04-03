@@ -260,7 +260,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   height: auto;
   min-height: 0;
   padding: 0;
-  color: #939dab;
+  color: #7f8894;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -276,9 +276,9 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -3px;
+  bottom: -5px;
   height: 1px;
-  background: rgba(147, 157, 171, 0.35);
+  background: rgba(127, 136, 148, 0.28);
   pointer-events: none;
   transition: background-color 0.18s ease, opacity 0.18s ease;
 }
@@ -290,7 +290,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 }
 
 .filters-modal-reset-top:hover::after {
-  background: rgba(227, 231, 238, 0.6);
+  background: rgba(227, 231, 238, 0.5);
 }
 
 .filters-modal-reset-top:focus,
