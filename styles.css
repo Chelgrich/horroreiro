@@ -1337,4 +1337,21 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movie-poster-block {
     margin: -2px -6px 12px;
   }
+
+  /* === Верх карточки: иконки + заголовок === */
+
+  .movie-title-links-row {
+    margin-bottom: 14px; /* было больше — делаем плотнее и собраннее */
+  }
+
+  .movie-external-links {
+    gap: 6px; /* чуть компактнее ряд иконок */
+  }
+
+  .movie-card h3 {
+    padding-bottom: 8px;
+    font-size: 20px;
+    line-height: 1.18; /* более плотный, “титульный” */
+    letter-spacing: 0.2px;
+  }
 }
