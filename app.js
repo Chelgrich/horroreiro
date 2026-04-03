@@ -1938,13 +1938,31 @@ openAddMovieButton.addEventListener('click', () => {
   openMovieModal();
 });
 
+if (openFiltersButton) {
+  openFiltersButton.addEventListener('click', () => {
+    openFiltersModal();
+  });
+}
+
 closeMovieModalButton.addEventListener('click', () => {
   closeMovieModal();
 });
 
+if (closeFiltersModalButton) {
+  closeFiltersModalButton.addEventListener('click', () => {
+    closeFiltersModal();
+  });
+}
+
 movieModalBackdrop.addEventListener('click', () => {
   closeMovieModal();
 });
+
+if (filtersModalBackdrop) {
+  filtersModalBackdrop.addEventListener('click', () => {
+    closeFiltersModal();
+  });
+}
 
 const debouncedRenderMovies = debounce(renderMovies, 200);
 
