@@ -33,6 +33,7 @@ const openFiltersButton = document.getElementById('openFiltersButton');
 const filtersModal = document.getElementById('filtersModal');
 const filtersModalBackdrop = document.getElementById('filtersModalBackdrop');
 const closeFiltersModalButton = document.getElementById('closeFiltersModalButton');
+const activeFiltersBar = document.getElementById('activeFiltersBar');
 
 const container = document.getElementById('movies');
 
