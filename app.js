@@ -1051,6 +1051,10 @@ async function updateMovie(event) {
     if (Object.keys(changedFields).length > 0) {
       formMessage.textContent = 'Сохраняю изменения...';
 
+      // Временная диагностика: смотрим, какие поля реально уходят в patch.
+      console.log('updateMovie changedFields:', changedFields);
+      console.log('updateMovie editingMovieId:', editingMovieId);
+
       const { error: updateMovieError } = await supabaseClient
         .from('movies')
         .update(changedFields)
