@@ -243,7 +243,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 .filters-modal-header-actions {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 20px;
 }
 
 .filters-modal-status {
@@ -259,18 +259,19 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   height: auto;
   min-height: 0;
   padding: 0;
-  color: #9fb9ff;
+  color: #aeb6c2;
   background: transparent;
   border: none;
   border-radius: 0;
   box-shadow: none;
   white-space: nowrap;
-  opacity: 0.92;
+  opacity: 0.9;
+  letter-spacing: 0.2px;
 }
 
 .filters-modal-reset-top:hover {
   opacity: 1;
-  color: #c6d8ff;
+  color: #e3e7ee;
   background: transparent;
 }
 
