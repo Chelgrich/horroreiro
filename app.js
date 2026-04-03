@@ -779,6 +779,12 @@ function clearFilterChip(filterKey) {
   }
 
   renderMovies();
+
+  // Если модалка фильтров была открыта, после снятия фильтра закрываем её,
+  // чтобы внешняя очистка состояния ощущалась завершённым действием.
+  if (filtersModal && filtersModal.style.display === 'block') {
+    closeFiltersModal();
+  }
 }
 
 function renderActiveFilterChips() {
