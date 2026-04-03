@@ -799,9 +799,18 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   width: 36px;
   height: 36px;
   padding: 0;
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   border-radius: 8px;
+  background: rgba(255, 255, 255, 0);
+  transform: translateY(0);
+  transition:
+    transform 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.18s ease;
 }
 
 .movie-external-link-icon {
@@ -810,12 +819,28 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   display: block;
   object-fit: cover;
   border-radius: 8px;
-  transform: scale(1); /* базовое состояние */
-  transition: transform 0.2s ease; /* плавный скейл */
+  transform: scale(1);
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.movie-external-link:hover {
+  transform: translateY(-2px); /* лёгкий подъём без дёрганья */
+  background-color: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
 }
 
 .movie-external-link:hover .movie-external-link-icon {
-  transform: scale(1.06); /* лёгкий, не кричащий зум */
+  transform: scale(1.05); /* очень мягкий зум */
+  filter: brightness(1.06);
+}
+
+.movie-external-link:active {
+  transform: translateY(0);
+}
+
+.movie-external-link:active .movie-external-link-icon {
+  transform: scale(1.01);
+  filter: brightness(0.98);
 }
 
 .movie-watched-icon {
