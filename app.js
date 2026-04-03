@@ -2545,10 +2545,12 @@ sortMode.addEventListener('change', () => {
   renderMovies();
 });
 
-resetFiltersBtn.addEventListener('click', () => {
-  resetFilterControls();
-  renderMovies();
-});
+if (resetFiltersBtn) {
+  resetFiltersBtn.addEventListener('click', () => {
+    resetFilterControls();
+    renderMovies();
+  });
+}
 
 if (resetFiltersTopButton) {
   resetFiltersTopButton.addEventListener('click', () => {
