@@ -243,7 +243,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 .filters-modal-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 14px;
 }
 
 .filters-modal-status {
@@ -256,8 +256,29 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 }
 
 .filters-modal-reset-top {
-  height: 32px;
-  padding: 0 12px;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  color: #9fb9ff;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  white-space: nowrap;
+  opacity: 0.92;
+}
+
+.filters-modal-reset-top:hover {
+  opacity: 1;
+  color: #c6d8ff;
+  background: transparent;
+}
+
+.filters-modal-reset-top:focus,
+.filters-modal-reset-top:focus-visible,
+.filters-modal-reset-top:active {
+  background: transparent;
+  box-shadow: none;
 }
 
 /* =========================================================
