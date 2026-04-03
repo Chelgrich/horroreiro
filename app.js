@@ -244,6 +244,19 @@ function isMovieInCurrentUserWatchlist(movieId) {
     return false;
   }
 
+  return (
+    allMovieWatchlist.some(item => (
+      item.movie_id === movieId && item.user_id === currentUser.id
+    )) &&
+    !isMovieWatchedByCurrentUser(movieId)
+  );
+}
+
+function hasMovieWatchlistRecord(movieId) {
+  if (!currentUser) {
+    return false;
+  }
+
   return allMovieWatchlist.some(item => (
     item.movie_id === movieId && item.user_id === currentUser.id
   ));
@@ -1690,7 +1703,7 @@ async function toggleMovieWatchlist(movieId) {
   }
 
   try {
-    if (isMovieInCurrentUserWatchlist(movieId)) {
+    if (hasMovieWatchlistRecord(movieId)) {
       await removeMovieFromWatchlist(movieId);
     } else {
       await addMovieToWatchlist(movieId);
@@ -1796,16 +1809,6 @@ async function saveUserMovieRating(movieId, ratingValue) {
 
     if (error) {
       throw error;
-    }
-
-    const { error: removeWatchlistError } = await supabaseClient
-      .from('movie_watchlist')
-      .delete()
-      .eq('movie_id', movieId)
-      .eq('user_id', currentUser.id);
-
-    if (removeWatchlistError) {
-      throw removeWatchlistError;
     }
 
     await Promise.all([
