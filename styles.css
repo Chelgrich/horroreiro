@@ -284,28 +284,27 @@ input {
 input[type="file"] {
   height: 36px;
   padding: 4px 12px;
-  display: flex;
-  align-items: center;
-  line-height: 1;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 14px;
+  line-height: 28px;
+  color: #f2f2f2;
 }
 
 input[type="file"]::file-selector-button {
-  height: 28px;
+  height: 22px;
   margin: 0 12px 0 0;
-  padding: 0 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  padding: 0 10px;
+  box-sizing: border-box;
   font: inherit;
-  line-height: 1;
+  font-size: 14px;
+  line-height: 20px;
   color: #ffffff;
   cursor: pointer;
   background: #1a1f26;
   border: 1px solid #353d48;
-  border-radius: 6px;
-
-  transform: scale(0.8);
-  transform-origin: left center;
+  border-radius: 5px;
+  vertical-align: middle;
 }
 
 input[type="file"]::file-selector-button:hover {
