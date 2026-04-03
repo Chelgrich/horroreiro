@@ -1426,6 +1426,17 @@ function getMovieExternalLinkIconSvg(type) {
   return icons[type] || '';
 }
 
+function getMovieExternalIconSrc(type) {
+  const icons = {
+    kinopoisk: '/icons/kp.svg',
+    imdb: '/icons/imdb.svg',
+    letterboxd: '/icons/lb.svg',
+    rottentomatoes: '/icons/rt.svg'
+  };
+
+  return icons[type] || '';
+}
+
 function getMovieExternalLinksHtml(movie) {
   const links = [
     {
@@ -1469,12 +1480,19 @@ function getMovieExternalLinksHtml(movie) {
           aria-label="${link.label}"
           title="${link.label}"
         >
-          ${getMovieExternalLinkIconSvg(link.type)}
+        <img
+          src="${getMovieExternalIconSrc(link.type)}"
+          alt=""
+          class="movie-external-link-icon"
+          loading="lazy"
+        >
         </a>
       `).join('')}
     </div>
   `;
 }
+
+
 
 function getPosterHtml(movie, isWatchedByCurrentUser) {
   const externalLinksHtml = getMovieExternalLinksHtml(movie);

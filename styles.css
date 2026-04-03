@@ -795,7 +795,11 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
 
 .movie-external-link {
   width: 36px;
-  height: 36px; /* квадрат */
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0;
   box-sizing: border-box;
   display: inline-flex;
@@ -824,10 +828,11 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   transform: translateY(-1px);
 }
 
-.movie-external-link svg {
-  width: 18px;
-  height: 18px;
+.movie-external-link-icon {
+  width: 20px;
+  height: 20px;
   display: block;
+  object-fit: contain; /* важно: разные пропорции SVG выравниваются */
 }
 
 .movie-external-link.is-kinopoisk .movie-external-link-icon-svg {
