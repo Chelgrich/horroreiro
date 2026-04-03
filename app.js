@@ -2207,9 +2207,13 @@ function createMovieCard(movie) {
   const isWatchedByCurrentUser = currentUserRating !== null;
   const isInWatchlist = isMovieInCurrentUserWatchlist(movie.id);
 
-  card.className = isWatchedByCurrentUser
-  ? 'movie-card movie-card-rated'
-  : 'movie-card';
+  card.className = 'movie-card';
+
+  if (isWatchedByCurrentUser) {
+    card.classList.add('movie-card-rated');
+  } else if (isInWatchlist) {
+    card.classList.add('movie-card-watchlist');
+  }
   card.dataset.movieId = String(movie.id);
 
   const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
