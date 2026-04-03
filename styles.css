@@ -1123,22 +1123,46 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   filter: brightness(0.98);
 }
 
+.movie-watchlist-btn,
 .movie-watched-icon {
   position: absolute;
   top: 10px;
-  right: 10px;
   z-index: 3;
   width: 30px;
   height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #5b8cff;
   border-radius: 6px;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
-  pointer-events: none;
 }
 
+.movie-watchlist-btn {
+  left: 10px;
+  padding: 0;
+  color: #ffffff;
+  background: rgba(17, 22, 28, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+  transition:
+    transform 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.movie-watchlist-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(26, 33, 42, 0.9);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.movie-watchlist-btn.is-active {
+  background: rgba(91, 140, 255, 0.88);
+  border-color: rgba(91, 140, 255, 0.92);
+}
+
+.movie-watchlist-btn svg,
 .movie-watched-icon svg {
   width: 16px;
   height: 16px;
@@ -1149,9 +1173,10 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   stroke-linejoin: round;
 }
 
-.movie-watched-icon svg circle {
-  fill: #ffffff;
-  stroke: none;
+.movie-watched-icon {
+  right: 10px;
+  background: #22a861;
+  pointer-events: none;
 }
 
 .movie-poster {

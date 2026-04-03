@@ -1552,6 +1552,85 @@ function showMovieRatingFeedback(movieId, text, type = 'success') {
   ratingFeedbackTimers.set(movieId, timeoutId);
 }
 
+async function addMovieToWatchlist(movieId) {
+  if (!currentUser) {
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from('movie_watchlist')
+      .upsert(
+        {
+          movie_id: movieId,
+          user_id: currentUser.id
+        },
+        {
+          onConflict: 'movie_id,user_id',
+          ignoreDuplicates: true
+        }
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    await fetchMovieWatchlist();
+
+    if (watchlistFilter.value) {
+      renderMovies();
+    } else {
+      rerenderMovieCard(movieId);
+    }
+  } catch (error) {
+    console.error('Ошибка добавления фильма в watchlist:', error);
+  }
+}
+
+async function removeMovieFromWatchlist(movieId) {
+  if (!currentUser) {
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from('movie_watchlist')
+      .delete()
+      .eq('movie_id', movieId)
+      .eq('user_id', currentUser.id);
+
+    if (error) {
+      throw error;
+    }
+
+    await fetchMovieWatchlist();
+
+    if (watchlistFilter.value) {
+      renderMovies();
+    } else {
+      rerenderMovieCard(movieId);
+    }
+  } catch (error) {
+    console.error('Ошибка удаления фильма из watchlist:', error);
+  }
+}
+
+async function toggleMovieWatchlist(movieId) {
+  if (!currentUser) {
+    return;
+  }
+
+  if (isMovieWatchedByCurrentUser(movieId)) {
+    return;
+  }
+
+  if (isMovieInCurrentUserWatchlist(movieId)) {
+    await removeMovieFromWatchlist(movieId);
+  } else {
+    await addMovieToWatchlist(movieId);
+  }
+}
+
 async function removeUserMovieRating(movieId) {
   if (!currentUser) {
     return;
@@ -1644,9 +1723,22 @@ async function saveUserMovieRating(movieId, ratingValue) {
       throw error;
     }
 
-    await fetchMovieRatings();
+    const { error: removeWatchlistError } = await supabaseClient
+      .from('movie_watchlist')
+      .delete()
+      .eq('movie_id', movieId)
+      .eq('user_id', currentUser.id);
 
-    if (watchedFilter.value || ratingFilter.value !== '') {
+    if (removeWatchlistError) {
+      throw removeWatchlistError;
+    }
+
+    await Promise.all([
+      fetchMovieRatings(),
+      fetchMovieWatchlist()
+    ]);
+
+    if (watchedFilter.value || watchlistFilter.value || ratingFilter.value !== '') {
       renderMovies();
     } else {
       rerenderMovieCard(movieId);
@@ -1658,7 +1750,7 @@ async function saveUserMovieRating(movieId, ratingValue) {
   } finally {
     ratingRequestInFlight.delete(movieKey);
 
-    if (watchedFilter.value || ratingFilter.value !== '') {
+    if (watchedFilter.value || watchlistFilter.value || ratingFilter.value !== '') {
       renderMovies();
     } else {
       rerenderMovieCard(movieId);
@@ -1854,7 +1946,7 @@ function getMovieExternalLinksHtml(movie) {
 
 
 
-function getPosterHtml(movie, isWatchedByCurrentUser) {
+function getPosterHtml(movie, isWatchedByCurrentUser, isInWatchlist) {
   return `
     <div class="movie-poster-block">
       <div class="movie-poster-wrapper">
@@ -1874,12 +1966,30 @@ function getPosterHtml(movie, isWatchedByCurrentUser) {
         }
 
         ${
+          currentUser && !isWatchedByCurrentUser
+            ? `
+              <button
+                type="button"
+                class="movie-watchlist-btn ${isInWatchlist ? 'is-active' : ''}"
+                data-watchlist-toggle="true"
+                aria-label="${isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+                title="${isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            `
+            : ''
+        }
+
+        ${
           isWatchedByCurrentUser
             ? `
               <div class="movie-watched-icon" aria-label="Просмотрено" title="Просмотрено">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M5 12.5L9.5 17L19 7.5"></path>
                 </svg>
               </div>
             `
@@ -2020,6 +2130,7 @@ function createMovieCard(movie) {
   const card = document.createElement('article');
   const currentUserRating = getCurrentUserRating(movie.id);
   const isWatchedByCurrentUser = currentUserRating !== null;
+  const isInWatchlist = isMovieInCurrentUserWatchlist(movie.id);
 
   card.className = isWatchedByCurrentUser
   ? 'movie-card movie-card-rated'
@@ -2056,7 +2167,7 @@ function createMovieCard(movie) {
 `;
 
 const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
-const posterHtml = getPosterHtml(movie, isWatchedByCurrentUser);
+const posterHtml = getPosterHtml(movie, isWatchedByCurrentUser, isInWatchlist);
 const externalLinksHtml = getMovieExternalLinksHtml(movie);
 
 card.innerHTML = `
@@ -2099,6 +2210,7 @@ card.innerHTML = `
   const starsContainer = card.querySelector('.movie-user-rating-stars');
   const voteButtons = card.querySelectorAll('.rating-star-btn');
   const removeRatingBtn = card.querySelector('.remove-rating-inline-btn');
+  const watchlistToggleBtn = card.querySelector('[data-watchlist-toggle="true"]');
   const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
   const posterImage = card.querySelector('.movie-poster');
   const posterSkeleton = card.querySelector('.movie-poster-skeleton');
@@ -2133,6 +2245,12 @@ card.innerHTML = `
 
     removeRatingBtn.addEventListener('click', () => {
       removeUserMovieRating(movie.id);
+    });
+  }
+
+  if (watchlistToggleBtn) {
+    watchlistToggleBtn.addEventListener('click', () => {
+      toggleMovieWatchlist(movie.id);
     });
   }
 
