@@ -93,6 +93,8 @@ let isModalOpen = false;
 let moviesLoadedSuccessfully = false;
 let authMessageTimer = null;
 let isMovieFormSubmitting = false;
+let ratingRequestInFlight = new Set();
+let ratingFeedbackTimers = new Map();
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -1443,10 +1445,69 @@ JS-БЛОК 20. ПОЛЬЗОВАТЕЛЬСКИЕ ОЦЕНКИ
 Позволяет авторизованному пользователю поставить или обновить
 свою оценку фильму.
 ========================================================== */
+function showMovieRatingFeedback(movieId, text, type = 'success') {
+  const card = container.querySelector(`[data-movie-id="${movieId}"]`);
+
+  if (!card) {
+    return;
+  }
+
+  const ratingBlock = card.querySelector('.movie-rating-block');
+
+  if (!ratingBlock) {
+    return;
+  }
+
+  let feedbackElement = ratingBlock.querySelector('.movie-rating-feedback');
+
+  if (!feedbackElement) {
+    feedbackElement = document.createElement('div');
+    feedbackElement.className = 'movie-rating-feedback';
+    ratingBlock.appendChild(feedbackElement);
+  }
+
+  feedbackElement.textContent = text;
+  feedbackElement.classList.remove('is-success', 'is-remove', 'is-visible');
+  feedbackElement.classList.add(type === 'remove' ? 'is-remove' : 'is-success');
+
+  requestAnimationFrame(() => {
+    feedbackElement.classList.add('is-visible');
+  });
+
+  if (ratingFeedbackTimers.has(movieId)) {
+    clearTimeout(ratingFeedbackTimers.get(movieId));
+  }
+
+  const timeoutId = setTimeout(() => {
+    feedbackElement.classList.remove('is-visible');
+
+    const cleanupTimeoutId = setTimeout(() => {
+      if (feedbackElement.parentNode) {
+        feedbackElement.remove();
+      }
+
+      ratingFeedbackTimers.delete(movieId);
+    }, 220);
+
+    ratingFeedbackTimers.set(movieId, cleanupTimeoutId);
+  }, 1600);
+
+  ratingFeedbackTimers.set(movieId, timeoutId);
+}
+
 async function removeUserMovieRating(movieId) {
   if (!currentUser) {
     return;
   }
+
+  const movieKey = String(movieId);
+
+  if (ratingRequestInFlight.has(movieKey)) {
+    return;
+  }
+
+  ratingRequestInFlight.add(movieKey);
+  rerenderMovieCard(movieId);
 
   try {
     const { error } = await supabaseClient
@@ -1470,8 +1531,18 @@ async function removeUserMovieRating(movieId) {
     } else {
       rerenderMovieCard(movieId);
     }
+
+    showMovieRatingFeedback(movieId, 'Оценка удалена', 'remove');
   } catch (error) {
     console.error('Ошибка удаления оценки фильма:', error);
+  } finally {
+    ratingRequestInFlight.delete(movieKey);
+
+    if (watchedFilter.value || ratingFilter.value !== '') {
+      renderMovies();
+    } else {
+      rerenderMovieCard(movieId);
+    }
   }
 }
 
@@ -1481,6 +1552,7 @@ async function saveUserMovieRating(movieId, ratingValue) {
   }
 
   const normalizedRating = Number(ratingValue);
+  const movieKey = String(movieId);
 
   if (
     !Number.isInteger(normalizedRating) ||
@@ -1489,6 +1561,13 @@ async function saveUserMovieRating(movieId, ratingValue) {
   ) {
     return;
   }
+
+  if (ratingRequestInFlight.has(movieKey)) {
+    return;
+  }
+
+  ratingRequestInFlight.add(movieKey);
+  rerenderMovieCard(movieId);
 
   try {
     const { error } = await supabaseClient
@@ -1515,8 +1594,18 @@ async function saveUserMovieRating(movieId, ratingValue) {
     } else {
       rerenderMovieCard(movieId);
     }
+
+    showMovieRatingFeedback(movieId, `Оценка сохранена: ${normalizedRating}/10`);
   } catch (error) {
     console.error('Ошибка сохранения оценки фильма:', error);
+  } finally {
+    ratingRequestInFlight.delete(movieKey);
+
+    if (watchedFilter.value || ratingFilter.value !== '') {
+      renderMovies();
+    } else {
+      rerenderMovieCard(movieId);
+    }
   }
 }
 
@@ -1822,6 +1911,16 @@ function bindMovieRatingControls({
     return;
   }
 
+  const syncRatingBusyState = () => {
+    const isBusy = ratingRequestInFlight.has(String(movieId));
+
+    starsContainer.classList.toggle('is-busy', isBusy);
+
+    voteButtons.forEach(button => {
+      button.disabled = isBusy;
+    });
+  };
+
   const applyStarState = (activeValue, mode = 'selected') => {
     voteButtons.forEach(button => {
       const buttonValue = Number(button.dataset.ratingValue);
@@ -1832,13 +1931,23 @@ function bindMovieRatingControls({
     });
   };
 
+  syncRatingBusyState();
+
   voteButtons.forEach(button => {
     button.addEventListener('mouseenter', () => {
+      if (ratingRequestInFlight.has(String(movieId))) {
+        return;
+      }
+
       const hoverValue = Number(button.dataset.ratingValue);
       applyStarState(hoverValue, 'hover');
     });
 
     button.addEventListener('click', () => {
+      if (ratingRequestInFlight.has(String(movieId))) {
+        return;
+      }
+
       const ratingValue = Number(button.dataset.ratingValue);
       saveUserMovieRating(movieId, ratingValue);
     });
