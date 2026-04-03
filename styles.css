@@ -272,15 +272,22 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 }
 
 .filters-modal-reset-top::after {
+  display: none;
+}
+
+.filters-modal-reset-label {
+  position: relative;
+  display: inline-block;
+}
+
+.filters-modal-reset-label::after {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 5px;
+  bottom: -2px;
   height: 1px;
   background: rgba(127, 136, 148, 0.28);
-  pointer-events: none;
-  transition: background-color 0.18s ease, opacity 0.18s ease;
 }
 
 .filters-modal-reset-top:hover {
@@ -289,7 +296,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   background: transparent;
 }
 
-.filters-modal-reset-top:hover::after {
+.filters-modal-reset-top:hover .filters-modal-reset-label::after {
   background: rgba(227, 231, 238, 0.5);
 }
 
