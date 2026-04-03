@@ -283,11 +283,11 @@ input {
 
 input[type="file"] {
   height: 36px;
-  padding: 4px 12px;
+  padding: 3px 12px 5px;
   box-sizing: border-box;
   font: inherit;
   font-size: 14px;
-  line-height: 28px;
+  line-height: normal;
   color: #f2f2f2;
 }
 
@@ -298,13 +298,13 @@ input[type="file"]::file-selector-button {
   box-sizing: border-box;
   font: inherit;
   font-size: 14px;
-  line-height: 20px;
+  line-height: normal;
   color: #ffffff;
   cursor: pointer;
   background: #1a1f26;
   border: 1px solid #353d48;
   border-radius: 5px;
-  vertical-align: middle;
+  vertical-align: top;
 }
 
 input[type="file"]::file-selector-button:hover {
