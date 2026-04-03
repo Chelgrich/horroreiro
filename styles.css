@@ -1404,7 +1404,8 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   cursor: default;
 }
 
-.movie-rating-feedback {
+.movie-rating-feedback,
+.movie-watchlist-feedback {
   margin-top: 10px;
   font-size: 13px;
   line-height: 1.35;
@@ -1414,16 +1415,19 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   transition: opacity 0.18s ease, transform 0.18s ease, color 0.18s ease;
 }
 
-.movie-rating-feedback.is-visible {
+.movie-rating-feedback.is-visible,
+.movie-watchlist-feedback.is-visible {
   opacity: 1;
   transform: translateY(0);
 }
 
-.movie-rating-feedback.is-success {
+.movie-rating-feedback.is-success,
+.movie-watchlist-feedback.is-success {
   color: #b6f0c0;
 }
 
-.movie-rating-feedback.is-remove {
+.movie-rating-feedback.is-remove,
+.movie-watchlist-feedback.is-remove {
   color: #c7d0da;
 }
 

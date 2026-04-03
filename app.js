@@ -98,6 +98,7 @@ let authMessageTimer = null;
 let isMovieFormSubmitting = false;
 let ratingRequestInFlight = new Set();
 let ratingFeedbackTimers = new Map();
+let watchlistFeedbackTimers = new Map();
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -1552,6 +1553,56 @@ function showMovieRatingFeedback(movieId, text, type = 'success') {
   ratingFeedbackTimers.set(movieId, timeoutId);
 }
 
+function showMovieWatchlistFeedback(movieId, text, type = 'success') {
+  const card = container.querySelector(`[data-movie-id="${movieId}"]`);
+
+  if (!card) {
+    return;
+  }
+
+  const ratingBlock = card.querySelector('.movie-rating-block');
+
+  if (!ratingBlock) {
+    return;
+  }
+
+  let feedbackElement = ratingBlock.querySelector('.movie-watchlist-feedback');
+
+  if (!feedbackElement) {
+    feedbackElement = document.createElement('div');
+    feedbackElement.className = 'movie-watchlist-feedback';
+    ratingBlock.appendChild(feedbackElement);
+  }
+
+  feedbackElement.textContent = text;
+  feedbackElement.classList.remove('is-success', 'is-remove', 'is-visible');
+  feedbackElement.classList.add(type === 'remove' ? 'is-remove' : 'is-success');
+
+  requestAnimationFrame(() => {
+    feedbackElement.classList.add('is-visible');
+  });
+
+  if (watchlistFeedbackTimers.has(movieId)) {
+    clearTimeout(watchlistFeedbackTimers.get(movieId));
+  }
+
+  const timeoutId = setTimeout(() => {
+    feedbackElement.classList.remove('is-visible');
+
+    const cleanupTimeoutId = setTimeout(() => {
+      if (feedbackElement.parentNode) {
+        feedbackElement.remove();
+      }
+
+      watchlistFeedbackTimers.delete(movieId);
+    }, 220);
+
+    watchlistFeedbackTimers.set(movieId, cleanupTimeoutId);
+  }, 1600);
+
+  watchlistFeedbackTimers.set(movieId, timeoutId);
+}
+
 async function addMovieToWatchlist(movieId) {
   if (!currentUser) {
     return;
@@ -1582,6 +1633,8 @@ async function addMovieToWatchlist(movieId) {
     } else {
       rerenderMovieCard(movieId);
     }
+
+    showMovieWatchlistFeedback(movieId, 'Добавлено в смотреть позже');
   } catch (error) {
     console.error('Ошибка добавления фильма в watchlist:', error);
   }
@@ -1610,6 +1663,8 @@ async function removeMovieFromWatchlist(movieId) {
     } else {
       rerenderMovieCard(movieId);
     }
+
+    showMovieWatchlistFeedback(movieId, 'Удалено из смотреть позже', 'remove');
   } catch (error) {
     console.error('Ошибка удаления фильма из watchlist:', error);
   }
