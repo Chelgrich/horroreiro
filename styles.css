@@ -296,13 +296,12 @@ input {
   cursor: pointer;
 }
 
-/* Это уже наш управляемый UI */
 .file-input-ui {
   min-height: 36px;
-  padding: 4px 12px;
+  padding: 8px 12px; /* увеличили вертикальный, чтобы стал сопоставим с горизонтальным */
   box-sizing: border-box;
   display: flex;
-  align-items: center; /* честный вертикальный центр */
+  align-items: center;
   gap: 12px;
   color: #f2f2f2;
   background: #121519;
