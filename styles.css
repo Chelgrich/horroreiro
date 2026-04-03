@@ -721,18 +721,20 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   background: #0f1114;
 }
 
+.movie-title-links-row {
+  margin-top: 0;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #1f242b; /* первый разделитель: под иконками */
+}
+
 .movie-card h3 {
-  margin: 6px 0 0;
-  padding-bottom: 10px; /* создаём воздух перед разделителем */
+  margin: 0;
+  padding-bottom: 10px;
   font-weight: 700;
   line-height: 1.2;
   color: #ffffff;
-  border-bottom: 1px solid #1f242b; /* возвращаем отдельный разделитель под названием */
-}
-
-.movie-title-links-row {
-  margin-top: 10px;
-  margin-bottom: 8px;
+  border-bottom: 1px solid #1f242b; /* второй разделитель: под названием */
 }
 
 .meta-label {
@@ -753,7 +755,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 }
 
 .movie-card p:first-of-type {
-  margin-top: 10px; /* даём чуть больше воздуха после ряда иконок */
+  margin-top: 10px; /* воздух после второго разделителя */
   padding-top: 0;
   border-top: none;
 }

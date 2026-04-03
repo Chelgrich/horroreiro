@@ -1645,7 +1645,6 @@ const externalLinksHtml = getMovieExternalLinksHtml(movie);
 
 card.innerHTML = `
   ${posterHtml}
-  <h3>${movie.title}</h3>
 
   ${
     externalLinksHtml
@@ -1656,6 +1655,8 @@ card.innerHTML = `
       `
       : ''
   }
+
+  <h3>${movie.title}</h3>
 
   <p>Оригинальное название: ${movie.original_title ?? '-'}</p>
   <p>Год: ${movie.year ?? '-'}</p>
