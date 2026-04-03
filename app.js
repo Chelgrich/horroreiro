@@ -732,6 +732,17 @@ function getActiveFilterChips() {
   return chips;
 }
 
+function updateFiltersButtonLabel() {
+  if (!openFiltersButton) {
+    return;
+  }
+
+  const activeFiltersCount = getActiveFilterChips().length;
+  openFiltersButton.textContent = activeFiltersCount > 0
+    ? `Фильтровать (${activeFiltersCount})`
+    : 'Фильтровать';
+}
+
 function clearFilterChip(filterKey) {
   if (filterKey === 'watched') {
     watchedFilter.value = '';
