@@ -320,39 +320,40 @@ function resetFormToCreateMode() {
 function fillFormForEdit(movie) {
   editingMovieId = movie.id;
 
-  titleInput.value = movie.title ?? '';
-  originalTitleInput.value = movie.original_title ?? '';
-  yearInput.value = movie.year ?? '';
-  releaseMonthInput.value = movie.release_month ?? '';
-  releaseYearInput.value = movie.release_year ?? '';
-  sortOrderInput.value = movie.sort_order ?? '';
-  directorInput.value = movie.director ?? '';
-  posterUrlInput.value = movie.poster_url ?? '';
-  posterFileInput.value = '';
-  updatePosterFileUi(); // в режиме редактирования файл ещё не выбран, значит показываем дефолтный текст
+  // Безопасно заполняем поля и сразу видим в консоли, какого элемента не хватает
+  const setInputValue = (inputElement, value, inputName) => {
+    if (!inputElement) {
+      console.error(`Не найден элемент формы: ${inputName}`);
+      return;
+    }
 
-  // Защита от падения, если новые URL-поля ещё не добавлены в index.html
-  if (kinopoiskUrlInput) {
-    kinopoiskUrlInput.value = movie.kinopoisk_url ?? '';
+    inputElement.value = value ?? '';
+  };
+
+  setInputValue(titleInput, movie.title, 'titleInput');
+  setInputValue(originalTitleInput, movie.original_title, 'originalTitleInput');
+  setInputValue(yearInput, movie.year, 'yearInput');
+  setInputValue(releaseMonthInput, movie.release_month, 'releaseMonthInput');
+  setInputValue(releaseYearInput, movie.release_year, 'releaseYearInput');
+  setInputValue(sortOrderInput, movie.sort_order, 'sortOrderInput');
+  setInputValue(directorInput, movie.director, 'directorInput');
+  setInputValue(posterUrlInput, movie.poster_url, 'posterUrlInput');
+  setInputValue(kinopoiskUrlInput, movie.kinopoisk_url, 'kinopoiskUrlInput');
+  setInputValue(imdbUrlInput, movie.imdb_url, 'imdbUrlInput');
+  setInputValue(letterboxdUrlInput, movie.letterboxd_url, 'letterboxdUrlInput');
+  setInputValue(rottentomatoesUrlInput, movie.rottentomatoes_url, 'rottentomatoesUrlInput');
+
+  if (posterFileInput) {
+    posterFileInput.value = '';
   }
 
-  if (imdbUrlInput) {
-    imdbUrlInput.value = movie.imdb_url ?? '';
-  }
-
-  if (letterboxdUrlInput) {
-    letterboxdUrlInput.value = movie.letterboxd_url ?? '';
-  }
-
-  if (rottentomatoesUrlInput) {
-    rottentomatoesUrlInput.value = movie.rottentomatoes_url ?? '';
-  }
+  updatePosterFileUi();
 
   const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
   const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
 
-  genresInput.value = genres;
-  countriesInput.value = countries;
+  setInputValue(genresInput, genres, 'genresInput');
+  setInputValue(countriesInput, countries, 'countriesInput');
 
   formTitle.textContent = `Редактирование: ${movie.title}`;
   submitButton.textContent = 'Сохранить изменения';
