@@ -1696,7 +1696,6 @@ async function toggleMovieWatchlist(movieId) {
   }
 
   watchlistRequestInFlight.add(movieKey);
-  rerenderMovieCard(movieId);
 
   if (isMovieWatchedByCurrentUser(movieId)) {
     return;
@@ -1731,7 +1730,6 @@ async function removeUserMovieRating(movieId) {
   }
 
   ratingRequestInFlight.add(movieKey);
-  rerenderMovieCard(movieId);
 
   try {
     const { error } = await supabaseClient
@@ -1744,7 +1742,10 @@ async function removeUserMovieRating(movieId) {
       throw error;
     }
 
-    await fetchMovieRatings();
+    await Promise.all([
+      fetchMovieRatings(),
+      fetchMovieWatchlist()
+    ]);
 
     if (typeof ym === 'function') {
       ym(108369182, 'reachGoal', 'rate_movie');
