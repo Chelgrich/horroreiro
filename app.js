@@ -700,7 +700,9 @@ async function uploadPosterFile(file) {
     return null;
   }
 
-  const fileExtension = String(file.name || 'jpg').split('.').pop() || 'jpg';
+  // Нормализуем расширение, чтобы в имени файла не оказывался мусор.
+  const rawExtension = String(file.name || 'jpg').split('.').pop() || 'jpg';
+  const fileExtension = rawExtension.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExtension}`;
   const storagePath = fileName; // bucket уже posters, поэтому без лишнего вложенного префикса
 
@@ -880,7 +882,7 @@ async function addMovie(event) {
   const posterFile = posterFileInput.files && posterFileInput.files[0]
     ? posterFileInput.files[0]
     : null;
-    const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
+  const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
   const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value);
   const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value);
   const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value);
