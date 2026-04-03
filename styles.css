@@ -632,6 +632,33 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
   border-color: rgba(91, 140, 255, 0.5);
 }
 
+/* =========================================================
+DESKTOP-ПОЛИРОВКА TOOLBAR
+Выравнивает ритм кнопки фильтров и блока сортировки.
+========================================================== */
+@media (min-width: 901px) {
+  .catalog-toolbar-actions {
+    gap: 12px;
+  }
+
+  .catalog-toolbar-actions > button {
+    min-width: 168px; /* кнопка перестаёт быть слишком короткой */
+  }
+
+  .filter-sort {
+    width: 220px; /* сортировка ощущается как полноценный control-блок */
+  }
+
+  .filter-sort .custom-select-trigger,
+  .filter-sort select {
+    min-height: 44px;
+  }
+
+  .filter-sort label {
+    padding-left: 2px; /* лёгкое визуальное выравнивание с кнопкой */
+  }
+}
+
 .active-filters-bar {
   margin-top: 14px;
   display: flex;
