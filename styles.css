@@ -201,8 +201,9 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 }
 
 .modal-backdrop {
-  position: absolute;
+  position: fixed; /* фиксируем относительно viewport, а не контейнера */
   inset: 0;
+  z-index: 0;
   background: rgba(0, 0, 0, 0.7);
 }
 
