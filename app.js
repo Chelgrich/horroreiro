@@ -1495,8 +1495,6 @@ function getMovieExternalLinksHtml(movie) {
 
 
 function getPosterHtml(movie, isWatchedByCurrentUser) {
-  const externalLinksHtml = getMovieExternalLinksHtml(movie);
-
   return `
     <div class="movie-poster-block">
       <div class="movie-poster-wrapper">
@@ -1528,16 +1526,6 @@ function getPosterHtml(movie, isWatchedByCurrentUser) {
             : ''
         }
       </div>
-
-      ${
-        externalLinksHtml
-          ? `
-            <div class="movie-poster-links-row">
-              ${externalLinksHtml}
-            </div>
-          `
-          : ''
-      }
     </div>
   `;
 }
@@ -1651,17 +1639,29 @@ function createMovieCard(movie) {
   </div>
 `;
 
-  const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
-  const posterHtml = getPosterHtml(movie, isWatchedByCurrentUser);
+const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
+const posterHtml = getPosterHtml(movie, isWatchedByCurrentUser);
+const externalLinksHtml = getMovieExternalLinksHtml(movie);
 
-  card.innerHTML = `
-    ${posterHtml}
-    <h3>${movie.title}</h3>
-    <p>Оригинальное название: ${movie.original_title ?? '-'}</p>
-    <p>Год: ${movie.year ?? '-'}</p>
-    <p>Режиссёр: ${movie.director ?? '-'}</p>
-    <p>Жанры: ${genres || '-'}</p>
-    <p>Страны: ${countries || '-'}</p>
+card.innerHTML = `
+  ${posterHtml}
+  <h3>${movie.title}</h3>
+
+  ${
+    externalLinksHtml
+      ? `
+        <div class="movie-title-links-row">
+          ${externalLinksHtml}
+        </div>
+      `
+      : ''
+  }
+
+  <p>Оригинальное название: ${movie.original_title ?? '-'}</p>
+  <p>Год: ${movie.year ?? '-'}</p>
+  <p>Режиссёр: ${movie.director ?? '-'}</p>
+  <p>Жанры: ${genres || '-'}</p>
+  <p>Страны: ${countries || '-'}</p>
 
     <div class="movie-rating-block">
       ${ratingSummaryHtml}
