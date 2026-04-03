@@ -35,6 +35,8 @@ const openFiltersButton = document.getElementById('openFiltersButton');
 const filtersModal = document.getElementById('filtersModal');
 const filtersModalBackdrop = document.getElementById('filtersModalBackdrop');
 const closeFiltersModalButton = document.getElementById('closeFiltersModalButton');
+const resetFiltersTopButton = document.getElementById('resetFiltersTopButton');
+const filtersModalStatus = document.getElementById('filtersModalStatus');
 const activeFiltersBar = document.getElementById('activeFiltersBar');
 
 const container = document.getElementById('movies');
@@ -801,8 +803,26 @@ function getActiveFilterChips() {
   return chips;
 }
 
+function updateFiltersModalStatus() {
+  if (!filtersModalStatus || !resetFiltersTopButton) {
+    return;
+  }
+
+  const activeFiltersCount = getActiveFilterChips().length;
+  const hasActiveFilters = activeFiltersCount > 0;
+
+  filtersModalStatus.textContent = hasActiveFilters
+    ? `Активно фильтров: ${activeFiltersCount}`
+    : 'Активных фильтров нет';
+
+  filtersModalStatus.style.display = 'block';
+  filtersModalStatus.classList.toggle('is-active', hasActiveFilters);
+  resetFiltersTopButton.style.display = hasActiveFilters ? 'inline-flex' : 'none';
+}
+
 function updateFiltersButtonLabel() {
   if (!openFiltersButton) {
+    updateFiltersModalStatus();
     return;
   }
 
@@ -813,8 +833,9 @@ function updateFiltersButtonLabel() {
     ? `Фильтровать (${activeFiltersCount})`
     : 'Фильтровать';
 
-  openFiltersButton.classList.toggle('is-active', hasActiveFilters);
-}
+    openFiltersButton.classList.toggle('is-active', hasActiveFilters);
+    updateFiltersModalStatus();
+  }
 
 function clearFilterChip(filterKey) {
   if (filterKey === 'watchlist') {
@@ -2528,6 +2549,13 @@ resetFiltersBtn.addEventListener('click', () => {
   resetFilterControls();
   renderMovies();
 });
+
+if (resetFiltersTopButton) {
+  resetFiltersTopButton.addEventListener('click', () => {
+    resetFilterControls();
+    renderMovies();
+  });
+}
 
 posterFileInput.addEventListener('change', updatePosterFileUi);
 

@@ -331,9 +331,16 @@
       <div class="modal-backdrop" id="filtersModalBackdrop"></div>
 
       <div class="modal-dialog filters-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="filtersModalTitle">
-        <div class="modal-header">
-          <h2 id="filtersModalTitle">Фильтры</h2>
-          <button type="button" id="closeFiltersModalButton" class="secondary-button">
+        <div class="modal-header filters-modal-header">
+          <div class="filters-modal-header-main">
+            <h2 id="filtersModalTitle">Фильтры</h2>
+            <div id="filtersModalStatus" class="filters-modal-status" style="display: none;"></div>
+          </div>
+          <div class="filters-modal-header-actions">
+            <button type="button" id="resetFiltersTopButton" class="secondary-button filters-modal-reset-top" style="display: none;">
+              Сбросить
+            </button>
+            <button type="button" id="closeFiltersModalButton" class="secondary-button">
             Закрыть
           </button>
         </div>

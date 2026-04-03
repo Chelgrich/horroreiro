@@ -234,6 +234,32 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   margin: 0;
 }
 
+.filters-modal-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filters-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filters-modal-status {
+  font-size: 13px;
+  color: #8f99a5;
+}
+
+.filters-modal-status.is-active {
+  color: #dbe7ff;
+}
+
+.filters-modal-reset-top {
+  height: 32px;
+  padding: 0 12px;
+}
+
 /* =========================================================
 CSS-БЛОК 7. СТРУКТУРА ФОРМ
 Строки формы, группы действий и служебные подписи.
