@@ -1353,6 +1353,13 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     font-size: 20px;
     line-height: 1.18; /* более плотный, “титульный” */
     letter-spacing: 0.2px;
+    overflow-wrap: anywhere; /* длинные названия не ломают карточку */
+    word-break: break-word;
+  }
+
+  .movie-card p {
+    overflow-wrap: anywhere; /* длинные ссылки/названия внутри мета-строк не вываливаются */
+    word-break: break-word;
   }
 
   /* === Низ карточки: рейтинг и действия === */
@@ -1366,10 +1373,13 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     align-items: flex-start;
     gap: 8px;
     margin-top: 6px;
+    flex-wrap: wrap; /* summary не ломается, если кнопке тесно */
   }
 
   .movie-rating-summary-main {
+    min-width: 0;
     gap: 6px;
+    flex-wrap: wrap;
   }
 
   .movie-rating-value {
@@ -1385,6 +1395,9 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     height: 28px;
     padding: 0 8px;
     font-size: 11px;
+    white-space: normal; /* кнопка может аккуратно переноситься */
+    text-align: center;
+    line-height: 1.15;
   }
 
   .movie-user-rating {
@@ -1403,5 +1416,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movie-card-actions {
     gap: 8px;
     padding-top: 8px;
+  }
+
+  .movie-card-actions button {
+    flex: 1 1 100%; /* кнопки действий в одну колонку, без драк за ширину */
+    width: 100%;
   }
 }
