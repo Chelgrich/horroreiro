@@ -1213,7 +1213,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+    gap: 12px;
     align-items: stretch;
   }
 
@@ -1236,6 +1236,20 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .filter-reset,
   .filter-sort {
     grid-column: span 2;
+  }
+
+  .filters .form-row {
+    gap: 5px; /* чуть плотнее связка label + control */
+  }
+
+  .filters .form-row label {
+    font-size: 13px;
+    line-height: 1.2;
+  }
+
+  .filters input,
+  .custom-select-trigger {
+    min-height: 42px; /* немного компактнее без потери удобства */
   }
 
   /* mobile toast */
