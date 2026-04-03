@@ -47,6 +47,7 @@ const sortOrderInput = document.getElementById('sortOrder');
 const directorInput = document.getElementById('director');
 const posterUrlInput = document.getElementById('posterUrl');
 const posterFileInput = document.getElementById('posterFile');
+const posterFileName = document.getElementById('posterFileName');
 const genresInput = document.getElementById('genresInput');
 const countriesInput = document.getElementById('countriesInput');
 
@@ -138,6 +139,20 @@ function debounce(callback, delay = 200) {
       callback(...args);
     }, delay);
   };
+}
+
+function updatePosterFileUi() {
+  if (!posterFileInput || !posterFileName) {
+    return;
+  }
+
+  const selectedFile = posterFileInput.files && posterFileInput.files[0]
+    ? posterFileInput.files[0]
+    : null;
+
+  posterFileName.textContent = selectedFile
+    ? selectedFile.name
+    : 'Файл не выбран';
 }
 
 function updateAdminStatus() {
@@ -287,6 +302,7 @@ function resetFormToCreateMode() {
   editingMovieId = null;
   movieForm.reset();
   posterFileInput.value = '';
+  updatePosterFileUi(); // после сброса снова показываем "Файл не выбран"
   formTitle.textContent = 'Добавить фильм';
   submitButton.textContent = 'Добавить фильм';
   cancelEditButton.style.display = 'none';
@@ -309,6 +325,7 @@ function fillFormForEdit(movie) {
   directorInput.value = movie.director ?? '';
   posterUrlInput.value = movie.poster_url ?? '';
   posterFileInput.value = '';
+  updatePosterFileUi(); // в режиме редактирования файл ещё не выбран, значит показываем дефолтный текст
 
   const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
   const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
@@ -1706,6 +1723,8 @@ resetFiltersBtn.addEventListener('click', () => {
   resetFilterControls();
   renderMovies();
 });
+
+posterFileInput.addEventListener('change', updatePosterFileUi);
 
 movieForm.addEventListener('submit', saveMovie);
 

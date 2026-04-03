@@ -177,10 +177,19 @@
             <label for="posterUrl">Постер (URL):</label>
             <input type="url" id="posterUrl" name="posterUrl" placeholder="https://example.com/poster.jpg">
           </div>
-
+          
           <div class="form-row">
             <label for="posterFile">Постер (файл):</label>
-            <input type="file" id="posterFile" name="posterFile" accept="image/*">
+          
+            <div class="file-input-wrapper">
+              <input type="file" id="posterFile" name="posterFile" accept="image/*">
+          
+              <label for="posterFile" class="file-input-ui">
+                <span class="file-input-button">Выберите файл</span>
+                <span class="file-input-name" id="posterFileName">Файл не выбран</span>
+              </label>
+            </div>
+          
             <small class="field-hint">
               Если выбран файл, он будет использован вместо URL.
             </small>

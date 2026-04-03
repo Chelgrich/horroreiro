@@ -281,30 +281,73 @@ input {
   border-radius: 6px;
 }
 
-input[type="file"] {
-  height: 36px;
-  padding: 3px 12px 1px; /* чуть поднимаем всё содержимое контрола выше */
-  box-sizing: border-box;
-  font: inherit;
-  font-size: 14px;
-  line-height: normal; /* не заставляем браузер рисовать строку через искусственный line-height */
-  color: #f2f2f2;
+.file-input-wrapper {
+  position: relative;
+  width: 100%;
 }
 
-input[type="file"]::file-selector-button {
-  height: 24px;
-  margin: -1px 12px 0 0; /* слегка поднимаем саму кнопку относительно строки файла */
+/* Нативный file input остаётся рабочим, но визуально скрыт */
+.file-input-wrapper input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Это уже наш управляемый UI */
+.file-input-ui {
+  min-height: 36px;
+  padding: 4px 12px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center; /* честный вертикальный центр */
+  gap: 12px;
+  color: #f2f2f2;
+  background: #121519;
+  border: 1px solid #313842;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Кнопка слева */
+.file-input-button {
+  height: 28px;
   padding: 0 12px;
   box-sizing: border-box;
-  font: inherit;
-  font-size: 14px;
-  line-height: 22px; /* держим текст кнопки по центру внутри неё */
+  display: inline-flex;
+  align-items: center; /* честный вертикальный центр текста */
+  justify-content: center;
+  flex: 0 0 auto;
   color: #ffffff;
-  cursor: pointer;
   background: #1a1f26;
   border: 1px solid #353d48;
   border-radius: 6px;
-  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* Текст справа */
+.file-input-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: block;
+  line-height: 1.2;
+  color: #f2f2f2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Hover всей зоны */
+.file-input-ui:hover {
+  border-color: #5c6b7c;
+}
+
+/* Focus, когда реально фокус у нативного input */
+.file-input-wrapper input[type="file"]:focus + .file-input-ui {
+  border-color: #5c6b7c;
+  box-shadow: 0 0 0 3px rgba(92, 107, 124, 0.2);
 }
 
 input[type="file"]::file-selector-button:hover {
