@@ -817,11 +817,29 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 
 .empty-state {
   grid-column: 1 / -1;
-  padding: 36px 24px;
+  padding: 42px 24px;
   text-align: center;
-  background: #15191d;
+  background:
+    radial-gradient(circle at top, rgba(91, 140, 255, 0.08), transparent 46%),
+    #15191d;
   border: 1px solid #2a3038;
-  border-radius: 8px;
+  border-radius: 10px;
+}
+
+.empty-state-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  line-height: 1;
+  color: #b8c6da;
+  background: #12171c;
+  border: 1px solid #2f3944;
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .empty-state-title {
@@ -837,6 +855,16 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   font-size: 15px;
   line-height: 1.45;
   color: #9da6b1;
+}
+
+.empty-state-actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+}
+
+.empty-state-reset-btn {
+  min-width: 190px;
 }
 
 /* =========================================================

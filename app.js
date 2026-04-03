@@ -1745,14 +1745,50 @@ function getPosterHtml(movie, isWatchedByCurrentUser) {
 }
 
 function renderEmptyState() {
+  const hasSearchQuery = searchInput.value.trim() !== '';
+  const hasActiveFilters = getActiveFilterChips().length > 0;
+
+  const emptyStateTitle = hasSearchQuery || hasActiveFilters
+    ? 'Ничего не найдено'
+    : 'Каталог пока пуст';
+
+  const emptyStateText = hasSearchQuery || hasActiveFilters
+    ? 'Попробуй изменить фильтры, очистить поиск или сбросить параметры отбора.'
+    : 'Когда здесь появятся фильмы, они отобразятся в этом разделе.';
+
+  const emptyStateActions = hasSearchQuery || hasActiveFilters
+    ? `
+      <div class="empty-state-actions">
+        <button
+          type="button"
+          class="secondary-button empty-state-reset-btn"
+          id="emptyStateResetButton"
+        >
+          Сбросить фильтры
+        </button>
+      </div>
+    `
+    : '';
+
   container.innerHTML = `
     <div class="empty-state">
-      <div class="empty-state-title">Ничего не найдено</div>
+      <div class="empty-state-icon" aria-hidden="true">◌</div>
+      <div class="empty-state-title">${emptyStateTitle}</div>
       <div class="empty-state-text">
-        Попробуй изменить фильтры, очистить поиск или сбросить параметры отбора.
+        ${emptyStateText}
       </div>
+      ${emptyStateActions}
     </div>
   `;
+
+  const emptyStateResetButton = document.getElementById('emptyStateResetButton');
+
+  if (emptyStateResetButton) {
+    emptyStateResetButton.addEventListener('click', () => {
+      resetFilterControls();
+      renderMovies();
+    });
+  }
 }
 
 function bindPosterLoadState(posterImage, posterSkeleton) {
