@@ -1260,6 +1260,11 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   white-space: nowrap;
 }
 
+.remove-rating-inline-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .movie-rating-value {
   font-size: 24px;
   font-weight: 700;
@@ -1282,10 +1287,37 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 }
 
 .movie-user-rating-stars {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
+}
+
+.movie-user-rating-stars.is-busy {
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+.movie-user-rating-stars.is-busy::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 2px;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(91, 140, 255, 0) 0%,
+      rgba(91, 140, 255, 0.18) 20%,
+      rgba(91, 140, 255, 0.58) 50%,
+      rgba(91, 140, 255, 0.18) 80%,
+      rgba(91, 140, 255, 0) 100%
+    );
+  background-size: 200% 100%;
+  animation: movie-rating-loading-line 0.9s linear infinite;
 }
 
 .rating-star-btn {
@@ -1343,6 +1375,10 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   transform: translateY(-1px) scale(1.06);
 }
 
+.rating-star-btn:disabled {
+  cursor: default;
+}
+
 .movie-rating-feedback {
   margin-top: 10px;
   font-size: 13px;
@@ -1364,6 +1400,16 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 
 .movie-rating-feedback.is-remove {
   color: #c7d0da;
+}
+
+@keyframes movie-rating-loading-line {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* =========================================================

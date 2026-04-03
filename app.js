@@ -2042,6 +2042,7 @@ card.innerHTML = `
   const starsContainer = card.querySelector('.movie-user-rating-stars');
   const voteButtons = card.querySelectorAll('.rating-star-btn');
   const removeRatingBtn = card.querySelector('.remove-rating-inline-btn');
+  const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
   const posterImage = card.querySelector('.movie-poster');
   const posterSkeleton = card.querySelector('.movie-poster-skeleton');
 
@@ -2071,6 +2072,8 @@ card.innerHTML = `
   });
 
   if (removeRatingBtn) {
+    removeRatingBtn.disabled = isRatingBusy;
+
     removeRatingBtn.addEventListener('click', () => {
       removeUserMovieRating(movie.id);
     });
