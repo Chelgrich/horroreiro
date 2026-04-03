@@ -834,6 +834,23 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   filter: brightness(1.06);
 }
 
+.movie-external-link:focus {
+  outline: none;
+}
+
+.movie-external-link:focus-visible {
+  transform: translateY(-1px);
+  background-color: rgba(91, 140, 255, 0.08);
+  box-shadow:
+    0 0 0 2px rgba(91, 140, 255, 0.38),
+    0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.movie-external-link:focus-visible .movie-external-link-icon {
+  transform: scale(1.03);
+  filter: brightness(1.04);
+}
+
 .movie-external-link:active {
   transform: translateY(0);
 }
