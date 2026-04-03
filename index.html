@@ -51,7 +51,22 @@
   <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="favicon.ico" type="image/x-icon">
-  <link rel="stylesheet" href="styles.css">
+
+<!-- Сначала всегда тянем свежий /env без кеша -->
+<script src="/env"></script>
+
+<script>
+  (function () {
+    const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+
+    // Подключаем styles.css с версией сборки.
+    // Каждый новый деплой = новый URL файла = браузер берёт свежую версию.
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = `styles.css?v=${encodeURIComponent(buildVersion)}`;
+    document.head.appendChild(stylesheet);
+  })();
+</script>
 </head>
 
 <body>
@@ -383,13 +398,35 @@
   ========================================================== -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <!-- =========================================================
   HTML-БЛОК 11. ПОДКЛЮЧЕНИЕ СКРИПТОВ ПРИЛОЖЕНИЯ
   Сначала модуль кастомных select, потом основная логика.
+  Оба файла подключаются с версией сборки, чтобы не ловить
+  смешанные версии фронта после деплоя.
   ========================================================== -->
-  <script src="custom-select.js"></script>
-<script src="/env"></script>
-<script src="app.js"></script>
+  <script>
+    (function () {
+      const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+  
+      function loadScript(src) {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = `${src}?v=${encodeURIComponent(buildVersion)}`;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+      }
+  
+      loadScript('custom-select.js')
+        .then(() => loadScript('app.js'))
+        .catch(error => {
+          console.error('Ошибка загрузки versioned scripts:', error);
+        });
+    })();
+  </script>
 </body>
 
 </html>

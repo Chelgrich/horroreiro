@@ -12,7 +12,8 @@ export async function onRequest(context) {
     {
       headers: {
         'Content-Type': 'application/javascript; charset=UTF-8',
-        'Cache-Control': 'no-store'
+        // /env должен всегда приходить свежим, без вариантов.
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0'
       }
     }
   );
