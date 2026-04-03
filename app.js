@@ -56,6 +56,7 @@ JS-БЛОК 2. ПОДКЛЮЧЕНИЕ К SUPABASE
 ========================================================== */
 const SUPABASE_URL = window.__ENV__?.SUPABASE_URL;
 const SUPABASE_ANON_KEY = window.__ENV__?.SUPABASE_ANON_KEY;
+const APP_BUILD_VERSION = window.__ENV__?.APP_BUILD_VERSION || 'dev';
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error('Не заданы переменные окружения SUPABASE_URL и SUPABASE_ANON_KEY');
@@ -70,7 +71,6 @@ const supabaseClient = window.supabase.createClient(
 JS-БЛОК 3. ГЛОБАЛЬНОЕ СОСТОЯНИЕ ПРИЛОЖЕНИЯ
 Хранит данные каталога, пользователя и состояние интерфейса.
 ========================================================== */
-const APP_BUILD_VERSION = '2026-04-03-1';
 const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
 
 let currentUser = null;
@@ -93,9 +93,8 @@ function applyBuildVersionSoftResetIfNeeded() {
   try {
     sessionStorage.clear();
 
-    // точечно чистим только наши ключи (если появятся в будущем)
     Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('horroreiro_')) {
+      if (key.startsWith('horroreiro_') && key !== APP_VERSION_STORAGE_KEY) {
         localStorage.removeItem(key);
       }
     });
