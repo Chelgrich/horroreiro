@@ -742,24 +742,28 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 .filters-modal-dialog {
   width: min(980px, calc(100vw - 48px));
   max-width: 980px;
-  min-height: min(560px, calc(100vh - 64px)); /* не даём модалке схлопываться */
+  min-height: 0;
   max-height: min(860px, calc(100vh - 64px));
   margin: 32px auto;
-  display: flex;
-  flex-direction: column;
-  overflow: visible; /* dropdown не должен упираться в скролл самой модалки */
+  overflow: visible; /* dropdown должен раскрываться поверх модалки */
 }
 
 .filters-modal-grid {
   margin-top: 4px;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto; /* если фильтров станет больше — скроллится именно контент, а не вся модалка */
-  padding-right: 6px; /* небольшой запас под внутренний скролл */
+  overflow: visible; /* убираем внутренний скролл у самой сетки */
+  padding-right: 0;
+}
+
+.filters-modal-dialog .custom-select {
+  z-index: 1;
+}
+
+.filters-modal-dialog .custom-select.is-open {
+  z-index: 500; /* открытый select поднимается над содержимым модалки */
 }
 
 .filters-modal-dialog .custom-select-dropdown {
-  max-height: min(480px, calc(100vh - 240px)); /* даём спискам больше воздуха внутри модалки */
+  max-height: min(420px, calc(100vh - 180px)); /* достаточно высокий список, но без фанатизма */
 }
 
 .filter-reset {
