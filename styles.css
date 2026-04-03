@@ -276,7 +276,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -2px;
+  bottom: 5px;
   height: 1px;
   background: rgba(127, 136, 148, 0.28);
   pointer-events: none;
