@@ -227,52 +227,6 @@ function updateAdminStatus() {
   isAdmin = Boolean(currentUser && currentUserRole === 'admin');
 }
 
-function extractBuildVersionFromEnvScript(scriptText) {
-  const match = String(scriptText || '').match(/"APP_BUILD_VERSION":"([^"]+)"/);
-
-  return match ? match[1] : null;
-}
-
-async function ensureFreshBuildBeforeMutation() {
-  try {
-    const response = await fetch(`/env?ts=${Date.now()}`, {
-      cache: 'no-store'
-    });
-
-    const scriptText = await response.text();
-    const latestBuildVersion = extractBuildVersionFromEnvScript(scriptText);
-
-    if (!latestBuildVersion || latestBuildVersion === APP_BUILD_VERSION) {
-      return true;
-    }
-
-    try {
-      sessionStorage.clear();
-
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('horroreiro_') && key !== APP_VERSION_STORAGE_KEY) {
-          localStorage.removeItem(key);
-        }
-      });
-
-      localStorage.setItem(APP_VERSION_STORAGE_KEY, latestBuildVersion);
-    } catch (storageError) {
-      console.warn('Ошибка очистки storage перед reload новой версии:', storageError);
-    }
-
-    formMessage.textContent = 'Обнаружена новая версия сайта. Перезагружаю страницу...';
-
-    setTimeout(() => {
-      window.location.reload();
-    }, 150);
-
-    return false;
-  } catch (error) {
-    console.warn('Не удалось проверить актуальность версии сборки перед изменением данных:', error);
-    return true;
-  }
-}
-
 /* =========================================================
 JS-БЛОК 5. ПОИСК ПО КАТАЛОГУ
 Проверяет, соответствует ли фильм текущему текстовому запросу.
