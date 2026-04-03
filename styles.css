@@ -1305,9 +1305,36 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .filter-sort {
     grid-column: 1 / -1;
   }
+
+  .movies-list {
+    justify-items: center; /* карточка становится самостоятельным блоком */
+  }
+
+  .movie-card {
+    width: 100%;
+    max-width: 460px;
+    min-width: 340px; /* не даём схлопываться раньше времени */
+    padding: 14px 18px 20px;
+  }
+
+  .movie-poster-block {
+    margin: -2px -10px 12px;
+  }
   
   .movie-poster-wrapper {
-    width: calc(100% + 32px);
-    margin: -4px -16px 14px;
+    width: 100%;
+    margin: 0;
+  }
+}
+
+/* Супер-узкий экран — снимаем min-width */
+@media (max-width: 420px) {
+  .movie-card {
+    min-width: 0;
+    padding: 12px 14px 18px;
+  }
+
+  .movie-poster-block {
+    margin: -2px -6px 12px;
   }
 }
