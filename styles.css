@@ -1406,11 +1406,20 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-user-rating-label {
     font-size: 13px;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+
+  .movie-user-rating-stars {
+    gap: 2px; /* чуть ровнее дыхание между звёздами */
   }
 
   .rating-star-btn {
-    font-size: 24px;
+    min-width: 0;
+    flex: 1 1 0;
+    height: 30px; /* выравниваем визуальную высоту зоны клика */
+    font-size: 22px;
+    line-height: 1;
   }
 
   .movie-card-actions {
