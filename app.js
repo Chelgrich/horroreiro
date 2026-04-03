@@ -2159,6 +2159,7 @@ async function init() {
   });
 
   await reloadCatalogData();
+  updateFiltersButtonLabel(); // на старте синхронизируем подпись кнопки
 }
 
 /* =========================================================
