@@ -1380,9 +1380,21 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     order: 9;
   }
 
+  .modal {
+    padding: 84px 16px 16px; /* сама модальная зона задаёт горизонтальные отступы */
+  }
+
   .modal-dialog {
-    max-height: calc(100vh - 32px);
-    margin: 16px;
+    width: 100%;
+    max-width: 720px;
+    max-height: calc(100vh - 100px);
+    margin: 0 auto; /* жёстко центрируем по горизонтали */
+  }
+
+  .filters-modal-dialog {
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto auto; /* фильтры тоже центрируются, без съезда */
   }
 
   .modal-header {
