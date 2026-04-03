@@ -1343,6 +1343,29 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   transform: translateY(-1px) scale(1.06);
 }
 
+.movie-rating-feedback {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #9da6b1;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.18s ease, transform 0.18s ease, color 0.18s ease;
+}
+
+.movie-rating-feedback.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.movie-rating-feedback.is-success {
+  color: #b6f0c0;
+}
+
+.movie-rating-feedback.is-remove {
+  color: #c7d0da;
+}
+
 /* =========================================================
 CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 Кнопки редактирования и удаления фильма.
