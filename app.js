@@ -990,8 +990,10 @@ async function updateMovie(event) {
     let finalPosterUrl = posterUrl || null;
     let uploadedNewPoster = false;
 
+    formMessage.textContent = 'Шаг 1/6: подготовка данных...';
+
     if (posterFile) {
-      formMessage.textContent = 'Загружаю постер...';
+      formMessage.textContent = 'Шаг 2/6: загружаю постер...';
       finalPosterUrl = await uploadPosterFile(posterFile);
       uploadedNewPoster = true;
     }
@@ -1048,10 +1050,12 @@ async function updateMovie(event) {
       changedFields.sort_order = sortOrder ? Number(sortOrder) : null;
     }
 
-    if (Object.keys(changedFields).length > 0) {
-      formMessage.textContent = 'Сохраняю изменения...';
+    formMessage.textContent = `Шаг 3/6: patch-поля = ${Object.keys(changedFields).join(', ') || 'нет'}`;
 
-      // Временная диагностика: смотрим, какие поля реально уходят в patch.
+    if (Object.keys(changedFields).length > 0) {
+      formMessage.textContent = `Шаг 4/6: сохраняю поля (${Object.keys(changedFields).join(', ')})...`;
+
+      // Временная диагностика: и в UI, и в консоли.
       console.log('updateMovie changedFields:', changedFields);
       console.log('updateMovie editingMovieId:', editingMovieId);
 
@@ -1066,6 +1070,7 @@ async function updateMovie(event) {
     }
 
     if (relationsChanged) {
+      formMessage.textContent = 'Шаг 5/6: обновляю жанры и страны...';
       await replaceMovieRelations(editingMovieId, genreNames, countryNames);
     }
 
@@ -1084,7 +1089,7 @@ async function updateMovie(event) {
       return;
     }
 
-    formMessage.textContent = 'Обновляю каталог...';
+    formMessage.textContent = 'Шаг 6/6: обновляю каталог...';
     await reloadCatalogData();
 
     closeMovieModal();
