@@ -1125,13 +1125,6 @@ JS-БЛОК 17. ЕДИНАЯ ТОЧКА СОХРАНЕНИЯ ФОРМЫ
 существующего.
 ========================================================== */
 async function saveMovie(event) {
-  const isBuildFresh = await ensureFreshBuildBeforeMutation();
-
-  if (!isBuildFresh) {
-    event.preventDefault();
-    return;
-  }
-
   if (editingMovieId) {
     await updateMovie(event);
   } else {
