@@ -906,18 +906,37 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 }
 
 .movie-card-rated {
+  border-color: rgba(34, 168, 97, 0.5);
+  box-shadow: 0 0 0 1px rgba(34, 168, 97, 0.22);
+}
+
+.movie-card-rated:hover {
+  border-color: rgba(34, 168, 97, 0.65);
+  box-shadow:
+    0 0 0 1px rgba(34, 168, 97, 0.26),
+    0 14px 30px rgba(0, 0, 0, 0.24);
+}
+
+.movie-card-rated:focus-within {
+  border-color: rgba(34, 168, 97, 0.7);
+  box-shadow:
+    0 0 0 1px rgba(34, 168, 97, 0.28),
+    0 14px 30px rgba(0, 0, 0, 0.24);
+}
+
+.movie-card-watchlist {
   border-color: rgba(91, 140, 255, 0.45);
   box-shadow: 0 0 0 1px rgba(91, 140, 255, 0.18);
 }
 
-.movie-card-rated:hover {
+.movie-card-watchlist:hover {
   border-color: rgba(91, 140, 255, 0.58);
   box-shadow:
     0 0 0 1px rgba(91, 140, 255, 0.22),
     0 14px 30px rgba(0, 0, 0, 0.24);
 }
 
-.movie-card-rated:focus-within {
+.movie-card-watchlist:focus-within {
   border-color: rgba(91, 140, 255, 0.62);
   box-shadow:
     0 0 0 1px rgba(91, 140, 255, 0.24),
