@@ -2010,6 +2010,8 @@ function renderMovies() {
   yearFilter.value ||
   (currentUser && watchedFilter.value);
 
+  renderActiveFilterChips();
+
   if (hasActiveFilters && typeof ym === 'function') {
     ym(108369182, 'reachGoal', 'use_filters');
   }
