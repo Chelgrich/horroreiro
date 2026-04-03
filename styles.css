@@ -701,7 +701,7 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 
 .active-filter-chip {
   min-height: 32px;
-  padding: 6px 10px;
+  padding: 6px 16px; /* было 10px → стало 16px по горизонтали */
   display: inline-flex;
   align-items: center;
   gap: 8px;
