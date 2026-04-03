@@ -175,42 +175,16 @@ function normalizeOptionalUrl(value) {
   return trimmedValue;
 }
 
+function areStringArraysEqual(firstArray, secondArray) {
+  if (firstArray.length !== secondArray.length) {
+    return false;
+  }
+
+  return firstArray.every((item, index) => item === secondArray[index]);
+}
+
 function updateAdminStatus() {
   isAdmin = Boolean(currentUser && currentUserRole === 'admin');
-}
-
-function normalizeAdditionalGenreNames(value) {
-  const genreNames = parseCommaSeparated(value);
-
-  if (!genreNames.some(name => normalizeSearchText(name) === 'ужасы')) {
-    return ['Ужасы', ...genreNames];
-  }
-
-  return genreNames;
-}
-
-async function loadCurrentUserRole() {
-  if (!currentUser) {
-    currentUserRole = null;
-    updateAdminStatus();
-    return;
-  }
-
-  const { data, error } = await supabaseClient
-    .from('profiles')
-    .select('role')
-    .eq('id', currentUser.id)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Ошибка загрузки роли пользователя:', error);
-    currentUserRole = null;
-    updateAdminStatus();
-    return;
-  }
-
-  currentUserRole = data?.role ?? 'user';
-  updateAdminStatus();
 }
 
 /* =========================================================
@@ -1009,82 +983,133 @@ async function updateMovie(event) {
   }
 
   const existingMovie = allMovies.find(movie => movie.id === editingMovieId);
-  const oldPosterUrl = existingMovie ? existingMovie.poster_url : null;
+
+  if (!existingMovie) {
+    formMessage.textContent = 'Не удалось найти фильм для редактирования.';
+    setMovieFormSubmittingState(false);
+    return;
+  }
+
+  const oldPosterUrl = existingMovie.poster_url ?? null;
+
+  const existingGenreNames = existingMovie.movie_genres
+    .map(item => item.genres.name)
+    .filter(Boolean);
+
+  const existingCountryNames = existingMovie.movie_countries
+    .map(item => item.countries.name)
+    .filter(Boolean);
+
+  const normalizedExistingGenres = [...existingGenreNames].sort((a, b) => a.localeCompare(b, 'ru'));
+  const normalizedNewGenres = [...genreNames].sort((a, b) => a.localeCompare(b, 'ru'));
+
+  const normalizedExistingCountries = [...existingCountryNames].sort((a, b) => a.localeCompare(b, 'ru'));
+  const normalizedNewCountries = [...countryNames].sort((a, b) => a.localeCompare(b, 'ru'));
+
+  const relationsChanged = (
+    !areStringArraysEqual(normalizedExistingGenres, normalizedNewGenres) ||
+    !areStringArraysEqual(normalizedExistingCountries, normalizedNewCountries)
+  );
 
   try {
     let finalPosterUrl = posterUrl || null;
     let uploadedNewPoster = false;
 
-    console.log('[updateMovie] start', {
-      editingMovieId,
-      kinopoiskUrl,
-      imdbUrl,
-      letterboxdUrl,
-      rottentomatoesUrl
-    });
-
     if (posterFile) {
       formMessage.textContent = 'Загружаю постер...';
-      console.log('[updateMovie] uploadPosterFile start');
       finalPosterUrl = await uploadPosterFile(posterFile);
       uploadedNewPoster = true;
-      console.log('[updateMovie] uploadPosterFile done', finalPosterUrl);
     }
 
-    formMessage.textContent = 'Сохраняю изменения...';
-    console.log('[updateMovie] movies.update start');
+    const changedFields = {};
 
-    const { error: updateMovieError } = await supabaseClient
-      .from('movies')
-      .update({
-        title,
-        original_title: originalTitle || null,
-        year: year ? Number(year) : null,
-        director: director || null,
-        poster_url: finalPosterUrl,
-        kinopoisk_url: kinopoiskUrl || null,
-        imdb_url: imdbUrl || null,
-        letterboxd_url: letterboxdUrl || null,
-        rottentomatoes_url: rottentomatoesUrl || null,
-        release_month: releaseMonth ? Number(releaseMonth) : null,
-        release_year: releaseYear ? Number(releaseYear) : null,
-        sort_order: sortOrder ? Number(sortOrder) : null
-      })
-      .eq('id', editingMovieId);
-
-    console.log('[updateMovie] movies.update done');
-
-    if (updateMovieError) {
-      console.error('[updateMovie] movies.update error', updateMovieError);
-      throw updateMovieError;
+    // Передаём в update только реально изменившиеся поля.
+    // Это уменьшает payload и снижает риск зависаний на большом запросе.
+    if (title !== (existingMovie.title ?? '')) {
+      changedFields.title = title;
     }
 
-    console.log('[updateMovie] replaceMovieRelations start', {
-      editingMovieId,
-      genreNames,
-      countryNames
-    });
-    await replaceMovieRelations(editingMovieId, genreNames, countryNames);
-    console.log('[updateMovie] replaceMovieRelations done');
+    if ((originalTitle || null) !== (existingMovie.original_title ?? null)) {
+      changedFields.original_title = originalTitle || null;
+    }
+
+    if ((year ? Number(year) : null) !== (existingMovie.year ?? null)) {
+      changedFields.year = year ? Number(year) : null;
+    }
+
+    if ((director || null) !== (existingMovie.director ?? null)) {
+      changedFields.director = director || null;
+    }
+
+    if (finalPosterUrl !== (existingMovie.poster_url ?? null)) {
+      changedFields.poster_url = finalPosterUrl;
+    }
+
+    if ((kinopoiskUrl || null) !== (existingMovie.kinopoisk_url ?? null)) {
+      changedFields.kinopoisk_url = kinopoiskUrl || null;
+    }
+
+    if ((imdbUrl || null) !== (existingMovie.imdb_url ?? null)) {
+      changedFields.imdb_url = imdbUrl || null;
+    }
+
+    if ((letterboxdUrl || null) !== (existingMovie.letterboxd_url ?? null)) {
+      changedFields.letterboxd_url = letterboxdUrl || null;
+    }
+
+    if ((rottentomatoesUrl || null) !== (existingMovie.rottentomatoes_url ?? null)) {
+      changedFields.rottentomatoes_url = rottentomatoesUrl || null;
+    }
+
+    if ((releaseMonth ? Number(releaseMonth) : null) !== (existingMovie.release_month ?? null)) {
+      changedFields.release_month = releaseMonth ? Number(releaseMonth) : null;
+    }
+
+    if ((releaseYear ? Number(releaseYear) : null) !== (existingMovie.release_year ?? null)) {
+      changedFields.release_year = releaseYear ? Number(releaseYear) : null;
+    }
+
+    if ((sortOrder ? Number(sortOrder) : null) !== (existingMovie.sort_order ?? null)) {
+      changedFields.sort_order = sortOrder ? Number(sortOrder) : null;
+    }
+
+    if (Object.keys(changedFields).length > 0) {
+      formMessage.textContent = 'Сохраняю изменения...';
+
+      const { error: updateMovieError } = await supabaseClient
+        .from('movies')
+        .update(changedFields)
+        .eq('id', editingMovieId);
+
+      if (updateMovieError) {
+        throw updateMovieError;
+      }
+    }
+
+    if (relationsChanged) {
+      await replaceMovieRelations(editingMovieId, genreNames, countryNames);
+    }
 
     if (uploadedNewPoster && oldPosterUrl && oldPosterUrl !== finalPosterUrl) {
       try {
-        console.log('[updateMovie] deletePosterFileByUrl start', oldPosterUrl);
         await deletePosterFileByUrl(oldPosterUrl);
-        console.log('[updateMovie] deletePosterFileByUrl done');
       } catch (deletePosterError) {
         console.error('Не удалось удалить старый постер:', deletePosterError);
       }
     }
 
-    formMessage.textContent = 'Обновляю каталог...';
-    console.log('[updateMovie] reloadCatalogData start');
-    await reloadCatalogData();
-    console.log('[updateMovie] reloadCatalogData done');
+    if (Object.keys(changedFields).length === 0 && !relationsChanged) {
+      formMessage.textContent = 'Изменений нет.';
+      closeMovieModal();
+      resetFormToCreateMode();
+      return;
+    }
 
-    resetFormToCreateMode();
+    formMessage.textContent = 'Обновляю каталог...';
+    await reloadCatalogData();
+
     closeMovieModal();
-    console.log('[updateMovie] complete');
+    resetFormToCreateMode();
   } catch (error) {
     console.error('Ошибка при редактировании фильма:', error);
     formMessage.textContent = 'Ошибка при редактировании фильма. Смотри консоль F12.';
