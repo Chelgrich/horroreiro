@@ -281,6 +281,35 @@ input {
   border-radius: 6px;
 }
 
+input[type="file"] {
+  height: 36px;
+  padding: 4px 12px 4px 0;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+input[type="file"]::file-selector-button {
+  height: 28px;
+  margin: 0 12px 0 0;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  line-height: 1;
+  color: #ffffff;
+  cursor: pointer;
+  background: #1a1f26;
+  border: 1px solid #353d48;
+  border-radius: 6px;
+  vertical-align: middle;
+}
+
+input[type="file"]::file-selector-button:hover {
+  opacity: 0.92;
+}
+
 select {
   padding: 10px 12px;
   color: #f2f2f2;
