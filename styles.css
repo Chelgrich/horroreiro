@@ -747,8 +747,8 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 
 .movie-card p:first-of-type {
   margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #1f242b;
+  padding-top: 0;
+  border-top: none;
 }
 
 .movie-card p:nth-last-of-type(1) {
@@ -765,16 +765,71 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
 Фиксированная вертикальная зона постера в пропорции 2:3.
 ========================================================== */
+.movie-poster-block {
+  margin: -4px -16px 14px;
+}
+
 .movie-poster-wrapper {
   position: relative;
-  width: calc(100% + 32px);
+  width: 100%;
   aspect-ratio: 2 / 3;
   flex: 0 0 auto;
   overflow: hidden;
   background: #0f1114;
   border: 1px solid #2c333b;
   border-radius: 6px;
-  margin: -4px -16px 14px;
+}
+
+.movie-poster-links-row {
+  margin-top: 10px;
+  padding: 0 0 10px;
+  border-bottom: 1px solid #1f242b; /* тот же разделитель, что дальше в карточке */
+}
+
+.movie-external-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.movie-external-link {
+  min-width: 34px;
+  height: 28px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #f2f2f2;
+  text-decoration: none;
+  background: #121519;
+  border: 1px solid #313842;
+  border-radius: 999px;
+  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+}
+
+.movie-external-link:hover {
+  border-color: #5c6b7c;
+  background: #171c22;
+  transform: translateY(-1px);
+}
+
+.movie-external-link span {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.movie-external-link.is-kinopoisk span {
+  letter-spacing: 0.2px;
+}
+
+.movie-external-link.is-imdb span,
+.movie-external-link.is-letterboxd span,
+.movie-external-link.is-rottentomatoes span {
+  letter-spacing: 0.3px;
 }
 
 .movie-watched-icon {

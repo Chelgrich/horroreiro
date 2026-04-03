@@ -48,6 +48,10 @@ const directorInput = document.getElementById('director');
 const posterUrlInput = document.getElementById('posterUrl');
 const posterFileInput = document.getElementById('posterFile');
 const posterFileName = document.getElementById('posterFileName');
+const kinopoiskUrlInput = document.getElementById('kinopoiskUrl');
+const imdbUrlInput = document.getElementById('imdbUrl');
+const letterboxdUrlInput = document.getElementById('letterboxdUrl');
+const rottentomatoesUrlInput = document.getElementById('rottentomatoesUrl');
 const genresInput = document.getElementById('genresInput');
 const countriesInput = document.getElementById('countriesInput');
 
@@ -326,6 +330,10 @@ function fillFormForEdit(movie) {
   posterUrlInput.value = movie.poster_url ?? '';
   posterFileInput.value = '';
   updatePosterFileUi(); // в режиме редактирования файл ещё не выбран, значит показываем дефолтный текст
+  kinopoiskUrlInput.value = movie.kinopoisk_url ?? '';
+  imdbUrlInput.value = movie.imdb_url ?? '';
+  letterboxdUrlInput.value = movie.letterboxd_url ?? '';
+  rottentomatoesUrlInput.value = movie.rottentomatoes_url ?? '';
 
   const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
   const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
@@ -500,6 +508,10 @@ async function fetchMovies() {
       director,
       rating,
       poster_url,
+      kinopoisk_url,
+      imdb_url,
+      letterboxd_url,
+      rottentomatoes_url,
       release_year,
       release_month,
       sort_order,
@@ -835,6 +847,10 @@ async function addMovie(event) {
   const posterFile = posterFileInput.files && posterFileInput.files[0]
     ? posterFileInput.files[0]
     : null;
+  const kinopoiskUrl = kinopoiskUrlInput.value.trim();
+  const imdbUrl = imdbUrlInput.value.trim();
+  const letterboxdUrl = letterboxdUrlInput.value.trim();
+  const rottentomatoesUrl = rottentomatoesUrlInput.value.trim();
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseCommaSeparated(countriesInput.value);
@@ -863,6 +879,10 @@ async function addMovie(event) {
         director: director || null,
         rating: 0,
         poster_url: finalPosterUrl,
+        kinopoisk_url: kinopoiskUrl || null,
+        imdb_url: imdbUrl || null,
+        letterboxd_url: letterboxdUrl || null,
+        rottentomatoes_url: rottentomatoesUrl || null,
         release_month: releaseMonth ? Number(releaseMonth) : null,
         release_year: releaseYear ? Number(releaseYear) : null,
         sort_order: sortOrder ? Number(sortOrder) : null,
@@ -919,6 +939,10 @@ async function updateMovie(event) {
   const posterFile = posterFileInput.files && posterFileInput.files[0]
     ? posterFileInput.files[0]
     : null;
+  const kinopoiskUrl = kinopoiskUrlInput.value.trim();
+  const imdbUrl = imdbUrlInput.value.trim();
+  const letterboxdUrl = letterboxdUrlInput.value.trim();
+  const rottentomatoesUrl = rottentomatoesUrlInput.value.trim();
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseCommaSeparated(countriesInput.value);
@@ -951,6 +975,10 @@ async function updateMovie(event) {
         year: year ? Number(year) : null,
         director: director || null,
         poster_url: finalPosterUrl,
+        kinopoisk_url: kinopoiskUrl || null,
+        imdb_url: imdbUrl || null,
+        letterboxd_url: letterboxdUrl || null,
+        rottentomatoes_url: rottentomatoesUrl || null,
         release_month: releaseMonth ? Number(releaseMonth) : null,
         release_year: releaseYear ? Number(releaseYear) : null,
         sort_order: sortOrder ? Number(sortOrder) : null
@@ -1349,32 +1377,96 @@ function getUserRatingControlsHtml(currentUserRating) {
   `;
 }
 
-function getPosterHtml(movie, isWatchedByCurrentUser) {
+function getMovieExternalLinksHtml(movie) {
+  const links = [
+    {
+      url: movie.kinopoisk_url,
+      label: 'Кинопоиск',
+      shortLabel: 'KP',
+      className: 'is-kinopoisk'
+    },
+    {
+      url: movie.imdb_url,
+      label: 'IMDb',
+      shortLabel: 'IMDb',
+      className: 'is-imdb'
+    },
+    {
+      url: movie.letterboxd_url,
+      label: 'Letterboxd',
+      shortLabel: 'LB',
+      className: 'is-letterboxd'
+    },
+    {
+      url: movie.rottentomatoes_url,
+      label: 'Rotten Tomatoes',
+      shortLabel: 'RT',
+      className: 'is-rottentomatoes'
+    }
+  ].filter(item => item.url);
+
+  if (links.length === 0) {
+    return '';
+  }
+
   return `
-    <div class="movie-poster-wrapper">
-      ${
-        movie.poster_url
-          ? `
-            <div class="movie-poster-skeleton" aria-hidden="true"></div>
-            <img
-              class="movie-poster"
-              src="${movie.poster_url}"
-              alt="Постер фильма ${movie.title}"
-              loading="lazy"
-              decoding="async"
-            >
-          `
-          : `<div class="movie-poster-placeholder">Нет постера</div>`
-      }
+    <div class="movie-external-links" aria-label="Ссылки на карточки фильма">
+      ${links.map(link => `
+        <a
+          href="${link.url}"
+          class="movie-external-link ${link.className}"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="${link.label}"
+          title="${link.label}"
+        >
+          <span>${link.shortLabel}</span>
+        </a>
+      `).join('')}
+    </div>
+  `;
+}
+
+function getPosterHtml(movie, isWatchedByCurrentUser) {
+  const externalLinksHtml = getMovieExternalLinksHtml(movie);
+
+  return `
+    <div class="movie-poster-block">
+      <div class="movie-poster-wrapper">
+        ${
+          movie.poster_url
+            ? `
+              <div class="movie-poster-skeleton" aria-hidden="true"></div>
+              <img
+                class="movie-poster"
+                src="${movie.poster_url}"
+                alt="Постер фильма ${movie.title}"
+                loading="lazy"
+                decoding="async"
+              >
+            `
+            : `<div class="movie-poster-placeholder">Нет постера</div>`
+        }
+
+        ${
+          isWatchedByCurrentUser
+            ? `
+              <div class="movie-watched-icon" aria-label="Просмотрено" title="Просмотрено">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </div>
+            `
+            : ''
+        }
+      </div>
 
       ${
-        isWatchedByCurrentUser
+        externalLinksHtml
           ? `
-            <div class="movie-watched-icon" aria-label="Просмотрено" title="Просмотрено">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
+            <div class="movie-poster-links-row">
+              ${externalLinksHtml}
             </div>
           `
           : ''
