@@ -977,7 +977,7 @@ async function updateMovie(event) {
   event.preventDefault();
 
   if (isMovieFormSubmitting) {
-    return; // защита от повторного запуска, пока прошлое сохранение ещё не завершилось
+    return;
   }
 
   setMovieFormSubmittingState(true);
@@ -1015,13 +1015,24 @@ async function updateMovie(event) {
     let finalPosterUrl = posterUrl || null;
     let uploadedNewPoster = false;
 
+    console.log('[updateMovie] start', {
+      editingMovieId,
+      kinopoiskUrl,
+      imdbUrl,
+      letterboxdUrl,
+      rottentomatoesUrl
+    });
+
     if (posterFile) {
       formMessage.textContent = 'Загружаю постер...';
+      console.log('[updateMovie] uploadPosterFile start');
       finalPosterUrl = await uploadPosterFile(posterFile);
       uploadedNewPoster = true;
+      console.log('[updateMovie] uploadPosterFile done', finalPosterUrl);
     }
 
     formMessage.textContent = 'Сохраняю изменения...';
+    console.log('[updateMovie] movies.update start');
 
     const { error: updateMovieError } = await supabaseClient
       .from('movies')
@@ -1041,25 +1052,39 @@ async function updateMovie(event) {
       })
       .eq('id', editingMovieId);
 
+    console.log('[updateMovie] movies.update done');
+
     if (updateMovieError) {
+      console.error('[updateMovie] movies.update error', updateMovieError);
       throw updateMovieError;
     }
 
+    console.log('[updateMovie] replaceMovieRelations start', {
+      editingMovieId,
+      genreNames,
+      countryNames
+    });
     await replaceMovieRelations(editingMovieId, genreNames, countryNames);
+    console.log('[updateMovie] replaceMovieRelations done');
 
     if (uploadedNewPoster && oldPosterUrl && oldPosterUrl !== finalPosterUrl) {
       try {
+        console.log('[updateMovie] deletePosterFileByUrl start', oldPosterUrl);
         await deletePosterFileByUrl(oldPosterUrl);
+        console.log('[updateMovie] deletePosterFileByUrl done');
       } catch (deletePosterError) {
         console.error('Не удалось удалить старый постер:', deletePosterError);
       }
     }
 
     formMessage.textContent = 'Обновляю каталог...';
-    await reloadCatalogData(); // сначала приводим каталог в актуальное состояние
+    console.log('[updateMovie] reloadCatalogData start');
+    await reloadCatalogData();
+    console.log('[updateMovie] reloadCatalogData done');
 
     resetFormToCreateMode();
     closeMovieModal();
+    console.log('[updateMovie] complete');
   } catch (error) {
     console.error('Ошибка при редактировании фильма:', error);
     formMessage.textContent = 'Ошибка при редактировании фильма. Смотри консоль F12.';
