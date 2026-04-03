@@ -596,6 +596,24 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 .catalog-toolbar-actions > button {
   height: 44px;
   flex: 0 0 auto;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.catalog-toolbar-actions > button::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  flex: 0 0 auto;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M4 6h16M7 12h10M10 18h4' stroke='%23cfd6de' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 14px 14px;
+  background-position: center;
+  opacity: 0.92;
 }
 
 .catalog-toolbar-actions > button.is-active {
@@ -603,6 +621,10 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
   background: rgba(91, 140, 255, 0.16);
   border-color: rgba(91, 140, 255, 0.42);
   box-shadow: 0 0 0 1px rgba(91, 140, 255, 0.16);
+}
+
+.catalog-toolbar-actions > button.is-active::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M4 6h16M7 12h10M10 18h4' stroke='%23dbe7ff' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 .catalog-toolbar-actions > button.is-active:hover {
