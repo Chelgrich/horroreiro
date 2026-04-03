@@ -183,6 +183,34 @@ function areStringArraysEqual(firstArray, secondArray) {
   return firstArray.every((item, index) => item === secondArray[index]);
 }
 
+async function loadCurrentUserRole() {
+  if (!currentUser) {
+    currentUserRole = null;
+    updateAdminStatus();
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('profiles')
+      .select('role')
+      .eq('id', currentUser.id)
+      .single();
+
+    if (error) {
+      console.error('Ошибка загрузки роли пользователя:', error);
+      currentUserRole = null;
+    } else {
+      currentUserRole = data?.role || null;
+    }
+  } catch (error) {
+    console.error('Ошибка loadCurrentUserRole:', error);
+    currentUserRole = null;
+  }
+
+  updateAdminStatus();
+}
+
 function updateAdminStatus() {
   isAdmin = Boolean(currentUser && currentUserRole === 'admin');
 }
