@@ -835,6 +835,8 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 
 .filters-modal-dialog {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: min(980px, calc(100vw - 48px));
   max-width: 980px;
   min-height: 0;
@@ -1734,14 +1736,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .filters-modal-actions {
-    position: sticky;
-    top: auto;
-    right: auto;
-    bottom: 0;
+    position: static;
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    margin-top: 16px;
+    margin-top: auto;
     padding-top: 12px;
     background: linear-gradient(
       to bottom,
