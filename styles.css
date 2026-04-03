@@ -590,6 +590,35 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
   height: 44px; /* выравниваем с фильтром и сортировкой */
 }
 
+/* =========================================================
+ТОНКАЯ ПОЛИРОВКА TOOLBAR
+Выравнивание label и control по ритму
+========================================================== */
+.catalog-search-row,
+.filter-sort {
+  gap: 4px; /* было 6px → делаем плотнее и аккуратнее */
+}
+
+.catalog-search-row label,
+.filter-sort label {
+  font-size: 12px;
+  line-height: 1.1;
+  color: #9aa3ad;
+  padding-left: 2px; /* выравнивание с select */
+}
+
+.catalog-search-row input,
+.filter-sort .custom-select-trigger,
+.filter-sort select {
+  min-height: 44px;
+}
+
+/* лёгкая оптическая компенсация для select */
+.filter-sort .custom-select-trigger {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
 .catalog-toolbar-actions {
   display: flex;
   align-items: end;
