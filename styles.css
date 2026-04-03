@@ -724,8 +724,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 .movie-title-links-row {
   margin-top: 0;
   margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #1f242b; /* первый разделитель: под иконками */
+  padding-bottom: 0;
 }
 
 .movie-card h3 {
@@ -734,7 +733,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   font-weight: 700;
   line-height: 1.2;
   color: #ffffff;
-  border-bottom: 1px solid #1f242b; /* второй разделитель: под названием */
+  border-bottom: 1px solid #1f242b;
 }
 
 .meta-label {
