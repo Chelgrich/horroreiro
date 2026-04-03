@@ -183,6 +183,18 @@ function areStringArraysEqual(firstArray, secondArray) {
   return firstArray.every((item, index) => item === secondArray[index]);
 }
 
+function normalizeAdditionalGenreNames(value) {
+  const genreNames = parseCommaSeparated(value);
+
+  // "Ужасы" всегда должен быть базовым жанром фильма.
+  // Если пользователь его не указал вручную, добавляем автоматически.
+  if (!genreNames.some(name => normalizeSearchText(name) === 'ужасы')) {
+    return ['Ужасы', ...genreNames];
+  }
+
+  return genreNames;
+}
+
 async function loadCurrentUserRole() {
   if (!currentUser) {
     currentUserRole = null;
@@ -667,60 +679,6 @@ JS-БЛОК 12. РАБОТА С POSTER STORAGE
 Загружает новый постер, определяет storage-путь и удаляет
 старый файл при замене.
 ========================================================== */
-async function replaceMovieRelations(movieId, genreNames, countryNames) {
-  const genreRows = await ensureGenres(genreNames);
-  const countryRows = await ensureCountries(countryNames);
-
-  const { error: deleteGenresError } = await supabaseClient
-    .from('movie_genres')
-    .delete()
-    .eq('movie_id', movieId);
-
-  if (deleteGenresError) {
-    throw deleteGenresError;
-  }
-
-  const { error: deleteCountriesError } = await supabaseClient
-    .from('movie_countries')
-    .delete()
-    .eq('movie_id', movieId);
-
-  if (deleteCountriesError) {
-    throw deleteCountriesError;
-  }
-
-  if (genreRows.length > 0) {
-    const movieGenreRows = genreRows.map((genre, index) => ({
-      movie_id: movieId,
-      genre_id: genre.id,
-      position: index
-    }));
-
-    const { error } = await supabaseClient
-      .from('movie_genres')
-      .insert(movieGenreRows);
-
-    if (error) {
-      throw error;
-    }
-  }
-
-  if (countryRows.length > 0) {
-    const movieCountryRows = countryRows.map(country => ({
-      movie_id: movieId,
-      country_id: country.id
-    }));
-
-    const { error } = await supabaseClient
-      .from('movie_countries')
-      .insert(movieCountryRows);
-
-    if (error) {
-      throw error;
-    }
-  }
-}
-
 function extractPosterStoragePath(publicUrl) {
   if (!publicUrl) {
     return null;
@@ -1511,41 +1469,6 @@ function getUserRatingControlsHtml(currentUserRating) {
       </div>
     </div>
   `;
-}
-
-function getMovieExternalLinkIconSvg(type) {
-  const icons = {
-    kinopoisk: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <!-- Звезда Кинопоиска -->
-        <path fill="currentColor" d="M12 2.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 15.9l-5.2 2.7 1-5.8L3.6 8.6l5.8-.8L12 2.5Z"/>
-      </svg>
-    `,
-    imdb: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <!-- IMDb — плашка -->
-        <rect x="2" y="6" width="20" height="12" rx="3" fill="currentColor"/>
-        <text x="12" y="14" text-anchor="middle" font-size="7" font-weight="700" fill="#111">IMDb</text>
-      </svg>
-    `,
-    letterboxd: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <!-- Letterboxd -->
-        <circle cx="9" cy="12" r="4" fill="currentColor" opacity="0.4"/>
-        <circle cx="12" cy="12" r="4" fill="currentColor" opacity="0.7"/>
-        <circle cx="15" cy="12" r="4" fill="currentColor"/>
-      </svg>
-    `,
-    rottentomatoes: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <!-- Томат -->
-        <path fill="currentColor" d="M12 7c-3.5 0-6 2.5-6 5.5S8.5 18 12 18s6-2.5 6-5.5S15.5 7 12 7Z"/>
-        <path fill="currentColor" d="M12 5c1.5-2 4-2 5.5-.5-1.5.5-3 .5-4.5.5-1.5 0-3 0-4.5-.5C8 3 10.5 3 12 5Z"/>
-      </svg>
-    `
-  };
-
-  return icons[type] || '';
 }
 
 function getMovieExternalIconSrc(type) {
