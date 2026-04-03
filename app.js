@@ -718,17 +718,8 @@ JS-БЛОК 14. ОБНОВЛЕНИЕ СВЯЗЕЙ ФИЛЬМА
 с жанрами и странами.
 ========================================================== */
 async function replaceMovieRelations(movieId, genreNames, countryNames) {
-  console.log('[replaceMovieRelations] start', {
-    movieId,
-    genreNames,
-    countryNames
-  });
-
   const genreRows = await ensureGenres(genreNames);
-  console.log('[replaceMovieRelations] genreRows', genreRows);
-
   const countryRows = await ensureCountries(countryNames);
-  console.log('[replaceMovieRelations] countryRows', countryRows);
 
   const { error: deleteGenresError } = await supabaseClient
     .from('movie_genres')
@@ -736,7 +727,6 @@ async function replaceMovieRelations(movieId, genreNames, countryNames) {
     .eq('movie_id', movieId);
 
   if (deleteGenresError) {
-    console.error('[replaceMovieRelations] deleteGenresError', deleteGenresError);
     throw deleteGenresError;
   }
 
@@ -746,7 +736,6 @@ async function replaceMovieRelations(movieId, genreNames, countryNames) {
     .eq('movie_id', movieId);
 
   if (deleteCountriesError) {
-    console.error('[replaceMovieRelations] deleteCountriesError', deleteCountriesError);
     throw deleteCountriesError;
   }
 
@@ -757,14 +746,11 @@ async function replaceMovieRelations(movieId, genreNames, countryNames) {
       position: index
     }));
 
-    console.log('[replaceMovieRelations] insert movie_genres', movieGenreRows);
-
     const { error } = await supabaseClient
       .from('movie_genres')
       .insert(movieGenreRows);
 
     if (error) {
-      console.error('[replaceMovieRelations] movie_genres error', error);
       throw error;
     }
   }
@@ -775,19 +761,14 @@ async function replaceMovieRelations(movieId, genreNames, countryNames) {
       country_id: country.id
     }));
 
-    console.log('[replaceMovieRelations] insert movie_countries', movieCountryRows);
-
     const { error } = await supabaseClient
       .from('movie_countries')
       .insert(movieCountryRows);
 
     if (error) {
-      console.error('[replaceMovieRelations] movie_countries error', error);
       throw error;
     }
   }
-
-  console.log('[replaceMovieRelations] done', movieId);
 }
 
 /* =========================================================
