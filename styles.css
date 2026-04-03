@@ -1354,4 +1354,54 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     line-height: 1.18; /* более плотный, “титульный” */
     letter-spacing: 0.2px;
   }
+
+  /* === Низ карточки: рейтинг и действия === */
+
+  .movie-rating-block {
+    margin-top: auto;
+    padding-top: 2px;
+  }
+
+  .movie-rating-summary {
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .movie-rating-summary-main {
+    gap: 6px;
+  }
+
+  .movie-rating-value {
+    font-size: 22px;
+  }
+
+  .movie-rating-meta {
+    font-size: 13px;
+    line-height: 1.25;
+  }
+
+  .remove-rating-inline-btn {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .movie-user-rating {
+    margin-top: 12px;
+  }
+
+  .movie-user-rating-label {
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+
+  .rating-star-btn {
+    font-size: 24px;
+  }
+
+  .movie-card-actions {
+    gap: 8px;
+    padding-top: 8px;
+  }
 }
