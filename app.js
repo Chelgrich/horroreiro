@@ -87,6 +87,7 @@ let editingMovieId = null;
 let isModalOpen = false;
 let moviesLoadedSuccessfully = false;
 let authMessageTimer = null;
+let isMovieFormSubmitting = false;
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -300,6 +301,18 @@ function closeMovieModal() {
   movieModal.style.display = 'none';
   document.body.style.overflow = '';
   isModalOpen = false;
+}
+
+function setMovieFormSubmittingState(isSubmitting) {
+  isMovieFormSubmitting = isSubmitting;
+
+  submitButton.disabled = isSubmitting;
+  cancelEditButton.disabled = isSubmitting;
+  closeMovieModalButton.disabled = isSubmitting;
+
+  if (openAddMovieButton) {
+    openAddMovieButton.disabled = isSubmitting;
+  }
 }
 
 function resetFormToCreateMode() {
@@ -848,6 +861,11 @@ JS-БЛОК 15. ДОБАВЛЕНИЕ ФИЛЬМА
 async function addMovie(event) {
   event.preventDefault();
 
+  if (isMovieFormSubmitting) {
+    return; // защита от повторного запуска, пока предыдущее сохранение ещё не завершилось
+  }
+
+  setMovieFormSubmittingState(true);
   formMessage.textContent = 'Сохраняю...';
 
   const title = titleInput.value.trim();
@@ -871,6 +889,7 @@ async function addMovie(event) {
 
   if (!title) {
     formMessage.textContent = 'Название обязательно.';
+    setMovieFormSubmittingState(false);
     return;
   }
 
@@ -922,14 +941,16 @@ async function addMovie(event) {
 
     await replaceMovieRelations(insertedMovie.id, genreNames, countryNames);
 
-    formMessage.textContent = 'Фильм успешно добавлен.';
-    closeMovieModal();
-    resetFormToCreateMode();
+    formMessage.textContent = 'Обновляю каталог...';
+    await reloadCatalogData(); // сначала дожидаемся полной синхронизации состояния каталога
 
-    await reloadCatalogData();
+    resetFormToCreateMode();
+    closeMovieModal();
   } catch (error) {
     console.error('Ошибка при добавлении фильма:', error);
     formMessage.textContent = 'Ошибка при добавлении фильма. Смотри консоль F12.';
+  } finally {
+    setMovieFormSubmittingState(false);
   }
 }
 
@@ -940,6 +961,11 @@ JS-БЛОК 16. РЕДАКТИРОВАНИЕ ФИЛЬМА
 async function updateMovie(event) {
   event.preventDefault();
 
+  if (isMovieFormSubmitting) {
+    return; // защита от повторного запуска, пока прошлое сохранение ещё не завершилось
+  }
+
+  setMovieFormSubmittingState(true);
   formMessage.textContent = 'Сохраняю изменения...';
 
   const title = titleInput.value.trim();
@@ -963,6 +989,7 @@ async function updateMovie(event) {
 
   if (!title) {
     formMessage.textContent = 'Название обязательно.';
+    setMovieFormSubmittingState(false);
     return;
   }
 
@@ -1013,14 +1040,16 @@ async function updateMovie(event) {
       }
     }
 
-    formMessage.textContent = 'Фильм успешно обновлён.';
-    closeMovieModal();
-    resetFormToCreateMode();
+    formMessage.textContent = 'Обновляю каталог...';
+    await reloadCatalogData(); // сначала приводим каталог в актуальное состояние
 
-    await reloadCatalogData();
+    resetFormToCreateMode();
+    closeMovieModal();
   } catch (error) {
     console.error('Ошибка при редактировании фильма:', error);
     formMessage.textContent = 'Ошибка при редактировании фильма. Смотри консоль F12.';
+  } finally {
+    setMovieFormSubmittingState(false);
   }
 }
 
