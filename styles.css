@@ -740,7 +740,10 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 }
 
 .filters-modal-dialog {
+  width: min(980px, calc(100vw - 48px));
   max-width: 980px;
+  max-height: min(820px, calc(100vh - 48px)); /* больше и зависит от высоты вьюпорта */
+  margin: 24px auto; /* модалка поднимается выше и получает больше полезной высоты */
 }
 
 .filters-modal-grid {
