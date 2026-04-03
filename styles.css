@@ -303,7 +303,9 @@ input[type="file"]::file-selector-button {
   background: #1a1f26;
   border: 1px solid #353d48;
   border-radius: 6px;
-  vertical-align: middle;
+
+  transform: scale(0.8);
+  transform-origin: left center;
 }
 
 input[type="file"]::file-selector-button:hover {
