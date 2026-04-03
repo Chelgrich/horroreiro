@@ -336,6 +336,24 @@ function closeMovieModal() {
   isModalOpen = false;
 }
 
+function openFiltersModal() {
+  if (!filtersModal) {
+    return;
+  }
+
+  filtersModal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFiltersModal() {
+  if (!filtersModal) {
+    return;
+  }
+
+  filtersModal.style.display = 'none';
+  document.body.style.overflow = isModalOpen ? 'hidden' : '';
+}
+
 function setMovieFormSubmittingState(isSubmitting) {
   isMovieFormSubmitting = isSubmitting;
 
