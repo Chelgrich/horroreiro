@@ -294,94 +294,119 @@
     </div>
 
     <!-- =========================================================
-    HTML-БЛОК 8. ПАНЕЛЬ ФИЛЬТРОВ И СОРТИРОВКИ
-    Поиск, фильтрация каталога и сброс выбранных параметров.
+    HTML-БЛОК 8. ПАНЕЛЬ ПОИСКА, КНОПКИ ФИЛЬТРОВ И СОРТИРОВКИ
+    Поиск остаётся на виду, фильтры открываются по кнопке в модалке.
     ========================================================== -->
     <section class="section">
-      <div class="filters">
-        <div class="form-row">
+      <div class="catalog-toolbar">
+        <div class="form-row catalog-search-row">
           <label for="searchInput">Поиск:</label>
           <input type="text" id="searchInput" placeholder="Название, оригинальное название, режиссёр">
         </div>
 
-        <div class="form-row form-row-watched" id="watchedFilterRow" style="display: none;">
-          <label for="watchedFilter">Просмотренные:</label>
-          <select id="watchedFilter" name="watchedFilter">
-            <option value="">Все</option>
-            <option value="watched">Только просмотренные</option>
-            <option value="unwatched">Скрыть просмотренные</option>
-          </select>
-        </div>
-
-        <div class="form-row">
-          <label for="genreFilter">Доп. жанр:</label>
-          <select id="genreFilter" name="genreFilter"></select>
-        </div>
-
-        <div class="form-row">
-          <label for="monthFilter">Месяц:</label>
-          <select id="monthFilter" name="monthFilter">
-            <option value="">Все месяцы</option>
-            <option value="1">Январь</option>
-            <option value="2">Февраль</option>
-            <option value="3">Март</option>
-            <option value="4">Апрель</option>
-            <option value="5">Май</option>
-            <option value="6">Июнь</option>
-            <option value="7">Июль</option>
-            <option value="8">Август</option>
-            <option value="9">Сентябрь</option>
-            <option value="10">Октябрь</option>
-            <option value="11">Ноябрь</option>
-            <option value="12">Декабрь</option>
-          </select>
-        </div>
-
-        <div class="form-row">
-          <label for="yearFilter">Год:</label>
-          <select id="yearFilter" name="yearFilter">
-            <option value="">Все годы</option>
-          </select>
-        </div>
-
-        <div class="form-row">
-          <label for="countryFilter">Страна:</label>
-          <select id="countryFilter" name="countryFilter"></select>
-        </div>
-
-        <div class="form-row">
-          <label for="ratingFilter">Рейтинг от:</label>
-          <select id="ratingFilter" name="ratingFilter">
-            <option value="">Любой</option>
-            <option value="1">1+</option>
-            <option value="2">2+</option>
-            <option value="3">3+</option>
-            <option value="4">4+</option>
-            <option value="5">5+</option>
-            <option value="6">6+</option>
-            <option value="7">7+</option>
-            <option value="8">8+</option>
-            <option value="9">9+</option>
-            <option value="10">10</option>
-          </select>
-        </div>
-
-        <div class="filter-reset">
-          <button id="resetFilters" type="button" class="secondary-button">
-            Сбросить все фильтры
+        <div class="catalog-toolbar-actions">
+          <button id="openFiltersButton" type="button" class="secondary-button">
+            Фильтровать
           </button>
-        </div>
 
-        <div class="form-row filter-sort">
-          <label for="sortMode">Сортировка:</label>
-          <select id="sortMode" name="sortMode">
-            <option value="default">Сначала новые</option>
-            <option value="oldest">Сначала старые</option>
-            <option value="alphabet">По алфавиту</option>
-          </select>
+          <div class="form-row filter-sort">
+            <label for="sortMode">Сортировка:</label>
+            <select id="sortMode" name="sortMode">
+              <option value="default">Сначала новые</option>
+              <option value="oldest">Сначала старые</option>
+              <option value="alphabet">По алфавиту</option>
+            </select>
+          </div>
         </div>
       </div>
     </section>
+
+    <!-- =========================================================
+    HTML-БЛОК 8A. МОДАЛЬНОЕ ОКНО ФИЛЬТРОВ
+    Опциональные фильтры каталога и сброс параметров.
+    ========================================================== -->
+    <div id="filtersModal" class="modal" style="display: none;">
+      <div class="modal-backdrop" id="filtersModalBackdrop"></div>
+
+      <div class="modal-dialog filters-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="filtersModalTitle">
+        <div class="modal-header">
+          <h2 id="filtersModalTitle">Фильтры</h2>
+          <button type="button" id="closeFiltersModalButton" class="secondary-button">
+            Закрыть
+          </button>
+        </div>
+
+        <div class="filters filters-modal-grid">
+          <div class="form-row form-row-watched" id="watchedFilterRow" style="display: none;">
+            <label for="watchedFilter">Просмотренные:</label>
+            <select id="watchedFilter" name="watchedFilter">
+              <option value="">Все</option>
+              <option value="watched">Только просмотренные</option>
+              <option value="unwatched">Скрыть просмотренные</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="genreFilter">Доп. жанр:</label>
+            <select id="genreFilter" name="genreFilter"></select>
+          </div>
+
+          <div class="form-row">
+            <label for="monthFilter">Месяц:</label>
+            <select id="monthFilter" name="monthFilter">
+              <option value="">Все месяцы</option>
+              <option value="1">Январь</option>
+              <option value="2">Февраль</option>
+              <option value="3">Март</option>
+              <option value="4">Апрель</option>
+              <option value="5">Май</option>
+              <option value="6">Июнь</option>
+              <option value="7">Июль</option>
+              <option value="8">Август</option>
+              <option value="9">Сентябрь</option>
+              <option value="10">Октябрь</option>
+              <option value="11">Ноябрь</option>
+              <option value="12">Декабрь</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="yearFilter">Год:</label>
+            <select id="yearFilter" name="yearFilter">
+              <option value="">Все годы</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="countryFilter">Страна:</label>
+            <select id="countryFilter" name="countryFilter"></select>
+          </div>
+
+          <div class="form-row">
+            <label for="ratingFilter">Рейтинг от:</label>
+            <select id="ratingFilter" name="ratingFilter">
+              <option value="">Любой</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
+              <option value="5">5+</option>
+              <option value="6">6+</option>
+              <option value="7">7+</option>
+              <option value="8">8+</option>
+              <option value="9">9+</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+
+          <div class="filter-reset filter-reset-inside-modal">
+            <button id="resetFilters" type="button" class="secondary-button">
+              Сбросить все фильтры
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- =========================================================
     HTML-БЛОК 9. СПИСОК ФИЛЬМОВ
