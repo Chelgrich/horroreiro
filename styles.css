@@ -283,22 +283,22 @@ input {
 
 input[type="file"] {
   height: 36px;
-  padding: 0 12px;
+  padding: 3px 12px 1px; /* чуть поднимаем всё содержимое контрола выше */
   box-sizing: border-box;
   font: inherit;
   font-size: 14px;
-  line-height: 36px; /* центрируем текст "Файл не выбран" по вертикали */
+  line-height: normal; /* не заставляем браузер рисовать строку через искусственный line-height */
   color: #f2f2f2;
 }
 
 input[type="file"]::file-selector-button {
   height: 24px;
-  margin: 0 12px 0 0;
+  margin: -1px 12px 0 0; /* слегка поднимаем саму кнопку относительно строки файла */
   padding: 0 12px;
   box-sizing: border-box;
   font: inherit;
   font-size: 14px;
-  line-height: 24px; /* центр текста внутри кнопки */
+  line-height: 22px; /* держим текст кнопки по центру внутри неё */
   color: #ffffff;
   cursor: pointer;
   background: #1a1f26;
