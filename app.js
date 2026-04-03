@@ -697,6 +697,111 @@ function resetFilterControls() {
     });
 }
 
+function getActiveFilterChips() {
+  const chips = [];
+
+  if (watchedFilter.value === 'watched') {
+    chips.push({ label: 'Просмотренные: только просмотренные', key: 'watched' });
+  }
+
+  if (watchedFilter.value === 'unwatched') {
+    chips.push({ label: 'Просмотренные: скрыть просмотренные', key: 'watched' });
+  }
+
+  if (genreFilter.value) {
+    chips.push({ label: `Жанр: ${genreFilter.value}`, key: 'genre' });
+  }
+
+  if (monthFilter.value) {
+    const selectedOption = monthFilter.options[monthFilter.selectedIndex];
+    chips.push({ label: `Месяц: ${selectedOption?.textContent || monthFilter.value}`, key: 'month' });
+  }
+
+  if (yearFilter.value) {
+    chips.push({ label: `Год: ${yearFilter.value}`, key: 'year' });
+  }
+
+  if (countryFilter.value) {
+    chips.push({ label: `Страна: ${countryFilter.value}`, key: 'country' });
+  }
+
+  if (ratingFilter.value !== '') {
+    chips.push({ label: `Рейтинг: от ${ratingFilter.value}`, key: 'rating' });
+  }
+
+  return chips;
+}
+
+function clearFilterChip(filterKey) {
+  if (filterKey === 'watched') {
+    watchedFilter.value = '';
+    refreshCustomSelect(watchedFilter);
+  }
+
+  if (filterKey === 'genre') {
+    genreFilter.value = '';
+    refreshCustomSelect(genreFilter);
+  }
+
+  if (filterKey === 'month') {
+    monthFilter.value = '';
+    refreshCustomSelect(monthFilter);
+  }
+
+  if (filterKey === 'year') {
+    yearFilter.value = '';
+    refreshCustomSelect(yearFilter);
+  }
+
+  if (filterKey === 'country') {
+    countryFilter.value = '';
+    refreshCustomSelect(countryFilter);
+  }
+
+  if (filterKey === 'rating') {
+    ratingFilter.value = '';
+    refreshCustomSelect(ratingFilter);
+  }
+
+  renderMovies();
+}
+
+function renderActiveFilterChips() {
+  if (!activeFiltersBar) {
+    return;
+  }
+
+  const chips = getActiveFilterChips();
+
+  if (chips.length === 0) {
+    activeFiltersBar.style.display = 'none';
+    activeFiltersBar.innerHTML = '';
+    return;
+  }
+
+  activeFiltersBar.style.display = 'flex';
+  activeFiltersBar.innerHTML = chips.map(chip => `
+    <div class="active-filter-chip">
+      <span>${chip.label}</span>
+      <button
+        type="button"
+        class="active-filter-chip-remove"
+        data-filter-key="${chip.key}"
+        aria-label="Убрать фильтр"
+        title="Убрать фильтр"
+      >
+        ×
+      </button>
+    </div>
+  `).join('');
+
+  activeFiltersBar.querySelectorAll('.active-filter-chip-remove').forEach(button => {
+    button.addEventListener('click', () => {
+      clearFilterChip(button.dataset.filterKey);
+    });
+  });
+}
+
 /* =========================================================
 JS-БЛОК 12. РАБОТА С POSTER STORAGE
 Загружает новый постер, определяет storage-путь и удаляет
