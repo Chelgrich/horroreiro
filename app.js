@@ -330,10 +330,23 @@ function fillFormForEdit(movie) {
   posterUrlInput.value = movie.poster_url ?? '';
   posterFileInput.value = '';
   updatePosterFileUi(); // в режиме редактирования файл ещё не выбран, значит показываем дефолтный текст
-  kinopoiskUrlInput.value = movie.kinopoisk_url ?? '';
-  imdbUrlInput.value = movie.imdb_url ?? '';
-  letterboxdUrlInput.value = movie.letterboxd_url ?? '';
-  rottentomatoesUrlInput.value = movie.rottentomatoes_url ?? '';
+
+  // Защита от падения, если новые URL-поля ещё не добавлены в index.html
+  if (kinopoiskUrlInput) {
+    kinopoiskUrlInput.value = movie.kinopoisk_url ?? '';
+  }
+
+  if (imdbUrlInput) {
+    imdbUrlInput.value = movie.imdb_url ?? '';
+  }
+
+  if (letterboxdUrlInput) {
+    letterboxdUrlInput.value = movie.letterboxd_url ?? '';
+  }
+
+  if (rottentomatoesUrlInput) {
+    rottentomatoesUrlInput.value = movie.rottentomatoes_url ?? '';
+  }
 
   const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
   const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
