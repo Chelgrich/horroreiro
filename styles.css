@@ -520,14 +520,17 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
 
 .custom-select-option {
   width: 100%;
+  min-height: 40px; /* стабильная высота строки в dropdown */
   padding: 10px 12px;
   box-sizing: border-box;
-  display: block;
+  display: flex;
+  align-items: center; /* честная вертикальная центровка текста */
   color: #e3e8ee;
   background: transparent;
   border: none;
   border-radius: 6px;
   text-align: left;
+  line-height: 1.2;
   cursor: pointer;
 }
 
