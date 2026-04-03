@@ -744,8 +744,14 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   max-width: 980px;
   min-height: 0;
   max-height: min(860px, calc(100vh - 64px));
-  margin: 32px auto;
+  margin: 20px auto auto; /* ближе к верхней части экрана, без ощущения тяжёлого центра */
   overflow: visible; /* dropdown должен раскрываться поверх модалки */
+}
+
+@media (min-width: 1280px) {
+  .filters-modal-dialog {
+    margin-top: 24px;
+  }
 }
 
 .filters-modal-grid {
