@@ -1751,12 +1751,6 @@ async function removeUserMovieRating(movieId) {
       ym(108369182, 'reachGoal', 'rate_movie');
     }
 
-    if (watchedFilter.value || ratingFilter.value !== '') {
-      renderMovies();
-    } else {
-      rerenderMovieCard(movieId);
-    }
-
     showMovieRatingFeedback(movieId, 'Оценка удалена', 'remove');
   } catch (error) {
     console.error('Ошибка удаления оценки фильма:', error);
@@ -1816,12 +1810,6 @@ async function saveUserMovieRating(movieId, ratingValue) {
       fetchMovieRatings(),
       fetchMovieWatchlist()
     ]);
-
-    if (watchedFilter.value || watchlistFilter.value || ratingFilter.value !== '') {
-      renderMovies();
-    } else {
-      rerenderMovieCard(movieId);
-    }
 
     showMovieRatingFeedback(movieId, `Оценка сохранена: ${normalizedRating}/10`);
   } catch (error) {
