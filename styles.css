@@ -240,7 +240,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   gap: 6px;
 }
 
-.filters-modal-header-actions {
+.filters-modal-actions {
   display: flex;
   align-items: center;
   gap: 28px;
@@ -834,6 +834,7 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 }
 
 .filters-modal-dialog {
+  position: relative;
   width: min(980px, calc(100vw - 48px));
   max-width: 980px;
   min-height: 0;
@@ -846,6 +847,13 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   margin-top: 4px;
   overflow: visible; /* убираем внутренний скролл у самой сетки */
   padding-right: 0;
+}
+
+.filters-modal-actions {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  justify-content: flex-end;
 }
 
 .filters-modal-dialog .custom-select {
@@ -1723,6 +1731,29 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .modal-header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .filters-modal-actions {
+    position: sticky;
+    top: auto;
+    right: auto;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 12px;
+    background: linear-gradient(
+      to bottom,
+      rgba(27, 31, 36, 0),
+      rgba(27, 31, 36, 0.96)
+    );
+    z-index: 4;
+  }
+
+  .filters-modal-actions > button {
+    flex: 1 1 0;
+    justify-content: center;
   }
 
   .login-form {
