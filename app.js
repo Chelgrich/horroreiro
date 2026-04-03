@@ -1062,10 +1062,8 @@ async function updateMovie(event) {
     let finalPosterUrl = posterUrl || null;
     let uploadedNewPoster = false;
 
-    formMessage.textContent = 'Шаг 1/6: подготовка данных...';
-
     if (posterFile) {
-      formMessage.textContent = 'Шаг 2/6: загружаю постер...';
+      formMessage.textContent = 'Загружаю постер...';
       finalPosterUrl = await uploadPosterFile(posterFile);
       uploadedNewPoster = true;
     }
