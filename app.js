@@ -1786,7 +1786,6 @@ async function saveUserMovieRating(movieId, ratingValue) {
   }
 
   ratingRequestInFlight.add(movieKey);
-  rerenderMovieCard(movieId);
 
   try {
     const { error } = await supabaseClient
