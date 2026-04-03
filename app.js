@@ -779,10 +779,13 @@ function clearFilterChip(filterKey) {
 
 function renderActiveFilterChips() {
   if (!activeFiltersBar) {
+    updateFiltersButtonLabel();
     return;
   }
 
   const chips = getActiveFilterChips();
+
+  updateFiltersButtonLabel();
 
   if (chips.length === 0) {
     activeFiltersBar.style.display = 'none';
