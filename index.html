@@ -123,7 +123,7 @@
         HTML-БЛОК 6. ФОРМА ДОБАВЛЕНИЯ / РЕДАКТИРОВАНИЯ ФИЛЬМА
         Используется и для создания нового фильма, и для редактирования.
         ========================================================== -->
-        <form id="movieForm" class="movie-form">
+        <form id="movieForm" class="movie-form" novalidate>
           <div class="form-row">
             <label for="title">Название:</label>
             <input type="text" id="title" name="title" required>
@@ -202,22 +202,54 @@
           
           <div class="form-row">
             <label for="kinopoiskUrl">Ссылка на Кинопоиск:</label>
-            <input type="url" id="kinopoiskUrl" name="kinopoiskUrl" placeholder="https://www.kinopoisk.ru/...">
+            <input
+              type="text"
+              id="kinopoiskUrl"
+              name="kinopoiskUrl"
+              inputmode="url"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="https://www.kinopoisk.ru/..."
+            >
           </div>
           
           <div class="form-row">
             <label for="imdbUrl">Ссылка на IMDb:</label>
-            <input type="url" id="imdbUrl" name="imdbUrl" placeholder="https://www.imdb.com/title/...">
+            <input
+              type="text"
+              id="imdbUrl"
+              name="imdbUrl"
+              inputmode="url"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="https://www.imdb.com/title/..."
+            >
           </div>
           
           <div class="form-row">
             <label for="letterboxdUrl">Ссылка на Letterboxd:</label>
-            <input type="url" id="letterboxdUrl" name="letterboxdUrl" placeholder="https://letterboxd.com/film/...">
+            <input
+              type="text"
+              id="letterboxdUrl"
+              name="letterboxdUrl"
+              inputmode="url"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="https://letterboxd.com/film/..."
+            >
           </div>
           
           <div class="form-row">
             <label for="rottentomatoesUrl">Ссылка на Rotten Tomatoes:</label>
-            <input type="url" id="rottentomatoesUrl" name="rottentomatoesUrl" placeholder="https://www.rottentomatoes.com/...">
+            <input
+              type="text"
+              id="rottentomatoesUrl"
+              name="rottentomatoesUrl"
+              inputmode="url"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="https://www.rottentomatoes.com/..."
+            >
           </div>
           
           <div class="form-row">

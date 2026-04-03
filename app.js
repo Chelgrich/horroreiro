@@ -160,6 +160,21 @@ function updatePosterFileUi() {
     : 'Файл не выбран';
 }
 
+function normalizeOptionalUrl(value) {
+  const trimmedValue = String(value || '').trim();
+
+  if (!trimmedValue) {
+    return '';
+  }
+
+  // Если пользователь вставил ссылку без протокола, пробуем добавить https://
+  if (!/^https?:\/\//i.test(trimmedValue)) {
+    return `https://${trimmedValue}`;
+  }
+
+  return trimmedValue;
+}
+
 function updateAdminStatus() {
   isAdmin = Boolean(currentUser && currentUserRole === 'admin');
 }
@@ -879,10 +894,10 @@ async function addMovie(event) {
   const posterFile = posterFileInput.files && posterFileInput.files[0]
     ? posterFileInput.files[0]
     : null;
-  const kinopoiskUrl = kinopoiskUrlInput.value.trim();
-  const imdbUrl = imdbUrlInput.value.trim();
-  const letterboxdUrl = letterboxdUrlInput.value.trim();
-  const rottentomatoesUrl = rottentomatoesUrlInput.value.trim();
+    const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
+  const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value);
+  const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value);
+  const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value);
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseCommaSeparated(countriesInput.value);
@@ -979,10 +994,10 @@ async function updateMovie(event) {
   const posterFile = posterFileInput.files && posterFileInput.files[0]
     ? posterFileInput.files[0]
     : null;
-  const kinopoiskUrl = kinopoiskUrlInput.value.trim();
-  const imdbUrl = imdbUrlInput.value.trim();
-  const letterboxdUrl = letterboxdUrlInput.value.trim();
-  const rottentomatoesUrl = rottentomatoesUrlInput.value.trim();
+  const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
+  const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value);
+  const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value);
+  const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value);
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseCommaSeparated(countriesInput.value);
