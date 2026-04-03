@@ -1394,46 +1394,31 @@ function getUserRatingControlsHtml(currentUserRating) {
 function getMovieExternalLinkIconSvg(type) {
   const icons = {
     kinopoisk: `
-      <svg viewBox="0 0 64 24" aria-hidden="true" class="movie-external-link-icon-svg">
-        <!-- Стилизованный фирменный набор для Кинопоиска -->
-        <g fill="currentColor">
-          <path d="M2 18V6h3v4.7L9.6 6h3.5l-5 5.7 5.2 6.3H9.7L5 12.5V18H2Z"/>
-          <path d="M15 18V6h3v12h-3Z"/>
-          <path d="M20.5 18V6h6.2c2.9 0 4.4 1.3 4.4 3.7 0 1.6-.7 2.7-2.1 3.2L31.7 18h-3.4l-2.3-4.4h-2.5V18h-3Zm3-6.8h2.6c1.3 0 2-.5 2-1.5s-.7-1.4-2-1.4h-2.6v2.9Z"/>
-          <path d="M34 18V6h8.7v2.5H37v2.2h5.1v2.4H37v2.4h5.8V18H34Z"/>
-          <path d="M45.2 18V6h3v4.4h4.4V6h3v12h-3v-4.9h-4.4V18h-3Z"/>
-          <path d="M58.2 18V6h3v12h-3Z"/>
-        </g>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <!-- Звезда Кинопоиска -->
+        <path fill="currentColor" d="M12 2.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 15.9l-5.2 2.7 1-5.8L3.6 8.6l5.8-.8L12 2.5Z"/>
       </svg>
     `,
     imdb: `
-      <svg viewBox="0 0 64 24" aria-hidden="true" class="movie-external-link-icon-svg">
-        <!-- IMDb-плашка -->
-        <rect x="1.5" y="3" width="61" height="18" rx="4" fill="currentColor"/>
-        <g fill="#111315">
-          <rect x="8" y="7" width="2.4" height="10" rx="1.2"/>
-          <path d="M13 17V7h2.4l1.7 5.8L18.8 7h2.4v10h-2v-6.3L17.8 17h-1.4l-1.4-6.3V17H13Z"/>
-          <path d="M24 17V7h4.2c2.6 0 4 1.3 4 3.7v2.5c0 2.5-1.4 3.8-4 3.8H24Zm2.4-2.1h1.5c1.2 0 1.9-.5 1.9-1.9v-2.2c0-1.3-.7-1.8-1.9-1.8h-1.5v5.9Z"/>
-          <path d="M34.8 17V7h2.4l1.7 5.8L40.6 7H43v10h-2v-6.3L39.6 17h-1.4l-1.4-6.3V17h-2Z"/>
-          <path d="M45.8 17V7H50c2.2 0 3.4.8 3.4 2.5 0 1-.5 1.8-1.4 2.1 1.2.3 1.9 1.2 1.9 2.5 0 1.9-1.4 2.9-3.9 2.9h-4.2Zm2.4-6h1.4c1 0 1.5-.3 1.5-1s-.5-1-1.5-1h-1.4v2Zm0 4h1.6c1.2 0 1.7-.3 1.7-1.1 0-.8-.5-1.2-1.7-1.2h-1.6V15Z"/>
-        </g>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <!-- IMDb — плашка -->
+        <rect x="2" y="6" width="20" height="12" rx="3" fill="currentColor"/>
+        <text x="12" y="14" text-anchor="middle" font-size="7" font-weight="700" fill="#111">IMDb</text>
       </svg>
     `,
     letterboxd: `
-      <svg viewBox="0 0 64 24" aria-hidden="true" class="movie-external-link-icon-svg">
-        <!-- Letterboxd: три фирменных круга -->
-        <circle cx="22" cy="12" r="6.5" fill="currentColor" opacity="0.38"/>
-        <circle cx="32" cy="12" r="6.5" fill="currentColor" opacity="0.72"/>
-        <circle cx="42" cy="12" r="6.5" fill="currentColor"/>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <!-- Letterboxd -->
+        <circle cx="9" cy="12" r="4" fill="currentColor" opacity="0.4"/>
+        <circle cx="12" cy="12" r="4" fill="currentColor" opacity="0.7"/>
+        <circle cx="15" cy="12" r="4" fill="currentColor"/>
       </svg>
     `,
     rottentomatoes: `
-      <svg viewBox="0 0 64 24" aria-hidden="true" class="movie-external-link-icon-svg">
-        <!-- Упрощённый фирменный знак Rotten Tomatoes -->
-        <g fill="currentColor">
-          <path d="M29 6.2c0-1.8 1.4-3.2 3.2-3.2 1.4 0 2.6.9 3 2.2 1.5-.2 2.9.8 3.3 2.2.4 1.6-.6 3.3-2.3 3.8-.4.1-.9.2-1.3.1V18a7.7 7.7 0 1 1-5.9 0v-6.7h-.6A3.2 3.2 0 0 1 29 6.2Z"/>
-          <path d="M37.7 5.6c1-.9 2.6-.9 3.6 0 .6.6.8 1.3.8 2.1 1.4 0 2.6 1.2 2.6 2.6S43.5 13 42 13h-4.3V5.6Z"/>
-        </g>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <!-- Томат -->
+        <path fill="currentColor" d="M12 7c-3.5 0-6 2.5-6 5.5S8.5 18 12 18s6-2.5 6-5.5S15.5 7 12 7Z"/>
+        <path fill="currentColor" d="M12 5c1.5-2 4-2 5.5-.5-1.5.5-3 .5-4.5.5-1.5 0-3 0-4.5-.5C8 3 10.5 3 12 5Z"/>
       </svg>
     `
   };
