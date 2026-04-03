@@ -29,6 +29,10 @@ const watchedFilter = document.getElementById('watchedFilter');
 const watchedFilterRow = document.getElementById('watchedFilterRow');
 const sortMode = document.getElementById('sortMode');
 const resetFiltersBtn = document.getElementById('resetFilters');
+const openFiltersButton = document.getElementById('openFiltersButton');
+const filtersModal = document.getElementById('filtersModal');
+const filtersModalBackdrop = document.getElementById('filtersModalBackdrop');
+const closeFiltersModalButton = document.getElementById('closeFiltersModalButton');
 
 const container = document.getElementById('movies');
 
