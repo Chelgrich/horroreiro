@@ -2004,6 +2004,11 @@ document.addEventListener('keydown', event => {
 
   if (isModalOpen) {
     closeMovieModal();
+    return;
+  }
+
+  if (filtersModal && filtersModal.style.display === 'block') {
+    closeFiltersModal();
   }
 });
 
