@@ -878,7 +878,7 @@ async function addMovie(event) {
 
     formMessage.textContent = 'Сохраняю...';
 
-    const { error: insertMovieError } = await supabaseClient
+    const { data: insertedMovie, error: insertMovieError } = await supabaseClient
       .from('movies')
       .insert({
         title,
@@ -895,23 +895,12 @@ async function addMovie(event) {
         release_year: releaseYear ? Number(releaseYear) : null,
         sort_order: sortOrder ? Number(sortOrder) : null,
         owner_id: currentUser.id
-      });
+      })
+      .select('id') // сразу забираем id созданной записи, без повторного поиска по title
+      .single();
 
     if (insertMovieError) {
       throw insertMovieError;
-    }
-
-    const { data: insertedMovie, error: insertedMovieFetchError } = await supabaseClient
-      .from('movies')
-      .select('id')
-      .eq('owner_id', currentUser.id)
-      .eq('title', title)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (insertedMovieFetchError) {
-      throw insertedMovieFetchError;
     }
 
     await replaceMovieRelations(insertedMovie.id, genreNames, countryNames);
