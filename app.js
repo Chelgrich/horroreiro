@@ -25,6 +25,8 @@ const countryFilter = document.getElementById('countryFilter');
 const ratingFilter = document.getElementById('ratingFilter');
 const monthFilter = document.getElementById('monthFilter');
 const yearFilter = document.getElementById('yearFilter');
+const watchlistFilter = document.getElementById('watchlistFilter');
+const watchlistFilterRow = document.getElementById('watchlistFilterRow');
 const watchedFilter = document.getElementById('watchedFilter');
 const watchedFilterRow = document.getElementById('watchedFilterRow');
 const sortMode = document.getElementById('sortMode');
@@ -88,6 +90,7 @@ let currentUserRole = null;
 let isAdmin = false;
 let allMovies = [];
 let allMovieRatings = [];
+let allMovieWatchlist = [];
 let editingMovieId = null;
 let isModalOpen = false;
 let moviesLoadedSuccessfully = false;
@@ -232,6 +235,16 @@ async function loadCurrentUserRole() {
 
 function updateAdminStatus() {
   isAdmin = Boolean(currentUser && currentUserRole === 'admin');
+}
+
+function isMovieInCurrentUserWatchlist(movieId) {
+  if (!currentUser) {
+    return false;
+  }
+
+  return allMovieWatchlist.some(item => (
+    item.movie_id === movieId && item.user_id === currentUser.id
+  ));
 }
 
 /* =========================================================
@@ -450,6 +463,15 @@ function updateAuthUI() {
     authControls.classList.remove('auth-controls-pending');
   }
 
+  if (watchlistFilterRow && watchlistFilter) {
+    watchlistFilterRow.style.display = isLoggedIn ? 'flex' : 'none';
+
+    if (!isLoggedIn) {
+      watchlistFilter.value = '';
+      refreshCustomSelect(watchlistFilter);
+    }
+  }
+
   if (watchedFilterRow && watchedFilter) {
     watchedFilterRow.style.display = isLoggedIn ? 'flex' : 'none';
 
@@ -476,6 +498,7 @@ const filterCustomSelectElements = [
   ratingFilter,
   monthFilter,
   yearFilter,
+  watchlistFilter,
   watchedFilter,
   sortMode
 ].filter(Boolean);
@@ -633,12 +656,32 @@ async function fetchMovieRatings() {
   allMovieRatings = data || [];
 }
 
+async function fetchMovieWatchlist() {
+  if (!currentUser) {
+    allMovieWatchlist = [];
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_watchlist')
+    .select('movie_id, user_id');
+
+  if (error) {
+    console.error('Ошибка загрузки watchlist:', error);
+    allMovieWatchlist = [];
+    return;
+  }
+
+  allMovieWatchlist = data || [];
+}
+
 async function reloadCatalogData() {
   await Promise.all([
     loadGenres(),
     loadCountries(),
     fetchMovies(),
-    fetchMovieRatings()
+    fetchMovieRatings(),
+    fetchMovieWatchlist()
   ]);
 
   initCustomSelects();
@@ -690,6 +733,7 @@ function resetFilterControls() {
   ratingFilter.value = '';
   monthFilter.value = '';
   yearFilter.value = '';
+  watchlistFilter.value = '';
   watchedFilter.value = '';
 
   filterCustomSelectElements
@@ -701,6 +745,14 @@ function resetFilterControls() {
 
 function getActiveFilterChips() {
   const chips = [];
+
+  if (watchlistFilter.value === 'in_watchlist') {
+    chips.push({ label: 'Смотреть позже: только в списке', key: 'watchlist' });
+  }
+
+  if (watchlistFilter.value === 'not_in_watchlist') {
+    chips.push({ label: 'Смотреть позже: скрыть из списка', key: 'watchlist' });
+  }
 
   if (watchedFilter.value === 'watched') {
     chips.push({ label: 'Просмотренные: только просмотренные', key: 'watched' });
@@ -750,6 +802,11 @@ function updateFiltersButtonLabel() {
 }
 
 function clearFilterChip(filterKey) {
+  if (filterKey === 'watchlist') {
+    watchlistFilter.value = '';
+    refreshCustomSelect(watchlistFilter);
+  }
+
   if (filterKey === 'watched') {
     watchedFilter.value = '';
     refreshCustomSelect(watchedFilter);
@@ -2107,6 +2164,7 @@ function getFilteredMovies() {
   const minRating = ratingFilter.value;
   const selectedMonth = monthFilter.value;
   const selectedYear = yearFilter.value;
+  const selectedWatchlist = watchlistFilter.value;
   const selectedWatched = watchedFilter.value;
   const selectedSortMode = sortMode.value;
   const searchQuery = searchInput.value;
@@ -2151,6 +2209,18 @@ function getFilteredMovies() {
     );
   }
 
+  if (currentUser && selectedWatchlist === 'in_watchlist') {
+    filteredMovies = filteredMovies.filter(movie =>
+      isMovieInCurrentUserWatchlist(movie.id)
+    );
+  }
+
+  if (currentUser && selectedWatchlist === 'not_in_watchlist') {
+    filteredMovies = filteredMovies.filter(movie =>
+      !isMovieInCurrentUserWatchlist(movie.id)
+    );
+  }
+
   if (currentUser && selectedWatched === 'watched') {
     filteredMovies = filteredMovies.filter(movie =>
       isMovieWatchedByCurrentUser(movie.id)
@@ -2180,6 +2250,7 @@ function renderMovies() {
   ratingFilter.value !== '' ||
   monthFilter.value ||
   yearFilter.value ||
+  (currentUser && watchlistFilter.value) ||
   (currentUser && watchedFilter.value);
 
   renderActiveFilterChips();
@@ -2252,6 +2323,7 @@ countryFilter.addEventListener('change', renderMovies);
 ratingFilter.addEventListener('change', renderMovies);
 monthFilter.addEventListener('change', renderMovies);
 yearFilter.addEventListener('change', renderMovies);
+watchlistFilter.addEventListener('change', renderMovies);
 watchedFilter.addEventListener('change', renderMovies);
 sortMode.addEventListener('change', () => {
   if (typeof ym === 'function') {

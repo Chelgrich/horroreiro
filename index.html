@@ -339,6 +339,15 @@
         </div>
 
         <div class="filters filters-modal-grid">
+          <div class="form-row form-row-watchlist" id="watchlistFilterRow" style="display: none;">
+            <label for="watchlistFilter">Смотреть позже:</label>
+            <select id="watchlistFilter" name="watchlistFilter">
+              <option value="">Все</option>
+              <option value="in_watchlist">Только в списке</option>
+              <option value="not_in_watchlist">Скрыть из списка</option>
+            </select>
+          </div>
+
           <div class="form-row form-row-watched" id="watchedFilterRow" style="display: none;">
             <label for="watchedFilter">Просмотренные:</label>
             <select id="watchedFilter" name="watchedFilter">
