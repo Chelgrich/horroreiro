@@ -738,9 +738,13 @@ function updateFiltersButtonLabel() {
   }
 
   const activeFiltersCount = getActiveFilterChips().length;
-  openFiltersButton.textContent = activeFiltersCount > 0
+  const hasActiveFilters = activeFiltersCount > 0;
+
+  openFiltersButton.textContent = hasActiveFilters
     ? `Фильтровать (${activeFiltersCount})`
     : 'Фильтровать';
+
+  openFiltersButton.classList.toggle('is-active', hasActiveFilters);
 }
 
 function clearFilterChip(filterKey) {
