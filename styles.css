@@ -715,8 +715,8 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 
 .catalog-search-row label,
 .filter-sort label {
-  font-size: 12px;
-  line-height: 1.1;
+  font-size: 13px;
+  line-height: 1.15;
   color: #9aa3ad;
   padding-left: 2px; /* выравнивание с select */
 }
