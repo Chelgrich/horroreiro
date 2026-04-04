@@ -748,6 +748,7 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
   align-items: center;
   justify-content: center;
   gap: 8px;
+  font-size: 16px;
 }
 
 .catalog-toolbar-actions > button::before {
