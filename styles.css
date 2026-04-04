@@ -993,18 +993,18 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 }
 
 .movie-card:hover {
-  transform: translateY(-3px);
+  transform: none;
   background: #171c20;
-  border-color: #36404b;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+  border-color: #323b45;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
 }
 
 .movie-card:focus-within {
-  transform: translateY(-2px);
+  transform: none;
   border-color: rgba(91, 140, 255, 0.52);
   box-shadow:
     0 0 0 1px rgba(91, 140, 255, 0.18),
-    0 12px 26px rgba(0, 0, 0, 0.2);
+    0 8px 18px rgba(0, 0, 0, 0.18);
 }
 
 .movie-card-rated {
@@ -1314,8 +1314,8 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
 
 /* Постер чуть оживает при hover всей карточки */
 .movie-card:hover .movie-poster {
-  transform: scale(1.035);
-  filter: brightness(1.04);
+  transform: scale(1.015);
+  filter: brightness(1.02);
 }
 
 /* Чуть слабее эффект для клавиатурного фокуса */
