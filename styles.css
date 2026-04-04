@@ -1419,6 +1419,14 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   margin-bottom: 18px;
 }
 
+.movie-external-links-toggle {
+  display: none;
+}
+
+.movie-external-links-collapsible {
+  display: block;
+}
+
 .movie-rating-summary {
   display: flex;
   align-items: center;
@@ -1983,6 +1991,18 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-rating-block {
     padding-top: 8px;
+  }
+
+  .movie-external-links-toggle {
+    display: inline-flex;
+  }
+
+  .movie-external-links-collapsible {
+    display: none;
+  }
+
+  .movie-external-links-collapsible.is-open {
+    display: block;
   }
 
   .movie-rating-block .movie-external-links {
