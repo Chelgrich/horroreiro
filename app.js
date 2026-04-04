@@ -2366,8 +2366,18 @@ card.innerHTML = `
     externalLinksToggleBtn.addEventListener('click', () => {
       const isExpanded = externalLinksToggleBtn.getAttribute('aria-expanded') === 'true';
 
-      externalLinksToggleBtn.setAttribute('aria-expanded', String(!isExpanded));
-      externalLinksCollapsible.classList.toggle('is-open', !isExpanded);
+      container.querySelectorAll('[data-external-links-toggle="true"]').forEach(button => {
+        button.setAttribute('aria-expanded', 'false');
+      });
+
+      container.querySelectorAll('[data-external-links-collapsible]').forEach(panel => {
+        panel.classList.remove('is-open');
+      });
+
+      if (!isExpanded) {
+        externalLinksToggleBtn.setAttribute('aria-expanded', 'true');
+        externalLinksCollapsible.classList.add('is-open');
+      }
     });
   }
 
@@ -2589,6 +2599,20 @@ movieForm.addEventListener('submit', saveMovie);
 cancelEditButton.addEventListener('click', () => {
   resetFormToCreateMode();
   closeMovieModal();
+});
+
+document.addEventListener('click', event => {
+  if (event.target.closest('[data-external-links-toggle="true"]') || event.target.closest('[data-external-links-collapsible]')) {
+    return;
+  }
+
+  container.querySelectorAll('[data-external-links-toggle="true"]').forEach(button => {
+    button.setAttribute('aria-expanded', 'false');
+  });
+
+  container.querySelectorAll('[data-external-links-collapsible]').forEach(panel => {
+    panel.classList.remove('is-open');
+  });
 });
 
 document.addEventListener('keydown', event => {
