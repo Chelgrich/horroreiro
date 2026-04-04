@@ -2286,6 +2286,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     border-radius: 10px;
     font-size: 14px;
     line-height: 1.2;
+    font-weight: 500;
   }
 
   .movie-external-links-toggle[aria-expanded="true"] {
@@ -2358,6 +2359,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     padding: 0 10px;
     font-size: 14px;
     line-height: 1.2;
+    font-weight: 500;
   }
 
   .movie-user-rating-mobile-trigger.is-rated {
@@ -2498,5 +2500,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     width: 100%;
     font-size: 14px;
     line-height: 1.2;
+    font-weight: 500;
   }
 }
