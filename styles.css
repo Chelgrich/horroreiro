@@ -1416,7 +1416,7 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 }
 
 .movie-rating-block .movie-external-links {
-  margin-bottom: 12px;
+  margin-bottom: 18px;
 }
 
 .movie-rating-summary {
@@ -1991,7 +1991,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-rating-block {
     margin-top: auto;
-    padding-top: 2px;
+    padding-top: 14px;
   }
 
   .movie-rating-summary {
