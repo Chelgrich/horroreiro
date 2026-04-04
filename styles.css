@@ -320,6 +320,12 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
   margin-bottom: 14px;
 }
 
+.form-row label {
+  font-size: 13px;
+  line-height: 1.2;
+  color: #c7d0da;
+}
+
 .form-actions {
   display: flex;
   gap: 10px;
@@ -1117,7 +1123,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   margin: 0;
   font-size: 14px;
   font-weight: 400;
-  line-height: 1.35;
+  line-height: 1.4;
   color: #e3e8ee;
 }
 
@@ -1421,7 +1427,8 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 }
 
 .movie-rating-meta {
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.3;
   color: #9da6b1;
 }
 
@@ -1430,8 +1437,9 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 }
 
 .movie-user-rating-label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
+  line-height: 1.2;
   color: #e6ebf0;
 }
 
@@ -1756,7 +1764,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-card p {
     font-size: 13px;
-    line-height: 1.32;
+    line-height: 1.36;
   }
 
   .movie-card p:first-of-type {
@@ -2131,6 +2139,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-rating-meta {
     font-size: 12px;
+    line-height: 1.3;
   }
 
   .movie-user-rating {
