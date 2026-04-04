@@ -2146,6 +2146,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     flex-wrap: wrap;
   }
 
+  .remove-rating-inline-btn {
+    display: none;
+  }
+
   .movie-rating-value {
     font-size: 20px;
   }
