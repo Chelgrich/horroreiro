@@ -2264,16 +2264,6 @@ const externalLinksHtml = getMovieExternalLinksHtml(movie);
 card.innerHTML = `
   ${posterHtml}
 
-  ${
-    externalLinksHtml
-      ? `
-        <div class="movie-title-links-row">
-          ${externalLinksHtml}
-        </div>
-      `
-      : ''
-  }
-
   <h3>${movie.title}</h3>
 
   <p>Оригинальное название: ${movie.original_title ?? '-'}</p>
@@ -2282,12 +2272,13 @@ card.innerHTML = `
   <p>Жанры: ${genres || '-'}</p>
   <p>Страны: ${countries || '-'}</p>
 
-    <div class="movie-rating-block">
-      ${ratingSummaryHtml}
-      ${userRatingControlsHtml}
-    </div>
+  <div class="movie-rating-block">
+  ${externalLinksHtml}
+  ${ratingSummaryHtml}
+  ${userRatingControlsHtml}
+  </div>
 
-    <div class="movie-card-actions">
+  <div class="movie-card-actions">
       ${isAdmin ? `
         <button type="button" class="edit-movie-btn">Редактировать</button>
         <button type="button" class="delete-movie-btn secondary-button">Удалить</button>
