@@ -666,7 +666,8 @@ button {
 }
 
 button:hover {
-  opacity: 0.92;
+  opacity: 0.96;
+  transform: translateY(-1px);
 }
 
 .secondary-button {
@@ -1207,9 +1208,9 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
 }
 
 .movie-external-link:hover {
-  transform: translateY(-2px); /* лёгкий подъём без дёрганья */
-  background-color: rgba(255, 255, 255, 0.04);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  transform: translateY(-2px) scale(1.04);
+  background-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.26);
 }
 
 .movie-external-link:hover .movie-external-link-icon {
@@ -1272,9 +1273,10 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
 }
 
 .movie-watchlist-btn:hover {
-  transform: translateY(-1px);
-  background: rgba(26, 33, 42, 0.9);
-  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px) scale(1.06);
+  background: rgba(32, 40, 50, 0.95);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
 }
 
 .movie-watchlist-btn.is-active {
