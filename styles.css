@@ -2036,6 +2036,16 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     grid-template-columns: 1fr;
   }
 
+  .movie-external-links {
+    gap: 6px;
+  }
+
+  .movie-external-link {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+  }
+
   .filters-modal-actions {
     grid-template-columns: 1fr;
   }
