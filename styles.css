@@ -686,6 +686,7 @@ button:hover {
 
 .secondary-button {
   height: 36px;
+  font-size: 12px;
   color: #e7ebf0;
   background: #1a1f26;
   border-color: #353d48;
@@ -2027,7 +2028,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .remove-rating-inline-btn {
     height: 28px;
     padding: 0 8px;
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .movie-user-rating {
