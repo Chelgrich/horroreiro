@@ -101,10 +101,12 @@ let ratingRequestInFlight = new Set();
 let ratingFeedbackTimers = new Map();
 let watchlistFeedbackTimers = new Map();
 let watchlistRequestInFlight = new Set();
-mobileRatingModalTitle = mobileRatingModal.querySelector('#mobileRatingModalTitle');
-mobileRatingModalStars = mobileRatingModal.querySelector('#mobileRatingModalStars');
-mobileRatingModalMeta = mobileRatingModal.querySelector('#mobileRatingModalMeta');
-mobileRatingModalRemoveButton = mobileRatingModal.querySelector('#mobileRatingModalRemoveButton');
+let mobileRatingModal = null;
+let mobileRatingModalTitle = null;
+let mobileRatingModalStars = null;
+let mobileRatingModalMeta = null;
+let mobileRatingModalRemoveButton = null;
+let mobileRatingModalMovieId = null;
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -1841,8 +1843,6 @@ function ensureMobileRatingModal() {
 
   document.body.appendChild(mobileRatingModal);
 
-  mobileRatingModalBackdrop = mobileRatingModal.querySelector('.mobile-rating-modal-backdrop');
-  mobileRatingModalDialog = mobileRatingModal.querySelector('.mobile-rating-modal-dialog');
   mobileRatingModalTitle = mobileRatingModal.querySelector('#mobileRatingModalTitle');
   mobileRatingModalStars = mobileRatingModal.querySelector('#mobileRatingModalStars');
   mobileRatingModalMeta = mobileRatingModal.querySelector('#mobileRatingModalMeta');

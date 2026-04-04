@@ -1751,10 +1751,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     margin: -2px -8px 12px; /* постер остаётся визуально крупным, но лучше встраивается в карточку */
   }
 
-  .movie-title-links-row {
-    margin-bottom: 16px; /* убираем лишний воздух между иконками и заголовком */
-  }
-
   .movie-card h3 {
     padding-bottom: 8px;
     font-size: 21px;
@@ -1850,17 +1846,9 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-width: 0;
   }
 
-  .filter-reset,
   .filter-sort {
     grid-column: auto;
     margin-top: 0;
-  }
-
-  .filter-reset {
-    order: 8;
-  }
-
-  .filter-sort {
     order: 9;
   }
 
@@ -1954,7 +1942,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .filters > *,
   .filters .form-row,
-  .filter-reset,
   .filter-sort {
     width: 100%;
     min-width: 0;
@@ -1963,14 +1950,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .filters .form-row,
-  .filter-reset,
   .filter-sort {
     grid-column: auto;
   }
 
-  .filter-reset,
-  .filter-sort,
-  .filter-reset-inside-modal {
+  .filter-sort {
     grid-column: span 2;
   }
 
@@ -2036,7 +2020,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .filters > *,
   .filters .form-row,
-  .filter-reset,
   .filter-sort {
     grid-column: 1 / -1;
   }
@@ -2076,10 +2059,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-card p + p {
     margin-top: 3px;
-  }
-
-  .movie-title-links-row {
-    margin-bottom: 12px;
   }
 
   .movie-external-links {
@@ -2251,10 +2230,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   /* === Верх карточки: иконки + заголовок === */
-
-  .movie-title-links-row {
-    margin-bottom: 14px; /* было больше — делаем плотнее и собраннее */
-  }
 
   .movie-external-links {
     gap: 6px; /* чуть компактнее ряд иконок */
