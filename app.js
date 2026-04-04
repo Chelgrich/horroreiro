@@ -101,14 +101,10 @@ let ratingRequestInFlight = new Set();
 let ratingFeedbackTimers = new Map();
 let watchlistFeedbackTimers = new Map();
 let watchlistRequestInFlight = new Set();
-let mobileRatingModal = null;
-let mobileRatingModalBackdrop = null;
-let mobileRatingModalDialog = null;
-let mobileRatingModalTitle = null;
-let mobileRatingModalStars = null;
-let mobileRatingModalMeta = null;
-let mobileRatingModalRemoveButton = null;
-let mobileRatingModalMovieId = null;
+mobileRatingModalTitle = mobileRatingModal.querySelector('#mobileRatingModalTitle');
+mobileRatingModalStars = mobileRatingModal.querySelector('#mobileRatingModalStars');
+mobileRatingModalMeta = mobileRatingModal.querySelector('#mobileRatingModalMeta');
+mobileRatingModalRemoveButton = mobileRatingModal.querySelector('#mobileRatingModalRemoveButton');
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -2381,6 +2377,22 @@ function bindMovieRatingControls({
   });
 }
 
+function syncOpenExternalLinksLayouts() {
+  container.querySelectorAll('[data-external-links-collapsible].is-open').forEach(panel => {
+    const externalLinksGrid = panel.querySelector('.movie-external-links');
+
+    if (!externalLinksGrid) {
+      return;
+    }
+
+    const overlayHorizontalPadding = 24;
+    const oneRowWidth = (36 * 4) + (6 * 3);
+    const availableWidth = panel.clientWidth - overlayHorizontalPadding;
+
+    externalLinksGrid.classList.toggle('is-two-rows', availableWidth < oneRowWidth);
+  });
+}
+
 function createMovieCard(movie) {
   const card = document.createElement('article');
   const currentUserRating = getCurrentUserRating(movie.id);
@@ -2540,20 +2552,6 @@ card.innerHTML = `
   }
 
   if (externalLinksToggleBtn && externalLinksCollapsible) {
-    const externalLinksGrid = externalLinksCollapsible.querySelector('.movie-external-links');
-
-    const syncExternalLinksLayout = () => {
-      if (!externalLinksGrid) {
-        return;
-      }
-
-      const overlayHorizontalPadding = 24;
-      const oneRowWidth = (36 * 4) + (6 * 3);
-      const availableWidth = externalLinksCollapsible.clientWidth - overlayHorizontalPadding;
-
-      externalLinksGrid.classList.toggle('is-two-rows', availableWidth < oneRowWidth);
-    };
-
     externalLinksToggleBtn.addEventListener('click', () => {
       const isExpanded = externalLinksToggleBtn.getAttribute('aria-expanded') === 'true';
 
@@ -2580,16 +2578,8 @@ card.innerHTML = `
         externalLinksCollapsible.classList.add('is-open');
         card.classList.add('has-open-external-links');
 
-        requestAnimationFrame(syncExternalLinksLayout);
+        requestAnimationFrame(syncOpenExternalLinksLayouts);
       }
-    });
-
-    window.addEventListener('resize', () => {
-      if (!externalLinksCollapsible.classList.contains('is-open')) {
-        return;
-      }
-
-      syncExternalLinksLayout();
     });
   }
 
@@ -2824,6 +2814,8 @@ document.addEventListener('click', event => {
     movieCard.classList.remove('has-open-external-links');
   });
 });
+
+window.addEventListener('resize', syncOpenExternalLinksLayouts);
 
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') {
