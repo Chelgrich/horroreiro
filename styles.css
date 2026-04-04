@@ -111,16 +111,20 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .auth-toast {
-  width: 100%;
+  width: fit-content;
+  max-width: min(560px, 100%);
   min-height: 52px;
   box-sizing: border-box;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  padding: 12px 14px;
-  background: rgba(20, 24, 29, 0.96);
-  border: 1px solid transparent;
+  padding: 12px 16px;
+  background: rgba(17, 21, 26, 0.94);
+  border: 1px solid rgba(72, 82, 94, 0.52);
   border-radius: 10px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0),
+    0 0 0 1px rgba(255, 255, 255, 0);
+  backdrop-filter: blur(10px);
   opacity: 0;
   transform: translateY(-4px);
   visibility: hidden;
@@ -2164,20 +2168,22 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .auth-toast {
     position: fixed;
-    left: 0;
-    right: 0;
+    left: 50%;
+    right: auto;
     bottom: 16px;
     z-index: 1100;
     width: fit-content;
     max-width: calc(100vw - 32px);
     min-height: 0;
-    margin: 0 auto;
+    margin: 0;
+    transform: translateX(-50%) translateY(-4px);
     box-shadow:
       0 16px 40px rgba(0, 0, 0, 0),
       0 0 0 1px rgba(255, 255, 255, 0);
   }
 
   .auth-toast.is-visible {
+    transform: translateX(-50%) translateY(0);
     box-shadow:
       0 18px 42px rgba(0, 0, 0, 0.34),
       0 0 0 1px rgba(255, 255, 255, 0.03);
@@ -2185,7 +2191,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .auth-toast.is-hidden {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateX(-50%) translateY(8px);
     visibility: hidden;
   }
   
