@@ -30,7 +30,6 @@ const watchlistFilterRow = document.getElementById('watchlistFilterRow');
 const watchedFilter = document.getElementById('watchedFilter');
 const watchedFilterRow = document.getElementById('watchedFilterRow');
 const sortMode = document.getElementById('sortMode');
-const resetFiltersBtn = document.getElementById('resetFilters');
 const openFiltersButton = document.getElementById('openFiltersButton');
 const filtersModal = document.getElementById('filtersModal');
 const filtersModalBackdrop = document.getElementById('filtersModalBackdrop');
@@ -2778,13 +2777,6 @@ sortMode.addEventListener('change', () => {
 
   renderMovies();
 });
-
-if (resetFiltersBtn) {
-  resetFiltersBtn.addEventListener('click', () => {
-    resetFilterControls();
-    renderMovies();
-  });
-}
 
 if (resetFiltersTopButton) {
   resetFiltersTopButton.addEventListener('click', () => {
