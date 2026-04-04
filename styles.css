@@ -2284,7 +2284,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     margin-bottom: 14px;
     justify-content: center;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.2;
     font-weight: 500;
   }
@@ -2357,7 +2357,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movie-user-rating-mobile-trigger {
     min-height: 32px;
     padding: 0 10px;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.2;
     font-weight: 500;
   }
