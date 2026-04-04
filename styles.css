@@ -262,6 +262,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   height: auto;
   min-height: 0;
   padding: 0;
+  font-weight: 500;
   color: #7f8894;
   background: transparent;
   border: none;
@@ -671,6 +672,8 @@ button:hover {
 .secondary-button {
   height: 36px;
   font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
   color: #e7ebf0;
   background: #1a1f26;
   border-color: #353d48;
@@ -960,6 +963,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 
 .empty-state-reset-btn {
   min-width: 190px;
+  font-weight: 600;
 }
 
 /* =========================================================
@@ -1412,6 +1416,8 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   padding: 0 10px;
   flex: 0 0 auto;
   font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -1454,6 +1460,8 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 .movie-user-rating-mobile-trigger {
   width: 100%;
   margin-top: 8px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
 }
 
 .movie-user-rating-mobile-trigger.is-rated {
@@ -1670,6 +1678,7 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 
 .mobile-rating-modal-close {
   flex: 0 0 auto;
+  font-weight: 600;
 }
 
 .mobile-rating-modal-meta {
@@ -1728,6 +1737,7 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 
 .mobile-rating-modal-remove {
   width: 100%;
+  font-weight: 600;
 }
 
 /* =========================================================
@@ -2182,6 +2192,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movie-card-actions button {
     width: 100%;
     font-size: 12px;
+    font-weight: 600;
   }
 }
 
