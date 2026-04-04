@@ -2363,6 +2363,20 @@ card.innerHTML = `
   }
 
   if (externalLinksToggleBtn && externalLinksCollapsible) {
+    const externalLinksGrid = externalLinksCollapsible.querySelector('.movie-external-links');
+
+    const syncExternalLinksLayout = () => {
+      if (!externalLinksGrid) {
+        return;
+      }
+
+      const overlayHorizontalPadding = 24;
+      const oneRowWidth = (36 * 4) + (6 * 3);
+      const availableWidth = externalLinksCollapsible.clientWidth - overlayHorizontalPadding;
+
+      externalLinksGrid.classList.toggle('is-two-rows', availableWidth < oneRowWidth);
+    };
+
     externalLinksToggleBtn.addEventListener('click', () => {
       const isExpanded = externalLinksToggleBtn.getAttribute('aria-expanded') === 'true';
 
@@ -2375,11 +2389,25 @@ card.innerHTML = `
         panel.classList.remove('is-open');
       });
 
+      container.querySelectorAll('.movie-external-links').forEach(grid => {
+        grid.classList.remove('is-two-rows');
+      });
+
       if (!isExpanded) {
         externalLinksToggleBtn.setAttribute('aria-expanded', 'true');
         externalLinksToggleBtn.textContent = 'Свернуть';
         externalLinksCollapsible.classList.add('is-open');
+
+        requestAnimationFrame(syncExternalLinksLayout);
       }
+    });
+
+    window.addEventListener('resize', () => {
+      if (!externalLinksCollapsible.classList.contains('is-open')) {
+        return;
+      }
+
+      syncExternalLinksLayout();
     });
   }
 
