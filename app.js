@@ -2260,6 +2260,13 @@ function createMovieCard(movie) {
 const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
 const posterHtml = getPosterHtml(movie, isWatchedByCurrentUser, isInWatchlist);
 const externalLinksHtml = getMovieExternalLinksHtml(movie);
+const externalLinksBlockHtml = externalLinksHtml
+  ? `
+    <div class="movie-external-links-collapsible" data-external-links-collapsible>
+      ${externalLinksHtml}
+    </div>
+  `
+  : '';
 
 card.innerHTML = `
   ${posterHtml}
@@ -2273,7 +2280,21 @@ card.innerHTML = `
   <p>Страны: ${countries || '-'}</p>
 
   <div class="movie-rating-block">
-  ${externalLinksHtml}
+  ${
+    externalLinksHtml
+      ? `
+        <button
+          type="button"
+          class="movie-external-links-toggle secondary-button"
+          data-external-links-toggle="true"
+          aria-expanded="false"
+        >
+          Ссылки на фильм
+        </button>
+      `
+      : ''
+  }
+  ${externalLinksBlockHtml}
   ${ratingSummaryHtml}
   ${userRatingControlsHtml}
   </div>
@@ -2293,6 +2314,8 @@ card.innerHTML = `
   const voteButtons = card.querySelectorAll('.rating-star-btn');
   const removeRatingBtn = card.querySelector('.remove-rating-inline-btn');
   const watchlistToggleBtn = card.querySelector('[data-watchlist-toggle="true"]');
+  const externalLinksToggleBtn = card.querySelector('[data-external-links-toggle="true"]');
+  const externalLinksCollapsible = card.querySelector('[data-external-links-collapsible]');
   const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
   const isWatchlistBusy = watchlistRequestInFlight.has(String(movie.id));
   const posterImage = card.querySelector('.movie-poster');
@@ -2336,6 +2359,15 @@ card.innerHTML = `
   
     watchlistToggleBtn.addEventListener('click', () => {
       toggleMovieWatchlist(movie.id);
+    });
+  }
+
+  if (externalLinksToggleBtn && externalLinksCollapsible) {
+    externalLinksToggleBtn.addEventListener('click', () => {
+      const isExpanded = externalLinksToggleBtn.getAttribute('aria-expanded') === 'true';
+
+      externalLinksToggleBtn.setAttribute('aria-expanded', String(!isExpanded));
+      externalLinksCollapsible.classList.toggle('is-open', !isExpanded);
     });
   }
 
