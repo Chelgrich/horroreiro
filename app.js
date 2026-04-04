@@ -100,6 +100,7 @@ let isMovieFormSubmitting = false;
 let ratingRequestInFlight = new Set();
 let ratingFeedbackTimers = new Map();
 let watchlistFeedbackTimers = new Map();
+let feedbackAnimationTimers = new Map();
 let watchlistRequestInFlight = new Set();
 let mobileRatingModal = null;
 let mobileRatingModalTitle = null;
@@ -1543,6 +1544,32 @@ JS-БЛОК 20. ПОЛЬЗОВАТЕЛЬСКИЕ ОЦЕНКИ
 Позволяет авторизованному пользователю поставить или обновить
 свою оценку фильму.
 ========================================================== */
+function triggerTemporaryFeedbackAnimation(element, baseKey, type = 'success', duration = 360) {
+  if (!element) {
+    return;
+  }
+
+  const timerKey = `${baseKey}:${type}`;
+  const previousTimerId = feedbackAnimationTimers.get(timerKey);
+
+  if (previousTimerId) {
+    clearTimeout(previousTimerId);
+  }
+
+  element.classList.remove('is-feedback-success', 'is-feedback-remove');
+
+  void element.offsetWidth;
+
+  element.classList.add(type === 'remove' ? 'is-feedback-remove' : 'is-feedback-success');
+
+  const timerId = setTimeout(() => {
+    element.classList.remove('is-feedback-success', 'is-feedback-remove');
+    feedbackAnimationTimers.delete(timerKey);
+  }, duration);
+
+  feedbackAnimationTimers.set(timerKey, timerId);
+}
+
 function showMovieRatingFeedback(movieId, text, type = 'success') {
   const card = container.querySelector(`[data-movie-id="${movieId}"]`);
 
@@ -1555,6 +1582,14 @@ function showMovieRatingFeedback(movieId, text, type = 'success') {
   if (!ratingBlock) {
     return;
   }
+
+  const starsContainer = card.querySelector('.movie-user-rating-stars');
+  const mobileTrigger = card.querySelector('.movie-user-rating-mobile-trigger');
+  const ratingValueElement = card.querySelector('.movie-rating-value');
+
+  triggerTemporaryFeedbackAnimation(starsContainer, `rating-stars-${movieId}`, type);
+  triggerTemporaryFeedbackAnimation(mobileTrigger, `rating-mobile-${movieId}`, type);
+  triggerTemporaryFeedbackAnimation(ratingValueElement, `rating-value-${movieId}`, type);
 
   let feedbackElement = ratingBlock.querySelector('.movie-rating-feedback');
 
@@ -1605,6 +1640,10 @@ function showMovieWatchlistFeedback(movieId, text, type = 'success') {
   if (!ratingBlock) {
     return;
   }
+
+  const watchlistButton = card.querySelector('[data-watchlist-toggle="true"]');
+
+  triggerTemporaryFeedbackAnimation(watchlistButton, `watchlist-btn-${movieId}`, type);
 
   let feedbackElement = ratingBlock.querySelector('.movie-watchlist-feedback');
 
