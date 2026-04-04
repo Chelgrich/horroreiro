@@ -1875,7 +1875,14 @@ function closeMobileRatingModal() {
     return;
   }
 
-  mobileRatingModal.style.display = 'none';
+  mobileRatingModal.classList.remove('is-visible');
+
+  setTimeout(() => {
+    if (!mobileRatingModal.classList.contains('is-visible')) {
+      mobileRatingModal.style.display = 'none';
+    }
+  }, 220);
+
   document.body.style.overflow = isModalOpen || (filtersModal && filtersModal.style.display === 'block')
     ? 'hidden'
     : '';
@@ -1926,6 +1933,11 @@ function openMobileRatingModal(movie) {
   });
 
   mobileRatingModal.style.display = 'block';
+
+  requestAnimationFrame(() => {
+    mobileRatingModal.classList.add('is-visible');
+  });
+
   document.body.style.overflow = 'hidden';
 }
 

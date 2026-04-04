@@ -1654,6 +1654,16 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
   position: fixed;
   inset: 0;
   z-index: 1200;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.mobile-rating-modal.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .mobile-rating-modal-backdrop {
@@ -1672,6 +1682,14 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
   border: 1px solid #2f3843;
   border-radius: 12px;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.38);
+  opacity: 0;
+  transform: translateY(14px) scale(0.985);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.mobile-rating-modal.is-visible .mobile-rating-modal-dialog {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 .mobile-rating-modal-header {
@@ -1710,7 +1728,7 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 .mobile-rating-modal-stars {
   margin-top: 14px;
   display: flex;
-  gap: 2px;
+  gap: 4px;
 }
 
 .mobile-rating-star-btn {
@@ -1724,10 +1742,18 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
   background: transparent;
   border: none;
   border-radius: 0;
+  transform: translateY(0) scale(1);
+  transition: color 0.16s ease, transform 0.16s ease, text-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.mobile-rating-star-btn:active {
+  transform: translateY(0) scale(0.96);
 }
 
 .mobile-rating-star-btn.is-active {
   color: #f5c518;
+  transform: translateY(-1px) scale(1.06);
+  text-shadow: 0 0 10px rgba(245, 197, 24, 0.18);
 }
 
 .mobile-rating-modal-actions {
