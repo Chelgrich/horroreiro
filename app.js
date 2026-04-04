@@ -1817,7 +1817,6 @@ function ensureMobileRatingModal() {
     >
       <div class="mobile-rating-modal-header">
         <div class="mobile-rating-modal-title-wrap">
-          <div class="mobile-rating-modal-label">Ваша оценка</div>
           <h3 id="mobileRatingModalTitle" class="mobile-rating-modal-title"></h3>
         </div>
         <button
@@ -1894,7 +1893,7 @@ function openMobileRatingModal(movie) {
   mobileRatingModalMovieId = movie.id;
   mobileRatingModalTitle.textContent = movie.title;
   mobileRatingModalMeta.textContent = currentUserRating !== null
-    ? `Текущая оценка: ${currentUserRating}/10`
+    ? `Ваша оценка: ${currentUserRating}/10`
     : 'Оценка ещё не поставлена';
 
   mobileRatingModalStars.innerHTML = Array.from({ length: 10 }, (_, index) => {

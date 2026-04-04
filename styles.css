@@ -1499,12 +1499,13 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 }
 
 .movie-user-rating-mobile-trigger.is-rated {
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1;
 }
 
 .movie-user-rating-mobile-star {
+  margin-left: 4px;
   color: #f5c518;
 }
 
@@ -2203,7 +2204,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-user-rating-mobile-trigger.is-rated {
-    font-size: 20px;
+    font-size: 14px;
     font-weight: 700;
   }
 
