@@ -1864,8 +1864,10 @@ function ensureMobileRatingModal() {
       return;
     }
 
+    const movieIdToRemove = mobileRatingModalMovieId;
+
     closeMobileRatingModal();
-    removeUserMovieRating(mobileRatingModalMovieId);
+    removeUserMovieRating(movieIdToRemove);
   });
 }
 
