@@ -838,9 +838,9 @@ function updateFiltersButtonLabel() {
     ? `Фильтровать (${activeFiltersCount})`
     : 'Фильтровать';
 
-    openFiltersButton.classList.toggle('is-active', hasActiveFilters);
-    updateFiltersModalStatus();
-  }
+  openFiltersButton.classList.toggle('is-active', hasActiveFilters);
+  updateFiltersModalStatus();
+}
 
 function clearFilterChip(filterKey) {
   if (filterKey === 'watchlist') {

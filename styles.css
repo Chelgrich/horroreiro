@@ -248,12 +248,6 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   gap: 6px;
 }
 
-.filters-modal-actions {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-}
-
 .filters-modal-status {
   font-size: 13px;
   color: #8f99a5;
@@ -2194,26 +2188,9 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     grid-template-columns: 1fr;
   }
 
-  .movie-external-links {
-    display: grid;
-    grid-template-columns: repeat(4, 36px);
-    gap: 6px;
-    justify-content: center;
-  }
-
-  .movie-external-links.is-two-rows {
-    grid-template-columns: repeat(2, 36px);
-  }
-
   .movie-external-links-collapsible {
     left: 0;
     right: 0;
-  }
-
-  .movie-external-link {
-    width: 36px;
-    height: 36px;
-    flex: 0 0 36px;
   }
 
   .filters-modal-actions {
