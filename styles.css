@@ -1996,8 +1996,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-external-links-toggle {
     display: inline-flex;
+    width: 100%;
     padding: 0 10px;
     margin-bottom: 14px;
+    justify-content: center;
   }
 
   .movie-external-links-collapsible {
