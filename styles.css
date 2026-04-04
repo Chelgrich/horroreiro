@@ -1980,9 +1980,13 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-external-links {
     display: grid;
-    grid-template-columns: repeat(2, 36px);
+    grid-template-columns: repeat(4, 36px);
     gap: 6px;
-    justify-content: start;
+    justify-content: center;
+  }
+
+  .movie-external-links.is-two-rows {
+    grid-template-columns: repeat(2, 36px);
   }
 
   .movie-external-link {
@@ -2077,8 +2081,14 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-external-links {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(4, 36px);
     gap: 6px;
+    justify-content: center;
+  }
+
+  .movie-external-links.is-two-rows {
+    grid-template-columns: repeat(2, 36px);
   }
 
   .movie-external-links-collapsible {
