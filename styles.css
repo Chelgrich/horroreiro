@@ -1498,6 +1498,16 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   margin-top: 8px;
 }
 
+.movie-user-rating-mobile-trigger.is-rated {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.movie-user-rating-mobile-star {
+  color: #f5c518;
+}
+
 .movie-user-rating-stars {
   position: relative;
   display: flex;
@@ -2152,6 +2162,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     flex-wrap: wrap;
   }
 
+  .remove-rating-inline-btn {
+    display: none;
+  }
+
   .movie-rating-value {
     font-size: 20px;
   }
@@ -2186,6 +2200,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-height: 32px;
     padding: 0 10px;
     font-size: 12px;
+  }
+
+  .movie-user-rating-mobile-trigger.is-rated {
+    font-size: 20px;
+    font-weight: 700;
   }
 
   .rating-star-btn {

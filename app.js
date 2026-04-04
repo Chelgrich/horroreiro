@@ -2111,10 +2111,10 @@ function getUserRatingControlsHtml(currentUserRating) {
       <div class="movie-user-rating-mobile">
         <button
           type="button"
-          class="movie-user-rating-mobile-trigger secondary-button"
+          class="movie-user-rating-mobile-trigger secondary-button ${currentUserRating !== null ? 'is-rated' : ''}"
           data-open-mobile-rating="true"
         >
-          ${currentUserRating !== null ? `Ваша оценка: ${currentUserRating} ★` : 'Оценить'}
+          ${currentUserRating !== null ? `${currentUserRating}/10 <span class="movie-user-rating-mobile-star">★</span>` : 'Оценить'}
         </button>
       </div>
     </div>
