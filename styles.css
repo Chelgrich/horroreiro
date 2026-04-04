@@ -2419,6 +2419,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-card p {
+    font-size: 14px;
+    line-height: 1.32;
     overflow-wrap: anywhere; /* длинные ссылки/названия внутри мета-строк не вываливаются */
     word-break: break-word;
   }
@@ -2491,5 +2493,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movie-card-actions button {
     flex: 1 1 100%; /* кнопки действий в одну колонку, без драк за ширину */
     width: 100%;
+    font-size: 14px;
+    line-height: 1.2;
   }
 }
