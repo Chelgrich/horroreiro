@@ -1177,7 +1177,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 .movie-card p:nth-last-of-type(1) {
   margin-bottom: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #1f242b;
+  border-bottom: none;
 }
 
 .movie-card p:last-of-type {
@@ -1411,6 +1411,8 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 ========================================================== */
 .movie-rating-block {
   margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #1f242b;
 }
 
 .movie-rating-block .movie-external-links {
