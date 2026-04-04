@@ -1996,6 +1996,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-external-links-toggle {
     display: inline-flex;
+    padding: 0 10px;
+    margin-bottom: 14px;
   }
 
   .movie-external-links-collapsible {
@@ -2051,6 +2053,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-card-actions button {
     width: 100%;
+    font-size: 12px;
   }
 }
 
