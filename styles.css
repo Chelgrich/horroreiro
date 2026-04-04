@@ -1969,12 +1969,13 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-external-links {
-    gap: 6px;
+    gap: 4px;
   }
 
   .movie-external-link {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
   }
 
   .movie-rating-block {
@@ -2030,7 +2031,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 }
 
 /* Супер-узкий экран — снимаем min-width */
-@media (max-width: 320px) {
+@media (max-width: 419px) {
   .movies-list {
     grid-template-columns: 1fr;
   }
