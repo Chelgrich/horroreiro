@@ -664,10 +664,14 @@ button:hover {
 
 .secondary-button {
   height: 36px;
-  font-size: 12px;
+  font-size: 13px;
   color: #e7ebf0;
   background: #1a1f26;
   border-color: #353d48;
+}
+
+.secondary-button-compact {
+  font-size: 12px;
 }
 
 /* =========================================================

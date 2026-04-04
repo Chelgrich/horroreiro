@@ -1818,7 +1818,7 @@ function ensureMobileRatingModal() {
         </div>
         <button
           type="button"
-          class="mobile-rating-modal-close secondary-button"
+          class="mobile-rating-modal-close secondary-button secondary-button-compact"
           data-mobile-rating-close="true"
         >
           Закрыть
@@ -1832,7 +1832,7 @@ function ensureMobileRatingModal() {
       <div class="mobile-rating-modal-actions">
         <button
           type="button"
-          class="mobile-rating-modal-remove secondary-button"
+          class="mobile-rating-modal-remove secondary-button secondary-button-compact"
           id="mobileRatingModalRemoveButton"
         >
           Удалить оценку
@@ -2119,7 +2119,7 @@ function getUserRatingControlsHtml(currentUserRating) {
       <div class="movie-user-rating-mobile">
         <button
           type="button"
-          class="movie-user-rating-mobile-trigger secondary-button ${currentUserRating !== null ? 'is-rated' : ''}"
+          class="movie-user-rating-mobile-trigger secondary-button secondary-button-compact ${currentUserRating !== null ? 'is-rated' : ''}"
           data-open-mobile-rating="true"
         >
           ${currentUserRating !== null ? `${currentUserRating}/10 <span class="movie-user-rating-mobile-star">★</span>` : 'Оценить'}
@@ -2268,7 +2268,7 @@ function renderEmptyState() {
       <div class="empty-state-actions">
         <button
           type="button"
-          class="secondary-button empty-state-reset-btn"
+          class="secondary-button secondary-button-compact empty-state-reset-btn"
           id="emptyStateResetButton"
         >
           Сбросить фильтры
@@ -2426,7 +2426,7 @@ function createMovieCard(movie) {
         ? `
           <button
             type="button"
-            class="remove-rating-inline-btn secondary-button"
+            class="remove-rating-inline-btn secondary-button secondary-button-compact"
             data-remove-rating="true"
           >
             Удалить оценку
@@ -2465,7 +2465,7 @@ card.innerHTML = `
       ? `
         <button
           type="button"
-          class="movie-external-links-toggle secondary-button"
+          class="movie-external-links-toggle secondary-button secondary-button-compact"
           data-external-links-toggle="true"
           aria-expanded="false"
         >
