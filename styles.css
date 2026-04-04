@@ -2005,13 +2005,19 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     padding: 0 10px;
     margin-bottom: 14px;
     justify-content: center;
+    border-radius: 8px;
+  }
+
+  .movie-external-links-toggle[aria-expanded="true"] {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
   }
 
   .movie-external-links-collapsible {
     position: absolute;
     left: 0;
     right: 0;
-    top: 44px;
+    top: 43px;
     z-index: 20;
     display: none;
     padding: 10px 12px;
@@ -2023,6 +2029,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-external-links-collapsible.is-open {
     display: block;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
   }
 
   .movie-rating-block .movie-external-links {
