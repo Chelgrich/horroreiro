@@ -1900,9 +1900,9 @@ function openMobileRatingModal(movie) {
 
   mobileRatingModalMovieId = movie.id;
   mobileRatingModalTitle.textContent = movie.title;
-  mobileRatingModalMeta.textContent = currentUserRating !== null
-    ? `Ваша оценка: ${currentUserRating}/10`
-    : 'Оценка ещё не поставлена';
+  mobileRatingModalMeta.innerHTML = currentUserRating !== null
+  ? `Ваша оценка: <strong class="rating-value">${currentUserRating}/10</strong>`
+  : 'Оценка ещё не поставлена';
 
   mobileRatingModalStars.innerHTML = Array.from({ length: 10 }, (_, index) => {
     const value = index + 1;

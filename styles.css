@@ -1722,7 +1722,19 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 .mobile-rating-modal-meta {
   margin-top: 12px;
   font-size: 13px;
-  color: #c7d0da;
+  color: #9aa3ad;
+}
+
+.mobile-rating-modal-meta strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.2px;
+}
+
+.mobile-rating-modal-meta .rating-value {
+  color: #f5c518;
+  text-shadow: 0 0 10px rgba(245, 197, 24, 0.18);
 }
 
 .mobile-rating-modal-stars {
