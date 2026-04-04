@@ -1969,13 +1969,16 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-external-links {
-    gap: 4px;
+    display: grid;
+    grid-template-columns: repeat(2, 36px);
+    gap: 6px;
+    justify-content: start;
   }
 
   .movie-external-link {
-    width: 30px;
-    height: 30px;
-    flex: 0 0 30px;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
   }
 
   .movie-rating-block {
@@ -2034,6 +2037,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 @media (max-width: 360px) {
   .movies-list {
     grid-template-columns: 1fr;
+  }
+
+  .movie-external-links {
+    display: flex;
+    gap: 6px;
   }
 
   .movie-external-links {
