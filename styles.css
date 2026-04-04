@@ -50,7 +50,7 @@ CSS-БЛОК 3. ШАПКА СТРАНИЦЫ
 }
 
 .page-header-feedback {
-  min-height: 66px;
+  min-height: 52px;
   margin-top: 14px;
   display: flex;
   justify-content: flex-end;
