@@ -1928,28 +1928,113 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-list {
-    justify-items: center; /* карточка становится самостоятельным блоком */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    justify-items: stretch;
   }
 
   .movie-card {
     width: 100%;
-    max-width: 460px;
-    min-width: 340px; /* не даём схлопываться раньше времени */
-    padding: 14px 18px 20px;
+    max-width: none;
+    min-width: 0;
+    padding: 12px 12px 16px;
   }
 
   .movie-poster-block {
-    margin: -2px -10px 12px;
+    margin: -2px -4px 10px;
   }
   
   .movie-poster-wrapper {
     width: 100%;
     margin: 0;
   }
+
+  .movie-card h3 {
+    padding-bottom: 7px;
+    font-size: 17px;
+    line-height: 1.16;
+  }
+
+  .movie-card p {
+    font-size: 12px;
+    line-height: 1.28;
+  }
+
+  .movie-card p + p {
+    margin-top: 3px;
+  }
+
+  .movie-title-links-row {
+    margin-bottom: 12px;
+  }
+
+  .movie-external-links {
+    gap: 6px;
+  }
+
+  .movie-external-link {
+    width: 32px;
+    height: 32px;
+  }
+
+  .movie-rating-block {
+    padding-top: 8px;
+  }
+
+  .movie-rating-block .movie-external-links {
+    margin-bottom: 14px;
+  }
+
+  .movie-rating-summary {
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+
+  .movie-rating-value {
+    font-size: 20px;
+  }
+
+  .movie-rating-meta {
+    font-size: 12px;
+  }
+
+  .remove-rating-inline-btn {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .movie-user-rating {
+    margin-top: 10px;
+  }
+
+  .movie-user-rating-label {
+    font-size: 12px;
+  }
+
+  .rating-star-btn {
+    height: 26px;
+    font-size: 18px;
+  }
+
+  .movie-card-actions {
+    gap: 8px;
+    padding-top: 8px;
+  }
+
+  .movie-card-actions button {
+    width: 100%;
+  }
 }
 
 /* Супер-узкий экран — снимаем min-width */
-@media (max-width: 420px) {
+@media (max-width: 320px) {
+  .movies-list {
+    grid-template-columns: 1fr;
+  }
+
   .filters-modal-actions {
     grid-template-columns: 1fr;
   }
