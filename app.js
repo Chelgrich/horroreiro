@@ -2389,6 +2389,10 @@ card.innerHTML = `
         panel.classList.remove('is-open');
       });
 
+      container.querySelectorAll('.movie-card').forEach(movieCard => {
+        movieCard.classList.remove('has-open-external-links');
+      });
+
       container.querySelectorAll('.movie-external-links').forEach(grid => {
         grid.classList.remove('is-two-rows');
       });
@@ -2397,6 +2401,7 @@ card.innerHTML = `
         externalLinksToggleBtn.setAttribute('aria-expanded', 'true');
         externalLinksToggleBtn.textContent = 'Свернуть';
         externalLinksCollapsible.classList.add('is-open');
+        card.classList.add('has-open-external-links');
 
         requestAnimationFrame(syncExternalLinksLayout);
       }
@@ -2643,6 +2648,10 @@ document.addEventListener('click', event => {
 
   container.querySelectorAll('[data-external-links-collapsible]').forEach(panel => {
     panel.classList.remove('is-open');
+  });
+
+  container.querySelectorAll('.movie-card').forEach(movieCard => {
+    movieCard.classList.remove('has-open-external-links');
   });
 });
 

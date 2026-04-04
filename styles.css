@@ -1000,6 +1000,8 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 Базовое оформление карточки и текстового содержимого.
 ========================================================== */
 .movie-card {
+  position: relative;
+  z-index: 1;
   box-sizing: border-box;
   height: 100%;
   display: flex;
@@ -1075,6 +1077,10 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   box-shadow:
     0 0 0 1px rgba(91, 140, 255, 0.24),
     0 14px 30px rgba(0, 0, 0, 0.24);
+}
+
+.movie-card.has-open-external-links {
+  z-index: 40;
 }
 
 .movie-card-skeleton {
