@@ -55,7 +55,7 @@ CSS-БЛОК 3. ШАПКА СТРАНИЦЫ
 }
 
 .page-header-top {
-  height: 46px;
+  min-height: 44px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -71,7 +71,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   flex: 1;
   min-width: 0;
   max-width: 720px;
-  height: 46px;
+  min-height: 44px;
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -172,7 +172,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 .login-form button,
 .admin-panel button,
 .user-panel button {
-  height: 36px;
+  height: 44px;
 }
 
 /* =========================================================
