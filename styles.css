@@ -2121,21 +2121,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     flex-wrap: wrap;
   }
 
-  .remove-rating-inline-btn {
-    display: none;
-  }
-
   .movie-rating-value {
     font-size: 20px;
   }
 
   .movie-rating-meta {
-    font-size: 12px;
-  }
-
-  .remove-rating-inline-btn {
-    height: 28px;
-    padding: 0 8px;
     font-size: 12px;
   }
 
