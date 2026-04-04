@@ -2368,6 +2368,7 @@ card.innerHTML = `
 
       container.querySelectorAll('[data-external-links-toggle="true"]').forEach(button => {
         button.setAttribute('aria-expanded', 'false');
+        button.textContent = 'Ссылки на фильм';
       });
 
       container.querySelectorAll('[data-external-links-collapsible]').forEach(panel => {
@@ -2376,6 +2377,7 @@ card.innerHTML = `
 
       if (!isExpanded) {
         externalLinksToggleBtn.setAttribute('aria-expanded', 'true');
+        externalLinksToggleBtn.textContent = 'Свернуть';
         externalLinksCollapsible.classList.add('is-open');
       }
     });
@@ -2608,6 +2610,7 @@ document.addEventListener('click', event => {
 
   container.querySelectorAll('[data-external-links-toggle="true"]').forEach(button => {
     button.setAttribute('aria-expanded', 'false');
+    button.textContent = 'Ссылки на фильм';
   });
 
   container.querySelectorAll('[data-external-links-collapsible]').forEach(panel => {
