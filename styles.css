@@ -52,6 +52,9 @@ CSS-БЛОК 3. ШАПКА СТРАНИЦЫ
 .page-header-feedback {
   min-height: 66px;
   margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
 }
 
 .page-header-top {
@@ -129,7 +132,9 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   opacity: 1;
   transform: translateY(0);
   visibility: visible;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 
 .auth-toast.is-hidden {
@@ -139,13 +144,19 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .auth-toast.is-error {
-  background: rgba(58, 24, 24, 0.92);
-  border-color: rgba(255, 123, 114, 0.4);
+  background: rgba(55, 24, 24, 0.94);
+  border-color: rgba(255, 123, 114, 0.48);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.28),
+    inset 3px 0 0 rgba(255, 123, 114, 0.72);
 }
 
 .auth-toast.is-success {
-  background: rgba(20, 46, 29, 0.92);
-  border-color: rgba(86, 211, 100, 0.38);
+  background: rgba(20, 44, 28, 0.94);
+  border-color: rgba(86, 211, 100, 0.44);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.28),
+    inset 3px 0 0 rgba(86, 211, 100, 0.72);
 }
 
 .auth-message {
@@ -155,7 +166,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   align-items: center;
   font-size: 13px;
   line-height: 1.45;
-  color: #c7d0da;
+  color: #d4dbe3;
   text-align: left;
   word-break: break-word;
 }
@@ -2153,18 +2164,23 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .auth-toast {
     position: fixed;
-    left: 16px;
-    right: 16px;
+    left: 0;
+    right: 0;
     bottom: 16px;
     z-index: 1100;
-    width: auto;
+    width: fit-content;
+    max-width: calc(100vw - 32px);
     min-height: 0;
-    margin-top: 0;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0);
+    margin: 0 auto;
+    box-shadow:
+      0 16px 40px rgba(0, 0, 0, 0),
+      0 0 0 1px rgba(255, 255, 255, 0);
   }
 
   .auth-toast.is-visible {
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    box-shadow:
+      0 18px 42px rgba(0, 0, 0, 0.34),
+      0 0 0 1px rgba(255, 255, 255, 0.03);
   }
 
   .auth-toast.is-hidden {
