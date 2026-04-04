@@ -102,6 +102,14 @@ let ratingRequestInFlight = new Set();
 let ratingFeedbackTimers = new Map();
 let watchlistFeedbackTimers = new Map();
 let watchlistRequestInFlight = new Set();
+let mobileRatingModal = null;
+let mobileRatingModalBackdrop = null;
+let mobileRatingModalDialog = null;
+let mobileRatingModalTitle = null;
+let mobileRatingModalStars = null;
+let mobileRatingModalMeta = null;
+let mobileRatingModalRemoveButton = null;
+let mobileRatingModalMovieId = null;
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -1786,6 +1794,141 @@ async function removeUserMovieRating(movieId) {
   }
 }
 
+function isMobileRatingLayout() {
+  return window.matchMedia('(max-width: 680px)').matches;
+}
+
+function ensureMobileRatingModal() {
+  if (mobileRatingModal) {
+    return;
+  }
+
+  mobileRatingModal = document.createElement('div');
+  mobileRatingModal.className = 'mobile-rating-modal';
+  mobileRatingModal.style.display = 'none';
+
+  mobileRatingModal.innerHTML = `
+    <div class="mobile-rating-modal-backdrop" data-mobile-rating-close="true"></div>
+    <div
+      class="mobile-rating-modal-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mobileRatingModalTitle"
+    >
+      <div class="mobile-rating-modal-header">
+        <div class="mobile-rating-modal-title-wrap">
+          <div class="mobile-rating-modal-label">Ваша оценка</div>
+          <h3 id="mobileRatingModalTitle" class="mobile-rating-modal-title"></h3>
+        </div>
+        <button
+          type="button"
+          class="mobile-rating-modal-close secondary-button"
+          data-mobile-rating-close="true"
+        >
+          Закрыть
+        </button>
+      </div>
+
+      <div class="mobile-rating-modal-meta" id="mobileRatingModalMeta"></div>
+
+      <div class="mobile-rating-modal-stars" id="mobileRatingModalStars"></div>
+
+      <div class="mobile-rating-modal-actions">
+        <button
+          type="button"
+          class="mobile-rating-modal-remove secondary-button"
+          id="mobileRatingModalRemoveButton"
+        >
+          Удалить оценку
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(mobileRatingModal);
+
+  mobileRatingModalBackdrop = mobileRatingModal.querySelector('.mobile-rating-modal-backdrop');
+  mobileRatingModalDialog = mobileRatingModal.querySelector('.mobile-rating-modal-dialog');
+  mobileRatingModalTitle = mobileRatingModal.querySelector('#mobileRatingModalTitle');
+  mobileRatingModalStars = mobileRatingModal.querySelector('#mobileRatingModalStars');
+  mobileRatingModalMeta = mobileRatingModal.querySelector('#mobileRatingModalMeta');
+  mobileRatingModalRemoveButton = mobileRatingModal.querySelector('#mobileRatingModalRemoveButton');
+
+  mobileRatingModal.querySelectorAll('[data-mobile-rating-close="true"]').forEach(button => {
+    button.addEventListener('click', () => {
+      closeMobileRatingModal();
+    });
+  });
+
+  mobileRatingModalRemoveButton.addEventListener('click', () => {
+    if (mobileRatingModalMovieId === null) {
+      return;
+    }
+
+    closeMobileRatingModal();
+    removeUserMovieRating(mobileRatingModalMovieId);
+  });
+}
+
+function closeMobileRatingModal() {
+  if (!mobileRatingModal) {
+    return;
+  }
+
+  mobileRatingModal.style.display = 'none';
+  document.body.style.overflow = isModalOpen || (filtersModal && filtersModal.style.display === 'block')
+    ? 'hidden'
+    : '';
+  mobileRatingModalMovieId = null;
+}
+
+function openMobileRatingModal(movie) {
+  if (!currentUser || !isMobileRatingLayout()) {
+    return;
+  }
+
+  ensureMobileRatingModal();
+
+  const currentUserRating = getCurrentUserRating(movie.id);
+
+  mobileRatingModalMovieId = movie.id;
+  mobileRatingModalTitle.textContent = movie.title;
+  mobileRatingModalMeta.textContent = currentUserRating !== null
+    ? `Текущая оценка: ${currentUserRating}/10`
+    : 'Оценка ещё не поставлена';
+
+  mobileRatingModalStars.innerHTML = Array.from({ length: 10 }, (_, index) => {
+    const value = index + 1;
+    const isActive = currentUserRating !== null && value <= currentUserRating;
+
+    return `
+      <button
+        type="button"
+        class="mobile-rating-star-btn ${isActive ? 'is-active' : ''}"
+        data-mobile-rating-value="${value}"
+        aria-label="Оценка ${value} из 10"
+        title="${value}"
+      >
+        ★
+      </button>
+    `;
+  }).join('');
+
+  mobileRatingModalRemoveButton.style.display = currentUserRating !== null ? 'inline-flex' : 'none';
+
+  mobileRatingModalStars.querySelectorAll('[data-mobile-rating-value]').forEach(button => {
+    button.addEventListener('click', () => {
+      const ratingValue = Number(button.dataset.mobileRatingValue);
+
+      closeMobileRatingModal();
+      saveUserMovieRating(movie.id, ratingValue);
+    });
+  });
+
+  mobileRatingModal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
 async function saveUserMovieRating(movieId, ratingValue) {
   if (!currentUser) {
     return;
@@ -1943,23 +2086,36 @@ function getUserRatingControlsHtml(currentUserRating) {
   return `
     <div class="movie-user-rating">
       <div class="movie-user-rating-label">Ваша оценка</div>
-      <div class="movie-user-rating-stars" data-current-rating="${currentUserRating ?? 0}">
-        ${Array.from({ length: 10 }, (_, index) => {
-          const value = index + 1;
-          const isActive = currentUserRating !== null && value <= currentUserRating;
 
-          return `
-            <button
-              type="button"
-              class="rating-star-btn ${isActive ? 'is-active' : ''}"
-              data-rating-value="${value}"
-              aria-label="Оценка ${value} из 10"
-              title="${value}"
-            >
-              ★
-            </button>
-          `;
-        }).join('')}
+      <div class="movie-user-rating-desktop">
+        <div class="movie-user-rating-stars" data-current-rating="${currentUserRating ?? 0}">
+          ${Array.from({ length: 10 }, (_, index) => {
+            const value = index + 1;
+            const isActive = currentUserRating !== null && value <= currentUserRating;
+
+            return `
+              <button
+                type="button"
+                class="rating-star-btn ${isActive ? 'is-active' : ''}"
+                data-rating-value="${value}"
+                aria-label="Оценка ${value} из 10"
+                title="${value}"
+              >
+                ★
+              </button>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="movie-user-rating-mobile">
+        <button
+          type="button"
+          class="movie-user-rating-mobile-trigger secondary-button"
+          data-open-mobile-rating="true"
+        >
+          ${currentUserRating !== null ? `Ваша оценка: ${currentUserRating} ★` : 'Оценить'}
+        </button>
       </div>
     </div>
   `;
@@ -2316,6 +2472,7 @@ card.innerHTML = `
   const watchlistToggleBtn = card.querySelector('[data-watchlist-toggle="true"]');
   const externalLinksToggleBtn = card.querySelector('[data-external-links-toggle="true"]');
   const externalLinksCollapsible = card.querySelector('[data-external-links-collapsible]');
+  const openMobileRatingBtn = card.querySelector('[data-open-mobile-rating="true"]');
   const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
   const isWatchlistBusy = watchlistRequestInFlight.has(String(movie.id));
   const posterImage = card.querySelector('.movie-poster');
@@ -2359,6 +2516,14 @@ card.innerHTML = `
   
     watchlistToggleBtn.addEventListener('click', () => {
       toggleMovieWatchlist(movie.id);
+    });
+  }
+
+  if (openMobileRatingBtn) {
+    openMobileRatingBtn.disabled = isRatingBusy;
+
+    openMobileRatingBtn.addEventListener('click', () => {
+      openMobileRatingModal(movie);
     });
   }
 
@@ -2660,6 +2825,7 @@ document.addEventListener('keydown', event => {
     return;
   }
 
+  closeMobileRatingModal();
   closeAllCustomSelects();
 
   if (isModalOpen) {
