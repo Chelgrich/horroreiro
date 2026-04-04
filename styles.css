@@ -1411,6 +1411,7 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 Средний рейтинг, счётчик голосов и кнопки пользовательской оценки.
 ========================================================== */
 .movie-rating-block {
+  position: relative;
   margin-top: auto;
   padding-top: 10px;
   border-top: 1px solid #1f242b;
@@ -2003,7 +2004,17 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-external-links-collapsible {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% - 6px);
+    z-index: 20;
     display: none;
+    padding: 10px 12px;
+    background: #161b21;
+    border: 1px solid #2f3843;
+    border-radius: 8px;
+    box-shadow: 0 14px 24px rgba(0, 0, 0, 0.28);
   }
 
   .movie-external-links-collapsible.is-open {
@@ -2011,7 +2022,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-rating-block .movie-external-links {
-    margin-bottom: 14px;
+    margin-bottom: 0;
   }
 
   .movie-rating-summary {
@@ -2070,8 +2081,9 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     gap: 6px;
   }
 
-  .movie-external-links {
-    gap: 6px;
+  .movie-external-links-collapsible {
+    left: 0;
+    right: 0;
   }
 
   .movie-external-link {
