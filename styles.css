@@ -204,7 +204,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 
 .section-title {
   margin: 0 0 18px;
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 700;
   line-height: 1.15;
   color: #ffffff;
@@ -705,7 +705,7 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 ========================================================== */
 .catalog-toolbar {
   display: flex;
-  align-items: end;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
 }
@@ -751,7 +751,7 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 
 .catalog-toolbar-actions {
   display: flex;
-  align-items: end;
+  align-items: flex-end;
   gap: 14px;
   flex: 0 0 auto;
 }
@@ -938,7 +938,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 
 .movies-group-year {
   margin-top: 12px;
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 700;
   line-height: 1.1;
   color: #ffffff;
@@ -2157,7 +2157,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .catalog-toolbar-actions {
     display: flex;
     flex-direction: row;
-    align-items: end;
+    align-items: flex-end;
     gap: 12px;
     flex-wrap: nowrap;
   }
@@ -2466,7 +2466,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movies-group-month {
     font-size: 17px;
-  }
   }
 
   .movie-external-links-collapsible {
