@@ -1958,7 +1958,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 }
 
-@media (min-width: 321px) and (max-width: 680px) {
+@media (min-width: 361px) and (max-width: 680px) {
   .movies-list {
     grid-template-columns: 1fr;
   }
