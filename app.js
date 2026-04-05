@@ -180,6 +180,59 @@ function updatePosterFileUi() {
     : 'Файл не выбран';
 }
 
+async function ensureActiveSessionForWrite() {
+  const { data, error } = await supabaseClient.auth.getSession();
+
+  if (error) {
+    throw error;
+  }
+
+  const session = data?.session ?? null;
+
+  if (!session?.user) {
+    throw new Error('Сессия пользователя не найдена. Обнови страницу и войди снова.');
+  }
+
+  currentUser = session.user;
+
+  if (
+    typeof session.expires_at === 'number' &&
+    (session.expires_at * 1000) - Date.now() < 60 * 1000
+  ) {
+    const { data: refreshedData, error: refreshError } = await supabaseClient.auth.refreshSession();
+
+    if (refreshError) {
+      throw refreshError;
+    }
+
+    if (!refreshedData?.session?.user) {
+      throw new Error('Не удалось обновить сессию. Обнови страницу и войди снова.');
+    }
+
+    currentUser = refreshedData.session.user;
+  }
+
+  return currentUser;
+}
+
+async function withPendingRequestTimeout(promise, timeoutMs, timeoutMessage) {
+  let timeoutId = null;
+
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(timeoutMessage));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 function normalizeOptionalUrl(value) {
   const trimmedValue = String(value || '').trim();
 
@@ -1150,50 +1203,72 @@ async function addMovie(event) {
   }
 
   try {
+    await withPendingRequestTimeout(
+      ensureActiveSessionForWrite(),
+      10000,
+      'Не удалось проверить сессию перед сохранением.'
+    );
+
     let finalPosterUrl = posterUrl || null;
 
     if (posterFile) {
       formMessage.textContent = 'Загружаю постер...';
-      finalPosterUrl = await uploadPosterFile(posterFile);
+      finalPosterUrl = await withPendingRequestTimeout(
+        uploadPosterFile(posterFile),
+        20000,
+        'Превышено время ожидания загрузки постера.'
+      );
     }
 
     formMessage.textContent = 'Сохраняю...';
 
-    const { data: insertedMovie, error: insertMovieError } = await supabaseClient
-      .from('movies')
-      .insert({
-        title,
-        original_title: originalTitle || null,
-        year: year ? Number(year) : null,
-        director: director || null,
-        rating: 0,
-        poster_url: finalPosterUrl,
-        kinopoisk_url: kinopoiskUrl || null,
-        imdb_url: imdbUrl || null,
-        letterboxd_url: letterboxdUrl || null,
-        rottentomatoes_url: rottentomatoesUrl || null,
-        release_month: releaseMonth ? Number(releaseMonth) : null,
-        release_year: releaseYear ? Number(releaseYear) : null,
-        sort_order: sortOrder ? Number(sortOrder) : null,
-        owner_id: currentUser.id
-      })
-      .select('id') // сразу забираем id созданной записи, без повторного поиска по title
-      .single();
+    const { data: insertedMovie, error: insertMovieError } = await withPendingRequestTimeout(
+      supabaseClient
+        .from('movies')
+        .insert({
+          title,
+          original_title: originalTitle || null,
+          year: year ? Number(year) : null,
+          director: director || null,
+          rating: 0,
+          poster_url: finalPosterUrl,
+          kinopoisk_url: kinopoiskUrl || null,
+          imdb_url: imdbUrl || null,
+          letterboxd_url: letterboxdUrl || null,
+          rottentomatoes_url: rottentomatoesUrl || null,
+          release_month: releaseMonth ? Number(releaseMonth) : null,
+          release_year: releaseYear ? Number(releaseYear) : null,
+          sort_order: sortOrder ? Number(sortOrder) : null,
+          owner_id: currentUser.id
+        })
+        .select('id') // сразу забираем id созданной записи, без повторного поиска по title
+        .single(),
+      15000,
+      'Превышено время ожидания сохранения фильма.'
+    );
 
     if (insertMovieError) {
       throw insertMovieError;
     }
 
-    await replaceMovieRelations(insertedMovie.id, genreNames, countryNames);
+    await withPendingRequestTimeout(
+      replaceMovieRelations(insertedMovie.id, genreNames, countryNames),
+      15000,
+      'Превышено время ожидания сохранения жанров и стран.'
+    );
 
     formMessage.textContent = 'Обновляю каталог...';
-    await reloadCatalogData(); // сначала дожидаемся полной синхронизации состояния каталога
+    await withPendingRequestTimeout(
+      reloadCatalogData(),
+      15000,
+      'Превышено время ожидания обновления каталога.'
+    ); // сначала дожидаемся полной синхронизации состояния каталога
 
     resetFormToCreateMode();
     closeMovieModal();
   } catch (error) {
     console.error('Ошибка при добавлении фильма:', error);
-    formMessage.textContent = 'Ошибка при добавлении фильма. Смотри консоль F12.';
+    formMessage.textContent = `Ошибка при добавлении фильма: ${error.message || 'смотри консоль F12.'}`;
   } finally {
     setMovieFormSubmittingState(false);
   }
@@ -1268,12 +1343,22 @@ async function updateMovie(event) {
   );
 
   try {
+    await withPendingRequestTimeout(
+      ensureActiveSessionForWrite(),
+      10000,
+      'Не удалось проверить сессию перед сохранением.'
+    );
+
     let finalPosterUrl = posterUrl || null;
     let uploadedNewPoster = false;
 
     if (posterFile) {
       formMessage.textContent = 'Загружаю постер...';
-      finalPosterUrl = await uploadPosterFile(posterFile);
+      finalPosterUrl = await withPendingRequestTimeout(
+        uploadPosterFile(posterFile),
+        20000,
+        'Превышено время ожидания загрузки постера.'
+      );
       uploadedNewPoster = true;
     }
 
@@ -1332,10 +1417,14 @@ async function updateMovie(event) {
     if (Object.keys(changedFields).length > 0) {
       formMessage.textContent = 'Сохраняю изменения...';
 
-      const { error: updateMovieError } = await supabaseClient
-        .from('movies')
-        .update(changedFields)
-        .eq('id', editingMovieId);
+      const { error: updateMovieError } = await withPendingRequestTimeout(
+        supabaseClient
+          .from('movies')
+          .update(changedFields)
+          .eq('id', editingMovieId),
+        15000,
+        'Превышено время ожидания обновления фильма.'
+      );
 
       if (updateMovieError) {
         throw updateMovieError;
@@ -1343,7 +1432,11 @@ async function updateMovie(event) {
     }
 
     if (relationsChanged) {
-      await replaceMovieRelations(editingMovieId, genreNames, countryNames);
+      await withPendingRequestTimeout(
+        replaceMovieRelations(editingMovieId, genreNames, countryNames),
+        15000,
+        'Превышено время ожидания обновления жанров и стран.'
+      );
     }
 
     if (uploadedNewPoster && oldPosterUrl && oldPosterUrl !== finalPosterUrl) {
@@ -1362,13 +1455,17 @@ async function updateMovie(event) {
     }
 
     formMessage.textContent = 'Обновляю каталог...';
-    await reloadCatalogData();
+    await withPendingRequestTimeout(
+      reloadCatalogData(),
+      15000,
+      'Превышено время ожидания обновления каталога.'
+    );
 
     closeMovieModal();
     resetFormToCreateMode();
   } catch (error) {
     console.error('Ошибка при редактировании фильма:', error);
-    formMessage.textContent = 'Ошибка при редактировании фильма. Смотри консоль F12.';
+    formMessage.textContent = `Ошибка при редактировании фильма: ${error.message || 'смотри консоль F12.'}`;
   } finally {
     setMovieFormSubmittingState(false);
   }
