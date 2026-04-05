@@ -789,13 +789,13 @@ function getActiveFilterChips() {
     chips.push({ label: `Жанр: ${genreFilter.value}`, key: 'genre' });
   }
 
+  if (yearFilter.value) {
+    chips.push({ label: `Год: ${yearFilter.value}`, key: 'year' });
+  }
+
   if (monthFilter.value) {
     const selectedOption = monthFilter.options[monthFilter.selectedIndex];
     chips.push({ label: `Месяц: ${selectedOption?.textContent || monthFilter.value}`, key: 'month' });
-  }
-
-  if (yearFilter.value) {
-    chips.push({ label: `Год: ${yearFilter.value}`, key: 'year' });
   }
 
   if (countryFilter.value) {
