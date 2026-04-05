@@ -1958,9 +1958,22 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 }
 
-@media (max-width: 680px) {
+@media (min-width: 321px) and (max-width: 680px) {
   .movies-list {
     grid-template-columns: 1fr;
+  }
+
+  .catalog-search-row input {
+    font-size: 12px;
+  }
+
+  .catalog-toolbar-actions > button {
+    font-size: 12px;
+  }
+
+  .filter-sort select,
+  .filter-sort .custom-select-trigger {
+    font-size: 12px;
   }
 }
 
