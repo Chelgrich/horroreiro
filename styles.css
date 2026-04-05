@@ -2143,7 +2143,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .filter-sort {
-    grid-column: span 2;
+    grid-column: auto;
   }
 
   .filters .form-row {
