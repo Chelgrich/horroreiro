@@ -930,6 +930,32 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   align-items: start;
 }
 
+.movies-group-year,
+.movies-group-month {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.movies-group-year {
+  margin-top: 12px;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #ffffff;
+}
+
+.movies-group-year:first-child {
+  margin-top: 0;
+}
+
+.movies-group-month {
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #dbe2eb;
+}
+
 .empty-state {
   grid-column: 1 / -1;
   padding: 42px 24px;
@@ -1131,9 +1157,10 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   background: #0f1114;
 }
 
-.movie-card h3 {
+.movie-card h5 {
   margin: 0 0 2px;
   padding-bottom: 10px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.2;
   color: #ffffff;
@@ -1929,6 +1956,14 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 }
 
 @media (max-width: 900px) and (min-width: 681px) {
+  .movies-group-year {
+    font-size: 28px;
+  }
+
+  .movies-group-month {
+    font-size: 20px;
+  }
+
   .movie-card {
     gap: 9px;
     padding: 14px 20px 20px; /* уменьшаем боковые поля, чтобы карточка не казалась рыхлой */
@@ -2233,6 +2268,16 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 }
 
 @media (max-width: 680px) {
+  .movies-group-year {
+    margin-top: 8px;
+    font-size: 24px;
+  }
+
+  .movies-group-month {
+    margin-top: 2px;
+    font-size: 18px;
+  }
+
   .filters {
     grid-template-columns: 1fr;
   }
@@ -2413,6 +2458,15 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 @media (max-width: 360px) {
   .movies-list {
     grid-template-columns: 1fr;
+  }
+
+  .movies-group-year {
+    font-size: 22px;
+  }
+
+  .movies-group-month {
+    font-size: 17px;
+  }
   }
 
   .movie-external-links-collapsible {
