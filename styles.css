@@ -2102,16 +2102,18 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .catalog-toolbar-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-direction: row;
     align-items: end;
     gap: 12px;
+    flex-wrap: nowrap;
   }
 
   .catalog-toolbar-actions > button,
   .filter-sort {
-    width: 100%;
+    width: calc(50% - 6px);
     min-width: 0;
+    flex: 0 1 calc(50% - 6px);
   }
 
   .active-filters-bar {
@@ -2135,6 +2137,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-width: 0;
     margin-top: 0;
     justify-self: stretch;
+  }
+
+  .catalog-toolbar-actions .filter-sort {
+    min-width: 0;
   }
 
   .filters .form-row,
@@ -2401,7 +2407,14 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .catalog-toolbar-actions {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .catalog-toolbar-actions > button,
+  .catalog-toolbar-actions .filter-sort {
+    width: 100%;
+    flex-basis: auto;
   }
 
   .movie-card {
