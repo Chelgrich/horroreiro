@@ -1975,6 +1975,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .filter-sort .custom-select-trigger {
     font-size: 12px;
   }
+
+  .catalog-search-row label,
+  .filter-sort label {
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 900px) {
