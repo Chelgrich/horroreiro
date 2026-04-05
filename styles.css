@@ -204,7 +204,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 
 .section-title {
   margin: 0 0 18px;
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 700;
   line-height: 1.15;
   color: #ffffff;
@@ -1930,6 +1930,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 }
 
 @media (max-width: 900px) and (min-width: 681px) {
+  .section-title {
+    font-size: 24px;
+  }
+
   .movie-card {
     gap: 9px;
     padding: 14px 20px 20px; /* уменьшаем боковые поля, чтобы карточка не казалась рыхлой */
@@ -2234,6 +2238,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 }
 
 @media (max-width: 680px) {
+  .section-title {
+    font-size: 22px;
+  }
+
   .filters {
     grid-template-columns: 1fr;
   }
