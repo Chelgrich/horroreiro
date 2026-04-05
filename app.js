@@ -2552,7 +2552,7 @@ const externalLinksBlockHtml = externalLinksHtml
 card.innerHTML = `
   ${posterHtml}
 
-  <h5>${movie.title}</h5>
+  <h3>${movie.title}</h3>
 
   <p>Оригинальное название: ${movie.original_title ?? '-'}</p>
   <p>Год: ${movie.year ?? '-'}</p>
@@ -2816,44 +2816,7 @@ function renderMovies() {
 
   container.innerHTML = '';
 
-  const monthNames = [
-    'Январь', 'Февраль', 'Март', 'Апрель',
-    'Май', 'Июнь', 'Июль', 'Август',
-    'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-  ];
-
-  let currentYear = null;
-  let currentMonth = null;
-
   filteredMovies.forEach(movie => {
-    const movieYear = movie.release_year || 'Без года';
-    const movieMonth = movie.release_month || 0;
-
-    // ГОД
-    if (movieYear !== currentYear) {
-      currentYear = movieYear;
-      currentMonth = null;
-
-      const yearTitle = document.createElement('h3');
-      yearTitle.className = 'movies-group-year';
-      yearTitle.textContent = movieYear;
-
-      container.appendChild(yearTitle);
-    }
-
-    // МЕСЯЦ
-    if (movieMonth !== currentMonth) {
-      currentMonth = movieMonth;
-
-      const monthTitle = document.createElement('h4');
-      monthTitle.className = 'movies-group-month';
-      monthTitle.textContent = movieMonth
-        ? monthNames[movieMonth - 1]
-        : 'Без месяца';
-
-      container.appendChild(monthTitle);
-    }
-
     const card = createMovieCard(movie);
     container.appendChild(card);
   });
