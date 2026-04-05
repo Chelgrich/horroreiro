@@ -96,6 +96,7 @@ let editingMovieId = null;
 let isModalOpen = false;
 let moviesLoadedSuccessfully = false;
 let authMessageTimer = null;
+let isAuthSubmitting = false;
 let isMovieFormSubmitting = false;
 let ratingRequestInFlight = new Set();
 let ratingFeedbackTimers = new Map();
@@ -378,6 +379,32 @@ function clearAuthMessage() {
   authToast.classList.add('is-hidden');
   authMessage.classList.remove('is-error', 'is-success');
   authMessage.textContent = '';
+}
+
+function setAuthSubmittingState(isSubmitting) {
+  isAuthSubmitting = isSubmitting;
+
+  if (loginEmail) {
+    loginEmail.disabled = isSubmitting;
+  }
+
+  if (loginPassword) {
+    loginPassword.disabled = isSubmitting;
+  }
+
+  const loginSubmitButton = loginForm?.querySelector('button[type="submit"]');
+
+  if (loginSubmitButton) {
+    loginSubmitButton.disabled = isSubmitting;
+  }
+
+  if (registerButton) {
+    registerButton.disabled = isSubmitting;
+  }
+
+  if (logoutButton) {
+    logoutButton.disabled = isSubmitting;
+  }
 }
 
 /* =========================================================
@@ -850,6 +877,14 @@ function updateFiltersModalStatus() {
   filtersModalStatus.style.display = 'block';
   filtersModalStatus.classList.toggle('is-active', hasActiveFilters);
   resetFiltersTopButton.style.display = hasActiveFilters ? 'inline-flex' : 'none';
+}
+
+function trackFiltersUsage() {
+  if (typeof ym !== 'function') {
+    return;
+  }
+
+  ym(108369182, 'reachGoal', 'use_filters');
 }
 
 function updateFiltersButtonLabel() {
@@ -1508,82 +1543,100 @@ async function applyCurrentSessionUser(user) {
 async function login(event) {
   event.preventDefault();
 
-  showAuthMessage('Выполняю вход...');
-
-  const email = loginEmail.value.trim();
-  const password = loginPassword.value;
-
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  if (error) {
-    console.error('Ошибка входа:', error);
-  
-    const errorText = String(error.message || '').toLowerCase();
-  
-    if (
-      errorText.includes('email not confirmed') ||
-      errorText.includes('email_not_confirmed')
-    ) {
-      showAuthMessage(
-        'Почта ещё не подтверждена. Открой письмо от сервиса, подтверди e-mail и затем попробуй войти снова.',
-        'error'
-      );
-      return;
-    }
-  
-    showAuthMessage('Ошибка входа. Проверь e-mail и пароль.', 'error');
+  if (isAuthSubmitting) {
     return;
   }
 
-  await applyCurrentSessionUser(data.user ?? null);
-  loginPassword.value = '';
-  renderMovies();
+  setAuthSubmittingState(true);
+  showAuthMessage('Выполняю вход...');
 
-  showAuthMessage('Вход выполнен.', 'success', true);
+  try {
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value;
 
-  if (typeof ym === 'function') {
-    ym(108369182, 'reachGoal', 'email_confirmed_login');
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      console.error('Ошибка входа:', error);
+    
+      const errorText = String(error.message || '').toLowerCase();
+    
+      if (
+        errorText.includes('email not confirmed') ||
+        errorText.includes('email_not_confirmed')
+      ) {
+        showAuthMessage(
+          'Почта ещё не подтверждена. Открой письмо от сервиса, подтверди e-mail и затем попробуй войти снова.',
+          'error'
+        );
+        return;
+      }
+    
+      showAuthMessage('Ошибка входа. Проверь e-mail и пароль.', 'error');
+      return;
+    }
+
+    await applyCurrentSessionUser(data.user ?? null);
+    loginPassword.value = '';
+    renderMovies();
+
+    showAuthMessage('Вход выполнен.', 'success', true);
+
+    if (typeof ym === 'function') {
+      ym(108369182, 'reachGoal', 'email_confirmed_login');
+    }
+  } finally {
+    setAuthSubmittingState(false);
   }
 }
 
 async function register() {
+  if (isAuthSubmitting) {
+    return;
+  }
+
+  setAuthSubmittingState(true);
   showAuthMessage('Регистрирую аккаунт...');
 
-  const email = loginEmail.value.trim();
-  const password = loginPassword.value;
+  try {
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value;
 
-  if (!email || !password) {
-    showAuthMessage('Введи email и пароль для регистрации.', 'error');
-    return;
-  }
-
-  const { error } = await supabaseClient.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: window.location.origin
+    if (!email || !password) {
+      showAuthMessage('Введи email и пароль для регистрации.', 'error');
+      return;
     }
-  });
 
-  if (error) {
-    console.error('Ошибка регистрации:', error);
-    showAuthMessage('Ошибка регистрации. Проверь email и пароль.', 'error');
-    return;
-  }
+    const { error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin
+      }
+    });
 
-  loginPassword.value = '';
-  loginEmail.focus();
+    if (error) {
+      console.error('Ошибка регистрации:', error);
+      showAuthMessage('Ошибка регистрации. Проверь email и пароль.', 'error');
+      return;
+    }
 
-  showAuthMessage(
-    'Регистрация почти завершена. Открой письмо, подтверди e-mail и только потом входи в аккаунт. Без подтверждения почты вход не сработает.',
-    'success'
-  );
+    loginPassword.value = '';
+    loginEmail.focus();
 
-  if (typeof ym === 'function') {
-    ym(108369182, 'reachGoal', 'register');
+    showAuthMessage(
+      'Регистрация почти завершена. Открой письмо, подтверди e-mail и только потом входи в аккаунт. Без подтверждения почты вход не сработает.',
+      'success'
+    );
+
+    if (typeof ym === 'function') {
+      ym(108369182, 'reachGoal', 'register');
+    }
+  } finally {
+    setAuthSubmittingState(false);
   }
 }
 
@@ -1874,10 +1927,6 @@ async function removeUserMovieRating(movieId) {
       fetchMovieWatchlist()
     ]);
 
-    if (typeof ym === 'function') {
-      ym(108369182, 'reachGoal', 'rate_movie');
-    }
-
     showMovieRatingFeedback(movieId, 'Оценка удалена', 'remove');
   } catch (error) {
     console.error('Ошибка удаления оценки фильма:', error);
@@ -2082,6 +2131,10 @@ async function saveUserMovieRating(movieId, ratingValue) {
       fetchMovieRatings(),
       fetchMovieWatchlist()
     ]);
+
+    if (typeof ym === 'function') {
+      ym(108369182, 'reachGoal', 'rate_movie');
+    }
 
     showMovieRatingFeedback(movieId, `Оценка сохранена: ${normalizedRating}/10`);
   } catch (error) {
@@ -2803,10 +2856,6 @@ function renderMovies() {
 
   renderActiveFilterChips();
 
-  if (hasActiveFilters && typeof ym === 'function') {
-    ym(108369182, 'reachGoal', 'use_filters');
-  }
-
   const filteredMovies = getFilteredMovies();
 
   if (filteredMovies.length === 0) {
@@ -2865,14 +2914,38 @@ if (filtersModalBackdrop) {
 
 const debouncedRenderMovies = debounce(renderMovies, 200);
 
-searchInput.addEventListener('input', debouncedRenderMovies);
-genreFilter.addEventListener('change', renderMovies);
-countryFilter.addEventListener('change', renderMovies);
-ratingFilter.addEventListener('change', renderMovies);
-monthFilter.addEventListener('change', renderMovies);
-yearFilter.addEventListener('change', renderMovies);
-watchlistFilter.addEventListener('change', renderMovies);
-watchedFilter.addEventListener('change', renderMovies);
+searchInput.addEventListener('input', () => {
+  trackFiltersUsage();
+  debouncedRenderMovies();
+});
+genreFilter.addEventListener('change', () => {
+  trackFiltersUsage();
+  renderMovies();
+});
+countryFilter.addEventListener('change', () => {
+  trackFiltersUsage();
+  renderMovies();
+});
+ratingFilter.addEventListener('change', () => {
+  trackFiltersUsage();
+  renderMovies();
+});
+monthFilter.addEventListener('change', () => {
+  trackFiltersUsage();
+  renderMovies();
+});
+yearFilter.addEventListener('change', () => {
+  trackFiltersUsage();
+  renderMovies();
+});
+watchlistFilter.addEventListener('change', () => {
+  trackFiltersUsage();
+  renderMovies();
+});
+watchedFilter.addEventListener('change', () => {
+  trackFiltersUsage();
+  renderMovies();
+});
 sortMode.addEventListener('change', () => {
   if (typeof ym === 'function') {
     ym(108369182, 'reachGoal', 'use_sort');
