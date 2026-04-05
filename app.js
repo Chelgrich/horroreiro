@@ -180,36 +180,9 @@ function updatePosterFileUi() {
     : 'Файл не выбран';
 }
 
-async function ensureActiveSessionForWrite() {
-  const { data, error } = await supabaseClient.auth.getSession();
-
-  if (error) {
-    throw error;
-  }
-
-  const session = data?.session ?? null;
-
-  if (!session?.user) {
+function ensureActiveSessionForWrite() {
+  if (!currentUser?.id) {
     throw new Error('Сессия пользователя не найдена. Обнови страницу и войди снова.');
-  }
-
-  currentUser = session.user;
-
-  if (
-    typeof session.expires_at === 'number' &&
-    (session.expires_at * 1000) - Date.now() < 60 * 1000
-  ) {
-    const { data: refreshedData, error: refreshError } = await supabaseClient.auth.refreshSession();
-
-    if (refreshError) {
-      throw refreshError;
-    }
-
-    if (!refreshedData?.session?.user) {
-      throw new Error('Не удалось обновить сессию. Обнови страницу и войди снова.');
-    }
-
-    currentUser = refreshedData.session.user;
   }
 
   return currentUser;
@@ -1203,11 +1176,7 @@ async function addMovie(event) {
   }
 
   try {
-    await withPendingRequestTimeout(
-      ensureActiveSessionForWrite(),
-      10000,
-      'Не удалось проверить сессию перед сохранением.'
-    );
+    ensureActiveSessionForWrite();
 
     let finalPosterUrl = posterUrl || null;
 
@@ -1343,11 +1312,7 @@ async function updateMovie(event) {
   );
 
   try {
-    await withPendingRequestTimeout(
-      ensureActiveSessionForWrite(),
-      10000,
-      'Не удалось проверить сессию перед сохранением.'
-    );
+    ensureActiveSessionForWrite();
 
     let finalPosterUrl = posterUrl || null;
     let uploadedNewPoster = false;
