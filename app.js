@@ -85,6 +85,8 @@ JS-БЛОК 3. ГЛОБАЛЬНОЕ СОСТОЯНИЕ ПРИЛОЖЕНИЯ
 Хранит данные каталога, пользователя и состояние интерфейса.
 ========================================================== */
 const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
+const EMAIL_CONFIRMATION_PENDING_KEY = 'horroreiro_email_confirmation_pending';
+const EMAIL_CONFIRMATION_TRACKED_KEY = 'horroreiro_email_confirmation_tracked';
 
 let currentUser = null;
 let currentUserRole = null;
@@ -240,6 +242,79 @@ function normalizeAdditionalGenreNames(value) {
   }
 
   return genreNames;
+}
+
+function trackGoal(goalName) {
+  if (typeof ym !== 'function') {
+    return;
+  }
+
+  ym(108369182, 'reachGoal', goalName);
+}
+
+function hasNonDefaultFilterValues() {
+  return Boolean(
+    genreFilter.value ||
+    countryFilter.value ||
+    ratingFilter.value !== '' ||
+    monthFilter.value ||
+    yearFilter.value ||
+    (currentUser && watchlistFilter.value) ||
+    (currentUser && watchedFilter.value)
+  );
+}
+
+function trackFiltersUsageIfNeeded() {
+  if (!hasNonDefaultFilterValues()) {
+    return;
+  }
+
+  trackGoal('use_filters');
+}
+
+function trackSortUsageIfNeeded() {
+  if (!sortMode || !sortMode.value || sortMode.value === 'newest') {
+    return;
+  }
+
+  trackGoal('use_sort');
+}
+
+function isEmailConfirmationRedirect() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+
+  return (
+    searchParams.get('type') === 'signup' ||
+    hashParams.get('type') === 'signup' ||
+    searchParams.has('token_hash') ||
+    searchParams.has('code') ||
+    hashParams.has('access_token')
+  );
+}
+
+function trackEmailConfirmedLoginIfNeeded() {
+  if (!currentUser?.id) {
+    return;
+  }
+
+  if (!localStorage.getItem(EMAIL_CONFIRMATION_PENDING_KEY)) {
+    return;
+  }
+
+  if (!isEmailConfirmationRedirect()) {
+    return;
+  }
+
+  const trackedUserId = localStorage.getItem(EMAIL_CONFIRMATION_TRACKED_KEY);
+
+  if (trackedUserId === currentUser.id) {
+    return;
+  }
+
+  trackGoal('email_confirmed_login');
+  localStorage.setItem(EMAIL_CONFIRMATION_TRACKED_KEY, currentUser.id);
+  localStorage.removeItem(EMAIL_CONFIRMATION_PENDING_KEY);
 }
 
 async function loadCurrentUserRole() {
@@ -877,14 +952,6 @@ function updateFiltersModalStatus() {
   filtersModalStatus.style.display = 'block';
   filtersModalStatus.classList.toggle('is-active', hasActiveFilters);
   resetFiltersTopButton.style.display = hasActiveFilters ? 'inline-flex' : 'none';
-}
-
-function trackFiltersUsage() {
-  if (typeof ym !== 'function') {
-    return;
-  }
-
-  ym(108369182, 'reachGoal', 'use_filters');
 }
 
 function updateFiltersButtonLabel() {
@@ -1538,6 +1605,7 @@ async function applyCurrentSessionUser(user) {
   currentUser = user ?? null;
   await loadCurrentUserRole();
   updateAuthUI();
+  trackEmailConfirmedLoginIfNeeded();
 }
 
 async function login(event) {
@@ -1584,10 +1652,6 @@ async function login(event) {
     renderMovies();
 
     showAuthMessage('Вход выполнен.', 'success', true);
-
-    if (typeof ym === 'function') {
-      ym(108369182, 'reachGoal', 'email_confirmed_login');
-    }
   } finally {
     setAuthSubmittingState(false);
   }
@@ -1632,9 +1696,9 @@ async function register() {
       'success'
     );
 
-    if (typeof ym === 'function') {
-      ym(108369182, 'reachGoal', 'register');
-    }
+    localStorage.setItem(EMAIL_CONFIRMATION_PENDING_KEY, '1');
+    localStorage.removeItem(EMAIL_CONFIRMATION_TRACKED_KEY);
+    trackGoal('register');
   } finally {
     setAuthSubmittingState(false);
   }
@@ -2915,18 +2979,17 @@ if (filtersModalBackdrop) {
 const debouncedRenderMovies = debounce(renderMovies, 200);
 
 searchInput.addEventListener('input', () => {
-  trackFiltersUsage();
   debouncedRenderMovies();
 });
 genreFilter.addEventListener('change', () => {
+  trackFiltersUsageIfNeeded();
+  renderMovies();
+});
+yearFilter.addEventListener('change', () => {
   trackFiltersUsage();
   renderMovies();
 });
-countryFilter.addEventListener('change', () => {
-  trackFiltersUsage();
-  renderMovies();
-});
-ratingFilter.addEventListener('change', () => {
+watchlistFilter.addEventListener('change', () => {
   trackFiltersUsage();
   renderMovies();
 });
@@ -2938,19 +3001,16 @@ yearFilter.addEventListener('change', () => {
   trackFiltersUsage();
   renderMovies();
 });
-watchlistFilter.addEventListener('change', () => {
-  trackFiltersUsage();
+watchedFilter.addEventListener('change', () => {
+  trackFiltersUsageIfNeeded();
   renderMovies();
 });
-watchedFilter.addEventListener('change', () => {
+sortMode.addEventListener('change', () => {
   trackFiltersUsage();
   renderMovies();
 });
 sortMode.addEventListener('change', () => {
-  if (typeof ym === 'function') {
-    ym(108369182, 'reachGoal', 'use_sort');
-  }
-
+  trackSortUsageIfNeeded();
   renderMovies();
 });
 
