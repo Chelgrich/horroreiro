@@ -1441,7 +1441,6 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   justify-content: space-between;
   gap: 10px;
   margin-top: 8px;
-  padding-left: 4px;
 }
 
 .movie-rating-summary-main {
@@ -1488,7 +1487,6 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   font-weight: 700;
   line-height: 1.2;
   color: #e6ebf0;
-  padding-left: 4px;
 }
 
 .movie-user-rating-desktop {
@@ -2369,6 +2367,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     gap: 8px;
     margin-top: 4px;
     flex-wrap: wrap;
+    padding-left: 4px;
   }
 
   .remove-rating-inline-btn {
@@ -2390,6 +2389,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-user-rating-label {
     font-size: 12px;
+    padding-left: 4px;
   }
 
   .movie-user-rating-desktop {
