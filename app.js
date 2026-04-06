@@ -3048,18 +3048,30 @@ document.addEventListener('click', event => {
     return;
   }
 
-  container.querySelectorAll('[data-external-links-toggle="true"]').forEach(button => {
-    button.setAttribute('aria-expanded', 'false');
-    button.textContent = 'Ссылки на фильм';
-  });
+  const openedCard = container.querySelector('.movie-card.has-open-external-links');
 
-  container.querySelectorAll('[data-external-links-collapsible]').forEach(panel => {
+  if (!openedCard) return;
+
+  const toggle = openedCard.querySelector('[data-external-links-toggle="true"]');
+  const panel = openedCard.querySelector('[data-external-links-collapsible]');
+  const grid = openedCard.querySelector('.movie-external-links');
+
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.textContent = 'Ссылки на фильм';
+  }
+
+  if (panel) {
     panel.classList.remove('is-open');
-  });
+  }
 
-  container.querySelectorAll('.movie-card').forEach(movieCard => {
-    movieCard.classList.remove('has-open-external-links');
-  });
+  if (grid) {
+    setTimeout(() => {
+      grid.classList.remove('is-two-rows');
+    }, 180);
+  }
+
+  openedCard.classList.remove('has-open-external-links');
 });
 
 window.addEventListener('resize', syncOpenExternalLinksLayouts);
