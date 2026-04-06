@@ -2983,7 +2983,20 @@ if (filtersModalBackdrop) {
 
 const debouncedRenderMovies = debounce(renderMovies, 200);
 
+let lastSearchQuery = '';
+
 searchInput.addEventListener('input', () => {
+  const query = searchInput.value.trim();
+
+  if (query && query !== lastSearchQuery) {
+    trackGoal('search_used');
+    lastSearchQuery = query;
+  }
+
+  if (!query) {
+    lastSearchQuery = '';
+  }
+
   debouncedRenderMovies();
 });
 const handleFiltersChange = () => {
