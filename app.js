@@ -2791,18 +2791,14 @@ card.innerHTML = `
         movieCard.classList.remove('has-open-external-links');
       });
 
-      const grids = Array.from(container.querySelectorAll('.movie-external-links'));
+      const grid = container.querySelector('.movie-external-links');
 
       if (isExpanded) {
         setTimeout(() => {
-          grids.forEach(grid => {
-            grid.classList.remove('is-two-rows');
-          });
+          if (grid) grid.classList.remove('is-two-rows');
         }, 180);
       } else {
-        grids.forEach(grid => {
-          grid.classList.remove('is-two-rows');
-        });
+        if (grid) grid.classList.remove('is-two-rows');
       }
 
       if (!isExpanded) {
