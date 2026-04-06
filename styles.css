@@ -2341,7 +2341,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     top: 42px;
     z-index: 20;
     display: block;
-    padding: 12px;
+    padding: 16px;
     background: #161b21;
     border: 1px solid #2f3843;
     border-top: none;
@@ -2370,7 +2370,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     gap: 8px;
     margin-top: 4px;
     flex-wrap: wrap;
-    padding-left: 5px;
+    padding-left: 4px;
   }
 
   .remove-rating-inline-btn {
@@ -2392,7 +2392,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-user-rating-label {
     font-size: 12px;
-    padding-left: 5px;
+    padding-left: 4px;
   }
 
   .movie-user-rating-desktop {
