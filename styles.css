@@ -1441,6 +1441,7 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   justify-content: space-between;
   gap: 10px;
   margin-top: 8px;
+  padding-left: 4px;
 }
 
 .movie-rating-summary-main {
