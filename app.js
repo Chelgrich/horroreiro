@@ -3092,7 +3092,7 @@ async function init() {
 
   supabaseClient.auth.onAuthStateChange(async (_event, session) => {
     await applyCurrentSessionUser(session?.user ?? null);
-    renderMovies();
+    await reloadCatalogData();
   });
 
   await reloadCatalogData();
