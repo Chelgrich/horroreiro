@@ -1487,6 +1487,7 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   font-weight: 700;
   line-height: 1.2;
   color: #e6ebf0;
+  padding-left: 4px;
 }
 
 .movie-user-rating-desktop {
@@ -2339,7 +2340,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     top: 43px;
     z-index: 20;
     display: block;
-    padding: 10px 12px;
+    padding: 12px;
     background: #161b21;
     border: 1px solid #2f3843;
     border-radius: 10px;
