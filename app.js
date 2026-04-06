@@ -2791,7 +2791,7 @@ card.innerHTML = `
         movieCard.classList.remove('has-open-external-links');
       });
 
-      const grid = container.querySelector('.movie-external-links');
+      const grid = card.querySelector('.movie-external-links');
 
       if (isExpanded) {
         setTimeout(() => {
