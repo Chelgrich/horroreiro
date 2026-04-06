@@ -2330,6 +2330,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movie-external-links-toggle[aria-expanded="true"] {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
+    position: relative;
+    z-index: 21;
   }
 
   .movie-external-links-collapsible {
@@ -2342,12 +2344,13 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     padding: 12px;
     background: #161b21;
     border: 1px solid #2f3843;
+    border-top: none;
     border-radius: 10px;
     box-shadow: 0 14px 24px rgba(0, 0, 0, 0.28);
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translateY(-4px);
     pointer-events: none;
-    transition: opacity 0.18s ease, transform 0.18s ease;
+    transition: opacity 0.16s ease, transform 0.16s ease;
   }
 
   .movie-external-links-collapsible.is-open {
