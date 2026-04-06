@@ -2482,9 +2482,9 @@ function renderEmptyState() {
     ? 'Ничего не найдено'
     : 'Каталог пока пуст';
 
-  const emptyStateText = hasSearchQuery || hasActiveFilters
-    ? 'Попробуй изменить фильтры, очистить поиск или сбросить параметры отбора.'
-    : 'Когда здесь появятся фильмы, они отобразятся в этом разделе.';
+    const emptyStateText = hasSearchQuery || hasActiveFilters
+    ? 'Попробуй изменить фильтры или очистить поиск — возможно, нужный фильм просто не попал в выборку.'
+    : 'В каталоге пока нет фильмов.';
 
   const emptyStateActions = hasSearchQuery || hasActiveFilters
     ? `
