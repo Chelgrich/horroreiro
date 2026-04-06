@@ -2338,16 +2338,22 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     right: 0;
     top: 43px;
     z-index: 20;
-    display: none;
+    display: block;
     padding: 10px 12px;
     background: #161b21;
     border: 1px solid #2f3843;
     border-radius: 10px;
     box-shadow: 0 14px 24px rgba(0, 0, 0, 0.28);
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
   }
 
   .movie-external-links-collapsible.is-open {
-    display: block;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
   }
