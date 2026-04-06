@@ -685,6 +685,10 @@ button:hover {
   transform: translateY(-1px);
 }
 
+button:active {
+  transform: translateY(0) scale(0.96);
+}
+
 .secondary-button {
   height: 36px;
   font-size: 14px;
