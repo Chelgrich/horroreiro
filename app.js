@@ -2778,18 +2778,23 @@ card.innerHTML = `
     externalLinksToggleBtn.addEventListener('click', () => {
       const isExpanded = externalLinksToggleBtn.getAttribute('aria-expanded') === 'true';
 
-      container.querySelectorAll('[data-external-links-toggle="true"]').forEach(button => {
-        button.setAttribute('aria-expanded', 'false');
-        button.textContent = 'Ссылки на фильм';
-      });
+      const openedCard = container.querySelector('.movie-card.has-open-external-links');
 
-      container.querySelectorAll('[data-external-links-collapsible]').forEach(panel => {
-        panel.classList.remove('is-open');
-      });
+      if (openedCard && openedCard !== card) {
+        const openedToggle = openedCard.querySelector('[data-external-links-toggle="true"]');
+        const openedPanel = openedCard.querySelector('[data-external-links-collapsible]');
 
-      container.querySelectorAll('.movie-card').forEach(movieCard => {
-        movieCard.classList.remove('has-open-external-links');
-      });
+        if (openedToggle) {
+          openedToggle.setAttribute('aria-expanded', 'false');
+          openedToggle.textContent = 'Ссылки на фильм';
+        }
+
+        if (openedPanel) {
+          openedPanel.classList.remove('is-open');
+        }
+
+        openedCard.classList.remove('has-open-external-links');
+      }
 
       const grid = card.querySelector('.movie-external-links');
 
