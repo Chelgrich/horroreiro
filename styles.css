@@ -801,6 +801,48 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 }
 
 /* =========================================================
+SEO-ТЕКСТ (верхний и нижний)
+Приглушённый контентный слой, не конкурирует с UI.
+========================================================== */
+.seo-text {
+  margin-top: 12px;
+  padding: 0 4px;
+}
+
+.seo-text h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #cfd6de;
+}
+
+.seo-text p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #8f99a5;
+}
+
+.seo-text-bottom {
+  background: transparent;
+  border: none;
+  padding: 0 4px;
+}
+
+.seo-text-bottom .section-title {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #e3e8ee;
+}
+
+.seo-text-bottom p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #a6b0bb;
+}
+
+/* =========================================================
 DESKTOP-ПОЛИРОВКА TOOLBAR
 Выравнивает ритм кнопки фильтров и блока сортировки.
 ========================================================== */
