@@ -2197,7 +2197,12 @@ async function saveUserMovieRating(movieId, ratingValue) {
     ]);
 
     if (typeof ym === 'function') {
-      ym(108369182, 'reachGoal', 'rate_movie');
+      const lastRatedMovie = sessionStorage.getItem('last_rated_movie');
+    
+      if (lastRatedMovie !== String(movieId)) {
+        ym(108369182, 'reachGoal', 'rate_movie');
+        sessionStorage.setItem('last_rated_movie', String(movieId));
+      }
     }
 
     showMovieRatingFeedback(movieId, `Оценка сохранена: ${normalizedRating}/10`);
@@ -2981,34 +2986,18 @@ const debouncedRenderMovies = debounce(renderMovies, 200);
 searchInput.addEventListener('input', () => {
   debouncedRenderMovies();
 });
-genreFilter.addEventListener('change', () => {
+const handleFiltersChange = () => {
   trackFiltersUsageIfNeeded();
   renderMovies();
-});
-yearFilter.addEventListener('change', () => {
-  trackFiltersUsage();
-  renderMovies();
-});
-watchlistFilter.addEventListener('change', () => {
-  trackFiltersUsage();
-  renderMovies();
-});
-monthFilter.addEventListener('change', () => {
-  trackFiltersUsage();
-  renderMovies();
-});
-yearFilter.addEventListener('change', () => {
-  trackFiltersUsage();
-  renderMovies();
-});
-watchedFilter.addEventListener('change', () => {
-  trackFiltersUsageIfNeeded();
-  renderMovies();
-});
-sortMode.addEventListener('change', () => {
-  trackFiltersUsage();
-  renderMovies();
-});
+};
+
+genreFilter.addEventListener('change', handleFiltersChange);
+countryFilter.addEventListener('change', handleFiltersChange);
+ratingFilter.addEventListener('change', handleFiltersChange);
+monthFilter.addEventListener('change', handleFiltersChange);
+yearFilter.addEventListener('change', handleFiltersChange);
+watchlistFilter.addEventListener('change', handleFiltersChange);
+watchedFilter.addEventListener('change', handleFiltersChange);
 sortMode.addEventListener('change', () => {
   trackSortUsageIfNeeded();
   renderMovies();
