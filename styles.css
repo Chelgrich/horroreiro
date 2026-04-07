@@ -976,6 +976,28 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   align-items: start;
 }
 
+.movies-year-title {
+  grid-column: 1 / -1;
+  margin: 12px 0 4px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: #ffffff;
+}
+
+.movies-year-title:not(:first-child) {
+  margin-top: 24px;
+}
+
+.movies-month-title {
+  grid-column: 1 / -1;
+  margin: 4px 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: #8f99a5;
+}
+
 .empty-state {
   grid-column: 1 / -1;
   padding: 42px 24px;
