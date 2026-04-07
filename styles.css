@@ -1090,6 +1090,18 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
 }
 
+.movie-card-rated:hover {
+  background:
+    linear-gradient(rgba(34, 168, 97, 0.08), rgba(34, 168, 97, 0.08)),
+    #171c20;
+}
+
+.movie-card-watchlist:hover {
+  background:
+    linear-gradient(rgba(91, 140, 255, 0.08), rgba(91, 140, 255, 0.08)),
+    #171c20;
+}
+
 .movie-card:focus-within {
   transform: none;
   border-color: rgba(91, 140, 255, 0.52);
