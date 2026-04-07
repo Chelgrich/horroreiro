@@ -1605,6 +1605,8 @@ async function applyCurrentSessionUser(user) {
   currentUser = user ?? null;
   await loadCurrentUserRole();
   updateAuthUI();
+  await fetchMovieWatchlist();
+  renderMovies();
   trackEmailConfirmedLoginIfNeeded();
 }
 
@@ -1649,7 +1651,6 @@ async function login(event) {
 
     await applyCurrentSessionUser(data.user ?? null);
     loginPassword.value = '';
-    renderMovies();
 
     showAuthMessage('Вход выполнен.', 'success', true);
   } finally {
@@ -1713,9 +1714,22 @@ async function logout() {
     return;
   }
 
-  await applyCurrentSessionUser(null);
-  renderMovies();
-  showAuthMessage('Вы вышли из аккаунта.', 'success', true);
+  allMovieRatings = allMovieRatings.filter(item => !(
+    item.movie_id === movieId && item.user_id === currentUser.id
+  ));
+
+  allMovieRatings.push({
+    movie_id: movieId,
+    user_id: currentUser.id,
+    rating: normalizedRating
+  });
+
+  await Promise.all([
+    fetchMovieRatings(),
+    fetchMovieWatchlist()
+  ]);
+
+  if (typeof ym === 'function') {
 }
 
 /* =========================================================
@@ -1985,6 +1999,10 @@ async function removeUserMovieRating(movieId) {
     if (error) {
       throw error;
     }
+
+    allMovieRatings = allMovieRatings.filter(item => !(
+      item.movie_id === movieId && item.user_id === currentUser.id
+    ));
 
     await Promise.all([
       fetchMovieRatings(),
