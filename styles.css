@@ -2620,20 +2620,20 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-year-title {
-    margin: 8px 0 4px;
-    font-size: 18px;
-    line-height: 1.12;
+    margin: 12px 0 4px;
+    font-size: 24px;
+    line-height: 1.15;
   }
 
   .movies-year-title:not(:first-child) {
-    margin-top: 18px;
-    padding-top: 12px;
+    margin-top: 28px;
+    padding-top: 18px;
   }
 
   .movies-month-title {
-    margin: 2px 0 8px;
-    font-size: 17px;
-    line-height: 1.14;
+    margin: 2px 0 10px;
+    font-size: 22px;
+    line-height: 1.18;
   }
 
   .movie-external-links-collapsible {
