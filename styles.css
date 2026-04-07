@@ -1649,8 +1649,8 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 
 .movie-user-rating-stars {
   position: relative;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
   align-items: center;
   width: 100%;
 }
@@ -1658,7 +1658,7 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 .movie-user-rating-scale {
   margin-top: 1px;
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
+  grid-template-columns: repeat(10, minmax(0, 1fr));
   align-items: start;
   width: 100%;
 }
@@ -1668,9 +1668,21 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   align-items: flex-start;
   justify-content: center;
   font-size: 10px;
+  font-weight: 400;
   line-height: 1;
   text-align: center;
   color: #6f7a86;
+  transition: color 0.15s ease, font-weight 0.15s ease;
+}
+
+.movie-user-rating-scale-item.is-hovered {
+  font-weight: 700;
+  color: #8e99a6;
+}
+
+.movie-user-rating-scale-item.is-active {
+  font-weight: 700;
+  color: #f5c518;
 }
 
 .movie-user-rating-stars.is-busy {
@@ -1716,6 +1728,7 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 
 .rating-star-btn {
   appearance: none;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;

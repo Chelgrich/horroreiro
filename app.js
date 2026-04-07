@@ -2639,6 +2639,8 @@ function bindMovieRatingControls({
     return;
   }
 
+  const scaleItems = starsContainer.parentElement?.querySelectorAll('.movie-user-rating-scale-item') || [];
+
   const syncRatingBusyState = () => {
     const isBusy = ratingRequestInFlight.has(String(movieId));
 
@@ -2656,6 +2658,14 @@ function bindMovieRatingControls({
 
       button.classList.toggle('is-hovered', mode === 'hover' && isFilled);
       button.classList.toggle('is-active', mode === 'selected' && isFilled);
+    });
+
+    scaleItems.forEach(item => {
+      const itemValue = Number(item.textContent);
+      const isFilled = itemValue <= activeValue;
+
+      item.classList.toggle('is-hovered', mode === 'hover' && isFilled);
+      item.classList.toggle('is-active', mode === 'selected' && isFilled);
     });
   };
 
