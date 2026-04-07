@@ -304,6 +304,64 @@ function isEmailConfirmationRedirect() {
   );
 }
 
+function clearEmailConfirmationParamsFromUrl() {
+  const url = new URL(window.location.href);
+  let wasChanged = false;
+
+  if (url.searchParams.has('type')) {
+    url.searchParams.delete('type');
+    wasChanged = true;
+  }
+
+  if (url.searchParams.has('token_hash')) {
+    url.searchParams.delete('token_hash');
+    wasChanged = true;
+  }
+
+  if (url.searchParams.has('code')) {
+    url.searchParams.delete('code');
+    wasChanged = true;
+  }
+
+  const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+
+  if (hashParams.has('type')) {
+    hashParams.delete('type');
+    wasChanged = true;
+  }
+
+  if (hashParams.has('access_token')) {
+    hashParams.delete('access_token');
+    wasChanged = true;
+  }
+
+  if (hashParams.has('refresh_token')) {
+    hashParams.delete('refresh_token');
+    wasChanged = true;
+  }
+
+  if (hashParams.has('expires_at')) {
+    hashParams.delete('expires_at');
+    wasChanged = true;
+  }
+
+  if (hashParams.has('expires_in')) {
+    hashParams.delete('expires_in');
+    wasChanged = true;
+  }
+
+  if (hashParams.has('token_type')) {
+    hashParams.delete('token_type');
+    wasChanged = true;
+  }
+
+  if (wasChanged) {
+    const nextHash = hashParams.toString();
+    url.hash = nextHash ? `#${nextHash}` : '';
+    window.history.replaceState({}, document.title, url.toString());
+  }
+}
+
 function trackEmailConfirmedLoginIfNeeded() {
   if (!currentUser?.id) {
     return;
@@ -320,12 +378,14 @@ function trackEmailConfirmedLoginIfNeeded() {
   const trackedUserId = localStorage.getItem(EMAIL_CONFIRMATION_TRACKED_KEY);
 
   if (trackedUserId === currentUser.id) {
+    clearEmailConfirmationParamsFromUrl();
     return;
   }
 
   trackGoal('email_confirmed_login');
   localStorage.setItem(EMAIL_CONFIRMATION_TRACKED_KEY, currentUser.id);
   localStorage.removeItem(EMAIL_CONFIRMATION_PENDING_KEY);
+  clearEmailConfirmationParamsFromUrl();
 }
 
 async function loadCurrentUserRole() {
@@ -1618,7 +1678,6 @@ async function applyCurrentSessionUser(user) {
   updateAuthUI();
   await fetchMovieWatchlist();
   renderMovies();
-  trackEmailConfirmedLoginIfNeeded();
 }
 
 async function login(event) {
@@ -3174,6 +3233,7 @@ async function init() {
   }
 
   await restoreSession();
+  trackEmailConfirmedLoginIfNeeded();
 
   bindCustomSelectGlobalEvents();
 
@@ -3192,6 +3252,7 @@ async function init() {
     const currentRequestId = ++authStateSyncRequestId;
 
     await applyCurrentSessionUser(session?.user ?? null);
+    trackEmailConfirmedLoginIfNeeded();
 
     if (currentRequestId !== authStateSyncRequestId) {
       return;
