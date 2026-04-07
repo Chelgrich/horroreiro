@@ -1650,7 +1650,6 @@ async function login(event) {
       return;
     }
 
-    await applyCurrentSessionUser(data.user ?? null);
     loginPassword.value = '';
 
     showAuthMessage('Вход выполнен.', 'success', true);
@@ -1715,22 +1714,7 @@ async function logout() {
     return;
   }
 
-  allMovieRatings = allMovieRatings.filter(item => !(
-    item.movie_id === movieId && item.user_id === currentUser.id
-  ));
-
-  allMovieRatings.push({
-    movie_id: movieId,
-    user_id: currentUser.id,
-    rating: normalizedRating
-  });
-
-  await Promise.all([
-    fetchMovieRatings(),
-    fetchMovieWatchlist()
-  ]);
-
-  if (typeof ym === 'function') {
+  showAuthMessage('Вы вышли из аккаунта.', 'success', true);
 }
 
 /* =========================================================
@@ -2206,16 +2190,26 @@ async function saveUserMovieRating(movieId, ratingValue) {
         }
       );
 
-    if (error) {
-      throw error;
-    }
-
-    await Promise.all([
-      fetchMovieRatings(),
-      fetchMovieWatchlist()
-    ]);
-
-    if (typeof ym === 'function') {
+      if (error) {
+        throw error;
+      }
+  
+      allMovieRatings = allMovieRatings.filter(item => !(
+        item.movie_id === movieId && item.user_id === currentUser.id
+      ));
+  
+      allMovieRatings.push({
+        movie_id: movieId,
+        user_id: currentUser.id,
+        rating: normalizedRating
+      });
+  
+      await Promise.all([
+        fetchMovieRatings(),
+        fetchMovieWatchlist()
+      ]);
+  
+      if (typeof ym === 'function') {
       const lastRatedMovie = sessionStorage.getItem('last_rated_movie');
     
       if (lastRatedMovie !== String(movieId)) {
