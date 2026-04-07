@@ -2187,31 +2187,78 @@ function openMobileRatingModal(movie) {
   ? `Ваша оценка: <strong class="rating-value">${currentUserRating}/10</strong>`
   : 'Оценка ещё не поставлена';
 
-  mobileRatingModalStars.innerHTML = Array.from({ length: 10 }, (_, index) => {
-    const value = index + 1;
-    const isActive = currentUserRating !== null && value <= currentUserRating;
+  mobileRatingModalStars.innerHTML = `
+    <div class="mobile-rating-stars-grid">
+      ${Array.from({ length: 10 }, (_, index) => {
+        const value = index + 1;
+        const isActive = currentUserRating !== null && value <= currentUserRating;
 
-    return `
-      <button
-        type="button"
-        class="mobile-rating-star-btn ${isActive ? 'is-active' : ''}"
-        data-mobile-rating-value="${value}"
-        aria-label="Оценка ${value} из 10"
-      >
-        ★
-      </button>
-    `;
-  }).join('');
+        return `
+          <button
+            type="button"
+            class="mobile-rating-star-btn ${isActive ? 'is-active' : ''}"
+            data-mobile-rating-value="${value}"
+            aria-label="Оценка ${value} из 10"
+          >
+            ★
+          </button>
+        `;
+      }).join('')}
+    </div>
+
+    <div class="mobile-rating-scale" aria-hidden="true">
+      ${Array.from({ length: 10 }, (_, index) => {
+        const value = index + 1;
+        const isActive = currentUserRating !== null && value <= currentUserRating;
+
+        return `
+          <span class="mobile-rating-scale-item ${isActive ? 'is-active' : ''}">${value}</span>
+        `;
+      }).join('')}
+    </div>
+  `;
 
   mobileRatingModalRemoveButton.style.display = currentUserRating !== null ? 'inline-flex' : 'none';
 
-  mobileRatingModalStars.querySelectorAll('[data-mobile-rating-value]').forEach(button => {
+  const mobileRatingButtons = mobileRatingModalStars.querySelectorAll('[data-mobile-rating-value]');
+  const mobileRatingScaleItems = mobileRatingModalStars.querySelectorAll('.mobile-rating-scale-item');
+
+  const applyMobileRatingHoverState = (activeValue, mode = 'selected') => {
+    mobileRatingButtons.forEach(button => {
+      const buttonValue = Number(button.dataset.mobileRatingValue);
+      const isFilled = buttonValue <= activeValue;
+
+      button.classList.toggle('is-hovered', mode === 'hover' && isFilled);
+      button.classList.toggle('is-active', mode === 'selected' && isFilled);
+    });
+
+    mobileRatingScaleItems.forEach(item => {
+      const itemValue = Number(item.textContent);
+      const isFilled = itemValue <= activeValue;
+
+      item.classList.toggle('is-hovered', mode === 'hover' && isFilled);
+      item.classList.toggle('is-active', mode === 'selected' && isFilled);
+    });
+  };
+
+  mobileRatingButtons.forEach(button => {
+    button.addEventListener('mouseenter', () => {
+      const hoverValue = Number(button.dataset.mobileRatingValue);
+      applyMobileRatingHoverState(hoverValue, 'hover');
+    });
+
     button.addEventListener('click', () => {
       const ratingValue = Number(button.dataset.mobileRatingValue);
 
       closeMobileRatingModal();
       saveUserMovieRating(movie.id, ratingValue);
     });
+  });
+
+  const selectedValue = currentUserRating ?? 0;
+
+  mobileRatingModalStars.addEventListener('mouseleave', () => {
+    applyMobileRatingHoverState(selectedValue, 'selected');
   });
 
   mobileRatingModal.style.display = 'block';

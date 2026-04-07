@@ -2027,13 +2027,54 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 
 .mobile-rating-modal-stars {
   margin-top: 14px;
+}
+
+.mobile-rating-stars-grid {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  align-items: center;
+  width: 100%;
+}
+
+.mobile-rating-scale {
+  margin-top: 1px;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  align-items: start;
+  width: 100%;
+}
+
+.mobile-rating-scale-item {
   display: flex;
-  gap: 4px;
+  align-items: flex-start;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1;
+  text-align: center;
+  color: #6f7a86;
+  transform: translateY(0) scale(1);
+  transition:
+    color 0.16s ease,
+    font-weight 0.16s ease,
+    transform 0.16s ease;
+}
+
+.mobile-rating-scale-item.is-hovered {
+  font-weight: 700;
+  color: #8e99a6;
+  transform: translateY(-1px) scale(1.08);
+}
+
+.mobile-rating-scale-item.is-active {
+  font-weight: 700;
+  color: #f5c518;
+  transform: translateY(-1px) scale(1.08);
 }
 
 .mobile-rating-star-btn {
+  width: 100%;
   min-width: 0;
-  flex: 1 1 0;
   height: 42px;
   padding: 0;
   font-size: 24px;
@@ -2048,6 +2089,11 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 
 .mobile-rating-star-btn:active {
   transform: translateY(0) scale(0.96);
+}
+
+.mobile-rating-star-btn.is-hovered {
+  color: #8e99a6;
+  transform: translateY(-1px) scale(1.06);
 }
 
 .mobile-rating-star-btn.is-active {
