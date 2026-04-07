@@ -995,7 +995,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 
 .movies-month-title {
   grid-column: 1 / -1;
-  margin: 2px 0 10px;
+  margin: 10px 0 6px;
   font-size: 22px;
   font-weight: 600;
   line-height: 1.18;
@@ -2096,7 +2096,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-month-title {
-    margin: 2px 0 8px;
+    margin: 8px 0 6px;
     font-size: 20px;
     line-height: 1.16;
   }
@@ -2421,7 +2421,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-month-title {
-    margin: 2px 0 8px;
+    margin: 8px 0 6px;
     font-size: 18px;
     line-height: 1.14;
   }
@@ -2631,7 +2631,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-month-title {
-    margin: 2px 0 10px;
+    margin: 10px 0 6px;
     font-size: 22px;
     line-height: 1.18;
   }
