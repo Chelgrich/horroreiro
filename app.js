@@ -1714,6 +1714,21 @@ async function logout() {
     return;
   }
 
+  const currentRequestId = ++authStateSyncRequestId;
+
+  await applyCurrentSessionUser(null);
+
+  if (currentRequestId !== authStateSyncRequestId) {
+    return;
+  }
+
+  await reloadCatalogData();
+
+  if (currentRequestId !== authStateSyncRequestId) {
+    return;
+  }
+
+  renderMovies();
   showAuthMessage('Вы вышли из аккаунта.', 'success', true);
 }
 
@@ -3126,7 +3141,11 @@ async function init() {
 
   bindCustomSelectGlobalEvents();
 
-  supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'TOKEN_REFRESHED') {
+      return;
+    }
+
     const currentRequestId = ++authStateSyncRequestId;
 
     await applyCurrentSessionUser(session?.user ?? null);
