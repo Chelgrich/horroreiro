@@ -978,7 +978,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 
 .movies-year-title {
   grid-column: 1 / -1;
-  margin: 12px 0 4px;
+  margin: 12px 0 0;
   padding-top: 2px;
   font-size: 24px;
   font-weight: 700;
@@ -995,7 +995,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 
 .movies-month-title {
   grid-column: 1 / -1;
-  margin: 10px 0 6px;
+  margin: 10px 0 0;
   font-size: 22px;
   font-weight: 600;
   line-height: 1.18;
@@ -2086,7 +2086,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-year-title {
-    margin: 10px 0 4px;
+    margin: 10px 0 0;
     font-size: 22px;
   }
 
@@ -2096,7 +2096,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-month-title {
-    margin: 8px 0 6px;
+    margin: 8px 0 0;
     font-size: 20px;
     line-height: 1.16;
   }
@@ -2410,7 +2410,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-year-title {
-    margin: 8px 0 4px;
+    margin: 8px 0 0;
     font-size: 20px;
     line-height: 1.12;
   }
@@ -2421,7 +2421,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-month-title {
-    margin: 8px 0 6px;
+    margin: 8px 0 0;
     font-size: 18px;
     line-height: 1.14;
   }
@@ -2620,7 +2620,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-year-title {
-    margin: 12px 0 4px;
+    margin: 12px 0 0;
     font-size: 24px;
     line-height: 1.15;
   }
@@ -2631,7 +2631,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-month-title {
-    margin: 10px 0 6px;
+    margin: 10px 0 0;
     font-size: 22px;
     line-height: 1.18;
   }
