@@ -2197,7 +2197,6 @@ function openMobileRatingModal(movie) {
         class="mobile-rating-star-btn ${isActive ? 'is-active' : ''}"
         data-mobile-rating-value="${value}"
         aria-label="Оценка ${value} из 10"
-        title="${value}"
       >
         ★
       </button>
@@ -2413,12 +2412,17 @@ function getUserRatingControlsHtml(currentUserRating) {
                 class="rating-star-btn ${isActive ? 'is-active' : ''}"
                 data-rating-value="${value}"
                 aria-label="Оценка ${value} из 10"
-                title="${value}"
               >
                 ★
               </button>
             `;
           }).join('')}
+        </div>
+
+        <div class="movie-user-rating-scale" aria-hidden="true">
+          ${Array.from({ length: 10 }, (_, index) => `
+            <span class="movie-user-rating-scale-item">${index + 1}</span>
+          `).join('')}
         </div>
       </div>
 

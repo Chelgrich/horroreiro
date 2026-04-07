@@ -1655,6 +1655,23 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   width: 100%;
 }
 
+.movie-user-rating-scale {
+  margin-top: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.movie-user-rating-scale-item {
+  min-width: 0;
+  flex: 1 1 0;
+  font-size: 10px;
+  line-height: 1;
+  text-align: center;
+  color: #6f7a86;
+}
+
 .movie-user-rating-stars.is-busy {
   opacity: 0.62;
   pointer-events: none;
