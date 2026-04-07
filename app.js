@@ -3146,6 +3146,13 @@ async function init() {
       return;
     }
 
+    const nextUserId = session?.user?.id ?? null;
+    const currentUserId = currentUser?.id ?? null;
+
+    if (nextUserId === currentUserId) {
+      return;
+    }
+
     const currentRequestId = ++authStateSyncRequestId;
 
     await applyCurrentSessionUser(session?.user ?? null);
