@@ -979,23 +979,28 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 .movies-year-title {
   grid-column: 1 / -1;
   margin: 12px 0 4px;
-  font-size: 22px;
+  padding-top: 2px;
+  font-size: 24px;
   font-weight: 700;
-  letter-spacing: 0.4px;
+  line-height: 1.15;
+  letter-spacing: 0.3px;
   color: #ffffff;
 }
 
 .movies-year-title:not(:first-child) {
-  margin-top: 24px;
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid #242a31;
 }
 
 .movies-month-title {
   grid-column: 1 / -1;
-  margin: 4px 0 8px;
-  font-size: 14px;
+  margin: 2px 0 10px;
+  font-size: 22px;
   font-weight: 600;
-  letter-spacing: 0.3px;
-  color: #8f99a5;
+  line-height: 1.18;
+  letter-spacing: 0.2px;
+  color: #cfd6de;
 }
 
 .empty-state {
@@ -2080,6 +2085,22 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     font-size: 24px;
   }
 
+  .movies-year-title {
+    margin: 10px 0 4px;
+    font-size: 22px;
+  }
+
+  .movies-year-title:not(:first-child) {
+    margin-top: 24px;
+    padding-top: 16px;
+  }
+
+  .movies-month-title {
+    margin: 2px 0 8px;
+    font-size: 20px;
+    line-height: 1.16;
+  }
+
   .movie-card {
     gap: 9px;
     padding: 14px 20px 20px; /* уменьшаем боковые поля, чтобы карточка не казалась рыхлой */
@@ -2388,6 +2409,23 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     font-size: 22px;
   }
 
+  .movies-year-title {
+    margin: 8px 0 4px;
+    font-size: 20px;
+    line-height: 1.12;
+  }
+
+  .movies-year-title:not(:first-child) {
+    margin-top: 20px;
+    padding-top: 14px;
+  }
+
+  .movies-month-title {
+    margin: 2px 0 8px;
+    font-size: 18px;
+    line-height: 1.14;
+  }
+
   .filters {
     grid-template-columns: 1fr;
   }
@@ -2579,6 +2617,23 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 @media (max-width: 360px) {
   .movies-list {
     grid-template-columns: 1fr;
+  }
+
+  .movies-year-title {
+    margin: 8px 0 4px;
+    font-size: 18px;
+    line-height: 1.12;
+  }
+
+  .movies-year-title:not(:first-child) {
+    margin-top: 18px;
+    padding-top: 12px;
+  }
+
+  .movies-month-title {
+    margin: 2px 0 8px;
+    font-size: 17px;
+    line-height: 1.14;
   }
 
   .movie-external-links-collapsible {
