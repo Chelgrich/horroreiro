@@ -2919,6 +2919,14 @@ function rerenderMovieCard(movieId) {
   }
 
   const newCard = createMovieCard(movie);
+
+  if (
+    newCard.classList.contains('movie-card-rated') ||
+    newCard.classList.contains('movie-card-watchlist')
+  ) {
+    newCard.classList.add('is-state-appearing');
+  }
+
   existingCard.replaceWith(newCard);
 }
 

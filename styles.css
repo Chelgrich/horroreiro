@@ -1078,7 +1078,9 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
     transform 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease,
-    background-color 0.2s ease;
+    background-color 0.2s ease,
+    opacity 0.2s ease,
+    filter 0.2s ease;
 }
 
 .movie-card:hover {
@@ -1144,6 +1146,30 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   box-shadow:
     0 0 0 1px rgba(91, 140, 255, 0.24),
     0 14px 30px rgba(0, 0, 0, 0.24);
+}
+
+.movie-card.is-state-appearing {
+  animation: movie-card-state-appear 0.32s ease;
+}
+
+@keyframes movie-card-state-appear {
+  0% {
+    opacity: 0.88;
+    transform: scale(0.985);
+    filter: saturate(0.94);
+  }
+
+  55% {
+    opacity: 1;
+    transform: scale(1.008);
+    filter: saturate(1.04);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: saturate(1);
+  }
 }
 
 .movie-card.has-open-external-links {
