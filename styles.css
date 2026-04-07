@@ -1657,15 +1657,13 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 
 .movie-user-rating-scale {
   margin-top: 1px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  align-items: start;
   width: 100%;
 }
 
 .movie-user-rating-scale-item {
-  min-width: 0;
-  flex: 1 1 0;
   display: flex;
   align-items: flex-start;
   justify-content: center;
