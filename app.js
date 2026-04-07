@@ -111,6 +111,7 @@ let mobileRatingModalStars = null;
 let mobileRatingModalMeta = null;
 let mobileRatingModalRemoveButton = null;
 let mobileRatingModalMovieId = null;
+let authStateSyncRequestId = 0;
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -3132,8 +3133,21 @@ async function init() {
   bindCustomSelectGlobalEvents();
 
   supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+    const currentRequestId = ++authStateSyncRequestId;
+
     await applyCurrentSessionUser(session?.user ?? null);
+
+    if (currentRequestId !== authStateSyncRequestId) {
+      return;
+    }
+
     await reloadCatalogData();
+
+    if (currentRequestId !== authStateSyncRequestId) {
+      return;
+    }
+
+    renderMovies();
   });
 
   await reloadCatalogData();
