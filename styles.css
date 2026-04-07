@@ -1656,16 +1656,19 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 }
 
 .movie-user-rating-scale {
-  margin-top: 4px;
+  margin-top: 1px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   width: 100%;
 }
 
 .movie-user-rating-scale-item {
   min-width: 0;
   flex: 1 1 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
   font-size: 10px;
   line-height: 1;
   text-align: center;
