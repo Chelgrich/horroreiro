@@ -1672,17 +1672,23 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   line-height: 1;
   text-align: center;
   color: #6f7a86;
-  transition: color 0.15s ease, font-weight 0.15s ease;
+  transform: translateY(0) scale(1);
+  transition:
+    color 0.15s ease,
+    font-weight 0.15s ease,
+    transform 0.15s ease;
 }
 
 .movie-user-rating-scale-item.is-hovered {
   font-weight: 700;
   color: #8e99a6;
+  transform: translateY(-1px) scale(1.08);
 }
 
 .movie-user-rating-scale-item.is-active {
   font-weight: 700;
   color: #f5c518;
+  transform: translateY(-1px) scale(1.08);
 }
 
 .movie-user-rating-stars.is-busy {
