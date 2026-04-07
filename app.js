@@ -245,6 +245,16 @@ function normalizeAdditionalGenreNames(value) {
   return genreNames;
 }
 
+function getMonthName(month) {
+  const months = [
+    'Январь', 'Февраль', 'Март', 'Апрель',
+    'Май', 'Июнь', 'Июль', 'Август',
+    'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+  ];
+
+  return months[month - 1] || '';
+}
+
 function trackGoal(goalName) {
   if (typeof ym !== 'function') {
     return;
@@ -2702,7 +2712,7 @@ const externalLinksBlockHtml = externalLinksHtml
 card.innerHTML = `
   ${posterHtml}
 
-  <h3>${movie.title}</h3>
+  <h5 class="movie-title">${movie.title}</h5>
 
   <p>Оригинальное название: ${movie.original_title ?? '-'}</p>
   <p>Год: ${movie.year ?? '-'}</p>
@@ -2973,7 +2983,33 @@ function renderMovies() {
 
   container.innerHTML = '';
 
+  let lastYear = null;
+  let lastMonth = null;
+  
   filteredMovies.forEach(movie => {
+    const year = movie.release_year;
+    const month = movie.release_month;
+  
+    if (year !== lastYear) {
+      container.insertAdjacentHTML(
+        'beforeend',
+        `<h3 class="movies-year-title">${year}</h3>`
+      );
+      lastYear = year;
+      lastMonth = null;
+    }
+  
+    if (month !== lastMonth && month) {
+      const monthName = getMonthName(month);
+    
+      container.insertAdjacentHTML(
+        'beforeend',
+        `<h4 class="movies-month-title">${monthName}</h4>`
+      );
+    
+      lastMonth = month;
+    }
+  
     const card = createMovieCard(movie);
     container.appendChild(card);
   });
