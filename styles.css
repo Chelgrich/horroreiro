@@ -1098,6 +1098,9 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 
 .movie-card-rated {
   border-color: rgba(34, 168, 97, 0.5);
+  background:
+    linear-gradient(rgba(34, 168, 97, 0.06), rgba(34, 168, 97, 0.06)),
+    #15191d;
   box-shadow:
     0 0 0 1px rgba(34, 168, 97, 0.18),
     0 0 10px rgba(34, 168, 97, 0.12);
@@ -1120,6 +1123,9 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 
 .movie-card-watchlist {
   border-color: rgba(91, 140, 255, 0.45);
+  background:
+    linear-gradient(rgba(91, 140, 255, 0.06), rgba(91, 140, 255, 0.06)),
+    #15191d;
   box-shadow:
     0 0 0 1px rgba(91, 140, 255, 0.16),
     0 0 10px rgba(91, 140, 255, 0.12);
