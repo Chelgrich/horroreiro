@@ -23,7 +23,6 @@ const searchInput = document.getElementById('searchInput');
 const genreFilter = document.getElementById('genreFilter');
 const countryFilter = document.getElementById('countryFilter');
 const ratingFilter = document.getElementById('ratingFilter');
-const monthFilter = document.getElementById('monthFilter');
 const yearFilter = document.getElementById('yearFilter');
 const watchlistFilter = document.getElementById('watchlistFilter');
 const watchlistFilterRow = document.getElementById('watchlistFilterRow');
@@ -268,7 +267,6 @@ function hasNonDefaultFilterValues() {
     genreFilter.value ||
     countryFilter.value ||
     ratingFilter.value !== '' ||
-    monthFilter.value ||
     yearFilter.value ||
     (currentUser && watchlistFilter.value) ||
     (currentUser && watchedFilter.value)
@@ -718,7 +716,6 @@ const filterCustomSelectElements = [
   genreFilter,
   countryFilter,
   ratingFilter,
-  monthFilter,
   yearFilter,
   watchlistFilter,
   watchedFilter,
@@ -802,7 +799,7 @@ function loadYearFilterOptions() {
   const years = [
     ...new Set(
       allMovies
-        .map(movie => movie.release_year)
+        .map(movie => movie.year)
         .filter(Boolean)
     )
   ].sort((a, b) => b - a);
@@ -953,7 +950,6 @@ function resetFilterControls() {
   genreFilter.value = '';
   countryFilter.value = '';
   ratingFilter.value = '';
-  monthFilter.value = '';
   yearFilter.value = '';
   watchlistFilter.value = '';
   watchedFilter.value = '';
@@ -990,11 +986,6 @@ function getActiveFilterChips() {
 
   if (yearFilter.value) {
     chips.push({ label: `Год: ${yearFilter.value}`, key: 'year' });
-  }
-
-  if (monthFilter.value) {
-    const selectedOption = monthFilter.options[monthFilter.selectedIndex];
-    chips.push({ label: `Месяц: ${selectedOption?.textContent || monthFilter.value}`, key: 'month' });
   }
 
   if (countryFilter.value) {
@@ -1056,11 +1047,6 @@ function clearFilterChip(filterKey) {
   if (filterKey === 'genre') {
     genreFilter.value = '';
     refreshCustomSelect(genreFilter);
-  }
-
-  if (filterKey === 'month') {
-    monthFilter.value = '';
-    refreshCustomSelect(monthFilter);
   }
 
   if (filterKey === 'year') {
@@ -2940,7 +2926,6 @@ function getFilteredMovies() {
   const selectedGenre = genreFilter.value;
   const selectedCountry = countryFilter.value;
   const minRating = ratingFilter.value;
-  const selectedMonth = monthFilter.value;
   const selectedYear = yearFilter.value;
   const selectedWatchlist = watchlistFilter.value;
   const selectedWatched = watchedFilter.value;
@@ -2973,17 +2958,10 @@ function getFilteredMovies() {
     );
   }
 
-  if (selectedMonth) {
-    filteredMovies = filteredMovies.filter(movie =>
-      movie.release_month !== null &&
-      Number(movie.release_month) === Number(selectedMonth)
-    );
-  }
-
   if (selectedYear) {
     filteredMovies = filteredMovies.filter(movie =>
-      movie.release_year !== null &&
-      Number(movie.release_year) === Number(selectedYear)
+      movie.year !== null &&
+      Number(movie.year) === Number(selectedYear)
     );
   }
 
@@ -3026,7 +3004,6 @@ function renderMovies() {
   genreFilter.value ||
   countryFilter.value ||
   ratingFilter.value !== '' ||
-  monthFilter.value ||
   yearFilter.value ||
   (currentUser && watchlistFilter.value) ||
   (currentUser && watchedFilter.value);
@@ -3141,7 +3118,6 @@ const handleFiltersChange = () => {
 genreFilter.addEventListener('change', handleFiltersChange);
 countryFilter.addEventListener('change', handleFiltersChange);
 ratingFilter.addEventListener('change', handleFiltersChange);
-monthFilter.addEventListener('change', handleFiltersChange);
 yearFilter.addEventListener('change', handleFiltersChange);
 watchlistFilter.addEventListener('change', handleFiltersChange);
 watchedFilter.addEventListener('change', handleFiltersChange);
