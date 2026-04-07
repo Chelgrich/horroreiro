@@ -1204,7 +1204,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   background: #0f1114;
 }
 
-.movie-card h3 {
+.movie-card h5 {
   margin: 0 0 2px;
   padding-bottom: 10px;
   font-size: 20px;
@@ -2110,7 +2110,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     margin: -2px -8px 12px; /* постер остаётся визуально крупным, но лучше встраивается в карточку */
   }
 
-  .movie-card h3 {
+  .movie-card h5 {
     padding-bottom: 8px;
     font-size: 21px;
   }
@@ -2458,7 +2458,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     margin: 0;
   }
 
-  .movie-card h3 {
+  .movie-card h5 {
     padding-bottom: 7px;
     font-size: 17px;
     line-height: 1.16;
@@ -2678,7 +2678,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     font-weight: 500;
   }
 
-  .movie-card h3 {
+  .movie-card h5 {
     padding-bottom: 8px;
     font-size: 20px;
     line-height: 1.18; /* более плотный, “титульный” */
