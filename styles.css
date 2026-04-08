@@ -1022,9 +1022,11 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
-.month-sort-btn {
+.month-sort-btn,
+.month-sort-direction-btn {
   height: 30px;
   padding: 0 10px;
   font-size: 12px;
@@ -1035,7 +1037,13 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   border-radius: 999px;
 }
 
-.month-sort-btn.is-active {
+.month-sort-direction-btn {
+  min-width: 34px;
+  padding: 0 8px;
+}
+
+.month-sort-btn.is-active,
+.month-sort-direction-btn.is-active {
   color: #dbe7ff;
   background: rgba(91, 140, 255, 0.16);
   border-color: rgba(91, 140, 255, 0.42);
@@ -2282,10 +2290,16 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     gap: 6px;
   }
 
-  .month-sort-btn {
+  .month-sort-btn,
+  .month-sort-direction-btn {
     height: 28px;
     padding: 0 9px;
     font-size: 11px;
+  }
+
+  .month-sort-direction-btn {
+    min-width: 32px;
+    padding: 0 7px;
   }
 
   .movie-card {
