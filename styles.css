@@ -1051,8 +1051,8 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 .movies-month-cards {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: inherit;
-  gap: inherit;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .empty-state {
@@ -2247,13 +2247,15 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 Перестройка сеток и элементов на узких экранах.
 ========================================================== */
 @media (max-width: 1200px) {
-  .movies-list {
+  .movies-list,
+  .movies-month-cards {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 1024px) {
-  .movies-list {
+  .movies-list,
+  .movies-month-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px; /* чуть плотнее сетка на промежуточной ширине */
   }
@@ -2323,7 +2325,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 }
 
 @media (min-width: 361px) and (max-width: 680px) {
-  .movies-list {
+  .movies-list,
+  .movies-month-cards {
     grid-template-columns: 1fr;
   }
 
@@ -2640,7 +2643,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     grid-column: 1 / -1;
   }
 
-  .movies-list {
+  .movies-list,
+  .movies-month-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     justify-items: stretch;
@@ -2819,7 +2823,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
 /* Супер-узкий экран — снимаем min-width */
 @media (max-width: 360px) {
-  .movies-list {
+  .movies-list,
+  .movies-month-cards {
     grid-template-columns: 1fr;
   }
 
