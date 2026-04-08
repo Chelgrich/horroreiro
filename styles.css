@@ -226,7 +226,6 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   height: 30px;
   padding: 0 14px;
   flex: 0 0 auto;
-  min-width: 240px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -894,6 +893,10 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 @media (min-width: 901px) {
   .catalog-toolbar-actions {
     gap: 12px;
+  }
+
+  .catalog-view-toggle {
+    width: 220px;
   }
 
   .catalog-toolbar-actions > button {
