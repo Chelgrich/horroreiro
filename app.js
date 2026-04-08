@@ -3058,6 +3058,102 @@ function getFilteredMovies() {
   return filteredMovies;
 }
 
+function sortMoviesWithinMonth(movies, monthSortMode) {
+  const sortedMovies = [...movies];
+
+  if (monthSortMode === 'rating') {
+    sortedMovies.sort((a, b) => {
+      const ratingA = getMovieAverageRating(a.id);
+      const ratingB = getMovieAverageRating(b.id);
+
+      if (ratingB !== ratingA) {
+        return ratingB - ratingA;
+      }
+
+      const votesA = getMovieRatings(a.id).length;
+      const votesB = getMovieRatings(b.id).length;
+
+      if (votesB !== votesA) {
+        return votesB - votesA;
+      }
+
+      const orderA = a.sort_order ?? Infinity;
+      const orderB = b.sort_order ?? Infinity;
+
+      return orderA - orderB;
+    });
+
+    return sortedMovies;
+  }
+
+  sortedMovies.sort((a, b) => {
+    const orderA = a.sort_order ?? Infinity;
+    const orderB = b.sort_order ?? Infinity;
+
+    return orderA - orderB;
+  });
+
+  return sortedMovies;
+}
+
+function createMonthSection(month, movies) {
+  const monthSection = document.createElement('section');
+  const monthHeader = document.createElement('div');
+  const monthTitle = document.createElement('h4');
+  const monthControls = document.createElement('div');
+  const releaseOrderButton = document.createElement('button');
+  const ratingOrderButton = document.createElement('button');
+  const monthCards = document.createElement('div');
+
+  monthSection.className = 'movies-month-section';
+  monthHeader.className = 'movies-month-header';
+  monthTitle.className = 'movies-month-title';
+  monthControls.className = 'month-sort-controls';
+  monthCards.className = 'movies-month-cards';
+
+  monthTitle.textContent = getMonthName(month);
+
+  releaseOrderButton.type = 'button';
+  releaseOrderButton.className = 'month-sort-btn is-active';
+  releaseOrderButton.textContent = 'По релизу';
+
+  ratingOrderButton.type = 'button';
+  ratingOrderButton.className = 'month-sort-btn';
+  ratingOrderButton.textContent = 'По рейтингу';
+
+  monthControls.appendChild(releaseOrderButton);
+  monthControls.appendChild(ratingOrderButton);
+  monthHeader.appendChild(monthTitle);
+  monthHeader.appendChild(monthControls);
+  monthSection.appendChild(monthHeader);
+  monthSection.appendChild(monthCards);
+
+  const renderMonthCards = monthSortMode => {
+    const sortedMonthMovies = sortMoviesWithinMonth(movies, monthSortMode);
+
+    monthCards.innerHTML = '';
+
+    sortedMonthMovies.forEach(movie => {
+      monthCards.appendChild(createMovieCard(movie));
+    });
+
+    releaseOrderButton.classList.toggle('is-active', monthSortMode === 'release');
+    ratingOrderButton.classList.toggle('is-active', monthSortMode === 'rating');
+  };
+
+  releaseOrderButton.addEventListener('click', () => {
+    renderMonthCards('release');
+  });
+
+  ratingOrderButton.addEventListener('click', () => {
+    renderMonthCards('rating');
+  });
+
+  renderMonthCards('release');
+
+  return monthSection;
+}
+
 function renderMovies() {
   if (!moviesLoadedSuccessfully) {
     return;
@@ -3093,35 +3189,43 @@ function renderMovies() {
   }
 
   let lastYear = null;
-  let lastMonth = null;
+  let currentMonth = null;
+  let currentMonthMovies = [];
+
+  const flushCurrentMonth = () => {
+    if (!currentMonth || currentMonthMovies.length === 0) {
+      return;
+    }
+
+    container.appendChild(createMonthSection(currentMonth, currentMonthMovies));
+    currentMonth = null;
+    currentMonthMovies = [];
+  };
   
   filteredMovies.forEach(movie => {
     const year = movie.release_year;
     const month = movie.release_month;
   
     if (year !== lastYear) {
+      flushCurrentMonth();
+
       container.insertAdjacentHTML(
         'beforeend',
         `<h3 class="movies-year-title">${year}</h3>`
       );
+
       lastYear = year;
-      lastMonth = null;
     }
-  
-    if (month !== lastMonth && month) {
-      const monthName = getMonthName(month);
-    
-      container.insertAdjacentHTML(
-        'beforeend',
-        `<h4 class="movies-month-title">${monthName}</h4>`
-      );
-    
-      lastMonth = month;
+
+    if (month !== currentMonth) {
+      flushCurrentMonth();
+      currentMonth = month;
     }
-  
-    const card = createMovieCard(movie);
-    container.appendChild(card);
+
+    currentMonthMovies.push(movie);
   });
+
+  flushCurrentMonth();
 }
 
 /* =========================================================

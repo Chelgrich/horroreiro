@@ -997,14 +997,55 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   border-top: 1px solid #242a31;
 }
 
-.movies-month-title {
+.movies-month-section {
   grid-column: 1 / -1;
+}
+
+.movies-month-header {
   margin: 10px 0 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.movies-month-title {
+  margin: 0;
   font-size: 22px;
   font-weight: 600;
   line-height: 1.18;
   letter-spacing: 0.2px;
   color: #cfd6de;
+}
+
+.month-sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.month-sort-btn {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #cfd6de;
+  background: #161b21;
+  border: 1px solid #313842;
+  border-radius: 999px;
+}
+
+.month-sort-btn.is-active {
+  color: #dbe7ff;
+  background: rgba(91, 140, 255, 0.16);
+  border-color: rgba(91, 140, 255, 0.42);
+}
+
+.movies-month-cards {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: inherit;
+  gap: inherit;
 }
 
 .empty-state {
@@ -2226,10 +2267,23 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     padding-top: 16px;
   }
 
-  .movies-month-title {
+  .movies-month-header {
     margin: 8px 0 0;
+  }
+
+  .movies-month-title {
     font-size: 20px;
     line-height: 1.16;
+  }
+
+  .month-sort-controls {
+    gap: 6px;
+  }
+
+  .month-sort-btn {
+    height: 28px;
+    padding: 0 9px;
+    font-size: 11px;
   }
 
   .movie-card {
@@ -2551,10 +2605,22 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     padding-top: 14px;
   }
 
-  .movies-month-title {
+  .movies-month-header {
     margin: 8px 0 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .movies-month-title {
     font-size: 18px;
     line-height: 1.14;
+  }
+
+  .month-sort-controls {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   .filters {
@@ -2761,10 +2827,21 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     padding-top: 18px;
   }
 
-  .movies-month-title {
+  .movies-month-header {
     margin: 10px 0 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .movies-month-title {
     font-size: 22px;
     line-height: 1.18;
+  }
+
+  .month-sort-controls {
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .movie-external-links-collapsible {
