@@ -3182,12 +3182,14 @@ function createMonthSection(month, movies) {
 
   const handleMonthSortButtonClick = button => {
     const clickedSortMode = button.dataset.sortMode;
+    const clickedSortDirection = button.dataset.sortDirection || 'desc';
 
     if (currentMonthSortMode === clickedSortMode) {
-      button.dataset.sortDirection = button.dataset.sortDirection === 'desc' ? 'asc' : 'desc';
+      button.dataset.sortDirection = clickedSortDirection === 'desc' ? 'asc' : 'desc';
+    } else {
+      currentMonthSortMode = clickedSortMode;
     }
 
-    currentMonthSortMode = clickedSortMode;
     renderMonthCards();
   };
 
