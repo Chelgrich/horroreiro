@@ -211,7 +211,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 }
 
 .movies-section-header {
-  margin-bottom: 18px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1012,12 +1012,11 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 
 .movies-year-title {
   grid-column: 1 / -1;
-  margin: 12px 0 0;
-  padding-top: 2px;
-  font-size: 24px;
+  margin: 6px 0 0;
+  font-size: 26px;
   font-weight: 700;
   line-height: 1.15;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   color: #ffffff;
 }
 
@@ -1032,7 +1031,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 }
 
 .movies-month-header {
-  margin: 10px 0 0;
+  margin: 4px 0 0;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
