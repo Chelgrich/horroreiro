@@ -224,8 +224,13 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 
 .catalog-view-toggle {
   height: 30px;
-  padding: 0 12px;
+  padding: 0 14px;
   flex: 0 0 auto;
+  min-width: 240px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
@@ -242,6 +247,12 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 
 .catalog-view-toggle[data-mode="releases"]::before {
   content: "▦";
+}
+
+.catalog-view-toggle::before {
+  content: "≡";
+  font-size: 14px;
+  opacity: 0.8;
 }
 
 .catalog-view-toggle:hover {
