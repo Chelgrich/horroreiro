@@ -308,8 +308,6 @@ function syncCatalogViewToggleButton() {
     ? 'С разбивкой по месяцам'
     : 'Общим списком';
 
-  catalogViewToggleButton.dataset.mode = isListMode ? 'list' : 'releases';
-
   catalogViewToggleButton.setAttribute(
     'aria-label',
     isListMode

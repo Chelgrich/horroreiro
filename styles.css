@@ -245,16 +245,6 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   opacity: 0.8;
 }
 
-.catalog-view-toggle[data-mode="releases"]::before {
-  content: "▦";
-}
-
-.catalog-view-toggle::before {
-  content: "≡";
-  font-size: 14px;
-  opacity: 0.8;
-}
-
 .catalog-view-toggle:hover {
   color: #e3e8ee;
   background: #1b2128;
