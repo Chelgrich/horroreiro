@@ -36,6 +36,7 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
 Ограничивает ширину и задаёт внешние отступы приложения.
 ========================================================== */
 .page {
+  --control-width: 220px;
   max-width: 1440px;
   margin: 0 auto;
   padding: 24px;
@@ -801,7 +802,7 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 }
 
 .catalog-toolbar-actions .filter-sort {
-  width: 220px;
+  width: var(--control-width);
 }
 
 .catalog-toolbar-actions > button {
@@ -896,7 +897,7 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   }
 
   .catalog-view-toggle {
-    width: 220px;
+    width: var(--control-width);
   }
 
   .catalog-toolbar-actions > button {
