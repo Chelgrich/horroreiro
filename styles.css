@@ -2669,6 +2669,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-month-title {
+    margin: 0 0 6px 0;
     font-size: 18px;
     line-height: 1.14;
   }
