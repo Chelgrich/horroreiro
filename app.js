@@ -3096,7 +3096,7 @@ function sortMoviesWithinMonth(movies, monthSortMode) {
   return sortedMovies;
 }
 
-function createMonthSection(month, movies, isFirstMonthSection = false) {
+function createMonthSection(month, movies) {
   const monthSection = document.createElement('section');
   const monthHeader = document.createElement('div');
   const monthTitle = document.createElement('h4');
@@ -3110,13 +3110,6 @@ function createMonthSection(month, movies, isFirstMonthSection = false) {
   monthTitle.className = 'movies-month-title';
   monthControls.className = 'month-sort-controls';
   monthCards.className = 'movies-month-cards';
-
-  if (isFirstMonthSection) {
-    const monthSortHint = document.createElement('div');
-    monthSortHint.className = 'month-sort-hint';
-    monthSortHint.textContent = 'Сортировка месяца работает только внутри этого месяца';
-    monthSection.appendChild(monthSortHint);
-  }
 
   monthTitle.textContent = getMonthName(month);
 
@@ -3198,7 +3191,6 @@ function renderMovies() {
   let lastYear = null;
   let currentMonth = null;
   let currentMonthMovies = [];
-  let hasRenderedFirstMonthSection = false;
 
   const flushCurrentMonth = () => {
     if (!currentMonth || currentMonthMovies.length === 0) {
@@ -3206,9 +3198,8 @@ function renderMovies() {
     }
 
     container.appendChild(
-      createMonthSection(currentMonth, currentMonthMovies, !hasRenderedFirstMonthSection)
+      createMonthSection(currentMonth, currentMonthMovies)
     );
-    hasRenderedFirstMonthSection = true;
     currentMonth = null;
     currentMonthMovies = [];
   };
