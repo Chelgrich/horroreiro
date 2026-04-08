@@ -1018,6 +1018,13 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   color: #cfd6de;
 }
 
+.month-sort-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #8f99a5;
+}
+
 .month-sort-controls {
   display: flex;
   align-items: center;
