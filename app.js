@@ -3172,20 +3172,18 @@ function createMonthSection(month, movies) {
   dateSortButton.addEventListener('click', () => {
     if (currentMonthSortMode === 'release') {
       releaseSortDirection = releaseSortDirection === 'desc' ? 'asc' : 'desc';
-    } else {
-      currentMonthSortMode = 'release';
     }
 
+    currentMonthSortMode = 'release';
     renderMonthCards();
   });
 
   ratingSortButton.addEventListener('click', () => {
     if (currentMonthSortMode === 'rating') {
       ratingSortDirection = ratingSortDirection === 'desc' ? 'asc' : 'desc';
-    } else {
-      currentMonthSortMode = 'rating';
     }
 
+    currentMonthSortMode = 'rating';
     renderMonthCards();
   });
 
