@@ -760,6 +760,10 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
   flex: 0 0 auto;
 }
 
+.catalog-toolbar-actions .filter-sort {
+  width: 220px;
+}
+
 .catalog-toolbar-actions > button {
   height: 44px;
   flex: 0 0 auto;
@@ -855,8 +859,8 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
     min-width: 168px; /* кнопка перестаёт быть слишком короткой */
   }
 
-  .filter-sort {
-    width: 220px; /* сортировка ощущается как полноценный control-блок */
+  .catalog-toolbar-actions .filter-sort {
+    width: 220px; /* control-блоки отображения и сортировки одинаковой ширины */
   }
 
   .filter-sort .custom-select-trigger,
@@ -2423,11 +2427,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     flex-direction: row;
     align-items: flex-end;
     gap: 12px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
   }
 
   .catalog-toolbar-actions > button,
-  .filter-sort {
+  .catalog-toolbar-actions .filter-sort {
     width: calc(50% - 6px);
     min-width: 0;
     flex: 0 1 calc(50% - 6px);

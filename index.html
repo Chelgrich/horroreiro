@@ -326,11 +326,18 @@
           </button>
 
           <div class="form-row filter-sort">
+            <label for="viewMode">Отображение:</label>
+            <select id="viewMode" name="viewMode">
+              <option value="list">Список</option>
+              <option value="releases">Релизы</option>
+            </select>
+          </div>
+
+          <div class="form-row filter-sort">
             <label for="sortMode">Сортировка:</label>
             <select id="sortMode" name="sortMode">
               <option value="default">Сначала новые</option>
               <option value="oldest">Сначала старые</option>
-              <option value="alphabet">По алфавиту</option>
             </select>
           </div>
         </div>

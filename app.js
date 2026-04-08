@@ -28,6 +28,7 @@ const watchlistFilter = document.getElementById('watchlistFilter');
 const watchlistFilterRow = document.getElementById('watchlistFilterRow');
 const watchedFilter = document.getElementById('watchedFilter');
 const watchedFilterRow = document.getElementById('watchedFilterRow');
+const viewMode = document.getElementById('viewMode');
 const sortMode = document.getElementById('sortMode');
 const openFiltersButton = document.getElementById('openFiltersButton');
 const filtersModal = document.getElementById('filtersModal');
@@ -282,7 +283,7 @@ function trackFiltersUsageIfNeeded() {
 }
 
 function trackSortUsageIfNeeded() {
-  if (!sortMode || !sortMode.value || sortMode.value === 'newest') {
+  if (!sortMode || !sortMode.value || sortMode.value === 'default') {
     return;
   }
 
@@ -719,6 +720,7 @@ const filterCustomSelectElements = [
   yearFilter,
   watchlistFilter,
   watchedFilter,
+  viewMode,
   sortMode
 ].filter(Boolean);
 
@@ -2385,13 +2387,6 @@ function getVotesLabel(votesCount) {
 }
 
 function sortMovies(movies, selectedSortMode) {
-  if (selectedSortMode === 'alphabet') {
-    movies.sort((a, b) =>
-      String(a.title || '').localeCompare(String(b.title || ''), 'ru')
-    );
-    return;
-  }
-
   if (selectedSortMode === 'oldest') {
     movies.sort((a, b) => {
       const yearA = a.release_year ?? Infinity;
@@ -3088,6 +3083,15 @@ function renderMovies() {
 
   container.innerHTML = '';
 
+  if (viewMode.value === 'list') {
+    filteredMovies.forEach(movie => {
+      const card = createMovieCard(movie);
+      container.appendChild(card);
+    });
+
+    return;
+  }
+
   let lastYear = null;
   let lastMonth = null;
   
@@ -3190,6 +3194,7 @@ ratingFilter.addEventListener('change', handleFiltersChange);
 yearFilter.addEventListener('change', handleFiltersChange);
 watchlistFilter.addEventListener('change', handleFiltersChange);
 watchedFilter.addEventListener('change', handleFiltersChange);
+viewMode.addEventListener('change', renderMovies);
 sortMode.addEventListener('change', () => {
   trackSortUsageIfNeeded();
   renderMovies();
