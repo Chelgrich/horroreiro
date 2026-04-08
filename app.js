@@ -40,7 +40,12 @@ const activeFiltersBar = document.getElementById('activeFiltersBar');
 
 const container = document.getElementById('movies');
 const moviesSectionTitle = document.querySelector('.movies-section .section-title');
+const initialViewModeRow = viewMode?.closest('.form-row');
 let catalogViewToggleButton = null;
+
+if (initialViewModeRow) {
+  initialViewModeRow.style.display = 'none';
+}
 
 const movieForm = document.getElementById('movieForm');
 const formTitle = document.getElementById('formTitle');
