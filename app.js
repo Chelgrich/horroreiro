@@ -3120,13 +3120,9 @@ function createMonthSection(month, movies) {
 
   dateSortButton.type = 'button';
   dateSortButton.className = 'month-sort-btn';
-  dateSortButton.dataset.sortMode = 'release';
-  dateSortButton.dataset.sortDirection = 'desc';
 
   ratingSortButton.type = 'button';
   ratingSortButton.className = 'month-sort-btn';
-  ratingSortButton.dataset.sortMode = 'rating';
-  ratingSortButton.dataset.sortDirection = 'desc';
 
   monthControls.appendChild(dateSortButton);
   monthControls.appendChild(ratingSortButton);
@@ -3135,14 +3131,20 @@ function createMonthSection(month, movies) {
   monthSection.appendChild(monthHeader);
   monthSection.appendChild(monthCards);
 
-  let currentMonthSortMode = 'release';
+  const monthSortState = {
+    activeMode: 'release',
+    directions: {
+      release: 'desc',
+      rating: 'desc'
+    }
+  };
 
   const syncSortButtonsUi = () => {
-    const dateDirection = dateSortButton.dataset.sortDirection || 'desc';
-    const ratingDirection = ratingSortButton.dataset.sortDirection || 'desc';
+    const dateDirection = monthSortState.directions.release;
+    const ratingDirection = monthSortState.directions.rating;
 
-    dateSortButton.classList.toggle('is-active', currentMonthSortMode === 'release');
-    ratingSortButton.classList.toggle('is-active', currentMonthSortMode === 'rating');
+    dateSortButton.classList.toggle('is-active', monthSortState.activeMode === 'release');
+    ratingSortButton.classList.toggle('is-active', monthSortState.activeMode === 'rating');
 
     dateSortButton.textContent = `По дате ${dateDirection === 'desc' ? '↓' : '↑'}`;
     ratingSortButton.textContent = `По рейтингу ${ratingDirection === 'desc' ? '↓' : '↑'}`;
@@ -3159,16 +3161,10 @@ function createMonthSection(month, movies) {
   };
 
   const renderMonthCards = () => {
-    const activeButton = currentMonthSortMode === 'release'
-      ? dateSortButton
-      : ratingSortButton;
-
-    const activeSortDirection = activeButton.dataset.sortDirection || 'desc';
-
     const sortedMonthMovies = sortMoviesWithinMonth(
       movies,
-      currentMonthSortMode,
-      activeSortDirection
+      monthSortState.activeMode,
+      monthSortState.directions[monthSortState.activeMode]
     );
 
     monthCards.innerHTML = '';
@@ -3180,25 +3176,24 @@ function createMonthSection(month, movies) {
     syncSortButtonsUi();
   };
 
-  const handleMonthSortButtonClick = button => {
-    const clickedSortMode = button.dataset.sortMode;
-    const clickedSortDirection = button.dataset.sortDirection || 'desc';
-
-    if (currentMonthSortMode === clickedSortMode) {
-      button.dataset.sortDirection = clickedSortDirection === 'desc' ? 'asc' : 'desc';
+  dateSortButton.addEventListener('click', () => {
+    if (monthSortState.activeMode === 'release') {
+      monthSortState.directions.release = monthSortState.directions.release === 'desc' ? 'asc' : 'desc';
     } else {
-      currentMonthSortMode = clickedSortMode;
+      monthSortState.activeMode = 'release';
     }
 
     renderMonthCards();
-  };
-
-  dateSortButton.addEventListener('click', () => {
-    handleMonthSortButtonClick(dateSortButton);
   });
 
   ratingSortButton.addEventListener('click', () => {
-    handleMonthSortButtonClick(ratingSortButton);
+    if (monthSortState.activeMode === 'rating') {
+      monthSortState.directions.rating = monthSortState.directions.rating === 'desc' ? 'asc' : 'desc';
+    } else {
+      monthSortState.activeMode = 'rating';
+    }
+
+    renderMonthCards();
   });
 
   renderMonthCards();
