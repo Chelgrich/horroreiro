@@ -39,6 +39,8 @@ const filtersModalStatus = document.getElementById('filtersModalStatus');
 const activeFiltersBar = document.getElementById('activeFiltersBar');
 
 const container = document.getElementById('movies');
+const moviesSectionTitle = document.querySelector('.movies-section .section-title');
+let catalogViewToggleButton = null;
 
 const movieForm = document.getElementById('movieForm');
 const formTitle = document.getElementById('formTitle');
@@ -288,6 +290,68 @@ function trackSortUsageIfNeeded() {
   }
 
   trackGoal('use_sort');
+}
+
+function syncCatalogViewToggleButton() {
+  if (!catalogViewToggleButton || !viewMode) {
+    return;
+  }
+
+  const isListMode = viewMode.value === 'list';
+
+  catalogViewToggleButton.textContent = isListMode
+    ? 'С разбивкой по месяцам'
+    : 'Общим списком';
+
+  catalogViewToggleButton.setAttribute(
+    'aria-label',
+    isListMode
+      ? 'Переключить отображение на режим с разбивкой по месяцам'
+      : 'Переключить отображение на общий список'
+  );
+}
+
+function initCatalogViewToggleButton() {
+  if (!moviesSectionTitle || !viewMode) {
+    return;
+  }
+
+  const existingViewModeRow = viewMode.closest('.form-row');
+
+  if (existingViewModeRow) {
+    existingViewModeRow.style.display = 'none';
+  }
+
+  if (!moviesSectionTitle.parentElement.classList.contains('movies-section-header')) {
+    const moviesSectionHeader = document.createElement('div');
+    moviesSectionHeader.className = 'movies-section-header';
+
+    moviesSectionTitle.parentNode.insertBefore(moviesSectionHeader, moviesSectionTitle);
+    moviesSectionHeader.appendChild(moviesSectionTitle);
+  }
+
+  const moviesSectionHeader = moviesSectionTitle.parentElement;
+
+  if (!catalogViewToggleButton) {
+    catalogViewToggleButton = document.createElement('button');
+    catalogViewToggleButton.type = 'button';
+    catalogViewToggleButton.className = 'secondary-button catalog-view-toggle';
+
+    catalogViewToggleButton.addEventListener('click', () => {
+      viewMode.value = viewMode.value === 'list' ? 'releases' : 'list';
+
+      if (typeof refreshCustomSelect === 'function') {
+        refreshCustomSelect(viewMode);
+      }
+
+      syncCatalogViewToggleButton();
+      renderMovies();
+    });
+
+    moviesSectionHeader.appendChild(catalogViewToggleButton);
+  }
+
+  syncCatalogViewToggleButton();
 }
 
 function isEmailConfirmationRedirect() {
@@ -3347,7 +3411,10 @@ ratingFilter.addEventListener('change', handleFiltersChange);
 yearFilter.addEventListener('change', handleFiltersChange);
 watchlistFilter.addEventListener('change', handleFiltersChange);
 watchedFilter.addEventListener('change', handleFiltersChange);
-viewMode.addEventListener('change', renderMovies);
+viewMode.addEventListener('change', () => {
+  syncCatalogViewToggleButton();
+  renderMovies();
+});
 sortMode.addEventListener('change', () => {
   trackSortUsageIfNeeded();
   renderMovies();
@@ -3471,6 +3538,7 @@ async function init() {
   });
 
   await reloadCatalogData();
+  initCatalogViewToggleButton();
   updateFiltersButtonLabel(); // на старте синхронизируем подпись кнопки
 }
 

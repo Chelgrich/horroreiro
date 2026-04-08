@@ -210,6 +210,36 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   color: #ffffff;
 }
 
+.movies-section-header {
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.movies-section-header .section-title {
+  margin: 0;
+}
+
+.catalog-view-toggle {
+  height: 30px;
+  padding: 0 12px;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #cfd6de;
+  background: #161b21;
+  border-color: #313842;
+}
+
+.catalog-view-toggle:hover {
+  color: #e3e8ee;
+  background: #1b2128;
+  border-color: #3a444f;
+}
+
 /* =========================================================
 CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 Контейнер модалки, затемнение и диалог с прокруткой.
@@ -2261,6 +2291,17 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     font-size: 24px;
   }
 
+  .movies-section-header {
+    margin-bottom: 16px;
+    align-items: flex-start;
+  }
+
+  .catalog-view-toggle {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
   .movies-year-title {
     margin: 10px 0 0;
     font-size: 22px;
@@ -2597,6 +2638,19 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 @media (max-width: 680px) {
   .section-title {
     font-size: 22px;
+  }
+
+  .movies-section-header {
+    margin-bottom: 14px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .catalog-view-toggle {
+    width: 100%;
+    min-height: 32px;
+    font-size: 12px;
   }
 
   .movies-year-title {
