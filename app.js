@@ -3106,10 +3106,8 @@ function createMonthSection(month, movies) {
   const monthHeader = document.createElement('div');
   const monthTitle = document.createElement('h4');
   const monthControls = document.createElement('div');
-  const releaseOrderButton = document.createElement('button');
-  const releaseDirectionButton = document.createElement('button');
-  const ratingOrderButton = document.createElement('button');
-  const ratingDirectionButton = document.createElement('button');
+  const dateSortButton = document.createElement('button');
+  const ratingSortButton = document.createElement('button');
   const monthCards = document.createElement('div');
 
   monthSection.className = 'movies-month-section';
@@ -3120,37 +3118,28 @@ function createMonthSection(month, movies) {
 
   monthTitle.textContent = getMonthName(month);
 
-  releaseOrderButton.type = 'button';
-  releaseOrderButton.className = 'month-sort-btn is-active';
-  releaseOrderButton.textContent = 'Релиз';
+  dateSortButton.type = 'button';
+  dateSortButton.className = 'month-sort-btn';
 
-  releaseDirectionButton.type = 'button';
-  releaseDirectionButton.className = 'month-sort-direction-btn is-active';
-  releaseDirectionButton.textContent = '↓';
-  releaseDirectionButton.setAttribute('aria-label', 'Сортировка по релизу: по убыванию');
+  ratingSortButton.type = 'button';
+  ratingSortButton.className = 'month-sort-btn';
 
-  ratingOrderButton.type = 'button';
-  ratingOrderButton.className = 'month-sort-btn';
-  ratingOrderButton.textContent = 'Рейтинг';
-
-  ratingDirectionButton.type = 'button';
-  ratingDirectionButton.className = 'month-sort-direction-btn';
-  ratingDirectionButton.textContent = '↓';
-  ratingDirectionButton.setAttribute('aria-label', 'Сортировка по рейтингу: по убыванию');
-
-  monthControls.appendChild(releaseOrderButton);
-  monthControls.appendChild(releaseDirectionButton);
-  monthControls.appendChild(ratingOrderButton);
-  monthControls.appendChild(ratingDirectionButton);
+  monthControls.appendChild(dateSortButton);
+  monthControls.appendChild(ratingSortButton);
   monthHeader.appendChild(monthTitle);
   monthHeader.appendChild(monthControls);
   monthSection.appendChild(monthHeader);
   monthSection.appendChild(monthCards);
 
   let currentMonthSortMode = 'release';
-  let currentMonthSortDirection = 'desc';
+  let releaseSortDirection = 'desc';
+  let ratingSortDirection = 'desc';
 
   const renderMonthCards = () => {
+    const currentMonthSortDirection = currentMonthSortMode === 'release'
+      ? releaseSortDirection
+      : ratingSortDirection;
+
     const sortedMonthMovies = sortMoviesWithinMonth(
       movies,
       currentMonthSortMode,
@@ -3163,42 +3152,40 @@ function createMonthSection(month, movies) {
       monthCards.appendChild(createMovieCard(movie));
     });
 
-    releaseOrderButton.classList.toggle('is-active', currentMonthSortMode === 'release');
-    releaseDirectionButton.classList.toggle('is-active', currentMonthSortMode === 'release');
-    releaseDirectionButton.textContent = currentMonthSortDirection === 'desc' ? '↓' : '↑';
-    releaseDirectionButton.setAttribute(
+    dateSortButton.classList.toggle('is-active', currentMonthSortMode === 'release');
+    ratingSortButton.classList.toggle('is-active', currentMonthSortMode === 'rating');
+
+    dateSortButton.textContent = `По дате ${releaseSortDirection === 'desc' ? '↓' : '↑'}`;
+    ratingSortButton.textContent = `По рейтингу ${ratingSortDirection === 'desc' ? '↓' : '↑'}`;
+
+    dateSortButton.setAttribute(
       'aria-label',
-      `Сортировка по релизу: ${currentMonthSortDirection === 'desc' ? 'по убыванию' : 'по возрастанию'}`
+      `Сортировка по дате: ${releaseSortDirection === 'desc' ? 'по убыванию' : 'по возрастанию'}`
     );
 
-    ratingOrderButton.classList.toggle('is-active', currentMonthSortMode === 'rating');
-    ratingDirectionButton.classList.toggle('is-active', currentMonthSortMode === 'rating');
-    ratingDirectionButton.textContent = currentMonthSortDirection === 'desc' ? '↓' : '↑';
-    ratingDirectionButton.setAttribute(
+    ratingSortButton.setAttribute(
       'aria-label',
-      `Сортировка по рейтингу: ${currentMonthSortDirection === 'desc' ? 'по убыванию' : 'по возрастанию'}`
+      `Сортировка по рейтингу: ${ratingSortDirection === 'desc' ? 'по убыванию' : 'по возрастанию'}`
     );
   };
 
-  releaseOrderButton.addEventListener('click', () => {
-    currentMonthSortMode = 'release';
+  dateSortButton.addEventListener('click', () => {
+    if (currentMonthSortMode === 'release') {
+      releaseSortDirection = releaseSortDirection === 'desc' ? 'asc' : 'desc';
+    } else {
+      currentMonthSortMode = 'release';
+    }
+
     renderMonthCards();
   });
 
-  releaseDirectionButton.addEventListener('click', () => {
-    currentMonthSortMode = 'release';
-    currentMonthSortDirection = currentMonthSortDirection === 'desc' ? 'asc' : 'desc';
-    renderMonthCards();
-  });
+  ratingSortButton.addEventListener('click', () => {
+    if (currentMonthSortMode === 'rating') {
+      ratingSortDirection = ratingSortDirection === 'desc' ? 'asc' : 'desc';
+    } else {
+      currentMonthSortMode = 'rating';
+    }
 
-  ratingOrderButton.addEventListener('click', () => {
-    currentMonthSortMode = 'rating';
-    renderMonthCards();
-  });
-
-  ratingDirectionButton.addEventListener('click', () => {
-    currentMonthSortMode = 'rating';
-    currentMonthSortDirection = currentMonthSortDirection === 'desc' ? 'asc' : 'desc';
     renderMonthCards();
   });
 
