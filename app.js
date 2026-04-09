@@ -2469,6 +2469,7 @@ async function removeUserMovieRating(movieId) {
   }
 
   const movieKey = String(movieId);
+  let ratingActionSucceeded = false;
 
   if (ratingRequestInFlight.has(movieKey)) {
     return;
@@ -2496,12 +2497,16 @@ async function removeUserMovieRating(movieId) {
       fetchMovieWatchlist()
     ]);
 
-    showMovieRatingFeedback(movieId, 'Оценка удалена', 'remove');
+    ratingActionSucceeded = true;
   } catch (error) {
     console.error('Ошибка удаления оценки фильма:', error);
   } finally {
     ratingRequestInFlight.delete(movieKey);
-    rerenderCatalogAfterRatingChange(movieId);
+
+    if (ratingActionSucceeded) {
+      rerenderCatalogAfterRatingChange(movieId);
+      showMovieRatingFeedback(movieId, 'Оценка удалена', 'remove');
+    }
   }
 }
 
@@ -2704,6 +2709,7 @@ async function saveUserMovieRating(movieId, ratingValue) {
 
   const normalizedRating = Number(ratingValue);
   const movieKey = String(movieId);
+  let ratingActionSucceeded = false;
 
   if (
     !Number.isInteger(normalizedRating) ||
@@ -2761,12 +2767,16 @@ async function saveUserMovieRating(movieId, ratingValue) {
       }
     }
 
-    showMovieRatingFeedback(movieId, `Оценка сохранена: ${normalizedRating}/10`);
+    ratingActionSucceeded = true;
   } catch (error) {
     console.error('Ошибка сохранения оценки фильма:', error);
   } finally {
     ratingRequestInFlight.delete(movieKey);
-    rerenderCatalogAfterRatingChange(movieId);
+
+    if (ratingActionSucceeded) {
+      rerenderCatalogAfterRatingChange(movieId);
+      showMovieRatingFeedback(movieId, `Оценка сохранена: ${normalizedRating}/10`);
+    }
   }
 }
 
