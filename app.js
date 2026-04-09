@@ -2069,11 +2069,11 @@ async function toggleMovieWatchlist(movieId) {
     return;
   }
 
-  watchlistRequestInFlight.add(movieKey);
-
   if (isMovieWatchedByCurrentUser(movieId)) {
     return;
   }
+
+  watchlistRequestInFlight.add(movieKey);
 
   try {
     if (hasMovieWatchlistRecord(movieId)) {
@@ -2083,12 +2083,6 @@ async function toggleMovieWatchlist(movieId) {
     }
   } finally {
     watchlistRequestInFlight.delete(movieKey);
-
-    if (watchlistFilter.value) {
-      renderMovies();
-    } else {
-      rerenderMovieCard(movieId);
-    }
   }
 }
 
