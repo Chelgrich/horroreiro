@@ -1733,6 +1733,9 @@ async function applyCurrentSessionUser(user) {
   currentUser = user ?? null;
   await loadCurrentUserRole();
   updateAuthUI();
+}
+
+async function syncCatalogAfterAuthChange() {
   await fetchMovieWatchlist();
   renderMovies();
 }
@@ -1840,21 +1843,6 @@ async function logout() {
     return;
   }
 
-  const currentRequestId = ++authStateSyncRequestId;
-
-  await applyCurrentSessionUser(null);
-
-  if (currentRequestId !== authStateSyncRequestId) {
-    return;
-  }
-
-  await reloadCatalogData();
-
-  if (currentRequestId !== authStateSyncRequestId) {
-    return;
-  }
-
-  renderMovies();
   showAuthMessage('Вы вышли из аккаунта.', 'success', true);
 }
 
@@ -3539,11 +3527,12 @@ async function init() {
       return;
     }
 
-    renderMovies();
+    await syncCatalogAfterAuthChange();
   });
 
   await reloadCatalogData();
   initCatalogViewToggleButton();
+  await syncCatalogAfterAuthChange();
   updateFiltersButtonLabel(); // на старте синхронизируем подпись кнопки
 }
 
