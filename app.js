@@ -417,7 +417,7 @@ function initCatalogViewToggleButton() {
 
       syncCatalogViewToggleButton();
       saveCatalogState();
-      renderMovies();
+      triggerCatalogRender();
     });
 
     moviesSectionHeader.appendChild(catalogViewToggleButton);
@@ -1092,6 +1092,10 @@ function rerenderCatalogAfterDataReload(anchorMovieId = null) {
   });
 }
 
+function triggerCatalogRender() {
+  renderMovies();
+}
+
 /* =========================================================
 JS-БЛОК 11. РАСЧЁТ И ЧТЕНИЕ ОЦЕНОК
 Собирает оценки фильма, считает средний рейтинг и находит
@@ -1251,7 +1255,7 @@ function applyQuickPreset(presetKey) {
 
   syncCatalogViewToggleButton();
   saveCatalogState();
-  renderMovies();
+  triggerCatalogRender();
 }
 
 function getActiveFilterChips() {
