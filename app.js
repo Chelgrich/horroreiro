@@ -2452,11 +2452,16 @@ async function runMovieMutationWithUiSync({
   }
 }
 
-function rerenderCatalogWithFallback(movieId, shouldRenderFullCatalog, preserveCardTop = true) {
+function rerenderCatalogWithFallback(
+  movieId,
+  shouldRenderFullCatalog,
+  preserveCardTop = true,
+  animateStateAppearance = true
+) {
   if (shouldRenderFullCatalog) {
     rerenderCatalogAfterDataReload(movieId);
   } else {
-    rerenderMovieCard(movieId, { preserveCardTop });
+    rerenderMovieCard(movieId, { preserveCardTop, animateStateAppearance });
   }
 }
 
@@ -2562,6 +2567,7 @@ function rerenderCatalogAfterRatingChange(movieId) {
     rerenderCatalogWithFallback(
       movieId,
       Boolean(watchedFilter.value || watchlistFilter.value || ratingFilter.value !== ''),
+      false,
       false
     );
   });
@@ -3591,7 +3597,10 @@ card.innerHTML = `
   return card;
 }
 
-function rerenderMovieCard(movieId, { preserveCardTop = true } = {}) {
+function rerenderMovieCard(
+  movieId,
+  { preserveCardTop = true, animateStateAppearance = true } = {}
+) {
   lastCatalogAnchorMovieId = String(movieId);
 
   const existingCard = container.querySelector(`[data-movie-id="${movieId}"]`);
@@ -3613,8 +3622,11 @@ function rerenderMovieCard(movieId, { preserveCardTop = true } = {}) {
   const newCard = createMovieCard(movie);
 
   if (
-    newCard.classList.contains('movie-card-rated') ||
-    newCard.classList.contains('movie-card-watchlist')
+    animateStateAppearance &&
+    (
+      newCard.classList.contains('movie-card-rated') ||
+      newCard.classList.contains('movie-card-watchlist')
+    )
   ) {
     newCard.classList.add('is-state-appearing');
   }
