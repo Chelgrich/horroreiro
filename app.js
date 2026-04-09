@@ -2354,6 +2354,7 @@ async function runMovieMutationWithUiSync({
   mutation,
   rerender,
   onSuccess,
+  onError,
   preserveWindowScroll = false
 }) {
   const movieKey = String(movieId);
@@ -2371,6 +2372,13 @@ async function runMovieMutationWithUiSync({
     await mutation();
     actionSucceeded = true;
     return true;
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+      return false;
+    }
+
+    throw error;
   } finally {
     requestSet.delete(movieKey);
 
@@ -2415,30 +2423,25 @@ async function addMovieToWatchlist(movieId) {
     return false;
   }
 
-  try {
-    const { error } = await supabaseClient
-      .from('movie_watchlist')
-      .upsert(
-        {
-          movie_id: movieId,
-          user_id: currentUser.id
-        },
-        {
-          onConflict: 'movie_id,user_id',
-          ignoreDuplicates: true
-        }
-      );
+  const { error } = await supabaseClient
+    .from('movie_watchlist')
+    .upsert(
+      {
+        movie_id: movieId,
+        user_id: currentUser.id
+      },
+      {
+        onConflict: 'movie_id,user_id',
+        ignoreDuplicates: true
+      }
+    );
 
-    if (error) {
-      throw error;
-    }
-
-    await fetchMovieWatchlist();
-    return true;
-  } catch (error) {
-    console.error('Ошибка добавления фильма в watchlist:', error);
-    return false;
+  if (error) {
+    throw error;
   }
+
+  await fetchMovieWatchlist();
+  return true;
 }
 
 async function removeMovieFromWatchlist(movieId) {
@@ -2446,23 +2449,18 @@ async function removeMovieFromWatchlist(movieId) {
     return false;
   }
 
-  try {
-    const { error } = await supabaseClient
-      .from('movie_watchlist')
-      .delete()
-      .eq('movie_id', movieId)
-      .eq('user_id', currentUser.id);
+  const { error } = await supabaseClient
+    .from('movie_watchlist')
+    .delete()
+    .eq('movie_id', movieId)
+    .eq('user_id', currentUser.id);
 
-    if (error) {
-      throw error;
-    }
-
-    await fetchMovieWatchlist();
-    return true;
-  } catch (error) {
-    console.error('Ошибка удаления фильма из watchlist:', error);
-    return false;
+  if (error) {
+    throw error;
   }
+
+  await fetchMovieWatchlist();
+  return true;
 }
 
 async function toggleMovieWatchlist(movieId) {
