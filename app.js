@@ -2348,6 +2348,40 @@ function showMovieWatchlistFeedback(movieId, text, type = 'success') {
   watchlistFeedbackTimers.set(movieId, timeoutId);
 }
 
+async function runMovieMutationWithUiSync({
+  movieId,
+  requestSet,
+  mutation,
+  rerender,
+  onSuccess
+}) {
+  const movieKey = String(movieId);
+
+  if (requestSet.has(movieKey)) {
+    return false;
+  }
+
+  requestSet.add(movieKey);
+
+  let actionSucceeded = false;
+
+  try {
+    await mutation();
+    actionSucceeded = true;
+    return true;
+  } finally {
+    requestSet.delete(movieKey);
+
+    if (actionSucceeded) {
+      rerender();
+
+      if (typeof onSuccess === 'function') {
+        onSuccess();
+      }
+    }
+  }
+}
+
 function rerenderCatalogWithFallback(movieId, shouldRenderFullCatalog) {
   if (shouldRenderFullCatalog) {
     rerenderCatalogAfterDataReload(movieId);
@@ -2420,40 +2454,33 @@ async function toggleMovieWatchlist(movieId) {
     return;
   }
 
-  const movieKey = String(movieId);
-
-  if (watchlistRequestInFlight.has(movieKey)) {
-    return;
-  }
-
   if (isMovieWatchedByCurrentUser(movieId)) {
     return;
   }
 
   const shouldRemoveFromWatchlist = hasMovieWatchlistRecord(movieId);
-  let watchlistActionSucceeded = false;
 
-  watchlistRequestInFlight.add(movieKey);
-
-  try {
-    if (shouldRemoveFromWatchlist) {
-      watchlistActionSucceeded = await removeMovieFromWatchlist(movieId);
-    } else {
-      watchlistActionSucceeded = await addMovieToWatchlist(movieId);
-    }
-  } finally {
-    watchlistRequestInFlight.delete(movieKey);
-
-    if (watchlistActionSucceeded) {
+  await runMovieMutationWithUiSync({
+    movieId,
+    requestSet: watchlistRequestInFlight,
+    mutation: async () => {
+      if (shouldRemoveFromWatchlist) {
+        await removeMovieFromWatchlist(movieId);
+      } else {
+        await addMovieToWatchlist(movieId);
+      }
+    },
+    rerender: () => {
       rerenderCatalogAfterWatchlistChange(movieId);
-
+    },
+    onSuccess: () => {
       if (shouldRemoveFromWatchlist) {
         showMovieWatchlistFeedback(movieId, 'Удалено из смотреть позже', 'remove');
       } else {
         showMovieWatchlistFeedback(movieId, 'Добавлено в смотреть позже');
       }
     }
-  }
+  });
 }
 
 function rerenderCatalogAfterRatingChange(movieId) {
@@ -2468,46 +2495,38 @@ async function removeUserMovieRating(movieId) {
     return;
   }
 
-  const movieKey = String(movieId);
-  let ratingActionSucceeded = false;
+  await runMovieMutationWithUiSync({
+    movieId,
+    requestSet: ratingRequestInFlight,
+    mutation: async () => {
+      const { error } = await supabaseClient
+        .from('movie_ratings')
+        .delete()
+        .eq('movie_id', movieId)
+        .eq('user_id', currentUser.id);
 
-  if (ratingRequestInFlight.has(movieKey)) {
-    return;
-  }
+      if (error) {
+        throw error;
+      }
 
-  ratingRequestInFlight.add(movieKey);
+      allMovieRatings = allMovieRatings.filter(item => !(
+        item.movie_id === movieId && item.user_id === currentUser.id
+      ));
 
-  try {
-    const { error } = await supabaseClient
-      .from('movie_ratings')
-      .delete()
-      .eq('movie_id', movieId)
-      .eq('user_id', currentUser.id);
-
-    if (error) {
-      throw error;
-    }
-
-    allMovieRatings = allMovieRatings.filter(item => !(
-      item.movie_id === movieId && item.user_id === currentUser.id
-    ));
-
-    await Promise.all([
-      fetchMovieRatings(),
-      fetchMovieWatchlist()
-    ]);
-
-    ratingActionSucceeded = true;
-  } catch (error) {
-    console.error('Ошибка удаления оценки фильма:', error);
-  } finally {
-    ratingRequestInFlight.delete(movieKey);
-
-    if (ratingActionSucceeded) {
+      await Promise.all([
+        fetchMovieRatings(),
+        fetchMovieWatchlist()
+      ]);
+    },
+    rerender: () => {
       rerenderCatalogAfterRatingChange(movieId);
+    },
+    onSuccess: () => {
       showMovieRatingFeedback(movieId, 'Оценка удалена', 'remove');
     }
-  }
+  }).catch(error => {
+    console.error('Ошибка удаления оценки фильма:', error);
+  });
 }
 
 function isMobileRatingLayout() {
@@ -2708,8 +2727,6 @@ async function saveUserMovieRating(movieId, ratingValue) {
   }
 
   const normalizedRating = Number(ratingValue);
-  const movieKey = String(movieId);
-  let ratingActionSucceeded = false;
 
   if (
     !Number.isInteger(normalizedRating) ||
@@ -2719,65 +2736,60 @@ async function saveUserMovieRating(movieId, ratingValue) {
     return;
   }
 
-  if (ratingRequestInFlight.has(movieKey)) {
-    return;
-  }
-
-  ratingRequestInFlight.add(movieKey);
-
-  try {
-    const { error } = await supabaseClient
-      .from('movie_ratings')
-      .upsert(
-        {
-          movie_id: movieId,
-          user_id: currentUser.id,
-          rating: normalizedRating
-        },
-        {
-          onConflict: 'movie_id,user_id'
-        }
-      );
+  await runMovieMutationWithUiSync({
+    movieId,
+    requestSet: ratingRequestInFlight,
+    mutation: async () => {
+      const { error } = await supabaseClient
+        .from('movie_ratings')
+        .upsert(
+          {
+            movie_id: movieId,
+            user_id: currentUser.id,
+            rating: normalizedRating
+          },
+          {
+            onConflict: 'movie_id,user_id'
+          }
+        );
 
       if (error) {
         throw error;
       }
-  
+
       allMovieRatings = allMovieRatings.filter(item => !(
         item.movie_id === movieId && item.user_id === currentUser.id
       ));
-  
+
       allMovieRatings.push({
         movie_id: movieId,
         user_id: currentUser.id,
         rating: normalizedRating
       });
-  
+
       await Promise.all([
         fetchMovieRatings(),
         fetchMovieWatchlist()
       ]);
-  
+
       if (typeof ym === 'function') {
-      const lastRatedMovie = sessionStorage.getItem('last_rated_movie');
-    
-      if (lastRatedMovie !== String(movieId)) {
-        ym(108369182, 'reachGoal', 'rate_movie');
-        sessionStorage.setItem('last_rated_movie', String(movieId));
+        const lastRatedMovie = sessionStorage.getItem('last_rated_movie');
+
+        if (lastRatedMovie !== String(movieId)) {
+          ym(108369182, 'reachGoal', 'rate_movie');
+          sessionStorage.setItem('last_rated_movie', String(movieId));
+        }
       }
-    }
-
-    ratingActionSucceeded = true;
-  } catch (error) {
-    console.error('Ошибка сохранения оценки фильма:', error);
-  } finally {
-    ratingRequestInFlight.delete(movieKey);
-
-    if (ratingActionSucceeded) {
+    },
+    rerender: () => {
       rerenderCatalogAfterRatingChange(movieId);
+    },
+    onSuccess: () => {
       showMovieRatingFeedback(movieId, `Оценка сохранена: ${normalizedRating}/10`);
     }
-  }
+  }).catch(error => {
+    console.error('Ошибка сохранения оценки фильма:', error);
+  });
 }
 
 /* =========================================================
