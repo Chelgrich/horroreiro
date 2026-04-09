@@ -2348,15 +2348,34 @@ function showMovieWatchlistFeedback(movieId, text, type = 'success') {
   watchlistFeedbackTimers.set(movieId, timeoutId);
 }
 
+function stabilizeWindowScrollPosition(scrollY) {
+  const restoreScroll = () => {
+    window.scrollTo({
+      top: scrollY,
+      behavior: 'auto'
+    });
+  };
+
+  restoreScroll();
+
+  requestAnimationFrame(() => {
+    restoreScroll();
+
+    requestAnimationFrame(() => {
+      restoreScroll();
+    });
+  });
+}
+
 async function runMovieMutationWithUiSync({
   movieId,
   requestSet,
   mutation,
   rerender,
-  onSuccess,
-  onError
+  onSuccess
 }) {
   const movieKey = String(movieId);
+  const scrollYBeforeMutation = window.scrollY;
 
   if (requestSet.has(movieKey)) {
     return false;
@@ -2370,14 +2389,6 @@ async function runMovieMutationWithUiSync({
     await mutation();
     actionSucceeded = true;
     return true;
-  } catch (error) {
-    if (typeof onError === 'function') {
-      onError(error);
-    } else {
-      throw error;
-    }
-
-    return false;
   } finally {
     requestSet.delete(movieKey);
 
@@ -2387,6 +2398,8 @@ async function runMovieMutationWithUiSync({
       if (typeof onSuccess === 'function') {
         onSuccess();
       }
+
+      stabilizeWindowScrollPosition(scrollYBeforeMutation);
     }
   }
 }
