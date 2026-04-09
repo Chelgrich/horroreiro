@@ -2353,7 +2353,8 @@ async function runMovieMutationWithUiSync({
   requestSet,
   mutation,
   rerender,
-  onSuccess
+  onSuccess,
+  onError
 }) {
   const movieKey = String(movieId);
 
@@ -2369,6 +2370,14 @@ async function runMovieMutationWithUiSync({
     await mutation();
     actionSucceeded = true;
     return true;
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    } else {
+      throw error;
+    }
+
+    return false;
   } finally {
     requestSet.delete(movieKey);
 
@@ -2479,6 +2488,10 @@ async function toggleMovieWatchlist(movieId) {
       } else {
         showMovieWatchlistFeedback(movieId, 'Добавлено в смотреть позже');
       }
+    },
+    onError: error => {
+      console.error('Ошибка переключения watchlist:', error);
+      showMovieWatchlistFeedback(movieId, 'Не удалось обновить смотреть позже', 'remove');
     }
   });
 }
@@ -2523,9 +2536,11 @@ async function removeUserMovieRating(movieId) {
     },
     onSuccess: () => {
       showMovieRatingFeedback(movieId, 'Оценка удалена', 'remove');
+    },
+    onError: error => {
+      console.error('Ошибка удаления оценки фильма:', error);
+      showMovieRatingFeedback(movieId, 'Не удалось удалить оценку', 'remove');
     }
-  }).catch(error => {
-    console.error('Ошибка удаления оценки фильма:', error);
   });
 }
 
@@ -2786,9 +2801,11 @@ async function saveUserMovieRating(movieId, ratingValue) {
     },
     onSuccess: () => {
       showMovieRatingFeedback(movieId, `Оценка сохранена: ${normalizedRating}/10`);
+    },
+    onError: error => {
+      console.error('Ошибка сохранения оценки фильма:', error);
+      showMovieRatingFeedback(movieId, 'Не удалось сохранить оценку', 'remove');
     }
-  }).catch(error => {
-    console.error('Ошибка сохранения оценки фильма:', error);
   });
 }
 
