@@ -167,6 +167,25 @@ function normalizeSearchText(value) {
     .replace(/\s+/g, ' ');
 }
 
+function highlightSearchMatches(text, searchQuery) {
+  const normalizedQuery = normalizeSearchText(searchQuery);
+
+  if (!normalizedQuery) {
+    return text;
+  }
+
+  const words = normalizedQuery.split(' ').filter(Boolean);
+
+  let result = text;
+
+  words.forEach(word => {
+    const regex = new RegExp(`(${word})`, 'gi');
+    result = result.replace(regex, '<mark>$1</mark>');
+  });
+
+  return result;
+}
+
 function debounce(callback, delay = 200) {
   let timeoutId = null;
 
@@ -3123,7 +3142,7 @@ const externalLinksBlockHtml = externalLinksHtml
 card.innerHTML = `
   ${posterHtml}
 
-  <h5 class="movie-title">${movie.title}</h5>
+  <h5 class="movie-title">${highlightSearchMatches(movie.title, searchInput.value)}</h5>
 
   <p>Оригинальное название: ${movie.original_title ?? '-'}</p>
   <p>Год: ${movie.year ?? '-'}</p>
