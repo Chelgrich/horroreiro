@@ -2384,6 +2384,26 @@ function blurActiveInteractiveElement() {
   }
 }
 
+function withTemporarilyDisabledScrollAnchoring(callback) {
+  const previousHtmlOverflowAnchor = document.documentElement.style.overflowAnchor;
+  const previousBodyOverflowAnchor = document.body.style.overflowAnchor;
+  const previousContainerOverflowAnchor = container.style.overflowAnchor;
+
+  document.documentElement.style.overflowAnchor = 'none';
+  document.body.style.overflowAnchor = 'none';
+  container.style.overflowAnchor = 'none';
+
+  try {
+    callback();
+  } finally {
+    requestAnimationFrame(() => {
+      document.documentElement.style.overflowAnchor = previousHtmlOverflowAnchor;
+      document.body.style.overflowAnchor = previousBodyOverflowAnchor;
+      container.style.overflowAnchor = previousContainerOverflowAnchor;
+    });
+  }
+}
+
 async function runMovieMutationWithUiSync({
   movieId,
   requestSet,
@@ -2527,11 +2547,13 @@ async function toggleMovieWatchlist(movieId) {
 }
 
 function rerenderCatalogAfterRatingChange(movieId) {
-  rerenderCatalogWithFallback(
-    movieId,
-    Boolean(watchedFilter.value || watchlistFilter.value || ratingFilter.value !== ''),
-    false
-  );
+  withTemporarilyDisabledScrollAnchoring(() => {
+    rerenderCatalogWithFallback(
+      movieId,
+      Boolean(watchedFilter.value || watchlistFilter.value || ratingFilter.value !== ''),
+      false
+    );
+  });
 }
 
 async function removeUserMovieRating(movieId) {
