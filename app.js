@@ -3353,6 +3353,14 @@ function createMonthSection(month, movies) {
   return monthSection;
 }
 
+function createMoviesYearTitle(year) {
+  const yearTitle = document.createElement('h3');
+  yearTitle.className = 'movies-year-title';
+  yearTitle.textContent = year;
+
+  return yearTitle;
+}
+
 function renderMovies() {
   if (!moviesLoadedSuccessfully) {
     return;
@@ -3379,24 +3387,28 @@ function renderMovies() {
   container.innerHTML = '';
 
   if (viewMode.value === 'list') {
+    const moviesFragment = document.createDocumentFragment();
+
     filteredMovies.forEach(movie => {
       const card = createMovieCard(movie);
-      container.appendChild(card);
+      moviesFragment.appendChild(card);
     });
 
+    container.appendChild(moviesFragment);
     return;
   }
 
   let lastYear = null;
   let currentMonth = null;
   let currentMonthMovies = [];
+  const moviesFragment = document.createDocumentFragment();
 
   const flushCurrentMonth = () => {
     if (!currentMonth || currentMonthMovies.length === 0) {
       return;
     }
 
-    container.appendChild(
+    moviesFragment.appendChild(
       createMonthSection(currentMonth, currentMonthMovies)
     );
     currentMonth = null;
@@ -3409,12 +3421,7 @@ function renderMovies() {
   
     if (year !== lastYear) {
       flushCurrentMonth();
-
-      container.insertAdjacentHTML(
-        'beforeend',
-        `<h3 class="movies-year-title">${year}</h3>`
-      );
-
+      moviesFragment.appendChild(createMoviesYearTitle(year));
       lastYear = year;
     }
 
@@ -3427,6 +3434,7 @@ function renderMovies() {
   });
 
   flushCurrentMonth();
+  container.appendChild(moviesFragment);
 }
 
 /* =========================================================
