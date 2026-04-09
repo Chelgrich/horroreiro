@@ -2125,7 +2125,7 @@ async function removeUserMovieRating(movieId) {
   } finally {
     ratingRequestInFlight.delete(movieKey);
 
-    if (watchedFilter.value || ratingFilter.value !== '') {
+    if (watchedFilter.value || watchlistFilter.value || ratingFilter.value !== '') {
       renderMovies();
     } else {
       rerenderMovieCard(movieId);
