@@ -3421,19 +3421,14 @@ function createMovieCard(movie) {
         (${votesCount} ${getVotesLabel(votesCount)})
       </span>
     </div>
-    ${
-      currentUserRating !== null
-        ? `
-          <button
-            type="button"
-            class="remove-rating-inline-btn secondary-button secondary-button-compact"
-            data-remove-rating="true"
-          >
-            Удалить оценку
-          </button>
-        `
-        : ''
-    }
+    <button
+      type="button"
+      class="remove-rating-inline-btn secondary-button secondary-button-compact ${currentUserRating === null ? 'is-hidden-placeholder' : ''}"
+      data-remove-rating="true"
+      ${currentUserRating === null ? 'tabindex="-1" aria-hidden="true"' : ''}
+    >
+      Удалить оценку
+    </button>
   </div>
 `;
 
@@ -3528,11 +3523,13 @@ card.innerHTML = `
   });
 
   if (removeRatingBtn) {
-    removeRatingBtn.disabled = isRatingBusy;
+    removeRatingBtn.disabled = isRatingBusy || currentUserRating === null;
 
-    removeRatingBtn.addEventListener('click', () => {
-      removeUserMovieRating(movie.id);
-    });
+    if (currentUserRating !== null) {
+      removeRatingBtn.addEventListener('click', () => {
+        removeUserMovieRating(movie.id);
+      });
+    }
   }
 
   if (watchlistToggleBtn) {

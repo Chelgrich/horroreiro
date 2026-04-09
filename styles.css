@@ -1707,6 +1707,11 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   white-space: nowrap;
 }
 
+.remove-rating-inline-btn.is-hidden-placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .remove-rating-inline-btn:disabled {
   opacity: 0.6;
   cursor: default;
