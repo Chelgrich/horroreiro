@@ -975,7 +975,6 @@ async function reloadCatalogData() {
   ]);
 
   initCustomSelects();
-  renderMovies();
 }
 
 /* =========================================================
