@@ -1663,6 +1663,7 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   position: relative;
   margin-top: auto;
   padding-top: 10px;
+  padding-bottom: 24px;
   border-top: 1px solid #1f242b;
 }
 
@@ -1926,7 +1927,11 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 
 .movie-rating-feedback,
 .movie-watchlist-feedback {
-  margin-top: 10px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin-top: 0;
   font-size: 13px;
   line-height: 1.35;
   color: #9da6b1;
