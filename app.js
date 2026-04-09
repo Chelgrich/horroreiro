@@ -2404,6 +2404,17 @@ function withTemporarilyDisabledScrollAnchoring(callback) {
   }
 }
 
+function logRatingScrollDebugStep(label, movieId) {
+  console.log(
+    `[rating-scroll] ${label}`,
+    {
+      movieId: String(movieId),
+      scrollY: window.scrollY,
+      activeElement: document.activeElement?.tagName || null
+    }
+  );
+}
+
 async function runMovieMutationWithUiSync({
   movieId,
   requestSet,
@@ -2561,12 +2572,16 @@ async function removeUserMovieRating(movieId) {
     return;
   }
 
+  logRatingScrollDebugStep('remove:start', movieId);
   blurActiveInteractiveElement();
+  logRatingScrollDebugStep('remove:after-blur', movieId);
 
   await runMovieMutationWithUiSync({
     movieId,
     requestSet: ratingRequestInFlight,
     mutation: async () => {
+      logRatingScrollDebugStep('remove:before-request', movieId);
+
       const { error } = await supabaseClient
         .from('movie_ratings')
         .delete()
@@ -2585,18 +2600,34 @@ async function removeUserMovieRating(movieId) {
         fetchMovieRatings(),
         fetchMovieWatchlist()
       ]);
+
+      logRatingScrollDebugStep('remove:after-data-sync', movieId);
     },
     rerender: () => {
+      logRatingScrollDebugStep('remove:before-rerender', movieId);
       rerenderCatalogAfterRatingChange(movieId);
+      logRatingScrollDebugStep('remove:after-rerender', movieId);
     },
     onSuccess: () => {
+      logRatingScrollDebugStep('remove:before-feedback', movieId);
       showMovieRatingFeedback(movieId, 'Оценка удалена', 'remove');
+      logRatingScrollDebugStep('remove:after-feedback', movieId);
+
+      requestAnimationFrame(() => {
+        logRatingScrollDebugStep('remove:raf-1', movieId);
+
+        requestAnimationFrame(() => {
+          logRatingScrollDebugStep('remove:raf-2', movieId);
+        });
+      });
     },
     onError: error => {
       console.error('Ошибка удаления оценки фильма:', error);
       showMovieRatingFeedback(movieId, 'Не удалось удалить оценку', 'remove');
     }
   });
+
+  logRatingScrollDebugStep('remove:done', movieId);
 }
 
 function isMobileRatingLayout() {
@@ -2806,12 +2837,16 @@ async function saveUserMovieRating(movieId, ratingValue) {
     return;
   }
 
+  logRatingScrollDebugStep('save:start', movieId);
   blurActiveInteractiveElement();
+  logRatingScrollDebugStep('save:after-blur', movieId);
 
   await runMovieMutationWithUiSync({
     movieId,
     requestSet: ratingRequestInFlight,
     mutation: async () => {
+      logRatingScrollDebugStep('save:before-request', movieId);
+
       const { error } = await supabaseClient
         .from('movie_ratings')
         .upsert(
@@ -2852,18 +2887,34 @@ async function saveUserMovieRating(movieId, ratingValue) {
           sessionStorage.setItem('last_rated_movie', String(movieId));
         }
       }
+
+      logRatingScrollDebugStep('save:after-data-sync', movieId);
     },
     rerender: () => {
+      logRatingScrollDebugStep('save:before-rerender', movieId);
       rerenderCatalogAfterRatingChange(movieId);
+      logRatingScrollDebugStep('save:after-rerender', movieId);
     },
     onSuccess: () => {
+      logRatingScrollDebugStep('save:before-feedback', movieId);
       showMovieRatingFeedback(movieId, `Оценка сохранена: ${normalizedRating}/10`);
+      logRatingScrollDebugStep('save:after-feedback', movieId);
+
+      requestAnimationFrame(() => {
+        logRatingScrollDebugStep('save:raf-1', movieId);
+
+        requestAnimationFrame(() => {
+          logRatingScrollDebugStep('save:raf-2', movieId);
+        });
+      });
     },
     onError: error => {
       console.error('Ошибка сохранения оценки фильма:', error);
       showMovieRatingFeedback(movieId, 'Не удалось сохранить оценку', 'remove');
     }
   });
+
+  logRatingScrollDebugStep('save:done', movieId);
 }
 
 /* =========================================================
