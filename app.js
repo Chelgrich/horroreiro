@@ -2086,6 +2086,14 @@ async function toggleMovieWatchlist(movieId) {
   }
 }
 
+function rerenderCatalogAfterRatingChange(movieId) {
+  if (watchedFilter.value || watchlistFilter.value || ratingFilter.value !== '') {
+    renderMovies();
+  } else {
+    rerenderMovieCard(movieId);
+  }
+}
+
 async function removeUserMovieRating(movieId) {
   if (!currentUser) {
     return;
@@ -2124,12 +2132,7 @@ async function removeUserMovieRating(movieId) {
     console.error('Ошибка удаления оценки фильма:', error);
   } finally {
     ratingRequestInFlight.delete(movieKey);
-
-    if (watchedFilter.value || watchlistFilter.value || ratingFilter.value !== '') {
-      renderMovies();
-    } else {
-      rerenderMovieCard(movieId);
-    }
+    rerenderCatalogAfterRatingChange(movieId);
   }
 }
 
@@ -2394,12 +2397,7 @@ async function saveUserMovieRating(movieId, ratingValue) {
     console.error('Ошибка сохранения оценки фильма:', error);
   } finally {
     ratingRequestInFlight.delete(movieKey);
-
-    if (watchedFilter.value || watchlistFilter.value || ratingFilter.value !== '') {
-      renderMovies();
-    } else {
-      rerenderMovieCard(movieId);
-    }
+    rerenderCatalogAfterRatingChange(movieId);
   }
 }
 
