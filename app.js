@@ -2361,7 +2361,7 @@ async function runMovieMutationWithUiSync({
   const scrollYBeforeMutation = window.scrollY;
 
   if (requestSet.has(movieKey)) {
-    return false;
+    return;
   }
 
   requestSet.add(movieKey);
@@ -2371,11 +2371,10 @@ async function runMovieMutationWithUiSync({
   try {
     await mutation();
     actionSucceeded = true;
-    return true;
   } catch (error) {
     if (typeof onError === 'function') {
       onError(error);
-      return false;
+      return;
     }
 
     throw error;
@@ -2420,7 +2419,7 @@ function rerenderCatalogAfterWatchlistChange(movieId) {
 
 async function addMovieToWatchlist(movieId) {
   if (!currentUser) {
-    return false;
+    return;
   }
 
   const { error } = await supabaseClient
@@ -2441,12 +2440,11 @@ async function addMovieToWatchlist(movieId) {
   }
 
   await fetchMovieWatchlist();
-  return true;
 }
 
 async function removeMovieFromWatchlist(movieId) {
   if (!currentUser) {
-    return false;
+    return;
   }
 
   const { error } = await supabaseClient
@@ -2460,7 +2458,6 @@ async function removeMovieFromWatchlist(movieId) {
   }
 
   await fetchMovieWatchlist();
-  return true;
 }
 
 async function toggleMovieWatchlist(movieId) {
