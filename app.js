@@ -122,6 +122,7 @@ let mobileRatingModalRemoveButton = null;
 let mobileRatingModalMovieId = null;
 let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
+let lastCatalogAnchorMovieId = null;
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -1056,9 +1057,38 @@ function preserveWindowScrollPosition(callback) {
   });
 }
 
-function rerenderCatalogAfterDataReload() {
+function restoreCatalogAnchorMoviePosition(movieId) {
+  if (!movieId) {
+    return;
+  }
+
+  const anchoredCard = container.querySelector(`[data-movie-id="${movieId}"]`);
+
+  if (!anchoredCard) {
+    return;
+  }
+
+  const anchoredCardTop = anchoredCard.getBoundingClientRect().top;
+  const targetTop = Math.max(96, window.innerHeight * 0.18);
+  const scrollDelta = anchoredCardTop - targetTop;
+
+  if (scrollDelta !== 0) {
+    window.scrollBy({
+      top: scrollDelta,
+      behavior: 'auto'
+    });
+  }
+}
+
+function rerenderCatalogAfterDataReload(anchorMovieId = null) {
+  const nextAnchorMovieId = anchorMovieId ?? lastCatalogAnchorMovieId;
+
   preserveWindowScrollPosition(() => {
     renderMovies();
+  });
+
+  requestAnimationFrame(() => {
+    restoreCatalogAnchorMoviePosition(nextAnchorMovieId);
   });
 }
 
@@ -1656,7 +1686,7 @@ async function addMovie(event) {
       'Превышено время ожидания обновления каталога.'
       ); // сначала дожидаемся полной синхронизации состояния каталога
 
-      rerenderCatalogAfterDataReload();
+      rerenderCatalogAfterDataReload(insertedMovie.id);
       resetFormToCreateMode();
       closeMovieModal();
   } catch (error) {
@@ -1850,7 +1880,7 @@ async function updateMovie(event) {
       'Превышено время ожидания обновления каталога.'
       );
 
-      rerenderCatalogAfterDataReload();
+      rerenderCatalogAfterDataReload(editingMovieId);
       closeMovieModal();
       resetFormToCreateMode();
   } catch (error) {
@@ -1900,7 +1930,7 @@ async function deleteMovie(movieId, movieTitle) {
     }
 
     await reloadCatalogData();
-    rerenderCatalogAfterDataReload();
+    rerenderCatalogAfterDataReload(movieId);
 
     formMessage.textContent = `Фильм "${movieTitle}" удалён.`;
   } catch (error) {
@@ -3233,6 +3263,8 @@ card.innerHTML = `
 }
 
 function rerenderMovieCard(movieId) {
+  lastCatalogAnchorMovieId = String(movieId);
+
   const existingCard = container.querySelector(`[data-movie-id="${movieId}"]`);
 
   if (!existingCard) {
