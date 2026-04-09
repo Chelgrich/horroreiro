@@ -3670,7 +3670,7 @@ if (filtersModalBackdrop) {
   });
 }
 
-const debouncedRenderMovies = debounce(renderMovies, 200);
+const debouncedRenderMovies = debounce(triggerCatalogRender, 200);
 
 let lastSearchQuery = '';
 
@@ -3689,7 +3689,7 @@ searchInput.addEventListener('input', () => {
   saveCatalogState();
   debouncedRenderMovies();
 });
-const debouncedRenderMoviesForFilters = debounce(renderMovies, 120);
+const debouncedRenderMoviesForFilters = debounce(triggerCatalogRender, 120);
 
 const handleFiltersChange = () => {
   trackFiltersUsageIfNeeded();
