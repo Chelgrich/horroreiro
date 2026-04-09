@@ -929,6 +929,36 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   gap: 8px;
 }
 
+.quick-presets-bar {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-preset-button {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #cfd6de;
+  background: #14191f;
+  border-color: #2d3640;
+}
+
+.quick-preset-button:hover {
+  color: #e7ebf0;
+  background: #182028;
+  border-color: #36414d;
+}
+
+.quick-preset-button.is-active {
+  color: #dbe7ff;
+  background: rgba(91, 140, 255, 0.16);
+  border-color: rgba(91, 140, 255, 0.42);
+  box-shadow: 0 0 0 1px rgba(91, 140, 255, 0.16);
+}
+
 .active-filter-chip {
   min-height: 32px;
   padding: 6px 16px; /* было 10px → стало 16px по горизонтали */
@@ -2555,6 +2585,14 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .active-filters-bar {
     gap: 6px;
+  }
+
+  .quick-presets-bar {
+    gap: 6px;
+  }
+
+  .quick-preset-button {
+    max-width: 100%;
   }
 
   .active-filter-chip {

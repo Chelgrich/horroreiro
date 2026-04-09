@@ -37,6 +37,7 @@ const closeFiltersModalButton = document.getElementById('closeFiltersModalButton
 const resetFiltersTopButton = document.getElementById('resetFiltersTopButton');
 const filtersModalStatus = document.getElementById('filtersModalStatus');
 const activeFiltersBar = document.getElementById('activeFiltersBar');
+const quickPresetsBar = document.getElementById('quickPresetsBar');
 
 const container = document.getElementById('movies');
 const moviesSectionTitle = document.querySelector('.movies-section .section-title');
@@ -234,6 +235,7 @@ function applySavedCatalogState() {
 
     syncCatalogViewToggleButton();
     updateFiltersButtonLabel();
+    syncQuickPresetButtons();
   } catch (error) {
     console.warn('Ошибка восстановления состояния каталога:', error);
   }
@@ -412,6 +414,7 @@ function initCatalogViewToggleButton() {
       }
 
       syncCatalogViewToggleButton();
+      saveCatalogState();
       renderMovies();
     });
 
