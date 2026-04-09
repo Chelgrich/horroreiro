@@ -2404,11 +2404,11 @@ async function runMovieMutationWithUiSync({
   }
 }
 
-function rerenderCatalogWithFallback(movieId, shouldRenderFullCatalog) {
+function rerenderCatalogWithFallback(movieId, shouldRenderFullCatalog, preserveCardTop = true) {
   if (shouldRenderFullCatalog) {
     rerenderCatalogAfterDataReload(movieId);
   } else {
-    rerenderMovieCard(movieId);
+    rerenderMovieCard(movieId, { preserveCardTop });
   }
 }
 
@@ -2512,7 +2512,8 @@ async function toggleMovieWatchlist(movieId) {
 function rerenderCatalogAfterRatingChange(movieId) {
   rerenderCatalogWithFallback(
     movieId,
-    Boolean(watchedFilter.value || watchlistFilter.value || ratingFilter.value !== '')
+    Boolean(watchedFilter.value || watchlistFilter.value || ratingFilter.value !== ''),
+    false
   );
 }
 
@@ -3496,7 +3497,7 @@ card.innerHTML = `
   return card;
 }
 
-function rerenderMovieCard(movieId) {
+function rerenderMovieCard(movieId, { preserveCardTop = true } = {}) {
   lastCatalogAnchorMovieId = String(movieId);
 
   const existingCard = container.querySelector(`[data-movie-id="${movieId}"]`);
@@ -3544,6 +3545,10 @@ function rerenderMovieCard(movieId) {
 
   if (wasExternalLinksExpanded) {
     requestAnimationFrame(syncOpenExternalLinksLayouts);
+  }
+
+  if (!preserveCardTop) {
+    return;
   }
 
   const nextCardTop = newCard.getBoundingClientRect().top;
