@@ -190,10 +190,12 @@ function highlightSearchMatches(text, searchQuery) {
     return safeText;
   }
 
-  const words = normalizedQuery
-    .split(' ')
-    .map(word => escapeRegExp(word))
-    .filter(Boolean);
+  const words = [...new Set(
+    normalizedQuery
+      .split(' ')
+      .map(word => escapeRegExp(word))
+      .filter(Boolean)
+  )].sort((a, b) => b.length - a.length);
 
   let result = safeText;
 
