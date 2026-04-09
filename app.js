@@ -2217,12 +2217,16 @@ function showMovieWatchlistFeedback(movieId, text, type = 'success') {
   watchlistFeedbackTimers.set(movieId, timeoutId);
 }
 
-function rerenderCatalogAfterWatchlistChange(movieId) {
-  if (watchlistFilter.value) {
-    renderMovies();
+function rerenderCatalogWithFallback(movieId, shouldRenderFullCatalog) {
+  if (shouldRenderFullCatalog) {
+    rerenderCatalogAfterDataReload(movieId);
   } else {
     rerenderMovieCard(movieId);
   }
+}
+
+function rerenderCatalogAfterWatchlistChange(movieId) {
+  rerenderCatalogWithFallback(movieId, Boolean(watchlistFilter.value));
 }
 
 async function addMovieToWatchlist(movieId) {
@@ -2309,11 +2313,10 @@ async function toggleMovieWatchlist(movieId) {
 }
 
 function rerenderCatalogAfterRatingChange(movieId) {
-  if (watchedFilter.value || watchlistFilter.value || ratingFilter.value !== '') {
-    renderMovies();
-  } else {
-    rerenderMovieCard(movieId);
-  }
+  rerenderCatalogWithFallback(
+    movieId,
+    Boolean(watchedFilter.value || watchlistFilter.value || ratingFilter.value !== '')
+  );
 }
 
 async function removeUserMovieRating(movieId) {
