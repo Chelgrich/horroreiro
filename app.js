@@ -3047,7 +3047,7 @@ function renderEmptyState() {
               <button
                 type="button"
                 class="secondary-button secondary-button-compact empty-state-reset-btn"
-                id="emptyStateResetSearchButton"
+                data-empty-state-action="reset-search"
               >
                 Очистить поиск
               </button>
@@ -3060,7 +3060,7 @@ function renderEmptyState() {
               <button
                 type="button"
                 class="secondary-button secondary-button-compact empty-state-reset-btn"
-                id="emptyStateResetFiltersButton"
+                data-empty-state-action="reset-filters"
               >
                 Сбросить фильтры
               </button>
@@ -3082,21 +3082,28 @@ function renderEmptyState() {
     </div>
   `;
 
-  const emptyStateResetSearchButton = document.getElementById('emptyStateResetSearchButton');
-  const emptyStateResetFiltersButton = document.getElementById('emptyStateResetFiltersButton');
+  const emptyStateElement = container.querySelector('.empty-state');
 
-  if (emptyStateResetSearchButton) {
-    emptyStateResetSearchButton.addEventListener('click', () => {
-      searchInput.value = '';
-      saveCatalogState();
-      renderMovies();
-    });
-  }
+  if (emptyStateElement) {
+    emptyStateElement.addEventListener('click', event => {
+      const actionButton = event.target.closest('[data-empty-state-action]');
 
-  if (emptyStateResetFiltersButton) {
-    emptyStateResetFiltersButton.addEventListener('click', () => {
-      resetFilterControls({ preserveSearch: true });
-      renderMovies();
+      if (!actionButton) {
+        return;
+      }
+
+      const action = actionButton.dataset.emptyStateAction;
+
+      if (action === 'reset-search') {
+        searchInput.value = '';
+        saveCatalogState();
+        renderMovies();
+      }
+
+      if (action === 'reset-filters') {
+        resetFilterControls({ preserveSearch: true });
+        renderMovies();
+      }
     });
   }
 }
