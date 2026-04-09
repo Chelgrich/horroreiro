@@ -1248,8 +1248,11 @@ function isMovieWatchedByCurrentUser(movieId) {
   return getCurrentUserRating(movieId) !== null;
 }
 
-function resetFilterControls() {
-  searchInput.value = '';
+function resetFilterControls({ preserveSearch = false } = {}) {
+  if (!preserveSearch) {
+    searchInput.value = '';
+  }
+
   genreFilter.value = '';
   countryFilter.value = '';
   ratingFilter.value = '';
@@ -3092,20 +3095,7 @@ function renderEmptyState() {
 
   if (emptyStateResetFiltersButton) {
     emptyStateResetFiltersButton.addEventListener('click', () => {
-      genreFilter.value = '';
-      countryFilter.value = '';
-      ratingFilter.value = '';
-      yearFilter.value = '';
-      watchlistFilter.value = '';
-      watchedFilter.value = '';
-
-      filterCustomSelectElements
-        .filter(selectElement => selectElement !== sortMode)
-        .forEach(selectElement => {
-          refreshCustomSelect(selectElement);
-        });
-
-      saveCatalogState();
+      resetFilterControls({ preserveSearch: true });
       renderMovies();
     });
   }
