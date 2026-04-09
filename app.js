@@ -1043,8 +1043,23 @@ async function reloadCatalogData() {
   initCustomSelects();
 }
 
+function preserveWindowScrollPosition(callback) {
+  const currentScrollY = window.scrollY;
+
+  callback();
+
+  requestAnimationFrame(() => {
+    window.scrollTo({
+      top: currentScrollY,
+      behavior: 'auto'
+    });
+  });
+}
+
 function rerenderCatalogAfterDataReload() {
-  renderMovies();
+  preserveWindowScrollPosition(() => {
+    renderMovies();
+  });
 }
 
 /* =========================================================
@@ -3232,6 +3247,7 @@ function rerenderMovieCard(movieId) {
     return;
   }
 
+  const previousCardTop = existingCard.getBoundingClientRect().top;
   const newCard = createMovieCard(movie);
 
   if (
@@ -3242,6 +3258,16 @@ function rerenderMovieCard(movieId) {
   }
 
   existingCard.replaceWith(newCard);
+
+  const nextCardTop = newCard.getBoundingClientRect().top;
+  const scrollDelta = nextCardTop - previousCardTop;
+
+  if (scrollDelta !== 0) {
+    window.scrollBy({
+      top: scrollDelta,
+      behavior: 'auto'
+    });
+  }
 }
 
 function getFilteredMovies() {
