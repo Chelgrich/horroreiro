@@ -1965,7 +1965,7 @@ async function applyCurrentSessionUser(user) {
 
 async function syncCatalogAfterAuthChange() {
   await fetchMovieWatchlist();
-  renderMovies();
+  rerenderCatalogAfterDataReload();
 }
 
 async function login(event) {
