@@ -2722,16 +2722,42 @@ function getPosterHtml(movie, isWatchedByCurrentUser, isInWatchlist) {
 }
 
 function renderEmptyState() {
-  const hasSearchQuery = searchInput.value.trim() !== '';
-  const hasActiveFilters = getActiveFilterChips().length > 0;
+  const searchQuery = searchInput.value.trim();
+  const hasSearchQuery = searchQuery !== '';
+  const activeFilterChips = getActiveFilterChips();
+  const hasActiveFilters = activeFilterChips.length > 0;
 
   const emptyStateTitle = hasSearchQuery || hasActiveFilters
     ? 'Ничего не найдено'
     : 'Каталог пока пуст';
 
-    const emptyStateText = hasSearchQuery || hasActiveFilters
-    ? 'Попробуй изменить фильтры или очистить поиск — возможно, нужный фильм просто не попал в выборку.'
-    : 'В каталоге пока нет фильмов.';
+  let emptyStateText = 'В каталоге пока нет фильмов.';
+
+  if (hasSearchQuery && hasActiveFilters) {
+    const filtersSummary = activeFilterChips
+      .map(chip => chip.label)
+      .join(', ');
+
+    emptyStateText = `
+      По запросу «${searchQuery}» ничего не найдено.
+      Сейчас выдачу также ограничивают фильтры: ${filtersSummary}.
+      Попробуй очистить поиск или ослабить фильтры.
+    `;
+  } else if (hasSearchQuery) {
+    emptyStateText = `
+      По запросу «${searchQuery}» ничего не найдено.
+      Попробуй изменить формулировку поиска.
+    `;
+  } else if (hasActiveFilters) {
+    const filtersSummary = activeFilterChips
+      .map(chip => chip.label)
+      .join(', ');
+
+    emptyStateText = `
+      Сейчас выдачу ограничивают фильтры: ${filtersSummary}.
+      Попробуй снять часть ограничений.
+    `;
+  }
 
   const emptyStateActions = hasSearchQuery || hasActiveFilters
     ? `
@@ -2741,7 +2767,7 @@ function renderEmptyState() {
           class="secondary-button secondary-button-compact empty-state-reset-btn"
           id="emptyStateResetButton"
         >
-          Сбросить фильтры
+          ${hasSearchQuery ? 'Очистить поиск и фильтры' : 'Сбросить фильтры'}
         </button>
       </div>
     `
