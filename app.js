@@ -3536,7 +3536,7 @@ function rerenderMovieCard(movieId) {
   const nextCardTop = newCard.getBoundingClientRect().top;
   const scrollDelta = nextCardTop - previousCardTop;
 
-  if (scrollDelta !== 0) {
+  if (Math.abs(scrollDelta) >= 4) {
     window.scrollBy({
       top: scrollDelta,
       behavior: 'auto'
