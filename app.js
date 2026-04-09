@@ -1534,7 +1534,7 @@ async function addMovie(event) {
       'Превышено время ожидания обновления каталога.'
       ); // сначала дожидаемся полной синхронизации состояния каталога
 
-      renderMovies();
+      rerenderCatalogAfterDataReload();
       resetFormToCreateMode();
       closeMovieModal();
   } catch (error) {
@@ -1728,7 +1728,7 @@ async function updateMovie(event) {
       'Превышено время ожидания обновления каталога.'
       );
 
-      renderMovies();
+      rerenderCatalogAfterDataReload();
       closeMovieModal();
       resetFormToCreateMode();
   } catch (error) {
@@ -1778,7 +1778,7 @@ async function deleteMovie(movieId, movieTitle) {
     }
 
     await reloadCatalogData();
-    renderMovies();
+    rerenderCatalogAfterDataReload();
 
     formMessage.textContent = `Фильм "${movieTitle}" удалён.`;
   } catch (error) {
