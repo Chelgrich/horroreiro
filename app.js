@@ -3144,9 +3144,9 @@ card.innerHTML = `
 
   <h5 class="movie-title">${highlightSearchMatches(movie.title, searchInput.value)}</h5>
 
-  <p>Оригинальное название: ${movie.original_title ?? '-'}</p>
+  <p>Оригинальное название: ${movie.original_title ? highlightSearchMatches(movie.original_title, searchInput.value) : '-'}</p>
   <p>Год: ${movie.year ?? '-'}</p>
-  <p>Режиссёр: ${movie.director ?? '-'}</p>
+  <p>Режиссёр: ${movie.director ? highlightSearchMatches(movie.director, searchInput.value) : '-'}</p>
   <p>Жанры: ${genres || '-'}</p>
   <p>Страны: ${countries || '-'}</p>
 
