@@ -2348,73 +2348,6 @@ function showMovieWatchlistFeedback(movieId, text, type = 'success') {
   watchlistFeedbackTimers.set(movieId, timeoutId);
 }
 
-function stabilizeWindowScrollPosition(scrollY) {
-  const restoreScroll = () => {
-    window.scrollTo({
-      top: scrollY,
-      behavior: 'auto'
-    });
-  };
-
-  restoreScroll();
-
-  requestAnimationFrame(() => {
-    restoreScroll();
-
-    requestAnimationFrame(() => {
-      restoreScroll();
-    });
-  });
-}
-
-function blurActiveInteractiveElement() {
-  const activeElement = document.activeElement;
-
-  if (
-    activeElement instanceof HTMLElement &&
-    (
-      activeElement.tagName === 'BUTTON' ||
-      activeElement.tagName === 'A' ||
-      activeElement.tagName === 'INPUT' ||
-      activeElement.tagName === 'SELECT' ||
-      activeElement.tagName === 'TEXTAREA'
-    )
-  ) {
-    activeElement.blur();
-  }
-}
-
-function withTemporarilyDisabledScrollAnchoring(callback) {
-  const previousHtmlOverflowAnchor = document.documentElement.style.overflowAnchor;
-  const previousBodyOverflowAnchor = document.body.style.overflowAnchor;
-  const previousContainerOverflowAnchor = container.style.overflowAnchor;
-
-  document.documentElement.style.overflowAnchor = 'none';
-  document.body.style.overflowAnchor = 'none';
-  container.style.overflowAnchor = 'none';
-
-  try {
-    callback();
-  } finally {
-    requestAnimationFrame(() => {
-      document.documentElement.style.overflowAnchor = previousHtmlOverflowAnchor;
-      document.body.style.overflowAnchor = previousBodyOverflowAnchor;
-      container.style.overflowAnchor = previousContainerOverflowAnchor;
-    });
-  }
-}
-
-function logRatingScrollDebugStep(label, movieId) {
-  console.log(
-    `[rating-scroll] ${label}`,
-    {
-      movieId: String(movieId),
-      scrollY: window.scrollY,
-      activeElement: document.activeElement?.tagName || null
-    }
-  );
-}
-
 async function runMovieMutationWithUiSync({
   movieId,
   requestSet,
@@ -2423,7 +2356,6 @@ async function runMovieMutationWithUiSync({
   onSuccess
 }) {
   const movieKey = String(movieId);
-  const scrollYBeforeMutation = window.scrollY;
 
   if (requestSet.has(movieKey)) {
     return false;
@@ -2446,8 +2378,6 @@ async function runMovieMutationWithUiSync({
       if (typeof onSuccess === 'function') {
         onSuccess();
       }
-
-      stabilizeWindowScrollPosition(scrollYBeforeMutation);
     }
   }
 }
@@ -2563,14 +2493,12 @@ async function toggleMovieWatchlist(movieId) {
 }
 
 function rerenderCatalogAfterRatingChange(movieId) {
-  withTemporarilyDisabledScrollAnchoring(() => {
-    rerenderCatalogWithFallback(
-      movieId,
-      Boolean(watchedFilter.value || watchlistFilter.value || ratingFilter.value !== ''),
-      false,
-      false
-    );
-  });
+  rerenderCatalogWithFallback(
+    movieId,
+    Boolean(watchedFilter.value || watchlistFilter.value || ratingFilter.value !== ''),
+    false,
+    false
+  );
 }
 
 async function removeUserMovieRating(movieId) {
@@ -2578,16 +2506,10 @@ async function removeUserMovieRating(movieId) {
     return;
   }
 
-  logRatingScrollDebugStep('remove:start', movieId);
-  blurActiveInteractiveElement();
-  logRatingScrollDebugStep('remove:after-blur', movieId);
-
   await runMovieMutationWithUiSync({
     movieId,
     requestSet: ratingRequestInFlight,
     mutation: async () => {
-      logRatingScrollDebugStep('remove:before-request', movieId);
-
       const { error } = await supabaseClient
         .from('movie_ratings')
         .delete()
@@ -2606,34 +2528,18 @@ async function removeUserMovieRating(movieId) {
         fetchMovieRatings(),
         fetchMovieWatchlist()
       ]);
-
-      logRatingScrollDebugStep('remove:after-data-sync', movieId);
     },
     rerender: () => {
-      logRatingScrollDebugStep('remove:before-rerender', movieId);
       rerenderCatalogAfterRatingChange(movieId);
-      logRatingScrollDebugStep('remove:after-rerender', movieId);
     },
     onSuccess: () => {
-      logRatingScrollDebugStep('remove:before-feedback', movieId);
       showMovieRatingFeedback(movieId, 'Оценка удалена', 'remove');
-      logRatingScrollDebugStep('remove:after-feedback', movieId);
-
-      requestAnimationFrame(() => {
-        logRatingScrollDebugStep('remove:raf-1', movieId);
-
-        requestAnimationFrame(() => {
-          logRatingScrollDebugStep('remove:raf-2', movieId);
-        });
-      });
     },
     onError: error => {
       console.error('Ошибка удаления оценки фильма:', error);
       showMovieRatingFeedback(movieId, 'Не удалось удалить оценку', 'remove');
     }
   });
-
-  logRatingScrollDebugStep('remove:done', movieId);
 }
 
 function isMobileRatingLayout() {
@@ -2843,16 +2749,10 @@ async function saveUserMovieRating(movieId, ratingValue) {
     return;
   }
 
-  logRatingScrollDebugStep('save:start', movieId);
-  blurActiveInteractiveElement();
-  logRatingScrollDebugStep('save:after-blur', movieId);
-
   await runMovieMutationWithUiSync({
     movieId,
     requestSet: ratingRequestInFlight,
     mutation: async () => {
-      logRatingScrollDebugStep('save:before-request', movieId);
-
       const { error } = await supabaseClient
         .from('movie_ratings')
         .upsert(
@@ -2893,34 +2793,18 @@ async function saveUserMovieRating(movieId, ratingValue) {
           sessionStorage.setItem('last_rated_movie', String(movieId));
         }
       }
-
-      logRatingScrollDebugStep('save:after-data-sync', movieId);
     },
     rerender: () => {
-      logRatingScrollDebugStep('save:before-rerender', movieId);
       rerenderCatalogAfterRatingChange(movieId);
-      logRatingScrollDebugStep('save:after-rerender', movieId);
     },
     onSuccess: () => {
-      logRatingScrollDebugStep('save:before-feedback', movieId);
       showMovieRatingFeedback(movieId, `Оценка сохранена: ${normalizedRating}/10`);
-      logRatingScrollDebugStep('save:after-feedback', movieId);
-
-      requestAnimationFrame(() => {
-        logRatingScrollDebugStep('save:raf-1', movieId);
-
-        requestAnimationFrame(() => {
-          logRatingScrollDebugStep('save:raf-2', movieId);
-        });
-      });
     },
     onError: error => {
       console.error('Ошибка сохранения оценки фильма:', error);
       showMovieRatingFeedback(movieId, 'Не удалось сохранить оценку', 'remove');
     }
   });
-
-  logRatingScrollDebugStep('save:done', movieId);
 }
 
 /* =========================================================
