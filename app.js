@@ -2367,6 +2367,23 @@ function stabilizeWindowScrollPosition(scrollY) {
   });
 }
 
+function blurActiveInteractiveElement() {
+  const activeElement = document.activeElement;
+
+  if (
+    activeElement instanceof HTMLElement &&
+    (
+      activeElement.tagName === 'BUTTON' ||
+      activeElement.tagName === 'A' ||
+      activeElement.tagName === 'INPUT' ||
+      activeElement.tagName === 'SELECT' ||
+      activeElement.tagName === 'TEXTAREA'
+    )
+  ) {
+    activeElement.blur();
+  }
+}
+
 async function runMovieMutationWithUiSync({
   movieId,
   requestSet,
@@ -2521,6 +2538,8 @@ async function removeUserMovieRating(movieId) {
   if (!currentUser) {
     return;
   }
+
+  blurActiveInteractiveElement();
 
   await runMovieMutationWithUiSync({
     movieId,
@@ -2764,6 +2783,8 @@ async function saveUserMovieRating(movieId, ratingValue) {
   ) {
     return;
   }
+
+  blurActiveInteractiveElement();
 
   await runMovieMutationWithUiSync({
     movieId,
