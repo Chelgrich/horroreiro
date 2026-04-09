@@ -121,6 +121,7 @@ let mobileRatingModalMeta = null;
 let mobileRatingModalRemoveButton = null;
 let mobileRatingModalMovieId = null;
 let authStateSyncRequestId = 0;
+let loadedPosterUrls = new Set();
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -2674,22 +2675,22 @@ function getPosterHtml(movie, isWatchedByCurrentUser, isInWatchlist) {
   return `
     <div class="movie-poster-block">
       <div class="movie-poster-wrapper">
-        ${
-          movie.poster_url
-            ? `
-              <div class="movie-poster-skeleton" aria-hidden="true"></div>
-              <img
-                class="movie-poster"
-                src="${movie.poster_url}"
-                alt="Постер фильма ${movie.title}"
-                loading="lazy"
-                decoding="async"
-              >
-            `
-            : `<div class="movie-poster-placeholder">Нет постера</div>`
-        }
+      ${
+        movie.poster_url
+          ? `
+            <div class="movie-poster-skeleton ${loadedPosterUrls.has(movie.poster_url) ? 'is-hidden' : ''}" aria-hidden="true"></div>
+            <img
+              class="movie-poster ${loadedPosterUrls.has(movie.poster_url) ? 'is-loaded' : ''}"
+              src="${movie.poster_url}"
+              alt="Постер фильма ${movie.title}"
+              loading="lazy"
+              decoding="async"
+            >
+          `
+          : `<div class="movie-poster-placeholder">Нет постера</div>`
+      }
 
-        ${
+      ${
           currentUser && !isWatchedByCurrentUser
             ? `
               <button
@@ -2803,6 +2804,10 @@ function bindPosterLoadState(posterImage, posterSkeleton) {
   }
 
   const handlePosterReady = () => {
+    if (posterImage.currentSrc || posterImage.src) {
+      loadedPosterUrls.add(posterImage.currentSrc || posterImage.src);
+    }
+
     posterImage.classList.add('is-loaded');
     posterSkeleton.classList.add('is-hidden');
   };
