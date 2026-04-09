@@ -92,6 +92,7 @@ JS-БЛОК 3. ГЛОБАЛЬНОЕ СОСТОЯНИЕ ПРИЛОЖЕНИЯ
 Хранит данные каталога, пользователя и состояние интерфейса.
 ========================================================== */
 const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
+const CATALOG_STATE_STORAGE_KEY = 'horroreiro_catalog_state';
 const EMAIL_CONFIRMATION_PENDING_KEY = 'horroreiro_email_confirmation_pending';
 const EMAIL_CONFIRMATION_TRACKED_KEY = 'horroreiro_email_confirmation_tracked';
 
@@ -175,6 +176,67 @@ function debounce(callback, delay = 200) {
       callback(...args);
     }, delay);
   };
+}
+
+function saveCatalogState() {
+  try {
+    localStorage.setItem(
+      CATALOG_STATE_STORAGE_KEY,
+      JSON.stringify({
+        searchQuery: searchInput.value,
+        genre: genreFilter.value,
+        country: countryFilter.value,
+        rating: ratingFilter.value,
+        year: yearFilter.value,
+        watchlist: currentUser ? watchlistFilter.value : '',
+        watched: currentUser ? watchedFilter.value : '',
+        viewMode: viewMode.value,
+        sortMode: sortMode.value
+      })
+    );
+  } catch (error) {
+    console.warn('Ошибка сохранения состояния каталога:', error);
+  }
+}
+
+function applySavedCatalogState() {
+  try {
+    const rawCatalogState = localStorage.getItem(CATALOG_STATE_STORAGE_KEY);
+
+    if (!rawCatalogState) {
+      return;
+    }
+
+    const catalogState = JSON.parse(rawCatalogState);
+
+    searchInput.value = catalogState.searchQuery || '';
+    genreFilter.value = catalogState.genre || '';
+    countryFilter.value = catalogState.country || '';
+    ratingFilter.value = catalogState.rating || '';
+    yearFilter.value = catalogState.year || '';
+    watchlistFilter.value = currentUser ? (catalogState.watchlist || '') : '';
+    watchedFilter.value = currentUser ? (catalogState.watched || '') : '';
+    viewMode.value = catalogState.viewMode || 'list';
+    sortMode.value = catalogState.sortMode || 'default';
+
+    [
+      genreFilter,
+      countryFilter,
+      ratingFilter,
+      yearFilter,
+      watchlistFilter,
+      watchedFilter,
+      viewMode,
+      sortMode
+    ].forEach(selectElement => {
+      refreshCustomSelect(selectElement);
+    });
+
+    syncCatalogViewToggleButton();
+    updateFiltersButtonLabel();
+  } catch (error) {
+    console.warn('Ошибка восстановления состояния каталога:', error);
+  }
 }
 
 function updatePosterFileUi() {
@@ -1033,6 +1095,8 @@ function resetFilterControls() {
     .forEach(selectElement => {
       refreshCustomSelect(selectElement);
     });
+
+  saveCatalogState();
 }
 
 function getActiveFilterChips() {
@@ -1138,6 +1202,7 @@ function clearFilterChip(filterKey) {
     refreshCustomSelect(ratingFilter);
   }
 
+  saveCatalogState();
   renderMovies();
 
   // Если модалка фильтров была открыта, после снятия фильтра закрываем её,
@@ -3387,10 +3452,12 @@ searchInput.addEventListener('input', () => {
     lastSearchQuery = '';
   }
 
+  saveCatalogState();
   debouncedRenderMovies();
 });
 const handleFiltersChange = () => {
   trackFiltersUsageIfNeeded();
+  saveCatalogState();
   renderMovies();
 };
 
@@ -3402,10 +3469,12 @@ watchlistFilter.addEventListener('change', handleFiltersChange);
 watchedFilter.addEventListener('change', handleFiltersChange);
 viewMode.addEventListener('change', () => {
   syncCatalogViewToggleButton();
+  saveCatalogState();
   renderMovies();
 });
 sortMode.addEventListener('change', () => {
   trackSortUsageIfNeeded();
+  saveCatalogState();
   renderMovies();
 });
 
@@ -3523,11 +3592,13 @@ async function init() {
       return;
     }
 
+    applySavedCatalogState();
     await syncCatalogAfterAuthChange();
   });
 
   await reloadCatalogData();
   initCatalogViewToggleButton();
+  applySavedCatalogState();
   await syncCatalogAfterAuthChange();
   updateFiltersButtonLabel(); // на старте синхронизируем подпись кнопки
 }
