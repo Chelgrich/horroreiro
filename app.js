@@ -3038,13 +3038,32 @@ function renderEmptyState() {
   const emptyStateActions = hasSearchQuery || hasActiveFilters
     ? `
       <div class="empty-state-actions">
-        <button
-          type="button"
-          class="secondary-button secondary-button-compact empty-state-reset-btn"
-          id="emptyStateResetButton"
-        >
-          ${hasSearchQuery ? 'Очистить поиск и фильтры' : 'Сбросить фильтры'}
-        </button>
+        ${
+          hasSearchQuery
+            ? `
+              <button
+                type="button"
+                class="secondary-button secondary-button-compact empty-state-reset-btn"
+                id="emptyStateResetSearchButton"
+              >
+                Очистить поиск
+              </button>
+            `
+            : ''
+        }
+        ${
+          hasActiveFilters
+            ? `
+              <button
+                type="button"
+                class="secondary-button secondary-button-compact empty-state-reset-btn"
+                id="emptyStateResetFiltersButton"
+              >
+                Сбросить фильтры
+              </button>
+            `
+            : ''
+        }
       </div>
     `
     : '';
@@ -3060,11 +3079,33 @@ function renderEmptyState() {
     </div>
   `;
 
-  const emptyStateResetButton = document.getElementById('emptyStateResetButton');
+  const emptyStateResetSearchButton = document.getElementById('emptyStateResetSearchButton');
+  const emptyStateResetFiltersButton = document.getElementById('emptyStateResetFiltersButton');
 
-  if (emptyStateResetButton) {
-    emptyStateResetButton.addEventListener('click', () => {
-      resetFilterControls();
+  if (emptyStateResetSearchButton) {
+    emptyStateResetSearchButton.addEventListener('click', () => {
+      searchInput.value = '';
+      saveCatalogState();
+      renderMovies();
+    });
+  }
+
+  if (emptyStateResetFiltersButton) {
+    emptyStateResetFiltersButton.addEventListener('click', () => {
+      genreFilter.value = '';
+      countryFilter.value = '';
+      ratingFilter.value = '';
+      yearFilter.value = '';
+      watchlistFilter.value = '';
+      watchedFilter.value = '';
+
+      filterCustomSelectElements
+        .filter(selectElement => selectElement !== sortMode)
+        .forEach(selectElement => {
+          refreshCustomSelect(selectElement);
+        });
+
+      saveCatalogState();
       renderMovies();
     });
   }
