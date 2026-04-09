@@ -1460,10 +1460,11 @@ async function addMovie(event) {
       reloadCatalogData(),
       15000,
       'Превышено время ожидания обновления каталога.'
-    ); // сначала дожидаемся полной синхронизации состояния каталога
+      ); // сначала дожидаемся полной синхронизации состояния каталога
 
-    resetFormToCreateMode();
-    closeMovieModal();
+      renderMovies();
+      resetFormToCreateMode();
+      closeMovieModal();
   } catch (error) {
     console.error('Ошибка при добавлении фильма:', error);
     formMessage.textContent = `Ошибка при добавлении фильма: ${error.message || 'смотри консоль F12.'}`;
@@ -1653,10 +1654,11 @@ async function updateMovie(event) {
       reloadCatalogData(),
       15000,
       'Превышено время ожидания обновления каталога.'
-    );
+      );
 
-    closeMovieModal();
-    resetFormToCreateMode();
+      renderMovies();
+      closeMovieModal();
+      resetFormToCreateMode();
   } catch (error) {
     console.error('Ошибка при редактировании фильма:', error);
     formMessage.textContent = `Ошибка при редактировании фильма: ${error.message || 'смотри консоль F12.'}`;
@@ -1704,6 +1706,7 @@ async function deleteMovie(movieId, movieTitle) {
     }
 
     await reloadCatalogData();
+    renderMovies();
 
     formMessage.textContent = `Фильм "${movieTitle}" удалён.`;
   } catch (error) {
