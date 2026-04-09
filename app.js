@@ -3248,6 +3248,7 @@ function rerenderMovieCard(movieId) {
   }
 
   const previousCardTop = existingCard.getBoundingClientRect().top;
+  const wasExternalLinksExpanded = existingCard.classList.contains('has-open-external-links');
   const newCard = createMovieCard(movie);
 
   if (
@@ -3257,7 +3258,27 @@ function rerenderMovieCard(movieId) {
     newCard.classList.add('is-state-appearing');
   }
 
+  if (wasExternalLinksExpanded) {
+    const newExternalLinksToggle = newCard.querySelector('[data-external-links-toggle="true"]');
+    const newExternalLinksCollapsible = newCard.querySelector('[data-external-links-collapsible]');
+
+    if (newExternalLinksToggle) {
+      newExternalLinksToggle.setAttribute('aria-expanded', 'true');
+      newExternalLinksToggle.textContent = 'Свернуть';
+    }
+
+    if (newExternalLinksCollapsible) {
+      newExternalLinksCollapsible.classList.add('is-open');
+    }
+
+    newCard.classList.add('has-open-external-links');
+  }
+
   existingCard.replaceWith(newCard);
+
+  if (wasExternalLinksExpanded) {
+    requestAnimationFrame(syncOpenExternalLinksLayouts);
+  }
 
   const nextCardTop = newCard.getBoundingClientRect().top;
   const scrollDelta = nextCardTop - previousCardTop;
