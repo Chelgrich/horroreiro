@@ -96,6 +96,8 @@ const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
 const CATALOG_STATE_STORAGE_KEY = 'horroreiro_catalog_state';
 const EMAIL_CONFIRMATION_PENDING_KEY = 'horroreiro_email_confirmation_pending';
 const EMAIL_CONFIRMATION_TRACKED_KEY = 'horroreiro_email_confirmation_tracked';
+const CATALOG_SCROLL_POSITION_KEY = 'horroreiro_catalog_scroll_position';
+const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
 
 let currentUser = null;
 let currentUserRole = null;
@@ -184,6 +186,80 @@ function highlightSearchMatches(text, searchQuery) {
   });
 
   return result;
+}
+
+function saveCatalogScrollPosition() {
+  try {
+    sessionStorage.setItem(
+      CATALOG_SCROLL_POSITION_KEY,
+      String(window.scrollY || window.pageYOffset || 0)
+    );
+  } catch (error) {
+    console.warn('Ошибка сохранения позиции каталога:', error);
+  }
+}
+
+function saveCatalogAnchorMovieId() {
+  try {
+    const movieCards = Array.from(container.querySelectorAll('[data-movie-id]'));
+
+    if (movieCards.length === 0) {
+      sessionStorage.removeItem(CATALOG_ANCHOR_MOVIE_ID_KEY);
+      return;
+    }
+
+    const firstVisibleCard = movieCards.find(card => {
+      const rect = card.getBoundingClientRect();
+      return rect.bottom > 96;
+    });
+
+    const anchorMovieId = firstVisibleCard?.dataset.movieId || movieCards[0].dataset.movieId;
+
+    if (anchorMovieId) {
+      sessionStorage.setItem(CATALOG_ANCHOR_MOVIE_ID_KEY, String(anchorMovieId));
+    }
+  } catch (error) {
+    console.warn('Ошибка сохранения якоря каталога:', error);
+  }
+}
+
+function restoreCatalogScrollPosition() {
+  try {
+    const savedAnchorMovieId = sessionStorage.getItem(CATALOG_ANCHOR_MOVIE_ID_KEY);
+    const savedScrollPosition = sessionStorage.getItem(CATALOG_SCROLL_POSITION_KEY);
+
+    if (savedAnchorMovieId) {
+      requestAnimationFrame(() => {
+        restoreCatalogAnchorMoviePosition(savedAnchorMovieId);
+      });
+
+      sessionStorage.removeItem(CATALOG_ANCHOR_MOVIE_ID_KEY);
+      sessionStorage.removeItem(CATALOG_SCROLL_POSITION_KEY);
+      return;
+    }
+
+    if (savedScrollPosition === null) {
+      return;
+    }
+
+    const scrollY = Number(savedScrollPosition);
+
+    if (!Number.isFinite(scrollY) || scrollY < 0) {
+      sessionStorage.removeItem(CATALOG_SCROLL_POSITION_KEY);
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      window.scrollTo({
+        top: scrollY,
+        behavior: 'auto'
+      });
+    });
+
+    sessionStorage.removeItem(CATALOG_SCROLL_POSITION_KEY);
+  } catch (error) {
+    console.warn('Ошибка восстановления позиции каталога:', error);
+  }
 }
 
 function debounce(callback, delay = 200) {
@@ -3794,6 +3870,11 @@ document.addEventListener('click', event => {
 
 window.addEventListener('resize', syncOpenExternalLinksLayouts);
 
+window.addEventListener('pagehide', () => {
+  saveCatalogAnchorMovieId();
+  saveCatalogScrollPosition();
+});
+
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') {
     return;
@@ -3868,6 +3949,7 @@ async function init() {
   applySavedCatalogState();
   await syncCatalogAfterAuthChange();
   updateFiltersButtonLabel(); // на старте синхронизируем подпись кнопки
+  restoreCatalogScrollPosition();
 }
 
 /* =========================================================
