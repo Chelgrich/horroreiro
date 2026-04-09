@@ -1991,6 +1991,14 @@ function showMovieWatchlistFeedback(movieId, text, type = 'success') {
   watchlistFeedbackTimers.set(movieId, timeoutId);
 }
 
+function rerenderCatalogAfterWatchlistChange(movieId) {
+  if (watchlistFilter.value) {
+    renderMovies();
+  } else {
+    rerenderMovieCard(movieId);
+  }
+}
+
 async function addMovieToWatchlist(movieId) {
   if (!currentUser) {
     return;
@@ -2015,13 +2023,7 @@ async function addMovieToWatchlist(movieId) {
     }
 
     await fetchMovieWatchlist();
-
-    if (watchlistFilter.value) {
-      renderMovies();
-    } else {
-      rerenderMovieCard(movieId);
-    }
-
+    rerenderCatalogAfterWatchlistChange(movieId);
     showMovieWatchlistFeedback(movieId, 'Добавлено в смотреть позже');
   } catch (error) {
     console.error('Ошибка добавления фильма в watchlist:', error);
@@ -2045,13 +2047,7 @@ async function removeMovieFromWatchlist(movieId) {
     }
 
     await fetchMovieWatchlist();
-
-    if (watchlistFilter.value) {
-      renderMovies();
-    } else {
-      rerenderMovieCard(movieId);
-    }
-
+    rerenderCatalogAfterWatchlistChange(movieId);
     showMovieWatchlistFeedback(movieId, 'Удалено из смотреть позже', 'remove');
   } catch (error) {
     console.error('Ошибка удаления фильма из watchlist:', error);
