@@ -3706,12 +3706,12 @@ watchedFilter.addEventListener('change', handleFiltersChange);
 viewMode.addEventListener('change', () => {
   syncCatalogViewToggleButton();
   saveCatalogState();
-  renderMovies();
+  triggerCatalogRender();
 });
 sortMode.addEventListener('change', () => {
   trackSortUsageIfNeeded();
   saveCatalogState();
-  renderMovies();
+  triggerCatalogRender();
 });
 
 if (quickPresetsBar) {
@@ -3729,7 +3729,7 @@ if (quickPresetsBar) {
 if (resetFiltersTopButton) {
   resetFiltersTopButton.addEventListener('click', () => {
     resetFilterControls();
-    renderMovies();
+    triggerCatalogRender();
   });
 }
 
