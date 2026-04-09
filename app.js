@@ -173,11 +173,21 @@ function escapeRegExp(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 function highlightSearchMatches(text, searchQuery) {
   const normalizedQuery = normalizeSearchText(searchQuery);
+  const safeText = escapeHtml(text);
 
   if (!normalizedQuery) {
-    return text;
+    return safeText;
   }
 
   const words = normalizedQuery
@@ -185,7 +195,7 @@ function highlightSearchMatches(text, searchQuery) {
     .map(word => escapeRegExp(word))
     .filter(Boolean);
 
-  let result = text;
+  let result = safeText;
 
   words.forEach(word => {
     const regex = new RegExp(`(${word})`, 'gi');
