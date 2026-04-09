@@ -1103,6 +1103,112 @@ function resetFilterControls() {
   saveCatalogState();
 }
 
+function getActiveQuickPresetKey() {
+  const hasSearchQuery = searchInput.value.trim() !== '';
+  const hasGenreFilter = Boolean(genreFilter.value);
+  const hasCountryFilter = Boolean(countryFilter.value);
+  const hasYearFilter = Boolean(yearFilter.value);
+
+  if (hasSearchQuery || hasGenreFilter || hasCountryFilter || hasYearFilter) {
+    return null;
+  }
+
+  if (
+    viewMode.value === 'releases' &&
+    sortMode.value === 'default' &&
+    ratingFilter.value === '' &&
+    (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
+  ) {
+    return 'releases';
+  }
+
+  if (
+    viewMode.value === 'list' &&
+    sortMode.value === 'default' &&
+    ratingFilter.value === '7' &&
+    (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
+  ) {
+    return 'top-rated';
+  }
+
+  if (
+    currentUser &&
+    viewMode.value === 'list' &&
+    sortMode.value === 'default' &&
+    watchlistFilter.value === 'in_watchlist' &&
+    !watchedFilter.value &&
+    ratingFilter.value === ''
+  ) {
+    return 'watchlist';
+  }
+
+  if (
+    currentUser &&
+    viewMode.value === 'list' &&
+    sortMode.value === 'default' &&
+    watchedFilter.value === 'watched' &&
+    !watchlistFilter.value &&
+    ratingFilter.value === ''
+  ) {
+    return 'watched';
+  }
+
+  return null;
+}
+
+function syncQuickPresetButtons() {
+  if (!quickPresetsBar) {
+    return;
+  }
+
+  const activePresetKey = getActiveQuickPresetKey();
+
+  quickPresetsBar.querySelectorAll('.quick-preset-button').forEach(button => {
+    const presetKey = button.dataset.quickPreset;
+    const requiresAuth = button.dataset.requiresAuth === 'true';
+    const shouldHide = requiresAuth && !currentUser;
+
+    button.style.display = shouldHide ? 'none' : 'inline-flex';
+    button.classList.toggle('is-active', !shouldHide && presetKey === activePresetKey);
+  });
+}
+
+function applyQuickPreset(presetKey) {
+  resetFilterControls();
+  viewMode.value = 'list';
+  sortMode.value = 'default';
+
+  if (presetKey === 'releases') {
+    viewMode.value = 'releases';
+  }
+
+  if (presetKey === 'top-rated') {
+    ratingFilter.value = '7';
+  }
+
+  if (presetKey === 'watchlist' && currentUser) {
+    watchlistFilter.value = 'in_watchlist';
+  }
+
+  if (presetKey === 'watched' && currentUser) {
+    watchedFilter.value = 'watched';
+  }
+
+  [
+    ratingFilter,
+    watchlistFilter,
+    watchedFilter,
+    viewMode,
+    sortMode
+  ].forEach(selectElement => {
+    refreshCustomSelect(selectElement);
+  });
+
+  syncCatalogViewToggleButton();
+  saveCatalogState();
+  renderMovies();
+}
+
 function getActiveFilterChips() {
   const chips = [];
 
@@ -3521,6 +3627,18 @@ sortMode.addEventListener('change', () => {
   saveCatalogState();
   renderMovies();
 });
+
+if (quickPresetsBar) {
+  quickPresetsBar.addEventListener('click', event => {
+    const quickPresetButton = event.target.closest('[data-quick-preset]');
+
+    if (!quickPresetButton) {
+      return;
+    }
+
+    applyQuickPreset(quickPresetButton.dataset.quickPreset);
+  });
+}
 
 if (resetFiltersTopButton) {
   resetFiltersTopButton.addEventListener('click', () => {
