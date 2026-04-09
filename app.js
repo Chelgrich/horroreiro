@@ -3268,14 +3268,14 @@ function rerenderMovieCard(movieId) {
   const existingCard = container.querySelector(`[data-movie-id="${movieId}"]`);
 
   if (!existingCard) {
-    renderMovies();
+    rerenderCatalogAfterDataReload(movieId);
     return;
   }
 
   const movie = allMovies.find(item => String(item.id) === String(movieId));
 
   if (!movie) {
-    renderMovies();
+    rerenderCatalogAfterDataReload(movieId);
     return;
   }
 
