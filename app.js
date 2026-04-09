@@ -2353,9 +2353,11 @@ async function runMovieMutationWithUiSync({
   requestSet,
   mutation,
   rerender,
-  onSuccess
+  onSuccess,
+  preserveWindowScroll = false
 }) {
   const movieKey = String(movieId);
+  const scrollYBeforeMutation = window.scrollY;
 
   if (requestSet.has(movieKey)) {
     return false;
@@ -2377,6 +2379,15 @@ async function runMovieMutationWithUiSync({
 
       if (typeof onSuccess === 'function') {
         onSuccess();
+      }
+
+      if (preserveWindowScroll) {
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top: scrollYBeforeMutation,
+            behavior: 'auto'
+          });
+        });
       }
     }
   }
@@ -2488,7 +2499,8 @@ async function toggleMovieWatchlist(movieId) {
     onError: error => {
       console.error('Ошибка переключения watchlist:', error);
       showMovieWatchlistFeedback(movieId, 'Не удалось обновить смотреть позже', 'remove');
-    }
+    },
+    preserveWindowScroll: true
   });
 }
 
