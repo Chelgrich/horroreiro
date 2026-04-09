@@ -4013,7 +4013,11 @@ document.addEventListener('click', event => {
 
 window.addEventListener('resize', syncOpenExternalLinksLayouts);
 
-window.addEventListener('pagehide', () => {
+window.addEventListener('pagehide', event => {
+  if (event.persisted) {
+    return;
+  }
+
   saveCatalogAnchorMovieId();
   saveCatalogScrollPosition();
 });
