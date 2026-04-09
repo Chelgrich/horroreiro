@@ -1248,9 +1248,19 @@ function isMovieWatchedByCurrentUser(movieId) {
   return getCurrentUserRating(movieId) !== null;
 }
 
+function clearSearchInput() {
+  if (!searchInput.value) {
+    return;
+  }
+
+  searchInput.value = '';
+  lastSearchQuery = '';
+  saveCatalogState();
+}
+
 function resetFilterControls({ preserveSearch = false } = {}) {
   if (!preserveSearch) {
-    searchInput.value = '';
+    clearSearchInput();
   }
 
   genreFilter.value = '';
@@ -3841,6 +3851,17 @@ searchInput.addEventListener('input', () => {
   saveCatalogState();
   debouncedRenderMovies();
 });
+
+searchInput.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || !searchInput.value) {
+    return;
+  }
+
+  event.preventDefault();
+  clearSearchInput();
+  triggerCatalogRender();
+});
+
 const debouncedRenderMoviesForFilters = debounce(triggerCatalogRender, 120);
 
 const handleFiltersChange = () => {
