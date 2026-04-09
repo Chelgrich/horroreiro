@@ -169,6 +169,10 @@ function normalizeSearchText(value) {
     .replace(/\s+/g, ' ');
 }
 
+function escapeRegExp(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function highlightSearchMatches(text, searchQuery) {
   const normalizedQuery = normalizeSearchText(searchQuery);
 
@@ -176,7 +180,10 @@ function highlightSearchMatches(text, searchQuery) {
     return text;
   }
 
-  const words = normalizedQuery.split(' ').filter(Boolean);
+  const words = normalizedQuery
+    .split(' ')
+    .map(word => escapeRegExp(word))
+    .filter(Boolean);
 
   let result = text;
 
