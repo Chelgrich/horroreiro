@@ -1962,6 +1962,11 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   color: #c7d0da;
 }
 
+.movie-rating-feedback.is-error,
+.movie-watchlist-feedback.is-error {
+  color: #ffb4ad;
+}
+
 @keyframes watchlist-feedback-success {
   0% {
     transform: scale(1);

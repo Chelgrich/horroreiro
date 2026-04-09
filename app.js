@@ -2266,8 +2266,15 @@ function showMovieRatingFeedback(movieId, text, type = 'success') {
   }
 
   feedbackElement.textContent = text;
-  feedbackElement.classList.remove('is-success', 'is-remove', 'is-visible');
-  feedbackElement.classList.add(type === 'remove' ? 'is-remove' : 'is-success');
+  feedbackElement.classList.remove('is-success', 'is-remove', 'is-error', 'is-visible');
+
+  if (type === 'remove') {
+    feedbackElement.classList.add('is-remove');
+  } else if (type === 'error') {
+    feedbackElement.classList.add('is-error');
+  } else {
+    feedbackElement.classList.add('is-success');
+  }
 
   requestAnimationFrame(() => {
     feedbackElement.classList.add('is-visible');
@@ -2320,8 +2327,15 @@ function showMovieWatchlistFeedback(movieId, text, type = 'success') {
   }
 
   feedbackElement.textContent = text;
-  feedbackElement.classList.remove('is-success', 'is-remove', 'is-visible');
-  feedbackElement.classList.add(type === 'remove' ? 'is-remove' : 'is-success');
+  feedbackElement.classList.remove('is-success', 'is-remove', 'is-error', 'is-visible');
+
+  if (type === 'remove') {
+    feedbackElement.classList.add('is-remove');
+  } else if (type === 'error') {
+    feedbackElement.classList.add('is-error');
+  } else {
+    feedbackElement.classList.add('is-success');
+  }
 
   requestAnimationFrame(() => {
     feedbackElement.classList.add('is-visible');
@@ -2493,7 +2507,7 @@ async function toggleMovieWatchlist(movieId) {
     },
     onError: error => {
       console.error('Ошибка переключения watchlist:', error);
-      showMovieWatchlistFeedback(movieId, 'Не удалось обновить смотреть позже', 'remove');
+      showMovieWatchlistFeedback(movieId, 'Не удалось обновить смотреть позже', 'error');
     },
     preserveWindowScroll: true
   });
@@ -2544,7 +2558,7 @@ async function removeUserMovieRating(movieId) {
     },
     onError: error => {
       console.error('Ошибка удаления оценки фильма:', error);
-      showMovieRatingFeedback(movieId, 'Не удалось удалить оценку', 'remove');
+      showMovieRatingFeedback(movieId, 'Не удалось сохранить оценку', 'error');
     }
   });
 }
