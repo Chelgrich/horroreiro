@@ -2362,7 +2362,7 @@ function rerenderCatalogAfterWatchlistChange(movieId) {
 
 async function addMovieToWatchlist(movieId) {
   if (!currentUser) {
-    return;
+    return false;
   }
 
   try {
@@ -2384,16 +2384,16 @@ async function addMovieToWatchlist(movieId) {
     }
 
     await fetchMovieWatchlist();
-    rerenderCatalogAfterWatchlistChange(movieId);
-    showMovieWatchlistFeedback(movieId, 'Добавлено в смотреть позже');
+    return true;
   } catch (error) {
     console.error('Ошибка добавления фильма в watchlist:', error);
+    return false;
   }
 }
 
 async function removeMovieFromWatchlist(movieId) {
   if (!currentUser) {
-    return;
+    return false;
   }
 
   try {
@@ -2408,10 +2408,10 @@ async function removeMovieFromWatchlist(movieId) {
     }
 
     await fetchMovieWatchlist();
-    rerenderCatalogAfterWatchlistChange(movieId);
-    showMovieWatchlistFeedback(movieId, 'Удалено из смотреть позже', 'remove');
+    return true;
   } catch (error) {
     console.error('Ошибка удаления фильма из watchlist:', error);
+    return false;
   }
 }
 
@@ -2430,16 +2430,29 @@ async function toggleMovieWatchlist(movieId) {
     return;
   }
 
+  const shouldRemoveFromWatchlist = hasMovieWatchlistRecord(movieId);
+  let watchlistActionSucceeded = false;
+
   watchlistRequestInFlight.add(movieKey);
 
   try {
-    if (hasMovieWatchlistRecord(movieId)) {
-      await removeMovieFromWatchlist(movieId);
+    if (shouldRemoveFromWatchlist) {
+      watchlistActionSucceeded = await removeMovieFromWatchlist(movieId);
     } else {
-      await addMovieToWatchlist(movieId);
+      watchlistActionSucceeded = await addMovieToWatchlist(movieId);
     }
   } finally {
     watchlistRequestInFlight.delete(movieKey);
+
+    if (watchlistActionSucceeded) {
+      rerenderCatalogAfterWatchlistChange(movieId);
+
+      if (shouldRemoveFromWatchlist) {
+        showMovieWatchlistFeedback(movieId, 'Удалено из смотреть позже', 'remove');
+      } else {
+        showMovieWatchlistFeedback(movieId, 'Добавлено в смотреть позже');
+      }
+    }
   }
 }
 
