@@ -977,6 +977,10 @@ async function reloadCatalogData() {
   initCustomSelects();
 }
 
+function rerenderCatalogAfterDataReload() {
+  renderMovies();
+}
+
 /* =========================================================
 JS-БЛОК 11. РАСЧЁТ И ЧТЕНИЕ ОЦЕНОК
 Собирает оценки фильма, считает средний рейтинг и находит
@@ -1725,10 +1729,12 @@ async function restoreSession() {
   if (error) {
     console.error('Ошибка получения сессии:', error);
     await applyCurrentSessionUser(null);
+    await syncCatalogAfterAuthChange();
     return;
   }
 
   await applyCurrentSessionUser(data.session?.user ?? null);
+  await syncCatalogAfterAuthChange();
 }
 
 async function applyCurrentSessionUser(user) {
