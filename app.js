@@ -2537,6 +2537,8 @@ async function removeUserMovieRating(movieId) {
       allMovieRatings = allMovieRatings.filter(item => !(
         item.movie_id === movieId && item.user_id === currentUser.id
       ));
+
+      updateLocalWatchlistState(movieId, true);
     },
     rerender: () => {
       rerenderCatalogAfterRatingChange(movieId);
@@ -2745,6 +2747,8 @@ async function saveUserMovieRating(movieId, ratingValue) {
     return;
   }
 
+  // Оценка переводит фильм в просмотренные, но не удаляет саму
+  // watchlist-запись: при снятии оценки фильм должен вернуться туда.
   const normalizedRating = Number(ratingValue);
 
   if (
