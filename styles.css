@@ -251,7 +251,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 .movies-section-heading {
   min-width: 0;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
 }
 
@@ -260,6 +260,8 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   margin: 0;
   line-height: 1.15;
   display: block;
+  position: relative;
+  top: -3px;
 }
 
 .movies-result-count {
@@ -268,6 +270,8 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   line-height: 1.15;
   color: #9aa3ad;
   white-space: nowrap;
+  position: relative;
+  top: -2px;
 }
 
 .catalog-view-toggle {
@@ -2638,6 +2642,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     width: 100%;
     font-size: 12px;
     text-align: left;
+    top: 0;
   }
 
   .movies-section-heading {
