@@ -3219,8 +3219,10 @@ function bindPosterLoadState(posterImage, posterSkeleton) {
   }
 
   const handlePosterReady = () => {
-    if (posterImage.currentSrc || posterImage.src) {
-      loadedPosterUrls.add(posterImage.currentSrc || posterImage.src);
+    const loadedPosterUrl = posterImage.currentSrc || posterImage.src;
+
+    if (loadedPosterUrl) {
+      loadedPosterUrls.add(loadedPosterUrl);
     }
 
     posterImage.classList.add('is-loaded');
@@ -3324,8 +3326,9 @@ function syncOpenExternalLinksLayouts() {
 
 function createMovieCard(movie) {
   const card = document.createElement('article');
-  const currentUserRating = getCurrentUserRating(movie.id);
-  const userMovieState = getCurrentUserMovieState(movie.id);
+  const movieId = movie.id;
+  const currentUserRating = getCurrentUserRating(movieId);
+  const userMovieState = getCurrentUserMovieState(movieId);
 
   card.className = 'movie-card';
 
@@ -3334,12 +3337,12 @@ function createMovieCard(movie) {
   } else if (userMovieState.isInWatchlist) {
     card.classList.add('movie-card-watchlist');
   }
-  card.dataset.movieId = String(movie.id);
+  card.dataset.movieId = String(movieId);
 
   const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
   const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
-  const averageRating = getMovieAverageRating(movie.id);
-  const votesCount = getMovieRatings(movie.id).length;
+  const averageRating = getMovieAverageRating(movieId);
+  const votesCount = getMovieRatings(movieId).length;
 
   const ratingSummaryHtml = `
   <div class="movie-rating-summary">
@@ -4042,7 +4045,9 @@ document.addEventListener('click', event => {
 
   const openedCard = container.querySelector('.movie-card.has-open-external-links');
 
-  if (!openedCard) return;
+  if (!openedCard) {
+    return;
+  }
 
   const toggle = openedCard.querySelector('[data-external-links-toggle="true"]');
   const panel = openedCard.querySelector('[data-external-links-collapsible]');
