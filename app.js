@@ -2222,6 +2222,10 @@ async function logout() {
     return;
   }
 
+  await applyCurrentSessionUser(null);
+  applySavedCatalogState();
+  await syncCatalogAfterAuthChange();
+
   showAuthMessage('Вы вышли из аккаунта.', 'success', true);
 }
 
