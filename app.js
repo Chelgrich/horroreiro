@@ -3618,10 +3618,11 @@ function getFilteredMovies() {
   const selectedWatched = watchedFilter.value;
   const selectedSortMode = sortMode.value;
   const searchQuery = searchInput.value;
+  const hasSearchQuery = searchQuery.trim() !== '';
 
   let filteredMovies = [...allMovies];
 
-  if (searchQuery.trim() !== '') {
+  if (hasSearchQuery) {
     filteredMovies = filteredMovies.filter(movie =>
       movieMatchesSearch(movie, searchQuery)
     );
@@ -3658,25 +3659,27 @@ function getFilteredMovies() {
     );
   }
 
-  if (currentUser && selectedWatchlist === 'in_watchlist') {
+  const hasCurrentUser = Boolean(currentUser);
+
+  if (hasCurrentUser && selectedWatchlist === 'in_watchlist') {
     filteredMovies = filteredMovies.filter(movie =>
       isMovieInCurrentUserWatchlist(movie.id)
     );
   }
 
-  if (currentUser && selectedWatchlist === 'not_in_watchlist') {
+  if (hasCurrentUser && selectedWatchlist === 'not_in_watchlist') {
     filteredMovies = filteredMovies.filter(movie =>
       !isMovieInCurrentUserWatchlist(movie.id)
     );
   }
 
-  if (currentUser && selectedWatched === 'watched') {
+  if (hasCurrentUser && selectedWatched === 'watched') {
     filteredMovies = filteredMovies.filter(movie =>
       isMovieWatchedByCurrentUser(movie.id)
     );
   }
 
-  if (currentUser && selectedWatched === 'unwatched') {
+  if (hasCurrentUser && selectedWatched === 'unwatched') {
     filteredMovies = filteredMovies.filter(movie =>
       !isMovieWatchedByCurrentUser(movie.id)
     );
