@@ -1315,7 +1315,6 @@ function getActiveQuickPresetKey() {
 
   if (
     currentUser &&
-    viewMode.value === 'list' &&
     sortMode.value === 'default' &&
     watchlistFilter.value === 'in_watchlist' &&
     !watchedFilter.value &&
@@ -1326,7 +1325,6 @@ function getActiveQuickPresetKey() {
 
   if (
     currentUser &&
-    viewMode.value === 'list' &&
     sortMode.value === 'default' &&
     watchedFilter.value === 'watched' &&
     !watchlistFilter.value &&
@@ -1337,7 +1335,6 @@ function getActiveQuickPresetKey() {
 
   if (
     currentUser &&
-    viewMode.value === 'list' &&
     sortMode.value === 'default' &&
     watchedFilter.value === 'unwatched' &&
     !watchlistFilter.value &&
