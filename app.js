@@ -2120,10 +2120,13 @@ async function restoreSession() {
   if (error) {
     console.error('Ошибка получения сессии:', error);
     await applyCurrentSessionUser(null);
-    return;
+    return null;
   }
 
-  await applyCurrentSessionUser(data.session?.user ?? null);
+  const sessionUser = data.session?.user ?? null;
+
+  await applyCurrentSessionUser(sessionUser);
+  return sessionUser;
 }
 
 async function applyCurrentSessionUser(user) {
@@ -2133,6 +2136,7 @@ async function applyCurrentSessionUser(user) {
 }
 
 async function syncCatalogAfterAuthChange() {
+  lastCatalogAnchorMovieId = null;
   rerenderCatalogAfterDataReload();
 }
 
@@ -4017,7 +4021,7 @@ async function init() {
     return;
   }
 
-  await restoreSession();
+  const restoredUser = await restoreSession();
   trackEmailConfirmedLoginIfNeeded();
 
   bindCustomSelectGlobalEvents();
@@ -4063,7 +4067,13 @@ async function init() {
   await reloadCatalogData();
   initCatalogViewToggleButton();
   applySavedCatalogState();
-  await syncCatalogAfterAuthChange();
+
+  if (restoredUser) {
+    await syncCatalogAfterAuthChange();
+  } else {
+    triggerCatalogRender();
+  }
+
   updateFiltersButtonLabel(); // на старте синхронизируем подпись кнопки
   restoreCatalogScrollPosition();
 }
