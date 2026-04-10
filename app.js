@@ -3793,10 +3793,11 @@ function createMonthSection(month, movies) {
   };
 
   const renderMonthCards = () => {
+    const activeSortDirection = monthSortState.directions[monthSortState.activeMode];
     const sortedMonthMovies = sortMoviesWithinMonth(
       movies,
       monthSortState.activeMode,
-      monthSortState.directions[monthSortState.activeMode]
+      activeSortDirection
     );
 
     monthCards.innerHTML = '';
@@ -3859,14 +3860,15 @@ function renderMovies() {
     return;
   }
 
+  const isListView = viewMode.value === 'list';
+
   container.innerHTML = '';
 
-  if (viewMode.value === 'list') {
+  if (isListView) {
     const moviesFragment = document.createDocumentFragment();
 
     filteredMovies.forEach(movie => {
-      const card = createMovieCard(movie);
-      moviesFragment.appendChild(card);
+      moviesFragment.appendChild(createMovieCard(movie));
     });
 
     container.appendChild(moviesFragment);
