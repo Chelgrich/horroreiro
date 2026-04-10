@@ -951,32 +951,6 @@ SEO-ТЕКСТ (верхний и нижний)
 DESKTOP-ПОЛИРОВКА TOOLBAR
 Выравнивает ритм кнопки фильтров и блока сортировки.
 ========================================================== */
-@media (min-width: 901px) {
-  .catalog-toolbar-actions {
-    gap: 12px;
-  }
-
-  .catalog-view-toggle {
-    width: var(--control-width);
-  }
-
-  .catalog-toolbar-actions > button {
-    min-width: 168px; /* кнопка перестаёт быть слишком короткой */
-  }
-
-  .catalog-toolbar-actions .filter-sort {
-    width: 220px; /* control-блоки отображения и сортировки одинаковой ширины */
-  }
-
-  .filter-sort .custom-select-trigger,
-  .filter-sort select {
-    min-height: 44px;
-  }
-
-  .filter-sort label {
-    padding-left: 2px; /* лёгкое визуальное выравнивание с кнопкой */
-  }
-}
 
 .active-filters-bar {
   margin-top: 14px;
@@ -2211,43 +2185,38 @@ CSS-БЛОК X. FOOTER
   text-align: right;
 }
 
-/* ===== адаптив ===== */
-
-@media (max-width: 900px) {
-  .footer-main {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 8px;
-    text-align: center;
-  }
-
-  .footer-slogan {
-    display: none;
-  }
-
-  .footer-author {
-    text-align: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .footer-brand {
-    font-size: 16px;
-  }
-
-  .footer-slogan {
-    font-size: 13px;
-  }
-
-  .footer-author {
-    font-size: 12px;
-  }
-}
-
 /* =========================================================
 CSS-БЛОК 16. АДАПТИВНОСТЬ
 Перестройка сеток и элементов на узких экранах.
 ========================================================== */
+
+@media (min-width: 901px) {
+  .catalog-toolbar-actions {
+    gap: 12px;
+  }
+
+  .catalog-view-toggle {
+    width: var(--control-width);
+  }
+
+  .catalog-toolbar-actions > button {
+    min-width: 168px; /* кнопка перестаёт быть слишком короткой */
+  }
+
+  .catalog-toolbar-actions .filter-sort {
+    width: 220px; /* control-блоки отображения и сортировки одинаковой ширины */
+  }
+
+  .filter-sort .custom-select-trigger,
+  .filter-sort select {
+    min-height: 44px;
+  }
+
+  .filter-sort label {
+    padding-left: 2px; /* лёгкое визуальное выравнивание с кнопкой */
+  }
+}
+
 @media (max-width: 1200px) {
   .page {
     --catalog-columns: 3;
@@ -2258,118 +2227,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .page {
     --catalog-columns: 2;
     --catalog-grid-gap: 14px; /* чуть плотнее сетка на промежуточной ширине */
-  }
-}
-
-@media (max-width: 900px) and (min-width: 681px) {
-  .section-title {
-    font-size: 24px;
-  }
-
-  .movies-section-header {
-    margin-bottom: 16px;
-    align-items: flex-start;
-  }
-
-  .movies-section-heading {
-    position: relative;
-    top: 4px;
-  }
-
-  .movies-section-header .section-title,
-  .movies-section-heading .section-title {
-    top: -4px;
-  }
-
-  .movies-result-count {
-    top: 4px;
-  }
-
-  .catalog-view-toggle {
-    height: 36px;
-    padding: 0 10px;
-    font-size: 14px;
-  }
-
-  .movies-year-title {
-    font-size: 22px;
-  }
-
-  .movies-year-title:not(:first-child) {
-    margin-top: 24px;
-    padding-top: 16px;
-  }
-
-  .movies-month-header {
-    margin: 8px 0 0;
-  }
-
-  .movies-month-title {
-    font-size: 20px;
-    line-height: 1.16;
-  }
-
-  .month-sort-controls {
-    gap: 6px;
-  }
-
-  .month-sort-btn {
-    height: 28px;
-    padding: 0 10px;
-    font-size: 11px;
-  }
-
-  .movie-card {
-    gap: 9px;
-    padding: 14px 20px 20px; /* уменьшаем боковые поля, чтобы карточка не казалась рыхлой */
-  }
-
-  .movie-poster-block {
-    margin: -2px -8px 12px; /* постер остаётся визуально крупным, но лучше встраивается в карточку */
-  }
-
-  .movie-card h5 {
-    padding-bottom: 8px;
-    font-size: 21px;
-  }
-
-  .movie-card p {
-    font-size: 13px;
-    line-height: 1.36;
-  }
-
-  .movie-card p:first-of-type {
-    margin-top: 8px;
-  }
-
-  .movie-card p:nth-last-of-type(1) {
-    margin-bottom: 6px;
-    padding-bottom: 6px;
-  }
-}
-
-@media (min-width: 361px) and (max-width: 680px) {
-  .movies-list,
-  .movies-month-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .catalog-search-row input {
-    font-size: 12px;
-  }
-
-  .catalog-toolbar-actions > button {
-    font-size: 12px;
-  }
-
-  .filter-sort select,
-  .filter-sort .custom-select-trigger {
-    font-size: 12px;
-  }
-
-  .catalog-search-row label,
-  .filter-sort label {
-    font-size: 12px;
   }
 }
 
@@ -2629,6 +2486,108 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     font-size: 12px;
     line-height: 1.4;
   }
+
+  .footer-main {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .footer-slogan {
+    display: none;
+  }
+
+  .footer-author {
+    text-align: center;
+  }
+}
+
+@media (max-width: 900px) and (min-width: 681px) {
+  .section-title {
+    font-size: 24px;
+  }
+
+  .movies-section-header {
+    margin-bottom: 16px;
+    align-items: flex-start;
+  }
+
+  .movies-section-heading {
+    position: relative;
+    top: 4px;
+  }
+
+  .movies-section-header .section-title,
+  .movies-section-heading .section-title {
+    top: -4px;
+  }
+
+  .movies-result-count {
+    top: 4px;
+  }
+
+  .catalog-view-toggle {
+    height: 36px;
+    padding: 0 10px;
+    font-size: 14px;
+  }
+
+  .movies-year-title {
+    font-size: 22px;
+  }
+
+  .movies-year-title:not(:first-child) {
+    margin-top: 24px;
+    padding-top: 16px;
+  }
+
+  .movies-month-header {
+    margin: 8px 0 0;
+  }
+
+  .movies-month-title {
+    font-size: 20px;
+    line-height: 1.16;
+  }
+
+  .month-sort-controls {
+    gap: 6px;
+  }
+
+  .month-sort-btn {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
+  .movie-card {
+    gap: 9px;
+    padding: 14px 20px 20px; /* уменьшаем боковые поля, чтобы карточка не казалась рыхлой */
+  }
+
+  .movie-poster-block {
+    margin: -2px -8px 12px; /* постер остаётся визуально крупным, но лучше встраивается в карточку */
+  }
+
+  .movie-card h5 {
+    padding-bottom: 8px;
+    font-size: 21px;
+  }
+
+  .movie-card p {
+    font-size: 13px;
+    line-height: 1.36;
+  }
+
+  .movie-card p:first-of-type {
+    margin-top: 8px;
+  }
+
+  .movie-card p:nth-last-of-type(1) {
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+  }
 }
 
 @media (max-width: 680px) {
@@ -2883,7 +2842,45 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 }
 
-/* Супер-узкий экран — снимаем min-width */
+@media (min-width: 361px) and (max-width: 680px) {
+  .movies-list,
+  .movies-month-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-search-row input {
+    font-size: 12px;
+  }
+
+  .catalog-toolbar-actions > button {
+    font-size: 12px;
+  }
+
+  .filter-sort select,
+  .filter-sort .custom-select-trigger {
+    font-size: 12px;
+  }
+
+  .catalog-search-row label,
+  .filter-sort label {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-brand {
+    font-size: 16px;
+  }
+
+  .footer-slogan {
+    font-size: 13px;
+  }
+
+  .footer-author {
+    font-size: 12px;
+  }
+}
+
 @media (max-width: 360px) {
   .page {
     --catalog-columns: 1;
