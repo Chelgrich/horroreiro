@@ -1298,7 +1298,6 @@ function getActiveQuickPresetKey() {
   }
 
   if (
-    viewMode.value === 'list' &&
     sortMode.value === 'default' &&
     ratingFilter.value === '7' &&
     (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
@@ -1307,7 +1306,6 @@ function getActiveQuickPresetKey() {
   }
 
   if (
-    viewMode.value === 'list' &&
     sortMode.value === 'default' &&
     ratingFilter.value === '3' &&
     (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
