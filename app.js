@@ -1307,6 +1307,15 @@ function getActiveQuickPresetKey() {
   }
 
   if (
+    viewMode.value === 'list' &&
+    sortMode.value === 'default' &&
+    ratingFilter.value === '3' &&
+    (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
+  ) {
+    return 'low-rated';
+  }
+
+  if (
     currentUser &&
     viewMode.value === 'list' &&
     sortMode.value === 'default' &&
@@ -1366,6 +1375,10 @@ function applyQuickPreset(presetKey) {
 
   if (presetKey === 'top-rated') {
     ratingFilter.value = '7';
+  }
+
+  if (presetKey === 'low-rated') {
+    ratingFilter.value = '3';
   }
 
   if (presetKey === 'watchlist' && currentUser) {
