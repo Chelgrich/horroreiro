@@ -810,10 +810,20 @@ JS-БЛОК 7. УПРАВЛЕНИЕ МОДАЛЬНЫМ ОКНОМ И ФОРМО�
 Открывает/закрывает модалку и переключает форму между режимами
 создания и редактирования фильма.
 ========================================================== */
+function syncBodyScrollLock() {
+  const shouldLockScroll = (
+    isModalOpen ||
+    (filtersModal && filtersModal.style.display === 'block') ||
+    (mobileRatingModal && mobileRatingModal.classList.contains('is-visible'))
+  );
+
+  document.body.style.overflow = shouldLockScroll ? 'hidden' : '';
+}
+
 function openMovieModal() {
   movieModal.style.display = 'block';
-  document.body.style.overflow = 'hidden';
   isModalOpen = true;
+  syncBodyScrollLock();
 
   requestAnimationFrame(() => {
     titleInput.focus();
@@ -822,8 +832,8 @@ function openMovieModal() {
 
 function closeMovieModal() {
   movieModal.style.display = 'none';
-  document.body.style.overflow = '';
   isModalOpen = false;
+  syncBodyScrollLock();
 }
 
 function openFiltersModal() {
@@ -832,7 +842,7 @@ function openFiltersModal() {
   }
 
   filtersModal.style.display = 'block';
-  document.body.style.overflow = 'hidden';
+  syncBodyScrollLock();
 }
 
 function closeFiltersModal() {
@@ -841,7 +851,7 @@ function closeFiltersModal() {
   }
 
   filtersModal.style.display = 'none';
-  document.body.style.overflow = isModalOpen ? 'hidden' : '';
+  syncBodyScrollLock();
 }
 
 function setMovieFormSubmittingState(isSubmitting) {
@@ -2581,12 +2591,10 @@ function closeMobileRatingModal() {
   setTimeout(() => {
     if (!mobileRatingModal.classList.contains('is-visible')) {
       mobileRatingModal.style.display = 'none';
+      syncBodyScrollLock();
     }
   }, 220);
 
-  document.body.style.overflow = isModalOpen || (filtersModal && filtersModal.style.display === 'block')
-    ? 'hidden'
-    : '';
   mobileRatingModalMovieId = null;
 }
 
@@ -2683,9 +2691,8 @@ function openMobileRatingModal(movie) {
 
   requestAnimationFrame(() => {
     mobileRatingModal.classList.add('is-visible');
+    syncBodyScrollLock();
   });
-
-  document.body.style.overflow = 'hidden';
 }
 
 async function saveUserMovieRating(movieId, ratingValue) {
@@ -3395,6 +3402,7 @@ card.innerHTML = `
       if (openedCard && openedCard !== card) {
         const openedToggle = openedCard.querySelector('[data-external-links-toggle="true"]');
         const openedPanel = openedCard.querySelector('[data-external-links-collapsible]');
+        const openedGrid = openedCard.querySelector('.movie-external-links');
 
         if (openedToggle) {
           openedToggle.setAttribute('aria-expanded', 'false');
@@ -3405,27 +3413,42 @@ card.innerHTML = `
           openedPanel.classList.remove('is-open');
         }
 
+        if (openedGrid) {
+          setTimeout(() => {
+            openedGrid.classList.remove('is-two-rows');
+          }, 180);
+        }
+
         openedCard.classList.remove('has-open-external-links');
       }
 
       const grid = card.querySelector('.movie-external-links');
 
       if (isExpanded) {
-        setTimeout(() => {
-          if (grid) grid.classList.remove('is-two-rows');
-        }, 180);
-      } else {
-        if (grid) grid.classList.remove('is-two-rows');
+        externalLinksToggleBtn.setAttribute('aria-expanded', 'false');
+        externalLinksToggleBtn.textContent = 'Ссылки на фильм';
+        externalLinksCollapsible.classList.remove('is-open');
+        card.classList.remove('has-open-external-links');
+
+        if (grid) {
+          setTimeout(() => {
+            grid.classList.remove('is-two-rows');
+          }, 180);
+        }
+
+        return;
       }
 
-      if (!isExpanded) {
-        externalLinksToggleBtn.setAttribute('aria-expanded', 'true');
-        externalLinksToggleBtn.textContent = 'Свернуть';
-        externalLinksCollapsible.classList.add('is-open');
-        card.classList.add('has-open-external-links');
-
-        requestAnimationFrame(syncOpenExternalLinksLayouts);
+      if (grid) {
+        grid.classList.remove('is-two-rows');
       }
+
+      externalLinksToggleBtn.setAttribute('aria-expanded', 'true');
+      externalLinksToggleBtn.textContent = 'Свернуть';
+      externalLinksCollapsible.classList.add('is-open');
+      card.classList.add('has-open-external-links');
+
+      requestAnimationFrame(syncOpenExternalLinksLayouts);
     });
   }
 
