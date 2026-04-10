@@ -2875,19 +2875,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movies-month-header {
     margin: 10px 0 0;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
   }
 
   .movies-month-title {
     font-size: 22px;
     line-height: 1.18;
-  }
-
-  .month-sort-controls {
-    justify-content: flex-start;
-    flex-wrap: wrap;
   }
 
   .movie-external-links-collapsible {
@@ -2950,15 +2942,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   /* === Низ карточки: рейтинг и действия === */
 
   .movie-rating-block {
-    margin-top: auto;
     padding-top: 10px;
   }
 
   .movie-rating-summary {
-    align-items: flex-start;
-    gap: 8px;
     margin-top: 6px;
-    flex-wrap: wrap; /* summary не ломается, если кнопке тесно */
   }
 
   .movie-rating-summary-main {
@@ -3005,11 +2993,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     height: 30px; /* выравниваем визуальную высоту зоны клика */
     font-size: 22px;
     line-height: 1;
-  }
-
-  .movie-card-actions {
-    gap: 8px;
-    padding-top: 8px;
   }
 
   .movie-card-actions button {
