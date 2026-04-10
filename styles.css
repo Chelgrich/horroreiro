@@ -48,6 +48,15 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
   --control-height-lg: 44px;
   --control-height-md: 36px;
   --control-height-sm: 32px;
+  --surface-panel: #1a1d21;
+  --surface-card: #15191d;
+  --surface-card-hover: #171c20;
+  --surface-control: #121519;
+  --surface-control-alt: #1a1f26;
+  --border-panel: #2a2f36;
+  --border-card: #2a3038;
+  --border-control: #313842;
+  --border-control-strong: #353d48;
   max-width: 1440px;
   margin: 0 auto;
   padding: 24px;
@@ -209,8 +218,8 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 .section {
   margin-bottom: 20px;
   padding: 20px;
-  background: #1a1d21;
-  border: 1px solid #2a2f36;
+  background: var(--surface-panel);
+  border: 1px solid var(--border-panel);
   border-radius: var(--radius-lg);
 }
 
@@ -429,8 +438,8 @@ input {
   display: flex;
   align-items: center;
   color: #f2f2f2;
-  background: #121519;
-  border: 1px solid #313842;
+  background: var(--surface-control);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius-md);
 }
 
@@ -457,8 +466,8 @@ input {
   align-items: center;
   gap: 12px;
   color: #f2f2f2;
-  background: #121519;
-  border: 1px solid #313842;
+  background: var(--surface-control);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius-md);
   cursor: pointer;
 }
@@ -473,8 +482,8 @@ input {
   justify-content: center;
   flex: 0 0 auto;
   color: #ffffff;
-  background: #1a1f26;
-  border: 1px solid #353d48;
+  background: var(--surface-control-alt);
+  border: 1px solid var(--border-control-strong);
   border-radius: var(--radius-md);
   white-space: nowrap;
 }
@@ -509,8 +518,8 @@ input[type="file"]::file-selector-button:hover {
 select {
   padding: 10px 12px;
   color: #f2f2f2;
-  background: #121519;
-  border: 1px solid #313842;
+  background: var(--surface-control);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius-md);
 }
 
@@ -567,8 +576,8 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
   display: block;
   text-align: left;
   color: #f2f2f2;
-  background: #121519;
-  border: 1px solid #313842;
+  background: var(--surface-control);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius-md);
   cursor: pointer;
   user-select: none;
@@ -673,8 +682,8 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
   max-height: 260px;
   overflow-y: auto;
   padding: 6px;
-  background: #161a1f;
-  border: 1px solid #313842;
+  background: var(--surface-control-alt);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius-lg);
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
 }
@@ -742,13 +751,13 @@ button:active {
 }
 
 .secondary-button {
-  height: 36px;
+  height: var(--control-height-md);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.1px;
   color: #e7ebf0;
-  background: #1a1f26;
-  border-color: #353d48;
+  background: var(--surface-control-alt);
+  border-color: var(--border-control-strong);
 }
 
 .secondary-button-compact {
@@ -1200,9 +1209,9 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   flex-direction: column;
   gap: 10px;
   padding: 16px 30px 24px;
-  background: #15191d;
-  border: 1px solid #2a3038;
-  border-radius: 10px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
   box-shadow: 0 0 0 rgba(0, 0, 0, 0);
   transform: translateY(0);
   transition:
@@ -1216,7 +1225,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 
 .movie-card:hover {
   transform: none;
-  background: #171c20;
+  background: var(--surface-card-hover);
   border-color: #323b45;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
 }
