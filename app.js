@@ -2420,14 +2420,13 @@ async function runMovieMutationWithUiSync({
   onError,
   preserveWindowScroll = false
 }) {
-  const movieKey = String(movieId);
   const scrollYBeforeMutation = window.scrollY;
 
-  if (requestSet.has(movieKey)) {
+  if (requestSet.has(String(movieId))) {
     return;
   }
 
-  requestSet.add(movieKey);
+  requestSet.add(String(movieId));
 
   let actionSucceeded = false;
 
@@ -2442,7 +2441,7 @@ async function runMovieMutationWithUiSync({
 
     throw error;
   } finally {
-    requestSet.delete(movieKey);
+    requestSet.delete(String(movieId));
 
     if (actionSucceeded) {
       rerender();
