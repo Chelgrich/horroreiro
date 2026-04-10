@@ -533,7 +533,7 @@ function initCatalogViewToggleButton() {
 
       syncCatalogViewToggleButton();
       saveCatalogState();
-      triggerCatalogRender();
+      renderMovies();
     });
 
     moviesSectionHeader.appendChild(catalogViewToggleButton);
@@ -1297,10 +1297,6 @@ function rerenderCatalogAfterDataReload(
   });
 }
 
-function triggerCatalogRender() {
-  renderMovies();
-}
-
 function shouldRenderFullCatalogAfterWatchlistChange() {
   return Boolean(watchlistFilter.value);
 }
@@ -1490,7 +1486,7 @@ function applyQuickPreset(presetKey) {
 
   syncCatalogViewToggleButton();
   saveCatalogState();
-  triggerCatalogRender();
+  renderMovies();
 }
 
 function getActiveFilterChips() {
@@ -3981,7 +3977,7 @@ searchInput.addEventListener('keydown', event => {
 
   event.preventDefault();
   clearSearchInput();
-  triggerCatalogRender();
+  renderMovies();
 });
 
 const debouncedRenderMoviesForFilters = debounce(renderMovies, 120);
@@ -4001,12 +3997,12 @@ watchedFilter.addEventListener('change', handleFiltersChange);
 viewMode.addEventListener('change', () => {
   syncCatalogViewToggleButton();
   saveCatalogState();
-  triggerCatalogRender();
+  renderMovies();
 });
 sortMode.addEventListener('change', () => {
   trackSortUsageIfNeeded();
   saveCatalogState();
-  triggerCatalogRender();
+  renderMovies();
 });
 
 if (quickPresetsBar) {
@@ -4024,7 +4020,7 @@ if (quickPresetsBar) {
 if (resetFiltersTopButton) {
   resetFiltersTopButton.addEventListener('click', () => {
     resetFilterControls();
-    triggerCatalogRender();
+    renderMovies();
   });
 }
 
@@ -4164,7 +4160,7 @@ async function init() {
   if (restoredUser) {
     syncCatalogAfterAuthChange();
   } else {
-    triggerCatalogRender();
+    renderMovies();
   }
 
   updateFiltersButtonLabel(); // на старте синхронизируем подпись кнопки
