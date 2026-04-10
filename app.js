@@ -1204,6 +1204,14 @@ function restoreCatalogAnchorMoviePosition(movieId) {
 
 function rerenderCatalogAfterDataReload(anchorMovieId = null) {
   const nextAnchorMovieId = anchorMovieId ?? lastCatalogAnchorMovieId;
+  const beforeScrollY = window.scrollY;
+  const beforeBodyHeight = document.body.scrollHeight;
+
+  console.log('[catalog-rerender] before rerenderCatalogAfterDataReload', {
+    anchorMovieId: nextAnchorMovieId,
+    scrollY: beforeScrollY,
+    bodyHeight: beforeBodyHeight
+  });
 
   preserveWindowScrollPosition(() => {
     renderMovies();
@@ -1211,6 +1219,16 @@ function rerenderCatalogAfterDataReload(anchorMovieId = null) {
 
   requestAnimationFrame(() => {
     restoreCatalogAnchorMoviePosition(nextAnchorMovieId);
+
+    requestAnimationFrame(() => {
+      console.log('[catalog-rerender] after rerenderCatalogAfterDataReload double RAF', {
+        anchorMovieId: nextAnchorMovieId,
+        scrollY: window.scrollY,
+        bodyHeight: document.body.scrollHeight,
+        deltaScrollY: window.scrollY - beforeScrollY,
+        deltaBodyHeight: document.body.scrollHeight - beforeBodyHeight
+      });
+    });
   });
 }
 
@@ -2116,12 +2134,32 @@ async function restoreSession() {
 
 async function applyCurrentSessionUser(user) {
   const currentScrollY = window.scrollY;
+  const currentBodyHeight = document.body.scrollHeight;
+
+  console.log('[auth-ui] before applyCurrentSessionUser', {
+    nextUserId: user?.id ?? null,
+    scrollY: currentScrollY,
+    bodyHeight: currentBodyHeight,
+    watchlistRowDisplay: watchlistFilterRow?.style.display || '',
+    watchedRowDisplay: watchedFilterRow?.style.display || ''
+  });
 
   currentUser = user ?? null;
   await loadCurrentUserRole();
   updateAuthUI();
 
   requestAnimationFrame(() => {
+    console.log('[auth-ui] after applyCurrentSessionUser RAF', {
+      currentUserId: currentUser?.id ?? null,
+      isAdmin,
+      scrollY: window.scrollY,
+      bodyHeight: document.body.scrollHeight,
+      deltaScrollY: window.scrollY - currentScrollY,
+      deltaBodyHeight: document.body.scrollHeight - currentBodyHeight,
+      watchlistRowDisplay: watchlistFilterRow?.style.display || '',
+      watchedRowDisplay: watchedFilterRow?.style.display || ''
+    });
+
     window.scrollTo({
       top: currentScrollY,
       behavior: 'auto'
@@ -2130,8 +2168,25 @@ async function applyCurrentSessionUser(user) {
 }
 
 async function syncCatalogAfterAuthChange() {
+  const beforeScrollY = window.scrollY;
+  const beforeBodyHeight = document.body.scrollHeight;
+
+  console.log('[auth-sync] before syncCatalogAfterAuthChange', {
+    scrollY: beforeScrollY,
+    bodyHeight: beforeBodyHeight
+  });
+
   await fetchMovieWatchlist();
   rerenderCatalogAfterDataReload();
+
+  requestAnimationFrame(() => {
+    console.log('[auth-sync] after syncCatalogAfterAuthChange RAF', {
+      scrollY: window.scrollY,
+      bodyHeight: document.body.scrollHeight,
+      deltaScrollY: window.scrollY - beforeScrollY,
+      deltaBodyHeight: document.body.scrollHeight - beforeBodyHeight
+    });
+  });
 }
 
 async function login(event) {
