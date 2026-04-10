@@ -2255,11 +2255,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     gap: 8px;
   }
 
-  .login-form {
-    width: 100%;
-    min-width: 0;
-  }
-
   .auth-actions {
     width: 100%;
     min-height: 0;
@@ -2289,11 +2284,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .section {
     padding: 16px;
-  }
-
-  .filters > *,
-  .filters .form-row {
-    min-width: 0;
   }
 
   .filter-sort {
@@ -2342,13 +2332,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .login-form {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .login-form > * {
     width: 100%;
     min-width: 0;
+    flex-direction: column;
+    gap: 10px;
   }
 
   .admin-panel[style*="display: none"],
@@ -2920,7 +2907,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movie-user-rating-mobile-trigger {
     font-size: 14px;
     line-height: 1.2;
-    font-weight: 500;
   }
 
   .movie-card h5 {
@@ -2973,10 +2959,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     line-height: 1.15;
   }
 
-  .movie-user-rating {
-    margin-top: 12px;
-  }
-
   .movie-user-rating-label {
     font-size: 13px;
     margin-bottom: 4px;
@@ -3000,6 +2982,5 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     width: 100%;
     font-size: 14px;
     line-height: 1.2;
-    font-weight: 500;
   }
 }
