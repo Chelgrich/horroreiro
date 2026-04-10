@@ -769,6 +769,13 @@ button:active {
   border-color: var(--border-control-strong);
 }
 
+.secondary-button.is-delete-confirm {
+  color: #ffd9d4;
+  background: rgba(120, 34, 34, 0.28);
+  border-color: rgba(255, 123, 114, 0.5);
+  box-shadow: 0 0 0 1px rgba(255, 123, 114, 0.14);
+}
+
 .secondary-button-compact {
   font-size: 12px;
 }

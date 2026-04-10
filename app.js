@@ -2401,6 +2401,37 @@ function showMovieWatchlistFeedback(movieId, type = 'success') {
   triggerTemporaryFeedbackAnimation(watchlistButton, `watchlist-btn-${movieId}`, type);
 }
 
+function armDeleteMovieButton(buttonElement, onConfirm) {
+  if (!buttonElement) {
+    return;
+  }
+
+  if (buttonElement.dataset.deleteArmed === 'true') {
+    onConfirm();
+    return;
+  }
+
+  const originalText = buttonElement.textContent;
+
+  buttonElement.dataset.deleteArmed = 'true';
+  buttonElement.textContent = 'Подтвердить удаление';
+  buttonElement.classList.add('is-delete-confirm');
+
+  const resetDeleteButton = () => {
+    buttonElement.dataset.deleteArmed = 'false';
+    buttonElement.textContent = originalText;
+    buttonElement.classList.remove('is-delete-confirm');
+    buttonElement.removeEventListener('blur', resetDeleteButton);
+    clearTimeout(resetTimerId);
+  };
+
+  const resetTimerId = setTimeout(() => {
+    resetDeleteButton();
+  }, 3200);
+
+  buttonElement.addEventListener('blur', resetDeleteButton, { once: true });
+}
+
 async function runMovieMutationWithUiSync({
   movieId,
   requestSet,
@@ -3440,7 +3471,9 @@ card.innerHTML = `
 
   if (deleteBtn) {
     deleteBtn.addEventListener('click', () => {
-      deleteMovie(movie.id, movie.title);
+      armDeleteMovieButton(deleteBtn, () => {
+        deleteMovie(movie.id, movie.title);
+      });
     });
   }
 
