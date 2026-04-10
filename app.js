@@ -320,21 +320,19 @@ function applySavedCatalogState() {
   try {
     const rawCatalogState = localStorage.getItem(CATALOG_STATE_STORAGE_KEY);
 
-    if (!rawCatalogState) {
-      return;
+    if (rawCatalogState) {
+      const catalogState = JSON.parse(rawCatalogState);
+
+      searchInput.value = catalogState.searchQuery || '';
+      genreFilter.value = catalogState.genre || '';
+      countryFilter.value = catalogState.country || '';
+      ratingFilter.value = catalogState.rating || '';
+      yearFilter.value = catalogState.year || '';
+      watchlistFilter.value = currentUser ? (catalogState.watchlist || '') : '';
+      watchedFilter.value = currentUser ? (catalogState.watched || '') : '';
+      viewMode.value = catalogState.viewMode || 'list';
+      sortMode.value = catalogState.sortMode || 'default';
     }
-
-    const catalogState = JSON.parse(rawCatalogState);
-
-    searchInput.value = catalogState.searchQuery || '';
-    genreFilter.value = catalogState.genre || '';
-    countryFilter.value = catalogState.country || '';
-    ratingFilter.value = catalogState.rating || '';
-    yearFilter.value = catalogState.year || '';
-    watchlistFilter.value = currentUser ? (catalogState.watchlist || '') : '';
-    watchedFilter.value = currentUser ? (catalogState.watched || '') : '';
-    viewMode.value = catalogState.viewMode || 'list';
-    sortMode.value = catalogState.sortMode || 'default';
 
     [
       genreFilter,
@@ -956,6 +954,8 @@ function updateAuthUI() {
     resetFormToCreateMode();
     closeMovieModal();
   }
+
+  syncQuickPresetButtons();
 }
 
 /* =========================================================
