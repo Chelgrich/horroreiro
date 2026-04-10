@@ -1214,10 +1214,6 @@ async function reloadCatalogData() {
   initCustomSelects();
 }
 
-async function reloadUserScopedCatalogData() {
-  await fetchMovieWatchlist();
-}
-
 function preserveWindowScrollPosition(callback) {
   const currentScrollY = window.scrollY;
 
@@ -2496,10 +2492,6 @@ function rerenderCatalogWithFallback(
   }
 }
 
-function rerenderCatalogAfterWatchlistChange(movieId) {
-  MOVIE_MUTATION_RERENDER_PRESETS.watchlistToggle(movieId);
-}
-
 async function addMovieToWatchlist(movieId) {
   if (!currentUser) {
     return;
@@ -2565,7 +2557,7 @@ async function toggleMovieWatchlist(movieId) {
       }
     },
     rerender: () => {
-      rerenderCatalogAfterWatchlistChange(movieId);
+      MOVIE_MUTATION_RERENDER_PRESETS.watchlistToggle(movieId);
     },
     onSuccess: () => {
       if (shouldRemoveFromWatchlist) {
@@ -2579,10 +2571,6 @@ async function toggleMovieWatchlist(movieId) {
     },
     preserveWindowScroll: true
   });
-}
-
-function rerenderCatalogAfterRatingChange(movieId) {
-  MOVIE_MUTATION_RERENDER_PRESETS.ratingChange(movieId);
 }
 
 async function removeUserMovieRating(movieId) {
@@ -2611,7 +2599,7 @@ async function removeUserMovieRating(movieId) {
       updateLocalWatchlistState(movieId, true);
     },
     rerender: () => {
-      rerenderCatalogAfterRatingChange(movieId);
+      MOVIE_MUTATION_RERENDER_PRESETS.ratingChange(movieId);
     },
     onSuccess: () => {
       showMovieRatingFeedback(movieId, 'remove');
@@ -2869,7 +2857,7 @@ async function saveUserMovieRating(movieId, ratingValue) {
       }
     },
     rerender: () => {
-      rerenderCatalogAfterRatingChange(movieId);
+      MOVIE_MUTATION_RERENDER_PRESETS.ratingChange(movieId);
     },
     onSuccess: () => {
       showMovieRatingFeedback(movieId);
@@ -4170,7 +4158,7 @@ async function init() {
         return;
       }
 
-      await reloadUserScopedCatalogData();
+      await fetchMovieWatchlist();
 
       if (currentRequestId !== authStateSyncRequestId) {
         return;
