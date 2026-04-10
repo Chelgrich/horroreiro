@@ -2592,7 +2592,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
 @media (max-width: 680px) {
   .page {
-    --catalog-columns: 2;
+    --catalog-columns: 1;
     --catalog-grid-gap: 12px;
   }
 
@@ -2843,11 +2843,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 }
 
 @media (min-width: 361px) and (max-width: 680px) {
-  .movies-list,
-  .movies-month-cards {
-    grid-template-columns: 1fr;
-  }
-
   .catalog-search-row input {
     font-size: 12px;
   }
