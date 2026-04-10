@@ -3637,7 +3637,7 @@ function getFilteredMovies() {
       const averageRating = getMovieAverageRating(movie.id);
 
       return isLowRatedPresetActive
-        ? averageRating <= Number(minRating)
+        ? averageRating > 0 && averageRating <= Number(minRating)
         : averageRating >= Number(minRating);
     });
   }
