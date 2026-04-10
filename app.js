@@ -1288,14 +1288,10 @@ function rerenderCatalogAfterDataReload(
     ? (anchorMovieId ?? lastCatalogAnchorMovieId)
     : null;
 
-  const renderCatalog = () => {
-    renderMovies();
-  };
-
   if (preserveScroll) {
-    preserveWindowScrollPosition(renderCatalog);
+    preserveWindowScrollPosition(renderMovies);
   } else {
-    renderCatalog();
+    renderMovies();
   }
 
   if (!nextAnchorMovieId) {
@@ -1321,12 +1317,6 @@ function shouldRenderFullCatalogAfterRatingChange() {
     watchlistFilter.value ||
     ratingFilter.value !== ''
   );
-}
-
-function removeAdminControlsFromRenderedCards() {
-  container.querySelectorAll('.movie-card-actions').forEach(actionsBlock => {
-    actionsBlock.remove();
-  });
 }
 
 /* =========================================================
@@ -2245,7 +2235,7 @@ async function login(event) {
     const email = loginEmail.value.trim();
     const password = loginPassword.value;
 
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
+    const { error } = await supabaseClient.auth.signInWithPassword({
       email,
       password
     });
