@@ -240,6 +240,11 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   color: #ffffff;
 }
 
+.movies-section-header .section-title,
+.movies-section-heading .section-title {
+  margin-bottom: 0;
+}
+
 .movies-section-header {
   margin-bottom: 8px;
   display: flex;
