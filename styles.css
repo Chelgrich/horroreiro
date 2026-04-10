@@ -251,7 +251,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 .movies-section-heading {
   min-width: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
 }
 
@@ -261,18 +261,6 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   line-height: 1.15;
   color: #9aa3ad;
   white-space: nowrap;
-  position: relative;
-  top: 5px;
-}
-
-.movies-result-count {
-  flex: 0 0 auto;
-  font-size: 14px;
-  line-height: 1.15;
-  color: #9aa3ad;
-  white-space: nowrap;
-  position: relative;
-  top: -2px;
 }
 
 .catalog-view-toggle {
