@@ -2115,9 +2115,18 @@ async function restoreSession() {
 }
 
 async function applyCurrentSessionUser(user) {
+  const currentScrollY = window.scrollY;
+
   currentUser = user ?? null;
   await loadCurrentUserRole();
   updateAuthUI();
+
+  requestAnimationFrame(() => {
+    window.scrollTo({
+      top: currentScrollY,
+      behavior: 'auto'
+    });
+  });
 }
 
 async function syncCatalogAfterAuthChange() {
