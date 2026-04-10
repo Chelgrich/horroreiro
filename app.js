@@ -2228,7 +2228,7 @@ async function logout() {
     return;
   }
 
-  window.location.reload();
+  window.location.replace(window.location.pathname + window.location.search);
 }
 
 /* =========================================================
@@ -4096,7 +4096,7 @@ async function init() {
   const wasResetApplied = applyBuildVersionSoftResetIfNeeded();
 
   if (wasResetApplied) {
-    window.location.reload();
+    window.location.replace(window.location.pathname + window.location.search);
     return;
   }
 
