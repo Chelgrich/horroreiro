@@ -2840,22 +2840,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     font-size: 12px;
     font-weight: 500;
   }
-}
 
-@media (min-width: 361px) and (max-width: 680px) {
-  .catalog-search-row input {
-    font-size: 12px;
-  }
-
-  .catalog-toolbar-actions > button {
-    font-size: 12px;
-  }
-
+  .catalog-search-row input,
+  .catalog-toolbar-actions > button,
   .filter-sort select,
-  .filter-sort .custom-select-trigger {
-    font-size: 12px;
-  }
-
+  .filter-sort .custom-select-trigger,
   .catalog-search-row label,
   .filter-sort label {
     font-size: 12px;
