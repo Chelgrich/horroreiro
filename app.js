@@ -1272,12 +1272,12 @@ const FULL_CATALOG_RERENDER_PRESETS = {
 
 const MOVIE_MUTATION_RERENDER_PRESETS = {
   watchlistToggle: movieId => {
-    rerenderCatalogWithFallback(movieId, Boolean(watchlistFilter.value));
+    rerenderCatalogWithFallback(movieId, shouldRenderFullCatalogAfterWatchlistChange(movieId));
   },
   ratingChange: movieId => {
     rerenderCatalogWithFallback(
       movieId,
-      Boolean(watchedFilter.value || watchlistFilter.value || ratingFilter.value !== ''),
+      shouldRenderFullCatalogAfterRatingChange(movieId),
       false,
       false
     );
@@ -1314,6 +1314,18 @@ function rerenderCatalogAfterDataReload(
 
 function triggerCatalogRender() {
   renderMovies();
+}
+
+function shouldRenderFullCatalogAfterWatchlistChange() {
+  return Boolean(watchlistFilter.value);
+}
+
+function shouldRenderFullCatalogAfterRatingChange() {
+  return Boolean(
+    watchedFilter.value ||
+    watchlistFilter.value ||
+    ratingFilter.value !== ''
+  );
 }
 
 function removeAdminControlsFromRenderedCards() {
