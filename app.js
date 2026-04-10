@@ -486,7 +486,7 @@ function syncCatalogViewToggleButton() {
 
   const isListMode = viewMode.value === 'list';
 
-    catalogViewToggleButton.textContent = isListMode
+  catalogViewToggleButton.textContent = isListMode
     ? 'С разбивкой по месяцам'
     : 'Общим списком';
 
