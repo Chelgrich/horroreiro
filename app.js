@@ -4020,7 +4020,7 @@ if (quickPresetsBar) {
 if (resetFiltersTopButton) {
   resetFiltersTopButton.addEventListener('click', () => {
     resetFilterControls();
-    renderMovies();
+    debouncedRenderMoviesForFilters();
   });
 }
 
