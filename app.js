@@ -693,6 +693,31 @@ function hasMovieWatchlistRecord(movieId) {
   ));
 }
 
+function updateLocalWatchlistState(movieId, shouldExist) {
+  if (!currentUser) {
+    return;
+  }
+
+  const existingRecordIndex = allMovieWatchlist.findIndex(item => (
+    item.movie_id === movieId && item.user_id === currentUser.id
+  ));
+
+  if (shouldExist) {
+    if (existingRecordIndex === -1) {
+      allMovieWatchlist.push({
+        movie_id: movieId,
+        user_id: currentUser.id
+      });
+    }
+
+    return;
+  }
+
+  if (existingRecordIndex !== -1) {
+    allMovieWatchlist.splice(existingRecordIndex, 1);
+  }
+}
+
 /* =========================================================
 JS-БЛОК 5. ПОИСК ПО КАТАЛОГУ
 Проверяет, соответствует ли фильм текущему текстовому запросу.
@@ -2421,7 +2446,7 @@ async function addMovieToWatchlist(movieId) {
     throw error;
   }
 
-  await fetchMovieWatchlist();
+  updateLocalWatchlistState(movieId, true);
 }
 
 async function removeMovieFromWatchlist(movieId) {
@@ -2439,7 +2464,7 @@ async function removeMovieFromWatchlist(movieId) {
     throw error;
   }
 
-  await fetchMovieWatchlist();
+  updateLocalWatchlistState(movieId, false);
 }
 
 async function toggleMovieWatchlist(movieId) {
@@ -2512,11 +2537,6 @@ async function removeUserMovieRating(movieId) {
       allMovieRatings = allMovieRatings.filter(item => !(
         item.movie_id === movieId && item.user_id === currentUser.id
       ));
-
-      await Promise.all([
-        fetchMovieRatings(),
-        fetchMovieWatchlist()
-      ]);
     },
     rerender: () => {
       rerenderCatalogAfterRatingChange(movieId);
@@ -2765,11 +2785,6 @@ async function saveUserMovieRating(movieId, ratingValue) {
         user_id: currentUser.id,
         rating: normalizedRating
       });
-
-      await Promise.all([
-        fetchMovieRatings(),
-        fetchMovieWatchlist()
-      ]);
 
       if (typeof ym === 'function') {
         const lastRatedMovie = sessionStorage.getItem('last_rated_movie');
