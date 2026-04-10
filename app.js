@@ -2937,6 +2937,8 @@ function getUserRatingControlsHtml(currentUserRating) {
     return '';
   }
 
+  const hasCurrentUserRating = currentUserRating !== null;
+
   return `
     <div class="movie-user-rating">
       <div class="movie-user-rating-label">Ваша оценка</div>
@@ -2945,7 +2947,7 @@ function getUserRatingControlsHtml(currentUserRating) {
         <div class="movie-user-rating-stars" data-current-rating="${currentUserRating ?? 0}">
           ${Array.from({ length: 10 }, (_, index) => {
             const value = index + 1;
-            const isActive = currentUserRating !== null && value <= currentUserRating;
+            const isActive = hasCurrentUserRating && value <= currentUserRating;
 
             return `
               <button
@@ -2970,10 +2972,10 @@ function getUserRatingControlsHtml(currentUserRating) {
       <div class="movie-user-rating-mobile">
         <button
           type="button"
-          class="movie-user-rating-mobile-trigger secondary-button secondary-button-compact ${currentUserRating !== null ? 'is-rated' : ''}"
+          class="movie-user-rating-mobile-trigger secondary-button secondary-button-compact ${hasCurrentUserRating ? 'is-rated' : ''}"
           data-open-mobile-rating="true"
         >
-          ${currentUserRating !== null ? `${currentUserRating}/10 <span class="movie-user-rating-mobile-star">★</span>` : 'Оценить'}
+          ${hasCurrentUserRating ? `${currentUserRating}/10 <span class="movie-user-rating-mobile-star">★</span>` : 'Оценить'}
         </button>
       </div>
     </div>
@@ -3870,46 +3872,45 @@ function renderMovies() {
     });
 
     container.appendChild(moviesFragment);
-    return;
+  } else {
+    let lastYear = null;
+    let currentMonth = null;
+    let currentMonthMovies = [];
+    const moviesFragment = document.createDocumentFragment();
+
+    const flushCurrentMonth = () => {
+      if (!currentMonth || currentMonthMovies.length === 0) {
+        return;
+      }
+
+      moviesFragment.appendChild(
+        createMonthSection(currentMonth, currentMonthMovies)
+      );
+      currentMonth = null;
+      currentMonthMovies = [];
+    };
+    
+    filteredMovies.forEach(movie => {
+      const year = movie.release_year;
+      const month = movie.release_month;
+    
+      if (year !== lastYear) {
+        flushCurrentMonth();
+        moviesFragment.appendChild(createMoviesYearTitle(year));
+        lastYear = year;
+      }
+
+      if (month !== currentMonth) {
+        flushCurrentMonth();
+        currentMonth = month;
+      }
+
+      currentMonthMovies.push(movie);
+    });
+
+    flushCurrentMonth();
+    container.appendChild(moviesFragment);
   }
-
-  let lastYear = null;
-  let currentMonth = null;
-  let currentMonthMovies = [];
-  const moviesFragment = document.createDocumentFragment();
-
-  const flushCurrentMonth = () => {
-    if (!currentMonth || currentMonthMovies.length === 0) {
-      return;
-    }
-
-    moviesFragment.appendChild(
-      createMonthSection(currentMonth, currentMonthMovies)
-    );
-    currentMonth = null;
-    currentMonthMovies = [];
-  };
-  
-  filteredMovies.forEach(movie => {
-    const year = movie.release_year;
-    const month = movie.release_month;
-  
-    if (year !== lastYear) {
-      flushCurrentMonth();
-      moviesFragment.appendChild(createMoviesYearTitle(year));
-      lastYear = year;
-    }
-
-    if (month !== currentMonth) {
-      flushCurrentMonth();
-      currentMonth = month;
-    }
-
-    currentMonthMovies.push(movie);
-  });
-
-  flushCurrentMonth();
-  container.appendChild(moviesFragment);
 }
 
 /* =========================================================
