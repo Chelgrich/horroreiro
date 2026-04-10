@@ -248,8 +248,25 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   gap: 12px;
 }
 
-.movies-section-header .section-title {
+.movies-section-heading {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.movies-section-header .section-title,
+.movies-section-heading .section-title {
   margin: 0;
+}
+
+.movies-result-count {
+  flex: 0 0 auto;
+  font-size: 14px;
+  line-height: 1.2;
+  color: #9aa3ad;
+  white-space: nowrap;
 }
 
 .catalog-view-toggle {
@@ -2603,7 +2620,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     font-size: 20px;
   }
 
-  .movies-section-header {
+  .movies-section-header,
+  .movies-section-heading {
     margin-bottom: 14px;
     flex-direction: column;
     align-items: stretch;
@@ -2614,6 +2632,12 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     width: 100%;
     min-height: 32px;
     font-size: 12px;
+  }
+
+  .movies-result-count {
+    width: 100%;
+    font-size: 12px;
+    text-align: left;
   }
 
   .movies-year-title {

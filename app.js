@@ -41,6 +41,7 @@ const quickPresetsBar = document.getElementById('quickPresetsBar');
 
 const container = document.getElementById('movies');
 const moviesSectionTitle = document.querySelector('.movies-section .section-title');
+const moviesResultCount = document.getElementById('moviesResultCount');
 const initialViewModeRow = viewMode?.closest('.form-row');
 let catalogViewToggleButton = null;
 
@@ -3880,6 +3881,10 @@ function renderMovies() {
   renderActiveFilterChips();
 
   const filteredMovies = getFilteredMovies();
+
+  if (moviesResultCount) {
+    moviesResultCount.textContent = `Найдено: ${filteredMovies.length}`;
+  }
 
   if (filteredMovies.length === 0) {
     renderEmptyState();
