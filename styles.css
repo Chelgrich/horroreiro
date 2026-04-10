@@ -2671,8 +2671,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-card {
-    width: 100%;
-    max-width: none;
     min-width: 0;
     padding: 12px 12px 16px;
   }
@@ -2913,7 +2911,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-card {
-    min-width: 0;
     padding: 12px 14px 18px;
   }
 
