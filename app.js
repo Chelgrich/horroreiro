@@ -932,10 +932,13 @@ function updateAuthUI() {
     authControls.classList.remove('auth-controls-pending');
   }
 
+  let didResetUserOnlyCatalogFilters = false;
+
   if (watchlistFilterRow && watchlistFilter) {
     watchlistFilterRow.style.display = isLoggedIn ? 'flex' : 'none';
 
     if (!isLoggedIn) {
+      didResetUserOnlyCatalogFilters = didResetUserOnlyCatalogFilters || watchlistFilter.value !== '';
       watchlistFilter.value = '';
       refreshCustomSelect(watchlistFilter);
     }
@@ -945,9 +948,14 @@ function updateAuthUI() {
     watchedFilterRow.style.display = isLoggedIn ? 'flex' : 'none';
 
     if (!isLoggedIn) {
+      didResetUserOnlyCatalogFilters = didResetUserOnlyCatalogFilters || watchedFilter.value !== '';
       watchedFilter.value = '';
       refreshCustomSelect(watchedFilter);
     }
+  }
+
+  if (didResetUserOnlyCatalogFilters) {
+    saveCatalogState();
   }
 
   if (!isAdmin) {
