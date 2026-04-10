@@ -220,6 +220,11 @@ function saveCatalogScrollPosition() {
 
 function saveCatalogAnchorMovieId() {
   try {
+    if ((window.scrollY || window.pageYOffset || 0) <= 8) {
+      sessionStorage.removeItem(CATALOG_ANCHOR_MOVIE_ID_KEY);
+      return;
+    }
+
     const movieCards = Array.from(container.querySelectorAll('[data-movie-id]'));
 
     if (movieCards.length === 0) {
@@ -4127,8 +4132,8 @@ window.addEventListener('pagehide', event => {
     return;
   }
 
-  saveCatalogAnchorMovieId();
   saveCatalogScrollPosition();
+  saveCatalogAnchorMovieId();
 });
 
 document.addEventListener('keydown', event => {
