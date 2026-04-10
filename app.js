@@ -1216,12 +1216,27 @@ function restoreCatalogAnchorMoviePosition(movieId) {
   }
 }
 
-function rerenderCatalogAfterDataReload(anchorMovieId = null) {
-  const nextAnchorMovieId = anchorMovieId ?? lastCatalogAnchorMovieId;
+function rerenderCatalogAfterDataReload(
+  anchorMovieId = null,
+  { preserveScroll = true, restoreAnchor = true } = {}
+) {
+  const nextAnchorMovieId = restoreAnchor
+    ? (anchorMovieId ?? lastCatalogAnchorMovieId)
+    : null;
 
-  preserveWindowScrollPosition(() => {
+  const renderCatalog = () => {
     renderMovies();
-  });
+  };
+
+  if (preserveScroll) {
+    preserveWindowScrollPosition(renderCatalog);
+  } else {
+    renderCatalog();
+  }
+
+  if (!nextAnchorMovieId) {
+    return;
+  }
 
   requestAnimationFrame(() => {
     restoreCatalogAnchorMoviePosition(nextAnchorMovieId);
@@ -2101,7 +2116,10 @@ async function deleteMovie(movieId, movieTitle) {
     }
 
     await reloadCatalogData();
-    rerenderCatalogAfterDataReload(movieId);
+    rerenderCatalogAfterDataReload(null, {
+      preserveScroll: true,
+      restoreAnchor: false
+    });
 
     formMessage.textContent = `Фильм "${movieTitle}" удалён.`;
   } catch (error) {
@@ -2137,7 +2155,10 @@ async function applyCurrentSessionUser(user) {
 
 async function syncCatalogAfterAuthChange() {
   lastCatalogAnchorMovieId = null;
-  rerenderCatalogAfterDataReload();
+  rerenderCatalogAfterDataReload(null, {
+    preserveScroll: false,
+    restoreAnchor: false
+  });
 }
 
 async function login(event) {
