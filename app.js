@@ -642,18 +642,12 @@ async function loadCurrentUserRole() {
     return;
   }
 
-  const requestedUserId = currentUser.id;
-
   try {
     const { data, error } = await supabaseClient
       .from('profiles')
       .select('role')
-      .eq('id', requestedUserId)
+      .eq('id', currentUser.id)
       .single();
-
-    if (currentUser?.id !== requestedUserId) {
-      return;
-    }
 
     if (error) {
       console.error('Ошибка загрузки роли пользователя:', error);
@@ -662,10 +656,6 @@ async function loadCurrentUserRole() {
       currentUserRole = data?.role || null;
     }
   } catch (error) {
-    if (currentUser?.id !== requestedUserId) {
-      return;
-    }
-
     console.error('Ошибка loadCurrentUserRole:', error);
     currentUserRole = null;
   }
@@ -2238,14 +2228,7 @@ async function logout() {
     return;
   }
 
-  authStateSyncRequestId += 1;
-
-  await applyCurrentSessionUser(null);
-  removeAdminControlsFromRenderedCards();
-  applySavedCatalogState();
-  await syncCatalogAfterAuthChange();
-
-  showAuthMessage('Вы вышли из аккаунта.', 'success', true);
+  window.location.reload();
 }
 
 /* =========================================================
