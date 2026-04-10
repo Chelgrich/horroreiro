@@ -112,8 +112,6 @@ let authMessageTimer = null;
 let isAuthSubmitting = false;
 let isMovieFormSubmitting = false;
 let ratingRequestInFlight = new Set();
-let ratingFeedbackTimers = new Map();
-let watchlistFeedbackTimers = new Map();
 let feedbackAnimationTimers = new Map();
 let watchlistRequestInFlight = new Set();
 let mobileRatingModal = null;
@@ -2275,7 +2273,7 @@ function triggerTemporaryFeedbackAnimation(element, baseKey, type = 'success', d
   feedbackAnimationTimers.set(timerKey, timerId);
 }
 
-function showMovieRatingFeedback(movieId, text, type = 'success') {
+function showMovieRatingFeedback(movieId, type = 'success') {
   const card = container.querySelector(`[data-movie-id="${movieId}"]`);
 
   if (!card) {
@@ -2291,7 +2289,7 @@ function showMovieRatingFeedback(movieId, text, type = 'success') {
   triggerTemporaryFeedbackAnimation(ratingValueElement, `rating-value-${movieId}`, type);
 }
 
-function showMovieWatchlistFeedback(movieId, text, type = 'success') {
+function showMovieWatchlistFeedback(movieId, type = 'success') {
   const card = container.querySelector(`[data-movie-id="${movieId}"]`);
 
   if (!card) {
@@ -2441,14 +2439,14 @@ async function toggleMovieWatchlist(movieId) {
     },
     onSuccess: () => {
       if (shouldRemoveFromWatchlist) {
-        showMovieWatchlistFeedback(movieId, 'Удалено из смотреть позже', 'remove');
+        showMovieWatchlistFeedback(movieId, 'remove');
       } else {
-        showMovieWatchlistFeedback(movieId, 'Добавлено в смотреть позже');
+        showMovieWatchlistFeedback(movieId);
       }
     },
     onError: error => {
       console.error('Ошибка переключения watchlist:', error);
-      showMovieWatchlistFeedback(movieId, 'Не удалось обновить смотреть позже', 'error');
+      showMovieWatchlistFeedback(movieId, 'error');
     },
     preserveWindowScroll: true
   });
@@ -2495,11 +2493,11 @@ async function removeUserMovieRating(movieId) {
       rerenderCatalogAfterRatingChange(movieId);
     },
     onSuccess: () => {
-      showMovieRatingFeedback(movieId, 'Оценка удалена', 'remove');
+      showMovieRatingFeedback(movieId, 'remove');
     },
     onError: error => {
       console.error('Ошибка удаления оценки фильма:', error);
-      showMovieRatingFeedback(movieId, 'Не удалось сохранить оценку', 'error');
+      showMovieRatingFeedback(movieId, 'error');
     }
   });
 }
@@ -2757,11 +2755,11 @@ async function saveUserMovieRating(movieId, ratingValue) {
       rerenderCatalogAfterRatingChange(movieId);
     },
     onSuccess: () => {
-      showMovieRatingFeedback(movieId, `Оценка сохранена: ${normalizedRating}/10`);
+      showMovieRatingFeedback(movieId);
     },
     onError: error => {
       console.error('Ошибка сохранения оценки фильма:', error);
-      showMovieRatingFeedback(movieId, 'Не удалось сохранить оценку', 'remove');
+      showMovieRatingFeedback(movieId, 'remove');
     }
   });
 }
@@ -3757,15 +3755,6 @@ function renderMovies() {
   if (!moviesLoadedSuccessfully) {
     return;
   }
-
-  const hasActiveFilters =
-  searchInput.value.trim() !== '' ||
-  genreFilter.value ||
-  countryFilter.value ||
-  ratingFilter.value !== '' ||
-  yearFilter.value ||
-  (currentUser && watchlistFilter.value) ||
-  (currentUser && watchedFilter.value);
 
   renderActiveFilterChips();
 
