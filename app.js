@@ -2222,15 +2222,6 @@ async function logout() {
     return;
   }
 
-  currentUser = null;
-  currentUserRole = null;
-  isAdmin = false;
-  allMovieWatchlist = [];
-
-  updateAuthUI();
-  syncQuickPresetButtons();
-  triggerCatalogRender();
-
   showAuthMessage('Вы вышли из аккаунта.', 'success', true);
 }
 
@@ -4115,8 +4106,13 @@ async function init() {
 
     const nextUserId = session?.user?.id ?? null;
     const currentUserId = currentUser?.id ?? null;
+    const shouldSkipAuthSync = (
+      nextUserId === currentUserId &&
+      event !== 'SIGNED_OUT' &&
+      event !== 'SIGNED_IN'
+    );
 
-    if (nextUserId === currentUserId) {
+    if (shouldSkipAuthSync) {
       return;
     }
 
