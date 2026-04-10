@@ -1158,7 +1158,8 @@ async function fetchMovieWatchlist() {
 
   const { data, error } = await supabaseClient
     .from('movie_watchlist')
-    .select('movie_id, user_id');
+    .select('movie_id, user_id')
+    .eq('user_id', currentUser.id);
 
   if (error) {
     console.error('Ошибка загрузки watchlist:', error);
@@ -2121,12 +2122,10 @@ async function restoreSession() {
   if (error) {
     console.error('Ошибка получения сессии:', error);
     await applyCurrentSessionUser(null);
-    await syncCatalogAfterAuthChange();
     return;
   }
 
   await applyCurrentSessionUser(data.session?.user ?? null);
-  await syncCatalogAfterAuthChange();
 }
 
 async function applyCurrentSessionUser(user) {
@@ -2136,7 +2135,6 @@ async function applyCurrentSessionUser(user) {
 }
 
 async function syncCatalogAfterAuthChange() {
-  await fetchMovieWatchlist();
   rerenderCatalogAfterDataReload();
 }
 
