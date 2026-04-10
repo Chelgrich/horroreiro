@@ -2230,7 +2230,7 @@ async function applyCurrentSessionUser(user) {
   updateAuthUI();
 }
 
-async function syncCatalogAfterAuthChange() {
+function syncCatalogAfterAuthChange() {
   lastCatalogAnchorMovieId = null;
   rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.resetView);
 }
@@ -2576,7 +2576,6 @@ async function toggleMovieWatchlist(movieId) {
     },
     onError: error => {
       console.error('Ошибка переключения watchlist:', error);
-      showMovieWatchlistFeedback(movieId, 'error');
     },
     preserveWindowScroll: true
   });
@@ -2619,7 +2618,6 @@ async function removeUserMovieRating(movieId) {
     },
     onError: error => {
       console.error('Ошибка удаления оценки фильма:', error);
-      showMovieRatingFeedback(movieId, 'error');
     }
   });
 }
@@ -2878,7 +2876,6 @@ async function saveUserMovieRating(movieId, ratingValue) {
     },
     onError: error => {
       console.error('Ошибка сохранения оценки фильма:', error);
-      showMovieRatingFeedback(movieId, 'remove');
     }
   });
 }
@@ -4180,7 +4177,7 @@ async function init() {
       }
 
       applySavedCatalogState();
-      await syncCatalogAfterAuthChange();
+      syncCatalogAfterAuthChange();
     }, 0);
   });
 
@@ -4189,7 +4186,7 @@ async function init() {
   applySavedCatalogState();
 
   if (restoredUser) {
-    await syncCatalogAfterAuthChange();
+    syncCatalogAfterAuthChange();
   } else {
     triggerCatalogRender();
   }
