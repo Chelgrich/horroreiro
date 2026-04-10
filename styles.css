@@ -258,6 +258,9 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 .movies-section-header .section-title,
 .movies-section-heading .section-title {
   margin: 0;
+  line-height: 1; /* убираем визуальное "проседание" */
+  display: flex;
+  align-items: center; /* выравниваем по центру внутри строки */
 }
 
 .movies-result-count {
