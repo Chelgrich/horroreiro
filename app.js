@@ -2690,10 +2690,11 @@ function openMobileRatingModal(movie) {
 
   const movieId = movie.id;
   const currentUserRating = getCurrentUserRating(movieId);
+  const hasCurrentUserRating = currentUserRating !== null;
 
   mobileRatingModalMovieId = movieId;
   mobileRatingModalTitle.textContent = movie.title;
-  mobileRatingModalMeta.innerHTML = currentUserRating !== null
+  mobileRatingModalMeta.innerHTML = hasCurrentUserRating
   ? `Ваша оценка: <strong class="rating-value">${currentUserRating}/10</strong>`
   : 'Оценка ещё не поставлена';
 
@@ -2701,7 +2702,7 @@ function openMobileRatingModal(movie) {
     <div class="mobile-rating-stars-grid">
       ${Array.from({ length: 10 }, (_, index) => {
         const value = index + 1;
-        const isActive = currentUserRating !== null && value <= currentUserRating;
+        const isActive = hasCurrentUserRating && value <= currentUserRating;
 
         return `
           <button
@@ -2719,7 +2720,7 @@ function openMobileRatingModal(movie) {
     <div class="mobile-rating-scale" aria-hidden="true">
       ${Array.from({ length: 10 }, (_, index) => {
         const value = index + 1;
-        const isActive = currentUserRating !== null && value <= currentUserRating;
+        const isActive = hasCurrentUserRating && value <= currentUserRating;
 
         return `
           <span class="mobile-rating-scale-item ${isActive ? 'is-active' : ''}">${value}</span>
@@ -2728,7 +2729,7 @@ function openMobileRatingModal(movie) {
     </div>
   `;
 
-  mobileRatingModalRemoveButton.style.display = currentUserRating !== null ? 'inline-flex' : 'none';
+  mobileRatingModalRemoveButton.style.display = hasCurrentUserRating ? 'inline-flex' : 'none';
 
   const mobileRatingButtons = mobileRatingModalStars.querySelectorAll('[data-mobile-rating-value]');
   const mobileRatingScaleItems = mobileRatingModalStars.querySelectorAll('.mobile-rating-scale-item');
