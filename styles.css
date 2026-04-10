@@ -263,7 +263,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 .movies-section-header .section-title,
 .movies-section-heading .section-title {
   position: relative;
-  top: -6px;
+  top: -5px;
 }
 
 .movies-result-count {
@@ -273,7 +273,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   color: #9aa3ad;
   white-space: nowrap;
   position: relative;
-  top: 4px;
+  top: 5px;
 }
 
 .catalog-view-toggle {
