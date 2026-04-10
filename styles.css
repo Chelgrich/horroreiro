@@ -2692,7 +2692,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-rating-block {
-    margin-top: auto;
     padding-top: 8px;
   }
 
@@ -2856,17 +2855,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     line-height: 1.18;
   }
 
-  .movie-external-links-collapsible {
-    left: 0;
-    right: 0;
-  }
-
   .filters-modal-actions {
     grid-template-columns: 1fr;
   }
 
   .catalog-toolbar-actions {
-    display: flex;
     flex-direction: column;
   }
 
@@ -2923,9 +2916,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-rating-summary-main {
-    min-width: 0;
     gap: 6px;
-    flex-wrap: wrap;
   }
 
   .movie-rating-value {
