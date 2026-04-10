@@ -1218,6 +1218,12 @@ function triggerCatalogRender() {
   renderMovies();
 }
 
+function removeAdminControlsFromRenderedCards() {
+  container.querySelectorAll('.movie-card-actions').forEach(actionsBlock => {
+    actionsBlock.remove();
+  });
+}
+
 /* =========================================================
 JS-БЛОК 11. РАСЧЁТ И ЧТЕНИЕ ОЦЕНОК
 Собирает оценки фильма, считает средний рейтинг и находит
@@ -2223,6 +2229,7 @@ async function logout() {
   }
 
   await applyCurrentSessionUser(null);
+  removeAdminControlsFromRenderedCards();
   applySavedCatalogState();
   await syncCatalogAfterAuthChange();
 
