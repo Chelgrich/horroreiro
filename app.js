@@ -3954,7 +3954,7 @@ if (filtersModalBackdrop) {
   });
 }
 
-const debouncedRenderMovies = debounce(triggerCatalogRender, 200);
+const debouncedRenderMovies = debounce(renderMovies, 200);
 
 let lastSearchQuery = '';
 
@@ -3984,7 +3984,7 @@ searchInput.addEventListener('keydown', event => {
   triggerCatalogRender();
 });
 
-const debouncedRenderMoviesForFilters = debounce(triggerCatalogRender, 120);
+const debouncedRenderMoviesForFilters = debounce(renderMovies, 120);
 
 const handleFiltersChange = () => {
   trackFiltersUsageIfNeeded();
