@@ -2271,6 +2271,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     align-items: flex-start;
   }
 
+  .movies-section-heading {
+    position: relative;
+    top: 3px;
+  }
+
   .movies-section-header .section-title,
   .movies-section-heading .section-title {
     top: -4px;
