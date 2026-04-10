@@ -2274,12 +2274,6 @@ function showMovieRatingFeedback(movieId, text, type = 'success') {
     return;
   }
 
-  const ratingBlock = card.querySelector('.movie-rating-block');
-
-  if (!ratingBlock) {
-    return;
-  }
-
   const starsContainer = card.querySelector('.movie-user-rating-stars');
   const mobileTrigger = card.querySelector('.movie-user-rating-mobile-trigger');
   const ratingValueElement = card.querySelector('.movie-rating-value');
@@ -2287,49 +2281,6 @@ function showMovieRatingFeedback(movieId, text, type = 'success') {
   triggerTemporaryFeedbackAnimation(starsContainer, `rating-stars-${movieId}`, type);
   triggerTemporaryFeedbackAnimation(mobileTrigger, `rating-mobile-${movieId}`, type);
   triggerTemporaryFeedbackAnimation(ratingValueElement, `rating-value-${movieId}`, type);
-
-  let feedbackElement = ratingBlock.querySelector('.movie-rating-feedback');
-
-  if (!feedbackElement) {
-    feedbackElement = document.createElement('div');
-    feedbackElement.className = 'movie-rating-feedback';
-    ratingBlock.appendChild(feedbackElement);
-  }
-
-  feedbackElement.textContent = text;
-  feedbackElement.classList.remove('is-success', 'is-remove', 'is-error', 'is-visible');
-
-  if (type === 'remove') {
-    feedbackElement.classList.add('is-remove');
-  } else if (type === 'error') {
-    feedbackElement.classList.add('is-error');
-  } else {
-    feedbackElement.classList.add('is-success');
-  }
-
-  requestAnimationFrame(() => {
-    feedbackElement.classList.add('is-visible');
-  });
-
-  if (ratingFeedbackTimers.has(movieId)) {
-    clearTimeout(ratingFeedbackTimers.get(movieId));
-  }
-
-  const timeoutId = setTimeout(() => {
-    feedbackElement.classList.remove('is-visible');
-
-    const cleanupTimeoutId = setTimeout(() => {
-      if (feedbackElement.parentNode) {
-        feedbackElement.remove();
-      }
-
-      ratingFeedbackTimers.delete(movieId);
-    }, 220);
-
-    ratingFeedbackTimers.set(movieId, cleanupTimeoutId);
-  }, 1600);
-
-  ratingFeedbackTimers.set(movieId, timeoutId);
 }
 
 function showMovieWatchlistFeedback(movieId, text, type = 'success') {
@@ -2339,58 +2290,9 @@ function showMovieWatchlistFeedback(movieId, text, type = 'success') {
     return;
   }
 
-  const ratingBlock = card.querySelector('.movie-rating-block');
-
-  if (!ratingBlock) {
-    return;
-  }
-
   const watchlistButton = card.querySelector('[data-watchlist-toggle="true"]');
 
   triggerTemporaryFeedbackAnimation(watchlistButton, `watchlist-btn-${movieId}`, type);
-
-  let feedbackElement = ratingBlock.querySelector('.movie-watchlist-feedback');
-
-  if (!feedbackElement) {
-    feedbackElement = document.createElement('div');
-    feedbackElement.className = 'movie-watchlist-feedback';
-    ratingBlock.appendChild(feedbackElement);
-  }
-
-  feedbackElement.textContent = text;
-  feedbackElement.classList.remove('is-success', 'is-remove', 'is-error', 'is-visible');
-
-  if (type === 'remove') {
-    feedbackElement.classList.add('is-remove');
-  } else if (type === 'error') {
-    feedbackElement.classList.add('is-error');
-  } else {
-    feedbackElement.classList.add('is-success');
-  }
-
-  requestAnimationFrame(() => {
-    feedbackElement.classList.add('is-visible');
-  });
-
-  if (watchlistFeedbackTimers.has(movieId)) {
-    clearTimeout(watchlistFeedbackTimers.get(movieId));
-  }
-
-  const timeoutId = setTimeout(() => {
-    feedbackElement.classList.remove('is-visible');
-
-    const cleanupTimeoutId = setTimeout(() => {
-      if (feedbackElement.parentNode) {
-        feedbackElement.remove();
-      }
-
-      watchlistFeedbackTimers.delete(movieId);
-    }, 220);
-
-    watchlistFeedbackTimers.set(movieId, cleanupTimeoutId);
-  }, 1600);
-
-  watchlistFeedbackTimers.set(movieId, timeoutId);
 }
 
 async function runMovieMutationWithUiSync({
