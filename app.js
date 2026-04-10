@@ -509,15 +509,17 @@ function initCatalogViewToggleButton() {
     existingViewModeRow.style.display = 'none';
   }
 
-  if (!moviesSectionTitle.parentElement.classList.contains('movies-section-header')) {
-    const moviesSectionHeader = document.createElement('div');
+  let moviesSectionHeader = moviesSectionTitle.closest('.movies-section-header');
+
+  if (!moviesSectionHeader) {
+    moviesSectionHeader = document.createElement('div');
     moviesSectionHeader.className = 'movies-section-header';
 
-    moviesSectionTitle.parentNode.insertBefore(moviesSectionHeader, moviesSectionTitle);
-    moviesSectionHeader.appendChild(moviesSectionTitle);
-  }
+    const currentParent = moviesSectionTitle.parentElement;
 
-  const moviesSectionHeader = moviesSectionTitle.parentElement;
+    currentParent.parentNode.insertBefore(moviesSectionHeader, currentParent);
+    moviesSectionHeader.appendChild(currentParent);
+  }
 
   if (!catalogViewToggleButton) {
     catalogViewToggleButton = document.createElement('button');
