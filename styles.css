@@ -2291,16 +2291,12 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     padding: 16px;
   }
 
-  .filters > * {
-    min-width: 0;
-  }
-
+  .filters > *,
   .filters .form-row {
     min-width: 0;
   }
 
   .filter-sort {
-    grid-column: auto;
     margin-top: 0;
     order: 9;
   }
@@ -2413,15 +2409,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     justify-self: stretch;
   }
 
-  .catalog-toolbar-actions .filter-sort {
-    min-width: 0;
-  }
-
   .filters .form-row,
-  .filter-sort {
-    grid-column: auto;
-  }
-
   .filter-sort {
     grid-column: auto;
   }
