@@ -700,10 +700,6 @@ function isMovieInCurrentUserWatchlist(movieId) {
 
 function hasMovieWatchlistRecord(movieId) {
   return getCurrentUserMovieState(movieId).hasWatchlistRecord;
-
-  return allMovieWatchlist.some(item => (
-    item.movie_id === movieId && item.user_id === currentUser.id
-  ));
 }
 
 function updateLocalWatchlistState(movieId, shouldExist) {
@@ -1275,12 +1271,12 @@ const FULL_CATALOG_RERENDER_PRESETS = {
 
 const MOVIE_MUTATION_RERENDER_PRESETS = {
   watchlistToggle: movieId => {
-    rerenderCatalogWithFallback(movieId, shouldRenderFullCatalogAfterWatchlistChange(movieId));
+    rerenderCatalogWithFallback(movieId, shouldRenderFullCatalogAfterWatchlistChange());
   },
   ratingChange: movieId => {
     rerenderCatalogWithFallback(
       movieId,
-      shouldRenderFullCatalogAfterRatingChange(movieId),
+      shouldRenderFullCatalogAfterRatingChange(),
       false,
       false
     );
