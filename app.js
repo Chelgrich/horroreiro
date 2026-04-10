@@ -3105,6 +3105,9 @@ function renderEmptyState() {
   const hasSearchQuery = searchQuery !== '';
   const activeFilterChips = getActiveFilterChips();
   const hasActiveFilters = activeFilterChips.length > 0;
+  const filtersSummary = activeFilterChips
+    .map(chip => chip.label)
+    .join(', ');
 
   const emptyStateTitle = hasSearchQuery || hasActiveFilters
     ? 'Ничего не найдено'
@@ -3113,10 +3116,6 @@ function renderEmptyState() {
   let emptyStateText = 'В каталоге пока нет фильмов.';
 
   if (hasSearchQuery && hasActiveFilters) {
-    const filtersSummary = activeFilterChips
-      .map(chip => chip.label)
-      .join(', ');
-
     emptyStateText = `
       По запросу «${searchQuery}» ничего не найдено.
       Сейчас выдачу также ограничивают фильтры: ${filtersSummary}.
@@ -3128,10 +3127,6 @@ function renderEmptyState() {
       Попробуй изменить формулировку поиска.
     `;
   } else if (hasActiveFilters) {
-    const filtersSummary = activeFilterChips
-      .map(chip => chip.label)
-      .join(', ');
-
     emptyStateText = `
       Сейчас выдачу ограничивают фильтры: ${filtersSummary}.
       Попробуй снять часть ограничений.
@@ -3246,9 +3241,10 @@ function bindMovieRatingControls({
   }
 
   const scaleItems = starsContainer.parentElement?.querySelectorAll('.movie-user-rating-scale-item') || [];
+  const isRatingBusy = () => ratingRequestInFlight.has(String(movieId));
 
   const syncRatingBusyState = () => {
-    const isBusy = ratingRequestInFlight.has(String(movieId));
+    const isBusy = isRatingBusy();
 
     starsContainer.classList.toggle('is-busy', isBusy);
 
@@ -3279,7 +3275,7 @@ function bindMovieRatingControls({
 
   voteButtons.forEach(button => {
     button.addEventListener('mouseenter', () => {
-      if (ratingRequestInFlight.has(String(movieId))) {
+      if (isRatingBusy()) {
         return;
       }
 
@@ -3288,7 +3284,7 @@ function bindMovieRatingControls({
     });
 
     button.addEventListener('click', () => {
-      if (ratingRequestInFlight.has(String(movieId))) {
+      if (isRatingBusy()) {
         return;
       }
 
