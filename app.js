@@ -1180,6 +1180,10 @@ async function reloadCatalogData() {
   initCustomSelects();
 }
 
+async function reloadUserScopedCatalogData() {
+  await fetchMovieWatchlist();
+}
+
 function preserveWindowScrollPosition(callback) {
   const currentScrollY = window.scrollY;
 
@@ -4074,7 +4078,7 @@ async function init() {
         return;
       }
 
-      await reloadCatalogData();
+      await reloadUserScopedCatalogData();
 
       if (currentRequestId !== authStateSyncRequestId) {
         return;
