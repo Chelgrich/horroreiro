@@ -2352,7 +2352,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .catalog-toolbar-actions {
     display: flex;
-    flex-direction: row;
     align-items: flex-end;
     gap: 12px;
     flex-wrap: wrap;
@@ -2392,12 +2391,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .filter-sort {
     width: 100%;
     min-width: 0;
-    margin-top: 0;
     justify-self: stretch;
-  }
-
-  .filters .form-row,
-  .filter-sort {
     grid-column: auto;
   }
 
