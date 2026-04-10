@@ -255,13 +255,14 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   gap: 12px;
 }
 
-.movies-section-header .section-title,
-.movies-section-heading .section-title {
-  margin: 0;
+.movies-result-count {
+  flex: 0 0 auto;
+  font-size: 14px;
   line-height: 1.15;
-  display: block;
+  color: #9aa3ad;
+  white-space: nowrap;
   position: relative;
-  top: -3px;
+  top: 5px;
 }
 
 .movies-result-count {
