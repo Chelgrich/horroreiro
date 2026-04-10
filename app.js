@@ -1290,15 +1290,6 @@ function getActiveQuickPresetKey() {
   }
 
   if (
-    viewMode.value === 'releases' &&
-    sortMode.value === 'default' &&
-    ratingFilter.value === '' &&
-    (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
-  ) {
-    return 'releases';
-  }
-
-  if (
     viewMode.value === 'list' &&
     sortMode.value === 'default' &&
     ratingFilter.value === '7' &&
@@ -1329,6 +1320,17 @@ function getActiveQuickPresetKey() {
     return 'watched';
   }
 
+  if (
+    currentUser &&
+    viewMode.value === 'list' &&
+    sortMode.value === 'default' &&
+    watchedFilter.value === 'unwatched' &&
+    !watchlistFilter.value &&
+    ratingFilter.value === ''
+  ) {
+    return 'unwatched';
+  }
+
   return null;
 }
 
@@ -1354,10 +1356,6 @@ function applyQuickPreset(presetKey) {
   viewMode.value = 'list';
   sortMode.value = 'default';
 
-  if (presetKey === 'releases') {
-    viewMode.value = 'releases';
-  }
-
   if (presetKey === 'top-rated') {
     ratingFilter.value = '7';
   }
@@ -1368,6 +1366,10 @@ function applyQuickPreset(presetKey) {
 
   if (presetKey === 'watched' && currentUser) {
     watchedFilter.value = 'watched';
+  }
+
+  if (presetKey === 'unwatched' && currentUser) {
+    watchedFilter.value = 'unwatched';
   }
 
   [
