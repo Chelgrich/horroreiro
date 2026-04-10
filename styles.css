@@ -2271,6 +2271,15 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     align-items: flex-start;
   }
 
+  .movies-section-header .section-title,
+  .movies-section-heading .section-title {
+    top: -4px;
+  }
+
+  .movies-result-count {
+    top: 4px;
+  }
+
   .catalog-view-toggle {
     height: 36px;
     padding: 0 10px;
