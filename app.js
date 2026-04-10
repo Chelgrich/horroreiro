@@ -472,7 +472,7 @@ function trackFiltersUsageIfNeeded() {
 }
 
 function trackSortUsageIfNeeded() {
-  if (!sortMode || !sortMode.value || sortMode.value === 'default') {
+  if (!sortMode.value || sortMode.value === 'default') {
     return;
   }
 
