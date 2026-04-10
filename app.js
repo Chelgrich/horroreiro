@@ -2688,9 +2688,10 @@ function openMobileRatingModal(movie) {
 
   ensureMobileRatingModal();
 
-  const currentUserRating = getCurrentUserRating(movie.id);
+  const movieId = movie.id;
+  const currentUserRating = getCurrentUserRating(movieId);
 
-  mobileRatingModalMovieId = movie.id;
+  mobileRatingModalMovieId = movieId;
   mobileRatingModalTitle.textContent = movie.title;
   mobileRatingModalMeta.innerHTML = currentUserRating !== null
   ? `Ваша оценка: <strong class="rating-value">${currentUserRating}/10</strong>`
@@ -2760,7 +2761,7 @@ function openMobileRatingModal(movie) {
       const ratingValue = Number(button.dataset.mobileRatingValue);
 
       closeMobileRatingModal();
-      saveUserMovieRating(movie.id, ratingValue);
+      saveUserMovieRating(movieId, ratingValue);
     });
   });
 
@@ -3300,6 +3301,9 @@ function bindMovieRatingControls({
 }
 
 function syncOpenExternalLinksLayouts() {
+  const overlayHorizontalPadding = 24;
+  const oneRowWidth = (36 * 4) + (6 * 3);
+
   container.querySelectorAll('[data-external-links-collapsible].is-open').forEach(panel => {
     const externalLinksGrid = panel.querySelector('.movie-external-links');
 
@@ -3307,8 +3311,6 @@ function syncOpenExternalLinksLayouts() {
       return;
     }
 
-    const overlayHorizontalPadding = 24;
-    const oneRowWidth = (36 * 4) + (6 * 3);
     const availableWidth = panel.clientWidth - overlayHorizontalPadding;
 
     externalLinksGrid.classList.toggle('is-two-rows', availableWidth < oneRowWidth);
