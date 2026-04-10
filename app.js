@@ -1298,7 +1298,6 @@ function getActiveQuickPresetKey() {
   }
 
   if (
-    sortMode.value === 'default' &&
     ratingFilter.value === '7' &&
     (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
   ) {
@@ -1306,7 +1305,6 @@ function getActiveQuickPresetKey() {
   }
 
   if (
-    sortMode.value === 'default' &&
     ratingFilter.value === '3' &&
     (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
   ) {
@@ -1315,7 +1313,6 @@ function getActiveQuickPresetKey() {
 
   if (
     currentUser &&
-    sortMode.value === 'default' &&
     watchlistFilter.value === 'in_watchlist' &&
     !watchedFilter.value &&
     ratingFilter.value === ''
@@ -1325,7 +1322,6 @@ function getActiveQuickPresetKey() {
 
   if (
     currentUser &&
-    sortMode.value === 'default' &&
     watchedFilter.value === 'watched' &&
     !watchlistFilter.value &&
     ratingFilter.value === ''
@@ -1335,7 +1331,6 @@ function getActiveQuickPresetKey() {
 
   if (
     currentUser &&
-    sortMode.value === 'default' &&
     watchedFilter.value === 'unwatched' &&
     !watchlistFilter.value &&
     ratingFilter.value === ''
