@@ -4115,6 +4115,7 @@ async function init() {
   bindCustomSelectGlobalEvents();
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
+    const globalScrollBeforeAuth = window.scrollY;
     if (event === 'TOKEN_REFRESHED') {
       return;
     }
@@ -4149,6 +4150,13 @@ async function init() {
 
       applySavedCatalogState();
       await syncCatalogAfterAuthChange();
+
+      requestAnimationFrame(() => {
+        window.scrollTo({
+          top: globalScrollBeforeAuth,
+          behavior: 'auto'
+        });
+      });
     }, 0);
   });
 
