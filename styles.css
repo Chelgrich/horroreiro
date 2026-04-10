@@ -57,6 +57,15 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
   --border-card: #2a3038;
   --border-control: #313842;
   --border-control-strong: #353d48;
+  --control-hover-border: #5c6b7c;
+  --control-focus-border: #5c6b7c;
+  --control-focus-ring: rgba(92, 107, 124, 0.2);
+  --accent-soft-text: #dbe7ff;
+  --accent-soft-bg: rgba(91, 140, 255, 0.16);
+  --accent-soft-bg-hover: rgba(91, 140, 255, 0.2);
+  --accent-soft-border: rgba(91, 140, 255, 0.42);
+  --accent-soft-border-hover: rgba(91, 140, 255, 0.5);
+  --accent-soft-shadow: rgba(91, 140, 255, 0.16);
   max-width: 1440px;
   margin: 0 auto;
   padding: 24px;
@@ -502,13 +511,13 @@ input {
 
 /* Hover всей зоны */
 .file-input-ui:hover {
-  border-color: #5c6b7c;
+  border-color: var(--control-hover-border);
 }
 
 /* Focus, когда реально фокус у нативного input */
 .file-input-wrapper input[type="file"]:focus + .file-input-ui {
-  border-color: #5c6b7c;
-  box-shadow: 0 0 0 3px rgba(92, 107, 124, 0.2);
+  border-color: var(--control-focus-border);
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
 }
 
 input[type="file"]::file-selector-button:hover {
@@ -530,8 +539,8 @@ input::placeholder {
 input:focus,
 select:focus {
   outline: none;
-  border-color: #5c6b7c;
-  box-shadow: 0 0 0 3px rgba(92, 107, 124, 0.2);
+  border-color: var(--control-focus-border);
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
 }
 
 .filters input {
@@ -636,8 +645,8 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
 }
 
 .custom-select.is-open .custom-select-trigger {
-  border-color: #5c6b7c;
-  box-shadow: 0 0 0 3px rgba(92, 107, 124, 0.2);
+  border-color: var(--control-focus-border);
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
 }
 
 .custom-select:not(.is-placeholder-selected) .custom-select-trigger:hover .custom-select-label,
@@ -850,10 +859,10 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 }
 
 .catalog-toolbar-actions > button.is-active {
-  color: #dbe7ff;
-  background: rgba(91, 140, 255, 0.16);
-  border-color: rgba(91, 140, 255, 0.42);
-  box-shadow: 0 0 0 1px rgba(91, 140, 255, 0.16);
+  color: var(--accent-soft-text);
+  background: var(--accent-soft-bg);
+  border-color: var(--accent-soft-border);
+  box-shadow: 0 0 0 1px var(--accent-soft-shadow);
 }
 
 .catalog-toolbar-actions > button.is-active::before {
@@ -861,8 +870,8 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 }
 
 .catalog-toolbar-actions > button.is-active:hover {
-  background: rgba(91, 140, 255, 0.2);
-  border-color: rgba(91, 140, 255, 0.5);
+  background: var(--accent-soft-bg-hover);
+  border-color: var(--accent-soft-border-hover);
 }
 
 /* =========================================================
@@ -969,10 +978,10 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 }
 
 .quick-preset-button.is-active {
-  color: #dbe7ff;
-  background: rgba(91, 140, 255, 0.16);
-  border-color: rgba(91, 140, 255, 0.42);
-  box-shadow: 0 0 0 1px rgba(91, 140, 255, 0.16);
+  color: var(--accent-soft-text);
+  background: var(--accent-soft-bg);
+  border-color: var(--accent-soft-border);
+  box-shadow: 0 0 0 1px var(--accent-soft-shadow);
 }
 
 .active-filter-chip {
@@ -1131,9 +1140,9 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 }
 
 .month-sort-btn.is-active {
-  color: #dbe7ff;
-  background: rgba(91, 140, 255, 0.16);
-  border-color: rgba(91, 140, 255, 0.42);
+  color: var(--accent-soft-text);
+  background: var(--accent-soft-bg);
+  border-color: var(--accent-soft-border);
 }
 
 .movies-month-cards {
