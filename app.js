@@ -3338,36 +3338,36 @@ function createMovieCard(movie) {
   const votesCount = getMovieRatings(movieId).length;
 
   const ratingSummaryHtml = `
-  <div class="movie-rating-summary">
-    <div class="movie-rating-summary-main">
-      <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
-      <span class="movie-rating-meta">
-        (${votesCount} ${getVotesLabel(votesCount)})
-      </span>
+    <div class="movie-rating-summary">
+      <div class="movie-rating-summary-main">
+        <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
+        <span class="movie-rating-meta">
+          (${votesCount} ${getVotesLabel(votesCount)})
+        </span>
+      </div>
+      <button
+        type="button"
+        class="remove-rating-inline-btn secondary-button secondary-button-compact ${currentUserRating === null ? 'is-hidden-placeholder' : ''}"
+        data-remove-rating="true"
+        ${currentUserRating === null ? 'tabindex="-1" aria-hidden="true"' : ''}
+      >
+        Удалить оценку
+      </button>
     </div>
-    <button
-      type="button"
-      class="remove-rating-inline-btn secondary-button secondary-button-compact ${currentUserRating === null ? 'is-hidden-placeholder' : ''}"
-      data-remove-rating="true"
-      ${currentUserRating === null ? 'tabindex="-1" aria-hidden="true"' : ''}
-    >
-      Удалить оценку
-    </button>
-  </div>
-`;
+  `;
 
-const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
-const posterHtml = getPosterHtml(movie, userMovieState);
-const externalLinksHtml = getMovieExternalLinksHtml(movie);
-const externalLinksBlockHtml = externalLinksHtml
-  ? `
-    <div class="movie-external-links-collapsible" data-external-links-collapsible>
-      ${externalLinksHtml}
-    </div>
-  `
-  : '';
+  const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
+  const posterHtml = getPosterHtml(movie, userMovieState);
+  const externalLinksHtml = getMovieExternalLinksHtml(movie);
+  const externalLinksBlockHtml = externalLinksHtml
+    ? `
+      <div class="movie-external-links-collapsible" data-external-links-collapsible>
+        ${externalLinksHtml}
+      </div>
+    `
+    : '';
 
-card.innerHTML = `
+  card.innerHTML = `
   ${posterHtml}
 
   <h5 class="movie-title">${highlightSearchMatches(movie.title, searchInput.value)}</h5>
@@ -3379,31 +3379,31 @@ card.innerHTML = `
   <p>Страны: ${countries || '-'}</p>
 
   <div class="movie-rating-block">
-  ${
-    externalLinksHtml
-      ? `
-        <button
-          type="button"
-          class="movie-external-links-toggle secondary-button secondary-button-compact"
-          data-external-links-toggle="true"
-          aria-expanded="false"
-        >
-          Ссылки на фильм
-        </button>
-      `
-      : ''
-  }
-  ${externalLinksBlockHtml}
-  ${ratingSummaryHtml}
-  ${userRatingControlsHtml}
+    ${
+      externalLinksHtml
+        ? `
+          <button
+            type="button"
+            class="movie-external-links-toggle secondary-button secondary-button-compact"
+            data-external-links-toggle="true"
+            aria-expanded="false"
+          >
+            Ссылки на фильм
+          </button>
+        `
+        : ''
+    }
+    ${externalLinksBlockHtml}
+    ${ratingSummaryHtml}
+    ${userRatingControlsHtml}
   </div>
 
   <div class="movie-card-actions">
-      ${isAdmin ? `
-        <button type="button" class="edit-movie-btn">Редактировать</button>
-        <button type="button" class="delete-movie-btn secondary-button">Удалить</button>
-      ` : ''}
-    </div>
+    ${isAdmin ? `
+      <button type="button" class="edit-movie-btn">Редактировать</button>
+      <button type="button" class="delete-movie-btn secondary-button">Удалить</button>
+    ` : ''}
+  </div>
   `;
 
   const actionsBlock = card.querySelector('.movie-card-actions');
@@ -3460,7 +3460,7 @@ card.innerHTML = `
 
   if (watchlistToggleBtn) {
     watchlistToggleBtn.disabled = isWatchlistBusy;
-  
+
     watchlistToggleBtn.addEventListener('click', () => {
       toggleMovieWatchlist(movieId);
     });
