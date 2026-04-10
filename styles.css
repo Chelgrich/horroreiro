@@ -2380,6 +2380,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .quick-preset-button {
     max-width: 100%;
+    font-weight: 500;
   }
 
   .active-filter-chip {
