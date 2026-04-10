@@ -43,6 +43,11 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
   --control-width: 220px;
   --catalog-columns: 4;
   --catalog-grid-gap: 16px;
+  --radius-lg: 10px;
+  --radius-md: 6px;
+  --control-height-lg: 44px;
+  --control-height-md: 36px;
+  --control-height-sm: 32px;
   max-width: 1440px;
   margin: 0 auto;
   padding: 24px;
@@ -127,7 +132,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   padding: 12px 16px;
   background: rgba(17, 21, 26, 0.94);
   border: 1px solid rgba(72, 82, 94, 0.52);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow:
     0 12px 28px rgba(0, 0, 0, 0),
     0 0 0 1px rgba(255, 255, 255, 0);
@@ -206,7 +211,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   padding: 20px;
   background: #1a1d21;
   border: 1px solid #2a2f36;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 .section-title {
@@ -419,14 +424,14 @@ button {
 }
 
 input {
-  height: 36px;
+  height: var(--control-height-md);
   padding: 0 12px;
   display: flex;
   align-items: center;
   color: #f2f2f2;
   background: #121519;
   border: 1px solid #313842;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .file-input-wrapper {
@@ -445,7 +450,7 @@ input {
 }
 
 .file-input-ui {
-  min-height: 36px;
+  min-height: var(--control-height-md);
   padding: 8px 12px; /* увеличили вертикальный, чтобы стал сопоставим с горизонтальным */
   box-sizing: border-box;
   display: flex;
@@ -454,7 +459,7 @@ input {
   color: #f2f2f2;
   background: #121519;
   border: 1px solid #313842;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -470,7 +475,7 @@ input {
   color: #ffffff;
   background: #1a1f26;
   border: 1px solid #353d48;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   white-space: nowrap;
 }
 
@@ -506,7 +511,7 @@ select {
   color: #f2f2f2;
   background: #121519;
   border: 1px solid #313842;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 input::placeholder {
@@ -556,7 +561,7 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
   position: relative;
   width: 100%;
   min-width: 0;
-  min-height: 44px;
+  min-height: var(--control-height-lg);
   padding: 10px 40px 10px 12px;
   box-sizing: border-box;
   display: block;
@@ -564,7 +569,7 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
   color: #f2f2f2;
   background: #121519;
   border: 1px solid #313842;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   user-select: none;
 }
@@ -670,7 +675,7 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
   padding: 6px;
   background: #161a1f;
   border: 1px solid #313842;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
 }
 
@@ -690,7 +695,7 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
   color: #e3e8ee;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   text-align: left;
   line-height: 1.2;
   cursor: pointer;
@@ -715,7 +720,7 @@ CSS-БЛОК 9. КНОПКИ
 Основной и вторичный стиль кнопок.
 ========================================================== */
 button {
-  height: 36px;
+  height: var(--control-height-md);
   padding: 0 14px;
   display: inline-flex;
   align-items: center;
@@ -724,7 +729,7 @@ button {
   cursor: pointer;
   background: #5b8cff;
   border: 1px solid #5b8cff;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 button:hover {
@@ -768,7 +773,7 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 }
 
 .catalog-search-row input {
-  height: 44px; /* выравниваем с фильтром и сортировкой */
+  height: var(--control-height-lg); /* выравниваем с фильтром и сортировкой */
 }
 
 /* =========================================================
@@ -791,7 +796,7 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 .catalog-search-row input,
 .filter-sort .custom-select-trigger,
 .filter-sort select {
-  min-height: 44px;
+  min-height: var(--control-height-lg);
 }
 
 /* лёгкая оптическая компенсация для select */
@@ -939,7 +944,7 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 }
 
 .quick-preset-button {
-  height: 32px;
+  height: var(--control-height-sm);
   padding: 0 14px;
   font-size: 13px;
   font-weight: 600;
