@@ -2222,8 +2222,14 @@ async function logout() {
     return;
   }
 
-  await applyCurrentSessionUser(null);
-  await syncCatalogAfterAuthChange();
+  currentUser = null;
+  currentUserRole = null;
+  isAdmin = false;
+  allMovieWatchlist = [];
+
+  updateAuthUI();
+  syncQuickPresetButtons();
+  triggerCatalogRender();
 
   showAuthMessage('Вы вышли из аккаунта.', 'success', true);
 }
