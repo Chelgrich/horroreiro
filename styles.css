@@ -2592,7 +2592,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
 @media (max-width: 680px) {
   .page {
-    --catalog-columns: 1;
+    --catalog-columns: 2;
     --catalog-grid-gap: 12px;
   }
 
