@@ -3442,7 +3442,7 @@ card.innerHTML = `
   if (deleteBtn) {
     deleteBtn.addEventListener('click', () => {
       armDeleteMovieButton(deleteBtn, () => {
-        deleteMovie(movie.id, movie.title);
+        deleteMovie(movieId, movie.title);
       });
     });
   }
