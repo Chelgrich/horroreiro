@@ -529,9 +529,7 @@ function initCatalogViewToggleButton() {
     catalogViewToggleButton.addEventListener('click', () => {
       viewMode.value = viewMode.value === 'list' ? 'releases' : 'list';
 
-      if (typeof refreshCustomSelect === 'function') {
-        refreshCustomSelect(viewMode);
-      }
+      refreshCustomSelect(viewMode);
 
       syncCatalogViewToggleButton();
       saveCatalogState();
@@ -908,9 +906,7 @@ function resetFormToCreateMode() {
   cancelEditButton.style.display = 'none';
   formMessage.textContent = '';
 
-  if (typeof refreshCustomSelect === 'function') {
-    refreshCustomSelect(releaseMonthInput);
-  }
+  refreshCustomSelect(releaseMonthInput);
 }
 
 function fillFormForEdit(movie) {
@@ -956,9 +952,7 @@ function fillFormForEdit(movie) {
   cancelEditButton.style.display = 'inline-block';
   formMessage.textContent = '';
 
-  if (typeof refreshCustomSelect === 'function') {
-    refreshCustomSelect(releaseMonthInput);
-  }
+  refreshCustomSelect(releaseMonthInput);
 
   openMovieModal();
 }
