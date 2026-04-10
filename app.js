@@ -3359,7 +3359,8 @@ function createMovieCard(movie) {
   const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
   const posterHtml = getPosterHtml(movie, userMovieState);
   const externalLinksHtml = getMovieExternalLinksHtml(movie);
-  const externalLinksBlockHtml = externalLinksHtml
+  const hasExternalLinks = externalLinksHtml !== '';
+  const externalLinksBlockHtml = hasExternalLinks
     ? `
       <div class="movie-external-links-collapsible" data-external-links-collapsible>
         ${externalLinksHtml}
@@ -3380,7 +3381,7 @@ function createMovieCard(movie) {
 
   <div class="movie-rating-block">
     ${
-      externalLinksHtml
+      hasExternalLinks
         ? `
           <button
             type="button"
@@ -3858,11 +3859,9 @@ function renderMovies() {
     return;
   }
 
-  const isListView = viewMode.value === 'list';
-
   container.innerHTML = '';
 
-  if (isListView) {
+  if (viewMode.value === 'list') {
     const moviesFragment = document.createDocumentFragment();
 
     filteredMovies.forEach(movie => {
