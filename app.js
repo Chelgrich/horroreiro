@@ -3423,8 +3423,8 @@ card.innerHTML = `
   const externalLinksToggleBtn = card.querySelector('[data-external-links-toggle="true"]');
   const externalLinksCollapsible = card.querySelector('[data-external-links-collapsible]');
   const openMobileRatingBtn = card.querySelector('[data-open-mobile-rating="true"]');
-  const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
-  const isWatchlistBusy = watchlistRequestInFlight.has(String(movie.id));
+  const isRatingBusy = ratingRequestInFlight.has(String(movieId));
+  const isWatchlistBusy = watchlistRequestInFlight.has(String(movieId));
   const posterImage = card.querySelector('.movie-poster');
   const posterSkeleton = card.querySelector('.movie-poster-skeleton');
 
@@ -3449,7 +3449,7 @@ card.innerHTML = `
   }
 
   bindMovieRatingControls({
-    movieId: movie.id,
+    movieId,
     currentUserRating,
     starsContainer,
     voteButtons
@@ -3460,7 +3460,7 @@ card.innerHTML = `
 
     if (currentUserRating !== null) {
       removeRatingBtn.addEventListener('click', () => {
-        removeUserMovieRating(movie.id);
+        removeUserMovieRating(movieId);
       });
     }
   }
@@ -3469,7 +3469,7 @@ card.innerHTML = `
     watchlistToggleBtn.disabled = isWatchlistBusy;
   
     watchlistToggleBtn.addEventListener('click', () => {
-      toggleMovieWatchlist(movie.id);
+      toggleMovieWatchlist(movieId);
     });
   }
 
