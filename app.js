@@ -4105,7 +4105,7 @@ async function init() {
 
   bindCustomSelectGlobalEvents();
 
-  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === 'TOKEN_REFRESHED') {
       return;
     }
@@ -4124,21 +4124,23 @@ async function init() {
 
     const currentRequestId = ++authStateSyncRequestId;
 
-    await applyCurrentSessionUser(session?.user ?? null);
-    trackEmailConfirmedLoginIfNeeded();
+    setTimeout(async () => {
+      await applyCurrentSessionUser(session?.user ?? null);
+      trackEmailConfirmedLoginIfNeeded();
 
-    if (currentRequestId !== authStateSyncRequestId) {
-      return;
-    }
+      if (currentRequestId !== authStateSyncRequestId) {
+        return;
+      }
 
-    await reloadCatalogData();
+      await reloadCatalogData();
 
-    if (currentRequestId !== authStateSyncRequestId) {
-      return;
-    }
+      if (currentRequestId !== authStateSyncRequestId) {
+        return;
+      }
 
-    applySavedCatalogState();
-    await syncCatalogAfterAuthChange();
+      applySavedCatalogState();
+      await syncCatalogAfterAuthChange();
+    }, 0);
   });
 
   await reloadCatalogData();
