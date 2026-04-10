@@ -670,23 +670,33 @@ function updateAdminStatus() {
   isAdmin = Boolean(currentUser && currentUserRole === 'admin');
 }
 
-function isMovieInCurrentUserWatchlist(movieId) {
+function getCurrentUserMovieState(movieId) {
   if (!currentUser) {
-    return false;
+    return {
+      hasWatchlistRecord: false,
+      isWatched: false,
+      isInWatchlist: false
+    };
   }
 
-  return (
-    allMovieWatchlist.some(item => (
-      item.movie_id === movieId && item.user_id === currentUser.id
-    )) &&
-    !isMovieWatchedByCurrentUser(movieId)
-  );
+  const hasWatchlistRecord = allMovieWatchlist.some(item => (
+    item.movie_id === movieId && item.user_id === currentUser.id
+  ));
+  const isWatched = getCurrentUserRating(movieId) !== null;
+
+  return {
+    hasWatchlistRecord,
+    isWatched,
+    isInWatchlist: hasWatchlistRecord && !isWatched
+  };
+}
+
+function isMovieInCurrentUserWatchlist(movieId) {
+  return getCurrentUserMovieState(movieId).isInWatchlist;
 }
 
 function hasMovieWatchlistRecord(movieId) {
-  if (!currentUser) {
-    return false;
-  }
+  return getCurrentUserMovieState(movieId).hasWatchlistRecord;
 
   return allMovieWatchlist.some(item => (
     item.movie_id === movieId && item.user_id === currentUser.id
@@ -1317,7 +1327,7 @@ function getCurrentUserRating(movieId) {
 }
 
 function isMovieWatchedByCurrentUser(movieId) {
-  return getCurrentUserRating(movieId) !== null;
+  return getCurrentUserMovieState(movieId).isWatched;
 }
 
 function clearSearchInput() {
@@ -3011,7 +3021,7 @@ function getMovieExternalLinksHtml(movie) {
 
 
 
-function getPosterHtml(movie, isWatchedByCurrentUser, isInWatchlist) {
+function getPosterHtml(movie, userMovieState) {
   return `
     <div class="movie-poster-block">
       <div class="movie-poster-wrapper">
@@ -3031,15 +3041,15 @@ function getPosterHtml(movie, isWatchedByCurrentUser, isInWatchlist) {
       }
 
       ${
-          currentUser && !isWatchedByCurrentUser
-            ? `
-              <button
-                type="button"
-                class="movie-watchlist-btn ${isInWatchlist ? 'is-active' : ''}"
-                data-watchlist-toggle="true"
-                aria-label="${isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
-                title="${isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
-              >
+        currentUser && !userMovieState.isWatched
+        ? `
+          <button
+            type="button"
+            class="movie-watchlist-btn ${userMovieState.isInWatchlist ? 'is-active' : ''}"
+            data-watchlist-toggle="true"
+            aria-label="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+            title="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+          >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
                   <circle cx="12" cy="12" r="3"></circle>
@@ -3050,7 +3060,7 @@ function getPosterHtml(movie, isWatchedByCurrentUser, isInWatchlist) {
         }
 
         ${
-          isWatchedByCurrentUser
+          userMovieState.isWatched
             ? `
               <div class="movie-watched-icon" aria-label="Просмотрено" title="Просмотрено">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -3285,14 +3295,13 @@ function syncOpenExternalLinksLayouts() {
 function createMovieCard(movie) {
   const card = document.createElement('article');
   const currentUserRating = getCurrentUserRating(movie.id);
-  const isWatchedByCurrentUser = currentUserRating !== null;
-  const isInWatchlist = isMovieInCurrentUserWatchlist(movie.id);
+  const userMovieState = getCurrentUserMovieState(movie.id);
 
   card.className = 'movie-card';
 
-  if (isWatchedByCurrentUser) {
+  if (userMovieState.isWatched) {
     card.classList.add('movie-card-rated');
-  } else if (isInWatchlist) {
+  } else if (userMovieState.isInWatchlist) {
     card.classList.add('movie-card-watchlist');
   }
   card.dataset.movieId = String(movie.id);
@@ -3322,7 +3331,7 @@ function createMovieCard(movie) {
 `;
 
 const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
-const posterHtml = getPosterHtml(movie, isWatchedByCurrentUser, isInWatchlist);
+const posterHtml = getPosterHtml(movie, userMovieState);
 const externalLinksHtml = getMovieExternalLinksHtml(movie);
 const externalLinksBlockHtml = externalLinksHtml
   ? `
