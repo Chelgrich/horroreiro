@@ -1440,7 +1440,14 @@ function getActiveFilterChips() {
   }
 
   if (ratingFilter.value !== '') {
-    chips.push({ label: `Рейтинг: от ${ratingFilter.value}`, key: 'rating' });
+    const isLowRatedPresetActive = getActiveQuickPresetKey() === 'low-rated';
+
+    chips.push({
+      label: isLowRatedPresetActive
+        ? `Рейтинг: до ${ratingFilter.value}`
+        : `Рейтинг: от ${ratingFilter.value}`,
+      key: 'rating'
+    });
   }
 
   return chips;
@@ -3624,9 +3631,15 @@ function getFilteredMovies() {
   }
 
   if (minRating !== '') {
-    filteredMovies = filteredMovies.filter(movie =>
-      getMovieAverageRating(movie.id) >= Number(minRating)
-    );
+    const isLowRatedPresetActive = getActiveQuickPresetKey() === 'low-rated';
+
+    filteredMovies = filteredMovies.filter(movie => {
+      const averageRating = getMovieAverageRating(movie.id);
+
+      return isLowRatedPresetActive
+        ? averageRating <= Number(minRating)
+        : averageRating >= Number(minRating);
+    });
   }
 
   if (selectedYear) {
