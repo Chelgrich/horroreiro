@@ -2619,7 +2619,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movies-section-heading {
     position: static;
-    top: auto;
     width: 100%;
     align-items: flex-start;
     gap: 6px;
@@ -2671,11 +2670,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     grid-column: 1 / -1;
   }
 
-  .movies-list,
-  .movies-month-cards {
-    justify-items: stretch;
-  }
-
   .movie-card {
     width: 100%;
     max-width: none;
@@ -2685,11 +2679,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-poster-block {
     margin: -2px -4px 10px;
-  }
-  
-  .movie-poster-wrapper {
-    width: 100%;
-    margin: 0;
   }
 
   .movie-card h5 {
