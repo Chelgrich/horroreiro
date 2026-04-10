@@ -2487,23 +2487,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     line-height: 1.4;
   }
 
-  .footer-main {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 8px;
-    text-align: center;
-  }
-
-  .footer-slogan {
-    display: none;
-  }
-
-  .footer-author {
-    text-align: center;
-  }
-}
-
-@media (max-width: 900px) and (min-width: 681px) {
   .section-title {
     font-size: 24px;
   }
@@ -2588,6 +2571,21 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     margin-bottom: 6px;
     padding-bottom: 6px;
   }
+
+  .footer-main {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .footer-slogan {
+    display: none;
+  }
+
+  .footer-author {
+    text-align: center;
+  }
 }
 
 @media (max-width: 680px) {
@@ -2607,9 +2605,20 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     gap: 10px;
   }
 
+  .movies-section-header {
+    margin-bottom: 8px;
+  }
+
+  .movies-section-header .section-title,
+  .movies-section-heading .section-title {
+    top: -5px;
+  }
+
   .catalog-view-toggle {
     width: 100%;
+    height: 32px;
     min-height: 32px;
+    padding: 0 14px;
     font-size: 12px;
   }
 
@@ -2621,6 +2630,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-section-heading {
+    position: static;
+    top: auto;
     width: 100%;
     align-items: flex-start;
     gap: 6px;
@@ -2654,6 +2665,12 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     justify-content: flex-start;
     flex-wrap: wrap;
     gap: 6px;
+  }
+
+  .month-sort-btn {
+    height: 30px;
+    padding: 0 12px;
+    font-size: 12px;
   }
 
   .filters {
