@@ -171,6 +171,11 @@
           </div>
 
           <div class="form-row">
+            <label for="releaseYear">Год релиза:</label>
+            <input type="number" id="releaseYear" name="releaseYear" min="1900" max="2100" placeholder="2026">
+          </div>
+
+          <div class="form-row">
             <label for="releaseMonth">Месяц:</label>
             <select id="releaseMonth" name="releaseMonth">
               <option value="">Не выбран</option>
@@ -190,11 +195,6 @@
           </div>
 
           <div class="form-row">
-            <label for="releaseYear">Год релиза:</label>
-            <input type="number" id="releaseYear" name="releaseYear" min="1900" max="2100" placeholder="2026">
-          </div>
-
-          <div class="form-row">
             <label for="sortOrder">Порядок внутри месяца:</label>
             <input type="number" id="sortOrder" name="sortOrder" min="1" step="1" placeholder="1">
           </div>
@@ -202,16 +202,6 @@
           <div class="form-row">
             <label for="director">Режиссёр:</label>
             <input type="text" id="director" name="director">
-          </div>
-
-          <div class="form-row">
-            <label for="posterUrl">Постер (URL):</label>
-            <input
-              type="url"
-              id="posterUrl"
-              name="posterUrl"
-              placeholder="https://example.com/poster.jpg"
-            >
           </div>
 
           <div class="form-row">
@@ -284,8 +274,8 @@
           </div>
           
           <div class="form-row">
-            <label for="genresInput">Жанры (через запятую):</label>
-            <input type="text" id="genresInput" name="genresInput" placeholder="Ужасы, Триллер">
+            <label for="genresInput">Доп. жанр:</label>
+            <input type="text" id="genresInput" name="genresInput" placeholder="Триллер, Драма">
           </div>
 
           <div class="form-row">
