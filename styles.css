@@ -84,6 +84,11 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
   --color-rating-mark-bg: rgba(245, 197, 24, 0.92);
   --color-rating-glow-soft: rgba(245, 197, 24, 0.14);
   --color-rating-glow-medium: rgba(245, 197, 24, 0.18);
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #e7ebf0;
+  --color-text-tertiary: #cfd6de;
+  --color-text-muted: #9aa3ad;
+  --color-text-dim: #8f99a5;
   max-width: 1440px;
   margin: 0 auto;
   padding: 24px;
@@ -288,7 +293,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   flex: 0 0 auto;
   font-size: 14px;
   line-height: 1.15;
-  color: #9aa3ad;
+  color: var(--color-text-muted);
   white-space: nowrap;
   position: relative;
   top: 5px;
@@ -305,7 +310,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
-  color: #cfd6de;
+  color: var(--color-text-tertiary);
   background: var(--surface-control-alt);
   border-color: var(--border-control);
 }
@@ -377,7 +382,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 
 .filters-modal-status {
   font-size: 13px;
-  color: #8f99a5;
+  color: var(--color-text-dim);
 }
 
 .filters-modal-status.is-active {
@@ -468,7 +473,7 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
 
 .field-hint {
   font-size: 12px;
-  color: #9aa3ad;
+  color: var(--color-text-muted);
 }
 
 /* =========================================================
@@ -716,7 +721,7 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
 
 .custom-select.is-placeholder-selected .custom-select-label {
   font-weight: 400;
-  color: #8f99a5;
+  color: var(--color-text-dim);
 }
 
 .custom-select-dropdown {
@@ -767,7 +772,7 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
 }
 
 .custom-select-option.is-placeholder {
-  color: #9aa3ad;
+  color: var(--color-text-muted);
 }
 
 /* =========================================================
@@ -801,7 +806,7 @@ button:active {
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.1px;
-  color: #e7ebf0;
+  color: var(--color-text-secondary);
   background: var(--surface-control-alt);
   border-color: var(--border-control-strong);
 }
@@ -851,7 +856,7 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 .filter-sort label {
   font-size: 13px;
   line-height: 1.15;
-  color: #9aa3ad;
+  color: var(--color-text-muted);
   padding-left: 2px;
 }
 
@@ -931,14 +936,14 @@ SEO-ТЕКСТ (верхний и нижний)
   font-size: 16px;
   font-weight: 600;
   line-height: 1.25;
-  color: #cfd6de;
+  color: var(--color-text-tertiary);
 }
 
 .seo-text p {
   margin: 0;
   font-size: 13px;
   line-height: 1.45;
-  color: #8f99a5;
+  color: var(--color-text-dim);
 }
 
 .seo-text-bottom {
@@ -983,13 +988,13 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   padding: 0 14px;
   font-size: 13px;
   font-weight: 600;
-  color: #cfd6de;
+  color: var(--color-text-tertiary);
   background: var(--surface-control);
   border-color: var(--border-card);
 }
 
 .quick-preset-button:hover {
-  color: #e7ebf0;
+  color: var(--color-text-secondary);
   background: #182028;
   border-color: #36414d;
 }
@@ -1007,7 +1012,7 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #e7ebf0;
+  color: var(--color-text-secondary);
   background: var(--surface-control);
   border: 1px solid var(--border-card);
   border-radius: 999px;
@@ -1022,7 +1027,7 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #cfd6de;
+  color: var(--color-text-tertiary);
   background: transparent;
   border: none;
   border-radius: 999px;
@@ -1134,7 +1139,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   font-weight: 600;
   line-height: 1.18;
   letter-spacing: 0.2px;
-  color: #cfd6de;
+  color: var(--color-text-tertiary);
 }
 
 .month-sort-controls {
@@ -1149,7 +1154,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   padding: 0 12px;
   font-size: 12px;
   font-weight: 600;
-  color: #cfd6de;
+  color: var(--color-text-tertiary);
   background: #161b21;
   border: 1px solid #313842;
   border-radius: 999px;
@@ -2046,7 +2051,7 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
   padding: 0 12px;
   font-size: 12px;
   font-weight: 600;
-  color: #e7ebf0;
+  color: var(--color-text-secondary);
   background: var(--surface-control-alt);
   border: 1px solid var(--border-control-strong);
   border-radius: var(--radius-md);
@@ -2055,7 +2060,7 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 .mobile-rating-modal-meta {
   margin-top: 12px;
   font-size: 13px;
-  color: #9aa3ad;
+  color: var(--color-text-muted);
 }
 
 .mobile-rating-modal-meta strong {
@@ -2198,13 +2203,13 @@ CSS-БЛОК X. FOOTER
 .footer-slogan {
   font-size: 13px;
   letter-spacing: 0.6px;
-  color: #8f99a5;
+  color: var(--color-text-dim);
   text-align: left;
 }
 
 .footer-author {
   font-size: 13px;
-  color: #8f99a5;
+  color: var(--color-text-dim);
   text-align: right;
 }
 
