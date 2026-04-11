@@ -1286,11 +1286,28 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
     filter 0.2s ease;
 }
 
+.movie-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 38%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
 .movie-card:hover {
   transform: none;
   background: var(--surface-card-hover);
-  border-color: #323b45;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+  border-color: #3a444f;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.02),
+    0 10px 24px rgba(0, 0, 0, 0.24);
+}
+
+.movie-card:hover::before {
+  opacity: 1;
 }
 
 .movie-card-rated:hover {
@@ -1307,10 +1324,14 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 
 .movie-card:focus-within {
   transform: none;
-  border-color: rgba(91, 140, 255, 0.52);
+  border-color: rgba(91, 140, 255, 0.56);
   box-shadow:
-    0 0 0 1px rgba(91, 140, 255, 0.18),
-    0 8px 18px rgba(0, 0, 0, 0.18);
+    0 0 0 1px rgba(91, 140, 255, 0.2),
+    0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.movie-card:focus-within::before {
+  opacity: 1;
 }
 
 .movie-card-rated {
