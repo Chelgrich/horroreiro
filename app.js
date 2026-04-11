@@ -334,6 +334,12 @@ function createDebouncedCatalogRender(delay) {
   }, delay);
 }
 
+function prepareCatalogStateForDeferredRender() {
+  saveCatalogScrollPosition();
+  saveCatalogAnchorMovieId();
+  saveCatalogState();
+}
+
 function applyCatalogViewModeChange() {
   syncCatalogViewToggleButton();
   rerenderCatalogPreservingPosition();
@@ -4074,9 +4080,7 @@ searchInput.addEventListener('input', () => {
     lastSearchQuery = '';
   }
 
-  saveCatalogScrollPosition();
-  saveCatalogAnchorMovieId();
-  saveCatalogState();
+  prepareCatalogStateForDeferredRender();
   debouncedRenderMovies();
 });
 
@@ -4093,9 +4097,7 @@ searchInput.addEventListener('keydown', event => {
 const debouncedRenderMoviesForFilters = createDebouncedCatalogRender(120);
 
 function saveCatalogStateAndRenderFilters() {
-  saveCatalogScrollPosition();
-  saveCatalogAnchorMovieId();
-  saveCatalogState();
+  prepareCatalogStateForDeferredRender();
   debouncedRenderMoviesForFilters();
 }
 
