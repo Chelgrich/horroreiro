@@ -3201,7 +3201,7 @@ function renderEmptyState() {
 
       if (action === 'reset-filters') {
         resetFilterControls({ preserveSearch: true });
-        renderMovies();
+        saveCatalogStateAndRenderFilters();
       }
     });
   }
@@ -4028,7 +4028,7 @@ if (quickPresetsBar) {
 if (resetFiltersTopButton) {
   resetFiltersTopButton.addEventListener('click', () => {
     resetFilterControls();
-    debouncedRenderMoviesForFilters();
+    saveCatalogStateAndRenderFilters();
   });
 }
 
