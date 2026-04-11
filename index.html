@@ -155,14 +155,16 @@
         Используется и для создания нового фильма, и для редактирования.
         ========================================================== -->
         <form id="movieForm" class="movie-form" novalidate>
-          <div class="form-row">
-            <label for="title">Название:</label>
-            <input type="text" id="title" name="title" required>
-          </div>
+          <div class="movie-form-inline-group movie-form-inline-group-titles">
+            <div class="form-row">
+              <label for="title">Название:</label>
+              <input type="text" id="title" name="title" required>
+            </div>
 
-          <div class="form-row">
-            <label for="originalTitle">Оригинальное название:</label>
-            <input type="text" id="originalTitle" name="originalTitle">
+            <div class="form-row">
+              <label for="originalTitle">Оригинальное название:</label>
+              <input type="text" id="originalTitle" name="originalTitle">
+            </div>
           </div>
 
           <div class="form-row">
@@ -201,9 +203,21 @@
             </div>
           </div>
 
-          <div class="form-row">
-            <label for="director">Режиссёр:</label>
-            <input type="text" id="director" name="director">
+          <div class="movie-form-inline-group movie-form-inline-group-meta">
+            <div class="form-row">
+              <label for="director">Режиссёр:</label>
+              <input type="text" id="director" name="director">
+            </div>
+
+            <div class="form-row">
+              <label for="genresInput">Доп. жанр:</label>
+              <input type="text" id="genresInput" name="genresInput">
+            </div>
+
+            <div class="form-row">
+              <label for="countriesInput">Страны (через запятую):</label>
+              <input type="text" id="countriesInput" name="countriesInput">
+            </div>
           </div>
 
           <div class="form-row">
@@ -269,16 +283,6 @@
             </div>
           </div>
           
-          <div class="form-row">
-            <label for="genresInput">Доп. жанр:</label>
-            <input type="text" id="genresInput" name="genresInput">
-          </div>
-
-          <div class="form-row">
-            <label for="countriesInput">Страны (через запятую):</label>
-            <input type="text" id="countriesInput" name="countriesInput">
-          </div>
-
           <div class="form-actions">
             <button type="submit" id="submitButton">Добавить фильм</button>
             <button type="button" id="cancelEditButton" class="secondary-button" style="display: none;">

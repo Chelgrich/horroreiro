@@ -2263,6 +2263,20 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     line-height: 1;
   }
 
+  .movie-form-inline-group-titles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .movie-form-inline-group-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+
   .movie-form-inline-group-release {
     display: grid;
     grid-template-columns: 1.15fr 1fr 1fr;
