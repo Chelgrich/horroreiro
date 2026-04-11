@@ -306,8 +306,8 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   font-weight: 600;
   white-space: nowrap;
   color: #cfd6de;
-  background: #161b21;
-  border-color: #313842;
+  background: var(--surface-control-alt);
+  border-color: var(--border-control);
 }
 
 .catalog-view-toggle::before {
@@ -351,9 +351,9 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   margin: 0 auto;
   padding: 20px;
   overflow-y: auto;
-  background: #1b1f24;
-  border: 1px solid #2c323a;
-  border-radius: 10px;
+  background: var(--surface-control-alt);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
 }
 
@@ -984,8 +984,8 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   font-size: 13px;
   font-weight: 600;
   color: #cfd6de;
-  background: #14191f;
-  border-color: #2d3640;
+  background: var(--surface-control);
+  border-color: var(--border-card);
 }
 
 .quick-preset-button:hover {
@@ -1008,8 +1008,8 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   align-items: center;
   gap: 8px;
   color: #e7ebf0;
-  background: #14191f;
-  border: 1px solid #2d3640;
+  background: var(--surface-control);
+  border: 1px solid var(--border-card);
   border-radius: 999px;
   font-size: 13px;
   line-height: 1.2;
