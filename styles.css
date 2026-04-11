@@ -905,12 +905,12 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
   top: 50%;
   right: 10px;
   transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
+  width: 36px;
+  height: 36px;
   border: none;
   background: transparent;
   color: #8f99a5;
-  font-size: 16px;
+  font-size: 32px;
   line-height: 1;
   cursor: pointer;
   display: none;
@@ -921,6 +921,13 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 
 .search-clear-btn:hover {
   color: #e7ebf0;
+  transform: translateY(-50%);
+  background: transparent;
+  opacity: 1;
+}
+
+.search-clear-btn:active {
+  transform: translateY(-50%);
 }
 
 /* =========================================================
