@@ -447,6 +447,12 @@ async function withPendingRequestTimeout(promise, timeoutMs, timeoutMessage) {
   }
 }
 
+function throwIfSupabaseError(error) {
+  if (error) {
+    throw error;
+  }
+}
+
 function normalizeOptionalUrl(value) {
   const trimmedValue = String(value || '').trim();
 
@@ -1777,9 +1783,7 @@ async function uploadPosterFile(file) {
       upsert: false
     });
 
-  if (uploadError) {
-    throw uploadError;
-  }
+  throwIfSupabaseError(uploadError);
 
   const { data } = supabaseClient.storage
     .from('posters')
@@ -1799,9 +1803,7 @@ async function deletePosterFileByUrl(publicUrl) {
     .from('posters')
     .remove([storagePath]);
 
-  if (error) {
-    throw error;
-  }
+  throwIfSupabaseError(error);
 }
 
 /* =========================================================
@@ -1820,18 +1822,14 @@ async function ensureGenres(names) {
     .from('genres')
     .upsert(rowsToUpsert, { onConflict: 'name' });
 
-  if (upsertError) {
-    throw upsertError;
-  }
+  throwIfSupabaseError(upsertError);
 
   const { data, error } = await supabaseClient
     .from('genres')
     .select('id, name')
     .in('name', names);
 
-  if (error) {
-    throw error;
-  }
+  throwIfSupabaseError(error);
 
   return data;
 }
@@ -1847,18 +1845,14 @@ async function ensureCountries(names) {
     .from('countries')
     .upsert(rowsToUpsert, { onConflict: 'name' });
 
-  if (upsertError) {
-    throw upsertError;
-  }
+  throwIfSupabaseError(upsertError);
 
   const { data, error } = await supabaseClient
     .from('countries')
     .select('id, name')
     .in('name', names);
 
-  if (error) {
-    throw error;
-  }
+  throwIfSupabaseError(error);
 
   return data;
 }
@@ -1877,18 +1871,14 @@ async function replaceMovieRelations(movieId, genreNames, countryNames) {
     .delete()
     .eq('movie_id', movieId);
 
-  if (deleteGenresError) {
-    throw deleteGenresError;
-  }
+  throwIfSupabaseError(deleteGenresError);
 
   const { error: deleteCountriesError } = await supabaseClient
     .from('movie_countries')
     .delete()
     .eq('movie_id', movieId);
 
-  if (deleteCountriesError) {
-    throw deleteCountriesError;
-  }
+  throwIfSupabaseError(deleteCountriesError);
 
   if (genreRows.length > 0) {
     const movieGenreRows = genreRows.map((genre, index) => ({
@@ -1901,9 +1891,7 @@ async function replaceMovieRelations(movieId, genreNames, countryNames) {
       .from('movie_genres')
       .insert(movieGenreRows);
 
-    if (error) {
-      throw error;
-    }
+    throwIfSupabaseError(error);
   }
 
   if (countryRows.length > 0) {
@@ -1916,9 +1904,7 @@ async function replaceMovieRelations(movieId, genreNames, countryNames) {
       .from('movie_countries')
       .insert(movieCountryRows);
 
-    if (error) {
-      throw error;
-    }
+    throwIfSupabaseError(error);
   }
 }
 
@@ -2001,9 +1987,7 @@ async function addMovie(event) {
       'Превышено время ожидания сохранения фильма.'
     );
 
-    if (insertMovieError) {
-      throw insertMovieError;
-    }
+    throwIfSupabaseError(insertMovieError);
 
     await withPendingRequestTimeout(
       replaceMovieRelations(insertedMovie.id, genreNames, countryNames),
@@ -2176,9 +2160,7 @@ async function updateMovie(event) {
         'Превышено время ожидания обновления фильма.'
       );
 
-      if (updateMovieError) {
-        throw updateMovieError;
-      }
+      throwIfSupabaseError(updateMovieError);
     }
 
     if (relationsChanged) {
@@ -2252,9 +2234,7 @@ async function deleteMovie(movieId, movieTitle) {
       .delete()
       .eq('id', movieId);
 
-    if (error) {
-      throw error;
-    }
+      throwIfSupabaseError(error);
 
     if (editingMovieId === movieId) {
       resetFormToCreateMode();
