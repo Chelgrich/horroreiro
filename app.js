@@ -123,6 +123,7 @@ let mobileRatingModalMovieId = null;
 let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
 let lastCatalogAnchorMovieId = null;
+let shouldFadeCatalogAfterSkeleton = false;
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -1220,6 +1221,8 @@ async function fetchMovieWatchlist() {
 }
 
 async function reloadCatalogData({ showSkeleton = false } = {}) {
+  shouldFadeCatalogAfterSkeleton = showSkeleton;
+
   if (showSkeleton) {
     renderMoviesSkeleton(getCatalogSkeletonCardsCount());
   }
@@ -1308,8 +1311,14 @@ function rerenderCatalogAfterDataReload(
   const nextAnchorMovieId = restoreAnchor
     ? (anchorMovieId ?? lastCatalogAnchorMovieId)
     : null;
+  const shouldRunCatalogFade = shouldFadeCatalogAfterSkeleton;
 
-  container.classList.add('is-catalog-fading');
+  shouldFadeCatalogAfterSkeleton = false;
+
+  if (shouldRunCatalogFade) {
+    container.classList.add('is-catalog-fading');
+    container.classList.remove('is-catalog-visible');
+  }
 
   if (preserveScroll) {
     preserveWindowScrollPosition(renderMovies);
@@ -1317,9 +1326,11 @@ function rerenderCatalogAfterDataReload(
     renderMovies();
   }
 
-  requestAnimationFrame(() => {
-    container.classList.add('is-catalog-visible');
-  });
+  if (shouldRunCatalogFade) {
+    requestAnimationFrame(() => {
+      container.classList.add('is-catalog-visible');
+    });
+  }
 
   if (!nextAnchorMovieId) {
     return;
