@@ -2778,6 +2778,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     --catalog-grid-gap: 12px;
   }
 
+  .catalog-search-row input {
+    font-size: 14px;
+  }
+
   .section-title {
     font-size: 20px;
   }
