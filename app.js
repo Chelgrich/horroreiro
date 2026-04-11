@@ -3228,7 +3228,7 @@ function getPosterHtml(movie, userMovieState, matchedSearchAlias = null) {
         matchedSearchAlias
           ? `
             <div class="movie-search-alias-hint">
-              Найдено по: ${escapeHtml(matchedSearchAlias)}
+              Альт. название: ${highlightSearchMatches(matchedSearchAlias, searchInput.value)}
             </div>
           `
           : ''
