@@ -1373,11 +1373,9 @@ function resetFilterControls({ preserveSearch = false } = {}) {
   watchlistFilter.value = '';
   watchedFilter.value = '';
 
-  filterCustomSelectElements
-    .filter(selectElement => selectElement !== sortMode)
-    .forEach(selectElement => {
-      refreshCustomSelect(selectElement);
-    });
+  refreshCustomSelectGroup(
+    filterCustomSelectElements.filter(selectElement => selectElement !== sortMode)
+  );
 
   saveCatalogState();
 }
