@@ -124,6 +124,7 @@ let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
 let lastCatalogAnchorMovieId = null;
 let shouldFadeCatalogAfterSkeleton = false;
+let catalogFadeCleanupTimerId = null;
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -1315,6 +1316,11 @@ function rerenderCatalogAfterDataReload(
 
   shouldFadeCatalogAfterSkeleton = false;
 
+  if (catalogFadeCleanupTimerId) {
+    clearTimeout(catalogFadeCleanupTimerId);
+    catalogFadeCleanupTimerId = null;
+  }
+
   if (shouldRunCatalogFade) {
     container.classList.add('is-catalog-fading');
     container.classList.remove('is-catalog-visible');
@@ -1330,6 +1336,11 @@ function rerenderCatalogAfterDataReload(
     requestAnimationFrame(() => {
       container.classList.add('is-catalog-visible');
     });
+
+    catalogFadeCleanupTimerId = setTimeout(() => {
+      container.classList.remove('is-catalog-fading');
+      catalogFadeCleanupTimerId = null;
+    }, 260);
   }
 
   if (!nextAnchorMovieId) {
