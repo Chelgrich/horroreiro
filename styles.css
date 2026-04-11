@@ -16,6 +16,7 @@ html {
   --border-control-strong: #353d48;
 
   --color-danger-text: #ffd9d4;
+  --color-danger-border-soft: rgba(255, 123, 114, 0.38);
 }
 
 body {
@@ -2177,7 +2178,7 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
   font-weight: 600;
   color: var(--color-danger-text);
   background: var(--surface-control-alt);
-  border: 1px solid rgba(255, 123, 114, 0.38);
+  border: 1px solid var(--color-danger-border-soft);
   border-radius: var(--radius-md);
 }
 
