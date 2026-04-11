@@ -3228,7 +3228,7 @@ function getPosterHtml(movie, userMovieState, matchedSearchAlias = null) {
         matchedSearchAlias
           ? `
             <div class="movie-search-alias-hint">
-              <span class="movie-search-alias-hint-label">Альт. название:</span>
+              <span class="movie-search-alias-hint-label">Альт:</span>
               ${highlightSearchMatches(matchedSearchAlias, searchInput.value)}
             </div>
           `
