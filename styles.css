@@ -476,7 +476,7 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin-top: 12px;
+  margin-top: 32px;
 }
 
 .movie-form-inline-group {
