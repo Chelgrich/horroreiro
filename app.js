@@ -163,10 +163,21 @@ function parseCommaSeparated(value) {
 }
 
 function parseMultilineValues(value) {
-  return String(value || '')
+  const uniqueValues = new Map();
+
+  String(value || '')
     .split('\n')
     .map(item => item.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .forEach(item => {
+      const normalizedItem = normalizeSearchText(item);
+
+      if (!uniqueValues.has(normalizedItem)) {
+        uniqueValues.set(normalizedItem, item);
+      }
+    });
+
+  return Array.from(uniqueValues.values());
 }
 
 function normalizeSearchText(value) {
