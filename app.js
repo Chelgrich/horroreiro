@@ -298,9 +298,22 @@ function debounce(callback, delay = 200) {
   };
 }
 
+let catalogRenderFrameId = null;
+
+function scheduleCatalogRender(renderCallback = renderMovies) {
+  if (catalogRenderFrameId !== null) {
+    cancelAnimationFrame(catalogRenderFrameId);
+  }
+
+  catalogRenderFrameId = requestAnimationFrame(() => {
+    catalogRenderFrameId = null;
+    renderCallback();
+  });
+}
+
 function saveCatalogStateAndRender(renderCallback = renderMovies) {
   saveCatalogState();
-  renderCallback();
+  scheduleCatalogRender(renderCallback);
 }
 
 function saveCatalogState() {
@@ -4014,7 +4027,7 @@ viewMode.addEventListener('change', () => {
 sortMode.addEventListener('change', () => {
   trackSortUsageIfNeeded();
   saveCatalogState();
-  renderMovies();
+  scheduleCatalogRender();
 });
 
 if (quickPresetsBar) {
