@@ -1601,8 +1601,7 @@ function clearFilterChip(filterKey) {
     refreshCustomSelect(ratingFilter);
   }
 
-  saveCatalogState();
-  debouncedRenderMoviesForFilters();
+  saveCatalogStateAndRenderFilters();
 
   // Если модалка фильтров была открыта, после снятия фильтра закрываем её,
   // чтобы внешняя очистка состояния ощущалась завершённым действием.
@@ -3988,10 +3987,14 @@ searchInput.addEventListener('keydown', event => {
 
 const debouncedRenderMoviesForFilters = debounce(renderMovies, 120);
 
-const handleFiltersChange = () => {
-  trackFiltersUsageIfNeeded();
+function saveCatalogStateAndRenderFilters() {
   saveCatalogState();
   debouncedRenderMoviesForFilters();
+}
+
+const handleFiltersChange = () => {
+  trackFiltersUsageIfNeeded();
+  saveCatalogStateAndRenderFilters();
 };
 
 genreFilter.addEventListener('change', handleFiltersChange);
