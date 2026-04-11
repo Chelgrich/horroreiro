@@ -299,6 +299,11 @@ function debounce(callback, delay = 200) {
   };
 }
 
+function saveCatalogStateAndRender(renderCallback = renderMovies) {
+  saveCatalogState();
+  renderCallback();
+}
+
 function saveCatalogState() {
   try {
     localStorage.setItem(
@@ -1483,8 +1488,7 @@ function applyQuickPreset(presetKey) {
   ]);
 
   syncCatalogViewToggleButton();
-  saveCatalogState();
-  renderMovies();
+  saveCatalogStateAndRender();
 }
 
 function getActiveFilterChips() {
@@ -3999,8 +4003,7 @@ watchlistFilter.addEventListener('change', handleFiltersChange);
 watchedFilter.addEventListener('change', handleFiltersChange);
 viewMode.addEventListener('change', () => {
   syncCatalogViewToggleButton();
-  saveCatalogState();
-  renderMovies();
+  saveCatalogStateAndRender();
 });
 sortMode.addEventListener('change', () => {
   trackSortUsageIfNeeded();
