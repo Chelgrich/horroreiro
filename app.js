@@ -338,7 +338,7 @@ function applySavedCatalogState() {
       sortMode.value = catalogState.sortMode || 'default';
     }
 
-    [
+    refreshCustomSelectGroup([
       genreFilter,
       countryFilter,
       ratingFilter,
@@ -347,9 +347,7 @@ function applySavedCatalogState() {
       watchedFilter,
       viewMode,
       sortMode
-    ].forEach(selectElement => {
-      refreshCustomSelect(selectElement);
-    });
+    ]);
 
     syncCatalogViewToggleButton();
     updateFiltersButtonLabel();
@@ -1044,6 +1042,12 @@ const {
   bindGlobalEvents: bindCustomSelectGlobalEvents
 } = customSelectManager;
 
+function refreshCustomSelectGroup(selectElements) {
+  selectElements.forEach(selectElement => {
+    refreshCustomSelect(selectElement);
+  });
+}
+
 /* =========================================================
 JS-БЛОК 9. ЗАГРУЗКА СПРАВОЧНИКОВ ДЛЯ ФИЛЬТРОВ
 Получает жанры и страны из базы и заполняет select-поля.
@@ -1473,14 +1477,12 @@ function applyQuickPreset(presetKey) {
     watchedFilter.value = 'unwatched';
   }
 
-  [
+  refreshCustomSelectGroup([
     ratingFilter,
     watchlistFilter,
     watchedFilter,
     sortMode
-  ].forEach(selectElement => {
-    refreshCustomSelect(selectElement);
-  });
+  ]);
 
   syncCatalogViewToggleButton();
   saveCatalogState();
