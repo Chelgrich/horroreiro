@@ -247,15 +247,23 @@ function saveCatalogAnchorMovieId() {
   }
 }
 
+function scheduleCatalogAnchorRestore(movieId) {
+  if (!movieId) {
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    restoreCatalogAnchorMoviePosition(movieId);
+  });
+}
+
 function restoreCatalogScrollPosition() {
   try {
     const savedAnchorMovieId = sessionStorage.getItem(CATALOG_ANCHOR_MOVIE_ID_KEY);
     const savedScrollPosition = sessionStorage.getItem(CATALOG_SCROLL_POSITION_KEY);
 
     if (savedAnchorMovieId) {
-      requestAnimationFrame(() => {
-        restoreCatalogAnchorMoviePosition(savedAnchorMovieId);
-      });
+      scheduleCatalogAnchorRestore(savedAnchorMovieId);
 
       sessionStorage.removeItem(CATALOG_ANCHOR_MOVIE_ID_KEY);
       sessionStorage.removeItem(CATALOG_SCROLL_POSITION_KEY);
@@ -1370,9 +1378,7 @@ function rerenderCatalogAfterDataReload(
     return;
   }
 
-  requestAnimationFrame(() => {
-    restoreCatalogAnchorMoviePosition(nextAnchorMovieId);
-  });
+  scheduleCatalogAnchorRestore(nextAnchorMovieId);
 }
 
 function shouldRenderFullCatalogAfterWatchlistChange() {
