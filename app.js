@@ -318,20 +318,19 @@ function saveCatalogStateAndRender(renderCallback = renderMovies) {
   scheduleCatalogRender(renderCallback);
 }
 
+function renderCatalogAndRestoreScrollPosition() {
+  renderMovies();
+  restoreCatalogScrollPosition();
+}
+
 function rerenderCatalogPreservingPosition() {
   saveCatalogScrollPosition();
   saveCatalogAnchorMovieId();
-  saveCatalogStateAndRender(() => {
-    renderMovies();
-    restoreCatalogScrollPosition();
-  });
+  saveCatalogStateAndRender(renderCatalogAndRestoreScrollPosition);
 }
 
 function createDebouncedCatalogRender(delay) {
-  return debounce(() => {
-    renderMovies();
-    restoreCatalogScrollPosition();
-  }, delay);
+  return debounce(renderCatalogAndRestoreScrollPosition, delay);
 }
 
 function prepareCatalogStateForDeferredRender() {
