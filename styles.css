@@ -2778,7 +2778,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     --catalog-grid-gap: 12px;
   }
 
-  .catalog-search-row input {
+  .catalog-search-row input[type="text"] {
     font-size: 14px;
   }
 
