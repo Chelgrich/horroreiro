@@ -942,7 +942,10 @@ function fillFormForEdit(movie) {
 
   updatePosterFileUi();
 
-  const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
+  const genres = movie.movie_genres
+    .map(item => item.genres.name)
+    .filter(name => normalizeSearchText(name) !== 'ужасы')
+    .join(', ');
   const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
 
   setInputValue(genresInput, genres, 'genresInput');
