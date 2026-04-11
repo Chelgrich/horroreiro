@@ -2389,7 +2389,7 @@ function armDeleteMovieButton(buttonElement, onConfirm) {
   const originalText = buttonElement.textContent;
 
   buttonElement.dataset.deleteArmed = 'true';
-  buttonElement.textContent = 'Подтвердить удаление';
+  buttonElement.textContent = 'Подтвердить';
   buttonElement.classList.add('is-delete-confirm');
 
   const resetDeleteButton = () => {
