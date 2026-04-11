@@ -2153,7 +2153,7 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 }
 
 .mobile-rating-modal-actions {
-  margin-top: 14px;
+  margin-top: 18px;
   display: flex;
   justify-content: center;
 }
@@ -2161,6 +2161,7 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 .mobile-rating-modal-remove {
   width: auto;
   height: 32px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 600;
   color: #ffb4ab;
