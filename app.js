@@ -1367,6 +1367,10 @@ function rerenderCatalogAfterDataReload(
     catalogFadeCleanupTimerId = null;
   }
 
+  if (!shouldRunCatalogFade) {
+    container.classList.remove('is-catalog-fading');
+  }
+
   if (shouldRunCatalogFade) {
     container.classList.add('is-catalog-fading');
     container.classList.remove('is-catalog-visible');
