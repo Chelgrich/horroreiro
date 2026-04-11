@@ -544,13 +544,18 @@ function initCatalogViewToggleButton() {
     catalogViewToggleButton.className = 'secondary-button catalog-view-toggle';
 
     catalogViewToggleButton.addEventListener('click', () => {
+      saveCatalogScrollPosition();
+      saveCatalogAnchorMovieId();
+
       viewMode.value = viewMode.value === 'list' ? 'releases' : 'list';
 
       refreshCustomSelect(viewMode);
 
       syncCatalogViewToggleButton();
-      saveCatalogState();
-      renderMovies();
+      saveCatalogStateAndRender(() => {
+        renderMovies();
+        restoreCatalogScrollPosition();
+      });
     });
 
     moviesSectionHeader.appendChild(catalogViewToggleButton);
