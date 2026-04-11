@@ -3197,8 +3197,7 @@ function renderEmptyState() {
 
       if (action === 'reset-search') {
         searchInput.value = '';
-        saveCatalogState();
-        renderMovies();
+        saveCatalogStateAndRender();
       }
 
       if (action === 'reset-filters') {
@@ -3984,7 +3983,7 @@ searchInput.addEventListener('keydown', event => {
 
   event.preventDefault();
   clearSearchInput();
-  renderMovies();
+  saveCatalogStateAndRender();
 });
 
 const debouncedRenderMoviesForFilters = debounce(renderMovies, 120);
