@@ -1139,6 +1139,15 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   margin-top: 16px;
 }
 
+.movies-list.is-catalog-fading {
+  opacity: 0.72;
+  transition: opacity 0.22s ease;
+}
+
+.movies-list.is-catalog-fading.is-catalog-visible {
+  opacity: 1;
+}
+
 .movies-year-title {
   grid-column: 1 / -1;
   font-size: 26px;
