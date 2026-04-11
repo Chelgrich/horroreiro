@@ -2607,7 +2607,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movies-section-heading {
     width: 100%;
     align-items: flex-start;
-    gap: 6px;
+    gap: 10px;
   }
 
   .movies-year-title {
