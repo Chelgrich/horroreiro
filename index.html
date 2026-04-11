@@ -315,7 +315,10 @@
       <div class="catalog-toolbar">
         <div class="form-row catalog-search-row">
           <label for="searchInput">Поиск:</label>
-          <input type="text" id="searchInput" placeholder="Название, оригинальное название, режиссёр">
+          <div class="search-input-wrapper">
+            <input type="text" id="searchInput" placeholder="Название, оригинальное название, режиссёр">
+            <button type="button" id="searchClearBtn" class="search-clear-btn" style="display: none;">×</button>
+          </div>
         </div>
 
         <div class="catalog-toolbar-actions">
