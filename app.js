@@ -282,10 +282,7 @@ function restoreCatalogScrollPosition() {
     }
 
     requestAnimationFrame(() => {
-      window.scrollTo({
-        top: scrollY,
-        behavior: 'auto'
-      });
+      scrollWindowToPosition(scrollY);
     });
 
     sessionStorage.removeItem(CATALOG_SCROLL_POSITION_KEY);
@@ -1276,10 +1273,21 @@ function preserveWindowScrollPosition(callback) {
   callback();
 
   requestAnimationFrame(() => {
-    window.scrollTo({
-      top: currentScrollY,
-      behavior: 'auto'
-    });
+    scrollWindowToPosition(currentScrollY);
+  });
+}
+
+function scrollWindowToPosition(top) {
+  window.scrollTo({
+    top,
+    behavior: 'auto'
+  });
+}
+
+function scrollWindowByDelta(topDelta) {
+  window.scrollBy({
+    top: topDelta,
+    behavior: 'auto'
   });
 }
 
@@ -1299,10 +1307,7 @@ function restoreCatalogAnchorMoviePosition(movieId) {
   const scrollDelta = anchoredCardTop - targetTop;
 
   if (scrollDelta !== 0) {
-    window.scrollBy({
-      top: scrollDelta,
-      behavior: 'auto'
-    });
+    scrollWindowByDelta(scrollDelta);
   }
 }
 
