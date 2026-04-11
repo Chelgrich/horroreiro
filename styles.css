@@ -2597,6 +2597,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-height: 32px;
     padding: 0 14px;
     font-size: 12px;
+    margin-top: 6px;
   }
 
   .movies-result-count {
