@@ -62,7 +62,6 @@ const releaseMonthInput = document.getElementById('releaseMonth');
 const releaseYearInput = document.getElementById('releaseYear');
 const sortOrderInput = document.getElementById('sortOrder');
 const directorInput = document.getElementById('director');
-const posterUrlInput = document.getElementById('posterUrl');
 const posterFileInput = document.getElementById('posterFile');
 const posterFileName = document.getElementById('posterFileName');
 const kinopoiskUrlInput = document.getElementById('kinopoiskUrl');
@@ -932,7 +931,6 @@ function fillFormForEdit(movie) {
   setInputValue(releaseYearInput, movie.release_year, 'releaseYearInput');
   setInputValue(sortOrderInput, movie.sort_order, 'sortOrderInput');
   setInputValue(directorInput, movie.director, 'directorInput');
-  setInputValue(posterUrlInput, movie.poster_url, 'posterUrlInput');
   setInputValue(kinopoiskUrlInput, movie.kinopoisk_url, 'kinopoiskUrlInput');
   setInputValue(imdbUrlInput, movie.imdb_url, 'imdbUrlInput');
   setInputValue(letterboxdUrlInput, movie.letterboxd_url, 'letterboxdUrlInput');
@@ -1853,7 +1851,6 @@ async function addMovie(event) {
   const releaseYear = releaseYearInput.value.trim();
   const sortOrder = sortOrderInput.value.trim();
   const director = directorInput.value.trim();
-  const posterUrl = posterUrlInput.value.trim();
   const posterFile = posterFileInput.files && posterFileInput.files[0]
     ? posterFileInput.files[0]
     : null;
@@ -1874,7 +1871,7 @@ async function addMovie(event) {
   try {
     ensureActiveSessionForWrite();
 
-    let finalPosterUrl = posterUrl || null;
+    let finalPosterUrl = null;
 
     if (posterFile) {
       formMessage.textContent = 'Загружаю постер...';
@@ -1961,7 +1958,6 @@ async function updateMovie(event) {
   const releaseYear = releaseYearInput.value.trim();
   const sortOrder = sortOrderInput.value.trim();
   const director = directorInput.value.trim();
-  const posterUrl = posterUrlInput.value.trim();
   const posterFile = posterFileInput.files && posterFileInput.files[0]
     ? posterFileInput.files[0]
     : null;
@@ -2011,7 +2007,7 @@ async function updateMovie(event) {
   try {
     ensureActiveSessionForWrite();
 
-    let finalPosterUrl = posterUrl || null;
+    let finalPosterUrl = existingMovie.poster_url ?? null;
     let uploadedNewPoster = false;
 
     if (posterFile) {
