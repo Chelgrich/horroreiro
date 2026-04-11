@@ -2161,13 +2161,17 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 .mobile-rating-modal-remove {
   width: auto;
   height: 32px;
-  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 600;
   color: #ffb4ab;
   background: var(--surface-control-alt);
   border: 1px solid rgba(255, 123, 114, 0.38);
   border-radius: var(--radius-md);
+}
+
+.mobile-rating-modal-remove:hover {
+  background: rgba(255, 123, 114, 0.06);
+  border-color: rgba(255, 123, 114, 0.45);
 }
 
 /* =========================================================
