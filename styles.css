@@ -1275,12 +1275,15 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   margin-top: 18px;
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .empty-state-reset-btn {
   min-width: 190px;
   font-weight: 600;
   border-color: var(--border-control-strong);
+  flex: 0 0 auto;
 }
 
 .empty-state-reset-btn:hover {
