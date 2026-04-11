@@ -947,6 +947,10 @@ function setMovieFormSubmittingState(isSubmitting) {
   }
 }
 
+function setMovieFormStatus(message) {
+  formMessage.textContent = message;
+}
+
 function resetFormToCreateMode() {
   editingMovieId = null;
   movieForm.reset();
@@ -1920,7 +1924,7 @@ async function addMovie(event) {
   }
 
   setMovieFormSubmittingState(true);
-  formMessage.textContent = 'Сохраняю...';
+  setMovieFormStatus('Сохраняю...');
 
   const title = titleInput.value.trim();
   const originalTitle = originalTitleInput.value.trim();
@@ -1952,7 +1956,7 @@ async function addMovie(event) {
     let finalPosterUrl = null;
 
     if (posterFile) {
-      formMessage.textContent = 'Загружаю постер...';
+      setMovieFormStatus('Загружаю постер...');
       finalPosterUrl = await withPendingRequestTimeout(
         uploadPosterFile(posterFile),
         20000,
@@ -1960,7 +1964,7 @@ async function addMovie(event) {
       );
     }
 
-    formMessage.textContent = 'Сохраняю...';
+    setMovieFormStatus('Сохраняю...');
 
     const { data: insertedMovie, error: insertMovieError } = await withPendingRequestTimeout(
       supabaseClient
@@ -1995,7 +1999,7 @@ async function addMovie(event) {
       'Превышено время ожидания сохранения жанров и стран.'
     );
 
-    formMessage.textContent = 'Обновляю каталог...';
+    setMovieFormStatus('Обновляю каталог...');
     await withPendingRequestTimeout(
       reloadCatalogData({ showSkeleton: true }),
       15000,
@@ -2007,7 +2011,7 @@ async function addMovie(event) {
       closeMovieModal();
   } catch (error) {
     console.error('Ошибка при добавлении фильма:', error);
-    formMessage.textContent = `Ошибка при добавлении фильма: ${error.message || 'смотри консоль F12.'}`;
+    setMovieFormStatus(`Ошибка при добавлении фильма: ${error.message || 'смотри консоль F12.'}`);
   } finally {
     setMovieFormSubmittingState(false);
   }
@@ -2025,7 +2029,7 @@ async function updateMovie(event) {
   }
 
   setMovieFormSubmittingState(true);
-  formMessage.textContent = 'Сохраняю изменения...';
+  setMovieFormStatus('Сохраняю изменения...');
 
   const title = titleInput.value.trim();
   const originalTitle = originalTitleInput.value.trim();
@@ -2087,7 +2091,7 @@ async function updateMovie(event) {
     let uploadedNewPoster = false;
 
     if (posterFile) {
-      formMessage.textContent = 'Загружаю постер...';
+      setMovieFormStatus('Загружаю постер...');
       finalPosterUrl = await withPendingRequestTimeout(
         uploadPosterFile(posterFile),
         20000,
@@ -2149,7 +2153,7 @@ async function updateMovie(event) {
     }
 
     if (Object.keys(changedFields).length > 0) {
-      formMessage.textContent = 'Сохраняю изменения...';
+      setMovieFormStatus('Сохраняю изменения...');
 
       const { error: updateMovieError } = await withPendingRequestTimeout(
         supabaseClient
@@ -2180,13 +2184,13 @@ async function updateMovie(event) {
     }
 
     if (Object.keys(changedFields).length === 0 && !relationsChanged) {
-      formMessage.textContent = 'Изменений нет.';
+      setMovieFormStatus('Изменений нет.');
       closeMovieModal();
       resetFormToCreateMode();
       return;
     }
 
-    formMessage.textContent = 'Обновляю каталог...';
+    setMovieFormStatus('Обновляю каталог...');
     await withPendingRequestTimeout(
       reloadCatalogData({ showSkeleton: true }),
       15000,
@@ -2198,7 +2202,7 @@ async function updateMovie(event) {
       resetFormToCreateMode();
   } catch (error) {
     console.error('Ошибка при редактировании фильма:', error);
-    formMessage.textContent = `Ошибка при редактировании фильма: ${error.message || 'смотри консоль F12.'}`;
+    setMovieFormStatus(`Ошибка при редактировании фильма: ${error.message || 'смотри консоль F12.'}`);
   } finally {
     setMovieFormSubmittingState(false);
   }
@@ -2243,10 +2247,10 @@ async function deleteMovie(movieId, movieTitle) {
     await reloadCatalogData({ showSkeleton: true });
     rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.preserveScrollOnly);
 
-    formMessage.textContent = `Фильм "${movieTitle}" удалён.`;
+    setMovieFormStatus(`Фильм "${movieTitle}" удалён.`);
   } catch (error) {
     console.error('Ошибка при удалении фильма:', error);
-    formMessage.textContent = 'Ошибка при удалении фильма. Смотри консоль F12.';
+    setMovieFormStatus('Ошибка при удалении фильма. Смотри консоль F12.');
   }
 }
 
