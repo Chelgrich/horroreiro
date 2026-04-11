@@ -4005,6 +4005,8 @@ searchInput.addEventListener('keydown', event => {
 const debouncedRenderMoviesForFilters = debounce(renderMovies, 120);
 
 function saveCatalogStateAndRenderFilters() {
+  saveCatalogScrollPosition();
+  saveCatalogAnchorMovieId();
   saveCatalogState();
   debouncedRenderMoviesForFilters();
 }
@@ -4012,6 +4014,10 @@ function saveCatalogStateAndRenderFilters() {
 const handleFiltersChange = () => {
   trackFiltersUsageIfNeeded();
   saveCatalogStateAndRenderFilters();
+  debouncedRenderMoviesForFilters = debounce(() => {
+    renderMovies();
+    restoreCatalogScrollPosition();
+  }, 120);
 };
 
 genreFilter.addEventListener('change', handleFiltersChange);
@@ -4021,13 +4027,23 @@ yearFilter.addEventListener('change', handleFiltersChange);
 watchlistFilter.addEventListener('change', handleFiltersChange);
 watchedFilter.addEventListener('change', handleFiltersChange);
 viewMode.addEventListener('change', () => {
+  saveCatalogScrollPosition();
+  saveCatalogAnchorMovieId();
   syncCatalogViewToggleButton();
-  saveCatalogStateAndRender();
+  saveCatalogStateAndRender(() => {
+    renderMovies();
+    restoreCatalogScrollPosition();
+  });
 });
 sortMode.addEventListener('change', () => {
   trackSortUsageIfNeeded();
+  saveCatalogScrollPosition();
+  saveCatalogAnchorMovieId();
   saveCatalogState();
-  scheduleCatalogRender();
+  scheduleCatalogRender(() => {
+    renderMovies();
+    restoreCatalogScrollPosition();
+  });
 });
 
 if (quickPresetsBar) {
