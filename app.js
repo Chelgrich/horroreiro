@@ -3848,6 +3848,7 @@ function renderMovies() {
   }
 
   renderActiveFilterChips();
+  syncQuickPresetButtons();
 
   const filteredMovies = getFilteredMovies();
 
