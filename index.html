@@ -170,33 +170,35 @@
             <input type="number" id="year" name="year" min="1888" max="2100">
           </div>
 
-          <div class="form-row">
-            <label for="releaseYear">Год релиза:</label>
-            <input type="number" id="releaseYear" name="releaseYear" min="1900" max="2100" placeholder="2026">
-          </div>
+          <div class="movie-form-inline-group movie-form-inline-group-release">
+            <div class="form-row">
+              <label for="releaseYear">Год релиза:</label>
+              <input type="number" id="releaseYear" name="releaseYear" min="1900" max="2100" placeholder="2026">
+            </div>
 
-          <div class="form-row">
-            <label for="releaseMonth">Месяц:</label>
-            <select id="releaseMonth" name="releaseMonth">
-              <option value="">Не выбран</option>
-              <option value="1">Январь</option>
-              <option value="2">Февраль</option>
-              <option value="3">Март</option>
-              <option value="4">Апрель</option>
-              <option value="5">Май</option>
-              <option value="6">Июнь</option>
-              <option value="7">Июль</option>
-              <option value="8">Август</option>
-              <option value="9">Сентябрь</option>
-              <option value="10">Октябрь</option>
-              <option value="11">Ноябрь</option>
-              <option value="12">Декабрь</option>
-            </select>
-          </div>
+            <div class="form-row">
+              <label for="releaseMonth">Месяц:</label>
+              <select id="releaseMonth" name="releaseMonth">
+                <option value="">Не выбран</option>
+                <option value="1">Январь</option>
+                <option value="2">Февраль</option>
+                <option value="3">Март</option>
+                <option value="4">Апрель</option>
+                <option value="5">Май</option>
+                <option value="6">Июнь</option>
+                <option value="7">Июль</option>
+                <option value="8">Август</option>
+                <option value="9">Сентябрь</option>
+                <option value="10">Октябрь</option>
+                <option value="11">Ноябрь</option>
+                <option value="12">Декабрь</option>
+              </select>
+            </div>
 
-          <div class="form-row">
-            <label for="sortOrder">Порядок внутри месяца:</label>
-            <input type="number" id="sortOrder" name="sortOrder" min="1" step="1" placeholder="1">
+            <div class="form-row">
+              <label for="sortOrder">Порядок внутри месяца:</label>
+              <input type="number" id="sortOrder" name="sortOrder" min="1" step="1" placeholder="1">
+            </div>
           </div>
 
           <div class="form-row">
@@ -217,56 +219,58 @@
             </div>
           </div>
           
-          <div class="form-row">
-            <label for="kinopoiskUrl">Ссылка на Кинопоиск:</label>
-            <input
-              type="text"
-              id="kinopoiskUrl"
-              name="kinopoiskUrl"
-              inputmode="url"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="https://www.kinopoisk.ru/..."
-            >
-          </div>
-          
-          <div class="form-row">
-            <label for="imdbUrl">Ссылка на IMDb:</label>
-            <input
-              type="text"
-              id="imdbUrl"
-              name="imdbUrl"
-              inputmode="url"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="https://www.imdb.com/title/..."
-            >
-          </div>
-          
-          <div class="form-row">
-            <label for="letterboxdUrl">Ссылка на Letterboxd:</label>
-            <input
-              type="text"
-              id="letterboxdUrl"
-              name="letterboxdUrl"
-              inputmode="url"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="https://letterboxd.com/film/..."
-            >
-          </div>
-          
-          <div class="form-row">
-            <label for="rottentomatoesUrl">Ссылка на Rotten Tomatoes:</label>
-            <input
-              type="text"
-              id="rottentomatoesUrl"
-              name="rottentomatoesUrl"
-              inputmode="url"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="https://www.rottentomatoes.com/..."
-            >
+          <div class="movie-form-inline-group movie-form-inline-group-links">
+            <div class="form-row">
+              <label for="kinopoiskUrl">Ссылка на Кинопоиск:</label>
+              <input
+                type="text"
+                id="kinopoiskUrl"
+                name="kinopoiskUrl"
+                inputmode="url"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="https://www.kinopoisk.ru/..."
+              >
+            </div>
+            
+            <div class="form-row">
+              <label for="imdbUrl">Ссылка на IMDb:</label>
+              <input
+                type="text"
+                id="imdbUrl"
+                name="imdbUrl"
+                inputmode="url"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="https://www.imdb.com/title/..."
+              >
+            </div>
+            
+            <div class="form-row">
+              <label for="letterboxdUrl">Ссылка на Letterboxd:</label>
+              <input
+                type="text"
+                id="letterboxdUrl"
+                name="letterboxdUrl"
+                inputmode="url"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="https://letterboxd.com/film/..."
+              >
+            </div>
+            
+            <div class="form-row">
+              <label for="rottentomatoesUrl">Ссылка на Rotten Tomatoes:</label>
+              <input
+                type="text"
+                id="rottentomatoesUrl"
+                name="rottentomatoesUrl"
+                inputmode="url"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="https://www.rottentomatoes.com/..."
+              >
+            </div>
           </div>
           
           <div class="form-row">

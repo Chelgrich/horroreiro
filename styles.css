@@ -478,6 +478,16 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
   flex-wrap: wrap;
 }
 
+.movie-form-inline-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.movie-form-inline-group .form-row {
+  margin-bottom: 0;
+}
+
 .form-message {
   min-height: 24px;
   margin: 12px 0 0;
@@ -2238,6 +2248,20 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 ========================================================== */
 
 @media (min-width: 901px) {
+  .movie-form-inline-group-release {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .movie-form-inline-group-links {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+
   .catalog-toolbar-actions {
     gap: 12px;
   }
