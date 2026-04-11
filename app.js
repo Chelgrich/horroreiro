@@ -318,14 +318,18 @@ function saveCatalogStateAndRender(renderCallback = renderMovies) {
   scheduleCatalogRender(renderCallback);
 }
 
-function applyCatalogViewModeChange() {
+function rerenderCatalogPreservingPosition() {
   saveCatalogScrollPosition();
   saveCatalogAnchorMovieId();
-  syncCatalogViewToggleButton();
   saveCatalogStateAndRender(() => {
     renderMovies();
     restoreCatalogScrollPosition();
   });
+}
+
+function applyCatalogViewModeChange() {
+  syncCatalogViewToggleButton();
+  rerenderCatalogPreservingPosition();
 }
 
 function saveCatalogState() {
@@ -4078,13 +4082,8 @@ searchInput.addEventListener('keydown', event => {
   }
 
   event.preventDefault();
-  saveCatalogScrollPosition();
-  saveCatalogAnchorMovieId();
   clearSearchInput();
-  saveCatalogStateAndRender(() => {
-    renderMovies();
-    restoreCatalogScrollPosition();
-  });
+  rerenderCatalogPreservingPosition();
 });
 
 const debouncedRenderMoviesForFilters = debounce(() => {
@@ -4115,13 +4114,7 @@ viewMode.addEventListener('change', () => {
 });
 sortMode.addEventListener('change', () => {
   trackSortUsageIfNeeded();
-  saveCatalogScrollPosition();
-  saveCatalogAnchorMovieId();
-  saveCatalogState();
-  scheduleCatalogRender(() => {
-    renderMovies();
-    restoreCatalogScrollPosition();
-  });
+  rerenderCatalogPreservingPosition();
 });
 
 if (quickPresetsBar) {
