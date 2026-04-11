@@ -891,6 +891,8 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 
 .search-input-wrapper {
   position: relative;
+  flex: 1;
+  width: 100%;
 }
 
 .search-input-wrapper input {
