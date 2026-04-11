@@ -2265,7 +2265,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-form-inline-group-titles {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 0.5fr;
     gap: 12px;
     align-items: start;
   }
