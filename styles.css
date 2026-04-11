@@ -11,6 +11,9 @@ html {
   --radius-md: 6px;
 
   --surface-control-alt: #1a1f26;
+  --surface-control: #121519;
+
+  --border-control-strong: #353d48;
 
   --color-danger-text: #ffd9d4;
 }
