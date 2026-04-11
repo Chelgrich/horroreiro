@@ -20,6 +20,7 @@ const userPanel = document.getElementById('userPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
 
 const searchInput = document.getElementById('searchInput');
+const searchClearBtn = document.getElementById('searchClearBtn');
 const genreFilter = document.getElementById('genreFilter');
 const countryFilter = document.getElementById('countryFilter');
 const ratingFilter = document.getElementById('ratingFilter');
@@ -405,6 +406,10 @@ function applySavedCatalogState() {
       watchedFilter.value = currentUser ? (catalogState.watched || '') : '';
       viewMode.value = catalogState.viewMode || 'list';
       sortMode.value = catalogState.sortMode || 'default';
+    }
+
+    if (searchClearBtn) {
+      searchClearBtn.style.display = searchInput.value.trim() ? 'flex' : 'none';
     }
 
     refreshCustomSelectGroup([
@@ -1512,6 +1517,11 @@ function clearSearchInput() {
 
   searchInput.value = '';
   lastSearchQuery = '';
+
+  if (searchClearBtn) {
+    searchClearBtn.style.display = 'none';
+  }
+
   saveCatalogState();
 }
 
@@ -4150,6 +4160,11 @@ let lastSearchQuery = '';
 searchInput.addEventListener('input', () => {
   const query = searchInput.value.trim();
 
+  // 👇 управление крестиком
+  if (searchClearBtn) {
+    searchClearBtn.style.display = query ? 'flex' : 'none';
+  }
+
   if (query && query !== lastSearchQuery) {
     trackGoal('search_used');
     lastSearchQuery = query;
@@ -4171,6 +4186,14 @@ searchInput.addEventListener('keydown', event => {
   event.preventDefault();
   clearSearchAndRerenderPreservingPosition();
 });
+
+if (searchClearBtn) {
+  searchClearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    searchClearBtn.style.display = 'none';
+    clearSearchAndRerenderPreservingPosition();
+  });
+}
 
 const debouncedRenderMoviesForFilters = createDebouncedCatalogRender(120);
 
