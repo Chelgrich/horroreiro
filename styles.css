@@ -2260,6 +2260,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-height: var(--control-height-md);
     padding-top: 8px;
     padding-bottom: 8px;
+    line-height: 1;
   }
 
   .movie-form-inline-group-release {
