@@ -1465,6 +1465,16 @@ function resetFilterControls({ preserveSearch = false } = {}) {
   saveCatalogState();
 }
 
+function resetCatalogFiltersAndRerender({ preserveSearch = false } = {}) {
+  resetFilterControls({ preserveSearch });
+  saveCatalogStateAndRenderFilters();
+}
+
+function clearSearchAndRerenderPreservingPosition() {
+  clearSearchInput();
+  rerenderCatalogPreservingPosition();
+}
+
 function getActiveQuickPresetKey() {
   const hasSearchQuery = searchInput.value.trim() !== '';
   const hasGenreFilter = Boolean(genreFilter.value);
@@ -3302,18 +3312,15 @@ function renderEmptyState() {
       const action = actionButton.dataset.emptyStateAction;
 
       if (action === 'reset-search') {
-        searchInput.value = '';
-        saveCatalogStateAndRender();
+        clearSearchAndRerenderPreservingPosition();
       }
 
       if (action === 'reset-filters') {
-        resetFilterControls({ preserveSearch: true });
-        saveCatalogStateAndRenderFilters();
+        resetCatalogFiltersAndRerender({ preserveSearch: true });
       }
 
       if (action === 'reset-all') {
-        resetFilterControls();
-        saveCatalogStateAndRenderFilters();
+        resetCatalogFiltersAndRerender();
       }
     });
   }
@@ -4100,8 +4107,7 @@ searchInput.addEventListener('keydown', event => {
   }
 
   event.preventDefault();
-  clearSearchInput();
-  rerenderCatalogPreservingPosition();
+  clearSearchAndRerenderPreservingPosition();
 });
 
 const debouncedRenderMoviesForFilters = createDebouncedCatalogRender(120);
@@ -4144,8 +4150,7 @@ if (quickPresetsBar) {
 
 if (resetFiltersTopButton) {
   resetFiltersTopButton.addEventListener('click', () => {
-    resetFilterControls();
-    saveCatalogStateAndRenderFilters();
+    resetCatalogFiltersAndRerender();
   });
 }
 
