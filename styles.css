@@ -481,10 +481,9 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
 .movie-form-inline-group {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   margin-bottom: 14px;
 }
-
 .movie-form-inline-group .form-row {
   margin-bottom: 0;
 }
