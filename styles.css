@@ -896,6 +896,7 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 }
 
 .search-input-wrapper input {
+  width: 100%;
   padding-right: 32px;
 }
 
