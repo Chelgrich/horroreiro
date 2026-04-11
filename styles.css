@@ -2583,6 +2583,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movies-section-header {
     margin-bottom: 8px;
+    gap: 14px;
   }
 
   .movies-section-header .section-title,
