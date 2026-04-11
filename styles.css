@@ -70,6 +70,10 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
   --color-danger-bg: rgba(120, 34, 34, 0.28);
   --color-danger-border: rgba(255, 123, 114, 0.5);
   --color-danger-shadow: rgba(255, 123, 114, 0.14);
+  --color-success-base: 34, 168, 97;
+  --color-success-border: rgba(34, 168, 97, 0.5);
+  --color-success-bg-soft: rgba(34, 168, 97, 0.06);
+  --color-success-shadow: rgba(34, 168, 97, 0.18);
   max-width: 1440px;
   margin: 0 auto;
   padding: 24px;
@@ -1263,13 +1267,13 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 }
 
 .movie-card-rated {
-  border-color: rgba(34, 168, 97, 0.5);
+  border-color: var(--color-success-border);
   background:
-    linear-gradient(rgba(34, 168, 97, 0.06), rgba(34, 168, 97, 0.06)),
+    linear-gradient(var(--color-success-bg-soft), var(--color-success-bg-soft)),
     #15191d;
   box-shadow:
-    0 0 0 1px rgba(34, 168, 97, 0.18),
-    0 0 10px rgba(34, 168, 97, 0.12);
+    0 0 0 1px var(--color-success-shadow),
+    0 0 10px rgba(var(--color-success-base), 0.12);
 }
 
 .movie-card-rated:hover {
