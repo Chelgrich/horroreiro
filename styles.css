@@ -488,6 +488,10 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
   margin-bottom: 0;
 }
 
+.movie-form select {
+  height: 36px;
+}
+
 .form-message {
   min-height: 24px;
   margin: 12px 0 0;
