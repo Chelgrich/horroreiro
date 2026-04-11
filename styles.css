@@ -514,10 +514,19 @@ CSS-БЛОК 8. ПОЛЯ ВВОДА
 ========================================================== */
 input,
 select,
+textarea,
 button {
   max-width: 100%;
   box-sizing: border-box;
   font: inherit;
+}
+
+input,
+textarea {
+  color: #f2f2f2;
+  background: var(--surface-control);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-md);
 }
 
 input {
@@ -525,10 +534,6 @@ input {
   padding: 0 12px;
   display: flex;
   align-items: center;
-  color: #f2f2f2;
-  background: var(--surface-control);
-  border: 1px solid var(--border-control);
-  border-radius: var(--radius-md);
 }
 
 .file-input-wrapper {
@@ -611,10 +616,19 @@ input::placeholder {
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: none;
   border-color: var(--control-focus-border);
   box-shadow: 0 0 0 3px var(--control-focus-ring);
+}
+
+textarea {
+  width: 100%;
+  min-height: 104px;
+  padding: 10px 12px;
+  resize: vertical;
+  line-height: 1.4;
 }
 
 .filters input {

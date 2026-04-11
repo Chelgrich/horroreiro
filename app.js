@@ -70,6 +70,7 @@ const letterboxdUrlInput = document.getElementById('letterboxdUrl');
 const rottentomatoesUrlInput = document.getElementById('rottentomatoesUrl');
 const genresInput = document.getElementById('genresInput');
 const countriesInput = document.getElementById('countriesInput');
+const searchAliasesInput = document.getElementById('searchAliases');
 
 /* =========================================================
 JS-БЛОК 2. ПОДКЛЮЧЕНИЕ К SUPABASE
@@ -157,6 +158,13 @@ JS-БЛОК 4. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ОБЩЕГО НАЗ
 function parseCommaSeparated(value) {
   return value
     .split(',')
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function parseMultilineValues(value) {
+  return String(value || '')
+    .split('\n')
     .map(item => item.trim())
     .filter(Boolean);
 }
@@ -790,7 +798,8 @@ function movieMatchesSearch(movie, searchQuery) {
   const searchableText = normalizeSearchText([
     movie.title,
     movie.original_title,
-    movie.director
+    movie.director,
+    ...(movie.search_aliases || [])
   ].join(' '));
 
   const queryWords = normalizedQuery.split(' ').filter(Boolean);
@@ -1003,6 +1012,7 @@ function fillFormForEdit(movie) {
 
   setInputValue(genresInput, genres, 'genresInput');
   setInputValue(countriesInput, countries, 'countriesInput');
+  setInputValue(searchAliasesInput, (movie.search_aliases || []).join('\n'), 'searchAliasesInput');
 
   formTitle.textContent = `Редактирование: ${movie.title}`;
   submitButton.textContent = 'Сохранить изменения';
@@ -1193,6 +1203,7 @@ async function fetchMovies() {
       original_title,
       year,
       director,
+      search_aliases,
       rating,
       poster_url,
       kinopoisk_url,
@@ -1947,6 +1958,7 @@ async function addMovie(event) {
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseCommaSeparated(countriesInput.value);
+  const searchAliases = parseMultilineValues(searchAliasesInput.value);
 
   if (!title) {
     formMessage.textContent = 'Название обязательно.';
@@ -1978,6 +1990,7 @@ async function addMovie(event) {
           original_title: originalTitle || null,
           year: year ? Number(year) : null,
           director: director || null,
+          search_aliases: searchAliases,
           rating: 0,
           poster_url: finalPosterUrl,
           kinopoisk_url: kinopoiskUrl || null,
@@ -2052,6 +2065,7 @@ async function updateMovie(event) {
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseCommaSeparated(countriesInput.value);
+  const searchAliases = parseMultilineValues(searchAliasesInput.value);
 
   if (!title) {
     formMessage.textContent = 'Название обязательно.';
@@ -2122,6 +2136,10 @@ async function updateMovie(event) {
 
     if ((director || null) !== (existingMovie.director ?? null)) {
       changedFields.director = director || null;
+    }
+
+    if (!areStringArraysEqual(searchAliases, existingMovie.search_aliases || [])) {
+      changedFields.search_aliases = searchAliases;
     }
 
     if (finalPosterUrl !== (existingMovie.poster_url ?? null)) {
