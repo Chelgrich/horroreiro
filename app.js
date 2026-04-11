@@ -4002,7 +4002,10 @@ searchInput.addEventListener('keydown', event => {
   saveCatalogStateAndRender();
 });
 
-const debouncedRenderMoviesForFilters = debounce(renderMovies, 120);
+const debouncedRenderMoviesForFilters = debounce(() => {
+  renderMovies();
+  restoreCatalogScrollPosition();
+}, 120);
 
 function saveCatalogStateAndRenderFilters() {
   saveCatalogScrollPosition();
@@ -4014,10 +4017,6 @@ function saveCatalogStateAndRenderFilters() {
 const handleFiltersChange = () => {
   trackFiltersUsageIfNeeded();
   saveCatalogStateAndRenderFilters();
-  debouncedRenderMoviesForFilters = debounce(() => {
-    renderMovies();
-    restoreCatalogScrollPosition();
-  }, 120);
 };
 
 genreFilter.addEventListener('change', handleFiltersChange);
