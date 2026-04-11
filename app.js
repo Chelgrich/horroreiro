@@ -3734,7 +3734,7 @@ function sortMoviesWithinMonth(movies, monthSortMode, monthSortDirection = 'desc
   return sortedMovies;
 }
 
-function createMonthSection(month, movies) {
+function createMonthSection(month, movies, initialReleaseDirection = 'desc') {
   const monthSection = document.createElement('section');
   const monthHeader = document.createElement('div');
   const monthTitle = document.createElement('h4');
@@ -3767,7 +3767,7 @@ function createMonthSection(month, movies) {
   const monthSortState = {
     activeMode: 'release',
     directions: {
-      release: 'desc',
+      release: initialReleaseDirection,
       rating: 'desc'
     }
   };
@@ -3877,6 +3877,7 @@ function renderMovies() {
     let currentMonth = null;
     let currentMonthMovies = [];
     const moviesFragment = document.createDocumentFragment();
+    const defaultMonthReleaseDirection = sortMode.value === 'oldest' ? 'asc' : 'desc';
 
     const flushCurrentMonth = () => {
       if (!currentMonth || currentMonthMovies.length === 0) {
@@ -3884,7 +3885,11 @@ function renderMovies() {
       }
 
       moviesFragment.appendChild(
-        createMonthSection(currentMonth, currentMonthMovies)
+        createMonthSection(
+          currentMonth,
+          currentMonthMovies,
+          defaultMonthReleaseDirection
+        )
       );
       currentMonth = null;
       currentMonthMovies = [];
