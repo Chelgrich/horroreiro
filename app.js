@@ -3370,18 +3370,18 @@ function createMovieCard(movie) {
     `
     : '';
 
-  card.innerHTML = `
-  ${posterHtml}
+    card.innerHTML = `
+    ${posterHtml}
+  
+    <h5 class="movie-title">${highlightSearchMatches(movie.title, searchInput.value)}</h5>
+  
+    ${movie.original_title ? `<p>Оригинальное название: ${highlightSearchMatches(movie.original_title, searchInput.value)}</p>` : ''}
+    <p>Год: ${movie.year ?? '-'}</p>
+    <p>Режиссёр: ${movie.director ? highlightSearchMatches(movie.director, searchInput.value) : '-'}</p>
+    <p>Жанры: ${genres || '-'}</p>
+    <p>Страны: ${countries || '-'}</p>
 
-  <h5 class="movie-title">${highlightSearchMatches(movie.title, searchInput.value)}</h5>
-
-  <p>Оригинальное название: ${movie.original_title ? highlightSearchMatches(movie.original_title, searchInput.value) : '-'}</p>
-  <p>Год: ${movie.year ?? '-'}</p>
-  <p>Режиссёр: ${movie.director ? highlightSearchMatches(movie.director, searchInput.value) : '-'}</p>
-  <p>Жанры: ${genres || '-'}</p>
-  <p>Страны: ${countries || '-'}</p>
-
-  <div class="movie-rating-block">
+    <div class="movie-rating-block">
     ${
       hasExternalLinks
         ? `
