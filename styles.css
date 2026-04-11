@@ -2403,7 +2403,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .quick-preset-button {
     max-width: 100%;
     font-weight: 500;
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .active-filter-chip {
@@ -2511,7 +2511,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .catalog-view-toggle {
     height: 36px;
     padding: 0 10px;
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .movies-year-title {
@@ -2553,7 +2553,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-card h5 {
     padding-bottom: 8px;
-    font-size: 21px;
+    font-size: 20px;
   }
 
   .movie-card p {
@@ -2668,6 +2668,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .month-sort-btn {
     height: 30px;
     padding: 0 12px;
+    font-size: 12px;
+  }
+
+  .quick-preset-button {
     font-size: 12px;
   }
 
