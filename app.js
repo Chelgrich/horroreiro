@@ -1451,7 +1451,6 @@ function syncQuickPresetButtons() {
 
 function applyQuickPreset(presetKey) {
   resetFilterControls();
-  viewMode.value = 'list';
   sortMode.value = 'default';
 
   if (presetKey === 'top-rated') {
@@ -1478,7 +1477,6 @@ function applyQuickPreset(presetKey) {
     ratingFilter,
     watchlistFilter,
     watchedFilter,
-    viewMode,
     sortMode
   ].forEach(selectElement => {
     refreshCustomSelect(selectElement);
