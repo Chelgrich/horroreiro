@@ -74,6 +74,10 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
   --color-success-border: rgba(34, 168, 97, 0.5);
   --color-success-bg-soft: rgba(34, 168, 97, 0.06);
   --color-success-shadow: rgba(34, 168, 97, 0.18);
+  --color-watchlist-base: 91, 140, 255;
+  --color-watchlist-border: rgba(91, 140, 255, 0.45);
+  --color-watchlist-bg-soft: rgba(91, 140, 255, 0.06);
+  --color-watchlist-shadow: rgba(91, 140, 255, 0.16);
   max-width: 1440px;
   margin: 0 auto;
   padding: 24px;
@@ -1254,7 +1258,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 
 .movie-card-watchlist:hover {
   background:
-    linear-gradient(rgba(91, 140, 255, 0.08), rgba(91, 140, 255, 0.08)),
+    linear-gradient(rgba(var(--color-watchlist-base), 0.08), rgba(var(--color-watchlist-base), 0.08)),
     #171c20;
 }
 
@@ -1292,27 +1296,27 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 }
 
 .movie-card-watchlist {
-  border-color: rgba(91, 140, 255, 0.45);
+  border-color: var(--color-watchlist-border);
   background:
-    linear-gradient(rgba(91, 140, 255, 0.06), rgba(91, 140, 255, 0.06)),
+    linear-gradient(var(--color-watchlist-bg-soft), var(--color-watchlist-bg-soft)),
     #15191d;
   box-shadow:
-    0 0 0 1px rgba(91, 140, 255, 0.16),
-    0 0 10px rgba(91, 140, 255, 0.12);
+    0 0 0 1px var(--color-watchlist-shadow),
+    0 0 10px rgba(var(--color-watchlist-base), 0.12);
 }
 
 .movie-card-watchlist:hover {
-  border-color: rgba(91, 140, 255, 0.58);
+  border-color: rgba(var(--color-watchlist-base), 0.58);
   box-shadow:
-    0 0 0 1px rgba(91, 140, 255, 0.20),
-    0 0 12px rgba(91, 140, 255, 0.16),
+    0 0 0 1px rgba(var(--color-watchlist-base), 0.20),
+    0 0 12px rgba(var(--color-watchlist-base), 0.16),
     0 14px 30px rgba(0, 0, 0, 0.24);
 }
 
 .movie-card-watchlist:focus-within {
-  border-color: rgba(91, 140, 255, 0.62);
+  border-color: rgba(var(--color-watchlist-base), 0.62);
   box-shadow:
-    0 0 0 1px rgba(91, 140, 255, 0.24),
+    0 0 0 1px rgba(var(--color-watchlist-base), 0.24),
     0 14px 30px rgba(0, 0, 0, 0.24);
 }
 
