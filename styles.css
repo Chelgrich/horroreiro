@@ -78,6 +78,12 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
   --color-watchlist-border: rgba(91, 140, 255, 0.45);
   --color-watchlist-bg-soft: rgba(91, 140, 255, 0.06);
   --color-watchlist-shadow: rgba(91, 140, 255, 0.16);
+  --color-rating-base: 245, 197, 24;
+  --color-rating-text: #f5c518;
+  --color-rating-mark-text: #111315;
+  --color-rating-mark-bg: rgba(245, 197, 24, 0.92);
+  --color-rating-glow-soft: rgba(245, 197, 24, 0.14);
+  --color-rating-glow-medium: rgba(245, 197, 24, 0.18);
   max-width: 1440px;
   margin: 0 auto;
   padding: 24px;
@@ -1449,8 +1455,8 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 .movie-card mark,
 .movie-title mark {
   padding: 0 2px;
-  color: #111315;
-  background: rgba(245, 197, 24, 0.92);
+  color: var(--color-rating-mark-text);
+  background: var(--color-rating-mark-bg);
   border-radius: 4px;
 }
 
@@ -1815,7 +1821,7 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 
 .movie-user-rating-mobile-star {
   margin-left: 4px;
-  color: #f5c518;
+  color: var(--color-rating-text);
 }
 
 .movie-user-rating-stars {
@@ -1858,7 +1864,7 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 
 .movie-user-rating-scale-item.is-active {
   font-weight: 700;
-  color: #f5c518;
+  color: var(--color-rating-text);
   transform: translateY(-1px) scale(1.08);
 }
 
@@ -1950,8 +1956,8 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 }
 
 .rating-star-btn.is-active {
-  color: #f5c518;
-  text-shadow: 0 0 10px rgba(245, 197, 24, 0.14);
+  color: var(--color-rating-text);
+  text-shadow: 0 0 10px var(--color-rating-glow-soft);
 }
 
 .rating-star-btn.is-active:hover,
@@ -2060,8 +2066,8 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 }
 
 .mobile-rating-modal-meta .rating-value {
-  color: #f5c518;
-  text-shadow: 0 0 10px rgba(245, 197, 24, 0.18);
+  color: var(--color-rating-text);
+  text-shadow: 0 0 10px var(--color-rating-glow-medium);
 }
 
 .mobile-rating-modal-stars {
@@ -2107,7 +2113,7 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 
 .mobile-rating-scale-item.is-active {
   font-weight: 700;
-  color: #f5c518;
+  color: var(--color-rating-text);
   transform: translateY(-1px) scale(1.08);
 }
 
@@ -2136,9 +2142,9 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 }
 
 .mobile-rating-star-btn.is-active {
-  color: #f5c518;
+  color: var(--color-rating-text);
   transform: translateY(-1px) scale(1.06);
-  text-shadow: 0 0 10px rgba(245, 197, 24, 0.18);
+  text-shadow: 0 0 10px var(--color-rating-glow-medium);
 }
 
 .mobile-rating-modal-actions {
