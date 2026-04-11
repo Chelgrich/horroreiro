@@ -66,6 +66,10 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
   --accent-soft-border: rgba(91, 140, 255, 0.42);
   --accent-soft-border-hover: rgba(91, 140, 255, 0.5);
   --accent-soft-shadow: rgba(91, 140, 255, 0.16);
+  --color-danger-text: #ffd9d4;
+  --color-danger-bg: rgba(120, 34, 34, 0.28);
+  --color-danger-border: rgba(255, 123, 114, 0.5);
+  --color-danger-shadow: rgba(255, 123, 114, 0.14);
   max-width: 1440px;
   margin: 0 auto;
   padding: 24px;
@@ -789,10 +793,10 @@ button:active {
 }
 
 .secondary-button.is-delete-confirm {
-  color: #ffd9d4;
-  background: rgba(120, 34, 34, 0.28);
-  border-color: rgba(255, 123, 114, 0.5);
-  box-shadow: 0 0 0 1px rgba(255, 123, 114, 0.14);
+  color: var(--color-danger-text);
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+  box-shadow: 0 0 0 1px var(--color-danger-shadow);
 }
 
 .secondary-button-compact {
