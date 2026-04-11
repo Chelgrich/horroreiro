@@ -1309,11 +1309,17 @@ function rerenderCatalogAfterDataReload(
     ? (anchorMovieId ?? lastCatalogAnchorMovieId)
     : null;
 
+  container.classList.add('is-catalog-fading');
+
   if (preserveScroll) {
     preserveWindowScrollPosition(renderMovies);
   } else {
     renderMovies();
   }
+
+  requestAnimationFrame(() => {
+    container.classList.add('is-catalog-visible');
+  });
 
   if (!nextAnchorMovieId) {
     return;
@@ -3898,6 +3904,8 @@ function renderMovies() {
   if (!moviesLoadedSuccessfully) {
     return;
   }
+
+  container.classList.remove('is-catalog-visible');
 
   renderActiveFilterChips();
   syncQuickPresetButtons();
