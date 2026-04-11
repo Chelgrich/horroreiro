@@ -318,6 +318,16 @@ function saveCatalogStateAndRender(renderCallback = renderMovies) {
   scheduleCatalogRender(renderCallback);
 }
 
+function applyCatalogViewModeChange() {
+  saveCatalogScrollPosition();
+  saveCatalogAnchorMovieId();
+  syncCatalogViewToggleButton();
+  saveCatalogStateAndRender(() => {
+    renderMovies();
+    restoreCatalogScrollPosition();
+  });
+}
+
 function saveCatalogState() {
   try {
     localStorage.setItem(
@@ -544,18 +554,10 @@ function initCatalogViewToggleButton() {
     catalogViewToggleButton.className = 'secondary-button catalog-view-toggle';
 
     catalogViewToggleButton.addEventListener('click', () => {
-      saveCatalogScrollPosition();
-      saveCatalogAnchorMovieId();
-
       viewMode.value = viewMode.value === 'list' ? 'releases' : 'list';
 
       refreshCustomSelect(viewMode);
-
-      syncCatalogViewToggleButton();
-      saveCatalogStateAndRender(() => {
-        renderMovies();
-        restoreCatalogScrollPosition();
-      });
+      applyCatalogViewModeChange();
     });
 
     moviesSectionHeader.appendChild(catalogViewToggleButton);
@@ -4109,13 +4111,7 @@ yearFilter.addEventListener('change', handleFiltersChange);
 watchlistFilter.addEventListener('change', handleFiltersChange);
 watchedFilter.addEventListener('change', handleFiltersChange);
 viewMode.addEventListener('change', () => {
-  saveCatalogScrollPosition();
-  saveCatalogAnchorMovieId();
-  syncCatalogViewToggleButton();
-  saveCatalogStateAndRender(() => {
-    renderMovies();
-    restoreCatalogScrollPosition();
-  });
+  applyCatalogViewModeChange();
 });
 sortMode.addEventListener('change', () => {
   trackSortUsageIfNeeded();
