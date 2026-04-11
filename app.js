@@ -3972,7 +3972,10 @@ if (filtersModalBackdrop) {
   });
 }
 
-const debouncedRenderMovies = debounce(renderMovies, 200);
+const debouncedRenderMovies = debounce(() => {
+  renderMovies();
+  restoreCatalogScrollPosition();
+}, 200);
 
 let lastSearchQuery = '';
 
@@ -3988,6 +3991,8 @@ searchInput.addEventListener('input', () => {
     lastSearchQuery = '';
   }
 
+  saveCatalogScrollPosition();
+  saveCatalogAnchorMovieId();
   saveCatalogState();
   debouncedRenderMovies();
 });
@@ -3998,8 +4003,13 @@ searchInput.addEventListener('keydown', event => {
   }
 
   event.preventDefault();
+  saveCatalogScrollPosition();
+  saveCatalogAnchorMovieId();
   clearSearchInput();
-  saveCatalogStateAndRender();
+  saveCatalogStateAndRender(() => {
+    renderMovies();
+    restoreCatalogScrollPosition();
+  });
 });
 
 const debouncedRenderMoviesForFilters = debounce(() => {
