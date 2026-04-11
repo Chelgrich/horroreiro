@@ -1219,7 +1219,11 @@ async function fetchMovieWatchlist() {
   allMovieWatchlist = data || [];
 }
 
-async function reloadCatalogData() {
+async function reloadCatalogData({ showSkeleton = false } = {}) {
+  if (showSkeleton) {
+    renderMoviesSkeleton(getCatalogSkeletonCardsCount());
+  }
+
   await Promise.all([
     loadGenres(),
     loadCountries(),
@@ -1937,7 +1941,7 @@ async function addMovie(event) {
 
     formMessage.textContent = 'Обновляю каталог...';
     await withPendingRequestTimeout(
-      reloadCatalogData(),
+      reloadCatalogData({ showSkeleton: true }),
       15000,
       'Превышено время ожидания обновления каталога.'
       ); // сначала дожидаемся полной синхронизации состояния каталога
@@ -2130,7 +2134,7 @@ async function updateMovie(event) {
 
     formMessage.textContent = 'Обновляю каталог...';
     await withPendingRequestTimeout(
-      reloadCatalogData(),
+      reloadCatalogData({ showSkeleton: true }),
       15000,
       'Превышено время ожидания обновления каталога.'
       );
@@ -2184,7 +2188,7 @@ async function deleteMovie(movieId, movieTitle) {
       resetFormToCreateMode();
     }
 
-    await reloadCatalogData();
+    await reloadCatalogData({ showSkeleton: true });
     rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.preserveScrollOnly);
 
     formMessage.textContent = `Фильм "${movieTitle}" удалён.`;
@@ -2884,6 +2888,22 @@ function renderMoviesSkeleton(cardsCount = 8) {
       </div>
     </article>
   `).join('');
+}
+
+function getCatalogSkeletonCardsCount() {
+  const renderedCardsCount = container.querySelectorAll('.movie-card').length;
+
+  if (renderedCardsCount > 0) {
+    return renderedCardsCount;
+  }
+
+  const estimatedCardsCount = Number(getFilteredMovies()?.length || 0);
+
+  if (estimatedCardsCount > 0) {
+    return Math.min(estimatedCardsCount, 12);
+  }
+
+  return 8;
 }
 
 function getVotesLabel(votesCount) {
@@ -4221,7 +4241,7 @@ async function init() {
     }, 0);
   });
 
-  await reloadCatalogData();
+  await reloadCatalogData({ showSkeleton: true });
   initCatalogViewToggleButton();
   applySavedCatalogState();
 
