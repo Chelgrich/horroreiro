@@ -1257,6 +1257,12 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 .empty-state-reset-btn {
   min-width: 190px;
   font-weight: 600;
+  border-color: var(--border-control-strong);
+}
+
+.empty-state-reset-btn:hover {
+  background: #182028;
+  border-color: #3a444f;
 }
 
 /* =========================================================

@@ -3179,6 +3179,19 @@ function renderEmptyState() {
             `
             : ''
         }
+        ${
+          hasSearchQuery || hasActiveFilters
+            ? `
+              <button
+                type="button"
+                class="secondary-button secondary-button-compact empty-state-reset-btn"
+                data-empty-state-action="reset-all"
+              >
+                Сбросить всё
+              </button>
+            `
+            : ''
+        }
       </div>
     `
     : '';
@@ -3213,6 +3226,11 @@ function renderEmptyState() {
 
       if (action === 'reset-filters') {
         resetFilterControls({ preserveSearch: true });
+        saveCatalogStateAndRenderFilters();
+      }
+
+      if (action === 'reset-all') {
+        resetFilterControls();
         saveCatalogStateAndRenderFilters();
       }
     });
