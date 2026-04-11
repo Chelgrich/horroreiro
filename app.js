@@ -799,6 +799,39 @@ function updateLocalWatchlistState(movieId, shouldExist) {
 JS-БЛОК 5. ПОИСК ПО КАТАЛОГУ
 Проверяет, соответствует ли фильм текущему текстовому запросу.
 ========================================================== */
+function textMatchesSearchQuery(text, searchQuery) {
+  const normalizedQuery = normalizeSearchText(searchQuery);
+
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  const normalizedText = normalizeSearchText(text);
+  const queryWords = normalizedQuery.split(' ').filter(Boolean);
+
+  return queryWords.every(word => normalizedText.includes(word));
+}
+
+function getMatchedSearchAlias(movie, searchQuery) {
+  const normalizedQuery = normalizeSearchText(searchQuery);
+
+  if (!normalizedQuery) {
+    return null;
+  }
+
+  const hasVisibleMatch = [
+    movie.title,
+    movie.original_title,
+    movie.director
+  ].some(value => textMatchesSearchQuery(value, searchQuery));
+
+  if (hasVisibleMatch) {
+    return null;
+  }
+
+  return (movie.search_aliases || []).find(alias => textMatchesSearchQuery(alias, searchQuery)) || null;
+}
+
 function movieMatchesSearch(movie, searchQuery) {
   const normalizedQuery = normalizeSearchText(searchQuery);
 
@@ -3172,7 +3205,7 @@ function getMovieExternalLinksHtml(movie) {
 
 
 
-function getPosterHtml(movie, userMovieState) {
+function getPosterHtml(movie, userMovieState, matchedSearchAlias = null) {
   return `
     <div class="movie-poster-block">
       <div class="movie-poster-wrapper">
@@ -3189,6 +3222,16 @@ function getPosterHtml(movie, userMovieState) {
             >
           `
           : `<div class="movie-poster-placeholder">Нет постера</div>`
+      }
+
+      ${
+        matchedSearchAlias
+          ? `
+            <div class="movie-search-alias-hint">
+              Найдено по: ${escapeHtml(matchedSearchAlias)}
+            </div>
+          `
+          : ''
       }
 
       ${
@@ -3461,6 +3504,7 @@ function createMovieCard(movie) {
   const movieId = movie.id;
   const currentUserRating = getCurrentUserRating(movieId);
   const userMovieState = getCurrentUserMovieState(movieId);
+  const matchedSearchAlias = getMatchedSearchAlias(movie, searchInput.value);
 
   card.className = 'movie-card';
 
@@ -3496,7 +3540,7 @@ function createMovieCard(movie) {
   `;
 
   const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
-  const posterHtml = getPosterHtml(movie, userMovieState);
+  const posterHtml = getPosterHtml(movie, userMovieState, matchedSearchAlias);
   const externalLinksHtml = getMovieExternalLinksHtml(movie);
   const hasExternalLinks = externalLinksHtml !== '';
   const externalLinksBlockHtml = hasExternalLinks
