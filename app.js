@@ -11,10 +11,12 @@ const openAuthModalButton = document.getElementById('openAuthModalButton');
 const authModal = document.getElementById('authModal');
 const authModalBackdrop = document.getElementById('authModalBackdrop');
 const closeAuthModalButton = document.getElementById('closeAuthModalButton');
+const authModalTitle = document.getElementById('authModalTitle');
 const loginForm = document.getElementById('loginForm');
 const loginEmail = document.getElementById('loginEmail');
 const loginPassword = document.getElementById('loginPassword');
 const registerButton = document.getElementById('registerButton');
+const forgotPasswordButton = document.getElementById('forgotPasswordButton');
 const logoutButton = document.getElementById('logoutButton');
 const authToast = document.getElementById('authToast');
 const authMessage = document.getElementById('authMessage');
@@ -109,6 +111,7 @@ let currentUser = null;
 let currentUserRole = null;
 let isAdmin = false;
 let isAuthModalOpen = false;
+let isPasswordRecoveryMode = false;
 let allMovies = [];
 let allMovieRatings = [];
 let allMovieWatchlist = [];
@@ -635,6 +638,16 @@ function isEmailConfirmationRedirect() {
   );
 }
 
+function isPasswordRecoveryRedirect() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+
+  return (
+    searchParams.get('type') === 'recovery' ||
+    hashParams.get('type') === 'recovery'
+  );
+}
+
 function clearEmailConfirmationParamsFromUrl() {
   const url = new URL(window.location.href);
   let wasChanged = false;
@@ -966,7 +979,7 @@ function syncBodyScrollLock() {
 }
 
 function openAuthModal() {
-  if (!authModal || currentUser) {
+  if (!authModal || (currentUser && !isPasswordRecoveryMode)) {
     return;
   }
 
@@ -975,6 +988,11 @@ function openAuthModal() {
   syncBodyScrollLock();
 
   requestAnimationFrame(() => {
+    if (isPasswordRecoveryMode) {
+      loginPassword?.focus();
+      return;
+    }
+
     loginEmail?.focus();
   });
 }
@@ -988,6 +1006,66 @@ function closeAuthModal() {
   isAuthModalOpen = false;
   syncBodyScrollLock();
   clearAuthMessage();
+}
+
+function updateAuthModalMode() {
+  const submitButton = loginForm?.querySelector('button[type="submit"]');
+
+  if (!submitButton) {
+    return;
+  }
+
+  if (isPasswordRecoveryMode) {
+    if (authModalTitle) {
+      authModalTitle.textContent = 'Новый пароль';
+    }
+
+    if (loginEmail) {
+      loginEmail.style.display = 'none';
+      loginEmail.disabled = true;
+    }
+
+    if (loginPassword) {
+      loginPassword.placeholder = 'Новый пароль';
+      loginPassword.autocomplete = 'new-password';
+    }
+
+    submitButton.textContent = 'Сохранить пароль';
+
+    if (registerButton) {
+      registerButton.style.display = 'none';
+    }
+
+    if (forgotPasswordButton) {
+      forgotPasswordButton.style.display = 'none';
+    }
+
+    return;
+  }
+
+  if (authModalTitle) {
+    authModalTitle.textContent = 'Вход и регистрация';
+  }
+
+  if (loginEmail) {
+    loginEmail.style.display = '';
+    loginEmail.disabled = isAuthSubmitting;
+  }
+
+  if (loginPassword) {
+    loginPassword.placeholder = 'Пароль';
+    loginPassword.autocomplete = 'current-password';
+  }
+
+  submitButton.textContent = 'Войти';
+
+  if (registerButton) {
+    registerButton.style.display = '';
+  }
+
+  if (forgotPasswordButton) {
+    forgotPasswordButton.style.display = '';
+  }
 }
 
 function openMovieModal() {
@@ -1117,15 +1195,17 @@ function updateAuthUI() {
   }
 
   if (loginForm) {
-    loginForm.style.display = isLoggedIn ? 'none' : 'flex';
+    loginForm.style.display = (isLoggedIn && !isPasswordRecoveryMode) ? 'none' : 'flex';
   }
 
   userPanel.style.display = isLoggedIn ? 'flex' : 'none';
   adminPanel.style.display = isAdmin ? 'flex' : 'none';
 
-  if (isLoggedIn) {
+  if (isLoggedIn && !isPasswordRecoveryMode) {
     closeAuthModal();
   }
+
+  updateAuthModalMode();
 
   if (authControls) {
     authControls.classList.remove('auth-controls-pending');
@@ -2446,8 +2526,97 @@ function getReadableAuthErrorMessage(error, fallbackMessage) {
   return error?.message || fallbackMessage;
 }
 
+async function sendPasswordResetEmail() {
+  if (isAuthSubmitting) {
+    return;
+  }
+
+  const email = loginEmail.value.trim();
+
+  if (!email) {
+    showAuthMessage('Сначала введи e-mail, на который нужно отправить письмо для сброса пароля.', 'error');
+    loginEmail.focus();
+    return;
+  }
+
+  setAuthSubmittingState(true);
+  showAuthMessage('Отправляю письмо для сброса пароля...');
+
+  try {
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin
+    });
+
+    if (error) {
+      console.error('Ошибка отправки письма для сброса пароля:', error);
+      showAuthMessage(
+        getReadableAuthErrorMessage(error, 'Не удалось отправить письмо для сброса пароля. Попробуй позже.'),
+        'error'
+      );
+      return;
+    }
+
+    showAuthMessage(
+      'Если такой e-mail существует, мы отправили письмо со ссылкой для сброса пароля.',
+      'success'
+    );
+  } finally {
+    setAuthSubmittingState(false);
+  }
+}
+
+async function saveNewPassword() {
+  if (isAuthSubmitting) {
+    return;
+  }
+
+  const nextPassword = loginPassword.value;
+
+  if (!nextPassword) {
+    showAuthMessage('Введи новый пароль.', 'error');
+    loginPassword.focus();
+    return;
+  }
+
+  setAuthSubmittingState(true);
+  showAuthMessage('Сохраняю новый пароль...');
+
+  try {
+    const { error } = await supabaseClient.auth.updateUser({
+      password: nextPassword
+    });
+
+    if (error) {
+      console.error('Ошибка сохранения нового пароля:', error);
+      showAuthMessage(
+        getReadableAuthErrorMessage(error, 'Не удалось сохранить новый пароль. Попробуй ещё раз.'),
+        'error'
+      );
+      return;
+    }
+
+    isPasswordRecoveryMode = false;
+    loginPassword.value = '';
+    updateAuthModalMode();
+    clearEmailConfirmationParamsFromUrl();
+
+    showAuthMessage('Пароль обновлён. Теперь можно пользоваться аккаунтом.', 'success', true);
+
+    setTimeout(() => {
+      closeAuthModal();
+    }, 500);
+  } finally {
+    setAuthSubmittingState(false);
+  }
+}
+
 async function login(event) {
   event.preventDefault();
+
+  if (isPasswordRecoveryMode) {
+    await saveNewPassword();
+    return;
+  }
 
   if (isAuthSubmitting) {
     return;
@@ -4222,6 +4391,12 @@ if (authModalBackdrop) {
   });
 }
 
+if (forgotPasswordButton) {
+  forgotPasswordButton.addEventListener('click', () => {
+    sendPasswordResetEmail();
+  });
+}
+
 openAddMovieButton.addEventListener('click', () => {
   resetFormToCreateMode();
   openMovieModal();
@@ -4433,10 +4608,25 @@ async function init() {
   const restoredUser = await restoreSession();
   trackEmailConfirmedLoginIfNeeded();
 
+  if (isPasswordRecoveryRedirect()) {
+    isPasswordRecoveryMode = true;
+    updateAuthModalMode();
+    openAuthModal();
+    showAuthMessage('Придумай новый пароль и сохрани его.');
+  }
+
   bindCustomSelectGlobalEvents();
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === 'TOKEN_REFRESHED') {
+      return;
+    }
+
+    if (event === 'PASSWORD_RECOVERY') {
+      isPasswordRecoveryMode = true;
+      updateAuthModalMode();
+      openAuthModal();
+      showAuthMessage('Придумай новый пароль и сохрани его.');
       return;
     }
 

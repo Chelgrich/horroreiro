@@ -394,6 +394,36 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   margin-top: 16px;
 }
 
+.auth-form-links {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.auth-link-button {
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #8fb1ff;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  text-decoration: underline;
+}
+
+.auth-link-button:hover,
+.auth-link-button:focus,
+.auth-link-button:focus-visible,
+.auth-link-button:active {
+  color: #b7ceff;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
 .filters-modal-header-main {
   display: flex;
   flex-direction: column;
