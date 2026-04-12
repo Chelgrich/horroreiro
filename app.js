@@ -973,9 +973,17 @@ async function cancelPasswordRecoveryFlow() {
   clearEmailConfirmationParamsFromUrl();
 
   try {
-    await supabaseClient.auth.signOut();
+    await supabaseClient.auth.signOut({ scope: 'global' });
   } catch (error) {
     console.error('Ошибка отмены recovery-сессии:', error);
+  }
+}
+
+async function clearLocalRecoverySession() {
+  try {
+    await supabaseClient.auth.signOut({ scope: 'local' });
+  } catch (error) {
+    console.error('Ошибка локальной очистки recovery-сессии:', error);
   }
 }
 
@@ -2544,6 +2552,19 @@ async function restoreSession() {
     return null;
   }
 
+  const hasPendingRecovery = Boolean(localStorage.getItem(PASSWORD_RECOVERY_PENDING_KEY));
+  const hasForeignRecoverySession = (
+    Boolean(data.session?.user) &&
+    hasPendingRecovery &&
+    !isPasswordRecoveryEntryPage
+  );
+
+  if (hasForeignRecoverySession) {
+    await clearLocalRecoverySession();
+    await applyCurrentSessionUser(null);
+    return null;
+  }
+
   const sessionUser = data.session?.user ?? null;
 
   await applyCurrentSessionUser(sessionUser);
@@ -2711,7 +2732,7 @@ async function saveNewPassword() {
 
     setTimeout(async () => {
       try {
-        await supabaseClient.auth.signOut();
+        await supabaseClient.auth.signOut({ scope: 'local' });
       } catch (error) {
         console.error('Ошибка завершения recovery-сессии:', error);
       }
@@ -4743,6 +4764,7 @@ async function init() {
 
     if (event === 'PASSWORD_RECOVERY') {
       if (!isPasswordRecoveryEntryPage) {
+        clearLocalRecoverySession();
         return;
       }
 
@@ -4757,11 +4779,22 @@ async function init() {
 
     const nextUserId = session?.user?.id ?? null;
     const currentUserId = currentUser?.id ?? null;
+    const hasPendingRecovery = Boolean(localStorage.getItem(PASSWORD_RECOVERY_PENDING_KEY));
+    const shouldIgnoreForeignRecoverySignIn = (
+      event === 'SIGNED_IN' &&
+      hasPendingRecovery &&
+      !isPasswordRecoveryEntryPage
+    );
     const shouldSkipAuthSync = (
       nextUserId === currentUserId &&
       event !== 'SIGNED_OUT' &&
       event !== 'SIGNED_IN'
     );
+
+    if (shouldIgnoreForeignRecoverySignIn) {
+      clearLocalRecoverySession();
+      return;
+    }
 
     if (shouldSkipAuthSync) {
       return;
