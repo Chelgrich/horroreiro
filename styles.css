@@ -115,14 +115,6 @@ CSS-БЛОК 3. ШАПКА СТРАНИЦЫ
   margin-bottom: 12px;
 }
 
-.page-header-feedback {
-  min-height: 52px;
-  margin-top: 14px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
-}
-
 .page-header-top {
   min-height: 44px;
   display: flex;
@@ -137,15 +129,11 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 Форма входа, админ-панель и служебные сообщения.
 ========================================================== */
 .auth-controls {
-  flex: 1;
-  min-width: 0;
-  max-width: 720px;
   min-height: 44px;
   margin-left: auto;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
 }
 
 .auth-controls.auth-controls-pending {
@@ -158,13 +146,22 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   gap: 10px;
 }
 
-.login-form input {
-  min-width: 180px;
+.login-form-modal {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.login-form-modal input,
+.login-form-modal button {
+  width: 100%;
+  min-width: 0;
 }
 
 .auth-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
 }
 
@@ -385,6 +382,16 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 
 .modal-header h2 {
   margin: 0;
+}
+
+.auth-modal-dialog {
+  max-width: 520px;
+}
+
+.auth-modal-dialog .auth-toast {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 16px;
 }
 
 .filters-modal-header-main {
@@ -2545,7 +2552,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     justify-content: center;
   }
 
-  .login-form {
+  .login-form:not(.login-form-modal) {
     width: 100%;
     min-width: 0;
     flex-direction: column;
@@ -2623,12 +2630,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .filters input,
   .custom-select-trigger {
     min-height: 42px;
-  }
-
-  .page-header-feedback {
-    min-height: 0;
-    height: 0;
-    margin-top: 0;
   }
 
   .auth-toast {

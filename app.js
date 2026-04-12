@@ -7,6 +7,10 @@ const movieModalBackdrop = document.getElementById('movieModalBackdrop');
 const closeMovieModalButton = document.getElementById('closeMovieModalButton');
 
 const authControls = document.getElementById('authControls');
+const openAuthModalButton = document.getElementById('openAuthModalButton');
+const authModal = document.getElementById('authModal');
+const authModalBackdrop = document.getElementById('authModalBackdrop');
+const closeAuthModalButton = document.getElementById('closeAuthModalButton');
 const loginForm = document.getElementById('loginForm');
 const loginEmail = document.getElementById('loginEmail');
 const loginPassword = document.getElementById('loginPassword');
@@ -104,6 +108,7 @@ const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
 let currentUser = null;
 let currentUserRole = null;
 let isAdmin = false;
+let isAuthModalOpen = false;
 let allMovies = [];
 let allMovieRatings = [];
 let allMovieWatchlist = [];
@@ -952,11 +957,37 @@ JS-БЛОК 7. УПРАВЛЕНИЕ МОДАЛЬНЫМ ОКНОМ И ФОРМО�
 function syncBodyScrollLock() {
   const shouldLockScroll = (
     isModalOpen ||
+    isAuthModalOpen ||
     (filtersModal && filtersModal.style.display === 'block') ||
     (mobileRatingModal && mobileRatingModal.classList.contains('is-visible'))
   );
 
   document.body.style.overflow = shouldLockScroll ? 'hidden' : '';
+}
+
+function openAuthModal() {
+  if (!authModal || currentUser) {
+    return;
+  }
+
+  authModal.style.display = 'block';
+  isAuthModalOpen = true;
+  syncBodyScrollLock();
+
+  requestAnimationFrame(() => {
+    loginEmail?.focus();
+  });
+}
+
+function closeAuthModal() {
+  if (!authModal) {
+    return;
+  }
+
+  authModal.style.display = 'none';
+  isAuthModalOpen = false;
+  syncBodyScrollLock();
+  clearAuthMessage();
 }
 
 function openMovieModal() {
@@ -1081,9 +1112,20 @@ JS-БЛОК 8. УПРАВЛЕНИЕ AUTH-ИНТЕРФЕЙСОМ
 function updateAuthUI() {
   const isLoggedIn = Boolean(currentUser);
 
-  loginForm.style.display = isLoggedIn ? 'none' : 'flex';
+  if (openAuthModalButton) {
+    openAuthModalButton.style.display = isLoggedIn ? 'none' : 'inline-flex';
+  }
+
+  if (loginForm) {
+    loginForm.style.display = isLoggedIn ? 'none' : 'flex';
+  }
+
   userPanel.style.display = isLoggedIn ? 'flex' : 'none';
   adminPanel.style.display = isAdmin ? 'flex' : 'none';
+
+  if (isLoggedIn) {
+    closeAuthModal();
+  }
 
   if (authControls) {
     authControls.classList.remove('auth-controls-pending');
@@ -2435,6 +2477,10 @@ async function login(event) {
     loginPassword.value = '';
 
     showAuthMessage('Вход выполнен.', 'success', true);
+
+    setTimeout(() => {
+      closeAuthModal();
+    }, 300);
   } finally {
     setAuthSubmittingState(false);
   }
@@ -4158,6 +4204,24 @@ loginPassword.addEventListener('input', clearAuthMessage);
 registerButton.addEventListener('click', register);
 logoutButton.addEventListener('click', logout);
 
+if (openAuthModalButton) {
+  openAuthModalButton.addEventListener('click', () => {
+    openAuthModal();
+  });
+}
+
+if (closeAuthModalButton) {
+  closeAuthModalButton.addEventListener('click', () => {
+    closeAuthModal();
+  });
+}
+
+if (authModalBackdrop) {
+  authModalBackdrop.addEventListener('click', () => {
+    closeAuthModal();
+  });
+}
+
 openAddMovieButton.addEventListener('click', () => {
   resetFormToCreateMode();
   openMovieModal();
@@ -4338,6 +4402,11 @@ document.addEventListener('keydown', event => {
 
   if (isModalOpen) {
     closeMovieModal();
+    return;
+  }
+
+  if (isAuthModalOpen) {
+    closeAuthModal();
     return;
   }
 

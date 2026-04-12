@@ -100,16 +100,11 @@
         <h1>Хоррорейро</h1>
 
         <div id="authControls" class="auth-controls auth-controls-pending">
-          <form id="loginForm" class="login-form">
-            <input type="email" id="loginEmail" name="email" placeholder="Email" autocomplete="email">
-            <input type="password" id="loginPassword" name="password" placeholder="Пароль" autocomplete="current-password">
-            <button type="submit">Войти</button>
-            <button type="button" id="registerButton" class="secondary-button secondary-button-compact">
-              Регистрация
-            </button>
-          </form>
-
           <div class="auth-actions">
+            <button id="openAuthModalButton" type="button" class="secondary-button">
+              Вход / регистрация
+            </button>
+
             <div id="adminPanel" class="admin-panel" style="display: none;">
               <button id="openAddMovieButton" type="button">Добавить фильм</button>
             </div>
@@ -123,13 +118,33 @@
         </div>
       </div>
 
-      <div class="page-header-feedback">
+    </header>
+
+    <div id="authModal" class="modal" style="display: none;">
+      <div class="modal-backdrop" id="authModalBackdrop"></div>
+
+      <div class="modal-dialog auth-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+        <div class="modal-header">
+          <h2 id="authModalTitle">Вход и регистрация</h2>
+          <button type="button" id="closeAuthModalButton" class="secondary-button secondary-button-compact">
+            Закрыть
+          </button>
+        </div>
+
+        <form id="loginForm" class="login-form login-form-modal">
+          <input type="email" id="loginEmail" name="email" placeholder="Email" autocomplete="email">
+          <input type="password" id="loginPassword" name="password" placeholder="Пароль" autocomplete="current-password">
+          <button type="submit">Войти</button>
+          <button type="button" id="registerButton" class="secondary-button secondary-button-compact">
+            Регистрация
+          </button>
+        </form>
+
         <div id="authToast" class="auth-toast auth-toast-inline is-hidden" aria-live="polite" aria-atomic="true">
           <p id="authMessage" class="auth-message"></p>
         </div>
       </div>
-
-    </header>
+    </div>
 
     <!-- =========================================================
     HTML-БЛОК 4. МОДАЛЬНОЕ ОКНО ФИЛЬМА
