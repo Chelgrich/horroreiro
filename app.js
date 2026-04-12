@@ -1347,7 +1347,7 @@ function updateAuthUI() {
     loginForm.style.display = shouldShowAuthenticatedUi ? 'none' : 'flex';
   }
 
-  userPanel.style.display = shouldShowAuthenticatedUi ? 'flex' : 'none';
+  userPanel.style.display = 'none';
   adminPanel.style.display = shouldShowAuthenticatedUi && isAdmin ? 'flex' : 'none';
 
   if (shouldShowAuthenticatedUi) {
