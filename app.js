@@ -8,6 +8,9 @@ const closeMovieModalButton = document.getElementById('closeMovieModalButton');
 
 const authControls = document.getElementById('authControls');
 const openAuthModalButton = document.getElementById('openAuthModalButton');
+const authPopoverMenu = document.getElementById('authPopoverMenu');
+const profileMenuButton = document.getElementById('profileMenuButton');
+const logoutMenuButton = document.getElementById('logoutMenuButton');
 const authModal = document.getElementById('authModal');
 const authModalBackdrop = document.getElementById('authModalBackdrop');
 const closeAuthModalButton = document.getElementById('closeAuthModalButton');
@@ -114,6 +117,7 @@ let currentUser = null;
 let currentUserRole = null;
 let isAdmin = false;
 let isAuthModalOpen = false;
+let isAuthPopoverOpen = false;
 let isPasswordRecoveryMode = false;
 let isPasswordRecoveryEntryPage = false;
 let allMovies = [];
@@ -997,12 +1001,16 @@ function syncAuthIconButtonState() {
   openAuthModalButton.classList.toggle('is-authenticated', isAuthenticated);
   openAuthModalButton.setAttribute(
     'aria-label',
-    isAuthenticated ? 'Аккаунт' : 'Вход или регистрация'
+    isAuthenticated ? 'Меню аккаунта' : 'Вход или регистрация'
   );
   openAuthModalButton.setAttribute(
     'title',
-    isAuthenticated ? 'Аккаунт' : 'Вход или регистрация'
+    isAuthenticated ? 'Меню аккаунта' : 'Вход или регистрация'
   );
+
+  if (!isAuthenticated) {
+    closeAuthPopoverMenu();
+  }
 }
 
 function setAuthSubmittingState(isSubmitting) {
@@ -1051,6 +1059,35 @@ function syncBodyScrollLock() {
   document.body.style.overflow = shouldLockScroll ? 'hidden' : '';
 }
 
+function closeAuthPopoverMenu() {
+  if (!authPopoverMenu || !openAuthModalButton) {
+    return;
+  }
+
+  authPopoverMenu.style.display = 'none';
+  isAuthPopoverOpen = false;
+  openAuthModalButton.setAttribute('aria-expanded', 'false');
+}
+
+function openAuthPopoverMenu() {
+  if (!authPopoverMenu || !openAuthModalButton || !shouldUseAuthenticatedUi()) {
+    return;
+  }
+
+  authPopoverMenu.style.display = 'block';
+  isAuthPopoverOpen = true;
+  openAuthModalButton.setAttribute('aria-expanded', 'true');
+}
+
+function toggleAuthPopoverMenu() {
+  if (isAuthPopoverOpen) {
+    closeAuthPopoverMenu();
+    return;
+  }
+
+  openAuthPopoverMenu();
+}
+
 function openAuthModal() {
   if (!authModal || shouldUseAuthenticatedUi()) {
     return;
@@ -1078,6 +1115,7 @@ async function closeAuthModal() {
 
   const shouldCancelPasswordRecovery = isPasswordRecoveryMode;
 
+  closeAuthPopoverMenu();
   authModal.style.display = 'none';
   isAuthModalOpen = false;
   syncBodyScrollLock();
@@ -1300,6 +1338,10 @@ function updateAuthUI() {
   }
 
   syncAuthIconButtonState();
+
+  if (!shouldShowAuthenticatedUi) {
+    closeAuthPopoverMenu();
+  }
 
   if (loginForm) {
     loginForm.style.display = shouldShowAuthenticatedUi ? 'none' : 'flex';
@@ -4530,10 +4572,23 @@ if (loginPasswordConfirm) {
 registerButton.addEventListener('click', register);
 logoutButton.addEventListener('click', logout);
 
+if (logoutMenuButton) {
+  logoutMenuButton.addEventListener('click', () => {
+    closeAuthPopoverMenu();
+    logout();
+  });
+}
+
+if (profileMenuButton) {
+  profileMenuButton.addEventListener('click', event => {
+    event.preventDefault();
+  });
+}
+
 if (openAuthModalButton) {
   openAuthModalButton.addEventListener('click', () => {
     if (shouldUseAuthenticatedUi()) {
-      logout();
+      toggleAuthPopoverMenu();
       return;
     }
 
@@ -4686,6 +4741,12 @@ cancelEditButton.addEventListener('click', () => {
 });
 
 document.addEventListener('click', event => {
+  const clickedInsideAuthMenu = event.target.closest('.auth-menu-wrap');
+
+  if (!clickedInsideAuthMenu) {
+    closeAuthPopoverMenu();
+  }
+
   if (event.target.closest('[data-external-links-toggle="true"]') || event.target.closest('[data-external-links-collapsible]')) {
     return;
   }
@@ -4736,6 +4797,7 @@ document.addEventListener('keydown', event => {
 
   closeMobileRatingModal();
   closeAllCustomSelects();
+  closeAuthPopoverMenu();
 
   if (isModalOpen) {
     closeMovieModal();

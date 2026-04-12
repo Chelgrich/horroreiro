@@ -101,18 +101,46 @@
 
         <div id="authControls" class="auth-controls auth-controls-pending">
           <div class="auth-actions">
-            <button
-              id="openAuthModalButton"
-              type="button"
-              class="auth-icon-button"
-              aria-label="Вход или регистрация"
-              title="Вход или регистрация"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5Z"></path>
-                <path d="M4 21c0-3.866 3.582-7 8-7s8 3.134 8 7"></path>
-              </svg>
-            </button>
+            <div class="auth-menu-wrap">
+              <button
+                id="openAuthModalButton"
+                type="button"
+                class="auth-icon-button"
+                aria-label="Вход или регистрация"
+                title="Вход или регистрация"
+                aria-haspopup="menu"
+                aria-expanded="false"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5Z"></path>
+                  <path d="M4 21c0-3.866 3.582-7 8-7s8 3.134 8 7"></path>
+                </svg>
+              </button>
+
+              <div id="authPopoverMenu" class="auth-popover-menu" style="display: none;" role="menu" aria-label="Меню аккаунта">
+                <button
+                  type="button"
+                  class="auth-popover-item"
+                  id="profileMenuButton"
+                  role="menuitem"
+                  disabled
+                  aria-disabled="true"
+                  title="Раздел профиля появится позже"
+                >
+                  Профиль
+                  <span class="auth-popover-item-note">скоро</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="auth-popover-item auth-popover-item-danger"
+                  id="logoutMenuButton"
+                  role="menuitem"
+                >
+                  Выйти
+                </button>
+              </div>
+            </div>
 
             <div id="adminPanel" class="admin-panel" style="display: none;">
               <button id="openAddMovieButton" type="button">Добавить фильм</button>
