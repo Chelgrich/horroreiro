@@ -2571,6 +2571,13 @@ function getReadableAuthErrorMessage(error, fallbackMessage) {
   }
 
   if (
+    errorText.includes('new password should be different') ||
+    errorText.includes('same as the old password')
+  ) {
+    return 'Новый пароль должен отличаться от предыдущего.';
+  }
+
+  if (
     errorText.includes('invalid login credentials') ||
     errorText.includes('invalid email') ||
     errorText.includes('anonymous sign-ins are disabled')
