@@ -780,7 +780,7 @@ function shouldUseAuthenticatedUi() {
 }
 
 function getCurrentUserMovieState(movieId) {
-  if (!currentUser) {
+  if (!shouldUseAuthenticatedUi()) {
     return {
       hasWatchlistRecord: false,
       isWatched: false,
@@ -966,6 +966,17 @@ function resetAuthFormState() {
   clearAuthMessage();
 }
 
+async function cancelPasswordRecoveryFlow() {
+  localStorage.removeItem(PASSWORD_RECOVERY_PENDING_KEY);
+  clearEmailConfirmationParamsFromUrl();
+
+  try {
+    await supabaseClient.auth.signOut();
+  } catch (error) {
+    console.error('Ошибка отмены recovery-сессии:', error);
+  }
+}
+
 function setAuthSubmittingState(isSubmitting) {
   isAuthSubmitting = isSubmitting;
 
@@ -1013,7 +1024,7 @@ function syncBodyScrollLock() {
 }
 
 function openAuthModal() {
-  if (!authModal || (currentUser && !isPasswordRecoveryMode)) {
+  if (!authModal || shouldUseAuthenticatedUi()) {
     return;
   }
 
@@ -1032,15 +1043,21 @@ function openAuthModal() {
   });
 }
 
-function closeAuthModal() {
+async function closeAuthModal() {
   if (!authModal) {
     return;
   }
+
+  const shouldCancelPasswordRecovery = isPasswordRecoveryMode;
 
   authModal.style.display = 'none';
   isAuthModalOpen = false;
   syncBodyScrollLock();
   resetAuthFormState();
+
+  if (shouldCancelPasswordRecovery) {
+    await cancelPasswordRecoveryFlow();
+  }
 }
 
 function updateAuthModalMode() {
@@ -1482,7 +1499,7 @@ async function fetchMovieRatings() {
 }
 
 async function fetchMovieWatchlist() {
-  if (!currentUser) {
+  if (!shouldUseAuthenticatedUi()) {
     allMovieWatchlist = [];
     return;
   }
