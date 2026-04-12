@@ -2360,6 +2360,50 @@ function syncCatalogAfterAuthChange() {
   rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.resetView);
 }
 
+function getReadableAuthErrorMessage(error, fallbackMessage) {
+  const errorText = String(error?.message || '').toLowerCase();
+
+  if (
+    errorText.includes('email not confirmed') ||
+    errorText.includes('email_not_confirmed')
+  ) {
+    return 'Почта ещё не подтверждена. Открой письмо от сервиса, подтверди e-mail и затем попробуй снова.';
+  }
+
+  if (
+    errorText.includes('user already registered') ||
+    errorText.includes('already registered') ||
+    errorText.includes('email rate limit exceeded') ||
+    errorText.includes('over_email_send_rate_limit')
+  ) {
+    if (
+      errorText.includes('email rate limit exceeded') ||
+      errorText.includes('over_email_send_rate_limit')
+    ) {
+      return 'Слишком много писем отправлено за короткое время. Подожди немного и попробуй снова.';
+    }
+
+    return 'Этот e-mail уже зарегистрирован. Попробуй войти или восстановить доступ позже.';
+  }
+
+  if (
+    errorText.includes('password should be at least') ||
+    errorText.includes('weak password')
+  ) {
+    return 'Пароль слишком простой. Используй более длинный и надёжный пароль.';
+  }
+
+  if (
+    errorText.includes('invalid login credentials') ||
+    errorText.includes('invalid email') ||
+    errorText.includes('anonymous sign-ins are disabled')
+  ) {
+    return fallbackMessage;
+  }
+
+  return error?.message || fallbackMessage;
+}
+
 async function login(event) {
   event.preventDefault();
 
@@ -2381,21 +2425,10 @@ async function login(event) {
 
     if (error) {
       console.error('Ошибка входа:', error);
-    
-      const errorText = String(error.message || '').toLowerCase();
-    
-      if (
-        errorText.includes('email not confirmed') ||
-        errorText.includes('email_not_confirmed')
-      ) {
-        showAuthMessage(
-          'Почта ещё не подтверждена. Открой письмо от сервиса, подтверди e-mail и затем попробуй войти снова.',
-          'error'
-        );
-        return;
-      }
-    
-      showAuthMessage('Ошибка входа. Проверь e-mail и пароль.', 'error');
+      showAuthMessage(
+        getReadableAuthErrorMessage(error, 'Ошибка входа. Проверь e-mail и пароль.'),
+        'error'
+      );
       return;
     }
 
@@ -2434,7 +2467,10 @@ async function register() {
 
     if (error) {
       console.error('Ошибка регистрации:', error);
-      showAuthMessage('Ошибка регистрации. Проверь email и пароль.', 'error');
+      showAuthMessage(
+        getReadableAuthErrorMessage(error, 'Ошибка регистрации. Проверь e-mail и пароль.'),
+        'error'
+      );
       return;
     }
 
