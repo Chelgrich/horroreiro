@@ -19,6 +19,8 @@ const loginForm = document.getElementById('loginForm');
 const authFormLinks = document.getElementById('authFormLinks');
 const loginEmail = document.getElementById('loginEmail');
 const loginPassword = document.getElementById('loginPassword');
+const registerNicknameInput = document.getElementById('registerNickname');
+const registerNicknameHint = document.getElementById('registerNicknameHint');
 const loginPasswordConfirm = document.getElementById('loginPasswordConfirm');
 const registerButton = document.getElementById('registerButton');
 const forgotPasswordButton = document.getElementById('forgotPasswordButton');
@@ -118,6 +120,7 @@ let currentUserRole = null;
 let isAdmin = false;
 let isAuthModalOpen = false;
 let isAuthPopoverOpen = false;
+let isAuthRegisterMode = false;
 let isPasswordRecoveryMode = false;
 let isPasswordRecoveryEntryPage = false;
 let allMovies = [];
@@ -207,6 +210,16 @@ function normalizeSearchText(value) {
 
 function escapeRegExp(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function normalizeDisplayNameValue(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase();
+}
+
+function isValidDisplayNameValue(value) {
+  return /^[A-Za-zА-Яа-яЁё0-9_]{3,24}$/.test(String(value || '').trim());
 }
 
 function escapeHtml(value) {
@@ -958,6 +971,7 @@ function clearAuthMessage() {
 
 function resetAuthFormState() {
   isPasswordRecoveryMode = false;
+  isAuthRegisterMode = false;
 
   if (loginForm) {
     loginForm.reset();
@@ -969,6 +983,25 @@ function resetAuthFormState() {
 
   updateAuthModalMode();
   clearAuthMessage();
+}
+
+function setAuthRegisterMode(nextMode) {
+  if (isPasswordRecoveryMode) {
+    return;
+  }
+
+  isAuthRegisterMode = Boolean(nextMode);
+  clearAuthMessage();
+  updateAuthModalMode();
+
+  requestAnimationFrame(() => {
+    if (isAuthRegisterMode) {
+      registerNicknameInput?.focus();
+      return;
+    }
+
+    loginEmail?.focus();
+  });
 }
 
 async function cancelPasswordRecoveryFlow() {
@@ -1022,6 +1055,10 @@ function setAuthSubmittingState(isSubmitting) {
 
   if (loginPassword) {
     loginPassword.disabled = isSubmitting;
+  }
+
+  if (registerNicknameInput) {
+    registerNicknameInput.disabled = isSubmitting || !isAuthRegisterMode || isPasswordRecoveryMode;
   }
 
   if (loginPasswordConfirm) {
@@ -1093,6 +1130,11 @@ function openAuthModal() {
     return;
   }
 
+  if (!isPasswordRecoveryMode) {
+    isAuthRegisterMode = false;
+    updateAuthModalMode();
+  }
+
   authModal.style.display = 'block';
   isAuthModalOpen = true;
   syncBodyScrollLock();
@@ -1153,6 +1195,15 @@ function updateAuthModalMode() {
       loginPassword.autocomplete = 'new-password';
     }
 
+    if (registerNicknameInput) {
+      registerNicknameInput.style.display = 'none';
+      registerNicknameInput.disabled = true;
+    }
+
+    if (registerNicknameHint) {
+      registerNicknameHint.style.display = 'none';
+    }
+
     if (loginPasswordConfirm) {
       loginPasswordConfirm.style.display = '';
       loginPasswordConfirm.disabled = isAuthSubmitting;
@@ -1177,10 +1228,6 @@ function updateAuthModalMode() {
     loginForm.style.display = currentUser ? 'none' : 'flex';
   }
 
-  if (authModalTitle) {
-    authModalTitle.textContent = 'Вход и регистрация';
-  }
-
   if (loginEmail) {
     loginEmail.style.display = '';
     loginEmail.disabled = isAuthSubmitting;
@@ -1189,7 +1236,6 @@ function updateAuthModalMode() {
   if (loginPassword) {
     loginPassword.style.display = '';
     loginPassword.placeholder = 'Пароль';
-    loginPassword.autocomplete = 'current-password';
   }
 
   if (loginPasswordConfirm) {
@@ -1199,10 +1245,60 @@ function updateAuthModalMode() {
     loginPasswordConfirm.autocomplete = 'off';
   }
 
+  if (isAuthRegisterMode) {
+    if (authModalTitle) {
+      authModalTitle.textContent = 'Регистрация';
+    }
+
+    if (loginPassword) {
+      loginPassword.autocomplete = 'new-password';
+    }
+
+    if (registerNicknameInput) {
+      registerNicknameInput.style.display = '';
+      registerNicknameInput.disabled = isAuthSubmitting;
+    }
+
+    if (registerNicknameHint) {
+      registerNicknameHint.style.display = 'block';
+    }
+
+    submitButton.textContent = 'Зарегистрироваться';
+
+    if (registerButton) {
+      registerButton.style.display = '';
+      registerButton.textContent = 'У меня уже есть аккаунт';
+    }
+
+    if (authFormLinks) {
+      authFormLinks.style.display = 'none';
+    }
+
+    return;
+  }
+
+  if (authModalTitle) {
+    authModalTitle.textContent = 'Вход';
+  }
+
+  if (loginPassword) {
+    loginPassword.autocomplete = 'current-password';
+  }
+
+  if (registerNicknameInput) {
+    registerNicknameInput.style.display = 'none';
+    registerNicknameInput.disabled = true;
+  }
+
+  if (registerNicknameHint) {
+    registerNicknameHint.style.display = 'none';
+  }
+
   submitButton.textContent = 'Войти';
 
   if (registerButton) {
     registerButton.style.display = '';
+    registerButton.textContent = 'Регистрация';
   }
 
   if (authFormLinks) {
@@ -2699,6 +2795,22 @@ function getReadableAuthErrorMessage(error, fallbackMessage) {
   return error?.message || fallbackMessage;
 }
 
+async function isDisplayNameAvailable(displayName) {
+  const normalizedDisplayName = normalizeDisplayNameValue(displayName);
+
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('id')
+    .eq('display_name_normalized', normalizedDisplayName)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return !data;
+}
+
 async function sendPasswordResetEmail() {
   if (isAuthSubmitting) {
     return;
@@ -2814,6 +2926,11 @@ async function login(event) {
     return;
   }
 
+  if (isAuthRegisterMode) {
+    await register();
+    return;
+  }
+
   if (isAuthSubmitting) {
     return;
   }
@@ -2862,34 +2979,56 @@ async function register() {
   try {
     const email = loginEmail.value.trim();
     const password = loginPassword.value;
+    const registerNickname = registerNicknameInput?.value.trim() || '';
 
     if (!email || !password) {
       showAuthMessage('Введи email и пароль для регистрации.', 'error');
       return;
     }
 
+    if (registerNickname) {
+      if (!isValidDisplayNameValue(registerNickname)) {
+        showAuthMessage('Никнейм должен быть длиной от 3 до 24 символов и содержать только буквы, цифры или _.', 'error');
+        registerNicknameInput.focus();
+        return;
+      }
+
+      const isNicknameAvailable = await isDisplayNameAvailable(registerNickname);
+
+      if (!isNicknameAvailable) {
+        showAuthMessage('Этот никнейм уже занят. Выбери другой.', 'error');
+        registerNicknameInput.focus();
+        registerNicknameInput.select();
+        return;
+      }
+    }
+
     const { error } = await supabaseClient.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin
+        emailRedirectTo: window.location.origin,
+        data: {
+          display_name: registerNickname || null
+        }
       }
     });
 
     if (error) {
       console.error('Ошибка регистрации:', error);
       showAuthMessage(
-        getReadableAuthErrorMessage(error, 'Ошибка регистрации. Проверь e-mail и пароль.'),
+        getReadableAuthErrorMessage(error, 'Ошибка регистрации. Проверь e-mail, пароль и никнейм.'),
         'error'
       );
       return;
     }
 
     loginPassword.value = '';
+    setAuthRegisterMode(false);
     loginEmail.focus();
 
     showAuthMessage(
-      'Если аккаунт уже существует — попробуй войти. Если нет — проверь почту для завершения регистрации.',
+      'Если аккаунт можно зарегистрировать, мы отправили письмо для завершения регистрации.',
       'success'
     );
 
@@ -4569,7 +4708,9 @@ loginPassword.addEventListener('input', clearAuthMessage);
 if (loginPasswordConfirm) {
   loginPasswordConfirm.addEventListener('input', clearAuthMessage);
 }
-registerButton.addEventListener('click', register);
+registerButton.addEventListener('click', () => {
+  setAuthRegisterMode(!isAuthRegisterMode);
+});
 logoutButton.addEventListener('click', logout);
 
 if (logoutMenuButton) {
