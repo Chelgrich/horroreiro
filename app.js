@@ -13,6 +13,7 @@ const authModalBackdrop = document.getElementById('authModalBackdrop');
 const closeAuthModalButton = document.getElementById('closeAuthModalButton');
 const authModalTitle = document.getElementById('authModalTitle');
 const loginForm = document.getElementById('loginForm');
+const authFormLinks = document.getElementById('authFormLinks');
 const loginEmail = document.getElementById('loginEmail');
 const loginPassword = document.getElementById('loginPassword');
 const loginPasswordConfirm = document.getElementById('loginPasswordConfirm');
@@ -1046,6 +1047,10 @@ function updateAuthModalMode() {
   }
 
   if (isPasswordRecoveryMode) {
+    if (loginForm) {
+      loginForm.style.display = 'flex';
+    }
+
     if (authModalTitle) {
       authModalTitle.textContent = 'Сброс пароля';
     }
@@ -1056,6 +1061,7 @@ function updateAuthModalMode() {
     }
 
     if (loginPassword) {
+      loginPassword.style.display = '';
       loginPassword.placeholder = 'Новый пароль';
       loginPassword.autocomplete = 'new-password';
     }
@@ -1073,11 +1079,15 @@ function updateAuthModalMode() {
       registerButton.style.display = 'none';
     }
 
-    if (forgotPasswordButton) {
-      forgotPasswordButton.style.display = 'none';
+    if (authFormLinks) {
+      authFormLinks.style.display = 'none';
     }
 
     return;
+  }
+
+  if (loginForm) {
+    loginForm.style.display = currentUser ? 'none' : 'flex';
   }
 
   if (authModalTitle) {
@@ -1090,6 +1100,7 @@ function updateAuthModalMode() {
   }
 
   if (loginPassword) {
+    loginPassword.style.display = '';
     loginPassword.placeholder = 'Пароль';
     loginPassword.autocomplete = 'current-password';
   }
@@ -1106,8 +1117,8 @@ function updateAuthModalMode() {
     registerButton.style.display = '';
   }
 
-  if (forgotPasswordButton) {
-    forgotPasswordButton.style.display = '';
+  if (authFormLinks) {
+    authFormLinks.style.display = '';
   }
 }
 
@@ -4673,6 +4684,7 @@ async function init() {
 
   if (hasPasswordRecoveryRedirect) {
     isPasswordRecoveryMode = true;
+    updateAuthUI();
     updateAuthModalMode();
     openAuthModal();
     showAuthMessage('Придумай новый пароль, повтори его во втором поле и сохрани изменения.');
@@ -4688,6 +4700,7 @@ async function init() {
     if (event === 'PASSWORD_RECOVERY') {
       localStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1');
       isPasswordRecoveryMode = true;
+      updateAuthUI();
       updateAuthModalMode();
       openAuthModal();
       showAuthMessage('Придумай новый пароль, повтори его во втором поле и сохрани изменения.');
