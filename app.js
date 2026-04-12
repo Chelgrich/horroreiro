@@ -115,6 +115,7 @@ let currentUserRole = null;
 let isAdmin = false;
 let isAuthModalOpen = false;
 let isPasswordRecoveryMode = false;
+let isPasswordRecoveryEntryPage = false;
 let allMovies = [];
 let allMovieRatings = [];
 let allMovieWatchlist = [];
@@ -968,6 +969,7 @@ function resetAuthFormState() {
 
 async function cancelPasswordRecoveryFlow() {
   localStorage.removeItem(PASSWORD_RECOVERY_PENDING_KEY);
+  isPasswordRecoveryEntryPage = false;
   clearEmailConfirmationParamsFromUrl();
 
   try {
@@ -2698,6 +2700,7 @@ async function saveNewPassword() {
     }
 
     localStorage.removeItem(PASSWORD_RECOVERY_PENDING_KEY);
+    isPasswordRecoveryEntryPage = false;
     clearEmailConfirmationParamsFromUrl();
 
     showAuthMessage('Новый пароль сохранён. Теперь войди с ним заново.', 'success', true);
@@ -4708,6 +4711,7 @@ async function init() {
   renderMoviesSkeleton();
 
   const hasPasswordRecoveryRedirect = isPasswordRecoveryRedirect();
+  isPasswordRecoveryEntryPage = hasPasswordRecoveryRedirect;
   const wasResetApplied = applyBuildVersionSoftResetIfNeeded();
 
   if (wasResetApplied) {
@@ -4734,6 +4738,10 @@ async function init() {
     }
 
     if (event === 'PASSWORD_RECOVERY') {
+      if (!isPasswordRecoveryEntryPage) {
+        return;
+      }
+
       localStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1');
       isPasswordRecoveryMode = true;
       updateAuthUI();
