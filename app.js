@@ -2575,13 +2575,17 @@ function getReadableAuthErrorMessage(error, fallbackMessage) {
     errorText.includes('user already registered') ||
     errorText.includes('already registered') ||
     errorText.includes('email rate limit exceeded') ||
-    errorText.includes('over_email_send_rate_limit')
+    errorText.includes('over_email_send_rate_limit') ||
+    errorText.includes('for security purposes') ||
+    errorText.includes('can only request this after')
   ) {
     if (
       errorText.includes('email rate limit exceeded') ||
-      errorText.includes('over_email_send_rate_limit')
+      errorText.includes('over_email_send_rate_limit') ||
+      errorText.includes('for security purposes') ||
+      errorText.includes('can only request this after')
     ) {
-      return 'Слишком много писем отправлено за короткое время. Подожди немного и попробуй снова.';
+      return 'Слишком частые запросы. Подожди немного и попробуй снова.';
     }
 
     return 'Этот e-mail уже зарегистрирован. Попробуй войти или восстановить доступ позже.';
