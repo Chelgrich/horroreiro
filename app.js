@@ -105,6 +105,7 @@ const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
 const CATALOG_STATE_STORAGE_KEY = 'horroreiro_catalog_state';
 const EMAIL_CONFIRMATION_PENDING_KEY = 'horroreiro_email_confirmation_pending';
 const EMAIL_CONFIRMATION_TRACKED_KEY = 'horroreiro_email_confirmation_tracked';
+const PASSWORD_RECOVERY_PENDING_KEY = 'horroreiro_password_recovery_pending';
 const CATALOG_SCROLL_POSITION_KEY = 'horroreiro_catalog_scroll_position';
 const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
 
@@ -642,10 +643,18 @@ function isEmailConfirmationRedirect() {
 function isPasswordRecoveryRedirect() {
   const searchParams = new URLSearchParams(window.location.search);
   const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const hasPendingRecovery = Boolean(localStorage.getItem(PASSWORD_RECOVERY_PENDING_KEY));
+  const hasAuthReturnParams = (
+    searchParams.has('code') ||
+    searchParams.has('token_hash') ||
+    hashParams.has('access_token') ||
+    hashParams.has('refresh_token')
+  );
 
   return (
     searchParams.get('type') === 'recovery' ||
-    hashParams.get('type') === 'recovery'
+    hashParams.get('type') === 'recovery' ||
+    (hasPendingRecovery && hasAuthReturnParams)
   );
 }
 
@@ -2592,6 +2601,8 @@ async function sendPasswordResetEmail() {
       return;
     }
 
+    localStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1');
+
     showAuthMessage(
       'Если такой e-mail существует, мы отправили письмо со ссылкой для сброса пароля.',
       'success'
@@ -2645,6 +2656,7 @@ async function saveNewPassword() {
       return;
     }
 
+    localStorage.removeItem(PASSWORD_RECOVERY_PENDING_KEY);
     clearEmailConfirmationParamsFromUrl();
 
     showAuthMessage('Новый пароль сохранён. Теперь можно войти с ним в следующий раз.', 'success', true);
@@ -4648,6 +4660,7 @@ JS-БЛОК 23. ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
 async function init() {
   renderMoviesSkeleton();
 
+  const hasPasswordRecoveryRedirect = isPasswordRecoveryRedirect();
   const wasResetApplied = applyBuildVersionSoftResetIfNeeded();
 
   if (wasResetApplied) {
@@ -4658,7 +4671,7 @@ async function init() {
   const restoredUser = await restoreSession();
   trackEmailConfirmedLoginIfNeeded();
 
-  if (isPasswordRecoveryRedirect()) {
+  if (hasPasswordRecoveryRedirect) {
     isPasswordRecoveryMode = true;
     updateAuthModalMode();
     openAuthModal();
@@ -4673,6 +4686,7 @@ async function init() {
     }
 
     if (event === 'PASSWORD_RECOVERY') {
+      localStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1');
       isPasswordRecoveryMode = true;
       updateAuthModalMode();
       openAuthModal();
