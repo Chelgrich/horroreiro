@@ -1070,7 +1070,7 @@ function updateAuthModalMode() {
       loginPasswordConfirm.style.display = '';
       loginPasswordConfirm.disabled = isAuthSubmitting;
       loginPasswordConfirm.placeholder = 'Повторите новый пароль';
-      loginPasswordConfirm.autocomplete = 'new-password';
+      loginPasswordConfirm.autocomplete = 'off';
     }
 
     submitButton.textContent = 'Сохранить новый пароль';
@@ -1109,6 +1109,7 @@ function updateAuthModalMode() {
     loginPasswordConfirm.style.display = 'none';
     loginPasswordConfirm.disabled = true;
     loginPasswordConfirm.value = '';
+    loginPasswordConfirm.autocomplete = 'off';
   }
 
   submitButton.textContent = 'Войти';
@@ -4687,7 +4688,7 @@ async function init() {
     updateAuthUI();
     updateAuthModalMode();
     openAuthModal();
-    showAuthMessage('Придумай новый пароль, повтори его во втором поле и сохрани изменения.');
+    showAuthMessage('Введите новый пароль и подтвердите его ниже.');
   }
 
   bindCustomSelectGlobalEvents();
@@ -4703,7 +4704,7 @@ async function init() {
       updateAuthUI();
       updateAuthModalMode();
       openAuthModal();
-      showAuthMessage('Придумай новый пароль, повтори его во втором поле и сохрани изменения.');
+      showAuthMessage('Введите новый пароль и подтвердите его ниже.');
       return;
     }
 
