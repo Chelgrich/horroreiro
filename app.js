@@ -7,9 +7,18 @@ const movieModalBackdrop = document.getElementById('movieModalBackdrop');
 const closeMovieModalButton = document.getElementById('closeMovieModalButton');
 
 const authControls = document.getElementById('authControls');
+const displayNameWrap = document.getElementById('displayNameWrap');
+const displayNameButton = document.getElementById('displayNameButton');
+const displayNameText = document.getElementById('displayNameText');
+const displayNamePopover = document.getElementById('displayNamePopover');
+const displayNameForm = document.getElementById('displayNameForm');
+const displayNameInput = document.getElementById('displayNameInput');
+const saveDisplayNameButton = document.getElementById('saveDisplayNameButton');
+const cancelDisplayNameButton = document.getElementById('cancelDisplayNameButton');
+const displayNameMessage = document.getElementById('displayNameMessage');
+
 const openAuthModalButton = document.getElementById('openAuthModalButton');
 const authPopoverMenu = document.getElementById('authPopoverMenu');
-const profileMenuButton = document.getElementById('profileMenuButton');
 const logoutMenuButton = document.getElementById('logoutMenuButton');
 const authModal = document.getElementById('authModal');
 const authModalBackdrop = document.getElementById('authModalBackdrop');
@@ -120,6 +129,8 @@ let currentUserRole = null;
 let isAdmin = false;
 let isAuthModalOpen = false;
 let isAuthPopoverOpen = false;
+let isDisplayNamePopoverOpen = false;
+let isDisplayNameSubmitting = false;
 let isAuthRegisterMode = false;
 let isPasswordRecoveryMode = false;
 let isPasswordRecoveryEntryPage = false;
@@ -220,6 +231,93 @@ function normalizeDisplayNameValue(value) {
 
 function isValidDisplayNameValue(value) {
   return /^[A-Za-zА-Яа-яЁё0-9_]{3,24}$/.test(String(value || '').trim());
+}
+
+function getCurrentDisplayName() {
+  return String(currentUser?.user_metadata?.display_name || '').trim();
+}
+
+function setDisplayNameMessage(message = '', type = '') {
+  if (!displayNameMessage) {
+    return;
+  }
+
+  displayNameMessage.textContent = message;
+  displayNameMessage.classList.remove('is-error', 'is-success');
+
+  if (type) {
+    displayNameMessage.classList.add(`is-${type}`);
+  }
+}
+
+function syncDisplayNameButton() {
+  if (!displayNameWrap || !displayNameButton || !displayNameText) {
+    return;
+  }
+
+  const shouldShowDisplayName = shouldUseAuthenticatedUi();
+  const currentDisplayName = getCurrentDisplayName();
+
+  displayNameWrap.style.display = shouldShowDisplayName ? 'flex' : 'none';
+  displayNameText.textContent = currentDisplayName;
+  displayNameButton.title = currentDisplayName;
+  displayNameButton.setAttribute('aria-expanded', String(isDisplayNamePopoverOpen));
+}
+
+function closeDisplayNamePopover() {
+  if (!displayNamePopover || !displayNameButton) {
+    return;
+  }
+
+  displayNamePopover.style.display = 'none';
+  isDisplayNamePopoverOpen = false;
+  displayNameButton.setAttribute('aria-expanded', 'false');
+  setDisplayNameMessage();
+}
+
+function openDisplayNamePopover() {
+  if (!displayNamePopover || !displayNameButton || !displayNameInput || !shouldUseAuthenticatedUi()) {
+    return;
+  }
+
+  closeAuthPopoverMenu();
+
+  displayNameInput.value = getCurrentDisplayName();
+  displayNamePopover.style.display = 'block';
+  isDisplayNamePopoverOpen = true;
+  displayNameButton.setAttribute('aria-expanded', 'true');
+  setDisplayNameMessage();
+
+  requestAnimationFrame(() => {
+    displayNameInput.focus();
+    displayNameInput.select();
+  });
+}
+
+function toggleDisplayNamePopover() {
+  if (isDisplayNamePopoverOpen) {
+    closeDisplayNamePopover();
+    return;
+  }
+
+  openDisplayNamePopover();
+}
+
+async function updateCurrentUserDisplayName(nextDisplayName) {
+  if (!currentUser) {
+    return;
+  }
+
+  currentUser = {
+    ...currentUser,
+    user_metadata: {
+      ...(currentUser.user_metadata || {}),
+      display_name: nextDisplayName
+    }
+  };
+
+  syncDisplayNameButton();
+  updateAuthUI();
 }
 
 function escapeHtml(value) {
@@ -1158,6 +1256,7 @@ async function closeAuthModal() {
   const shouldCancelPasswordRecovery = isPasswordRecoveryMode;
 
   closeAuthPopoverMenu();
+  closeDisplayNamePopover();
   authModal.style.display = 'none';
   isAuthModalOpen = false;
   syncBodyScrollLock();
@@ -1434,9 +1533,11 @@ function updateAuthUI() {
   }
 
   syncAuthIconButtonState();
+  syncDisplayNameButton();
 
   if (!shouldShowAuthenticatedUi) {
     closeAuthPopoverMenu();
+    closeDisplayNamePopover();
   }
 
   if (loginForm) {
@@ -2795,20 +2896,126 @@ function getReadableAuthErrorMessage(error, fallbackMessage) {
   return error?.message || fallbackMessage;
 }
 
-async function isDisplayNameAvailable(displayName) {
+async function isDisplayNameAvailable(displayName, excludeUserId = null) {
   const normalizedDisplayName = normalizeDisplayNameValue(displayName);
 
-  const { data, error } = await supabaseClient
+  let query = supabaseClient
     .from('profiles')
     .select('id')
-    .eq('display_name_normalized', normalizedDisplayName)
-    .maybeSingle();
+    .eq('display_name_normalized', normalizedDisplayName);
+
+  if (excludeUserId) {
+    query = query.neq('id', excludeUserId);
+  }
+
+  const { data, error } = await query.limit(1);
 
   if (error) {
     throw error;
   }
 
-  return !data;
+  return !data || data.length === 0;
+}
+
+async function saveDisplayName(event) {
+  event?.preventDefault();
+
+  if (!currentUser || isDisplayNameSubmitting || !displayNameInput) {
+    return;
+  }
+
+  const nextDisplayName = displayNameInput.value.trim();
+  const normalizedNextDisplayName = normalizeDisplayNameValue(nextDisplayName);
+  const currentDisplayName = getCurrentDisplayName();
+  const normalizedCurrentDisplayName = normalizeDisplayNameValue(currentDisplayName);
+
+  if (!nextDisplayName) {
+    setDisplayNameMessage('Введите никнейм.', 'error');
+    displayNameInput.focus();
+    return;
+  }
+
+  if (!isValidDisplayNameValue(nextDisplayName)) {
+    setDisplayNameMessage('Никнейм должен быть длиной от 3 до 24 символов и содержать только буквы, цифры или _.', 'error');
+    displayNameInput.focus();
+    return;
+  }
+
+  if (normalizedNextDisplayName === normalizedCurrentDisplayName) {
+    closeDisplayNamePopover();
+    return;
+  }
+
+  isDisplayNameSubmitting = true;
+  setDisplayNameMessage('Сохраняю...');
+
+  if (saveDisplayNameButton) {
+    saveDisplayNameButton.disabled = true;
+  }
+
+  if (cancelDisplayNameButton) {
+    cancelDisplayNameButton.disabled = true;
+  }
+
+  if (displayNameInput) {
+    displayNameInput.disabled = true;
+  }
+
+  try {
+    const isAvailable = await isDisplayNameAvailable(nextDisplayName, currentUser.id);
+
+    if (!isAvailable) {
+      setDisplayNameMessage('Этот никнейм уже занят. Выберите другой.', 'error');
+      return;
+    }
+
+    const { error: authError } = await supabaseClient.auth.updateUser({
+      data: {
+        ...(currentUser.user_metadata || {}),
+        display_name: nextDisplayName
+      }
+    });
+
+    if (authError) {
+      console.error('Ошибка обновления user_metadata.display_name:', authError);
+      setDisplayNameMessage('Не удалось обновить никнейм. Попробуйте ещё раз.', 'error');
+      return;
+    }
+
+    const { error: profileError } = await supabaseClient
+      .from('profiles')
+      .update({
+        display_name: nextDisplayName
+      })
+      .eq('id', currentUser.id);
+
+    if (profileError) {
+      console.error('Ошибка обновления profiles.display_name:', profileError);
+      setDisplayNameMessage('Не удалось сохранить никнейм в профиле. Попробуйте ещё раз.', 'error');
+      return;
+    }
+
+    await updateCurrentUserDisplayName(nextDisplayName);
+    setDisplayNameMessage('Никнейм обновлён.', 'success');
+
+    setTimeout(() => {
+      closeDisplayNamePopover();
+    }, 500);
+  } finally {
+    isDisplayNameSubmitting = false;
+
+    if (saveDisplayNameButton) {
+      saveDisplayNameButton.disabled = false;
+    }
+
+    if (cancelDisplayNameButton) {
+      cancelDisplayNameButton.disabled = false;
+    }
+
+    if (displayNameInput) {
+      displayNameInput.disabled = false;
+    }
+  }
 }
 
 async function sendPasswordResetEmail() {
@@ -4720,9 +4927,19 @@ if (logoutMenuButton) {
   });
 }
 
-if (profileMenuButton) {
-  profileMenuButton.addEventListener('click', event => {
-    event.preventDefault();
+if (displayNameButton) {
+  displayNameButton.addEventListener('click', () => {
+    toggleDisplayNamePopover();
+  });
+}
+
+if (displayNameForm) {
+  displayNameForm.addEventListener('submit', saveDisplayName);
+}
+
+if (cancelDisplayNameButton) {
+  cancelDisplayNameButton.addEventListener('click', () => {
+    closeDisplayNamePopover();
   });
 }
 
@@ -4883,9 +5100,14 @@ cancelEditButton.addEventListener('click', () => {
 
 document.addEventListener('click', event => {
   const clickedInsideAuthMenu = event.target.closest('.auth-menu-wrap');
+  const clickedInsideDisplayName = event.target.closest('.display-name-wrap');
 
   if (!clickedInsideAuthMenu) {
     closeAuthPopoverMenu();
+  }
+
+  if (!clickedInsideDisplayName) {
+    closeDisplayNamePopover();
   }
 
   if (event.target.closest('[data-external-links-toggle="true"]') || event.target.closest('[data-external-links-collapsible]')) {
@@ -4939,6 +5161,7 @@ document.addEventListener('keydown', event => {
   closeMobileRatingModal();
   closeAllCustomSelects();
   closeAuthPopoverMenu();
+  closeDisplayNamePopover();
 
   if (isModalOpen) {
     closeMovieModal();

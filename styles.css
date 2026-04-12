@@ -140,6 +140,123 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   visibility: hidden;
 }
 
+.display-name-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.display-name-button {
+  max-width: 220px;
+  min-height: 36px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+}
+
+.display-name-button:hover {
+  color: #ffffff;
+  background: #171c20;
+  border-color: #2f3843;
+  transform: none;
+}
+
+.display-name-button:active {
+  transform: none;
+}
+
+.display-name-button:focus,
+.display-name-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
+}
+
+.display-name-text {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.display-name-edit-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  opacity: 0.78;
+}
+
+.display-name-edit-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.display-name-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 80;
+  width: min(320px, calc(100vw - 32px));
+  padding: 12px;
+  background: var(--surface-control-alt);
+  border: 1px solid var(--border-control-strong);
+  border-radius: 12px;
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.display-name-popover-title {
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.display-name-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.display-name-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.display-name-form-actions button {
+  flex: 1 1 0;
+}
+
+.display-name-message {
+  min-height: 18px;
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.display-name-message.is-error {
+  color: #ffd0cb;
+}
+
+.display-name-message.is-success {
+  color: #b6f0c0;
+}
+
 .auth-menu-wrap {
   position: relative;
   display: flex;
@@ -2659,6 +2776,14 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .auth-icon-button {
     width: 44px;
     min-width: 44px;
+  }
+
+  .display-name-button {
+    max-width: 180px;
+  }
+
+  .display-name-text {
+    max-width: 120px;
   }
 
   .auth-message {

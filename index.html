@@ -101,6 +101,39 @@
 
         <div id="authControls" class="auth-controls auth-controls-pending">
           <div class="auth-actions">
+            <div id="displayNameWrap" class="display-name-wrap" style="display: none;">
+              <button
+                type="button"
+                id="displayNameButton"
+                class="display-name-button"
+                aria-haspopup="dialog"
+                aria-expanded="false"
+                title=""
+              >
+                <span id="displayNameText" class="display-name-text"></span>
+                <span class="display-name-edit-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 20h4l9.8-9.8a2.121 2.121 0 1 0-3-3L5 17v3Z"></path>
+                    <path d="m13.5 6.5 3 3"></path>
+                  </svg>
+                </span>
+              </button>
+
+              <div id="displayNamePopover" class="display-name-popover" style="display: none;" role="dialog" aria-label="Изменение никнейма">
+                <div class="display-name-popover-title">Никнейм</div>
+
+                <form id="displayNameForm" class="display-name-form">
+                  <input type="text" id="displayNameInput" maxlength="24" autocomplete="off" spellcheck="false">
+                  <div class="display-name-form-actions">
+                    <button type="submit" id="saveDisplayNameButton">Сохранить</button>
+                    <button type="button" id="cancelDisplayNameButton" class="secondary-button secondary-button-compact">Отмена</button>
+                  </div>
+                </form>
+
+                <p id="displayNameMessage" class="display-name-message"></p>
+              </div>
+            </div>
+
             <div class="auth-menu-wrap">
               <button
                 id="openAuthModalButton"
@@ -118,19 +151,6 @@
               </button>
 
               <div id="authPopoverMenu" class="auth-popover-menu" style="display: none;" role="menu" aria-label="Меню аккаунта">
-                <button
-                  type="button"
-                  class="auth-popover-item"
-                  id="profileMenuButton"
-                  role="menuitem"
-                  disabled
-                  aria-disabled="true"
-                  title="Раздел профиля появится позже"
-                >
-                  Профиль
-                  <span class="auth-popover-item-note">скоро</span>
-                </button>
-
                 <button
                   type="button"
                   class="auth-popover-item auth-popover-item-danger"
