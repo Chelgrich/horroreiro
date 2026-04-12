@@ -775,6 +775,10 @@ function updateAdminStatus() {
   isAdmin = Boolean(currentUser && currentUserRole === 'admin');
 }
 
+function shouldUseAuthenticatedUi() {
+  return Boolean(currentUser) && !isPasswordRecoveryMode;
+}
+
 function getCurrentUserMovieState(movieId) {
   if (!currentUser) {
     return {
@@ -1244,19 +1248,20 @@ JS-БЛОК 8. УПРАВЛЕНИЕ AUTH-ИНТЕРФЕЙСОМ
 ========================================================== */
 function updateAuthUI() {
   const isLoggedIn = Boolean(currentUser);
+  const shouldShowAuthenticatedUi = shouldUseAuthenticatedUi();
 
   if (openAuthModalButton) {
-    openAuthModalButton.style.display = isLoggedIn ? 'none' : 'inline-flex';
+    openAuthModalButton.style.display = shouldShowAuthenticatedUi ? 'none' : 'inline-flex';
   }
 
   if (loginForm) {
-    loginForm.style.display = (isLoggedIn && !isPasswordRecoveryMode) ? 'none' : 'flex';
+    loginForm.style.display = shouldShowAuthenticatedUi ? 'none' : 'flex';
   }
 
-  userPanel.style.display = isLoggedIn ? 'flex' : 'none';
-  adminPanel.style.display = isAdmin ? 'flex' : 'none';
+  userPanel.style.display = shouldShowAuthenticatedUi ? 'flex' : 'none';
+  adminPanel.style.display = shouldShowAuthenticatedUi && isAdmin ? 'flex' : 'none';
 
-  if (isLoggedIn && !isPasswordRecoveryMode) {
+  if (shouldShowAuthenticatedUi) {
     closeAuthModal();
   }
 
@@ -1269,9 +1274,9 @@ function updateAuthUI() {
   let didResetUserOnlyCatalogFilters = false;
 
   if (watchlistFilterRow && watchlistFilter) {
-    watchlistFilterRow.style.display = isLoggedIn ? 'flex' : 'none';
+    watchlistFilterRow.style.display = shouldShowAuthenticatedUi ? 'flex' : 'none';
 
-    if (!isLoggedIn) {
+    if (!shouldShowAuthenticatedUi) {
       didResetUserOnlyCatalogFilters = didResetUserOnlyCatalogFilters || watchlistFilter.value !== '';
       watchlistFilter.value = '';
       refreshCustomSelect(watchlistFilter);
@@ -1279,9 +1284,9 @@ function updateAuthUI() {
   }
 
   if (watchedFilterRow && watchedFilter) {
-    watchedFilterRow.style.display = isLoggedIn ? 'flex' : 'none';
+    watchedFilterRow.style.display = shouldShowAuthenticatedUi ? 'flex' : 'none';
 
-    if (!isLoggedIn) {
+    if (!shouldShowAuthenticatedUi) {
       didResetUserOnlyCatalogFilters = didResetUserOnlyCatalogFilters || watchedFilter.value !== '';
       watchedFilter.value = '';
       refreshCustomSelect(watchedFilter);
@@ -2678,9 +2683,15 @@ async function saveNewPassword() {
     localStorage.removeItem(PASSWORD_RECOVERY_PENDING_KEY);
     clearEmailConfirmationParamsFromUrl();
 
-    showAuthMessage('Новый пароль сохранён. Теперь можно войти с ним в следующий раз.', 'success', true);
+    showAuthMessage('Новый пароль сохранён. Теперь войди с ним заново.', 'success', true);
 
-    setTimeout(() => {
+    setTimeout(async () => {
+      try {
+        await supabaseClient.auth.signOut();
+      } catch (error) {
+        console.error('Ошибка завершения recovery-сессии:', error);
+      }
+
       closeAuthModal();
     }, 900);
   } finally {
@@ -4752,7 +4763,7 @@ async function init() {
   initCatalogViewToggleButton();
   applySavedCatalogState();
 
-  if (restoredUser) {
+  if (restoredUser && !isPasswordRecoveryMode) {
     syncCatalogAfterAuthChange();
   } else {
     renderMovies();
