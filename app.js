@@ -987,6 +987,24 @@ async function clearLocalRecoverySession() {
   }
 }
 
+function syncAuthIconButtonState() {
+  if (!openAuthModalButton) {
+    return;
+  }
+
+  const isAuthenticated = shouldUseAuthenticatedUi();
+
+  openAuthModalButton.classList.toggle('is-authenticated', isAuthenticated);
+  openAuthModalButton.setAttribute(
+    'aria-label',
+    isAuthenticated ? 'Аккаунт' : 'Вход или регистрация'
+  );
+  openAuthModalButton.setAttribute(
+    'title',
+    isAuthenticated ? 'Аккаунт' : 'Вход или регистрация'
+  );
+}
+
 function setAuthSubmittingState(isSubmitting) {
   isAuthSubmitting = isSubmitting;
 
@@ -1278,8 +1296,10 @@ function updateAuthUI() {
   const shouldShowAuthenticatedUi = shouldUseAuthenticatedUi();
 
   if (openAuthModalButton) {
-    openAuthModalButton.style.display = shouldShowAuthenticatedUi ? 'none' : 'inline-flex';
+    openAuthModalButton.style.display = 'inline-flex';
   }
+
+  syncAuthIconButtonState();
 
   if (loginForm) {
     loginForm.style.display = shouldShowAuthenticatedUi ? 'none' : 'flex';
@@ -4512,6 +4532,11 @@ logoutButton.addEventListener('click', logout);
 
 if (openAuthModalButton) {
   openAuthModalButton.addEventListener('click', () => {
+    if (shouldUseAuthenticatedUi()) {
+      logout();
+      return;
+    }
+
     openAuthModal();
   });
 }

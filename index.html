@@ -101,8 +101,17 @@
 
         <div id="authControls" class="auth-controls auth-controls-pending">
           <div class="auth-actions">
-            <button id="openAuthModalButton" type="button" class="secondary-button">
-              Вход / регистрация
+            <button
+              id="openAuthModalButton"
+              type="button"
+              class="auth-icon-button"
+              aria-label="Вход или регистрация"
+              title="Вход или регистрация"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5Z"></path>
+                <path d="M4 21c0-3.866 3.582-7 8-7s8 3.134 8 7"></path>
+              </svg>
             </button>
 
             <div id="adminPanel" class="admin-panel" style="display: none;">

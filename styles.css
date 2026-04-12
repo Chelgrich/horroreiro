@@ -140,6 +140,68 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   visibility: hidden;
 }
 
+.auth-icon-button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  background: var(--surface-control-alt);
+  border: 1px solid var(--border-control-strong);
+  border-radius: 999px;
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  transition:
+    transform 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    color 0.18s ease;
+}
+
+.auth-icon-button svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.auth-icon-button:hover {
+  color: #ffffff;
+  background: #1b2128;
+  border-color: #3a444f;
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.auth-icon-button:focus,
+.auth-icon-button:focus-visible {
+  outline: none;
+  color: #ffffff;
+  border-color: var(--control-focus-border);
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
+}
+
+.auth-icon-button.is-authenticated {
+  color: var(--accent-soft-text);
+  background: var(--accent-soft-bg);
+  border-color: var(--accent-soft-border);
+  box-shadow:
+    0 0 0 1px var(--accent-soft-shadow),
+    0 0 18px rgba(91, 140, 255, 0.12);
+}
+
+.auth-icon-button.is-authenticated:hover {
+  background: var(--accent-soft-bg-hover);
+  border-color: var(--accent-soft-border-hover);
+}
+
 .login-form {
   display: flex;
   align-items: center;
@@ -2527,6 +2589,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .user-panel button {
     width: 100%;
     min-width: 0;
+  }
+
+  .auth-icon-button {
+    width: 44px;
+    min-width: 44px;
   }
 
   .auth-message {
