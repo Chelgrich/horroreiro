@@ -15,6 +15,7 @@ const authModalTitle = document.getElementById('authModalTitle');
 const loginForm = document.getElementById('loginForm');
 const loginEmail = document.getElementById('loginEmail');
 const loginPassword = document.getElementById('loginPassword');
+const loginPasswordConfirm = document.getElementById('loginPasswordConfirm');
 const registerButton = document.getElementById('registerButton');
 const forgotPasswordButton = document.getElementById('forgotPasswordButton');
 const logoutButton = document.getElementById('logoutButton');
@@ -936,15 +937,34 @@ function clearAuthMessage() {
   authMessage.textContent = '';
 }
 
+function resetAuthFormState() {
+  isPasswordRecoveryMode = false;
+
+  if (loginForm) {
+    loginForm.reset();
+  }
+
+  if (loginPasswordConfirm) {
+    loginPasswordConfirm.value = '';
+  }
+
+  updateAuthModalMode();
+  clearAuthMessage();
+}
+
 function setAuthSubmittingState(isSubmitting) {
   isAuthSubmitting = isSubmitting;
 
   if (loginEmail) {
-    loginEmail.disabled = isSubmitting;
+    loginEmail.disabled = isSubmitting || isPasswordRecoveryMode;
   }
 
   if (loginPassword) {
     loginPassword.disabled = isSubmitting;
+  }
+
+  if (loginPasswordConfirm) {
+    loginPasswordConfirm.disabled = isSubmitting || !isPasswordRecoveryMode;
   }
 
   const loginSubmitButton = loginForm?.querySelector('button[type="submit"]');
@@ -990,6 +1010,7 @@ function openAuthModal() {
   requestAnimationFrame(() => {
     if (isPasswordRecoveryMode) {
       loginPassword?.focus();
+      loginPassword?.select();
       return;
     }
 
@@ -1005,7 +1026,7 @@ function closeAuthModal() {
   authModal.style.display = 'none';
   isAuthModalOpen = false;
   syncBodyScrollLock();
-  clearAuthMessage();
+  resetAuthFormState();
 }
 
 function updateAuthModalMode() {
@@ -1017,7 +1038,7 @@ function updateAuthModalMode() {
 
   if (isPasswordRecoveryMode) {
     if (authModalTitle) {
-      authModalTitle.textContent = 'Новый пароль';
+      authModalTitle.textContent = 'Сброс пароля';
     }
 
     if (loginEmail) {
@@ -1030,7 +1051,14 @@ function updateAuthModalMode() {
       loginPassword.autocomplete = 'new-password';
     }
 
-    submitButton.textContent = 'Сохранить пароль';
+    if (loginPasswordConfirm) {
+      loginPasswordConfirm.style.display = '';
+      loginPasswordConfirm.disabled = isAuthSubmitting;
+      loginPasswordConfirm.placeholder = 'Повторите новый пароль';
+      loginPasswordConfirm.autocomplete = 'new-password';
+    }
+
+    submitButton.textContent = 'Сохранить новый пароль';
 
     if (registerButton) {
       registerButton.style.display = 'none';
@@ -1055,6 +1083,12 @@ function updateAuthModalMode() {
   if (loginPassword) {
     loginPassword.placeholder = 'Пароль';
     loginPassword.autocomplete = 'current-password';
+  }
+
+  if (loginPasswordConfirm) {
+    loginPasswordConfirm.style.display = 'none';
+    loginPasswordConfirm.disabled = true;
+    loginPasswordConfirm.value = '';
   }
 
   submitButton.textContent = 'Войти';
@@ -2539,6 +2573,8 @@ async function sendPasswordResetEmail() {
     return;
   }
 
+  loginPassword.value = '';
+
   setAuthSubmittingState(true);
   showAuthMessage('Отправляю письмо для сброса пароля...');
 
@@ -2571,10 +2607,24 @@ async function saveNewPassword() {
   }
 
   const nextPassword = loginPassword.value;
+  const confirmedPassword = loginPasswordConfirm?.value || '';
 
   if (!nextPassword) {
     showAuthMessage('Введи новый пароль.', 'error');
     loginPassword.focus();
+    return;
+  }
+
+  if (!confirmedPassword) {
+    showAuthMessage('Повтори новый пароль во втором поле.', 'error');
+    loginPasswordConfirm.focus();
+    return;
+  }
+
+  if (nextPassword !== confirmedPassword) {
+    showAuthMessage('Пароли не совпадают. Проверь ввод и попробуй снова.', 'error');
+    loginPasswordConfirm.focus();
+    loginPasswordConfirm.select();
     return;
   }
 
@@ -2595,16 +2645,13 @@ async function saveNewPassword() {
       return;
     }
 
-    isPasswordRecoveryMode = false;
-    loginPassword.value = '';
-    updateAuthModalMode();
     clearEmailConfirmationParamsFromUrl();
 
-    showAuthMessage('Пароль обновлён. Теперь можно пользоваться аккаунтом.', 'success', true);
+    showAuthMessage('Новый пароль сохранён. Теперь можно войти с ним в следующий раз.', 'success', true);
 
     setTimeout(() => {
       closeAuthModal();
-    }, 500);
+    }, 900);
   } finally {
     setAuthSubmittingState(false);
   }
@@ -4370,6 +4417,9 @@ JS-БЛОК 22. ОБРАБОТЧИКИ СОБЫТИЙ ИНТЕРФЕЙСА
 loginForm.addEventListener('submit', login);
 loginEmail.addEventListener('input', clearAuthMessage);
 loginPassword.addEventListener('input', clearAuthMessage);
+if (loginPasswordConfirm) {
+  loginPasswordConfirm.addEventListener('input', clearAuthMessage);
+}
 registerButton.addEventListener('click', register);
 logoutButton.addEventListener('click', logout);
 
@@ -4612,7 +4662,7 @@ async function init() {
     isPasswordRecoveryMode = true;
     updateAuthModalMode();
     openAuthModal();
-    showAuthMessage('Придумай новый пароль и сохрани его.');
+    showAuthMessage('Придумай новый пароль, повтори его во втором поле и сохрани изменения.');
   }
 
   bindCustomSelectGlobalEvents();
@@ -4626,7 +4676,7 @@ async function init() {
       isPasswordRecoveryMode = true;
       updateAuthModalMode();
       openAuthModal();
-      showAuthMessage('Придумай новый пароль и сохрани его.');
+      showAuthMessage('Придумай новый пароль, повтори его во втором поле и сохрани изменения.');
       return;
     }
 
