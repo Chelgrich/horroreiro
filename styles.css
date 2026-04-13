@@ -321,12 +321,17 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   z-index: 80;
   min-width: 190px;
   padding: 8px;
+  display: none;
   background: var(--surface-control-alt);
   border: 1px solid var(--border-control-strong);
   border-radius: 12px;
   box-shadow:
     0 16px 34px rgba(0, 0, 0, 0.32),
     0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.auth-popover-menu.is-open {
+  display: block;
 }
 
 .auth-popover-item {

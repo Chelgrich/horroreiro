@@ -1219,7 +1219,7 @@ function closeAuthPopoverMenu() {
     return;
   }
 
-  authPopoverMenu.style.display = 'none';
+  authPopoverMenu.classList.remove('is-open');
   isAuthPopoverOpen = false;
   openAuthModalButton.setAttribute('aria-expanded', 'false');
 }
@@ -1229,7 +1229,7 @@ function openAuthPopoverMenu() {
     return;
   }
 
-  authPopoverMenu.style.display = 'block';
+  authPopoverMenu.classList.add('is-open');
   isAuthPopoverOpen = true;
   openAuthModalButton.setAttribute('aria-expanded', 'true');
 }
