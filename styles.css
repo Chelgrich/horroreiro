@@ -772,6 +772,24 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   transform: none;
 }
 
+.auth-mode-field,
+.auth-mode-button,
+.auth-mode-block {
+  display: none;
+}
+
+.auth-mode-field.is-visible {
+  display: block;
+}
+
+.auth-mode-button.is-visible {
+  display: inline-flex;
+}
+
+.auth-mode-block.is-visible {
+  display: flex;
+}
+
 .filters-modal-header-main {
   display: flex;
   flex-direction: column;
