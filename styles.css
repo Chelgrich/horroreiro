@@ -2658,6 +2658,7 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
   position: fixed;
   inset: 0;
   z-index: 1200;
+  padding: 0;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
