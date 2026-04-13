@@ -177,10 +177,8 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .display-name-text {
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: none;
+  white-space: normal;
   font-size: 14px;
   line-height: 1.2;
   font-weight: 600;
