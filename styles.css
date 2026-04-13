@@ -145,7 +145,8 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   display: flex;
   align-items: center;
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
+  max-width: calc(100% - 52px);
 }
 
 .display-name-button {
@@ -266,6 +267,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   display: flex;
   align-items: center;
   flex: 0 0 auto;
+  margin-left: 8px;
 }
 
 .auth-icon-button {
@@ -2812,18 +2814,20 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     flex-direction: row;
     align-items: center;
     justify-content: flex-end;
-    gap: 10px;
+    gap: 0;
     flex: 0 0 auto;
   }
 
   .auth-actions {
-    width: 100%;
+    width: auto;
+    max-width: 100%;
     min-width: 0;
     min-height: 44px;
+    margin-left: auto;
     flex-direction: row;
     align-items: center;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 0;
   }
 
   .admin-panel,
