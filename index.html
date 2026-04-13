@@ -163,7 +163,18 @@
             </div>
 
             <div id="adminPanel" class="admin-panel" style="display: none;">
-              <button id="openAddMovieButton" type="button">Добавить фильм</button>
+              <button
+                id="openAddMovieButton"
+                type="button"
+                class="floating-add-movie-button"
+                aria-label="Добавить фильм"
+                title="Добавить фильм"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 5v14"></path>
+                  <path d="M5 12h14"></path>
+                </svg>
+              </button>
             </div>
           
             <div id="userPanel" class="user-panel" style="display: none;">
