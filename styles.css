@@ -3447,11 +3447,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     gap: 8px;
   }
 
-  h1 {
-    font-size: 21px;
-    letter-spacing: 0.6px;
-  }
-
   .auth-controls {
     gap: 8px;
   }
@@ -3464,11 +3459,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     max-width: 118px;
     min-width: 0;
     padding: 0 6px;
-  }
-
-  .display-name-text {
-    max-width: 78px;
-    font-size: 11px;
   }
 
   .auth-icon-button {
