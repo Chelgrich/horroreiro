@@ -550,6 +550,11 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   height: 44px;
 }
 
+.admin-panel .floating-add-movie-button {
+  width: 64px;
+  height: 64px;
+}
+
 /* =========================================================
 CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 Унифицированное оформление смысловых блоков страницы.
@@ -2833,6 +2838,12 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-width: 0;
   }
 
+  .admin-panel .floating-add-movie-button {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+  }
+
   .auth-icon-button {
     width: 44px;
     min-width: 44px;
@@ -3404,6 +3415,12 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     bottom: 12px;
     width: 52px;
     height: 52px;
+  }
+
+  .admin-panel .floating-add-movie-button {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
   }
 
   .floating-add-movie-button svg {
