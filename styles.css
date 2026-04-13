@@ -2844,14 +2844,14 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 Перестройка сеток и элементов на узких экранах.
 ========================================================== */
 
-@media (min-width: 901px) {
-  .movie-form .custom-select-trigger {
-    min-height: var(--control-height-md);
-    padding-top: 8px;
-    padding-bottom: 8px;
-    line-height: 1;
-  }
+.movie-form .custom-select-trigger {
+  min-height: var(--control-height-md);
+  padding-top: 8px;
+  padding-bottom: 8px;
+  line-height: 1;
+}
 
+@media (min-width: 901px) {
   .movie-form-inline-group-titles {
     display: grid;
     grid-template-columns: 1fr 1fr 0.5fr;
@@ -3121,13 +3121,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .filters .custom-select-trigger,
   .catalog-toolbar .custom-select-trigger {
     min-height: 42px;
-  }
-
-  .movie-form .custom-select-trigger {
-    min-height: var(--control-height-md);
-    padding-top: 8px;
-    padding-bottom: 8px;
-    line-height: 1;
   }
 
   .auth-toast {
@@ -3434,8 +3427,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-external-link {
-    width: 38px;
-    height: 38px;
     flex: 0 0 38px;
   }
 
@@ -3669,10 +3660,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movies-month-title {
     font-size: 22px;
     line-height: 1.18;
-  }
-
-  .filters-modal-actions {
-    justify-content: flex-end;
   }
 
   .catalog-toolbar-actions {
