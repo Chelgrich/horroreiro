@@ -3576,7 +3576,8 @@ function ensureMobileRatingModal() {
     </div>
   `;
 
-  document.body.appendChild(mobileRatingModal);
+  const pageRoot = document.querySelector('.page') || document.body;
+  pageRoot.appendChild(mobileRatingModal);
 
   mobileRatingModalTitle = mobileRatingModal.querySelector('#mobileRatingModalTitle');
   mobileRatingModalStars = mobileRatingModal.querySelector('#mobileRatingModalStars');
