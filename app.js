@@ -2113,7 +2113,7 @@ function syncQuickPresetButtons() {
     const requiresAuth = button.dataset.requiresAuth === 'true';
     const shouldHide = requiresAuth && !currentUser;
 
-    button.style.display = shouldHide ? 'none' : 'inline-flex';
+    button.classList.toggle('is-hidden-by-auth', shouldHide);
     button.classList.toggle('is-active', !shouldHide && presetKey === activePresetKey);
   });
 }
@@ -3693,7 +3693,7 @@ function openMobileRatingModal(movie) {
     </div>
   `;
 
-  mobileRatingModalRemoveButton.style.display = hasCurrentUserRating ? 'inline-flex' : 'none';
+  mobileRatingModalRemoveButton.classList.toggle('is-visible', hasCurrentUserRating);
 
   const mobileRatingButtons = mobileRatingModalStars.querySelectorAll('[data-mobile-rating-value]');
   const mobileRatingScaleItems = mobileRatingModalStars.querySelectorAll('.mobile-rating-scale-item');
