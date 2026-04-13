@@ -266,7 +266,7 @@ function syncDisplayNameButton() {
   const shouldShowDisplayName = shouldUseAuthenticatedUi();
   const currentDisplayName = getCurrentDisplayName();
 
-  displayNameWrap.style.display = shouldShowDisplayName ? 'flex' : 'none';
+  displayNameWrap.classList.toggle('is-visible', shouldShowDisplayName);
   displayNameText.textContent = currentDisplayName;
   displayNameButton.title = currentDisplayName;
   displayNameButton.setAttribute('aria-expanded', String(isDisplayNameModalOpen));
@@ -551,7 +551,7 @@ function applySavedCatalogState() {
     }
 
     if (searchClearBtn) {
-      searchClearBtn.style.display = searchInput.value.trim() ? 'flex' : 'none';
+      searchClearBtn.classList.toggle('is-visible', Boolean(searchInput.value.trim()));
     }
 
     refreshCustomSelectGroup([
@@ -1564,8 +1564,13 @@ function updateAuthUI() {
     loginForm.style.display = shouldShowAuthenticatedUi ? 'none' : 'flex';
   }
 
-  userPanel.style.display = 'none';
-  adminPanel.style.display = shouldShowAuthenticatedUi && isAdmin ? 'flex' : 'none';
+  if (userPanel) {
+    userPanel.classList.remove('is-visible');
+  }
+
+  if (adminPanel) {
+    adminPanel.classList.toggle('is-visible', shouldShowAuthenticatedUi && isAdmin);
+  }
 
   if (shouldShowAuthenticatedUi) {
     closeAuthModal();
@@ -2007,7 +2012,7 @@ function clearSearchInput() {
   lastSearchQuery = '';
 
   if (searchClearBtn) {
-    searchClearBtn.style.display = 'none';
+    searchClearBtn.classList.remove('is-visible');
   }
 
   saveCatalogState();
@@ -2205,9 +2210,9 @@ function updateFiltersModalStatus() {
     ? `Активно фильтров: ${activeFiltersCount}`
     : 'Активных фильтров нет';
 
-  filtersModalStatus.style.display = 'block';
+  filtersModalStatus.classList.add('is-visible');
   filtersModalStatus.classList.toggle('is-active', hasActiveFilters);
-  resetFiltersTopButton.style.display = hasActiveFilters ? 'inline-flex' : 'none';
+  resetFiltersTopButton.classList.toggle('is-visible', hasActiveFilters);
 }
 
 function updateFiltersButtonLabel() {
@@ -2278,12 +2283,12 @@ function renderActiveFilterChips() {
   updateFiltersButtonLabel();
 
   if (chips.length === 0) {
-    activeFiltersBar.style.display = 'none';
+    activeFiltersBar.classList.remove('is-visible');
     activeFiltersBar.innerHTML = '';
     return;
   }
 
-  activeFiltersBar.style.display = 'flex';
+  activeFiltersBar.classList.add('is-visible');
   activeFiltersBar.innerHTML = chips.map(chip => `
     <div class="active-filter-chip">
       <span>${chip.label}</span>
@@ -5041,7 +5046,7 @@ searchInput.addEventListener('input', () => {
 
   // 👇 управление крестиком
   if (searchClearBtn) {
-    searchClearBtn.style.display = query ? 'flex' : 'none';
+    searchClearBtn.classList.toggle('is-visible', Boolean(query));
   }
 
   if (query && query !== lastSearchQuery) {
@@ -5069,7 +5074,7 @@ searchInput.addEventListener('keydown', event => {
 if (searchClearBtn) {
   searchClearBtn.addEventListener('click', () => {
     searchInput.value = '';
-    searchClearBtn.style.display = 'none';
+    searchClearBtn.classList.remove('is-visible');
     clearSearchAndRerenderPreservingPosition();
   });
 }

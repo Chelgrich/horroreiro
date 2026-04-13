@@ -140,6 +140,14 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   visibility: hidden;
 }
 
+.auth-ui-block {
+  display: none;
+}
+
+.auth-ui-block.is-visible {
+  display: flex;
+}
+
 .display-name-wrap {
   position: relative;
   display: flex;
@@ -797,9 +805,14 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 }
 
 .filters-modal-status {
+  display: none;
   font-size: 13px;
   margin-top: 0;
   color: var(--color-text-dim);
+}
+
+.filters-modal-status.is-visible {
+  display: block;
 }
 
 .filters-modal-status.is-active {
@@ -808,6 +821,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 
 .filters-modal-reset-top {
   position: relative;
+  display: none;
   height: auto;
   min-height: 0;
   padding: 0;
@@ -821,6 +835,10 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   opacity: 0.9;
   letter-spacing: 0.2px;
   text-decoration: none;
+}
+
+.filters-modal-reset-top.is-visible {
+  display: inline-flex;
 }
 
 .filters-modal-reset-top::after {
@@ -1368,6 +1386,10 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
   opacity: 0.8;
 }
 
+.search-clear-btn.is-visible {
+  display: flex;
+}
+
 .search-clear-btn:hover {
   color: #e7ebf0;
   transform: translateY(-50%);
@@ -1507,9 +1529,13 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 
 .active-filters-bar {
   margin-top: 14px;
-  display: flex;
+  display: none;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.active-filters-bar.is-visible {
+  display: flex;
 }
 
 .quick-presets-bar {
@@ -3022,8 +3048,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     gap: 10px;
   }
 
-  .admin-panel[style*="display: none"],
-  .user-panel[style*="display: none"],
+  .auth-ui-block:not(.is-visible),
   .login-form[style*="display: none"] {
     display: none !important;
   }

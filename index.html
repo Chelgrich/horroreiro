@@ -101,7 +101,7 @@
 
         <div id="authControls" class="auth-controls auth-controls-pending">
           <div class="auth-actions">
-            <div id="displayNameWrap" class="display-name-wrap" style="display: none;">
+            <div id="displayNameWrap" class="display-name-wrap auth-ui-block">
               <button
                 type="button"
                 id="displayNameButton"
@@ -149,7 +149,7 @@
               </div>
             </div>
 
-            <div id="adminPanel" class="admin-panel" style="display: none;">
+            <div id="adminPanel" class="admin-panel auth-ui-block">
               <button
                 id="openAddMovieButton"
                 type="button"
@@ -164,7 +164,7 @@
               </button>
             </div>
           
-            <div id="userPanel" class="user-panel" style="display: none;">
+            <div id="userPanel" class="user-panel auth-ui-block">
               <button id="logoutButton" type="button" class="secondary-button">
                 Выйти
               </button>
@@ -415,7 +415,7 @@
           <label for="searchInput">Поиск:</label>
           <div class="search-input-wrapper">
             <input type="text" id="searchInput" placeholder="Название, оригинальное название, режиссёр">
-            <button type="button" id="searchClearBtn" class="search-clear-btn" style="display: none;">×</button>
+            <button type="button" id="searchClearBtn" class="search-clear-btn">×</button>
           </div>
         </div>
 
@@ -460,7 +460,7 @@
         </button>
       </div>
 
-      <div id="activeFiltersBar" class="active-filters-bar" style="display: none;"></div>
+      <div id="activeFiltersBar" class="active-filters-bar"></div>
     </section>
 
     <!-- =========================================================
@@ -474,7 +474,7 @@
         <div class="modal-header filters-modal-header">
           <div class="filters-modal-header-main">
             <h2 id="filtersModalTitle">Фильтры</h2>
-            <div id="filtersModalStatus" class="filters-modal-status" style="display: none;"></div>
+            <div id="filtersModalStatus" class="filters-modal-status"></div>
           </div>
           <button type="button" id="closeFiltersModalButton" class="modal-close-button" aria-label="Закрыть"></button>
         </div>
@@ -534,7 +534,7 @@
         </div>
 
         <div class="filters-modal-actions">
-          <button type="button" id="resetFiltersTopButton" class="secondary-button secondary-button-compact filters-modal-reset-top" style="display: none;">
+          <button type="button" id="resetFiltersTopButton" class="secondary-button secondary-button-compact filters-modal-reset-top">
             <span class="filters-modal-reset-label">Сбросить фильтры</span>
           </button>
         </div>
