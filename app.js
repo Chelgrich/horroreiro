@@ -1296,7 +1296,7 @@ function updateAuthModalMode() {
 
   if (isPasswordRecoveryMode) {
     if (loginForm) {
-      loginForm.style.display = 'flex';
+      loginForm.classList.add('is-visible');
     }
 
     if (authModalTitle) {
@@ -1344,7 +1344,7 @@ function updateAuthModalMode() {
   }
 
   if (loginForm) {
-    loginForm.style.display = currentUser ? 'none' : 'flex';
+    loginForm.classList.toggle('is-visible', !currentUser);
   }
 
   if (loginEmail) {
@@ -1561,7 +1561,7 @@ function updateAuthUI() {
   }
 
   if (loginForm) {
-    loginForm.style.display = shouldShowAuthenticatedUi ? 'none' : 'flex';
+    loginForm.classList.toggle('is-visible', !shouldShowAuthenticatedUi);
   }
 
   if (userPanel) {

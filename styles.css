@@ -398,6 +398,14 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   gap: 12px;
 }
 
+.auth-form-shell {
+  display: none;
+}
+
+.auth-form-shell.is-visible {
+  display: flex;
+}
+
 .login-form-modal input,
 .login-form-modal button {
   width: 100%;
