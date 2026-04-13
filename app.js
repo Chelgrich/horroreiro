@@ -1534,7 +1534,6 @@ JS-БЛОК 8. УПРАВЛЕНИЕ AUTH-ИНТЕРФЕЙСОМ
 в зависимости от статуса пользователя.
 ========================================================== */
 function updateAuthUI() {
-  const isLoggedIn = Boolean(currentUser);
   const shouldShowAuthenticatedUi = shouldUseAuthenticatedUi();
 
   syncAuthIconButtonState();
