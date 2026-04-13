@@ -2655,6 +2655,8 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 }
 
 .mobile-rating-modal {
+  position: fixed;
+  inset: 0;
   z-index: 1200;
   opacity: 0;
   visibility: hidden;
@@ -2669,17 +2671,22 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 }
 
 .mobile-rating-modal-backdrop {
+  position: absolute;
+  inset: 0;
   background: var(--modal-backdrop-bg);
 }
 
 .mobile-rating-modal-dialog {
-  position: relative;
+  position: absolute;
+  left: var(--modal-mobile-page-padding-x);
+  right: var(--modal-mobile-page-padding-x);
+  bottom: var(--modal-mobile-page-padding-bottom);
   z-index: 1;
   box-sizing: border-box;
-  width: 100%;
-  max-width: var(--modal-auth-dialog-max-width);
-  max-height: calc(100vh - var(--modal-dialog-max-height-offset));
-  margin: 0 auto;
+  width: auto;
+  max-width: none;
+  max-height: calc(100vh - var(--modal-mobile-dialog-max-height-offset));
+  margin: 0;
   padding: var(--modal-dialog-padding);
   overflow-y: auto;
   background: var(--modal-dialog-bg);
