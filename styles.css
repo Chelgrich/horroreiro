@@ -228,7 +228,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 
 .display-name-form-actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
 }
 
 .display-name-form-actions button {
@@ -739,7 +739,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 .auth-modal-dialog .auth-toast {
   width: 100%;
   max-width: 100%;
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .auth-form-links {
@@ -859,9 +859,9 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
 
 .form-actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-top: 32px;
+  margin-top: 16px;
 }
 
 .movie-form-inline-group {
@@ -1541,7 +1541,7 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 28px;
+  gap: 12px;
   margin-top: 16px;
 }
 
