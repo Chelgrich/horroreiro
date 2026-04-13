@@ -2892,20 +2892,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     min-width: 168px;
   }
 
-  .catalog-toolbar-actions .filter-sort {
-    width: 220px;
-  }
-
-  .filter-sort .custom-select-trigger,
-  .filter-sort select {
-    min-height: 44px;
-  }
-
-  .filter-sort label {
-    padding-left: 2px;
-  }
-}
-
 @media (max-width: 1200px) {
   .page {
     --catalog-columns: 3;
@@ -3584,8 +3570,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .display-name-button {
-    max-width: 100%;
-    min-width: 0;
     padding: 0 6px;
   }
 
