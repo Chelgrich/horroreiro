@@ -2669,11 +2669,23 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 }
 
 .mobile-rating-modal-backdrop {
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--modal-backdrop-bg);
 }
 
 .mobile-rating-modal-dialog {
-  max-width: 520px;
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--modal-auth-dialog-max-width);
+  max-height: calc(100vh - var(--modal-dialog-max-height-offset));
+  margin: 0 auto;
+  padding: var(--modal-dialog-padding);
+  overflow-y: auto;
+  background: var(--modal-dialog-bg);
+  border: var(--modal-dialog-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--modal-dialog-shadow);
   opacity: 0;
   transform: translateY(10px) scale(0.99);
   transition: opacity 0.22s ease, transform 0.22s ease;
