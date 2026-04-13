@@ -1304,12 +1304,12 @@ function updateAuthModalMode() {
     }
 
     if (loginEmail) {
-      loginEmail.style.display = 'none';
+      loginEmail.classList.remove('is-visible');
       loginEmail.disabled = true;
     }
 
     if (loginPassword) {
-      loginPassword.style.display = '';
+      loginPassword.classList.add('is-visible');
       loginPassword.placeholder = 'Новый пароль';
       loginPassword.autocomplete = 'new-password';
     }
@@ -1333,11 +1333,11 @@ function updateAuthModalMode() {
     submitButton.textContent = 'Сохранить новый пароль';
 
     if (registerButton) {
-      registerButton.style.display = 'none';
+      registerButton.classList.remove('is-visible');
     }
 
     if (authFormLinks) {
-      authFormLinks.style.display = 'none';
+      authFormLinks.classList.remove('is-visible');
     }
 
     return;
@@ -1348,17 +1348,17 @@ function updateAuthModalMode() {
   }
 
   if (loginEmail) {
-    loginEmail.style.display = '';
+    loginEmail.classList.add('is-visible');
     loginEmail.disabled = isAuthSubmitting;
   }
 
   if (loginPassword) {
-    loginPassword.style.display = '';
+    loginPassword.classList.add('is-visible');
     loginPassword.placeholder = 'Пароль';
   }
 
   if (loginPasswordConfirm) {
-    loginPasswordConfirm.style.display = 'none';
+    loginPasswordConfirm.classList.remove('is-visible');
     loginPasswordConfirm.disabled = true;
     loginPasswordConfirm.value = '';
     loginPasswordConfirm.autocomplete = 'off';
@@ -1385,12 +1385,12 @@ function updateAuthModalMode() {
     submitButton.textContent = 'Зарегистрироваться';
 
     if (registerButton) {
-      registerButton.style.display = '';
+      registerButton.classList.add('is-visible');
       registerButton.textContent = 'У меня уже есть аккаунт';
     }
 
     if (authFormLinks) {
-      authFormLinks.style.display = 'none';
+      authFormLinks.classList.remove('is-visible');
     }
 
     return;
@@ -1416,12 +1416,12 @@ function updateAuthModalMode() {
   submitButton.textContent = 'Войти';
 
   if (registerButton) {
-    registerButton.style.display = '';
+    registerButton.classList.add('is-visible');
     registerButton.textContent = 'Регистрация';
   }
 
   if (authFormLinks) {
-    authFormLinks.style.display = '';
+    authFormLinks.classList.add('is-visible');
   }
 }
 
