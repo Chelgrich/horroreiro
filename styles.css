@@ -905,6 +905,14 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
   color: var(--color-text-muted);
 }
 
+.auth-conditional-field {
+  display: none;
+}
+
+.auth-conditional-field.is-visible {
+  display: block;
+}
+
 .movie-form > *:last-child {
   margin-bottom: 0;
 }

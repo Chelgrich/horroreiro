@@ -187,11 +187,11 @@
         <form id="loginForm" class="login-form login-form-modal">
           <input type="email" id="loginEmail" name="email" placeholder="Email" autocomplete="email">
           <input type="password" id="loginPassword" name="password" placeholder="Пароль" autocomplete="current-password">
-          <input type="text" id="registerNickname" name="registerNickname" placeholder="Никнейм" maxlength="24" style="display: none;">
-          <div id="registerNicknameHint" class="field-hint" style="display: none;">
+          <input type="text" id="registerNickname" name="registerNickname" class="auth-conditional-field" placeholder="Никнейм" maxlength="24">
+          <div id="registerNicknameHint" class="field-hint auth-conditional-field">
             Необязательно. Если оставить пустым, присвоится имя вида profile001.
           </div>
-          <input type="password" id="loginPasswordConfirm" name="passwordConfirm" placeholder="Повторите новый пароль" autocomplete="new-password" style="display: none;">
+          <input type="password" id="loginPasswordConfirm" name="passwordConfirm" class="auth-conditional-field" placeholder="Повторите новый пароль" autocomplete="new-password">
           <button type="submit">Войти</button>
           <button type="button" id="registerButton" class="secondary-button secondary-button-compact">
             Регистрация

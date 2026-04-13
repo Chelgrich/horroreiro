@@ -1315,16 +1315,16 @@ function updateAuthModalMode() {
     }
 
     if (registerNicknameInput) {
-      registerNicknameInput.style.display = 'none';
+      registerNicknameInput.classList.remove('is-visible');
       registerNicknameInput.disabled = true;
     }
 
     if (registerNicknameHint) {
-      registerNicknameHint.style.display = 'none';
+      registerNicknameHint.classList.remove('is-visible');
     }
 
     if (loginPasswordConfirm) {
-      loginPasswordConfirm.style.display = '';
+      loginPasswordConfirm.classList.add('is-visible');
       loginPasswordConfirm.disabled = isAuthSubmitting;
       loginPasswordConfirm.placeholder = 'Повторите новый пароль';
       loginPasswordConfirm.autocomplete = 'off';
@@ -1374,12 +1374,12 @@ function updateAuthModalMode() {
     }
 
     if (registerNicknameInput) {
-      registerNicknameInput.style.display = '';
+      registerNicknameInput.classList.add('is-visible');
       registerNicknameInput.disabled = isAuthSubmitting;
     }
 
     if (registerNicknameHint) {
-      registerNicknameHint.style.display = 'block';
+      registerNicknameHint.classList.add('is-visible');
     }
 
     submitButton.textContent = 'Зарегистрироваться';
@@ -1405,12 +1405,12 @@ function updateAuthModalMode() {
   }
 
   if (registerNicknameInput) {
-    registerNicknameInput.style.display = 'none';
+    registerNicknameInput.classList.remove('is-visible');
     registerNicknameInput.disabled = true;
   }
 
   if (registerNicknameHint) {
-    registerNicknameHint.style.display = 'none';
+    registerNicknameHint.classList.remove('is-visible');
   }
 
   submitButton.textContent = 'Войти';
