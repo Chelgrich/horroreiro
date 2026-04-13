@@ -126,6 +126,7 @@ const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
 
 let currentUser = null;
 let currentUserRole = null;
+let currentUserProfile = null;
 let isAdmin = false;
 let isAuthModalOpen = false;
 let isAuthPopoverOpen = false;
@@ -234,7 +235,11 @@ function isValidDisplayNameValue(value) {
 }
 
 function getCurrentDisplayName() {
-  return String(currentUser?.user_metadata?.display_name || '').trim();
+  return String(
+    currentUser?.user_metadata?.display_name ||
+    currentUserProfile?.display_name ||
+    ''
+  ).trim();
 }
 
 function setDisplayNameMessage(message = '', type = '') {
@@ -314,6 +319,11 @@ async function updateCurrentUserDisplayName(nextDisplayName) {
       ...(currentUser.user_metadata || {}),
       display_name: nextDisplayName
     }
+  };
+
+  currentUserProfile = {
+    ...(currentUserProfile || {}),
+    display_name: nextDisplayName
   };
 
   syncDisplayNameButton();
@@ -862,6 +872,7 @@ function trackEmailConfirmedLoginIfNeeded() {
 async function loadCurrentUserRole() {
   if (!currentUser) {
     currentUserRole = null;
+    currentUserProfile = null;
     updateAdminStatus();
     return;
   }
@@ -869,19 +880,22 @@ async function loadCurrentUserRole() {
   try {
     const { data, error } = await supabaseClient
       .from('profiles')
-      .select('role')
+      .select('role, display_name')
       .eq('id', currentUser.id)
       .single();
 
     if (error) {
-      console.error('Ошибка загрузки роли пользователя:', error);
+      console.error('Ошибка загрузки профиля пользователя:', error);
       currentUserRole = null;
+      currentUserProfile = null;
     } else {
       currentUserRole = data?.role || null;
+      currentUserProfile = data || null;
     }
   } catch (error) {
     console.error('Ошибка loadCurrentUserRole:', error);
     currentUserRole = null;
+    currentUserProfile = null;
   }
 
   updateAdminStatus();
