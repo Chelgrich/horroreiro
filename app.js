@@ -1482,7 +1482,7 @@ function resetFormToCreateMode() {
   updatePosterFileUi(); // после сброса снова показываем "Файл не выбран"
   formTitle.textContent = 'Добавить фильм';
   submitButton.textContent = 'Добавить фильм';
-  cancelEditButton.style.display = 'none';
+  cancelEditButton.classList.remove('is-visible');
   formMessage.textContent = '';
 
   refreshCustomSelect(releaseMonthInput);
@@ -1531,7 +1531,7 @@ function fillFormForEdit(movie) {
 
   formTitle.textContent = `Редактирование: ${movie.title}`;
   submitButton.textContent = 'Сохранить изменения';
-  cancelEditButton.style.display = 'inline-block';
+  cancelEditButton.classList.add('is-visible');
   formMessage.textContent = '';
 
   refreshCustomSelect(releaseMonthInput);

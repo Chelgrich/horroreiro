@@ -877,6 +877,14 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
   flex: 1 1 0;
 }
 
+.form-mode-button {
+  display: none;
+}
+
+.form-mode-button.is-visible {
+  display: inline-flex;
+}
+
 .movie-form-inline-group {
   display: flex;
   flex-direction: column;
