@@ -210,7 +210,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .display-name-modal-dialog {
-  max-width: 520px;
+  max-width: 320px;
 }
 
 .display-name-popover-title,
@@ -672,15 +672,57 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 }
 
 .modal-header {
+  position: relative;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+  justify-content: center;
+  align-items: center;
   margin-bottom: 16px;
 }
 
 .modal-header h2 {
   margin: 0;
+  text-align: center;
+}
+
+.modal-close-button {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.18s ease, background 0.18s ease;
+}
+
+.modal-close-button::before,
+.modal-close-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 2px;
+  background: currentColor;
+  transform-origin: center;
+}
+
+.modal-close-button::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.modal-close-button::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.modal-close-button:hover {
+  opacity: 1;
+  background: #1b2128;
 }
 
 .auth-modal-dialog {
