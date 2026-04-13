@@ -292,7 +292,7 @@ function openDisplayNameModal() {
   closeAuthPopoverMenu();
 
   displayNameInput.value = getCurrentDisplayName();
-  displayNameModal.style.display = 'block';
+  displayNameModal.style.display = 'flex';
   isDisplayNameModalOpen = true;
   displayNameButton.setAttribute('aria-expanded', 'true');
   setDisplayNameMessage();
@@ -1253,7 +1253,7 @@ function openAuthModal() {
     updateAuthModalMode();
   }
 
-  authModal.style.display = 'block';
+  authModal.style.display = 'flex';
   isAuthModalOpen = true;
   syncBodyScrollLock();
 
@@ -1426,7 +1426,7 @@ function updateAuthModalMode() {
 }
 
 function openMovieModal() {
-  movieModal.style.display = 'block';
+  movieModal.style.display = 'flex';
   isModalOpen = true;
   syncBodyScrollLock();
 
@@ -1446,7 +1446,7 @@ function openFiltersModal() {
     return;
   }
 
-  filtersModal.style.display = 'block';
+  filtersModal.style.display = 'flex';
   syncBodyScrollLock();
 }
 
@@ -3731,7 +3731,7 @@ function openMobileRatingModal(movie) {
     applyMobileRatingHoverState(selectedValue, 'selected');
   });
 
-  mobileRatingModal.style.display = 'block';
+  mobileRatingModal.style.display = 'flex';
 
   requestAnimationFrame(() => {
     mobileRatingModal.classList.add('is-visible');
