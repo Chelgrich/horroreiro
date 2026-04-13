@@ -676,7 +676,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   margin: 0;
   width: 100%;
   max-width: 100%;
-  padding: 0 44px 0 0;
+  padding: 0 40px 0 0;
   text-align: left;
   font-size: clamp(20px, 2vw, 28px);
   line-height: 1.15;
@@ -737,7 +737,9 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 
 .auth-form-links {
   margin-top: 12px;
+  min-height: 18px;
   display: flex;
+  align-items: flex-start;
   justify-content: flex-end;
 }
 
@@ -859,6 +861,17 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
   margin-top: 16px;
 }
 
+.form-actions button,
+.display-name-form-actions button,
+.login-form-modal button {
+  min-height: var(--control-height-md);
+  justify-content: center;
+}
+
+.form-actions button {
+  flex: 1 1 0;
+}
+
 .movie-form-inline-group {
   display: flex;
   flex-direction: column;
@@ -874,7 +887,7 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
 }
 
 .form-message {
-  min-height: 24px;
+  min-height: 18px;
   margin-top: 12px;
   font-size: 12px;
   line-height: 1.4;
@@ -1004,6 +1017,16 @@ textarea:focus {
   outline: none;
   border-color: var(--control-focus-border);
   box-shadow: 0 0 0 3px var(--control-focus-ring);
+}
+
+.login-form-modal input,
+.display-name-form input,
+.movie-form input,
+.movie-form select,
+.movie-form textarea,
+.file-input-ui {
+  font-size: 14px;
+  line-height: 1.2;
 }
 
 textarea {
@@ -2949,7 +2972,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .modal-header h2 {
-    padding-right: 44px;
+    padding-right: 40px;
     font-size: 18px;
     line-height: 1.2;
   }
@@ -3512,6 +3535,15 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .display-name-form-actions button {
+    width: 100%;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions button,
+  .filters-modal-actions > button {
     width: 100%;
   }
 
