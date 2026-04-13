@@ -111,6 +111,12 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
   --modal-mobile-page-padding-x: 16px;
   --modal-mobile-page-padding-bottom: 16px;
   --modal-mobile-dialog-max-height-offset: 86px;
+  --modal-backdrop-bg: rgba(0, 0, 0, 0.7);
+  --modal-dialog-bg: var(--surface-control-alt);
+  --modal-dialog-border: 1px solid var(--border-card);
+  --modal-dialog-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  --modal-auth-dialog-max-width: 520px;
+  --modal-display-name-dialog-max-width: 320px;
   --color-text-primary: #ffffff;
   --color-text-secondary: #e7ebf0;
   --color-text-tertiary: #cfd6de;
@@ -232,7 +238,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .display-name-modal-dialog {
-  max-width: 320px;
+  max-width: var(--modal-display-name-dialog-max-width);
 }
 
 .display-name-form {
@@ -686,7 +692,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   position: fixed;
   inset: 0;
   z-index: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--modal-backdrop-bg);
 }
 
 .modal-dialog {
@@ -698,10 +704,10 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   margin: 0 auto;
   padding: var(--modal-dialog-padding);
   overflow-y: auto;
-  background: var(--surface-control-alt);
-  border: 1px solid var(--border-card);
+  background: var(--modal-dialog-bg);
+  border: var(--modal-dialog-border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--modal-dialog-shadow);
 }
 
 .modal-header {
@@ -767,7 +773,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 }
 
 .auth-modal-dialog {
-  max-width: 520px;
+  max-width: var(--modal-auth-dialog-max-width);
 }
 
 .auth-modal-dialog .auth-toast {
