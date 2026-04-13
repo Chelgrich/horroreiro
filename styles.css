@@ -3062,8 +3062,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .catalog-toolbar-actions {
-    display: flex;
-    align-items: flex-end;
     gap: 12px;
     flex-wrap: wrap;
   }
@@ -3102,8 +3100,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .filters > *,
   .filters .form-row,
   .filter-sort {
-    width: 100%;
-    min-width: 0;
     justify-self: stretch;
     grid-column: auto;
   }
@@ -3285,12 +3281,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .display-name-button {
-    max-width: 100%;
     padding: 0 8px;
   }
 
   .display-name-text {
-    max-width: 100%;
     font-size: 13px;
   }
 
