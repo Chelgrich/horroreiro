@@ -223,7 +223,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 .display-name-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .display-name-form-actions {
@@ -237,7 +237,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 
 .display-name-message {
   min-height: 18px;
-  margin: 10px 0 0;
+  margin: 12px 0 0;
   font-size: 12px;
   line-height: 1.4;
   color: var(--color-text-muted);
@@ -693,8 +693,8 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 
 .modal-close-button {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 16px;
+  right: 16px;
   width: 32px;
   height: 32px;
   padding: 0;
