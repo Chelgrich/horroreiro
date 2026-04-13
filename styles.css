@@ -3047,8 +3047,16 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .filters input,
-  .custom-select-trigger {
+  .filters .custom-select-trigger,
+  .catalog-toolbar .custom-select-trigger {
     min-height: 42px;
+  }
+
+  .movie-form .custom-select-trigger {
+    min-height: var(--control-height-md);
+    padding-top: 8px;
+    padding-bottom: 8px;
+    line-height: 1;
   }
 
   .auth-toast {
