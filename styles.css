@@ -209,23 +209,12 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   stroke-linejoin: round;
 }
 
-.display-name-popover {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: max(0px, calc(16px - env(safe-area-inset-right, 0px)));
-  z-index: 80;
-  width: min(320px, calc(100vw - 32px));
-  box-sizing: border-box;
-  padding: 12px;
-  background: var(--surface-control-alt);
-  border: 1px solid var(--border-control-strong);
-  border-radius: 12px;
-  box-shadow:
-    0 16px 34px rgba(0, 0, 0, 0.32),
-    0 0 0 1px rgba(255, 255, 255, 0.03);
+.display-name-modal-dialog {
+  max-width: 520px;
 }
 
-.display-name-popover-title {
+.display-name-popover-title,
+#displayNameModalTitle {
   margin-bottom: 10px;
   font-size: 13px;
   font-weight: 700;
@@ -3455,16 +3444,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 @media (max-width: 480px) {
   .page-header-top {
     gap: 8px;
-  }
-
-  .display-name-popover {
-    position: absolute;
-    top: calc(100% + 10px);
-    left: auto;
-    right: 0;
-    width: min(320px, calc(100vw - 24px));
-    max-width: none;
-    box-sizing: border-box;
   }
 
   .display-name-form-actions {

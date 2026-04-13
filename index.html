@@ -119,19 +119,6 @@
                 </span>
               </button>
 
-              <div id="displayNamePopover" class="display-name-popover" style="display: none;" role="dialog" aria-label="Изменение никнейма">
-                <div class="display-name-popover-title">Никнейм</div>
-
-                <form id="displayNameForm" class="display-name-form">
-                  <input type="text" id="displayNameInput" maxlength="24" autocomplete="off" spellcheck="false">
-                  <div class="display-name-form-actions">
-                    <button type="submit" id="saveDisplayNameButton">Сохранить</button>
-                    <button type="button" id="cancelDisplayNameButton" class="secondary-button secondary-button-compact">Отмена</button>
-                  </div>
-                </form>
-
-                <p id="displayNameMessage" class="display-name-message"></p>
-              </div>
             </div>
 
             <div class="auth-menu-wrap">
@@ -222,6 +209,29 @@
         <div id="authToast" class="auth-toast auth-toast-inline is-hidden" aria-live="polite" aria-atomic="true">
           <p id="authMessage" class="auth-message"></p>
         </div>
+      </div>
+    </div>
+
+    <div id="displayNamePopover" class="modal" style="display: none;">
+      <div class="modal-backdrop" id="displayNameModalBackdrop"></div>
+
+      <div class="modal-dialog display-name-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="displayNameModalTitle">
+        <div class="modal-header">
+          <h2 id="displayNameModalTitle">Изменение никнейма</h2>
+          <button type="button" id="closeDisplayNameModalButton" class="secondary-button secondary-button-compact">
+            Закрыть
+          </button>
+        </div>
+
+        <form id="displayNameForm" class="display-name-form">
+          <input type="text" id="displayNameInput" maxlength="24" autocomplete="off" spellcheck="false">
+          <div class="display-name-form-actions">
+            <button type="submit" id="saveDisplayNameButton">Сохранить</button>
+            <button type="button" id="cancelDisplayNameButton" class="secondary-button secondary-button-compact">Отмена</button>
+          </div>
+        </form>
+
+        <p id="displayNameMessage" class="display-name-message"></p>
       </div>
     </div>
 

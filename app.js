@@ -11,6 +11,8 @@ const displayNameWrap = document.getElementById('displayNameWrap');
 const displayNameButton = document.getElementById('displayNameButton');
 const displayNameText = document.getElementById('displayNameText');
 const displayNamePopover = document.getElementById('displayNamePopover');
+const displayNameModalBackdrop = document.getElementById('displayNameModalBackdrop');
+const closeDisplayNameModalButton = document.getElementById('closeDisplayNameModalButton');
 const displayNameForm = document.getElementById('displayNameForm');
 const displayNameInput = document.getElementById('displayNameInput');
 const saveDisplayNameButton = document.getElementById('saveDisplayNameButton');
@@ -279,6 +281,7 @@ function closeDisplayNamePopover() {
   isDisplayNamePopoverOpen = false;
   displayNameButton.setAttribute('aria-expanded', 'false');
   setDisplayNameMessage();
+  syncBodyScrollLock();
 }
 
 function openDisplayNamePopover() {
@@ -293,6 +296,7 @@ function openDisplayNamePopover() {
   isDisplayNamePopoverOpen = true;
   displayNameButton.setAttribute('aria-expanded', 'true');
   setDisplayNameMessage();
+  syncBodyScrollLock();
 
   requestAnimationFrame(() => {
     displayNameInput.focus();
@@ -1202,6 +1206,7 @@ function syncBodyScrollLock() {
   const shouldLockScroll = (
     isModalOpen ||
     isAuthModalOpen ||
+    (displayNamePopover && displayNamePopover.style.display === 'block') ||
     (filtersModal && filtersModal.style.display === 'block') ||
     (mobileRatingModal && mobileRatingModal.classList.contains('is-visible'))
   );
@@ -4958,6 +4963,18 @@ if (cancelDisplayNameButton) {
   });
 }
 
+if (closeDisplayNameModalButton) {
+  closeDisplayNameModalButton.addEventListener('click', () => {
+    closeDisplayNamePopover();
+  });
+}
+
+if (displayNameModalBackdrop) {
+  displayNameModalBackdrop.addEventListener('click', () => {
+    closeDisplayNamePopover();
+  });
+}
+
 if (openAuthModalButton) {
   openAuthModalButton.addEventListener('click', () => {
     if (shouldUseAuthenticatedUi()) {
@@ -5115,14 +5132,9 @@ cancelEditButton.addEventListener('click', () => {
 
 document.addEventListener('click', event => {
   const clickedInsideAuthMenu = event.target.closest('.auth-menu-wrap');
-  const clickedInsideDisplayName = event.target.closest('.display-name-wrap');
 
   if (!clickedInsideAuthMenu) {
     closeAuthPopoverMenu();
-  }
-
-  if (!clickedInsideDisplayName) {
-    closeDisplayNamePopover();
   }
 
   if (event.target.closest('[data-external-links-toggle="true"]') || event.target.closest('[data-external-links-collapsible]')) {
