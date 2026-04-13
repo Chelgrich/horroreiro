@@ -2948,6 +2948,12 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     padding-right: 0;
   }
 
+  .modal-header h2 {
+    padding-right: 44px;
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
   .filters-modal-actions {
     display: flex;
     justify-content: flex-end;
