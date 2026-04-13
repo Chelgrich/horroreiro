@@ -1191,7 +1191,7 @@ function syncBodyScrollLock() {
     isAuthModalOpen ||
     (displayNameModal && displayNameModal.classList.contains('is-open')) ||
     (filtersModal && filtersModal.classList.contains('is-open')) ||
-    (mobileRatingModal && mobileRatingModal.classList.contains('is-visible'))
+    (mobileRatingModal && mobileRatingModal.classList.contains('is-open'))
   );
 
   document.body.style.overflow = shouldLockScroll ? 'hidden' : '';
@@ -3541,7 +3541,6 @@ function ensureMobileRatingModal() {
 
   mobileRatingModal = document.createElement('div');
   mobileRatingModal.className = 'mobile-rating-modal modal';
-  mobileRatingModal.style.display = 'none';
 
   mobileRatingModal.innerHTML = `
     <div class="modal-backdrop mobile-rating-modal-backdrop" data-mobile-rating-close="true"></div>
@@ -3611,7 +3610,7 @@ function closeMobileRatingModal() {
 
   setTimeout(() => {
     if (!mobileRatingModal.classList.contains('is-visible')) {
-      mobileRatingModal.style.display = 'none';
+      mobileRatingModal.classList.remove('is-open');
       syncBodyScrollLock();
     }
   }, 220);
@@ -3710,7 +3709,7 @@ function openMobileRatingModal(movie) {
     applyMobileRatingHoverState(selectedValue, 'selected');
   });
 
-  mobileRatingModal.style.display = 'flex';
+  mobileRatingModal.classList.add('is-open');
 
   requestAnimationFrame(() => {
     mobileRatingModal.classList.add('is-visible');
