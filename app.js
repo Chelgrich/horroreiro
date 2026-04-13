@@ -1276,7 +1276,7 @@ async function closeAuthModal() {
   const shouldCancelPasswordRecovery = isPasswordRecoveryMode;
 
   closeAuthPopoverMenu();
-  closeDisplayNamePopover();
+  closeDisplayNameModal();
   authModal.style.display = 'none';
   isAuthModalOpen = false;
   syncBodyScrollLock();
