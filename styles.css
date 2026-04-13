@@ -213,8 +213,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   max-width: 320px;
 }
 
-.display-name-popover-title,
-#displayNameModalTitle {
+.display-name-popover-title {
   margin-bottom: 10px;
   font-size: 13px;
   font-weight: 700;
@@ -682,6 +681,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 
 .modal-header h2 {
   margin: 0;
+  width: 100%;
   max-width: 100%;
   padding: 0 52px 0 0;
   text-align: left;
