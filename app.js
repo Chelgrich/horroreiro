@@ -35,12 +35,10 @@ const registerNicknameHint = document.getElementById('registerNicknameHint');
 const loginPasswordConfirm = document.getElementById('loginPasswordConfirm');
 const registerButton = document.getElementById('registerButton');
 const forgotPasswordButton = document.getElementById('forgotPasswordButton');
-const logoutButton = document.getElementById('logoutButton');
 const authToast = document.getElementById('authToast');
 const authMessage = document.getElementById('authMessage');
 
 const adminPanel = document.getElementById('adminPanel');
-const userPanel = document.getElementById('userPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
 
 const searchInput = document.getElementById('searchInput');
@@ -1180,10 +1178,6 @@ function setAuthSubmittingState(isSubmitting) {
   if (registerButton) {
     registerButton.disabled = isSubmitting;
   }
-
-  if (logoutButton) {
-    logoutButton.disabled = isSubmitting;
-  }
 }
 
 /* =========================================================
@@ -1546,10 +1540,6 @@ function updateAuthUI() {
 
   if (loginForm) {
     loginForm.classList.toggle('is-visible', !shouldShowAuthenticatedUi);
-  }
-
-  if (userPanel) {
-    userPanel.classList.remove('is-visible');
   }
 
   if (adminPanel) {
@@ -4924,7 +4914,6 @@ if (loginPasswordConfirm) {
 registerButton.addEventListener('click', () => {
   setAuthRegisterMode(!isAuthRegisterMode);
 });
-logoutButton.addEventListener('click', logout);
 
 if (logoutMenuButton) {
   logoutMenuButton.addEventListener('click', () => {

@@ -419,12 +419,11 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   gap: 10px;
 }
 
-.admin-panel,
-.user-panel {
+.admin-panel {
+  width: auto;
+  min-width: 0;
   min-height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  justify-content: flex-end;
 }
 
 .floating-add-movie-button {
@@ -555,8 +554,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 
 .login-form input,
 .login-form button,
-.admin-panel button,
-.user-panel button {
+.admin-panel button {
   height: 44px;
 }
 
@@ -2978,8 +2976,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .login-form input,
   .login-form button,
-  .admin-panel button,
-  .user-panel button {
+  .admin-panel button {
     width: 100%;
     min-width: 0;
   }
