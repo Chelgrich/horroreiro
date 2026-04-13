@@ -677,7 +677,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   justify-content: center;
   align-items: flex-start;
   min-height: 32px;
-  padding: 0 52px 0 0;
+  padding: 0;
   margin-bottom: 16px;
 }
 
@@ -688,8 +688,8 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 
 .modal-close-button {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 20px;
+  right: 20px;
   width: 32px;
   height: 32px;
   padding: 0;
@@ -2941,7 +2941,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .modal-header {
     align-items: flex-start;
-    padding-right: 52px;
+    padding-right: 0;
   }
 
   .filters-modal-actions {
