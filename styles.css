@@ -3458,7 +3458,21 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .display-name-popover {
-    width: min(300px, calc(100vw - 24px));
+    position: fixed;
+    top: 88px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+    box-sizing: border-box;
+  }
+
+  .display-name-form-actions {
+    flex-direction: column;
+  }
+
+  .display-name-form-actions button {
+    width: 100%;
   }
 
   .auth-controls {
