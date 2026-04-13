@@ -10,7 +10,7 @@ const authControls = document.getElementById('authControls');
 const displayNameWrap = document.getElementById('displayNameWrap');
 const displayNameButton = document.getElementById('displayNameButton');
 const displayNameText = document.getElementById('displayNameText');
-const displayNamePopover = document.getElementById('displayNamePopover');
+const displayNameModal = document.getElementById('displayNameModal');
 const displayNameModalBackdrop = document.getElementById('displayNameModalBackdrop');
 const closeDisplayNameModalButton = document.getElementById('closeDisplayNameModalButton');
 const displayNameForm = document.getElementById('displayNameForm');
@@ -132,7 +132,7 @@ let currentUserProfile = null;
 let isAdmin = false;
 let isAuthModalOpen = false;
 let isAuthPopoverOpen = false;
-let isDisplayNamePopoverOpen = false;
+let isDisplayNameModalOpen = false;
 let isDisplayNameSubmitting = false;
 let isAuthRegisterMode = false;
 let isPasswordRecoveryMode = false;
@@ -269,31 +269,31 @@ function syncDisplayNameButton() {
   displayNameWrap.style.display = shouldShowDisplayName ? 'flex' : 'none';
   displayNameText.textContent = currentDisplayName;
   displayNameButton.title = currentDisplayName;
-  displayNameButton.setAttribute('aria-expanded', String(isDisplayNamePopoverOpen));
+  displayNameButton.setAttribute('aria-expanded', String(isDisplayNameModalOpen));
 }
 
-function closeDisplayNamePopover() {
-  if (!displayNamePopover || !displayNameButton) {
+function closeDisplayNameModal() {
+  if (!displayNameModal || !displayNameButton) {
     return;
   }
 
-  displayNamePopover.style.display = 'none';
-  isDisplayNamePopoverOpen = false;
+  displayNameModal.style.display = 'none';
+  isDisplayNameModalOpen = false;
   displayNameButton.setAttribute('aria-expanded', 'false');
   setDisplayNameMessage();
   syncBodyScrollLock();
 }
 
-function openDisplayNamePopover() {
-  if (!displayNamePopover || !displayNameButton || !displayNameInput || !shouldUseAuthenticatedUi()) {
+function openDisplayNameModal() {
+  if (!displayNameModal || !displayNameButton || !displayNameInput || !shouldUseAuthenticatedUi()) {
     return;
   }
 
   closeAuthPopoverMenu();
 
   displayNameInput.value = getCurrentDisplayName();
-  displayNamePopover.style.display = 'block';
-  isDisplayNamePopoverOpen = true;
+  displayNameModal.style.display = 'block';
+  isDisplayNameModalOpen = true;
   displayNameButton.setAttribute('aria-expanded', 'true');
   setDisplayNameMessage();
   syncBodyScrollLock();
@@ -304,13 +304,13 @@ function openDisplayNamePopover() {
   });
 }
 
-function toggleDisplayNamePopover() {
-  if (isDisplayNamePopoverOpen) {
-    closeDisplayNamePopover();
+function toggleDisplayNameModal() {
+  if (isDisplayNameModalOpen) {
+    closeDisplayNameModal();
     return;
   }
 
-  openDisplayNamePopover();
+  openDisplayNameModal();
 }
 
 async function updateCurrentUserDisplayName(nextDisplayName) {
@@ -1206,7 +1206,7 @@ function syncBodyScrollLock() {
   const shouldLockScroll = (
     isModalOpen ||
     isAuthModalOpen ||
-    (displayNamePopover && displayNamePopover.style.display === 'block') ||
+    (displayNameModal && displayNameModal.style.display === 'block') ||
     (filtersModal && filtersModal.style.display === 'block') ||
     (mobileRatingModal && mobileRatingModal.classList.contains('is-visible'))
   );
@@ -1557,7 +1557,7 @@ function updateAuthUI() {
 
   if (!shouldShowAuthenticatedUi) {
     closeAuthPopoverMenu();
-    closeDisplayNamePopover();
+    closeDisplayNameModal();
   }
 
   if (loginForm) {
@@ -2962,7 +2962,7 @@ async function saveDisplayName(event) {
   }
 
   if (normalizedNextDisplayName === normalizedCurrentDisplayName) {
-    closeDisplayNamePopover();
+    closeDisplayNameModal();
     return;
   }
 
@@ -3019,7 +3019,7 @@ async function saveDisplayName(event) {
     setDisplayNameMessage('Никнейм обновлён.', 'success');
 
     setTimeout(() => {
-      closeDisplayNamePopover();
+      closeDisplayNameModal();
     }, 500);
   } finally {
     isDisplayNameSubmitting = false;
@@ -4949,7 +4949,7 @@ if (logoutMenuButton) {
 
 if (displayNameButton) {
   displayNameButton.addEventListener('click', () => {
-    toggleDisplayNamePopover();
+    toggleDisplayNameModal();
   });
 }
 
@@ -4959,19 +4959,19 @@ if (displayNameForm) {
 
 if (cancelDisplayNameButton) {
   cancelDisplayNameButton.addEventListener('click', () => {
-    closeDisplayNamePopover();
+    closeDisplayNameModal();
   });
 }
 
 if (closeDisplayNameModalButton) {
   closeDisplayNameModalButton.addEventListener('click', () => {
-    closeDisplayNamePopover();
+    closeDisplayNameModal();
   });
 }
 
 if (displayNameModalBackdrop) {
   displayNameModalBackdrop.addEventListener('click', () => {
-    closeDisplayNamePopover();
+    closeDisplayNameModal();
   });
 }
 
@@ -5188,7 +5188,7 @@ document.addEventListener('keydown', event => {
   closeMobileRatingModal();
   closeAllCustomSelects();
   closeAuthPopoverMenu();
-  closeDisplayNamePopover();
+  closeDisplayNameModal();
 
   if (isModalOpen) {
     closeMovieModal();
