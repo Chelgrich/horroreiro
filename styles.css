@@ -2922,19 +2922,21 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .modal {
     padding: 70px 16px 16px;
+    display: flex;
+    align-items: flex-end;
   }
 
   .modal-dialog {
     width: 100%;
     max-width: 720px;
     max-height: calc(100vh - 86px);
-    margin: 0 auto;
+    margin: auto auto 0;
   }
 
   .filters-modal-dialog {
     width: 100%;
     max-width: 980px;
-    margin: 0 auto auto;
+    margin: auto auto 0;
   }
 
   .modal-header {
