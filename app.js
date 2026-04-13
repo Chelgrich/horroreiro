@@ -70,10 +70,6 @@ const moviesResultCount = document.getElementById('moviesResultCount');
 const initialViewModeRow = viewMode?.closest('.form-row');
 let catalogViewToggleButton = null;
 
-if (initialViewModeRow) {
-  initialViewModeRow.style.display = 'none';
-}
-
 const movieForm = document.getElementById('movieForm');
 const formTitle = document.getElementById('formTitle');
 const formMessage = document.getElementById('formMessage');
@@ -724,10 +720,6 @@ function initCatalogViewToggleButton() {
   }
 
   const existingViewModeRow = viewMode.closest('.form-row');
-
-  if (existingViewModeRow) {
-    existingViewModeRow.style.display = 'none';
-  }
 
   let moviesSectionHeader = moviesSectionTitle.closest('.movies-section-header');
 

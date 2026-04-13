@@ -1668,6 +1668,10 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   margin-bottom: 0;
 }
 
+.system-hidden-row {
+  display: none !important;
+}
+
 .filters .form-row {
   margin-bottom: 0;
 }
