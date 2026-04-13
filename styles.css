@@ -213,13 +213,6 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   max-width: 320px;
 }
 
-.display-name-modal-title {
-  margin-bottom: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-text-secondary);
-}
-
 .display-name-form {
   display: flex;
   flex-direction: column;
@@ -676,7 +669,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   align-items: flex-start;
   min-height: 32px;
   padding: 0;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .modal-header h2 {
@@ -780,6 +773,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 
 .filters-modal-status {
   font-size: 13px;
+  margin-top: 0;
   color: var(--color-text-dim);
 }
 
@@ -848,7 +842,7 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .form-row label {
@@ -880,7 +874,7 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
 
 .form-message {
   min-height: 24px;
-  margin: 12px 0 0;
+  margin-top: 12px;
   color: #d7dbe0;
 }
 
@@ -1532,7 +1526,7 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 }
 
 .filters-modal-grid {
-  margin-top: 4px;
+  margin-top: 12px;
   overflow: visible;
   padding-right: 0;
 }
