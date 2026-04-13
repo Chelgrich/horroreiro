@@ -1595,6 +1595,14 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   margin-bottom: 0;
 }
 
+.is-auth-only-row {
+  display: none;
+}
+
+.is-auth-only-row.is-visible {
+  display: flex;
+}
+
 /* =========================================================
 CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 Контейнер карточек каталога.

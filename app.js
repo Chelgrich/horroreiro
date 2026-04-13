@@ -1580,7 +1580,7 @@ function updateAuthUI() {
   let didResetUserOnlyCatalogFilters = false;
 
   if (watchlistFilterRow && watchlistFilter) {
-    watchlistFilterRow.style.display = shouldShowAuthenticatedUi ? 'flex' : 'none';
+    watchlistFilterRow.classList.toggle('is-visible', shouldShowAuthenticatedUi);
 
     if (!shouldShowAuthenticatedUi) {
       didResetUserOnlyCatalogFilters = didResetUserOnlyCatalogFilters || watchlistFilter.value !== '';
@@ -1590,7 +1590,7 @@ function updateAuthUI() {
   }
 
   if (watchedFilterRow && watchedFilter) {
-    watchedFilterRow.style.display = shouldShowAuthenticatedUi ? 'flex' : 'none';
+    watchedFilterRow.classList.toggle('is-visible', shouldShowAuthenticatedUi);
 
     if (!shouldShowAuthenticatedUi) {
       didResetUserOnlyCatalogFilters = didResetUserOnlyCatalogFilters || watchedFilter.value !== '';
