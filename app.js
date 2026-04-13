@@ -238,6 +238,7 @@ function getCurrentDisplayName() {
   return String(
     currentUser?.user_metadata?.display_name ||
     currentUserProfile?.display_name ||
+    currentUserProfile?.default_display_name ||
     ''
   ).trim();
 }
@@ -880,7 +881,7 @@ async function loadCurrentUserRole() {
   try {
     const { data, error } = await supabaseClient
       .from('profiles')
-      .select('role, display_name')
+      .select('role, display_name, default_display_name')
       .eq('id', currentUser.id)
       .single();
 
