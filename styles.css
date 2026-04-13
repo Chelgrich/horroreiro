@@ -97,6 +97,20 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
   --color-rating-mark-bg: rgba(245, 197, 24, 0.92);
   --color-rating-glow-soft: rgba(245, 197, 24, 0.14);
   --color-rating-glow-medium: rgba(245, 197, 24, 0.18);
+  --modal-page-padding-top: 84px;
+  --modal-page-padding-x: 24px;
+  --modal-page-padding-bottom: 24px;
+  --modal-dialog-max-width: 720px;
+  --modal-dialog-max-height-offset: 108px;
+  --modal-dialog-padding: 20px;
+  --modal-header-gap: 12px;
+  --modal-title-safe-right: 40px;
+  --modal-close-offset: 16px;
+  --modal-close-size: 32px;
+  --modal-mobile-page-padding-top: 70px;
+  --modal-mobile-page-padding-x: 16px;
+  --modal-mobile-page-padding-bottom: 16px;
+  --modal-mobile-dialog-max-height-offset: 86px;
   --color-text-primary: #ffffff;
   --color-text-secondary: #e7ebf0;
   --color-text-tertiary: #cfd6de;
@@ -657,7 +671,10 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   z-index: 1000;
   display: none;
   box-sizing: border-box;
-  padding: 84px 24px 24px;
+  padding:
+    var(--modal-page-padding-top)
+    var(--modal-page-padding-x)
+    var(--modal-page-padding-bottom);
   overflow-y: auto;
 }
 
@@ -676,10 +693,10 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   position: relative;
   z-index: 1;
   box-sizing: border-box;
-  max-width: 720px;
-  max-height: calc(100vh - 108px);
+  max-width: var(--modal-dialog-max-width);
+  max-height: calc(100vh - var(--modal-dialog-max-height-offset));
   margin: 0 auto;
-  padding: 20px;
+  padding: var(--modal-dialog-padding);
   overflow-y: auto;
   background: var(--surface-control-alt);
   border: 1px solid var(--border-card);
@@ -691,16 +708,16 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
-  min-height: 32px;
+  min-height: var(--modal-close-size);
   padding: 0;
-  margin-bottom: 12px;
+  margin-bottom: var(--modal-header-gap);
 }
 
 .modal-header h2 {
   margin: 0;
   width: 100%;
   max-width: 100%;
-  padding: 0 40px 0 0;
+  padding: 0 var(--modal-title-safe-right) 0 0;
   text-align: left;
   font-size: clamp(20px, 2vw, 28px);
   line-height: 1.15;
@@ -710,10 +727,10 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 
 .modal-close-button {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 32px;
-  height: 32px;
+  top: var(--modal-close-offset);
+  right: var(--modal-close-offset);
+  width: var(--modal-close-size);
+  height: var(--modal-close-size);
   padding: 0;
   background: transparent;
   border: none;
@@ -2891,6 +2908,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .catalog-toolbar-actions > button {
     min-width: 168px;
   }
+}
 
 @media (max-width: 1200px) {
   .page {
@@ -2988,8 +3006,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     order: 9;
   }
 
-  .modal {
-    padding: 70px 16px 16px;
+  .page {
+    --modal-page-padding-top: var(--modal-mobile-page-padding-top);
+    --modal-page-padding-x: var(--modal-mobile-page-padding-x);
+    --modal-page-padding-bottom: var(--modal-mobile-page-padding-bottom);
+    --modal-dialog-max-height-offset: var(--modal-mobile-dialog-max-height-offset);
   }
 
   .modal.is-open {
@@ -3000,8 +3021,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .modal-dialog {
     width: 100%;
-    max-width: 720px;
-    max-height: calc(100vh - 86px);
+    max-width: var(--modal-dialog-max-width);
+    max-height: calc(100vh - var(--modal-dialog-max-height-offset));
     margin: 0 auto;
   }
 
@@ -3011,7 +3032,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .modal-header h2 {
-    padding-right: 40px;
+    padding-right: var(--modal-title-safe-right);
     font-size: 18px;
     line-height: 1.2;
   }
