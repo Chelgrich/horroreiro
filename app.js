@@ -277,7 +277,7 @@ function closeDisplayNameModal() {
     return;
   }
 
-  displayNameModal.style.display = 'none';
+  displayNameModal.classList.remove('is-open');
   isDisplayNameModalOpen = false;
   displayNameButton.setAttribute('aria-expanded', 'false');
   setDisplayNameMessage();
@@ -292,7 +292,7 @@ function openDisplayNameModal() {
   closeAuthPopoverMenu();
 
   displayNameInput.value = getCurrentDisplayName();
-  displayNameModal.style.display = 'flex';
+  displayNameModal.classList.add('is-open');
   isDisplayNameModalOpen = true;
   displayNameButton.setAttribute('aria-expanded', 'true');
   setDisplayNameMessage();
@@ -1206,8 +1206,8 @@ function syncBodyScrollLock() {
   const shouldLockScroll = (
     isModalOpen ||
     isAuthModalOpen ||
-    (displayNameModal && displayNameModal.style.display === 'block') ||
-    (filtersModal && filtersModal.style.display === 'block') ||
+    (displayNameModal && displayNameModal.classList.contains('is-open')) ||
+    (filtersModal && filtersModal.classList.contains('is-open')) ||
     (mobileRatingModal && mobileRatingModal.classList.contains('is-visible'))
   );
 
@@ -1253,7 +1253,7 @@ function openAuthModal() {
     updateAuthModalMode();
   }
 
-  authModal.style.display = 'flex';
+  authModal.classList.add('is-open');
   isAuthModalOpen = true;
   syncBodyScrollLock();
 
@@ -1277,7 +1277,7 @@ async function closeAuthModal() {
 
   closeAuthPopoverMenu();
   closeDisplayNameModal();
-  authModal.style.display = 'none';
+  authModal.classList.remove('is-open');
   isAuthModalOpen = false;
   syncBodyScrollLock();
   resetAuthFormState();
@@ -1426,7 +1426,7 @@ function updateAuthModalMode() {
 }
 
 function openMovieModal() {
-  movieModal.style.display = 'flex';
+  movieModal.classList.add('is-open');
   isModalOpen = true;
   syncBodyScrollLock();
 
@@ -1436,7 +1436,7 @@ function openMovieModal() {
 }
 
 function closeMovieModal() {
-  movieModal.style.display = 'none';
+  movieModal.classList.remove('is-open');
   isModalOpen = false;
   syncBodyScrollLock();
 }
@@ -1446,7 +1446,7 @@ function openFiltersModal() {
     return;
   }
 
-  filtersModal.style.display = 'flex';
+  filtersModal.classList.add('is-open');
   syncBodyScrollLock();
 }
 
@@ -1455,7 +1455,7 @@ function closeFiltersModal() {
     return;
   }
 
-  filtersModal.style.display = 'none';
+  filtersModal.classList.remove('is-open');
   syncBodyScrollLock();
 }
 
@@ -5202,7 +5202,7 @@ document.addEventListener('keydown', event => {
     return;
   }
 
-  if (filtersModal && filtersModal.style.display === 'block') {
+  if (filtersModal && filtersModal.classList.contains('is-open')) {
     closeFiltersModal();
   }
 });
