@@ -3561,28 +3561,25 @@ function ensureMobileRatingModal() {
   }
 
   mobileRatingModal = document.createElement('div');
-  mobileRatingModal.className = 'mobile-rating-modal';
+  mobileRatingModal.className = 'mobile-rating-modal modal';
   mobileRatingModal.style.display = 'none';
 
   mobileRatingModal.innerHTML = `
-    <div class="mobile-rating-modal-backdrop" data-mobile-rating-close="true"></div>
+    <div class="modal-backdrop mobile-rating-modal-backdrop" data-mobile-rating-close="true"></div>
     <div
-      class="mobile-rating-modal-dialog"
+      class="modal-dialog mobile-rating-modal-dialog"
       role="dialog"
       aria-modal="true"
       aria-labelledby="mobileRatingModalTitle"
     >
-      <div class="mobile-rating-modal-header">
-        <div class="mobile-rating-modal-title-wrap">
-          <h3 id="mobileRatingModalTitle" class="mobile-rating-modal-title"></h3>
-        </div>
+      <div class="modal-header">
+        <h2 id="mobileRatingModalTitle" class="mobile-rating-modal-title"></h2>
         <button
           type="button"
-          class="mobile-rating-modal-close secondary-button secondary-button-compact"
+          class="modal-close-button mobile-rating-modal-close"
           data-mobile-rating-close="true"
-        >
-          Закрыть
-        </button>
+          aria-label="Закрыть"
+        ></button>
       </div>
 
       <div class="mobile-rating-modal-meta" id="mobileRatingModalMeta"></div>
