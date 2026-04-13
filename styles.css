@@ -1538,13 +1538,11 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 }
 
 .filters-modal-actions {
-  position: absolute;
-  top: 20px;
-  right: 20px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 28px;
+  margin-top: 16px;
 }
 
 .filters-modal-dialog .custom-select {
@@ -2950,9 +2948,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .filters-modal-actions {
-    position: static;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    justify-content: flex-end;
     gap: 12px;
     margin-top: 16px;
     padding-top: 14px;
@@ -3585,7 +3582,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .filters-modal-actions {
-    grid-template-columns: 1fr;
+    justify-content: flex-end;
   }
 
   .catalog-toolbar-actions {
