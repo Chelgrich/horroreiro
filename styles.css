@@ -2789,38 +2789,44 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .page-header-top {
-    height: auto;
-    min-height: 0;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
+    min-height: 44px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: nowrap;
   }
 
   .auth-controls {
-    width: 100%;
+    width: auto;
     min-width: 0;
     max-width: none;
     height: auto;
-    min-height: 0;
-    margin-left: 0;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
+    min-height: 44px;
+    margin-left: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex: 0 1 auto;
   }
 
   .auth-actions {
-    width: 100%;
-    min-height: 0;
-    flex-direction: column;
-    align-items: stretch;
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
     gap: 8px;
   }
 
   .admin-panel,
   .user-panel {
-    width: 100%;
-    min-height: 0;
-    justify-content: stretch;
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    justify-content: flex-end;
   }
 
   .floating-add-movie-button {
@@ -2850,11 +2856,14 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .display-name-button {
-    max-width: 180px;
+    max-width: 170px;
+    min-width: 0;
+    padding: 0 10px;
+    flex: 0 1 auto;
   }
 
   .display-name-text {
-    max-width: 120px;
+    max-width: 126px;
   }
 
   .auth-message {
@@ -3020,9 +3029,14 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
   
   h1 {
-    justify-content: center;
-    text-align: center;
-    width: 100%;
+    min-width: 0;
+    flex: 1 1 auto;
+    justify-content: flex-start;
+    text-align: left;
+    width: auto;
+    font-size: 32px;
+    line-height: 1;
+    letter-spacing: 1.2px;
   }
 
   .auth-message {
@@ -3135,6 +3149,25 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .page {
     --catalog-columns: 2;
     --catalog-grid-gap: 12px;
+  }
+
+  .page-header-top {
+    gap: 10px;
+  }
+
+  h1 {
+    font-size: 24px;
+    letter-spacing: 0.8px;
+  }
+
+  .display-name-button {
+    max-width: 150px;
+    padding: 0 8px;
+  }
+
+  .display-name-text {
+    max-width: 108px;
+    font-size: 13px;
   }
 
   .catalog-search-row input[type="text"] {
@@ -3410,6 +3443,45 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 }
 
 @media (max-width: 480px) {
+  .page-header-top {
+    gap: 8px;
+  }
+
+  h1 {
+    font-size: 18px;
+    letter-spacing: 0.4px;
+  }
+
+  .auth-controls {
+    gap: 8px;
+  }
+
+  .auth-actions {
+    gap: 6px;
+  }
+
+  .display-name-button {
+    max-width: 118px;
+    min-width: 0;
+    padding: 0 6px;
+  }
+
+  .display-name-text {
+    max-width: 78px;
+    font-size: 11px;
+  }
+
+  .auth-icon-button {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+  }
+
+  .auth-icon-button svg {
+    width: 18px;
+    height: 18px;
+  }
+
   .floating-add-movie-button {
     right: 12px;
     bottom: 12px;
