@@ -2259,7 +2259,7 @@ function clearFilterChip(filterKey) {
 
   // Если модалка фильтров была открыта, после снятия фильтра закрываем её,
   // чтобы внешняя очистка состояния ощущалась завершённым действием.
-  if (filtersModal && filtersModal.style.display === 'block') {
+  if (filtersModal && filtersModal.classList.contains('is-open')) {
     closeFiltersModal();
   }
 }
