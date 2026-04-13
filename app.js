@@ -67,7 +67,6 @@ const quickPresetsBar = document.getElementById('quickPresetsBar');
 const container = document.getElementById('movies');
 const moviesSectionTitle = document.querySelector('.movies-section .section-title');
 const moviesResultCount = document.getElementById('moviesResultCount');
-const initialViewModeRow = viewMode?.closest('.form-row');
 let catalogViewToggleButton = null;
 
 const movieForm = document.getElementById('movieForm');
@@ -718,8 +717,6 @@ function initCatalogViewToggleButton() {
   if (!moviesSectionTitle || !viewMode) {
     return;
   }
-
-  const existingViewModeRow = viewMode.closest('.form-row');
 
   let moviesSectionHeader = moviesSectionTitle.closest('.movies-section-header');
 
