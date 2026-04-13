@@ -2789,26 +2789,26 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .page-header-top {
-    min-height: 44px;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    min-height: 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 10px;
     flex-wrap: nowrap;
   }
 
   .auth-controls {
-    width: auto;
+    width: 100%;
     min-width: 0;
     max-width: none;
     height: auto;
     min-height: 44px;
-    margin-left: auto;
+    margin-left: 0;
     flex-direction: row;
     align-items: center;
     justify-content: flex-end;
     gap: 10px;
-    flex: 0 1 auto;
+    flex: 0 0 auto;
   }
 
   .auth-actions {
@@ -3030,10 +3030,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   
   h1 {
     min-width: 0;
-    flex: 1 1 auto;
-    justify-content: flex-start;
-    text-align: left;
-    width: auto;
+    flex: 0 0 auto;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
     font-size: 32px;
     line-height: 1;
     letter-spacing: 1.2px;
@@ -3152,12 +3152,12 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .page-header-top {
-    gap: 10px;
+    gap: 6px;
   }
 
   h1 {
-    font-size: 24px;
-    letter-spacing: 0.8px;
+    font-size: 26px;
+    letter-spacing: 1px;
   }
 
   .display-name-button {
@@ -3448,8 +3448,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   h1 {
-    font-size: 18px;
-    letter-spacing: 0.4px;
+    font-size: 21px;
+    letter-spacing: 0.6px;
   }
 
   .auth-controls {
