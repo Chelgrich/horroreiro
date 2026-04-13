@@ -2959,14 +2959,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     gap: 0;
   }
 
-  .admin-panel,
-  .user-panel {
-    width: auto;
-    min-width: 0;
-    min-height: 44px;
-    justify-content: flex-end;
-  }
-
   .floating-add-movie-button {
     right: 16px;
     bottom: 16px;
@@ -2993,14 +2985,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .display-name-button {
-    max-width: 100%;
-    min-width: 0;
     padding: 0 10px;
     flex: 0 1 auto;
-  }
-
-  .display-name-text {
-    max-width: 100%;
   }
 
   .auth-message {
@@ -3045,10 +3031,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .filters-modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 16px;
     padding-top: 14px;
     border-top: 1px solid #2c323a;
     background: transparent;
@@ -3554,11 +3536,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     padding: 0 10px;
     font-size: 12px;
     line-height: 1.2;
-  }
-
-  .movie-user-rating-mobile-trigger.is-rated {
-    font-size: 14px;
-    font-weight: 700;
   }
 
   .rating-star-btn {
