@@ -1540,10 +1540,6 @@ function updateAuthUI() {
   const isLoggedIn = Boolean(currentUser);
   const shouldShowAuthenticatedUi = shouldUseAuthenticatedUi();
 
-  if (openAuthModalButton) {
-    openAuthModalButton.style.display = 'inline-flex';
-  }
-
   syncAuthIconButtonState();
   syncDisplayNameButton();
 
