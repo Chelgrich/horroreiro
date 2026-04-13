@@ -683,7 +683,13 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 
 .modal-header h2 {
   margin: 0;
+  max-width: 100%;
+  padding: 0 52px;
   text-align: center;
+  font-size: clamp(20px, 2vw, 28px);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .modal-close-button {
