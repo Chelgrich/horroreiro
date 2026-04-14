@@ -425,9 +425,9 @@
 
   <script>
     (function () {
-      const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+      const envReadyPromise = window.__ENV_READY__ || Promise.resolve();
 
-      function loadScript(src) {
+      function loadScript(src, buildVersion) {
         return new Promise((resolve, reject) => {
           const script = document.createElement('script');
           script.src = `${src}?v=${encodeURIComponent(buildVersion)}`;
@@ -437,8 +437,12 @@
         });
       }
 
-      loadScript('custom-select.js')
-        .then(() => loadScript('app.js'))
+      envReadyPromise
+        .then(() => {
+          const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+          return loadScript('custom-select.js', buildVersion)
+            .then(() => loadScript('app.js', buildVersion));
+        })
         .catch(error => {
           console.error('Ошибка загрузки versioned scripts:', error);
         });

@@ -69,42 +69,27 @@
 
   <script>
     (function () {
-      const isLocalFile = window.location.protocol === 'file:';
-      const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const shouldUseLocalDevEnv = isLocalFile || isLocalHost;
-  
-      const localDevEnv = {
-        SUPABASE_URL: 'https://uogzcozbnosfguyfbvhe.supabase.co',
-        SUPABASE_ANON_KEY: 'sb_publishable_trS_-TlQwFqcM59nELIdsw_ygVI6B0j',
-        APP_BUILD_VERSION: 'dev-local'
-      };
-  
-      function applyEnvAndLoadStyles() {
-        const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
-  
-        // Подключаем styles.css с версией сборки.
-        // Каждый новый деплой = новый URL файла = браузер берёт свежую версию.
-        const stylesheet = document.createElement('link');
-        stylesheet.rel = 'stylesheet';
-        stylesheet.href = `styles.css?v=${encodeURIComponent(buildVersion)}`;
-        document.head.appendChild(stylesheet);
+      const envReadyPromise = window.__ENV_READY__ || Promise.resolve();
+
+      function loadScript(src, buildVersion) {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = `${src}?v=${encodeURIComponent(buildVersion)}`;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
       }
-  
-      if (shouldUseLocalDevEnv) {
-        window.__ENV__ = localDevEnv;
-        applyEnvAndLoadStyles();
-        return;
-      }
-  
-      const envScript = document.createElement('script');
-      envScript.src = '/env';
-      envScript.onload = applyEnvAndLoadStyles;
-      envScript.onerror = () => {
-        window.__ENV__ = localDevEnv;
-        applyEnvAndLoadStyles();
-      };
-  
-      document.head.appendChild(envScript);
+
+      envReadyPromise
+        .then(() => {
+          const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+          return loadScript('custom-select.js', buildVersion)
+            .then(() => loadScript('app.js', buildVersion));
+        })
+        .catch(error => {
+          console.error('Ошибка загрузки versioned scripts:', error);
+        });
     })();
   </script>
 </head>
@@ -616,25 +601,44 @@
   смешанные версии фронта после деплоя.
   ========================================================== -->
   <script>
-    (function () {
-      const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
-  
-      function loadScript(src) {
-        return new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = `${src}?v=${encodeURIComponent(buildVersion)}`;
-          script.onload = resolve;
-          script.onerror = reject;
-          document.body.appendChild(script);
-        });
+    window.__ENV_READY__ = new Promise(resolve => {
+      const isLocalFile = window.location.protocol === 'file:';
+      const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const shouldUseLocalDevEnv = isLocalFile || isLocalHost;
+
+      const localDevEnv = {
+        SUPABASE_URL: 'https://uogzcozbnosfguyfbvhe.supabase.co',
+        SUPABASE_ANON_KEY: 'sb_publishable_trS_-TlQwFqcM59nELIdsw_ygVI6B0j',
+        APP_BUILD_VERSION: 'dev-local'
+      };
+
+      function applyEnvAndLoadStyles() {
+        const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+
+        const stylesheet = document.createElement('link');
+        stylesheet.rel = 'stylesheet';
+        stylesheet.href = `styles.css?v=${encodeURIComponent(buildVersion)}`;
+        document.head.appendChild(stylesheet);
+
+        resolve();
       }
-  
-      loadScript('custom-select.js')
-        .then(() => loadScript('app.js'))
-        .catch(error => {
-          console.error('Ошибка загрузки versioned scripts:', error);
-        });
-    })();
+
+      if (shouldUseLocalDevEnv) {
+        window.__ENV__ = localDevEnv;
+        applyEnvAndLoadStyles();
+        return;
+      }
+
+      const envScript = document.createElement('script');
+      envScript.src = '/env';
+      envScript.onload = applyEnvAndLoadStyles;
+      envScript.onerror = () => {
+        window.__ENV__ = localDevEnv;
+        applyEnvAndLoadStyles();
+      };
+
+      document.head.appendChild(envScript);
+    });
   </script>
 </body>
 
