@@ -3054,6 +3054,12 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     margin: 0 auto;
   }
 
+  .mobile-rating-modal-dialog {
+    width: auto;
+    max-width: none;
+    margin: 0;
+  }
+
   .modal-header {
     align-items: flex-start;
     padding-right: 0;
