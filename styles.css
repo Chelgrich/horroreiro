@@ -172,11 +172,14 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 
 .display-name-wrap {
   position: relative;
-  display: flex;
   align-items: center;
   min-width: 0;
   flex: 0 1 auto;
   max-width: 100%;
+}
+
+.display-name-wrap.is-visible {
+  display: flex;
 }
 
 .display-name-button {
