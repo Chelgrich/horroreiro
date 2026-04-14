@@ -63,6 +63,7 @@ const activeFiltersBar = document.getElementById('activeFiltersBar');
 const quickPresetsBar = document.getElementById('quickPresetsBar');
 
 const container = document.getElementById('movies');
+const moviePage = document.getElementById('moviePage');
 const moviesSectionTitle = document.querySelector('.movies-section .section-title');
 const moviesResultCount = document.getElementById('moviesResultCount');
 let catalogViewToggleButton = null;
@@ -151,6 +152,7 @@ let mobileRatingModalMovieId = null;
 let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
 let lastCatalogAnchorMovieId = null;
+let currentMoviePageMovieId = null;
 let shouldFadeCatalogAfterSkeleton = false;
 let catalogFadeCleanupTimerId = null;
 
@@ -375,6 +377,10 @@ function saveCatalogScrollPosition() {
 
 function saveCatalogAnchorMovieId() {
   try {
+    if (!container) {
+      return;
+    }
+
     if ((window.scrollY || window.pageYOffset || 0) <= 8) {
       sessionStorage.removeItem(CATALOG_ANCHOR_MOVIE_ID_KEY);
       return;
@@ -3405,6 +3411,24 @@ function rerenderCatalogWithFallback(
   preserveCardTop = true,
   animateStateAppearance = true
 ) {
+  if (!container && moviePage && currentMoviePageMovieId === movieId) {
+    fetchMovieById(movieId)
+      .then(movie => {
+        if (!movie) {
+          renderMoviePageNotFound();
+          return;
+        }
+
+        renderMoviePage(movie);
+      })
+      .catch(error => {
+        console.error('Ошибка перерендера страницы фильма:', error);
+        renderMoviePageNotFound();
+      });
+
+    return;
+  }
+
   if (shouldRenderFullCatalog) {
     rerenderCatalogAfterDataReload(movieId);
   } else {
@@ -4007,64 +4031,66 @@ function getMovieExternalLinksHtml(movie) {
 function getPosterHtml(movie, userMovieState, matchedSearchAlias = null) {
   return `
     <div class="movie-poster-block">
-      <div class="movie-poster-wrapper">
-      ${
-        movie.poster_url
-          ? `
-            <div class="movie-poster-skeleton ${loadedPosterUrls.has(movie.poster_url) ? 'is-hidden' : ''}" aria-hidden="true"></div>
-            <img
-              class="movie-poster ${loadedPosterUrls.has(movie.poster_url) ? 'is-loaded' : ''}"
-              src="${movie.poster_url}"
-              alt="Постер фильма ${movie.title}"
-              loading="lazy"
-              decoding="async"
-            >
-          `
-          : `<div class="movie-poster-placeholder">Нет постера</div>`
-      }
+      <a href="movie.html?id=${movie.id}" class="movie-poster-link" aria-label="Открыть страницу фильма ${escapeHtml(movie.title)}">
+        <div class="movie-poster-wrapper">
+        ${
+          movie.poster_url
+            ? `
+              <div class="movie-poster-skeleton ${loadedPosterUrls.has(movie.poster_url) ? 'is-hidden' : ''}" aria-hidden="true"></div>
+              <img
+                class="movie-poster ${loadedPosterUrls.has(movie.poster_url) ? 'is-loaded' : ''}"
+                src="${movie.poster_url}"
+                alt="Постер фильма ${movie.title}"
+                loading="lazy"
+                decoding="async"
+              >
+            `
+            : `<div class="movie-poster-placeholder">Нет постера</div>`
+        }
 
-      ${
-        matchedSearchAlias
-          ? `
-            <div class="movie-search-alias-hint">
-              <span class="movie-search-alias-hint-label">Альт:</span>
-              ${highlightSearchMatches(matchedSearchAlias, searchInput.value)}
-            </div>
-          `
-          : ''
-      }
-
-      ${
-        currentUser && !userMovieState.isWatched
-        ? `
-          <button
-            type="button"
-            class="movie-watchlist-btn ${userMovieState.isInWatchlist ? 'is-active' : ''}"
-            data-watchlist-toggle="true"
-            aria-label="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
-            title="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
-          >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-              </button>
+        ${
+          matchedSearchAlias
+            ? `
+              <div class="movie-search-alias-hint">
+                <span class="movie-search-alias-hint-label">Альт:</span>
+                ${highlightSearchMatches(matchedSearchAlias, searchInput.value)}
+              </div>
             `
             : ''
         }
 
         ${
-          userMovieState.isWatched
-            ? `
-              <div class="movie-watched-icon" aria-label="Просмотрено" title="Просмотрено">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M5 12.5L9.5 17L19 7.5"></path>
-                </svg>
-              </div>
-            `
-            : ''
-        }
-      </div>
+          currentUser && !userMovieState.isWatched
+          ? `
+            <button
+              type="button"
+              class="movie-watchlist-btn ${userMovieState.isInWatchlist ? 'is-active' : ''}"
+              data-watchlist-toggle="true"
+              aria-label="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+              title="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+            >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              `
+              : ''
+          }
+
+          ${
+            userMovieState.isWatched
+              ? `
+                <div class="movie-watched-icon" aria-label="Просмотрено" title="Просмотрено">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 12.5L9.5 17L19 7.5"></path>
+                  </svg>
+                </div>
+              `
+              : ''
+          }
+        </div>
+      </a>
     </div>
   `;
 }
@@ -4283,6 +4309,10 @@ function bindMovieRatingControls({
 }
 
 function syncOpenExternalLinksLayouts() {
+  if (!container) {
+    return;
+  }
+
   const overlayHorizontalPadding = 24;
   const oneRowWidth = (36 * 4) + (6 * 3);
 
@@ -4354,7 +4384,9 @@ function createMovieCard(movie) {
     card.innerHTML = `
     ${posterHtml}
   
-    <h5 class="movie-title">${highlightSearchMatches(movie.title, searchInput.value)}</h5>
+    <h5 class="movie-title">
+      <a href="movie.html?id=${movieId}" class="movie-title-link">${highlightSearchMatches(movie.title, searchInput.value)}</a>
+    </h5>
   
     ${movie.original_title ? `<p>Оригинальное название: ${highlightSearchMatches(movie.original_title, searchInput.value)}</p>` : ''}
     <p>Год: ${movie.year ?? '-'}</p>
@@ -4905,15 +4937,27 @@ function renderMovies() {
 JS-БЛОК 22. ОБРАБОТЧИКИ СОБЫТИЙ ИНТЕРФЕЙСА
 Навешивает события на форму, фильтры, auth и модальное окно.
 ========================================================== */
-loginForm.addEventListener('submit', login);
-loginEmail.addEventListener('input', clearAuthMessage);
-loginPassword.addEventListener('input', clearAuthMessage);
+if (loginForm) {
+  loginForm.addEventListener('submit', login);
+}
+
+if (loginEmail) {
+  loginEmail.addEventListener('input', clearAuthMessage);
+}
+
+if (loginPassword) {
+  loginPassword.addEventListener('input', clearAuthMessage);
+}
+
 if (loginPasswordConfirm) {
   loginPasswordConfirm.addEventListener('input', clearAuthMessage);
 }
-registerButton.addEventListener('click', () => {
-  setAuthRegisterMode(!isAuthRegisterMode);
-});
+
+if (registerButton) {
+  registerButton.addEventListener('click', () => {
+    setAuthRegisterMode(!isAuthRegisterMode);
+  });
+}
 
 if (logoutMenuButton) {
   logoutMenuButton.addEventListener('click', () => {
@@ -4979,10 +5023,12 @@ if (forgotPasswordButton) {
   });
 }
 
-openAddMovieButton.addEventListener('click', () => {
-  resetFormToCreateMode();
-  openMovieModal();
-});
+if (openAddMovieButton) {
+  openAddMovieButton.addEventListener('click', () => {
+    resetFormToCreateMode();
+    openMovieModal();
+  });
+}
 
 if (openFiltersButton) {
   openFiltersButton.addEventListener('click', () => {
@@ -4990,9 +5036,11 @@ if (openFiltersButton) {
   });
 }
 
-closeMovieModalButton.addEventListener('click', () => {
-  closeMovieModal();
-});
+if (closeMovieModalButton) {
+  closeMovieModalButton.addEventListener('click', () => {
+    closeMovieModal();
+  });
+}
 
 if (closeFiltersModalButton) {
   closeFiltersModalButton.addEventListener('click', () => {
@@ -5000,9 +5048,11 @@ if (closeFiltersModalButton) {
   });
 }
 
-movieModalBackdrop.addEventListener('click', () => {
-  closeMovieModal();
-});
+if (movieModalBackdrop) {
+  movieModalBackdrop.addEventListener('click', () => {
+    closeMovieModal();
+  });
+}
 
 if (filtersModalBackdrop) {
   filtersModalBackdrop.addEventListener('click', () => {
@@ -5014,37 +5064,38 @@ const debouncedRenderMovies = createDebouncedCatalogRender(200);
 
 let lastSearchQuery = '';
 
-searchInput.addEventListener('input', () => {
-  const query = searchInput.value.trim();
+if (searchInput) {
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.trim();
 
-  // 👇 управление крестиком
-  if (searchClearBtn) {
-    searchClearBtn.classList.toggle('is-visible', Boolean(query));
-  }
+    if (searchClearBtn) {
+      searchClearBtn.classList.toggle('is-visible', Boolean(query));
+    }
 
-  if (query && query !== lastSearchQuery) {
-    trackGoal('search_used');
-    lastSearchQuery = query;
-  }
+    if (query && query !== lastSearchQuery) {
+      trackGoal('search_used');
+      lastSearchQuery = query;
+    }
 
-  if (!query) {
-    lastSearchQuery = '';
-  }
+    if (!query) {
+      lastSearchQuery = '';
+    }
 
-  prepareCatalogStateForDeferredRender();
-  debouncedRenderMovies();
-});
+    prepareCatalogStateForDeferredRender();
+    debouncedRenderMovies();
+  });
 
-searchInput.addEventListener('keydown', event => {
-  if (event.key !== 'Escape' || !searchInput.value) {
-    return;
-  }
+  searchInput.addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || !searchInput.value) {
+      return;
+    }
 
-  event.preventDefault();
-  clearSearchAndRerenderPreservingPosition();
-});
+    event.preventDefault();
+    clearSearchAndRerenderPreservingPosition();
+  });
+}
 
-if (searchClearBtn) {
+if (searchClearBtn && searchInput) {
   searchClearBtn.addEventListener('click', () => {
     searchInput.value = '';
     searchClearBtn.classList.remove('is-visible');
@@ -5064,19 +5115,42 @@ const handleFiltersChange = () => {
   saveCatalogStateAndRenderFilters();
 };
 
-genreFilter.addEventListener('change', handleFiltersChange);
-countryFilter.addEventListener('change', handleFiltersChange);
-ratingFilter.addEventListener('change', handleFiltersChange);
-yearFilter.addEventListener('change', handleFiltersChange);
-watchlistFilter.addEventListener('change', handleFiltersChange);
-watchedFilter.addEventListener('change', handleFiltersChange);
-viewMode.addEventListener('change', () => {
-  applyCatalogViewModeChange();
-});
-sortMode.addEventListener('change', () => {
-  trackSortUsageIfNeeded();
-  rerenderCatalogPreservingPosition();
-});
+if (genreFilter) {
+  genreFilter.addEventListener('change', handleFiltersChange);
+}
+
+if (countryFilter) {
+  countryFilter.addEventListener('change', handleFiltersChange);
+}
+
+if (ratingFilter) {
+  ratingFilter.addEventListener('change', handleFiltersChange);
+}
+
+if (yearFilter) {
+  yearFilter.addEventListener('change', handleFiltersChange);
+}
+
+if (watchlistFilter) {
+  watchlistFilter.addEventListener('change', handleFiltersChange);
+}
+
+if (watchedFilter) {
+  watchedFilter.addEventListener('change', handleFiltersChange);
+}
+
+if (viewMode) {
+  viewMode.addEventListener('change', () => {
+    applyCatalogViewModeChange();
+  });
+}
+
+if (sortMode) {
+  sortMode.addEventListener('change', () => {
+    trackSortUsageIfNeeded();
+    rerenderCatalogPreservingPosition();
+  });
+}
 
 if (quickPresetsBar) {
   quickPresetsBar.addEventListener('click', event => {
@@ -5096,20 +5170,30 @@ if (resetFiltersTopButton) {
   });
 }
 
-posterFileInput.addEventListener('change', updatePosterFileUi);
+if (posterFileInput) {
+  posterFileInput.addEventListener('change', updatePosterFileUi);
+}
 
-movieForm.addEventListener('submit', saveMovie);
+if (movieForm) {
+  movieForm.addEventListener('submit', saveMovie);
+}
 
-cancelEditButton.addEventListener('click', () => {
-  resetFormToCreateMode();
-  closeMovieModal();
-});
+if (cancelEditButton) {
+  cancelEditButton.addEventListener('click', () => {
+    resetFormToCreateMode();
+    closeMovieModal();
+  });
+}
 
 document.addEventListener('click', event => {
   const clickedInsideAuthMenu = event.target.closest('.auth-menu-wrap');
 
   if (!clickedInsideAuthMenu) {
     closeAuthPopoverMenu();
+  }
+
+  if (!container) {
+    return;
   }
 
   if (event.target.closest('[data-external-links-toggle="true"]') || event.target.closest('[data-external-links-collapsible]')) {
@@ -5151,6 +5235,10 @@ window.addEventListener('pagehide', event => {
     return;
   }
 
+  if (!container) {
+    return;
+  }
+
   saveCatalogScrollPosition();
   saveCatalogAnchorMovieId();
 });
@@ -5185,31 +5273,27 @@ JS-БЛОК 23. ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
 Восстанавливает сессию, подписывается на auth-изменения,
 загружает данные и запускает первую отрисовку.
 ========================================================== */
-async function init() {
-  renderMoviesSkeleton();
+function isCatalogPage() {
+  return Boolean(container);
+}
 
-  const hasPasswordRecoveryRedirect = isPasswordRecoveryRedirect();
-  isPasswordRecoveryEntryPage = hasPasswordRecoveryRedirect;
-  const wasResetApplied = applyBuildVersionSoftResetIfNeeded();
+function isMoviePage() {
+  return Boolean(moviePage);
+}
 
-  if (wasResetApplied) {
-    window.location.replace(window.location.pathname + window.location.search);
+function handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect) {
+  if (!hasPasswordRecoveryRedirect) {
     return;
   }
 
-  const restoredUser = await restoreSession();
-  trackEmailConfirmedLoginIfNeeded();
+  isPasswordRecoveryMode = true;
+  updateAuthUI();
+  updateAuthModalMode();
+  openAuthModal();
+  showAuthMessage('Введите новый пароль и подтвердите его ниже.');
+}
 
-  if (hasPasswordRecoveryRedirect) {
-    isPasswordRecoveryMode = true;
-    updateAuthUI();
-    updateAuthModalMode();
-    openAuthModal();
-    showAuthMessage('Введите новый пароль и подтвердите его ниже.');
-  }
-
-  bindCustomSelectGlobalEvents();
-
+function bindSharedAuthStateListener({ onAfterAuthSync } = {}) {
   supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === 'TOKEN_REFRESHED') {
       return;
@@ -5269,9 +5353,24 @@ async function init() {
         return;
       }
 
+      if (typeof onAfterAuthSync === 'function') {
+        onAfterAuthSync();
+      }
+    }, 0);
+  });
+}
+
+async function initCatalogPage() {
+  renderMoviesSkeleton();
+
+  const restoredUser = await restoreSession();
+  trackEmailConfirmedLoginIfNeeded();
+
+  bindSharedAuthStateListener({
+    onAfterAuthSync: () => {
       applySavedCatalogState();
       syncCatalogAfterAuthChange();
-    }, 0);
+    }
   });
 
   await reloadCatalogData({ showSkeleton: true });
@@ -5284,8 +5383,360 @@ async function init() {
     renderMovies();
   }
 
-  updateFiltersButtonLabel(); // на старте синхронизируем подпись кнопки
+  updateFiltersButtonLabel();
   restoreCatalogScrollPosition();
+}
+
+function getMoviePageMovieIdFromUrl() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const rawMovieId = searchParams.get('id');
+
+  if (!rawMovieId) {
+    return null;
+  }
+
+  const movieId = Number(rawMovieId);
+
+  if (!Number.isInteger(movieId) || movieId <= 0) {
+    return null;
+  }
+
+  return movieId;
+}
+
+async function fetchMovieById(movieId) {
+  const { data, error } = await supabaseClient
+    .from('movies')
+    .select(`
+      id,
+      title,
+      original_title,
+      year,
+      director,
+      search_aliases,
+      rating,
+      poster_url,
+      kinopoisk_url,
+      imdb_url,
+      letterboxd_url,
+      rottentomatoes_url,
+      release_year,
+      release_month,
+      sort_order,
+      movie_genres (
+        position,
+        genres (name)
+      ),
+      movie_countries (
+        countries (name)
+      )
+    `)
+    .eq('id', movieId)
+    .order('position', { foreignTable: 'movie_genres', ascending: true })
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data || null;
+}
+
+function getMoviePageReleaseLabel(movie) {
+  if (!movie?.release_year && !movie?.release_month) {
+    return '';
+  }
+
+  if (movie.release_year && movie.release_month) {
+    return `${getMonthName(movie.release_month)} ${movie.release_year}`;
+  }
+
+  if (movie.release_year) {
+    return String(movie.release_year);
+  }
+
+  return getMonthName(movie.release_month);
+}
+
+function setMoviePageDocumentMeta(movie) {
+  if (!movie) {
+    document.title = 'Фильм не найден — Хоррорейро';
+    return;
+  }
+
+  document.title = `${movie.title} — Хоррорейро`;
+
+  const descriptionText = [
+    movie.original_title ? `Оригинальное название: ${movie.original_title}.` : '',
+    movie.year ? `Год: ${movie.year}.` : '',
+    movie.director ? `Режиссёр: ${movie.director}.` : '',
+    'Страница фильма в каталоге Хоррорейро.'
+  ].filter(Boolean).join(' ');
+
+  const descriptionMeta = document.querySelector('meta[name="description"]');
+
+  if (descriptionMeta) {
+    descriptionMeta.setAttribute('content', descriptionText);
+  }
+}
+
+function renderMoviePageNotFound() {
+  if (!moviePage) {
+    return;
+  }
+
+  setMoviePageDocumentMeta(null);
+
+  moviePage.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-state-icon" aria-hidden="true">◌</div>
+      <div class="empty-state-title">Фильм не найден</div>
+      <div class="empty-state-text">
+        Возможно, ссылка устарела или фильм был удалён из каталога.
+      </div>
+      <div class="empty-state-actions">
+        <a href="index.html" class="secondary-button secondary-button-compact empty-state-reset-btn">
+          Вернуться в каталог
+        </a>
+      </div>
+    </div>
+  `;
+}
+
+function renderMoviePage(movie) {
+  if (!moviePage || !movie) {
+    return;
+  }
+
+  currentMoviePageMovieId = movie.id;
+
+  const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
+  const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
+  const averageRating = getMovieAverageRating(movie.id);
+  const votesCount = getMovieRatings(movie.id).length;
+  const currentUserRating = getCurrentUserRating(movie.id);
+  const userMovieState = getCurrentUserMovieState(movie.id);
+  const releaseLabel = getMoviePageReleaseLabel(movie);
+  const externalLinksHtml = getMovieExternalLinksHtml(movie);
+  const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
+  const isWatchlistBusy = watchlistRequestInFlight.has(String(movie.id));
+
+  setMoviePageDocumentMeta(movie);
+
+  moviePage.innerHTML = `
+    <article class="movie-page-layout" data-movie-id="${movie.id}">
+      <div class="movie-page-poster-column">
+        <div class="movie-page-poster-wrapper">
+          ${
+            movie.poster_url
+              ? `
+                <img
+                  class="movie-page-poster"
+                  src="${movie.poster_url}"
+                  alt="Постер фильма ${escapeHtml(movie.title)}"
+                  loading="eager"
+                  decoding="async"
+                >
+              `
+              : `<div class="movie-poster-placeholder">Нет постера</div>`
+          }
+        </div>
+      </div>
+
+      <div class="movie-page-main-column">
+        <div class="movie-page-title-block">
+          <h2 class="movie-page-title">${escapeHtml(movie.title)}</h2>
+          ${
+            movie.original_title
+              ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>`
+              : ''
+          }
+        </div>
+
+        <div class="movie-page-meta-list">
+          <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
+          <div class="movie-page-meta-item"><span>Режиссёр:</span> <strong>${movie.director ? escapeHtml(movie.director) : '-'}</strong></div>
+          <div class="movie-page-meta-item"><span>Жанры:</span> <strong>${genres ? escapeHtml(genres) : '-'}</strong></div>
+          <div class="movie-page-meta-item"><span>Страны:</span> <strong>${countries ? escapeHtml(countries) : '-'}</strong></div>
+          ${
+            releaseLabel
+              ? `<div class="movie-page-meta-item"><span>Релиз:</span> <strong>${escapeHtml(releaseLabel)}</strong></div>`
+              : ''
+          }
+        </div>
+
+        <div class="movie-page-rating-block movie-rating-block">
+          <div class="movie-rating-summary">
+            <div class="movie-rating-summary-main">
+              <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
+              <span class="movie-rating-meta">(${votesCount} ${getVotesLabel(votesCount)})</span>
+            </div>
+
+            <button
+              type="button"
+              class="remove-rating-inline-btn secondary-button secondary-button-compact ${currentUserRating === null ? 'is-hidden-placeholder' : ''}"
+              data-movie-page-remove-rating="true"
+              ${currentUserRating === null ? 'tabindex="-1" aria-hidden="true"' : ''}
+              ${currentUserRating === null || isRatingBusy ? 'disabled' : ''}
+            >
+              Удалить оценку
+            </button>
+          </div>
+
+          ${
+            currentUser
+              ? `
+                <div class="movie-page-user-state">
+                  ${
+                    userMovieState.isWatched
+                      ? `<div class="movie-page-user-state-badge">Статус: просмотрено</div>`
+                      : userMovieState.isInWatchlist
+                        ? `<div class="movie-page-user-state-badge">Статус: смотреть позже</div>`
+                        : `<div class="movie-page-user-state-badge">Статус: не отмечено</div>`
+                  }
+                </div>
+
+                ${
+                  !userMovieState.isWatched
+                    ? `
+                      <div class="movie-page-actions">
+                        <button
+                          type="button"
+                          class="secondary-button secondary-button-compact"
+                          data-movie-page-watchlist-toggle="true"
+                          ${isWatchlistBusy ? 'disabled' : ''}
+                        >
+                          ${userMovieState.isInWatchlist ? 'Убрать из смотреть позже' : 'Добавить в смотреть позже'}
+                        </button>
+                      </div>
+                    `
+                    : ''
+                }
+              `
+              : ''
+          }
+
+          ${getUserRatingControlsHtml(currentUserRating)}
+
+          ${
+            externalLinksHtml
+              ? `
+                <div class="movie-page-external-links-block">
+                  <div class="movie-page-subtitle">Ссылки на фильм</div>
+                  ${externalLinksHtml}
+                </div>
+              `
+              : ''
+          }
+        </div>
+      </div>
+    </article>
+  `;
+
+  const starsContainer = moviePage.querySelector('.movie-user-rating-stars');
+  const voteButtons = moviePage.querySelectorAll('.rating-star-btn');
+  const removeRatingButton = moviePage.querySelector('[data-movie-page-remove-rating="true"]');
+  const watchlistButton = moviePage.querySelector('[data-movie-page-watchlist-toggle="true"]');
+  const mobileRatingButton = moviePage.querySelector('[data-open-mobile-rating="true"]');
+
+  bindMovieRatingControls({
+    movieId: movie.id,
+    currentUserRating,
+    starsContainer,
+    voteButtons
+  });
+
+  if (removeRatingButton && currentUserRating !== null) {
+    removeRatingButton.addEventListener('click', () => {
+      removeUserMovieRating(movie.id);
+    });
+  }
+
+  if (watchlistButton) {
+    watchlistButton.addEventListener('click', () => {
+      toggleMovieWatchlist(movie.id);
+    });
+  }
+
+  if (mobileRatingButton) {
+    mobileRatingButton.addEventListener('click', () => {
+      openMobileRatingModal(movie);
+    });
+  }
+}
+
+async function initMoviePage() {
+  const movieId = getMoviePageMovieIdFromUrl();
+
+  if (!movieId) {
+    renderMoviePageNotFound();
+    return;
+  }
+
+  await restoreSession();
+  trackEmailConfirmedLoginIfNeeded();
+
+  await fetchMovieRatings();
+  await fetchMovieWatchlist();
+
+  try {
+    const movie = await fetchMovieById(movieId);
+
+    if (!movie) {
+      renderMoviePageNotFound();
+      return;
+    }
+
+    renderMoviePage(movie);
+  } catch (error) {
+    console.error('Ошибка загрузки страницы фильма:', error);
+    renderMoviePageNotFound();
+  }
+
+  bindSharedAuthStateListener({
+    onAfterAuthSync: async () => {
+      await fetchMovieRatings();
+      await fetchMovieWatchlist();
+
+      try {
+        const movie = await fetchMovieById(movieId);
+
+        if (!movie) {
+          renderMoviePageNotFound();
+          return;
+        }
+
+        renderMoviePage(movie);
+      } catch (error) {
+        console.error('Ошибка синхронизации страницы фильма после auth:', error);
+        renderMoviePageNotFound();
+      }
+    }
+  });
+}
+
+async function init() {
+  const hasPasswordRecoveryRedirect = isPasswordRecoveryRedirect();
+  isPasswordRecoveryEntryPage = hasPasswordRecoveryRedirect;
+  const wasResetApplied = applyBuildVersionSoftResetIfNeeded();
+
+  if (wasResetApplied) {
+    window.location.replace(window.location.pathname + window.location.search);
+    return;
+  }
+
+  bindCustomSelectGlobalEvents();
+  initCustomSelects();
+  handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect);
+
+  if (isCatalogPage()) {
+    await initCatalogPage();
+    return;
+  }
+
+  if (isMoviePage()) {
+    await initMoviePage();
+  }
 }
 
 /* =========================================================

@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <!-- =========================================================
+  HTML-БЛОК 1. СЛУЖЕБНАЯ ЧАСТЬ ДОКУМЕНТА
+  Мета-теги, заголовок страницы, шрифты и подключение стилей.
+  ========================================================== -->
+  <meta charset="UTF-8">
+
+  <!-- Yandex.Metrika counter -->
+  <script type="text/javascript">
+      (function(m,e,t,r,i,k,a){
+          m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+          m[i].l=1*new Date();
+          for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+          k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+      })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=108369182', 'ym');
+
+      ym(108369182, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+  </script>
+  <noscript><div><img src="https://mc.yandex.ru/watch/108369182" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+  <!-- /Yandex.Metrika counter -->
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Фильм ужасов — Хоррорейро</title>
+
+  <meta name="description" content="Страница фильма в каталоге Хоррорейро: рейтинг, ссылки, пользовательская оценка и основные данные о хорроре.">
+
+  <link rel="canonical" href="https://horroreiro.ru/movie.html">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Фильм ужасов — Хоррорейро">
+  <meta property="og:description" content="Страница фильма в каталоге Хоррорейро: рейтинг, ссылки, пользовательская оценка и основные данные о хорроре.">
+  <meta property="og:url" content="https://horroreiro.ru/movie.html">
+  <meta property="og:image" content="https://horroreiro.ru/og-preview.jpg">
+
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:site_name" content="Хоррорейро">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Фильм ужасов — Хоррорейро">
+  <meta name="twitter:description" content="Страница фильма в каталоге Хоррорейро: рейтинг, ссылки, пользовательская оценка и основные данные о хорроре.">
+  <meta name="twitter:image" content="https://horroreiro.ru/og-preview.jpg">
+  <meta name="twitter:url" content="https://horroreiro.ru/movie.html">
+
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#111315">
+
+  <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+  <!-- Сначала всегда тянем свежий /env без кеша -->
+  <script src="/env"></script>
+
+  <script>
+    (function () {
+      const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+
+      const stylesheet = document.createElement('link');
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = `styles.css?v=${encodeURIComponent(buildVersion)}`;
+      document.head.appendChild(stylesheet);
+    })();
+  </script>
+</head>
+
+<body>
+  <!-- =========================================================
+  HTML-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
+  Оборачивает detail-page фильма.
+  ========================================================== -->
+  <main class="page movie-page-shell">
+
+    <!-- =========================================================
+    HTML-БЛОК 3. ШАПКА СТРАНИЦЫ
+    Заголовок проекта, форма авторизации и админ-панель.
+    ========================================================== -->
+    <header class="page-header">
+      <div class="page-header-top">
+        <h1><a href="index.html" class="page-logo-link">Хоррорейро</a></h1>
+
+        <div id="authControls" class="auth-controls auth-controls-pending">
+          <div class="auth-actions">
+            <div id="displayNameWrap" class="display-name-wrap auth-ui-block">
+              <button
+                type="button"
+                id="displayNameButton"
+                class="display-name-button"
+                aria-haspopup="dialog"
+                aria-expanded="false"
+                title=""
+              >
+                <span id="displayNameText" class="display-name-text"></span>
+                <span class="display-name-edit-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 20h4l9.8-9.8a2.121 2.121 0 1 0-3-3L5 17v3Z"></path>
+                    <path d="m13.5 6.5 3 3"></path>
+                  </svg>
+                </span>
+              </button>
+            </div>
+
+            <div class="auth-menu-wrap">
+              <button
+                id="openAuthModalButton"
+                type="button"
+                class="auth-icon-button"
+                aria-label="Вход или регистрация"
+                title="Вход или регистрация"
+                aria-haspopup="menu"
+                aria-expanded="false"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5Z"></path>
+                  <path d="M4 21c0-3.866 3.582-7 8-7s8 3.134 8 7"></path>
+                </svg>
+              </button>
+
+              <div id="authPopoverMenu" class="auth-popover-menu" role="menu" aria-label="Меню аккаунта">
+                <button
+                  type="button"
+                  class="auth-popover-item auth-popover-item-danger"
+                  id="logoutMenuButton"
+                  role="menuitem"
+                >
+                  Выйти
+                </button>
+              </div>
+            </div>
+
+            <div id="adminPanel" class="admin-panel auth-ui-block">
+              <button
+                id="openAddMovieButton"
+                type="button"
+                class="floating-add-movie-button"
+                aria-label="Добавить фильм"
+                title="Добавить фильм"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 5v14"></path>
+                  <path d="M5 12h14"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div id="authModal" class="modal">
+      <div class="modal-backdrop" id="authModalBackdrop"></div>
+
+      <div class="modal-dialog auth-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+        <div class="modal-header">
+          <h2 id="authModalTitle">Вход и регистрация</h2>
+          <button type="button" id="closeAuthModalButton" class="modal-close-button" aria-label="Закрыть"></button>
+        </div>
+
+        <form id="loginForm" class="login-form login-form-modal auth-form-shell is-visible">
+          <input type="email" id="loginEmail" name="email" class="auth-mode-field is-visible" placeholder="Email" autocomplete="email">
+          <input type="password" id="loginPassword" name="password" class="auth-mode-field is-visible" placeholder="Пароль" autocomplete="current-password">
+          <input type="text" id="registerNickname" name="registerNickname" class="auth-conditional-field" placeholder="Никнейм" maxlength="24">
+          <div id="registerNicknameHint" class="field-hint auth-conditional-field">
+            Необязательно. Если оставить пустым, присвоится имя вида profile001.
+          </div>
+          <input type="password" id="loginPasswordConfirm" name="passwordConfirm" class="auth-conditional-field" placeholder="Повторите новый пароль" autocomplete="new-password">
+          <button type="submit">Войти</button>
+          <button type="button" id="registerButton" class="secondary-button secondary-button-compact auth-mode-button is-visible">
+            Регистрация
+          </button>
+        </form>
+
+        <div id="authFormLinks" class="auth-form-links auth-mode-block is-visible">
+          <button type="button" id="forgotPasswordButton" class="auth-link-button">
+            Забыли пароль?
+          </button>
+        </div>
+
+        <div id="authToast" class="auth-toast auth-toast-inline is-hidden" aria-live="polite" aria-atomic="true">
+          <p id="authMessage" class="auth-message"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="displayNameModal" class="modal">
+      <div class="modal-backdrop" id="displayNameModalBackdrop"></div>
+
+      <div class="modal-dialog display-name-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="displayNameModalTitle">
+        <div class="modal-header">
+          <h2 id="displayNameModalTitle">Изменение никнейма</h2>
+          <button type="button" id="closeDisplayNameModalButton" class="modal-close-button" aria-label="Закрыть"></button>
+        </div>
+
+        <form id="displayNameForm" class="display-name-form">
+          <input type="text" id="displayNameInput" maxlength="24" autocomplete="off" spellcheck="false">
+          <div class="display-name-form-actions">
+            <button type="submit" id="saveDisplayNameButton">Сохранить</button>
+            <button type="button" id="cancelDisplayNameButton" class="secondary-button secondary-button-compact">Отмена</button>
+          </div>
+        </form>
+
+        <p id="displayNameMessage" class="display-name-message"></p>
+      </div>
+    </div>
+
+    <div id="movieModal" class="modal">
+      <div class="modal-backdrop" id="movieModalBackdrop"></div>
+
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+        <div class="modal-header">
+          <h2 id="formTitle">Добавить фильм</h2>
+          <button type="button" id="closeMovieModalButton" class="modal-close-button" aria-label="Закрыть"></button>
+        </div>
+
+        <form id="movieForm" class="movie-form" novalidate>
+          <div class="movie-form-inline-group movie-form-inline-group-titles">
+            <div class="form-row">
+              <label for="title">Название:</label>
+              <input type="text" id="title" name="title" required>
+            </div>
+
+            <div class="form-row">
+              <label for="originalTitle">Оригинальное название:</label>
+              <input type="text" id="originalTitle" name="originalTitle">
+            </div>
+
+            <div class="form-row">
+              <label for="year">Год:</label>
+              <input type="number" id="year" name="year" min="1888" max="2100">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label for="searchAliases">Альтернативные названия:</label>
+            <textarea id="searchAliases" name="searchAliases" rows="4"></textarea>
+            <div class="field-hint">
+              Каждое название с новой строки. Используется только для поиска и не показывается в каталоге.
+            </div>
+          </div>
+
+          <div class="movie-form-inline-group movie-form-inline-group-release">
+            <div class="form-row">
+              <label for="releaseYear">Год релиза:</label>
+              <input type="number" id="releaseYear" name="releaseYear" min="1900" max="2100">
+            </div>
+
+            <div class="form-row">
+              <label for="releaseMonth">Месяц:</label>
+              <select id="releaseMonth" name="releaseMonth">
+                <option value="">Не выбран</option>
+                <option value="1">Январь</option>
+                <option value="2">Февраль</option>
+                <option value="3">Март</option>
+                <option value="4">Апрель</option>
+                <option value="5">Май</option>
+                <option value="6">Июнь</option>
+                <option value="7">Июль</option>
+                <option value="8">Август</option>
+                <option value="9">Сентябрь</option>
+                <option value="10">Октябрь</option>
+                <option value="11">Ноябрь</option>
+                <option value="12">Декабрь</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <label for="sortOrder">Порядок внутри месяца:</label>
+              <input type="number" id="sortOrder" name="sortOrder" min="1" step="1">
+            </div>
+          </div>
+
+          <div class="movie-form-inline-group movie-form-inline-group-meta">
+            <div class="form-row">
+              <label for="director">Режиссёр:</label>
+              <input type="text" id="director" name="director">
+            </div>
+
+            <div class="form-row">
+              <label for="genresInput">Доп. жанры:</label>
+              <input type="text" id="genresInput" name="genresInput">
+            </div>
+
+            <div class="form-row">
+              <label for="countriesInput">Страны:</label>
+              <input type="text" id="countriesInput" name="countriesInput">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label for="posterFile">Постер (файл):</label>
+
+            <div class="file-input-wrapper">
+              <input type="file" id="posterFile" name="posterFile" accept="image/*">
+
+              <label for="posterFile" class="file-input-ui">
+                <span class="file-input-button">Выберите файл</span>
+                <span class="file-input-name" id="posterFileName">Файл не выбран</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="movie-form-inline-group movie-form-inline-group-links">
+            <div class="form-row">
+              <label for="kinopoiskUrl">Ссылка на Кинопоиск:</label>
+              <input
+                type="text"
+                id="kinopoiskUrl"
+                name="kinopoiskUrl"
+                inputmode="url"
+                autocomplete="off"
+                spellcheck="false"
+              >
+            </div>
+
+            <div class="form-row">
+              <label for="imdbUrl">Ссылка на IMDb:</label>
+              <input
+                type="text"
+                id="imdbUrl"
+                name="imdbUrl"
+                inputmode="url"
+                autocomplete="off"
+                spellcheck="false"
+              >
+            </div>
+
+            <div class="form-row">
+              <label for="letterboxdUrl">Ссылка на Letterboxd:</label>
+              <input
+                type="text"
+                id="letterboxdUrl"
+                name="letterboxdUrl"
+                inputmode="url"
+                autocomplete="off"
+                spellcheck="false"
+              >
+            </div>
+
+            <div class="form-row">
+              <label for="rottentomatoesUrl">Ссылка на RT:</label>
+              <input
+                type="text"
+                id="rottentomatoesUrl"
+                name="rottentomatoesUrl"
+                inputmode="url"
+                autocomplete="off"
+                spellcheck="false"
+              >
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" id="submitButton">Добавить фильм</button>
+            <button type="button" id="cancelEditButton" class="secondary-button form-mode-button">
+              Отмена редактирования
+            </button>
+          </div>
+        </form>
+
+        <p id="formMessage" class="form-message"></p>
+      </div>
+    </div>
+
+    <!-- =========================================================
+    HTML-БЛОК 4. ОСНОВНОЙ КОНТЕНТ DETAIL-PAGE
+    Контейнер для загрузки и отрисовки страницы фильма.
+    ========================================================== -->
+    <section class="section movie-page">
+      <div class="movie-page-topbar">
+        <a href="index.html" class="secondary-button movie-page-back-link">← Назад к каталогу</a>
+      </div>
+
+      <div id="moviePage" class="movie-page-content-shell">
+        <div class="movie-page-loading-state">Загрузка фильма...</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <div class="page-footer-inner">
+      <div class="footer-main">
+        <div class="footer-slogan">
+          «ВЫБЕРИ, ЧТО СМОТРЕТЬ СЕГОДНЯ»
+        </div>
+
+        <div class="footer-brand">Хоррорейро</div>
+
+        <div class="footer-author">
+          Хоррор-каталог от Grint_Talks, 2026
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    (function () {
+      const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+
+      function loadScript(src) {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = `${src}?v=${encodeURIComponent(buildVersion)}`;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+      }
+
+      loadScript('custom-select.js')
+        .then(() => loadScript('app.js'))
+        .catch(error => {
+          console.error('Ошибка загрузки versioned scripts:', error);
+        });
+    })();
+  </script>
+</body>
+
+</html>

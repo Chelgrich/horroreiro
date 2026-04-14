@@ -2083,6 +2083,19 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   border-bottom: 1px solid #1f242b;
 }
 
+.movie-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.movie-title-link:hover,
+.movie-title-link:focus,
+.movie-title-link:focus-visible,
+.movie-title-link:active {
+  color: inherit;
+  text-decoration: none;
+}
+
 .movie-card p {
   margin: 0;
   font-size: 14px;
@@ -2125,6 +2138,20 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
 ========================================================== */
 .movie-poster-block {
   margin: -4px -16px 14px;
+}
+
+.movie-poster-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.movie-poster-link:hover,
+.movie-poster-link:focus,
+.movie-poster-link:focus-visible,
+.movie-poster-link:active {
+  color: inherit;
+  text-decoration: none;
 }
 
 .movie-poster-wrapper {
@@ -2840,6 +2867,250 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 .mobile-rating-modal-remove:hover {
   background: rgba(255, 123, 114, 0.06);
   border-color: rgba(255, 123, 114, 0.45);
+}
+
+/* =========================================================
+CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
+Основной layout и блоки страницы отдельного фильма.
+========================================================== */
+.page-logo-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.page-logo-link:hover,
+.page-logo-link:focus,
+.page-logo-link:focus-visible,
+.page-logo-link:active {
+  color: inherit;
+  text-decoration: none;
+}
+
+.movie-page-shell {
+  min-height: calc(100vh - 120px);
+}
+
+.movie-page {
+  overflow: hidden;
+}
+
+.movie-page-topbar {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.movie-page-back-link {
+  min-width: 0;
+  text-decoration: none;
+}
+
+.movie-page-content-shell {
+  min-height: 240px;
+}
+
+.movie-page-loading-state {
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.movie-page-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.movie-page-poster-column {
+  min-width: 0;
+}
+
+.movie-page-poster-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  background: #0f1114;
+  border: 1px solid #2c333b;
+  border-radius: 8px;
+}
+
+.movie-page-poster {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.movie-page-main-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.movie-page-title-block {
+  min-width: 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #242a31;
+}
+
+.movie-page-title {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.08;
+  font-weight: 700;
+  color: #ffffff;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.movie-page-original-title {
+  margin-top: 8px;
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.movie-page-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.movie-page-meta-item {
+  font-size: 15px;
+  line-height: 1.4;
+  color: #e3e8ee;
+}
+
+.movie-page-meta-item span {
+  color: var(--color-text-muted);
+}
+
+.movie-page-meta-item strong {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.movie-page-rating-block {
+  margin-top: 0;
+}
+
+.movie-page-user-state {
+  margin-top: 12px;
+}
+
+.movie-page-actions {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.movie-page-actions .secondary-button {
+  min-width: 0;
+}
+
+.movie-page-user-state-badge {
+  min-height: 32px;
+  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+  background: var(--surface-control);
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.movie-page-external-links-block {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #1f242b;
+}
+
+.movie-page-subtitle {
+  margin-bottom: 10px;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .movie-page-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .movie-page-poster-column {
+    max-width: 360px;
+  }
+
+  .movie-page-title {
+    font-size: 28px;
+    line-height: 1.1;
+  }
+
+  .movie-page-original-title {
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 680px) {
+  .movie-page-topbar {
+    margin-bottom: 16px;
+  }
+
+  .movie-page-layout {
+    gap: 16px;
+  }
+
+  .movie-page-poster-column {
+    max-width: none;
+  }
+
+  .movie-page-title-block {
+    padding-bottom: 12px;
+  }
+
+  .movie-page-title {
+    font-size: 24px;
+    line-height: 1.12;
+  }
+
+  .movie-page-original-title {
+    margin-top: 6px;
+    font-size: 15px;
+    line-height: 1.32;
+  }
+
+  .movie-page-meta-list {
+    gap: 8px;
+  }
+
+  .movie-page-meta-item {
+    font-size: 14px;
+    line-height: 1.36;
+  }
+
+  .movie-page-actions {
+    gap: 8px;
+  }
+
+  .movie-page-actions .secondary-button {
+    width: 100%;
+  }
+
+  .movie-page-loading-state {
+    font-size: 14px;
+  }
 }
 
 /* =========================================================
