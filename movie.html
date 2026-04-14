@@ -53,17 +53,42 @@
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="favicon.ico" type="image/x-icon">
 
-  <!-- Сначала всегда тянем свежий /env без кеша -->
-  <script src="/env"></script>
-
   <script>
     (function () {
-      const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+      const isLocalFile = window.location.protocol === 'file:';
+      const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const shouldUseLocalDevEnv = isLocalFile || isLocalHost;
 
-      const stylesheet = document.createElement('link');
-      stylesheet.rel = 'stylesheet';
-      stylesheet.href = `styles.css?v=${encodeURIComponent(buildVersion)}`;
-      document.head.appendChild(stylesheet);
+      const localDevEnv = {
+        SUPABASE_URL: 'https://uogzcozbnosfguyfbvhe.supabase.co',
+        SUPABASE_ANON_KEY: 'sb_publishable_trS_-TlQwFqcM59nELIdsw_ygVI6B0j',
+        APP_BUILD_VERSION: 'dev-local'
+      };
+
+      function applyEnvAndLoadStyles() {
+        const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+
+        const stylesheet = document.createElement('link');
+        stylesheet.rel = 'stylesheet';
+        stylesheet.href = `styles.css?v=${encodeURIComponent(buildVersion)}`;
+        document.head.appendChild(stylesheet);
+      }
+
+      if (shouldUseLocalDevEnv) {
+        window.__ENV__ = localDevEnv;
+        applyEnvAndLoadStyles();
+        return;
+      }
+
+      const envScript = document.createElement('script');
+      envScript.src = '/env';
+      envScript.onload = applyEnvAndLoadStyles;
+      envScript.onerror = () => {
+        window.__ENV__ = localDevEnv;
+        applyEnvAndLoadStyles();
+      };
+
+      document.head.appendChild(envScript);
     })();
   </script>
 </head>

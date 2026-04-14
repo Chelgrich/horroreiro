@@ -1934,10 +1934,18 @@ function rerenderCatalogAfterDataReload(
 }
 
 function shouldRenderFullCatalogAfterWatchlistChange() {
+  if (!watchlistFilter) {
+    return false;
+  }
+
   return Boolean(watchlistFilter.value);
 }
 
 function shouldRenderFullCatalogAfterRatingChange() {
+  if (!watchedFilter || !watchlistFilter || !ratingFilter) {
+    return false;
+  }
+
   return Boolean(
     watchedFilter.value ||
     watchlistFilter.value ||
@@ -5395,9 +5403,9 @@ function getMoviePageMovieIdFromUrl() {
     return null;
   }
 
-  const movieId = Number(rawMovieId);
+  const movieId = String(rawMovieId).trim();
 
-  if (!Number.isInteger(movieId) || movieId <= 0) {
+  if (!movieId) {
     return null;
   }
 
