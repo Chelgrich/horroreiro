@@ -242,10 +242,6 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   stroke-linejoin: round;
 }
 
-.display-name-modal-dialog {
-  max-width: var(--modal-display-name-dialog-max-width);
-}
-
 .display-name-form {
   display: flex;
   flex-direction: column;
@@ -779,6 +775,10 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 
 .auth-modal-dialog {
   max-width: var(--modal-auth-dialog-max-width);
+}
+
+.display-name-modal-dialog {
+  max-width: var(--modal-display-name-dialog-max-width);
 }
 
 .auth-modal-dialog .auth-toast {
