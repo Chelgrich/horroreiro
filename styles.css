@@ -2461,7 +2461,7 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 }
 
 .movie-rating-value {
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 700;
   line-height: 1;
 }
@@ -2730,16 +2730,38 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 }
 
 @media (min-width: 681px) {
+  .mobile-rating-modal {
+    display: none;
+    box-sizing: border-box;
+    padding:
+      var(--modal-page-padding-top)
+      var(--modal-page-padding-x)
+      var(--modal-page-padding-bottom);
+    overflow-y: auto;
+  }
+
+  .mobile-rating-modal.is-open {
+    display: block;
+  }
+
+  .mobile-rating-modal-backdrop {
+    position: fixed;
+  }
+
   .mobile-rating-modal-dialog {
-    left: 50%;
+    position: relative;
+    left: auto;
     right: auto;
-    width: min(648px, calc(100vw - 32px));
+    bottom: auto;
+    width: 100%;
     max-width: 648px;
-    transform: translateX(-50%) translateY(10px) scale(0.99);
+    max-height: calc(100vh - var(--modal-dialog-max-height-offset));
+    margin: 0 auto;
+    transform: translateY(10px) scale(0.99);
   }
 
   .mobile-rating-modal.is-visible .mobile-rating-modal-dialog {
-    transform: translateX(-50%) translateY(0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -3885,7 +3907,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-rating-value {
-    font-size: 20px;
+    font-size: 26px;
   }
 
   .movie-rating-meta {
