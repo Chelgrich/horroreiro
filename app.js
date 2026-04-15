@@ -5582,7 +5582,7 @@ function renderMoviePage(movie) {
                     >
                     ${
                       currentUserRating !== null
-                        ? `Изменить оценку <span class="movie-page-rate-value">${currentUserRating}</span><span class="movie-page-rate-trigger-star">★</span>`
+                        ? `Изменить <span class="movie-page-rate-value">${currentUserRating}</span><span class="movie-page-rate-trigger-star">★</span>`
                         : 'Оценить'
                     }
                     </button>

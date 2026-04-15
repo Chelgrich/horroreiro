@@ -3018,12 +3018,16 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 10px;
 }
 
 .movie-page-rating-summary {
   margin-top: 0;
+  justify-content: flex-start;
+}
+
+.movie-page-rating-summary-main {
   justify-content: flex-start;
 }
 
