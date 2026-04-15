@@ -3236,6 +3236,20 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   color: #ffffff;
 }
 
+.movie-page-synopsis-block {
+  padding-top: 14px;
+  border-top: 1px solid #1f242b;
+}
+
+.movie-page-synopsis-text {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #dbe2ea;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .movie-page-rating-block {
   margin-top: 0;
   padding-top: 0;
@@ -3360,6 +3374,11 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   .movie-page-meta-item {
     font-size: 14px;
     line-height: 1.36;
+  }
+
+  .movie-page-synopsis-text {
+    font-size: 14px;
+    line-height: 1.58;
   }
 
   .movie-page-actions {

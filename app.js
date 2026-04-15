@@ -93,6 +93,7 @@ const rottentomatoesUrlInput = document.getElementById('rottentomatoesUrl');
 const genresInput = document.getElementById('genresInput');
 const countriesInput = document.getElementById('countriesInput');
 const searchAliasesInput = document.getElementById('searchAliases');
+const synopsisInput = document.getElementById('synopsis');
 
 /* =========================================================
 JS-БЛОК 2. ПОДКЛЮЧЕНИЕ К SUPABASE
@@ -1521,6 +1522,7 @@ function fillFormForEdit(movie) {
   setInputValue(genresInput, genres, 'genresInput');
   setInputValue(countriesInput, countries, 'countriesInput');
   setInputValue(searchAliasesInput, (movie.search_aliases || []).join('\n'), 'searchAliasesInput');
+  setInputValue(synopsisInput, movie.synopsis, 'synopsisInput');
 
   formTitle.textContent = `Редактирование: ${movie.title}`;
   submitButton.textContent = 'Сохранить изменения';
@@ -1745,6 +1747,7 @@ async function fetchMovies() {
       original_title,
       year,
       director,
+      synopsis,
       search_aliases,
       rating,
       poster_url,
@@ -2505,6 +2508,7 @@ async function addMovie(event) {
   const releaseYear = releaseYearInput.value.trim();
   const sortOrder = sortOrderInput.value.trim();
   const director = directorInput.value.trim();
+  const synopsis = synopsisInput.value.trim();
   const posterFile = posterFileInput.files && posterFileInput.files[0]
     ? posterFileInput.files[0]
     : null;
@@ -2547,6 +2551,7 @@ async function addMovie(event) {
           original_title: originalTitle || null,
           year: year ? Number(year) : null,
           director: director || null,
+          synopsis: synopsis || null,
           search_aliases: searchAliases,
           rating: 0,
           poster_url: finalPosterUrl,
@@ -2617,6 +2622,7 @@ async function updateMovie(event) {
   const releaseYear = releaseYearInput.value.trim();
   const sortOrder = sortOrderInput.value.trim();
   const director = directorInput.value.trim();
+  const synopsis = synopsisInput.value.trim();
   const posterFile = posterFileInput.files && posterFileInput.files[0]
     ? posterFileInput.files[0]
     : null;
@@ -2701,6 +2707,10 @@ async function updateMovie(event) {
 
     if ((director || null) !== (existingMovie.director ?? null)) {
       changedFields.director = director || null;
+    }
+
+    if ((synopsis || null) !== (existingMovie.synopsis ?? null)) {
+      changedFields.synopsis = synopsis || null;
     }
 
     if (!areStringArraysEqual(searchAliases, existingMovie.search_aliases || [])) {
@@ -5636,6 +5646,7 @@ function renderMoviePage(movie) {
   const userMovieState = getCurrentUserMovieState(movie.id);
   const releaseLabel = getMoviePageReleaseLabel(movie);
   const externalLinksHtml = getMovieExternalLinksHtml(movie);
+  const synopsis = String(movie.synopsis || '').trim();
   const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
   const isWatchlistBusy = watchlistRequestInFlight.has(String(movie.id));
 
@@ -5741,6 +5752,17 @@ function renderMoviePage(movie) {
           <div class="movie-page-meta-item"><span>Жанры:</span> <strong>${genres ? escapeHtml(genres) : '-'}</strong></div>
           <div class="movie-page-meta-item"><span>Страны:</span> <strong>${countries ? escapeHtml(countries) : '-'}</strong></div>
         </div>
+
+        ${
+          synopsis
+            ? `
+              <div class="movie-page-synopsis-block">
+                <div class="movie-page-subtitle">Описание</div>
+                <div class="movie-page-synopsis-text">${escapeHtml(synopsis).replace(/\n/g, '<br>')}</div>
+              </div>
+            `
+            : ''
+        }
 
         <div class="movie-page-rating-block movie-rating-block">
           ${
