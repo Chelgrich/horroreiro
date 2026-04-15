@@ -5644,7 +5644,6 @@ function renderMoviePage(movie) {
   const votesCount = getMovieRatings(movie.id).length;
   const currentUserRating = getCurrentUserRating(movie.id);
   const userMovieState = getCurrentUserMovieState(movie.id);
-  const releaseLabel = getMoviePageReleaseLabel(movie);
   const externalLinksHtml = getMovieExternalLinksHtml(movie);
   const synopsis = String(movie.synopsis || '').trim();
   const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
