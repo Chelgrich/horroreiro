@@ -4097,7 +4097,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movie-card .movie-external-links {
     display: grid;
     grid-template-columns: repeat(4, 38px);
-    gap: 6px;
+    gap: 8px;
     justify-content: center;
   }
 
@@ -4358,7 +4358,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movie-external-links {
-    gap: 6px;
+    gap: 8px;
   }
 
   .movie-external-links-toggle,
