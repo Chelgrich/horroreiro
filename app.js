@@ -1801,9 +1801,11 @@ async function fetchMovieWatchlist() {
 }
 
 async function reloadCatalogData({ showSkeleton = false } = {}) {
-  shouldFadeCatalogAfterSkeleton = showSkeleton;
+  const shouldShowCatalogSkeleton = showSkeleton && Boolean(container);
 
-  if (showSkeleton) {
+  shouldFadeCatalogAfterSkeleton = shouldShowCatalogSkeleton;
+
+  if (shouldShowCatalogSkeleton) {
     renderMoviesSkeleton(getCatalogSkeletonCardsCount());
   }
 
