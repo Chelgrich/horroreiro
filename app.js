@@ -98,6 +98,9 @@ const movieFormatsInput = document.getElementById('movieFormats');
 const tagsPerceivedInput = document.getElementById('tagsPerceived');
 const tagsCanonInput = document.getElementById('tagsCanon');
 const movieTriggersInput = document.getElementById('movieTriggers');
+const movieTaxonomyPrimaryPreview = document.getElementById('movieTaxonomyPrimaryPreview');
+const movieTaxonomySecondaryPreview = document.getElementById('movieTaxonomySecondaryPreview');
+const movieTaxonomyWarningsPreview = document.getElementById('movieTaxonomyWarningsPreview');
 
 /* =========================================================
 JS-БЛОК 2. ПОДКЛЮЧЕНИЕ К SUPABASE
@@ -225,16 +228,24 @@ function buildMovieTaxonomyDraftFromForm() {
   const triggers = parseMultilineValues(movieTriggersInput?.value || '');
 
   const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
+  const taxonomyMovieDraft = {
+    formats,
+    tags_perceived: tagsPerceived,
+    tags_canon: tagsCanon,
+    triggers
+  };
+
   const resolvedSubgenres = taxonomyHelpers?.resolveMovieSubgenres
-    ? taxonomyHelpers.resolveMovieSubgenres({
-        formats,
-        tags_perceived: tagsPerceived,
-        tags_canon: tagsCanon,
-        triggers
-      })
+    ? taxonomyHelpers.resolveMovieSubgenres(taxonomyMovieDraft)
     : {
         primary_subgenre: null,
         secondary_subgenres: []
+      };
+
+  const validationResult = taxonomyHelpers?.validateMovieTags
+    ? taxonomyHelpers.validateMovieTags(taxonomyMovieDraft)
+    : {
+        warnings: []
       };
 
   return {
@@ -245,6 +256,9 @@ function buildMovieTaxonomyDraftFromForm() {
     primarySubgenre: resolvedSubgenres.primary_subgenre || null,
     secondarySubgenres: Array.isArray(resolvedSubgenres.secondary_subgenres)
       ? resolvedSubgenres.secondary_subgenres
+      : [],
+    warnings: Array.isArray(validationResult.warnings)
+      ? validationResult.warnings
       : []
   };
 }
@@ -255,6 +269,48 @@ function normalizeSearchText(value) {
     .replaceAll('ё', 'е')
     .trim()
     .replace(/\s+/g, ' ');
+}
+
+function getTaxonomyLabel(groupName, key) {
+  const normalizedKey = String(key || '').trim();
+
+  if (!normalizedKey) {
+    return '';
+  }
+
+  return window.HORROR_TAXONOMY?.labels?.[groupName]?.[normalizedKey] || normalizedKey;
+}
+
+function mapTaxonomyLabels(groupName, values) {
+  return (Array.isArray(values) ? values : [])
+    .filter(Boolean)
+    .map(value => getTaxonomyLabel(groupName, value));
+}
+
+function updateMovieTaxonomyPreview() {
+  if (!movieTaxonomyPrimaryPreview || !movieTaxonomySecondaryPreview || !movieTaxonomyWarningsPreview) {
+    return;
+  }
+
+  const taxonomyDraft = buildMovieTaxonomyDraftFromForm();
+  const primaryLabel = taxonomyDraft.primarySubgenre
+    ? getTaxonomyLabel('subgenres', taxonomyDraft.primarySubgenre)
+    : '—';
+  const secondaryLabels = taxonomyDraft.secondarySubgenres.length > 0
+    ? mapTaxonomyLabels('subgenres', taxonomyDraft.secondarySubgenres).join(', ')
+    : '—';
+
+  movieTaxonomyPrimaryPreview.textContent = primaryLabel;
+  movieTaxonomySecondaryPreview.textContent = secondaryLabels;
+
+  if (!taxonomyDraft.warnings.length) {
+    movieTaxonomyWarningsPreview.innerHTML = '';
+    return;
+  }
+
+  movieTaxonomyWarningsPreview.innerHTML = taxonomyDraft.warnings
+    .map(warning => `<div class="movie-taxonomy-preview-warning">${escapeHtml(warning.message)}</div>`)
+    .join('');
 }
 
 function transliterateForSlug(value) {
@@ -1589,6 +1645,7 @@ function resetFormToCreateMode() {
   formMessage.textContent = '';
 
   refreshCustomSelect(releaseMonthInput);
+  updateMovieTaxonomyPreview();
 }
 
 function fillFormForEdit(movie) {
@@ -1643,6 +1700,7 @@ function fillFormForEdit(movie) {
   formMessage.textContent = '';
 
   refreshCustomSelect(releaseMonthInput);
+  updateMovieTaxonomyPreview();
 
   openMovieModal();
 }
@@ -5573,6 +5631,16 @@ if (posterFileInput) {
   posterFileInput.addEventListener('change', updatePosterFileUi);
 }
 
+[movieFormatsInput, tagsPerceivedInput, tagsCanonInput, movieTriggersInput].forEach(inputElement => {
+  if (!inputElement) {
+    return;
+  }
+
+  inputElement.addEventListener('input', () => {
+    updateMovieTaxonomyPreview();
+  });
+});
+
 if (movieForm) {
   movieForm.addEventListener('submit', saveMovie);
 }
@@ -6137,7 +6205,7 @@ function renderMoviePage(movie) {
                       ? `
                         <div class="movie-page-taxonomy-item">
                           <span>Поджанр:</span>
-                          <strong>${escapeHtml(movie.primary_subgenre)}</strong>
+                          <strong>${escapeHtml(getTaxonomyLabel('subgenres', movie.primary_subgenre))}</strong>
                         </div>
                       `
                       : ''
@@ -6148,7 +6216,7 @@ function renderMoviePage(movie) {
                       ? `
                         <div class="movie-page-taxonomy-item">
                           <span>Доп. поджанры:</span>
-                          <strong>${escapeHtml((movie.secondary_subgenres || []).join(', '))}</strong>
+                          <strong>${escapeHtml(mapTaxonomyLabels('subgenres', movie.secondary_subgenres).join(', '))}</strong>
                         </div>
                       `
                       : ''
@@ -6159,7 +6227,7 @@ function renderMoviePage(movie) {
                       ? `
                         <div class="movie-page-taxonomy-item">
                           <span>Формат:</span>
-                          <strong>${escapeHtml((movie.formats || []).join(', '))}</strong>
+                          <strong>${escapeHtml(mapTaxonomyLabels('formats', movie.formats).join(', '))}</strong>
                         </div>
                       `
                       : ''
@@ -6312,4 +6380,5 @@ async function init() {
 JS-БЛОК 24. ЗАПУСК ПРИЛОЖЕНИЯ
 Точка входа.
 ========================================================== */
+updateMovieTaxonomyPreview();
 init();

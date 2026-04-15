@@ -1012,6 +1012,48 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
   color: var(--color-text-muted);
 }
 
+.movie-taxonomy-preview {
+  padding: 12px 14px;
+  background: var(--surface-control);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-md);
+}
+
+.movie-taxonomy-preview-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.movie-taxonomy-preview-line + .movie-taxonomy-preview-line {
+  margin-top: 8px;
+}
+
+.movie-taxonomy-preview-line span {
+  color: var(--color-text-muted);
+}
+
+.movie-taxonomy-preview-line strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.movie-taxonomy-preview-warnings {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.movie-taxonomy-preview-warning {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-danger-text);
+}
+
 .auth-conditional-field {
   display: none;
 }
@@ -3490,6 +3532,16 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   .movie-page-taxonomy-item {
     font-size: 14px;
     line-height: 1.36;
+  }
+
+  .movie-taxonomy-preview-line {
+    font-size: 13px;
+    line-height: 1.36;
+  }
+
+  .movie-taxonomy-preview-warning {
+    font-size: 11px;
+    line-height: 1.38;
   }
 
   .movie-page-synopsis-text {
