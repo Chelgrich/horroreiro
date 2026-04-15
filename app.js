@@ -4164,6 +4164,133 @@ function getMovieExternalIconSrc(type) {
   return icons[type] || '';
 }
 
+function extractImdbTitleId(url) {
+  const match = String(url || '').match(/imdb\.com\/title\/(tt\d+)/i);
+  return match ? match[1] : null;
+}
+
+function extractKinopoiskFilmId(url) {
+  const match = String(url || '').match(/kinopoisk\.ru\/film\/(\d+)/i);
+  return match ? match[1] : null;
+}
+
+function getMoviePageExternalLinksHtml(movie) {
+  const imdbTitleId = extractImdbTitleId(movie.imdb_url);
+  const kinopoiskFilmId = extractKinopoiskFilmId(movie.kinopoisk_url);
+
+  const ratingLinks = [];
+
+  if (imdbTitleId && movie.imdb_url) {
+    ratingLinks.push(`
+      <a
+        href="${movie.imdb_url}"
+        class="movie-rating-widget-link movie-rating-widget-link-imdb"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Открыть рейтинг IMDb"
+        title="IMDb"
+      >
+        <img
+          src="https://imdb.desol.one/${imdbTitleId}.png"
+          alt="Рейтинг IMDb"
+          class="movie-rating-widget-image"
+          loading="lazy"
+        >
+      </a>
+    `);
+  }
+
+  if (kinopoiskFilmId && movie.kinopoisk_url) {
+    ratingLinks.push(`
+      <a
+        href="${movie.kinopoisk_url}"
+        class="movie-rating-widget-link movie-rating-widget-link-kinopoisk"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Открыть рейтинг Кинопоиска"
+        title="Кинопоиск"
+      >
+        <img
+          src="https://www.kinopoisk.ru/rating/${kinopoiskFilmId}.gif"
+          alt="Рейтинг Кинопоиска"
+          class="movie-rating-widget-image"
+          loading="lazy"
+        >
+      </a>
+    `);
+  }
+
+  const fallbackLinks = [
+    imdbTitleId ? null : (movie.imdb_url ? {
+      url: movie.imdb_url,
+      label: 'IMDb',
+      type: 'imdb',
+      className: 'is-imdb'
+    } : null),
+    kinopoiskFilmId ? null : (movie.kinopoisk_url ? {
+      url: movie.kinopoisk_url,
+      label: 'Кинопоиск',
+      type: 'kinopoisk',
+      className: 'is-kinopoisk'
+    } : null),
+    movie.letterboxd_url ? {
+      url: movie.letterboxd_url,
+      label: 'Letterboxd',
+      type: 'letterboxd',
+      className: 'is-letterboxd'
+    } : null,
+    movie.rottentomatoes_url ? {
+      url: movie.rottentomatoes_url,
+      label: 'Rotten Tomatoes',
+      type: 'rottentomatoes',
+      className: 'is-rottentomatoes'
+    } : null
+  ].filter(Boolean);
+
+  const fallbackLinksHtml = fallbackLinks.length > 0
+    ? `
+      <div class="movie-external-links" aria-label="Ссылки на карточки фильма">
+        ${fallbackLinks.map(link => `
+          <a
+            href="${link.url}"
+            class="movie-external-link ${link.className}"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="${link.label}"
+            title="${link.label}"
+          >
+            <img
+              src="${getMovieExternalIconSrc(link.type)}"
+              alt=""
+              class="movie-external-link-icon"
+              loading="lazy"
+            >
+          </a>
+        `).join('')}
+      </div>
+    `
+    : '';
+
+  if (ratingLinks.length === 0 && !fallbackLinksHtml) {
+    return '';
+  }
+
+  return `
+    <div class="movie-page-external-links-mixed">
+      ${
+        ratingLinks.length > 0
+          ? `
+            <div class="movie-rating-widgets" aria-label="Рейтинги киноагрегаторов">
+              ${ratingLinks.join('')}
+            </div>
+          `
+          : ''
+      }
+      ${fallbackLinksHtml}
+    </div>
+  `;
+}
+
 function getMovieExternalLinksHtml(movie) {
   const links = [
     {
@@ -5801,7 +5928,7 @@ function renderMoviePage(movie) {
   const votesCount = getMovieRatings(movie.id).length;
   const currentUserRating = getCurrentUserRating(movie.id);
   const userMovieState = getCurrentUserMovieState(movie.id);
-  const externalLinksHtml = getMovieExternalLinksHtml(movie);
+  const externalLinksHtml = getMoviePageExternalLinksHtml(movie);
   const synopsis = String(movie.synopsis || '').trim();
   const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
   const isWatchlistBusy = watchlistRequestInFlight.has(String(movie.id));

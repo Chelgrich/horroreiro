@@ -3313,6 +3313,42 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   border-top: 1px solid #1f242b;
 }
 
+.movie-page-external-links-mixed {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.movie-rating-widgets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.movie-rating-widget-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  color: inherit;
+  text-decoration: none;
+}
+
+.movie-rating-widget-link:hover,
+.movie-rating-widget-link:focus,
+.movie-rating-widget-link:focus-visible,
+.movie-rating-widget-link:active {
+  color: inherit;
+  text-decoration: none;
+}
+
+.movie-rating-widget-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
 .movie-page-subtitle {
   margin-bottom: 10px;
   font-size: 14px;
@@ -3403,6 +3439,10 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   .movie-page-synopsis-text {
     font-size: 14px;
     line-height: 1.58;
+  }
+
+  .movie-rating-widgets {
+    gap: 8px;
   }
 
   .movie-page-actions {
