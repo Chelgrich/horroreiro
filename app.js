@@ -3869,6 +3869,10 @@ function renderMoviesSkeleton(cardsCount = 8) {
 }
 
 function getCatalogSkeletonCardsCount() {
+  if (!container) {
+    return 8;
+  }
+
   const renderedCardsCount = container.querySelectorAll('.movie-card').length;
 
   if (renderedCardsCount > 0) {
