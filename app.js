@@ -5580,11 +5580,11 @@ function renderMoviePage(movie) {
                       data-open-mobile-rating="true"
                       ${isRatingBusy ? 'disabled' : ''}
                     >
-                      ${
-                        currentUserRating !== null
-                          ? `Изменить оценку ${currentUserRating} <span class="movie-page-rate-trigger-star">★</span>`
-                          : 'Оценить'
-                      }
+                    ${
+                      currentUserRating !== null
+                        ? `Изменить оценку <span class="movie-page-rate-value">${currentUserRating}</span><span class="movie-page-rate-trigger-star">★</span>`
+                        : 'Оценить'
+                    }
                     </button>
                   `
                   : ''

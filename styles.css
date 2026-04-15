@@ -3018,13 +3018,13 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 10px;
 }
 
 .movie-page-rating-summary {
   margin-top: 0;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .movie-page-rate-trigger {
@@ -3035,6 +3035,10 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
 .movie-page-rate-trigger-star {
   margin-left: 4px;
   color: var(--color-rating-text);
+}
+
+.movie-page-rate-trigger .movie-page-rate-value {
+  margin-left: 6px;
 }
 
 .movie-page-title {
