@@ -1662,16 +1662,20 @@ async function loadGenres() {
     return;
   }
 
+  if (!genreFilter) {
+    return;
+  }
+
   genreFilter.innerHTML = '<option value="">Все доп. жанры</option>';
 
   data
-  .filter(item => normalizeSearchText(item.name) !== 'ужасы')
-  .forEach(item => {
-    const option = document.createElement('option');
-    option.value = item.name;
-    option.textContent = item.name;
-    genreFilter.appendChild(option);
-  });
+    .filter(item => normalizeSearchText(item.name) !== 'ужасы')
+    .forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.name;
+      option.textContent = item.name;
+      genreFilter.appendChild(option);
+    });
 
   refreshCustomSelect(genreFilter);
 }
@@ -1684,6 +1688,10 @@ async function loadCountries() {
 
   if (error) {
     console.error('Ошибка загрузки стран:', error);
+    return;
+  }
+
+  if (!countryFilter) {
     return;
   }
 
@@ -1700,6 +1708,10 @@ async function loadCountries() {
 }
 
 function loadYearFilterOptions() {
+  if (!yearFilter) {
+    return;
+  }
+
   const years = [
     ...new Set(
       allMovies
@@ -2760,16 +2772,27 @@ async function updateMovie(event) {
       return;
     }
 
-    setMovieFormStatus('Обновляю каталог...');
-    await withPendingRequestTimeout(
-      reloadCatalogData({ showSkeleton: true }),
-      15000,
-      'Превышено время ожидания обновления каталога.'
-    );
-
     if (isCatalogPage()) {
+      setMovieFormStatus('Обновляю каталог...');
+      await withPendingRequestTimeout(
+        reloadCatalogData({ showSkeleton: true }),
+        15000,
+        'Превышено время ожидания обновления каталога.'
+      );
+
       rerenderCatalogAfterDataReload(editingMovieId);
     } else if (isMoviePage()) {
+      setMovieFormStatus('Обновляю страницу фильма...');
+
+      await withPendingRequestTimeout(
+        Promise.all([
+          fetchMovieRatings(),
+          fetchMovieWatchlist()
+        ]),
+        15000,
+        'Превышено время ожидания обновления данных фильма.'
+      );
+
       const updatedMovie = await withPendingRequestTimeout(
         fetchMovieById(editingMovieId),
         15000,
