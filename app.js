@@ -222,6 +222,80 @@ function normalizeSearchText(value) {
     .replace(/\s+/g, ' ');
 }
 
+function transliterateForSlug(value) {
+  const transliterationMap = {
+    а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'yo', ж: 'zh', з: 'z',
+    и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r',
+    с: 's', т: 't', у: 'u', ф: 'f', х: 'h', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'sch',
+    ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya'
+  };
+
+  return String(value || '')
+    .split('')
+    .map(character => {
+      const lowerCharacter = character.toLowerCase();
+
+      if (transliterationMap[lowerCharacter] !== undefined) {
+        return transliterationMap[lowerCharacter];
+      }
+
+      return character;
+    })
+    .join('');
+}
+
+function slugifyMovieValue(value) {
+  const transliteratedValue = transliterateForSlug(value);
+
+  return transliteratedValue
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+}
+
+async function buildUniqueMovieSlug(title, year = null, excludeMovieId = null) {
+  const normalizedYear = Number(year) || null;
+  const baseSlug = slugifyMovieValue(title) || 'movie';
+  const slugBaseWithYear = normalizedYear
+    ? `${baseSlug}-${normalizedYear}`
+    : baseSlug;
+
+  let slugCandidate = slugBaseWithYear;
+  let suffix = 2;
+
+  while (true) {
+    let query = supabaseClient
+      .from('movies')
+      .select('id')
+      .eq('slug', slugCandidate)
+      .limit(1);
+
+    if (excludeMovieId) {
+      query = query.neq('id', excludeMovieId);
+    }
+
+    const { data, error } = await query;
+
+    throwIfSupabaseError(error);
+
+    if (!data || data.length === 0) {
+      return slugCandidate;
+    }
+
+    slugCandidate = `${slugBaseWithYear}-${suffix}`;
+    suffix += 1;
+  }
+}
+
+function buildMoviePageUrl(movie) {
+  if (movie?.slug) {
+    return `movie.html?slug=${encodeURIComponent(movie.slug)}`;
+  }
+
+  return `movie.html?id=${encodeURIComponent(movie.id)}`;
+}
+
 function escapeRegExp(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -1743,6 +1817,7 @@ async function fetchMovies() {
     .from('movies')
     .select(`
       id,
+      slug,
       title,
       original_title,
       year,
@@ -2548,6 +2623,7 @@ async function addMovie(event) {
         .from('movies')
         .insert({
           title,
+          slug: await buildUniqueMovieSlug(title, year ? Number(year) : null),
           original_title: originalTitle || null,
           year: year ? Number(year) : null,
           director: director || null,
@@ -2564,7 +2640,7 @@ async function addMovie(event) {
           sort_order: sortOrder ? Number(sortOrder) : null,
           owner_id: currentUser.id
         })
-        .select('id') // сразу забираем id созданной записи, без повторного поиска по title
+        .select('id, slug') // сразу забираем id и slug созданной записи
         .single(),
       15000,
       'Превышено время ожидания сохранения фильма.'
@@ -2590,7 +2666,7 @@ async function addMovie(event) {
       resetFormToCreateMode();
       closeMovieModal();
     } else if (isMoviePage()) {
-      window.location.href = `movie.html?id=${insertedMovie.id}`;
+      window.location.href = buildMoviePageUrl(insertedMovie);
       return;
     }
   } catch (error) {
@@ -2713,6 +2789,21 @@ async function updateMovie(event) {
       changedFields.synopsis = synopsis || null;
     }
 
+    const currentYearValue = year ? Number(year) : null;
+    const shouldRegenerateSlug = (
+      !existingMovie.slug ||
+      title !== (existingMovie.title ?? '') ||
+      currentYearValue !== (existingMovie.year ?? null)
+    );
+
+    if (shouldRegenerateSlug) {
+      const nextSlug = await buildUniqueMovieSlug(title, currentYearValue, editingMovieId);
+
+      if (nextSlug !== (existingMovie.slug ?? null)) {
+        changedFields.slug = nextSlug;
+      }
+    }
+
     if (!areStringArraysEqual(searchAliases, existingMovie.search_aliases || [])) {
       changedFields.search_aliases = searchAliases;
     }
@@ -2815,6 +2906,12 @@ async function updateMovie(event) {
       );
 
       if (updatedMovie) {
+        const nextMoviePageUrl = buildMoviePageUrl(updatedMovie);
+
+        if (window.location.pathname.endsWith('movie.html')) {
+          window.history.replaceState({}, '', nextMoviePageUrl);
+        }
+
         renderMoviePage(updatedMovie);
       } else {
         renderMoviePageNotFound();
@@ -4127,7 +4224,7 @@ function getMovieExternalLinksHtml(movie) {
 function getPosterHtml(movie, userMovieState, matchedSearchAlias = null) {
   return `
     <div class="movie-poster-block">
-      <a href="movie.html?id=${movie.id}" class="movie-poster-link" aria-label="Открыть страницу фильма ${escapeHtml(movie.title)}">
+    <a href="${buildMoviePageUrl(movie)}" class="movie-poster-link" aria-label="Открыть страницу фильма ${escapeHtml(movie.title)}">
         <div class="movie-poster-wrapper">
         ${
           movie.poster_url
@@ -4481,7 +4578,7 @@ function createMovieCard(movie) {
     ${posterHtml}
   
     <h5 class="movie-title">
-      <a href="movie.html?id=${movieId}" class="movie-title-link">${highlightSearchMatches(movie.title, searchInput.value)}</a>
+    <a href="${buildMoviePageUrl(movie)}" class="movie-title-link">${highlightSearchMatches(movie.title, searchInput.value)}</a>
     </h5>
   
     ${movie.original_title ? `<p>Оригинальное название: ${highlightSearchMatches(movie.original_title, searchInput.value)}</p>` : ''}
@@ -5511,21 +5608,23 @@ async function initCatalogPage() {
   restoreCatalogScrollPosition();
 }
 
-function getMoviePageMovieIdFromUrl() {
+function getMoviePageRouteParams() {
   const searchParams = new URLSearchParams(window.location.search);
+  const rawMovieSlug = searchParams.get('slug');
   const rawMovieId = searchParams.get('id');
 
-  if (!rawMovieId) {
-    return null;
+  const movieSlug = String(rawMovieSlug || '').trim();
+  const movieId = String(rawMovieId || '').trim();
+
+  if (movieSlug) {
+    return { slug: movieSlug, id: null };
   }
 
-  const movieId = String(rawMovieId).trim();
-
-  if (!movieId) {
-    return null;
+  if (movieId) {
+    return { slug: null, id: movieId };
   }
 
-  return movieId;
+  return null;
 }
 
 async function fetchMovieById(movieId) {
@@ -5533,6 +5632,7 @@ async function fetchMovieById(movieId) {
     .from('movies')
     .select(`
       id,
+      slug,
       title,
       original_title,
       year,
@@ -5565,6 +5665,60 @@ async function fetchMovieById(movieId) {
   }
 
   return data || null;
+}
+
+async function fetchMovieByRouteParams(routeParams) {
+  if (!routeParams) {
+    return null;
+  }
+
+  if (routeParams.slug) {
+    const { data, error } = await supabaseClient
+      .from('movies')
+      .select(`
+        id,
+        slug,
+        title,
+        original_title,
+        year,
+        director,
+        synopsis,
+        search_aliases,
+        rating,
+        poster_url,
+        kinopoisk_url,
+        imdb_url,
+        letterboxd_url,
+        rottentomatoes_url,
+        release_year,
+        release_month,
+        sort_order,
+        movie_genres (
+          position,
+          genres (name)
+        ),
+        movie_countries (
+          countries (name)
+        )
+      `)
+      .eq('slug', routeParams.slug)
+      .order('position', { foreignTable: 'movie_genres', ascending: true })
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      return data;
+    }
+  }
+
+  if (routeParams.id) {
+    return fetchMovieById(routeParams.id);
+  }
+
+  return null;
 }
 
 function getMoviePageReleaseLabel(movie) {
@@ -5818,9 +5972,9 @@ async function deleteMovieFromMoviePage(movieId, movieTitle) {
 }
 
 async function initMoviePage() {
-  const movieId = getMoviePageMovieIdFromUrl();
+  const routeParams = getMoviePageRouteParams();
 
-  if (!movieId) {
+  if (!routeParams) {
     renderMoviePageNotFound();
     return;
   }
@@ -5832,7 +5986,7 @@ async function initMoviePage() {
   await fetchMovieWatchlist();
 
   try {
-    const movie = await fetchMovieById(movieId);
+    const movie = await fetchMovieByRouteParams(routeParams);
 
     if (!movie) {
       renderMoviePageNotFound();
@@ -5851,7 +6005,7 @@ async function initMoviePage() {
       await fetchMovieWatchlist();
 
       try {
-        const movie = await fetchMovieById(movieId);
+        const movie = await fetchMovieByRouteParams(routeParams);
 
         if (!movie) {
           renderMoviePageNotFound();
