@@ -1781,7 +1781,18 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   border-radius: var(--radius-md);
   cursor: pointer;
   user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease, color 0.16s ease;
+}
+
+#triggerFiltersTriggerText {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .trigger-filters-select.has-value .trigger-filters-trigger {
