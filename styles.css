@@ -1755,6 +1755,111 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   max-height: min(420px, calc(100vh - 180px));
 }
 
+.trigger-filters-select {
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+.trigger-filters-select.is-open {
+  z-index: 500;
+}
+
+.trigger-filters-trigger {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-height-lg);
+  padding: 10px 40px 10px 12px;
+  box-sizing: border-box;
+  display: block;
+  text-align: left;
+  color: #f2f2f2;
+  background: var(--surface-control);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  user-select: none;
+}
+
+.trigger-filters-trigger::after {
+  content: '';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 12px;
+  height: 8px;
+  transform: translateY(-50%);
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%239aa3ad' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 12px 8px;
+  pointer-events: none;
+  transition: transform 0.18s ease;
+}
+
+.trigger-filters-select.is-open .trigger-filters-trigger::after {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.trigger-filters-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: none;
+  padding: 12px;
+  background: #171c22;
+  border: 1px solid #2f3741;
+  border-radius: var(--radius-md);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+}
+
+.trigger-filters-select.is-open .trigger-filters-dropdown {
+  display: block;
+}
+
+.trigger-filters-dropdown-hint {
+  margin-bottom: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.trigger-filters-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(320px, calc(100vh - 260px));
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.trigger-filter-option {
+  min-height: 38px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid #2b333c;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.trigger-filter-option input {
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.trigger-filter-option span {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .filter-sort {
   min-width: 220px;
   margin-bottom: 0;
@@ -3890,7 +3995,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .filters input,
   .filters .custom-select-trigger,
-  .catalog-toolbar .custom-select-trigger {
+  .catalog-toolbar .custom-select-trigger,
+  .trigger-filters-trigger {
     min-height: 42px;
   }
 

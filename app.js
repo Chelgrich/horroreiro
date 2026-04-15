@@ -49,6 +49,10 @@ const formatFilter = document.getElementById('formatFilter');
 const countryFilter = document.getElementById('countryFilter');
 const ratingFilter = document.getElementById('ratingFilter');
 const yearFilter = document.getElementById('yearFilter');
+const triggerFiltersSelect = document.getElementById('triggerFiltersSelect');
+const triggerFiltersToggle = document.getElementById('triggerFiltersToggle');
+const triggerFiltersTriggerText = document.getElementById('triggerFiltersTriggerText');
+const triggerFiltersDropdown = document.getElementById('triggerFiltersDropdown');
 const triggerFiltersGroup = document.getElementById('triggerFiltersGroup');
 const watchlistFilter = document.getElementById('watchlistFilter');
 const watchlistFilterRow = document.getElementById('watchlistFilterRow');
@@ -298,6 +302,59 @@ function getSelectedTriggerFilters() {
   return Array.from(
     triggerFiltersGroup.querySelectorAll('input[type="checkbox"][data-trigger-filter]:checked')
   ).map(input => input.value);
+}
+
+function closeTriggerFiltersDropdown() {
+  if (!triggerFiltersSelect || !triggerFiltersToggle || !triggerFiltersDropdown) {
+    return;
+  }
+
+  triggerFiltersSelect.classList.remove('is-open');
+  triggerFiltersToggle.setAttribute('aria-expanded', 'false');
+  triggerFiltersDropdown.setAttribute('aria-hidden', 'true');
+}
+
+function openTriggerFiltersDropdown() {
+  if (!triggerFiltersSelect || !triggerFiltersToggle || !triggerFiltersDropdown) {
+    return;
+  }
+
+  triggerFiltersSelect.classList.add('is-open');
+  triggerFiltersToggle.setAttribute('aria-expanded', 'true');
+  triggerFiltersDropdown.setAttribute('aria-hidden', 'false');
+}
+
+function toggleTriggerFiltersDropdown() {
+  if (!triggerFiltersSelect) {
+    return;
+  }
+
+  if (triggerFiltersSelect.classList.contains('is-open')) {
+    closeTriggerFiltersDropdown();
+    return;
+  }
+
+  openTriggerFiltersDropdown();
+}
+
+function syncTriggerFiltersTriggerText() {
+  if (!triggerFiltersTriggerText) {
+    return;
+  }
+
+  const selectedTriggerKeys = getSelectedTriggerFilters();
+
+  if (selectedTriggerKeys.length === 0) {
+    triggerFiltersTriggerText.textContent = 'Скрыть по триггерам';
+    return;
+  }
+
+  if (selectedTriggerKeys.length === 1) {
+    triggerFiltersTriggerText.textContent = `Исключить: ${getTaxonomyLabel('triggers', selectedTriggerKeys[0])}`;
+    return;
+  }
+
+  triggerFiltersTriggerText.textContent = `Исключить: ${selectedTriggerKeys.length}`;
 }
 
 function updateMovieTaxonomyPreview() {
@@ -767,6 +824,7 @@ function applySavedCatalogState() {
     ]);
 
     syncCatalogViewToggleButton();
+    syncTriggerFiltersTriggerText();
     updateFiltersButtonLabel();
     syncQuickPresetButtons();
   } catch (error) {
@@ -1945,6 +2003,8 @@ function loadTriggerFilterOptions() {
       <span>${escapeHtml(getTaxonomyLabel('triggers', triggerKey))}</span>
     </label>
   `).join('');
+
+  syncTriggerFiltersTriggerText();
 }
 
 async function loadCountries() {
@@ -2333,6 +2393,7 @@ function resetFilterControls({ preserveSearch = false } = {}) {
     filterCustomSelectElements.filter(selectElement => selectElement !== sortMode)
   );
 
+  syncTriggerFiltersTriggerText();
   saveCatalogState();
 }
 
@@ -2610,6 +2671,7 @@ function clearFilterChip(filterKey) {
     refreshCustomSelect(ratingFilter);
   }
 
+  syncTriggerFiltersTriggerText();
   saveCatalogStateAndRenderFilters();
 
   // Если модалка фильтров была открыта, после снятия фильтра закрываем её,
@@ -5813,6 +5875,12 @@ if (resetFiltersTopButton) {
   });
 }
 
+if (triggerFiltersToggle) {
+  triggerFiltersToggle.addEventListener('click', () => {
+    toggleTriggerFiltersDropdown();
+  });
+}
+
 if (triggerFiltersGroup) {
   triggerFiltersGroup.addEventListener('change', event => {
     const changedInput = event.target.closest('input[type="checkbox"][data-trigger-filter]');
@@ -5821,6 +5889,7 @@ if (triggerFiltersGroup) {
       return;
     }
 
+    syncTriggerFiltersTriggerText();
     handleFiltersChange();
   });
 }
@@ -5885,6 +5954,10 @@ document.addEventListener('click', event => {
     closeAuthPopoverMenu();
   }
 
+  if (triggerFiltersSelect && !event.target.closest('#triggerFiltersSelect')) {
+    closeTriggerFiltersDropdown();
+  }
+
   if (!container) {
     return;
   }
@@ -5945,6 +6018,7 @@ document.addEventListener('keydown', event => {
   closeAllCustomSelects();
   closeAuthPopoverMenu();
   closeDisplayNameModal();
+  closeTriggerFiltersDropdown();
 
   if (isModalOpen) {
     closeMovieModal();

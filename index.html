@@ -640,13 +640,31 @@
           </div>
 
           <div class="form-row form-row-triggers-exclude">
-            <label>Скрыть фильмы с триггерами:</label>
+            <label for="triggerFiltersToggle">Триггеры:</label>
 
-            <div class="field-hint">
-              Исключающий фильтр. Если у фильма есть хотя бы один выбранный триггер, он скрывается из каталога.
+            <div class="trigger-filters-select" id="triggerFiltersSelect">
+              <button
+                type="button"
+                id="triggerFiltersToggle"
+                class="trigger-filters-trigger"
+                aria-expanded="false"
+                aria-controls="triggerFiltersDropdown"
+              >
+                <span id="triggerFiltersTriggerText">Скрыть по триггерам</span>
+              </button>
+
+              <div
+                id="triggerFiltersDropdown"
+                class="trigger-filters-dropdown"
+                aria-hidden="true"
+              >
+                <div class="trigger-filters-dropdown-hint">
+                  Исключающий фильтр. Если у фильма есть хотя бы один выбранный триггер, он скрывается из каталога.
+                </div>
+
+                <div id="triggerFiltersGroup" class="trigger-filters-group"></div>
+              </div>
             </div>
-
-            <div id="triggerFiltersGroup" class="trigger-filters-group"></div>
           </div>
         </div>
 
