@@ -94,6 +94,10 @@ const genresInput = document.getElementById('genresInput');
 const countriesInput = document.getElementById('countriesInput');
 const searchAliasesInput = document.getElementById('searchAliases');
 const synopsisInput = document.getElementById('synopsis');
+const movieFormatsInput = document.getElementById('movieFormats');
+const tagsPerceivedInput = document.getElementById('tagsPerceived');
+const tagsCanonInput = document.getElementById('tagsCanon');
+const movieTriggersInput = document.getElementById('movieTriggers');
 
 /* =========================================================
 JS-БЛОК 2. ПОДКЛЮЧЕНИЕ К SUPABASE
@@ -212,6 +216,37 @@ function parseMultilineValues(value) {
     });
 
   return Array.from(uniqueValues.values());
+}
+
+function buildMovieTaxonomyDraftFromForm() {
+  const formats = parseMultilineValues(movieFormatsInput?.value || '');
+  const tagsPerceived = parseMultilineValues(tagsPerceivedInput?.value || '');
+  const tagsCanon = parseMultilineValues(tagsCanonInput?.value || '');
+  const triggers = parseMultilineValues(movieTriggersInput?.value || '');
+
+  const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
+  const resolvedSubgenres = taxonomyHelpers?.resolveMovieSubgenres
+    ? taxonomyHelpers.resolveMovieSubgenres({
+        formats,
+        tags_perceived: tagsPerceived,
+        tags_canon: tagsCanon,
+        triggers
+      })
+    : {
+        primary_subgenre: null,
+        secondary_subgenres: []
+      };
+
+  return {
+    formats,
+    tagsPerceived,
+    tagsCanon,
+    triggers,
+    primarySubgenre: resolvedSubgenres.primary_subgenre || null,
+    secondarySubgenres: Array.isArray(resolvedSubgenres.secondary_subgenres)
+      ? resolvedSubgenres.secondary_subgenres
+      : []
+  };
 }
 
 function normalizeSearchText(value) {
@@ -1597,6 +1632,10 @@ function fillFormForEdit(movie) {
   setInputValue(countriesInput, countries, 'countriesInput');
   setInputValue(searchAliasesInput, (movie.search_aliases || []).join('\n'), 'searchAliasesInput');
   setInputValue(synopsisInput, movie.synopsis, 'synopsisInput');
+  setInputValue(movieFormatsInput, (movie.formats || []).join('\n'), 'movieFormatsInput');
+  setInputValue(tagsPerceivedInput, (movie.tags_perceived || []).join('\n'), 'tagsPerceivedInput');
+  setInputValue(tagsCanonInput, (movie.tags_canon || []).join('\n'), 'tagsCanonInput');
+  setInputValue(movieTriggersInput, (movie.triggers || []).join('\n'), 'movieTriggersInput');
 
   formTitle.textContent = `Редактирование: ${movie.title}`;
   submitButton.textContent = 'Сохранить изменения';
@@ -1823,6 +1862,12 @@ async function fetchMovies() {
       year,
       director,
       synopsis,
+      formats,
+      primary_subgenre,
+      secondary_subgenres,
+      tags_perceived,
+      tags_canon,
+      triggers,
       search_aliases,
       rating,
       poster_url,
@@ -2595,6 +2640,7 @@ async function addMovie(event) {
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseCommaSeparated(countriesInput.value);
   const searchAliases = parseMultilineValues(searchAliasesInput.value);
+  const taxonomyDraft = buildMovieTaxonomyDraftFromForm();
 
   if (!title) {
     formMessage.textContent = 'Название обязательно.';
@@ -2628,6 +2674,12 @@ async function addMovie(event) {
           year: year ? Number(year) : null,
           director: director || null,
           synopsis: synopsis || null,
+          formats: taxonomyDraft.formats,
+          primary_subgenre: taxonomyDraft.primarySubgenre,
+          secondary_subgenres: taxonomyDraft.secondarySubgenres,
+          tags_perceived: taxonomyDraft.tagsPerceived,
+          tags_canon: taxonomyDraft.tagsCanon,
+          triggers: taxonomyDraft.triggers,
           search_aliases: searchAliases,
           rating: 0,
           poster_url: finalPosterUrl,
@@ -2710,6 +2762,7 @@ async function updateMovie(event) {
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseCommaSeparated(countriesInput.value);
   const searchAliases = parseMultilineValues(searchAliasesInput.value);
+  const taxonomyDraft = buildMovieTaxonomyDraftFromForm();
 
   if (!title) {
     formMessage.textContent = 'Название обязательно.';
@@ -2787,6 +2840,30 @@ async function updateMovie(event) {
 
     if ((synopsis || null) !== (existingMovie.synopsis ?? null)) {
       changedFields.synopsis = synopsis || null;
+    }
+
+    if (!areStringArraysEqual(taxonomyDraft.formats, existingMovie.formats || [])) {
+      changedFields.formats = taxonomyDraft.formats;
+    }
+
+    if ((taxonomyDraft.primarySubgenre || null) !== (existingMovie.primary_subgenre ?? null)) {
+      changedFields.primary_subgenre = taxonomyDraft.primarySubgenre;
+    }
+
+    if (!areStringArraysEqual(taxonomyDraft.secondarySubgenres, existingMovie.secondary_subgenres || [])) {
+      changedFields.secondary_subgenres = taxonomyDraft.secondarySubgenres;
+    }
+
+    if (!areStringArraysEqual(taxonomyDraft.tagsPerceived, existingMovie.tags_perceived || [])) {
+      changedFields.tags_perceived = taxonomyDraft.tagsPerceived;
+    }
+
+    if (!areStringArraysEqual(taxonomyDraft.tagsCanon, existingMovie.tags_canon || [])) {
+      changedFields.tags_canon = taxonomyDraft.tagsCanon;
+    }
+
+    if (!areStringArraysEqual(taxonomyDraft.triggers, existingMovie.triggers || [])) {
+      changedFields.triggers = taxonomyDraft.triggers;
     }
 
     const currentYearValue = year ? Number(year) : null;
@@ -5767,6 +5844,12 @@ async function fetchMovieById(movieId) {
       year,
       director,
       synopsis,
+      formats,
+      primary_subgenre,
+      secondary_subgenres,
+      tags_perceived,
+      tags_canon,
+      triggers,
       search_aliases,
       rating,
       poster_url,
@@ -5812,6 +5895,12 @@ async function fetchMovieByRouteParams(routeParams) {
         year,
         director,
         synopsis,
+        formats,
+        primary_subgenre,
+        secondary_subgenres,
+        tags_perceived,
+        tags_canon,
+        triggers,
         search_aliases,
         rating,
         poster_url,
