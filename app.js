@@ -49,6 +49,7 @@ const formatFilter = document.getElementById('formatFilter');
 const countryFilter = document.getElementById('countryFilter');
 const ratingFilter = document.getElementById('ratingFilter');
 const yearFilter = document.getElementById('yearFilter');
+const triggerFiltersGroup = document.getElementById('triggerFiltersGroup');
 const watchlistFilter = document.getElementById('watchlistFilter');
 const watchlistFilterRow = document.getElementById('watchlistFilterRow');
 const watchedFilter = document.getElementById('watchedFilter');
@@ -287,6 +288,16 @@ function mapTaxonomyLabels(groupName, values) {
   return (Array.isArray(values) ? values : [])
     .filter(Boolean)
     .map(value => getTaxonomyLabel(groupName, value));
+}
+
+function getSelectedTriggerFilters() {
+  if (!triggerFiltersGroup) {
+    return [];
+  }
+
+  return Array.from(
+    triggerFiltersGroup.querySelectorAll('input[type="checkbox"][data-trigger-filter]:checked')
+  ).map(input => input.value);
 }
 
 function updateMovieTaxonomyPreview() {
@@ -694,6 +705,7 @@ function saveCatalogState() {
         country: countryFilter.value,
         rating: ratingFilter.value,
         year: yearFilter.value,
+        triggerExcludes: getSelectedTriggerFilters(),
         watchlist: currentUser ? watchlistFilter.value : '',
         watched: currentUser ? watchedFilter.value : '',
         viewMode: viewMode.value,
@@ -721,6 +733,18 @@ function applySavedCatalogState() {
       yearFilter.value = catalogState.year || '';
       watchlistFilter.value = currentUser ? (catalogState.watchlist || '') : '';
       watchedFilter.value = currentUser ? (catalogState.watched || '') : '';
+
+      const savedTriggerExcludes = Array.isArray(catalogState.triggerExcludes)
+        ? catalogState.triggerExcludes
+        : [];
+
+      if (triggerFiltersGroup) {
+        triggerFiltersGroup
+          .querySelectorAll('input[type="checkbox"][data-trigger-filter]')
+          .forEach(input => {
+            input.checked = savedTriggerExcludes.includes(input.value);
+          });
+      }
       viewMode.value = catalogState.viewMode || 'list';
       sortMode.value = catalogState.sortMode || 'default';
     }
@@ -854,6 +878,7 @@ function hasNonDefaultFilterValues() {
     genreFilter.value ||
     subgenreFilter.value ||
     formatFilter.value ||
+    getSelectedTriggerFilters().length > 0 ||
     countryFilter.value ||
     ratingFilter.value !== '' ||
     yearFilter.value ||
@@ -1903,6 +1928,25 @@ function loadFormatFilterOptions() {
   refreshCustomSelect(formatFilter);
 }
 
+function loadTriggerFilterOptions() {
+  if (!triggerFiltersGroup) {
+    return;
+  }
+
+  const triggerKeys = window.HORROR_TAXONOMY?.triggers || [];
+
+  triggerFiltersGroup.innerHTML = triggerKeys.map(triggerKey => `
+    <label class="trigger-filter-option">
+      <input
+        type="checkbox"
+        value="${escapeHtml(triggerKey)}"
+        data-trigger-filter="true"
+      >
+      <span>${escapeHtml(getTaxonomyLabel('triggers', triggerKey))}</span>
+    </label>
+  `).join('');
+}
+
 async function loadCountries() {
   const { data, error } = await supabaseClient
     .from('countries')
@@ -2062,6 +2106,7 @@ async function reloadCatalogData({ showSkeleton = false } = {}) {
 
   loadSubgenreFilterOptions();
   loadFormatFilterOptions();
+  loadTriggerFilterOptions();
 
   initCustomSelects();
 }
@@ -2276,6 +2321,14 @@ function resetFilterControls({ preserveSearch = false } = {}) {
   watchlistFilter.value = '';
   watchedFilter.value = '';
 
+  if (triggerFiltersGroup) {
+    triggerFiltersGroup
+      .querySelectorAll('input[type="checkbox"][data-trigger-filter]')
+      .forEach(input => {
+        input.checked = false;
+      });
+  }
+
   refreshCustomSelectGroup(
     filterCustomSelectElements.filter(selectElement => selectElement !== sortMode)
   );
@@ -2298,10 +2351,11 @@ function getActiveQuickPresetKey() {
   const hasGenreFilter = Boolean(genreFilter.value);
   const hasSubgenreFilter = Boolean(subgenreFilter.value);
   const hasFormatFilter = Boolean(formatFilter.value);
+  const hasTriggerFilters = getSelectedTriggerFilters().length > 0;
   const hasCountryFilter = Boolean(countryFilter.value);
   const hasYearFilter = Boolean(yearFilter.value);
 
-  if (hasSearchQuery || hasGenreFilter || hasSubgenreFilter || hasFormatFilter || hasCountryFilter || hasYearFilter) {
+  if (hasSearchQuery || hasGenreFilter || hasSubgenreFilter || hasFormatFilter || hasTriggerFilters || hasCountryFilter || hasYearFilter) {
     return null;
   }
 
@@ -2438,6 +2492,13 @@ function getActiveFilterChips() {
     });
   }
 
+  getSelectedTriggerFilters().forEach(triggerKey => {
+    chips.push({
+      label: `Исключить: ${getTaxonomyLabel('triggers', triggerKey)}`,
+      key: `trigger:${triggerKey}`
+    });
+  });
+
   if (yearFilter.value) {
     chips.push({ label: `Год: ${yearFilter.value}`, key: 'year' });
   }
@@ -2518,6 +2579,20 @@ function clearFilterChip(filterKey) {
   if (filterKey === 'format') {
     formatFilter.value = '';
     refreshCustomSelect(formatFilter);
+  }
+
+  if (filterKey.startsWith('trigger:')) {
+    const triggerKey = filterKey.slice('trigger:'.length);
+
+    if (triggerFiltersGroup) {
+      const triggerInput = triggerFiltersGroup.querySelector(
+        `input[type="checkbox"][data-trigger-filter][value="${CSS.escape(triggerKey)}"]`
+      );
+
+      if (triggerInput) {
+        triggerInput.checked = false;
+      }
+    }
   }
 
   if (filterKey === 'year') {
@@ -5198,6 +5273,16 @@ function getFilteredMovies() {
     );
   }
 
+  const selectedTriggerExcludes = getSelectedTriggerFilters();
+
+  if (selectedTriggerExcludes.length > 0) {
+    filteredMovies = filteredMovies.filter(movie => {
+      const movieTriggers = Array.isArray(movie.triggers) ? movie.triggers : [];
+
+      return !selectedTriggerExcludes.some(triggerKey => movieTriggers.includes(triggerKey));
+    });
+  }
+
   if (selectedCountry) {
     filteredMovies = filteredMovies.filter(movie =>
       movie.movie_countries.some(item => item.countries.name === selectedCountry)
@@ -5725,6 +5810,18 @@ if (quickPresetsBar) {
 if (resetFiltersTopButton) {
   resetFiltersTopButton.addEventListener('click', () => {
     resetCatalogFiltersAndRerender();
+  });
+}
+
+if (triggerFiltersGroup) {
+  triggerFiltersGroup.addEventListener('change', event => {
+    const changedInput = event.target.closest('input[type="checkbox"][data-trigger-filter]');
+
+    if (!changedInput) {
+      return;
+    }
+
+    handleFiltersChange();
   });
 }
 
