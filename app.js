@@ -2573,16 +2573,21 @@ async function addMovie(event) {
       'Превышено время ожидания сохранения жанров и стран.'
     );
 
-    setMovieFormStatus('Обновляю каталог...');
-    await withPendingRequestTimeout(
-      reloadCatalogData({ showSkeleton: true }),
-      15000,
-      'Превышено время ожидания обновления каталога.'
+    if (isCatalogPage()) {
+      setMovieFormStatus('Обновляю каталог...');
+      await withPendingRequestTimeout(
+        reloadCatalogData({ showSkeleton: true }),
+        15000,
+        'Превышено время ожидания обновления каталога.'
       ); // сначала дожидаемся полной синхронизации состояния каталога
 
       rerenderCatalogAfterDataReload(insertedMovie.id);
       resetFormToCreateMode();
       closeMovieModal();
+    } else if (isMoviePage()) {
+      window.location.href = `movie.html?id=${insertedMovie.id}`;
+      return;
+    }
   } catch (error) {
     console.error('Ошибка при добавлении фильма:', error);
     setMovieFormStatus(`Ошибка при добавлении фильма: ${error.message || 'смотри консоль F12.'}`);
