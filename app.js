@@ -343,8 +343,13 @@ function syncTriggerFiltersTriggerText() {
   }
 
   const selectedTriggerKeys = getSelectedTriggerFilters();
+  const hasSelectedTriggers = selectedTriggerKeys.length > 0;
 
-  if (selectedTriggerKeys.length === 0) {
+  if (triggerFiltersSelect) {
+    triggerFiltersSelect.classList.toggle('has-value', hasSelectedTriggers);
+  }
+
+  if (!hasSelectedTriggers) {
     triggerFiltersTriggerText.textContent = 'Скрыть по триггерам';
     return;
   }

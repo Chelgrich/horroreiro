@@ -1775,13 +1775,18 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   display: block;
   text-align: left;
   font: inherit;
-  color: var(--color-text-primary);
+  color: var(--color-text-dim);
   background: var(--surface-control);
   border: 1px solid var(--border-control);
   border-radius: var(--radius-md);
   cursor: pointer;
   user-select: none;
-  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease, color 0.16s ease;
+}
+
+.trigger-filters-select.has-value .trigger-filters-trigger {
+  color: var(--color-text-secondary);
+  font-weight: 600;
 }
 
 .trigger-filters-trigger:hover {
