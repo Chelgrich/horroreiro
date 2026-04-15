@@ -78,6 +78,46 @@ window.HORROR_TAXONOMY = {
       'claustrophobia',
       'animal_phobia'
     ],
+
+    labels: {
+      subgenres: {
+        slasher: 'Слэшер',
+        home_invasion: 'Вторжение в дом',
+        creature_feature: 'Монстры и существа',
+        supernatural_horror: 'Сверхъестественный хоррор',
+        possession: 'Одержимость',
+        cult_ritual: 'Культ и ритуал',
+        survival_game: 'Игра на выживание',
+        trapped_survival: 'Выживание в ловушке',
+        infection_outbreak: 'Заражение',
+        disaster_horror: 'Хоррор-катастрофа',
+        mystery_horror: 'Мистический хоррор'
+      },
+
+      formats: {
+        classic: 'Классический',
+        found_footage: 'Найденная плёнка',
+        screenlife: 'Скринлайф',
+        anthology: 'Антология'
+      },
+
+      triggers: {
+        gore: 'Реалистичное насилие',
+        child_harm: 'Вред детям',
+        mental_instability: 'Психическая нестабильность',
+        reality_distortion: 'Искажение реальности',
+        suicide: 'Самоубийство',
+        animal_death: 'Смерть животных',
+        animal_abuse: 'Жестокость к животным',
+        domestic_violence: 'Домашнее насилие',
+        sexual_violence: 'Сексуализированное насилие',
+        pregnancy: 'Беременность',
+        body_invasion: 'Телесное вторжение',
+        breathing_distress: 'Проблемы с дыханием',
+        claustrophobia: 'Клаустрофобия',
+        animal_phobia: 'Фобия животных'
+      }
+    },
   
     subgenre_scoring: {
       weights: {
