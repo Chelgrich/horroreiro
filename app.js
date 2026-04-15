@@ -45,6 +45,7 @@ const searchInput = document.getElementById('searchInput');
 const searchClearBtn = document.getElementById('searchClearBtn');
 const genreFilter = document.getElementById('genreFilter');
 const subgenreFilter = document.getElementById('subgenreFilter');
+const formatFilter = document.getElementById('formatFilter');
 const countryFilter = document.getElementById('countryFilter');
 const ratingFilter = document.getElementById('ratingFilter');
 const yearFilter = document.getElementById('yearFilter');
@@ -689,6 +690,7 @@ function saveCatalogState() {
         searchQuery: searchInput.value,
         genre: genreFilter.value,
         subgenre: subgenreFilter.value,
+        format: formatFilter.value,
         country: countryFilter.value,
         rating: ratingFilter.value,
         year: yearFilter.value,
@@ -713,6 +715,7 @@ function applySavedCatalogState() {
       searchInput.value = catalogState.searchQuery || '';
       genreFilter.value = catalogState.genre || '';
       subgenreFilter.value = catalogState.subgenre || '';
+      formatFilter.value = catalogState.format || '';
       countryFilter.value = catalogState.country || '';
       ratingFilter.value = catalogState.rating || '';
       yearFilter.value = catalogState.year || '';
@@ -729,6 +732,7 @@ function applySavedCatalogState() {
     refreshCustomSelectGroup([
       genreFilter,
       subgenreFilter,
+      formatFilter,
       countryFilter,
       ratingFilter,
       yearFilter,
@@ -849,6 +853,7 @@ function hasNonDefaultFilterValues() {
   return Boolean(
     genreFilter.value ||
     subgenreFilter.value ||
+    formatFilter.value ||
     countryFilter.value ||
     ratingFilter.value !== '' ||
     yearFilter.value ||
@@ -1790,6 +1795,7 @@ JS-БЛОК 8A. ПОДКЛЮЧЕНИЕ МОДУЛЯ КАСТОМНЫХ SELECT
 const filterCustomSelectElements = [
   genreFilter,
   subgenreFilter,
+  formatFilter,
   countryFilter,
   ratingFilter,
   yearFilter,
@@ -1876,6 +1882,25 @@ function loadSubgenreFilterOptions() {
   });
 
   refreshCustomSelect(subgenreFilter);
+}
+
+function loadFormatFilterOptions() {
+  if (!formatFilter) {
+    return;
+  }
+
+  const formatKeys = window.HORROR_TAXONOMY?.formats || [];
+
+  formatFilter.innerHTML = '<option value="">Все</option>';
+
+  formatKeys.forEach(formatKey => {
+    const option = document.createElement('option');
+    option.value = formatKey;
+    option.textContent = getTaxonomyLabel('formats', formatKey);
+    formatFilter.appendChild(option);
+  });
+
+  refreshCustomSelect(formatFilter);
 }
 
 async function loadCountries() {
@@ -2036,6 +2061,7 @@ async function reloadCatalogData({ showSkeleton = false } = {}) {
   ]);
 
   loadSubgenreFilterOptions();
+  loadFormatFilterOptions();
 
   initCustomSelects();
 }
@@ -2243,6 +2269,7 @@ function resetFilterControls({ preserveSearch = false } = {}) {
 
   genreFilter.value = '';
   subgenreFilter.value = '';
+  formatFilter.value = '';
   countryFilter.value = '';
   ratingFilter.value = '';
   yearFilter.value = '';
@@ -2270,10 +2297,11 @@ function getActiveQuickPresetKey() {
   const hasSearchQuery = searchInput.value.trim() !== '';
   const hasGenreFilter = Boolean(genreFilter.value);
   const hasSubgenreFilter = Boolean(subgenreFilter.value);
+  const hasFormatFilter = Boolean(formatFilter.value);
   const hasCountryFilter = Boolean(countryFilter.value);
   const hasYearFilter = Boolean(yearFilter.value);
 
-  if (hasSearchQuery || hasGenreFilter || hasSubgenreFilter || hasCountryFilter || hasYearFilter) {
+  if (hasSearchQuery || hasGenreFilter || hasSubgenreFilter || hasFormatFilter || hasCountryFilter || hasYearFilter) {
     return null;
   }
 
@@ -2403,6 +2431,13 @@ function getActiveFilterChips() {
     });
   }
 
+  if (formatFilter.value) {
+    chips.push({
+      label: `Формат: ${getTaxonomyLabel('formats', formatFilter.value)}`,
+      key: 'format'
+    });
+  }
+
   if (yearFilter.value) {
     chips.push({ label: `Год: ${yearFilter.value}`, key: 'year' });
   }
@@ -2478,6 +2513,11 @@ function clearFilterChip(filterKey) {
   if (filterKey === 'subgenre') {
     subgenreFilter.value = '';
     refreshCustomSelect(subgenreFilter);
+  }
+
+  if (filterKey === 'format') {
+    formatFilter.value = '';
+    refreshCustomSelect(formatFilter);
   }
 
   if (filterKey === 'year') {
@@ -5152,6 +5192,12 @@ function getFilteredMovies() {
     );
   }
 
+  if (formatFilter.value) {
+    filteredMovies = filteredMovies.filter(movie =>
+      Array.isArray(movie.formats) && movie.formats.includes(formatFilter.value)
+    );
+  }
+
   if (selectedCountry) {
     filteredMovies = filteredMovies.filter(movie =>
       movie.movie_countries.some(item => item.countries.name === selectedCountry)
@@ -5625,6 +5671,10 @@ if (genreFilter) {
 
 if (subgenreFilter) {
   subgenreFilter.addEventListener('change', handleFiltersChange);
+}
+
+if (formatFilter) {
+  formatFilter.addEventListener('change', handleFiltersChange);
 }
 
 if (countryFilter) {
