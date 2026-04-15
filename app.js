@@ -5744,23 +5744,6 @@ function renderMoviePage(movie) {
 
         <div class="movie-page-rating-block movie-rating-block">
           ${
-            currentUser && !userMovieState.isWatched
-              ? `
-                <div class="movie-page-actions">
-                  <button
-                    type="button"
-                    class="secondary-button secondary-button-compact"
-                    data-movie-page-watchlist-toggle="true"
-                    ${isWatchlistBusy ? 'disabled' : ''}
-                  >
-                    ${userMovieState.isInWatchlist ? 'Убрать из смотреть позже' : 'Добавить в смотреть позже'}
-                  </button>
-                </div>
-              `
-              : ''
-          }
-
-          ${
             externalLinksHtml
               ? `
                 <div class="movie-page-external-links-block">
@@ -5775,15 +5758,8 @@ function renderMoviePage(movie) {
     </article>
   `;
 
-  const watchlistButton = moviePage.querySelector('[data-movie-page-watchlist-toggle="true"]');
   const watchlistIconButton = moviePage.querySelector('[data-movie-page-watchlist-icon-toggle="true"]');
   const mobileRatingButton = moviePage.querySelector('[data-open-mobile-rating="true"]');
-
-  if (watchlistButton) {
-    watchlistButton.addEventListener('click', () => {
-      toggleMovieWatchlist(movie.id);
-    });
-  }
 
   if (watchlistIconButton) {
     watchlistIconButton.addEventListener('click', () => {
