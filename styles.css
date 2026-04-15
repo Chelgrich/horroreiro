@@ -4094,14 +4094,14 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     margin-top: 3px;
   }
 
-  .movie-external-links {
+  .movie-card .movie-external-links {
     display: grid;
     grid-template-columns: repeat(4, 38px);
     gap: 6px;
     justify-content: center;
   }
 
-  .movie-external-links.is-two-rows {
+  .movie-card .movie-external-links.is-two-rows {
     grid-template-columns: repeat(2, 38px);
   }
 
