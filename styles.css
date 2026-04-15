@@ -3260,6 +3260,32 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   color: #ffffff;
 }
 
+.movie-page-taxonomy-block {
+  padding-top: 14px;
+  border-top: 1px solid #1f242b;
+}
+
+.movie-page-taxonomy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.movie-page-taxonomy-item {
+  font-size: 15px;
+  line-height: 1.4;
+  color: #e3e8ee;
+}
+
+.movie-page-taxonomy-item span {
+  color: var(--color-text-muted);
+}
+
+.movie-page-taxonomy-item strong {
+  font-weight: 700;
+  color: #ffffff;
+}
+
 .movie-page-synopsis-block {
   padding-top: 14px;
   border-top: 1px solid #1f242b;
@@ -3457,6 +3483,11 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   }
 
   .movie-page-meta-item {
+    font-size: 14px;
+    line-height: 1.36;
+  }
+
+  .movie-page-taxonomy-item {
     font-size: 14px;
     line-height: 1.36;
   }
