@@ -5656,14 +5656,21 @@ function renderMoviePage(movie) {
       }
 
       ${
-        currentUser && !userMovieState.isWatched && userMovieState.isInWatchlist
+        currentUser && !userMovieState.isWatched
           ? `
-            <div class="movie-page-watchlist-icon" aria-label="В списке смотреть позже" title="В списке смотреть позже">
+            <button
+              type="button"
+              class="movie-page-watchlist-icon ${userMovieState.isInWatchlist ? 'is-active' : ''}"
+              data-movie-page-watchlist-icon-toggle="true"
+              aria-label="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+              title="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+              ${isWatchlistBusy ? 'disabled' : ''}
+            >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
                 <circle cx="12" cy="12" r="3"></circle>
               </svg>
-            </div>
+            </button>
           `
           : ''
       }
@@ -5765,10 +5772,17 @@ function renderMoviePage(movie) {
   `;
 
   const watchlistButton = moviePage.querySelector('[data-movie-page-watchlist-toggle="true"]');
+  const watchlistIconButton = moviePage.querySelector('[data-movie-page-watchlist-icon-toggle="true"]');
   const mobileRatingButton = moviePage.querySelector('[data-open-mobile-rating="true"]');
 
   if (watchlistButton) {
     watchlistButton.addEventListener('click', () => {
+      toggleMovieWatchlist(movie.id);
+    });
+  }
+
+  if (watchlistIconButton) {
+    watchlistIconButton.addEventListener('click', () => {
       toggleMovieWatchlist(movie.id);
     });
   }
