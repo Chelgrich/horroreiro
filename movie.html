@@ -416,6 +416,34 @@
     <section class="section movie-page">
       <div class="movie-page-topbar">
         <a href="index.html" class="secondary-button movie-page-back-link">← Назад к каталогу</a>
+
+        <div id="moviePageAdminActions" class="movie-page-admin-actions auth-ui-block">
+          <button
+            type="button"
+            id="moviePageEditButton"
+            class="movie-page-admin-icon-button"
+            aria-label="Редактировать фильм"
+            title="Редактировать фильм"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 20h4l9.8-9.8a2.121 2.121 0 1 0-3-3L5 17v3Z"></path>
+              <path d="m13.5 6.5 3 3"></path>
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            id="moviePageDeleteButton"
+            class="movie-page-admin-icon-button movie-page-admin-icon-button-danger"
+            aria-label="Удалить фильм"
+            title="Удалить фильм"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6l12 12"></path>
+              <path d="M18 6 6 18"></path>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div id="moviePage" class="movie-page-content-shell">

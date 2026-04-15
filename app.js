@@ -64,6 +64,9 @@ const quickPresetsBar = document.getElementById('quickPresetsBar');
 
 const container = document.getElementById('movies');
 const moviePage = document.getElementById('moviePage');
+const moviePageAdminActions = document.getElementById('moviePageAdminActions');
+const moviePageEditButton = document.getElementById('moviePageEditButton');
+const moviePageDeleteButton = document.getElementById('moviePageDeleteButton');
 const moviesSectionTitle = document.querySelector('.movies-section .section-title');
 const moviesResultCount = document.getElementById('moviesResultCount');
 let catalogViewToggleButton = null;
@@ -153,6 +156,7 @@ let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
 let lastCatalogAnchorMovieId = null;
 let currentMoviePageMovieId = null;
+let currentMoviePageMovieData = null;
 let shouldFadeCatalogAfterSkeleton = false;
 let catalogFadeCleanupTimerId = null;
 
@@ -1550,6 +1554,10 @@ function updateAuthUI() {
 
   if (adminPanel) {
     adminPanel.classList.toggle('is-visible', shouldShowAuthenticatedUi && isAdmin);
+  }
+
+  if (moviePageAdminActions) {
+    moviePageAdminActions.classList.toggle('is-visible', shouldShowAuthenticatedUi && isAdmin && isMoviePage());
   }
 
   if (shouldShowAuthenticatedUi) {
@@ -5193,6 +5201,34 @@ if (cancelEditButton) {
   });
 }
 
+if (moviePageEditButton) {
+  moviePageEditButton.addEventListener('click', async () => {
+    if (!isAdmin || !currentMoviePageMovieId) {
+      return;
+    }
+
+    const movieForEdit = currentMoviePageMovieData || await fetchMovieById(currentMoviePageMovieId);
+
+    if (!movieForEdit) {
+      return;
+    }
+
+    fillFormForEdit(movieForEdit);
+  });
+}
+
+if (moviePageDeleteButton) {
+  moviePageDeleteButton.addEventListener('click', () => {
+    if (!isAdmin || !currentMoviePageMovieId || !currentMoviePageMovieData) {
+      return;
+    }
+
+    armDeleteMovieButton(moviePageDeleteButton, () => {
+      deleteMovieFromMoviePage(currentMoviePageMovieId, currentMoviePageMovieData.title);
+    });
+  });
+}
+
 document.addEventListener('click', event => {
   const clickedInsideAuthMenu = event.target.closest('.auth-menu-wrap');
 
@@ -5493,6 +5529,9 @@ function renderMoviePageNotFound() {
     return;
   }
 
+  currentMoviePageMovieId = null;
+  currentMoviePageMovieData = null;
+
   setMoviePageDocumentMeta(null);
 
   moviePage.innerHTML = `
@@ -5517,6 +5556,7 @@ function renderMoviePage(movie) {
   }
 
   currentMoviePageMovieId = movie.id;
+  currentMoviePageMovieData = movie;
 
   const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
   const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
@@ -5671,6 +5711,27 @@ function renderMoviePage(movie) {
     mobileRatingButton.addEventListener('click', () => {
       openMobileRatingModal(movie);
     });
+  }
+}
+
+async function deleteMovieFromMoviePage(movieId, movieTitle) {
+  const isConfirmed = confirm(`Удалить фильм "${movieTitle}"?`);
+
+  if (!isConfirmed) {
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from('movies')
+      .delete()
+      .eq('id', movieId);
+
+    throwIfSupabaseError(error);
+
+    window.location.href = 'index.html';
+  } catch (error) {
+    console.error('Ошибка при удалении фильма со страницы detail-page:', error);
   }
 }
 

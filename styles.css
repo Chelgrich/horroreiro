@@ -2934,12 +2934,77 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   margin-bottom: 20px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .movie-page-back-link {
   min-width: 0;
   text-decoration: none;
+}
+
+.movie-page-admin-actions {
+  display: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.movie-page-admin-actions.is-visible {
+  display: flex;
+}
+
+.movie-page-admin-icon-button {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  background: var(--surface-control-alt);
+  border: 1px solid var(--border-control-strong);
+  border-radius: 999px;
+}
+
+.movie-page-admin-icon-button svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.movie-page-admin-icon-button:hover {
+  color: #ffffff;
+  background: #1b2128;
+  border-color: #3a444f;
+  transform: none;
+}
+
+.movie-page-admin-icon-button:active {
+  transform: none;
+}
+
+.movie-page-admin-icon-button:focus,
+.movie-page-admin-icon-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
+}
+
+.movie-page-admin-icon-button-danger {
+  color: var(--color-danger-text);
+  border-color: var(--color-danger-border-soft);
+}
+
+.movie-page-admin-icon-button-danger:hover {
+  background: rgba(255, 123, 114, 0.08);
+  border-color: rgba(255, 123, 114, 0.45);
 }
 
 .movie-page-content-shell {
@@ -3192,6 +3257,7 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
 @media (max-width: 680px) {
   .movie-page-topbar {
     margin-bottom: 16px;
+    gap: 10px;
   }
 
   .movie-page-layout {
