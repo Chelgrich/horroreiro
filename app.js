@@ -3376,6 +3376,10 @@ function showMovieRatingFeedback(movieId, type = 'success') {
 }
 
 function showMovieWatchlistFeedback(movieId, type = 'success') {
+  if (!container) {
+    return;
+  }
+
   const card = container.querySelector(`[data-movie-id="${movieId}"]`);
 
   if (!card) {
