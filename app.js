@@ -4670,7 +4670,9 @@ function createMovieCard(movie) {
   if (watchlistToggleBtn) {
     watchlistToggleBtn.disabled = isWatchlistBusy;
 
-    watchlistToggleBtn.addEventListener('click', () => {
+    watchlistToggleBtn.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
       toggleMovieWatchlist(movieId);
     });
   }
