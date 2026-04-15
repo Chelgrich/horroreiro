@@ -3007,6 +3007,20 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   border-color: rgba(255, 123, 114, 0.45);
 }
 
+.movie-page-admin-icon-button-danger.is-delete-confirm {
+  color: #ffffff;
+  background: rgba(255, 123, 114, 0.22);
+  border-color: rgba(255, 123, 114, 0.62);
+  box-shadow:
+    0 0 0 1px rgba(255, 123, 114, 0.18),
+    0 0 18px rgba(255, 123, 114, 0.18);
+}
+
+.movie-page-admin-icon-button-danger.is-delete-confirm:hover {
+  background: rgba(255, 123, 114, 0.28);
+  border-color: rgba(255, 123, 114, 0.72);
+}
+
 .movie-page-content-shell {
   min-height: 240px;
 }

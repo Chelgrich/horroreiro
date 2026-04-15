@@ -3349,16 +3349,30 @@ function armDeleteMovieButton(buttonElement, onConfirm) {
     return;
   }
 
-  const originalText = buttonElement.textContent;
+  const originalAriaLabel = buttonElement.getAttribute('aria-label') || '';
+  const originalTitle = buttonElement.getAttribute('title') || '';
 
   buttonElement.dataset.deleteArmed = 'true';
-  buttonElement.textContent = 'Подтвердить';
+  buttonElement.dataset.deleteOriginalAriaLabel = originalAriaLabel;
+  buttonElement.dataset.deleteOriginalTitle = originalTitle;
   buttonElement.classList.add('is-delete-confirm');
+  buttonElement.setAttribute('aria-label', 'Подтвердить удаление');
+  buttonElement.setAttribute('title', 'Нажмите ещё раз, чтобы удалить');
 
   const resetDeleteButton = () => {
     buttonElement.dataset.deleteArmed = 'false';
-    buttonElement.textContent = originalText;
     buttonElement.classList.remove('is-delete-confirm');
+
+    if (buttonElement.dataset.deleteOriginalAriaLabel !== undefined) {
+      buttonElement.setAttribute('aria-label', buttonElement.dataset.deleteOriginalAriaLabel);
+      delete buttonElement.dataset.deleteOriginalAriaLabel;
+    }
+
+    if (buttonElement.dataset.deleteOriginalTitle !== undefined) {
+      buttonElement.setAttribute('title', buttonElement.dataset.deleteOriginalTitle);
+      delete buttonElement.dataset.deleteOriginalTitle;
+    }
+
     buttonElement.removeEventListener('blur', resetDeleteButton);
     clearTimeout(resetTimerId);
   };
