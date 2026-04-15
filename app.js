@@ -2765,11 +2765,26 @@ async function updateMovie(event) {
       reloadCatalogData({ showSkeleton: true }),
       15000,
       'Превышено время ожидания обновления каталога.'
+    );
+
+    if (isCatalogPage()) {
+      rerenderCatalogAfterDataReload(editingMovieId);
+    } else if (isMoviePage()) {
+      const updatedMovie = await withPendingRequestTimeout(
+        fetchMovieById(editingMovieId),
+        15000,
+        'Превышено время ожидания обновления страницы фильма.'
       );
 
-      rerenderCatalogAfterDataReload(editingMovieId);
-      closeMovieModal();
-      resetFormToCreateMode();
+      if (updatedMovie) {
+        renderMoviePage(updatedMovie);
+      } else {
+        renderMoviePageNotFound();
+      }
+    }
+
+    closeMovieModal();
+    resetFormToCreateMode();
   } catch (error) {
     console.error('Ошибка при редактировании фильма:', error);
     setMovieFormStatus(`Ошибка при редактировании фильма: ${error.message || 'смотри консоль F12.'}`);
