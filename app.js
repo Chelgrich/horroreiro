@@ -2616,7 +2616,10 @@ async function updateMovie(event) {
     return;
   }
 
-  const existingMovie = allMovies.find(movie => movie.id === editingMovieId);
+  const existingMovie = allMovies.find(movie => movie.id === editingMovieId)
+    || (currentMoviePageMovieData && currentMoviePageMovieData.id === editingMovieId
+      ? currentMoviePageMovieData
+      : null);
 
   if (!existingMovie) {
     formMessage.textContent = 'Не удалось найти фильм для редактирования.';
