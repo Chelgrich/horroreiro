@@ -3338,19 +3338,24 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
 
 @media (max-width: 560px) {
   .movie-page-external-links-mixed {
-    display: grid;
-    grid-template-columns: repeat(2, max-content);
-    justify-content: start;
+    display: flex;
     align-items: center;
-    gap: 10px 8px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .movie-rating-widgets {
-    display: contents;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .movie-page-external-links-mixed .movie-external-links {
-    display: contents;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 }
 
