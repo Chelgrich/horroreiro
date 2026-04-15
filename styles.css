@@ -2435,7 +2435,7 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 }
 
 .movie-rating-block .movie-external-links {
-  margin-bottom: 18px;
+  margin-bottom: 0;
 }
 
 .movie-external-links-toggle {
