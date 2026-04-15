@@ -5537,6 +5537,7 @@ async function fetchMovieById(movieId) {
       original_title,
       year,
       director,
+      synopsis,
       search_aliases,
       rating,
       poster_url,
