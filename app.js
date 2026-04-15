@@ -3652,7 +3652,7 @@ function closeMobileRatingModal() {
 }
 
 function openMobileRatingModal(movie) {
-  if (!currentUser || !isMobileRatingLayout()) {
+  if (!currentUser) {
     return;
   }
 
@@ -5533,136 +5533,129 @@ function renderMoviePage(movie) {
 
   moviePage.innerHTML = `
     <article class="movie-page-layout" data-movie-id="${movie.id}">
-    <div class="movie-page-poster-column">
-    <div class="movie-page-poster-wrapper">
-      ${
-        movie.poster_url
-          ? `
-            <img
-              class="movie-page-poster"
-              src="${movie.poster_url}"
-              alt="Постер фильма ${escapeHtml(movie.title)}"
-              loading="eager"
-              decoding="async"
-            >
-          `
-          : `<div class="movie-poster-placeholder">Нет постера</div>`
-      }
-    </div>
-
-    ${currentUser ? `
-      <div class="movie-page-poster-rating">
-        ${getUserRatingControlsHtml(currentUserRating)}
-      </div>
-    ` : ''}
-  </div>
-
-  <div class="movie-page-main-column">
-    <div class="movie-page-title-block">
-      <h2 class="movie-page-title">${escapeHtml(movie.title)}</h2>
-      ${
-        movie.original_title
-          ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>`
-          : ''
-      }
-    </div>
-
-    <div class="movie-page-meta-list">
-      <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
-      <div class="movie-page-meta-item"><span>Режиссёр:</span> <strong>${movie.director ? escapeHtml(movie.director) : '-'}</strong></div>
-      <div class="movie-page-meta-item"><span>Жанры:</span> <strong>${genres ? escapeHtml(genres) : '-'}</strong></div>
-      <div class="movie-page-meta-item"><span>Страны:</span> <strong>${countries ? escapeHtml(countries) : '-'}</strong></div>
-      ${
-        releaseLabel
-          ? `<div class="movie-page-meta-item"><span>Релиз:</span> <strong>${escapeHtml(releaseLabel)}</strong></div>`
-          : ''
-      }
-    </div>
-
-    <div class="movie-page-rating-block movie-rating-block">
-      <div class="movie-rating-summary">
-        <div class="movie-rating-summary-main">
-          <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
-          <span class="movie-rating-meta">(${votesCount} ${getVotesLabel(votesCount)})</span>
+      <div class="movie-page-poster-column">
+        <div class="movie-page-poster-wrapper">
+          ${
+            movie.poster_url
+              ? `
+                <img
+                  class="movie-page-poster"
+                  src="${movie.poster_url}"
+                  alt="Постер фильма ${escapeHtml(movie.title)}"
+                  loading="eager"
+                  decoding="async"
+                >
+              `
+              : `<div class="movie-poster-placeholder">Нет постера</div>`
+          }
         </div>
-
-        <button
-          type="button"
-          class="remove-rating-inline-btn secondary-button secondary-button-compact ${currentUserRating === null ? 'is-hidden-placeholder' : ''}"
-          data-movie-page-remove-rating="true"
-          ${currentUserRating === null ? 'tabindex="-1" aria-hidden="true"' : ''}
-          ${currentUserRating === null || isRatingBusy ? 'disabled' : ''}
-        >
-          Удалить оценку
-        </button>
       </div>
 
-      ${
-        currentUser
-          ? `
-            <div class="movie-page-user-state">
+      <div class="movie-page-main-column">
+        <div class="movie-page-title-block">
+          <div class="movie-page-title-row">
+            <div class="movie-page-title-main">
+              <h2 class="movie-page-title">${escapeHtml(movie.title)}</h2>
               ${
-                userMovieState.isWatched
-                  ? `<div class="movie-page-user-state-badge">Статус: просмотрено</div>`
-                  : userMovieState.isInWatchlist
-                    ? `<div class="movie-page-user-state-badge">Статус: смотреть позже</div>`
-                    : `<div class="movie-page-user-state-badge">Статус: не отмечено</div>`
+                movie.original_title
+                  ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>`
+                  : ''
               }
             </div>
 
-            ${
-              !userMovieState.isWatched
-                ? `
-                  <div class="movie-page-actions">
+            <div class="movie-page-summary-panel">
+              <div class="movie-rating-summary movie-page-rating-summary">
+                <div class="movie-rating-summary-main">
+                  <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
+                  <span class="movie-rating-meta">(${votesCount} ${getVotesLabel(votesCount)})</span>
+                </div>
+              </div>
+
+              ${
+                currentUser
+                  ? `
                     <button
                       type="button"
-                      class="secondary-button secondary-button-compact"
-                      data-movie-page-watchlist-toggle="true"
-                      ${isWatchlistBusy ? 'disabled' : ''}
+                      class="secondary-button movie-page-rate-trigger ${currentUserRating !== null ? 'is-rated' : ''}"
+                      data-open-mobile-rating="true"
+                      ${isRatingBusy ? 'disabled' : ''}
                     >
-                      ${userMovieState.isInWatchlist ? 'Убрать из смотреть позже' : 'Добавить в смотреть позже'}
+                      ${
+                        currentUserRating !== null
+                          ? `Изменить оценку ${currentUserRating} <span class="movie-page-rate-trigger-star">★</span>`
+                          : 'Оценить'
+                      }
                     </button>
-                  </div>
-                `
-                : ''
-            }
-          `
-          : ''
-      }
-
-      ${
-        externalLinksHtml
-          ? `
-            <div class="movie-page-external-links-block">
-              <div class="movie-page-subtitle">Ссылки на фильм</div>
-              ${externalLinksHtml}
+                  `
+                  : ''
+              }
             </div>
-          `
-          : ''
-      }
-    </div>
+          </div>
+        </div>
+
+        <div class="movie-page-meta-list">
+          <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
+          <div class="movie-page-meta-item"><span>Режиссёр:</span> <strong>${movie.director ? escapeHtml(movie.director) : '-'}</strong></div>
+          <div class="movie-page-meta-item"><span>Жанры:</span> <strong>${genres ? escapeHtml(genres) : '-'}</strong></div>
+          <div class="movie-page-meta-item"><span>Страны:</span> <strong>${countries ? escapeHtml(countries) : '-'}</strong></div>
+          ${
+            releaseLabel
+              ? `<div class="movie-page-meta-item"><span>Релиз:</span> <strong>${escapeHtml(releaseLabel)}</strong></div>`
+              : ''
+          }
+        </div>
+
+        <div class="movie-page-rating-block movie-rating-block">
+          ${
+            currentUser
+              ? `
+                <div class="movie-page-user-state">
+                  ${
+                    userMovieState.isWatched
+                      ? `<div class="movie-page-user-state-badge">Статус: просмотрено</div>`
+                      : userMovieState.isInWatchlist
+                        ? `<div class="movie-page-user-state-badge">Статус: смотреть позже</div>`
+                        : `<div class="movie-page-user-state-badge">Статус: не отмечено</div>`
+                  }
+                </div>
+
+                ${
+                  !userMovieState.isWatched
+                    ? `
+                      <div class="movie-page-actions">
+                        <button
+                          type="button"
+                          class="secondary-button secondary-button-compact"
+                          data-movie-page-watchlist-toggle="true"
+                          ${isWatchlistBusy ? 'disabled' : ''}
+                        >
+                          ${userMovieState.isInWatchlist ? 'Убрать из смотреть позже' : 'Добавить в смотреть позже'}
+                        </button>
+                      </div>
+                    `
+                    : ''
+                }
+              `
+              : ''
+          }
+
+          ${
+            externalLinksHtml
+              ? `
+                <div class="movie-page-external-links-block">
+                  <div class="movie-page-subtitle">Ссылки на фильм</div>
+                  ${externalLinksHtml}
+                </div>
+              `
+              : ''
+          }
+        </div>
       </div>
     </article>
   `;
 
-  const starsContainer = moviePage.querySelector('.movie-user-rating-stars');
-  const voteButtons = moviePage.querySelectorAll('.rating-star-btn');
-  const removeRatingButton = moviePage.querySelector('[data-movie-page-remove-rating="true"]');
   const watchlistButton = moviePage.querySelector('[data-movie-page-watchlist-toggle="true"]');
   const mobileRatingButton = moviePage.querySelector('[data-open-mobile-rating="true"]');
-
-  bindMovieRatingControls({
-    movieId: movie.id,
-    currentUserRating,
-    starsContainer,
-    voteButtons
-  });
-
-  if (removeRatingButton && currentUserRating !== null) {
-    removeRatingButton.addEventListener('click', () => {
-      removeUserMovieRating(movie.id);
-    });
-  }
 
   if (watchlistButton) {
     watchlistButton.addEventListener('click', () => {

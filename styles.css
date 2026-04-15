@@ -2729,6 +2729,20 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
   transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
+@media (min-width: 681px) {
+  .mobile-rating-modal-dialog {
+    left: 50%;
+    right: auto;
+    width: min(648px, calc(100vw - 32px));
+    max-width: 648px;
+    transform: translateX(-50%) translateY(10px) scale(0.99);
+  }
+
+  .mobile-rating-modal.is-visible .mobile-rating-modal-dialog {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
 .mobile-rating-modal.is-visible .mobile-rating-modal-dialog {
   opacity: 1;
   transform: translateY(0) scale(1);
@@ -2965,6 +2979,42 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   border-bottom: 1px solid #242a31;
 }
 
+.movie-page-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.movie-page-title-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.movie-page-summary-panel {
+  min-width: 160px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.movie-page-rating-summary {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.movie-page-rate-trigger {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.movie-page-rate-trigger-star {
+  margin-left: 4px;
+  color: var(--color-rating-text);
+}
+
 .movie-page-title {
   margin: 0;
   font-size: 34px;
@@ -3086,6 +3136,27 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
 
   .movie-page-title-block {
     padding-bottom: 12px;
+  }
+
+  .movie-page-title-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .movie-page-summary-panel {
+    width: 100%;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .movie-page-rating-summary {
+    justify-content: flex-start;
+  }
+
+  .movie-page-rate-trigger {
+    width: 100%;
+    white-space: normal;
   }
 
   .movie-page-title {
