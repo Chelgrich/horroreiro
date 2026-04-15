@@ -2194,7 +2194,7 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
 .movie-external-links {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: nowrap;
 }
 
