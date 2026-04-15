@@ -3336,6 +3336,24 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   text-decoration: none;
 }
 
+@media (max-width: 560px) {
+  .movie-page-external-links-mixed {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    justify-content: start;
+    align-items: center;
+    gap: 10px 8px;
+  }
+
+  .movie-rating-widgets {
+    display: contents;
+  }
+
+  .movie-page-external-links-mixed .movie-external-links {
+    display: contents;
+  }
+}
+
 .movie-rating-widget-link:hover,
 .movie-rating-widget-link:focus,
 .movie-rating-widget-link:focus-visible,
