@@ -3084,8 +3084,12 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
 .movie-page-watchlist-icon {
   left: 10px;
   color: #ffffff;
-  background: rgba(17, 22, 28, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(91, 140, 255, 0.88);
+  border: 1px solid rgba(91, 140, 255, 0.92);
+  box-shadow:
+    0 6px 14px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(91, 140, 255, 0.14),
+    0 0 14px rgba(91, 140, 255, 0.18);
   backdrop-filter: blur(6px);
 }
 
