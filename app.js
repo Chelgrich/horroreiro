@@ -5533,23 +5533,48 @@ function renderMoviePage(movie) {
 
   moviePage.innerHTML = `
     <article class="movie-page-layout" data-movie-id="${movie.id}">
-      <div class="movie-page-poster-column">
-        <div class="movie-page-poster-wrapper">
-          ${
-            movie.poster_url
-              ? `
-                <img
-                  class="movie-page-poster"
-                  src="${movie.poster_url}"
-                  alt="Постер фильма ${escapeHtml(movie.title)}"
-                  loading="eager"
-                  decoding="async"
-                >
-              `
-              : `<div class="movie-poster-placeholder">Нет постера</div>`
-          }
-        </div>
-      </div>
+    <div class="movie-page-poster-column">
+    <div class="movie-page-poster-wrapper">
+      ${
+        movie.poster_url
+          ? `
+            <img
+              class="movie-page-poster"
+              src="${movie.poster_url}"
+              alt="Постер фильма ${escapeHtml(movie.title)}"
+              loading="eager"
+              decoding="async"
+            >
+          `
+          : `<div class="movie-poster-placeholder">Нет постера</div>`
+      }
+
+      ${
+        currentUser && !userMovieState.isWatched && userMovieState.isInWatchlist
+          ? `
+            <div class="movie-page-watchlist-icon" aria-label="В списке смотреть позже" title="В списке смотреть позже">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </div>
+          `
+          : ''
+      }
+
+      ${
+        userMovieState.isWatched
+          ? `
+            <div class="movie-page-watched-icon" aria-label="Просмотрено" title="Просмотрено">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12.5L9.5 17L19 7.5"></path>
+              </svg>
+            </div>
+          `
+          : ''
+      }
+    </div>
+  </div>
 
       <div class="movie-page-main-column">
         <div class="movie-page-title-block">
@@ -5598,43 +5623,22 @@ function renderMoviePage(movie) {
           <div class="movie-page-meta-item"><span>Режиссёр:</span> <strong>${movie.director ? escapeHtml(movie.director) : '-'}</strong></div>
           <div class="movie-page-meta-item"><span>Жанры:</span> <strong>${genres ? escapeHtml(genres) : '-'}</strong></div>
           <div class="movie-page-meta-item"><span>Страны:</span> <strong>${countries ? escapeHtml(countries) : '-'}</strong></div>
-          ${
-            releaseLabel
-              ? `<div class="movie-page-meta-item"><span>Релиз:</span> <strong>${escapeHtml(releaseLabel)}</strong></div>`
-              : ''
-          }
         </div>
 
         <div class="movie-page-rating-block movie-rating-block">
           ${
-            currentUser
+            currentUser && !userMovieState.isWatched
               ? `
-                <div class="movie-page-user-state">
-                  ${
-                    userMovieState.isWatched
-                      ? `<div class="movie-page-user-state-badge">Статус: просмотрено</div>`
-                      : userMovieState.isInWatchlist
-                        ? `<div class="movie-page-user-state-badge">Статус: смотреть позже</div>`
-                        : `<div class="movie-page-user-state-badge">Статус: не отмечено</div>`
-                  }
+                <div class="movie-page-actions">
+                  <button
+                    type="button"
+                    class="secondary-button secondary-button-compact"
+                    data-movie-page-watchlist-toggle="true"
+                    ${isWatchlistBusy ? 'disabled' : ''}
+                  >
+                    ${userMovieState.isInWatchlist ? 'Убрать из смотреть позже' : 'Добавить в смотреть позже'}
+                  </button>
                 </div>
-
-                ${
-                  !userMovieState.isWatched
-                    ? `
-                      <div class="movie-page-actions">
-                        <button
-                          type="button"
-                          class="secondary-button secondary-button-compact"
-                          data-movie-page-watchlist-toggle="true"
-                          ${isWatchlistBusy ? 'disabled' : ''}
-                        >
-                          ${userMovieState.isInWatchlist ? 'Убрать из смотреть позже' : 'Добавить в смотреть позже'}
-                        </button>
-                      </div>
-                    `
-                    : ''
-                }
               `
               : ''
           }

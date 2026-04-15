@@ -2988,6 +2988,44 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   object-fit: cover;
 }
 
+.movie-page-watchlist-icon,
+.movie-page-watched-icon {
+  position: absolute;
+  top: 10px;
+  z-index: 3;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+
+.movie-page-watchlist-icon {
+  left: 10px;
+  color: #ffffff;
+  background: rgba(17, 22, 28, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+}
+
+.movie-page-watched-icon {
+  right: 10px;
+  background: #22a861;
+}
+
+.movie-page-watchlist-icon svg,
+.movie-page-watched-icon svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .movie-page-main-column {
   min-width: 0;
   display: flex;
