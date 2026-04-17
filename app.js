@@ -1950,6 +1950,7 @@ async function loadGenres() {
       const option = document.createElement('option');
       option.value = item.name;
       option.textContent = `${item.name} (${genreCounts.get(item.name) || 0})`;
+      option.disabled = (genreCounts.get(item.name) || 0) === 0 && item.name !== selectedGenre;
       genreFilter.appendChild(option);
     });
 
@@ -1974,7 +1975,6 @@ function loadSubgenreFilterOptions() {
       count: subgenreCounts.get(subgenreKey) || 0,
       label: getTaxonomyLabel('subgenres', subgenreKey)
     }))
-    .filter(item => item.count > 0 || item.key === selectedSubgenre)
     .sort((firstItem, secondItem) => {
       if (secondItem.count !== firstItem.count) {
         return secondItem.count - firstItem.count;
@@ -1986,6 +1986,7 @@ function loadSubgenreFilterOptions() {
       const option = document.createElement('option');
       option.value = item.key;
       option.textContent = `${item.label} (${item.count})`;
+      option.disabled = item.count === 0 && item.key !== selectedSubgenre;
       subgenreFilter.appendChild(option);
     });
 
@@ -2093,6 +2094,7 @@ async function loadCountries() {
     const option = document.createElement('option');
     option.value = item.name;
     option.textContent = `${item.name} (${countryCounts.get(item.name) || 0})`;
+    option.disabled = (countryCounts.get(item.name) || 0) === 0 && item.name !== selectedCountry;
     countryFilter.appendChild(option);
   });
 
@@ -2122,6 +2124,7 @@ function loadYearFilterOptions() {
     const option = document.createElement('option');
     option.value = String(year);
     option.textContent = `${year} (${yearCounts.get(Number(year)) || 0})`;
+    option.disabled = (yearCounts.get(Number(year)) || 0) === 0 && String(year) !== selectedYear;
     yearFilter.appendChild(option);
   });
 
