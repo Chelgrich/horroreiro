@@ -3719,6 +3719,7 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   }
 
   .movie-page-layout {
+    grid-template-columns: 1fr;
     gap: 16px;
   }
 
