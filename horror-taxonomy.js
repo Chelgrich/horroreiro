@@ -463,10 +463,11 @@ window.HORROR_TAXONOMY = {
   similarity_scoring: {
     formula: {
       canon_tag_score_multiplier: 1.0,
-      perceived_tag_score_multiplier: 0.2,
+      perceived_tag_score_multiplier: 0.15,
       format_score_multiplier: 1.0,
       trigger_score_multiplier: 1.0,
-      subgenre_score_multiplier: 1.0
+      subgenre_score_multiplier: 1.0,
+      cluster_score_multiplier: 1.0
     },
 
     canon_tag_weights: {
@@ -490,25 +491,64 @@ window.HORROR_TAXONOMY = {
     },
 
     trigger_weights: {
-      same_trigger: 0.15
+      same_trigger: 0.1
     },
 
     subgenre_weights: {
-      same_primary: 6,
-      primary_secondary_overlap: 3,
-      same_secondary: 1.5
+      same_primary: 1,
+      primary_secondary_overlap: 0.5,
+      same_secondary: 0.25
     },
 
+    cluster_weights: {
+      default: 2,
+      rare_or_high_signal: 4,
+      by_key: {
+        body_horror_core: 4,
+        replacement_paranoia: 4,
+        loop_trapped_survival: 4,
+        simulation_rules: 4,
+        cult_ritual_core: 4,
+        infection_outbreak_core: 4,
+        home_invasion_core: 4,
+        creature_monster_core: 3,
+        zoo_horror_core: 3,
+        supernatural_core: 3,
+        possession_control_core: 3,
+        mystery_search_unknown: 3
+      }
+    },
+
+    clusters: [
+      { key: 'body_horror_core', tags: ['body_horror', 'transformation'] },
+      { key: 'body_horror_replacement', tags: ['body_horror', 'replacement'] },
+      { key: 'replacement_paranoia', tags: ['replacement', 'paranoia_group'] },
+      { key: 'loop_trapped_survival', tags: ['loop', 'trapped', 'survival'] },
+      { key: 'simulation_rules', tags: ['simulation', 'rules'] },
+      { key: 'cult_ritual_core', tags: ['cult', 'ritual'] },
+      { key: 'infection_outbreak_core', tags: ['infection', 'spreading'] },
+      { key: 'infection_undead_core', tags: ['infection', 'undead'] },
+      { key: 'home_invasion_core', tags: ['intrusion', 'home_space'] },
+      { key: 'home_invasion_siege', tags: ['intrusion', 'siege'] },
+      { key: 'creature_monster_core', tags: ['creature', 'monster', 'attack'] },
+      { key: 'zoo_horror_core', tags: ['creature', 'animal', 'attack'] },
+      { key: 'supernatural_core', tags: ['ghost', 'supernatural_origin'] },
+      { key: 'supernatural_demon_core', tags: ['demon', 'supernatural_origin'] },
+      { key: 'curse_mystery_core', tags: ['curse', 'search'] },
+      { key: 'possession_control_core', tags: ['possession', 'control'] },
+      { key: 'mystery_search_unknown', tags: ['unknown', 'search'] }
+    ],
+
     eligibility: {
-      min_total_score: 6,
+      min_total_score: 5,
       min_shared_canon_tags: 2,
+      min_shared_clusters: 1,
       allow_single_high_signal_canon_tag: true,
       high_signal_canon_tags: ['loop', 'simulation', 'replacement', 'paranoia_group'],
       require_one_of: [
-        'same_primary_subgenre',
-        'primary_secondary_overlap',
         'enough_shared_canon_tags',
-        'shared_high_signal_canon_tag'
+        'shared_high_signal_canon_tag',
+        'shared_cluster'
       ]
     }
   },
@@ -841,6 +881,21 @@ window.HORROR_TAXONOMY = {
     };
   }
 
+  function getSharedCanonClusters(baseCanonTags, candidateCanonTags, clusterDefinitions) {
+    const candidateTagSet = new Set(candidateCanonTags);
+
+    return (Array.isArray(clusterDefinitions) ? clusterDefinitions : [])
+      .filter(cluster => {
+        const clusterTags = Array.isArray(cluster?.tags) ? cluster.tags : [];
+
+        return (
+          clusterTags.length > 0 &&
+          clusterTags.every(tag => baseCanonTags.includes(tag)) &&
+          clusterTags.every(tag => candidateTagSet.has(tag))
+        );
+      });
+  }
+
   function calculateMovieSimilarity(baseMovie, candidateMovie) {
     if (!baseMovie || !candidateMovie) {
       return {
@@ -851,7 +906,8 @@ window.HORROR_TAXONOMY = {
           perceivedTags: 0,
           formats: 0,
           triggers: 0,
-          subgenres: 0
+          subgenres: 0,
+          clusters: 0
         }
       };
     }
@@ -862,6 +918,8 @@ window.HORROR_TAXONOMY = {
     const formatWeights = similarityConfig.format_weights || {};
     const triggerWeights = similarityConfig.trigger_weights || {};
     const subgenreWeights = similarityConfig.subgenre_weights || {};
+    const clusterWeights = similarityConfig.cluster_weights || {};
+    const clusterDefinitions = similarityConfig.clusters || [];
     const eligibilityConfig = similarityConfig.eligibility || {};
 
     const baseCanonTags = getCanonTags(baseMovie);
@@ -883,6 +941,7 @@ window.HORROR_TAXONOMY = {
     const sharedSecondarySubgenres = (baseSubgenres.secondary_subgenres || []).filter(subgenre => (
       (candidateSubgenres.secondary_subgenres || []).includes(subgenre)
     ));
+    const sharedClusters = getSharedCanonClusters(baseCanonTags, candidateCanonTags, clusterDefinitions);
 
     const hasSamePrimarySubgenre = Boolean(
       baseSubgenres.primary_subgenre &&
@@ -914,15 +973,17 @@ window.HORROR_TAXONOMY = {
       sharedHighSignalCanonTags.length > 0
     );
 
+    const minSharedClusters = Number(eligibilityConfig.min_shared_clusters ?? 1);
+    const hasSharedCluster = sharedClusters.length >= minSharedClusters;
+
     const requiredEligibilitySignals = Array.isArray(eligibilityConfig.require_one_of)
       ? eligibilityConfig.require_one_of
       : [];
 
     const eligibilitySignals = {
-      same_primary_subgenre: hasSamePrimarySubgenre,
-      primary_secondary_overlap: hasPrimarySecondaryOverlap,
       enough_shared_canon_tags: hasEnoughSharedCanonTags,
-      shared_high_signal_canon_tag: hasSharedHighSignalCanonTag
+      shared_high_signal_canon_tag: hasSharedHighSignalCanonTag,
+      shared_cluster: hasSharedCluster
     };
 
     const passesStructuralEligibility = requiredEligibilitySignals.length === 0
@@ -964,12 +1025,21 @@ window.HORROR_TAXONOMY = {
 
     subgenresScore += sharedSecondarySubgenres.length * Number(subgenreWeights.same_secondary ?? 0);
 
+    const clustersScore = sharedClusters.reduce((total, cluster) => {
+      return total + Number(
+        clusterWeights.by_key?.[cluster.key] ??
+        clusterWeights.default ??
+        0
+      );
+    }, 0);
+
     const breakdown = {
       canonTags: canonTagsScore * Number(formula.canon_tag_score_multiplier ?? 1),
       perceivedTags: perceivedTagsScore * Number(formula.perceived_tag_score_multiplier ?? 1),
       formats: formatsScore * Number(formula.format_score_multiplier ?? 1),
       triggers: triggersScore * Number(formula.trigger_score_multiplier ?? 1),
-      subgenres: subgenresScore * Number(formula.subgenre_score_multiplier ?? 1)
+      subgenres: subgenresScore * Number(formula.subgenre_score_multiplier ?? 1),
+      clusters: clustersScore * Number(formula.cluster_score_multiplier ?? 1)
     };
 
     const total = Object.values(breakdown).reduce((totalScore, score) => totalScore + score, 0);
@@ -987,7 +1057,8 @@ window.HORROR_TAXONOMY = {
         perceivedTags: sharedPerceivedTags,
         formats: sharedFormats,
         triggers: sharedTriggers,
-        secondarySubgenres: sharedSecondarySubgenres
+        secondarySubgenres: sharedSecondarySubgenres,
+        clusters: sharedClusters
       },
       resolved: {
         base: baseSubgenres,
@@ -1010,8 +1081,8 @@ window.HORROR_TAXONOMY = {
         const firstSimilarity = firstItem.similarity;
         const secondSimilarity = secondItem.similarity;
 
-        if (secondSimilarity.breakdown.subgenres !== firstSimilarity.breakdown.subgenres) {
-          return secondSimilarity.breakdown.subgenres - firstSimilarity.breakdown.subgenres;
+        if (secondSimilarity.breakdown.clusters !== firstSimilarity.breakdown.clusters) {
+          return secondSimilarity.breakdown.clusters - firstSimilarity.breakdown.clusters;
         }
 
         if (secondSimilarity.breakdown.canonTags !== firstSimilarity.breakdown.canonTags) {
@@ -1027,6 +1098,10 @@ window.HORROR_TAXONOMY = {
 
         if (secondSimilarity.breakdown.formats !== firstSimilarity.breakdown.formats) {
           return secondSimilarity.breakdown.formats - firstSimilarity.breakdown.formats;
+        }
+
+        if (secondSimilarity.breakdown.subgenres !== firstSimilarity.breakdown.subgenres) {
+          return secondSimilarity.breakdown.subgenres - firstSimilarity.breakdown.subgenres;
         }
 
         if (secondSimilarity.breakdown.perceivedTags !== firstSimilarity.breakdown.perceivedTags) {
