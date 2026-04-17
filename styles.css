@@ -3198,15 +3198,18 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   text-decoration: none;
 }
 
-.page:has(.movie-page-shell) {
+body:has(.movie-page-shell) {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
 
+body:has(.movie-page-shell) .page {
+  width: 100%;
+}
+
 .movie-page-shell {
   min-height: 0;
-  flex: 1 0 auto;
 }
 
 .movie-page {
@@ -3824,6 +3827,10 @@ CSS-БЛОК X. FOOTER
   margin-top: 40px;
   padding: 20px 16px 24px;
   border-top: 1px solid #1c2128;
+}
+
+body:has(.movie-page-shell) .page-footer {
+  margin-top: auto;
 }
 
 .page-footer-inner {
