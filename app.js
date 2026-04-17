@@ -1958,17 +1958,34 @@ function loadSubgenreFilterOptions() {
     return;
   }
 
+  const selectedSubgenre = subgenreFilter.value || '';
   const subgenreKeys = window.HORROR_TAXONOMY?.subgenres || [];
+  const subgenreCounts = getSubgenreOptionCounts();
 
   subgenreFilter.innerHTML = '<option value="">Все</option>';
 
-  subgenreKeys.forEach(subgenreKey => {
-    const option = document.createElement('option');
-    option.value = subgenreKey;
-    option.textContent = getTaxonomyLabel('subgenres', subgenreKey);
-    subgenreFilter.appendChild(option);
-  });
+  subgenreKeys
+    .map(subgenreKey => ({
+      key: subgenreKey,
+      count: subgenreCounts.get(subgenreKey) || 0,
+      label: getTaxonomyLabel('subgenres', subgenreKey)
+    }))
+    .filter(item => item.count > 0 || item.key === selectedSubgenre)
+    .sort((firstItem, secondItem) => {
+      if (secondItem.count !== firstItem.count) {
+        return secondItem.count - firstItem.count;
+      }
 
+      return firstItem.label.localeCompare(secondItem.label, 'ru');
+    })
+    .forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.key;
+      option.textContent = `${item.label} (${item.count})`;
+      subgenreFilter.appendChild(option);
+    });
+
+  subgenreFilter.value = selectedSubgenre;
   refreshCustomSelect(subgenreFilter);
 }
 
@@ -1996,18 +2013,37 @@ function loadTriggerFilterOptions() {
     return;
   }
 
+  const selectedTriggerKeys = getSelectedTriggerFilters();
   const triggerKeys = window.HORROR_TAXONOMY?.triggers || [];
+  const triggerCounts = getTriggerOptionCounts();
 
-  triggerFiltersGroup.innerHTML = triggerKeys.map(triggerKey => `
-    <label class="trigger-filter-option">
-      <input
-        type="checkbox"
-        value="${escapeHtml(triggerKey)}"
-        data-trigger-filter="true"
-      >
-      <span>${escapeHtml(getTaxonomyLabel('triggers', triggerKey))}</span>
-    </label>
-  `).join('');
+  triggerFiltersGroup.innerHTML = triggerKeys
+    .map(triggerKey => ({
+      key: triggerKey,
+      count: triggerCounts.get(triggerKey) || 0,
+      label: getTaxonomyLabel('triggers', triggerKey),
+      isSelected: selectedTriggerKeys.includes(triggerKey)
+    }))
+    .filter(item => item.count > 0 || item.isSelected)
+    .sort((firstItem, secondItem) => {
+      if (secondItem.count !== firstItem.count) {
+        return secondItem.count - firstItem.count;
+      }
+
+      return firstItem.label.localeCompare(secondItem.label, 'ru');
+    })
+    .map(item => `
+      <label class="trigger-filter-option">
+        <input
+          type="checkbox"
+          value="${escapeHtml(item.key)}"
+          data-trigger-filter="true"
+          ${item.isSelected ? 'checked' : ''}
+        >
+        <span>${escapeHtml(item.label)} (${item.count})</span>
+      </label>
+    `)
+    .join('');
 
   syncTriggerFiltersTriggerText();
 }
@@ -5303,7 +5339,13 @@ function rerenderMovieCard(
   }
 }
 
-function getFilteredMovies() {
+function getFilteredMovies(options = {}) {
+  const {
+    ignoreSubgenre = false,
+    ignoreTriggerExcludes = false,
+    skipSorting = false
+  } = options;
+
   const selectedGenre = genreFilter.value;
   const selectedCountry = countryFilter.value;
   const minRating = ratingFilter.value;
@@ -5328,7 +5370,7 @@ function getFilteredMovies() {
     );
   }
 
-  if (subgenreFilter.value) {
+  if (!ignoreSubgenre && subgenreFilter.value) {
     filteredMovies = filteredMovies.filter(movie =>
       movie.primary_subgenre === subgenreFilter.value
     );
@@ -5340,7 +5382,9 @@ function getFilteredMovies() {
     );
   }
 
-  const selectedTriggerExcludes = getSelectedTriggerFilters();
+  const selectedTriggerExcludes = ignoreTriggerExcludes
+    ? []
+    : getSelectedTriggerFilters();
 
   if (selectedTriggerExcludes.length > 0) {
     filteredMovies = filteredMovies.filter(movie => {
@@ -5401,9 +5445,56 @@ function getFilteredMovies() {
     );
   }
 
-  sortMovies(filteredMovies, selectedSortMode);
+  if (!skipSorting) {
+    sortMovies(filteredMovies, selectedSortMode);
+  }
 
   return filteredMovies;
+}
+
+function getSubgenreOptionCounts() {
+  const moviesWithoutSubgenreFilter = getFilteredMovies({
+    ignoreSubgenre: true,
+    skipSorting: true
+  });
+
+  const counts = new Map();
+
+  moviesWithoutSubgenreFilter.forEach(movie => {
+    const subgenreKey = movie.primary_subgenre;
+
+    if (!subgenreKey) {
+      return;
+    }
+
+    counts.set(subgenreKey, (counts.get(subgenreKey) || 0) + 1);
+  });
+
+  return counts;
+}
+
+function getTriggerOptionCounts() {
+  const moviesWithoutTriggerExcludes = getFilteredMovies({
+    ignoreTriggerExcludes: true,
+    skipSorting: true
+  });
+
+  const counts = new Map();
+
+  moviesWithoutTriggerExcludes.forEach(movie => {
+    const movieTriggers = Array.isArray(movie.triggers) ? movie.triggers : [];
+
+    movieTriggers.forEach(triggerKey => {
+      counts.set(triggerKey, (counts.get(triggerKey) || 0) + 1);
+    });
+  });
+
+  return counts;
+}
+
+function refreshDynamicFilterOptions() {
+  loadSubgenreFilterOptions();
+  loadTriggerFilterOptions();
 }
 
 function sortMoviesWithinMonth(movies, monthSortMode, monthSortDirection = 'desc') {
@@ -5565,6 +5656,7 @@ function renderMovies() {
 
   container.classList.remove('is-catalog-visible');
 
+  refreshDynamicFilterOptions();
   renderActiveFilterChips();
   syncQuickPresetButtons();
 
