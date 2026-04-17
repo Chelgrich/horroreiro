@@ -68,8 +68,18 @@ function createCustomSelectManager(config) {
         if (option.selected) {
           optionButton.classList.add('is-selected');
         }
+
+        if (option.disabled) {
+          optionButton.disabled = true;
+          optionButton.classList.add('is-disabled');
+          optionButton.setAttribute('aria-disabled', 'true');
+        }
   
         optionButton.addEventListener('click', () => {
+          if (option.disabled) {
+            return;
+          }
+
           select.value = option.value;
           updateCustomSelectLabel(select, label, root);
 
@@ -179,7 +189,10 @@ function createCustomSelectManager(config) {
       }
   
       function getSearchableOptions() {
-        return getOptions().filter(option => option.dataset.value !== '');
+        return getOptions().filter(option => (
+          option.dataset.value !== '' &&
+          !option.disabled
+        ));
       }
   
       function clearHoveredOptions() {
@@ -196,8 +209,22 @@ function createCustomSelectManager(config) {
         if (!options.length) {
           return;
         }
-  
-        focusedIndex = Math.max(0, Math.min(index, options.length - 1));
+
+        const enabledOptions = options.filter(option => !option.disabled);
+
+        if (!enabledOptions.length) {
+          clearHoveredOptions();
+          return;
+        }
+
+        const safeIndex = Math.max(0, Math.min(index, options.length - 1));
+        let targetOption = options[safeIndex];
+
+        if (!targetOption || targetOption.disabled) {
+          targetOption = enabledOptions[0];
+        }
+
+        focusedIndex = options.indexOf(targetOption);
   
         options.forEach((opt, i) => {
           opt.classList.toggle('is-hovered', i === focusedIndex);
