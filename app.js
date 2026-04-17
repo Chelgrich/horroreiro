@@ -6699,11 +6699,9 @@ function renderMoviePage(movie) {
             movie.formats.length > 0 &&
             !(movie.formats.length === 1 && movie.formats[0] === 'classic')
           )
-            ? `
-              <div class="movie-page-taxonomy-block">
-                <div class="movie-page-subtitle">Классификация</div>
-
-                <div class="movie-page-taxonomy-list">
+          ? `
+          <div class="movie-page-taxonomy-block">
+            <div class="movie-page-taxonomy-list">
                   ${
                     movie.primary_subgenre
                       ? `
