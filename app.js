@@ -6857,6 +6857,7 @@ async function initMoviePage() {
   await restoreSession();
   trackEmailConfirmedLoginIfNeeded();
 
+  await fetchMovies();
   await fetchMovieRatings();
   await fetchMovieWatchlist();
 
@@ -6876,6 +6877,7 @@ async function initMoviePage() {
 
   bindSharedAuthStateListener({
     onAfterAuthSync: async () => {
+      await fetchMovies();
       await fetchMovieRatings();
       await fetchMovieWatchlist();
 
