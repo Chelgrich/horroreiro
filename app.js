@@ -6692,7 +6692,13 @@ function renderMoviePage(movie) {
         </div>
 
         ${
-          movie.primary_subgenre || (movie.secondary_subgenres || []).length > 0 || (movie.formats || []).length > 0
+          movie.primary_subgenre ||
+          (movie.secondary_subgenres || []).length > 0 ||
+          (
+            Array.isArray(movie.formats) &&
+            movie.formats.length > 0 &&
+            !(movie.formats.length === 1 && movie.formats[0] === 'classic')
+          )
             ? `
               <div class="movie-page-taxonomy-block">
                 <div class="movie-page-subtitle">Классификация</div>
@@ -6721,7 +6727,9 @@ function renderMoviePage(movie) {
                   }
 
                   ${
-                    (movie.formats || []).length > 0
+                    Array.isArray(movie.formats) &&
+                    movie.formats.length > 0 &&
+                    !(movie.formats.length === 1 && movie.formats[0] === 'classic')
                       ? `
                         <div class="movie-page-taxonomy-item">
                           <span>Формат:</span>
