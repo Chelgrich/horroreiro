@@ -2219,13 +2219,13 @@ async function reloadCatalogData({ showSkeleton = false } = {}) {
   }
 
   await Promise.all([
-    loadGenres(),
     loadCountries(),
     fetchMovies(),
     fetchMovieRatings(),
     fetchMovieWatchlist()
   ]);
 
+  await loadGenres();
   loadSubgenreFilterOptions();
   loadFormatFilterOptions();
   loadTriggerFilterOptions();
