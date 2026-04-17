@@ -719,7 +719,11 @@ window.HORROR_TAXONOMY = {
         restriction.type === 'zero_score_if_not_all_conditions_met' &&
         (
           !hasAllTags(tagSet, restriction.all_tags || []) ||
-          !hasAnyTags(tagSet, restriction.any_tags || [])
+          (
+            Array.isArray(restriction.any_tags) &&
+            restriction.any_tags.length > 0 &&
+            !hasAnyTags(tagSet, restriction.any_tags)
+          )
         )
       ) {
         scores[subgenre] = 0;
