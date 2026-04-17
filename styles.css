@@ -1385,6 +1385,12 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
   color: #ffffff;
 }
 
+.custom-select-option.is-disabled {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+
 .custom-select-option.is-placeholder {
   color: var(--color-text-muted);
 }
