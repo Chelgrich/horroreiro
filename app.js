@@ -1994,17 +1994,34 @@ function loadFormatFilterOptions() {
     return;
   }
 
+  const selectedFormat = formatFilter.value || '';
   const formatKeys = window.HORROR_TAXONOMY?.formats || [];
+  const formatCounts = getFormatOptionCounts();
 
   formatFilter.innerHTML = '<option value="">Все</option>';
 
-  formatKeys.forEach(formatKey => {
-    const option = document.createElement('option');
-    option.value = formatKey;
-    option.textContent = getTaxonomyLabel('formats', formatKey);
-    formatFilter.appendChild(option);
-  });
+  formatKeys
+    .map(formatKey => ({
+      key: formatKey,
+      count: formatCounts.get(formatKey) || 0,
+      label: getTaxonomyLabel('formats', formatKey)
+    }))
+    .sort((firstItem, secondItem) => {
+      if (secondItem.count !== firstItem.count) {
+        return secondItem.count - firstItem.count;
+      }
 
+      return firstItem.label.localeCompare(secondItem.label, 'ru');
+    })
+    .forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.key;
+      option.textContent = `${item.label} (${item.count})`;
+      option.disabled = item.count === 0 && item.key !== selectedFormat;
+      formatFilter.appendChild(option);
+    });
+
+  formatFilter.value = selectedFormat;
   refreshCustomSelect(formatFilter);
 }
 
@@ -5342,6 +5359,7 @@ function rerenderMovieCard(
 function getFilteredMovies(options = {}) {
   const {
     ignoreSubgenre = false,
+    ignoreFormat = false,
     ignoreTriggerExcludes = false,
     skipSorting = false
   } = options;
@@ -5376,7 +5394,7 @@ function getFilteredMovies(options = {}) {
     );
   }
 
-  if (formatFilter.value) {
+  if (!ignoreFormat && formatFilter.value) {
     filteredMovies = filteredMovies.filter(movie =>
       Array.isArray(movie.formats) && movie.formats.includes(formatFilter.value)
     );
@@ -5473,6 +5491,25 @@ function getSubgenreOptionCounts() {
   return counts;
 }
 
+function getFormatOptionCounts() {
+  const moviesWithoutFormatFilter = getFilteredMovies({
+    ignoreFormat: true,
+    skipSorting: true
+  });
+
+  const counts = new Map();
+
+  moviesWithoutFormatFilter.forEach(movie => {
+    const movieFormats = Array.isArray(movie.formats) ? movie.formats : [];
+
+    movieFormats.forEach(formatKey => {
+      counts.set(formatKey, (counts.get(formatKey) || 0) + 1);
+    });
+  });
+
+  return counts;
+}
+
 function getTriggerOptionCounts() {
   const moviesWithoutTriggerExcludes = getFilteredMovies({
     ignoreTriggerExcludes: true,
@@ -5494,6 +5531,7 @@ function getTriggerOptionCounts() {
 
 function refreshDynamicFilterOptions() {
   loadSubgenreFilterOptions();
+  loadFormatFilterOptions();
   loadTriggerFilterOptions();
 }
 
