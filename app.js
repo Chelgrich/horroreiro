@@ -6688,59 +6688,20 @@ function renderMoviePage(movie) {
           <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
           <div class="movie-page-meta-item"><span>Режиссёр:</span> <strong>${movie.director ? escapeHtml(movie.director) : '-'}</strong></div>
           <div class="movie-page-meta-item"><span>Жанры:</span> <strong>${genres ? escapeHtml(genres) : '-'}</strong></div>
-          <div class="movie-page-meta-item"><span>Страны:</span> <strong>${countries ? escapeHtml(countries) : '-'}</strong></div>
-        </div>
-
-        ${
-          movie.primary_subgenre ||
-          (movie.secondary_subgenres || []).length > 0 ||
-          (
+          ${
+            movie.primary_subgenre
+              ? `<div class="movie-page-meta-item"><span>Поджанр:</span> <strong>${escapeHtml(getTaxonomyLabel('subgenres', movie.primary_subgenre))}</strong></div>`
+              : ''
+          }
+          ${
             Array.isArray(movie.formats) &&
             movie.formats.length > 0 &&
             !(movie.formats.length === 1 && movie.formats[0] === 'classic')
-          )
-          ? `
-          <div class="movie-page-taxonomy-block">
-            <div class="movie-page-taxonomy-list">
-                  ${
-                    movie.primary_subgenre
-                      ? `
-                        <div class="movie-page-taxonomy-item">
-                          <span>Поджанр:</span>
-                          <strong>${escapeHtml(getTaxonomyLabel('subgenres', movie.primary_subgenre))}</strong>
-                        </div>
-                      `
-                      : ''
-                  }
-
-                  ${
-                    (movie.secondary_subgenres || []).length > 0
-                      ? `
-                        <div class="movie-page-taxonomy-item">
-                          <span>Доп. поджанры:</span>
-                          <strong>${escapeHtml(mapTaxonomyLabels('subgenres', movie.secondary_subgenres).join(', '))}</strong>
-                        </div>
-                      `
-                      : ''
-                  }
-
-                  ${
-                    Array.isArray(movie.formats) &&
-                    movie.formats.length > 0 &&
-                    !(movie.formats.length === 1 && movie.formats[0] === 'classic')
-                      ? `
-                        <div class="movie-page-taxonomy-item">
-                          <span>Формат:</span>
-                          <strong>${escapeHtml(mapTaxonomyLabels('formats', movie.formats).join(', '))}</strong>
-                        </div>
-                      `
-                      : ''
-                  }
-                </div>
-              </div>
-            `
-            : ''
-        }
+              ? `<div class="movie-page-meta-item"><span>Формат:</span> <strong>${escapeHtml(mapTaxonomyLabels('formats', movie.formats).join(', '))}</strong></div>`
+              : ''
+          }
+          <div class="movie-page-meta-item"><span>Страны:</span> <strong>${countries ? escapeHtml(countries) : '-'}</strong></div>
+        </div>
 
         ${
           synopsis
