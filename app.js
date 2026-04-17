@@ -2084,15 +2084,19 @@ async function loadCountries() {
     return;
   }
 
+  const selectedCountry = countryFilter.value || '';
+  const countryCounts = getCountryOptionCounts();
+
   countryFilter.innerHTML = '<option value="">Все</option>';
 
   data.forEach(item => {
     const option = document.createElement('option');
     option.value = item.name;
-    option.textContent = item.name;
+    option.textContent = `${item.name} (${countryCounts.get(item.name) || 0})`;
     countryFilter.appendChild(option);
   });
 
+  countryFilter.value = selectedCountry;
   refreshCustomSelect(countryFilter);
 }
 
@@ -2100,6 +2104,9 @@ function loadYearFilterOptions() {
   if (!yearFilter) {
     return;
   }
+
+  const selectedYear = yearFilter.value || '';
+  const yearCounts = getYearOptionCounts();
 
   const years = [
     ...new Set(
@@ -2114,10 +2121,11 @@ function loadYearFilterOptions() {
   years.forEach(year => {
     const option = document.createElement('option');
     option.value = String(year);
-    option.textContent = String(year);
+    option.textContent = `${year} (${yearCounts.get(Number(year)) || 0})`;
     yearFilter.appendChild(option);
   });
 
+  yearFilter.value = selectedYear;
   refreshCustomSelect(yearFilter);
 }
 
@@ -5365,6 +5373,8 @@ function getFilteredMovies(options = {}) {
     ignoreGenre = false,
     ignoreSubgenre = false,
     ignoreFormat = false,
+    ignoreCountry = false,
+    ignoreYear = false,
     ignoreTriggerExcludes = false,
     skipSorting = false
   } = options;
@@ -5417,7 +5427,7 @@ function getFilteredMovies(options = {}) {
     });
   }
 
-  if (selectedCountry) {
+  if (!ignoreCountry && selectedCountry) {
     filteredMovies = filteredMovies.filter(movie =>
       movie.movie_countries.some(item => item.countries.name === selectedCountry)
     );
@@ -5435,7 +5445,7 @@ function getFilteredMovies(options = {}) {
     });
   }
 
-  if (selectedYear) {
+  if (!ignoreYear && selectedYear) {
     filteredMovies = filteredMovies.filter(movie =>
       movie.year !== null &&
       Number(movie.year) === Number(selectedYear)
@@ -5540,6 +5550,52 @@ function getFormatOptionCounts() {
   return counts;
 }
 
+function getCountryOptionCounts() {
+  const moviesWithoutCountryFilter = getFilteredMovies({
+    ignoreCountry: true,
+    skipSorting: true
+  });
+
+  const counts = new Map();
+
+  moviesWithoutCountryFilter.forEach(movie => {
+    const movieCountries = Array.isArray(movie.movie_countries) ? movie.movie_countries : [];
+
+    movieCountries.forEach(item => {
+      const countryName = item?.countries?.name;
+
+      if (!countryName) {
+        return;
+      }
+
+      counts.set(countryName, (counts.get(countryName) || 0) + 1);
+    });
+  });
+
+  return counts;
+}
+
+function getYearOptionCounts() {
+  const moviesWithoutYearFilter = getFilteredMovies({
+    ignoreYear: true,
+    skipSorting: true
+  });
+
+  const counts = new Map();
+
+  moviesWithoutYearFilter.forEach(movie => {
+    const yearValue = movie?.year;
+
+    if (!yearValue) {
+      return;
+    }
+
+    counts.set(Number(yearValue), (counts.get(Number(yearValue)) || 0) + 1);
+  });
+
+  return counts;
+}
+
 function getTriggerOptionCounts() {
   const moviesWithoutTriggerExcludes = getFilteredMovies({
     ignoreTriggerExcludes: true,
@@ -5562,6 +5618,8 @@ function getTriggerOptionCounts() {
 function refreshDynamicFilterOptions() {
   loadSubgenreFilterOptions();
   loadFormatFilterOptions();
+  loadCountries();
+  loadYearFilterOptions();
   loadTriggerFilterOptions();
 }
 
