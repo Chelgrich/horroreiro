@@ -463,7 +463,7 @@ window.HORROR_TAXONOMY = {
   similarity_scoring: {
     formula: {
       canon_tag_score_multiplier: 1.0,
-      perceived_tag_score_multiplier: 0.3,
+      perceived_tag_score_multiplier: 0.2,
       format_score_multiplier: 1.0,
       trigger_score_multiplier: 1.0,
       subgenre_score_multiplier: 1.0
@@ -471,32 +471,45 @@ window.HORROR_TAXONOMY = {
 
     canon_tag_weights: {
       default: 1,
-      rare_or_high_signal: 2,
+      rare_or_high_signal: 3,
       body_horror: 1,
-      loop: 2,
-      simulation: 2,
-      replacement: 2,
-      paranoia_group: 2
+      loop: 3,
+      simulation: 3,
+      replacement: 3,
+      paranoia_group: 3
     },
 
     format_weights: {
-      same_format: 3,
+      same_format: 1,
       same_format_bonus_formats: {
-        found_footage: 4,
-        screenlife: 4,
-        anthology: 4,
-        classic: 3
+        found_footage: 2,
+        screenlife: 2,
+        anthology: 2,
+        classic: 1
       }
     },
 
     trigger_weights: {
-      same_trigger: 0.5
+      same_trigger: 0.15
     },
 
     subgenre_weights: {
-      same_primary: 1.5,
-      primary_secondary_overlap: 1.0,
-      same_secondary: 0.75
+      same_primary: 6,
+      primary_secondary_overlap: 3,
+      same_secondary: 1.5
+    },
+
+    eligibility: {
+      min_total_score: 6,
+      min_shared_canon_tags: 2,
+      allow_single_high_signal_canon_tag: true,
+      high_signal_canon_tags: ['loop', 'simulation', 'replacement', 'paranoia_group'],
+      require_one_of: [
+        'same_primary_subgenre',
+        'primary_secondary_overlap',
+        'enough_shared_canon_tags',
+        'shared_high_signal_canon_tag'
+      ]
     }
   },
 
@@ -832,6 +845,7 @@ window.HORROR_TAXONOMY = {
     if (!baseMovie || !candidateMovie) {
       return {
         total: 0,
+        eligible: false,
         breakdown: {
           canonTags: 0,
           perceivedTags: 0,
@@ -848,6 +862,7 @@ window.HORROR_TAXONOMY = {
     const formatWeights = similarityConfig.format_weights || {};
     const triggerWeights = similarityConfig.trigger_weights || {};
     const subgenreWeights = similarityConfig.subgenre_weights || {};
+    const eligibilityConfig = similarityConfig.eligibility || {};
 
     const baseCanonTags = getCanonTags(baseMovie);
     const candidateCanonTags = getCanonTags(candidateMovie);
@@ -869,6 +884,51 @@ window.HORROR_TAXONOMY = {
       (candidateSubgenres.secondary_subgenres || []).includes(subgenre)
     ));
 
+    const hasSamePrimarySubgenre = Boolean(
+      baseSubgenres.primary_subgenre &&
+      candidateSubgenres.primary_subgenre &&
+      baseSubgenres.primary_subgenre === candidateSubgenres.primary_subgenre
+    );
+
+    const hasPrimarySecondaryOverlap = Boolean(
+      (
+        baseSubgenres.primary_subgenre &&
+        (candidateSubgenres.secondary_subgenres || []).includes(baseSubgenres.primary_subgenre)
+      ) ||
+      (
+        candidateSubgenres.primary_subgenre &&
+        (baseSubgenres.secondary_subgenres || []).includes(candidateSubgenres.primary_subgenre)
+      )
+    );
+
+    const minSharedCanonTags = Number(eligibilityConfig.min_shared_canon_tags ?? 2);
+    const hasEnoughSharedCanonTags = sharedCanonTags.length >= minSharedCanonTags;
+
+    const highSignalCanonTags = Array.isArray(eligibilityConfig.high_signal_canon_tags)
+      ? eligibilityConfig.high_signal_canon_tags
+      : [];
+
+    const sharedHighSignalCanonTags = sharedCanonTags.filter(tag => highSignalCanonTags.includes(tag));
+    const hasSharedHighSignalCanonTag = Boolean(
+      eligibilityConfig.allow_single_high_signal_canon_tag !== false &&
+      sharedHighSignalCanonTags.length > 0
+    );
+
+    const requiredEligibilitySignals = Array.isArray(eligibilityConfig.require_one_of)
+      ? eligibilityConfig.require_one_of
+      : [];
+
+    const eligibilitySignals = {
+      same_primary_subgenre: hasSamePrimarySubgenre,
+      primary_secondary_overlap: hasPrimarySecondaryOverlap,
+      enough_shared_canon_tags: hasEnoughSharedCanonTags,
+      shared_high_signal_canon_tag: hasSharedHighSignalCanonTag
+    };
+
+    const passesStructuralEligibility = requiredEligibilitySignals.length === 0
+      ? true
+      : requiredEligibilitySignals.some(signalKey => eligibilitySignals[signalKey]);
+
     const canonTagsScore = sharedCanonTags.reduce((total, tag) => {
       return total + Number(canonTagWeights[tag] ?? canonTagWeights.default ?? 1);
     }, 0);
@@ -887,26 +947,19 @@ window.HORROR_TAXONOMY = {
 
     let subgenresScore = 0;
 
-    if (
-      baseSubgenres.primary_subgenre &&
-      candidateSubgenres.primary_subgenre &&
-      baseSubgenres.primary_subgenre === candidateSubgenres.primary_subgenre
-    ) {
+    if (hasSamePrimarySubgenre) {
       subgenresScore += Number(subgenreWeights.same_primary ?? 0);
     }
 
-    if (
-      baseSubgenres.primary_subgenre &&
-      (candidateSubgenres.secondary_subgenres || []).includes(baseSubgenres.primary_subgenre)
-    ) {
-      subgenresScore += Number(subgenreWeights.primary_secondary_overlap ?? 0);
-    }
+    if (hasPrimarySecondaryOverlap) {
+      const overlapCount = [
+        baseSubgenres.primary_subgenre &&
+        (candidateSubgenres.secondary_subgenres || []).includes(baseSubgenres.primary_subgenre),
+        candidateSubgenres.primary_subgenre &&
+        (baseSubgenres.secondary_subgenres || []).includes(candidateSubgenres.primary_subgenre)
+      ].filter(Boolean).length;
 
-    if (
-      candidateSubgenres.primary_subgenre &&
-      (baseSubgenres.secondary_subgenres || []).includes(candidateSubgenres.primary_subgenre)
-    ) {
-      subgenresScore += Number(subgenreWeights.primary_secondary_overlap ?? 0);
+      subgenresScore += overlapCount * Number(subgenreWeights.primary_secondary_overlap ?? 0);
     }
 
     subgenresScore += sharedSecondarySubgenres.length * Number(subgenreWeights.same_secondary ?? 0);
@@ -919,11 +972,18 @@ window.HORROR_TAXONOMY = {
       subgenres: subgenresScore * Number(formula.subgenre_score_multiplier ?? 1)
     };
 
+    const total = Object.values(breakdown).reduce((totalScore, score) => totalScore + score, 0);
+    const minTotalScore = Number(eligibilityConfig.min_total_score ?? 0);
+    const eligible = passesStructuralEligibility && total >= minTotalScore;
+
     return {
-      total: Object.values(breakdown).reduce((total, score) => total + score, 0),
+      total,
+      eligible,
       breakdown,
+      eligibilitySignals,
       shared: {
         canonTags: sharedCanonTags,
+        highSignalCanonTags: sharedHighSignalCanonTags,
         perceivedTags: sharedPerceivedTags,
         formats: sharedFormats,
         triggers: sharedTriggers,
@@ -945,9 +1005,36 @@ window.HORROR_TAXONOMY = {
         movie: candidateMovie,
         similarity: calculateMovieSimilarity(movie, candidateMovie)
       }))
+      .filter(item => item.similarity.eligible)
       .sort((firstItem, secondItem) => {
-        if (secondItem.similarity.total !== firstItem.similarity.total) {
-          return secondItem.similarity.total - firstItem.similarity.total;
+        const firstSimilarity = firstItem.similarity;
+        const secondSimilarity = secondItem.similarity;
+
+        if (secondSimilarity.breakdown.subgenres !== firstSimilarity.breakdown.subgenres) {
+          return secondSimilarity.breakdown.subgenres - firstSimilarity.breakdown.subgenres;
+        }
+
+        if (secondSimilarity.breakdown.canonTags !== firstSimilarity.breakdown.canonTags) {
+          return secondSimilarity.breakdown.canonTags - firstSimilarity.breakdown.canonTags;
+        }
+
+        const firstHighSignalCanonCount = firstSimilarity.shared.highSignalCanonTags.length;
+        const secondHighSignalCanonCount = secondSimilarity.shared.highSignalCanonTags.length;
+
+        if (secondHighSignalCanonCount !== firstHighSignalCanonCount) {
+          return secondHighSignalCanonCount - firstHighSignalCanonCount;
+        }
+
+        if (secondSimilarity.breakdown.formats !== firstSimilarity.breakdown.formats) {
+          return secondSimilarity.breakdown.formats - firstSimilarity.breakdown.formats;
+        }
+
+        if (secondSimilarity.breakdown.perceivedTags !== firstSimilarity.breakdown.perceivedTags) {
+          return secondSimilarity.breakdown.perceivedTags - firstSimilarity.breakdown.perceivedTags;
+        }
+
+        if (secondSimilarity.total !== firstSimilarity.total) {
+          return secondSimilarity.total - firstSimilarity.total;
         }
 
         const firstYear = Number(firstItem.movie?.year) || 0;
