@@ -1939,6 +1939,9 @@ async function loadGenres() {
     return;
   }
 
+  const selectedGenre = genreFilter.value || '';
+  const genreCounts = getGenreOptionCounts();
+
   genreFilter.innerHTML = '<option value="">Все доп. жанры</option>';
 
   data
@@ -1946,10 +1949,11 @@ async function loadGenres() {
     .forEach(item => {
       const option = document.createElement('option');
       option.value = item.name;
-      option.textContent = item.name;
+      option.textContent = `${item.name} (${genreCounts.get(item.name) || 0})`;
       genreFilter.appendChild(option);
     });
 
+  genreFilter.value = selectedGenre;
   refreshCustomSelect(genreFilter);
 }
 
@@ -5358,6 +5362,7 @@ function rerenderMovieCard(
 
 function getFilteredMovies(options = {}) {
   const {
+    ignoreGenre = false,
     ignoreSubgenre = false,
     ignoreFormat = false,
     ignoreTriggerExcludes = false,
@@ -5382,7 +5387,7 @@ function getFilteredMovies(options = {}) {
     );
   }
 
-  if (selectedGenre) {
+  if (!ignoreGenre && selectedGenre) {
     filteredMovies = filteredMovies.filter(movie =>
       movie.movie_genres.some(item => item.genres.name === selectedGenre)
     );
@@ -5468,6 +5473,31 @@ function getFilteredMovies(options = {}) {
   }
 
   return filteredMovies;
+}
+
+function getGenreOptionCounts() {
+  const moviesWithoutGenreFilter = getFilteredMovies({
+    ignoreGenre: true,
+    skipSorting: true
+  });
+
+  const counts = new Map();
+
+  moviesWithoutGenreFilter.forEach(movie => {
+    const movieGenres = Array.isArray(movie.movie_genres) ? movie.movie_genres : [];
+
+    movieGenres.forEach(item => {
+      const genreName = item?.genres?.name;
+
+      if (!genreName || normalizeSearchText(genreName) === 'ужасы') {
+        return;
+      }
+
+      counts.set(genreName, (counts.get(genreName) || 0) + 1);
+    });
+  });
+
+  return counts;
 }
 
 function getSubgenreOptionCounts() {
