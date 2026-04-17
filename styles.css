@@ -3662,12 +3662,42 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
 
 @media (max-width: 900px) {
   .movie-page-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(220px, 248px) minmax(0, 1fr);
     gap: 20px;
+    align-items: start;
   }
 
   .movie-page-poster-column {
-    max-width: 360px;
+    max-width: none;
+  }
+
+  .movie-page-main-column {
+    gap: 16px;
+  }
+
+  .movie-page-title-block {
+    padding-bottom: 12px;
+  }
+
+  .movie-page-title-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .movie-page-summary-panel {
+    width: 100%;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .movie-page-rating-summary {
+    justify-content: flex-start;
+  }
+
+  .movie-page-rate-trigger {
+    width: auto;
+    white-space: nowrap;
   }
 
   .movie-page-title {
@@ -3676,7 +3706,9 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
   }
 
   .movie-page-original-title {
+    margin-top: 6px;
     font-size: 17px;
+    line-height: 1.32;
   }
 }
 
