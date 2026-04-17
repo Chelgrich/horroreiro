@@ -3199,7 +3199,7 @@ CSS-БЛОК 15A. DETAIL-PAGE ФИЛЬМА
 }
 
 .movie-page-shell {
-  min-height: calc(100vh - 120px);
+  min-height: calc(100dvh - 220px);
 }
 
 .movie-page {
