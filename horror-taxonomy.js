@@ -467,7 +467,8 @@ window.HORROR_TAXONOMY = {
       format_score_multiplier: 1.0,
       trigger_score_multiplier: 1.0,
       subgenre_score_multiplier: 1.0,
-      cluster_score_multiplier: 1.0
+      cluster_score_multiplier: 1.0,
+      additional_genres_score_multiplier: 1.0
     },
 
     canon_tag_weights: {
@@ -517,6 +518,12 @@ window.HORROR_TAXONOMY = {
         possession_control_core: 3,
         mystery_search_unknown: 3
       }
+    },
+
+    additional_genre_weights: {
+      shared_genre: 1,
+      jaccard_multiplier: 4,
+      no_shared_genres_penalty: 1.5
     },
 
     clusters: [
@@ -674,6 +681,18 @@ window.HORROR_TAXONOMY = {
 
   function getTriggers(movie) {
     return toStringArray(movie?.triggers);
+  }
+
+  function getAdditionalGenres(movie) {
+    const movieGenres = Array.isArray(movie?.movie_genres) ? movie.movie_genres : [];
+
+    return [...new Set(
+      movieGenres
+        .map(item => item?.genres?.name)
+        .filter(Boolean)
+        .map(name => String(name).trim())
+        .filter(name => name && name.toLowerCase() !== 'ужасы')
+    )];
   }
 
   function validateMovieTags(movie) {
@@ -907,7 +926,8 @@ window.HORROR_TAXONOMY = {
           formats: 0,
           triggers: 0,
           subgenres: 0,
-          clusters: 0
+          clusters: 0,
+          additionalGenres: 0
         }
       };
     }
@@ -919,6 +939,7 @@ window.HORROR_TAXONOMY = {
     const triggerWeights = similarityConfig.trigger_weights || {};
     const subgenreWeights = similarityConfig.subgenre_weights || {};
     const clusterWeights = similarityConfig.cluster_weights || {};
+    const additionalGenreWeights = similarityConfig.additional_genre_weights || {};
     const clusterDefinitions = similarityConfig.clusters || [];
     const eligibilityConfig = similarityConfig.eligibility || {};
 
@@ -930,6 +951,8 @@ window.HORROR_TAXONOMY = {
     const candidateFormats = getFormats(candidateMovie);
     const baseTriggers = getTriggers(baseMovie);
     const candidateTriggers = getTriggers(candidateMovie);
+    const baseAdditionalGenres = getAdditionalGenres(baseMovie);
+    const candidateAdditionalGenres = getAdditionalGenres(candidateMovie);
 
     const baseSubgenres = getResolvedSubgenresForSimilarity(baseMovie);
     const candidateSubgenres = getResolvedSubgenresForSimilarity(candidateMovie);
@@ -938,10 +961,19 @@ window.HORROR_TAXONOMY = {
     const sharedPerceivedTags = basePerceivedTags.filter(tag => candidatePerceivedTags.includes(tag));
     const sharedFormats = baseFormats.filter(format => candidateFormats.includes(format));
     const sharedTriggers = baseTriggers.filter(trigger => candidateTriggers.includes(trigger));
+    const sharedAdditionalGenres = baseAdditionalGenres.filter(genre => candidateAdditionalGenres.includes(genre));
     const sharedSecondarySubgenres = (baseSubgenres.secondary_subgenres || []).filter(subgenre => (
       (candidateSubgenres.secondary_subgenres || []).includes(subgenre)
     ));
     const sharedClusters = getSharedCanonClusters(baseCanonTags, candidateCanonTags, clusterDefinitions);
+
+    const additionalGenresUnion = new Set([
+      ...baseAdditionalGenres,
+      ...candidateAdditionalGenres
+    ]);
+    const additionalGenresJaccard = additionalGenresUnion.size > 0
+      ? sharedAdditionalGenres.length / additionalGenresUnion.size
+      : 0;
 
     const hasSamePrimarySubgenre = Boolean(
       baseSubgenres.primary_subgenre &&
@@ -1033,13 +1065,26 @@ window.HORROR_TAXONOMY = {
       );
     }, 0);
 
+    let additionalGenresScore =
+      (sharedAdditionalGenres.length * Number(additionalGenreWeights.shared_genre ?? 0)) +
+      (additionalGenresJaccard * Number(additionalGenreWeights.jaccard_multiplier ?? 0));
+
+    if (
+      baseAdditionalGenres.length > 0 &&
+      candidateAdditionalGenres.length > 0 &&
+      sharedAdditionalGenres.length === 0
+    ) {
+      additionalGenresScore -= Number(additionalGenreWeights.no_shared_genres_penalty ?? 0);
+    }
+
     const breakdown = {
       canonTags: canonTagsScore * Number(formula.canon_tag_score_multiplier ?? 1),
       perceivedTags: perceivedTagsScore * Number(formula.perceived_tag_score_multiplier ?? 1),
       formats: formatsScore * Number(formula.format_score_multiplier ?? 1),
       triggers: triggersScore * Number(formula.trigger_score_multiplier ?? 1),
       subgenres: subgenresScore * Number(formula.subgenre_score_multiplier ?? 1),
-      clusters: clustersScore * Number(formula.cluster_score_multiplier ?? 1)
+      clusters: clustersScore * Number(formula.cluster_score_multiplier ?? 1),
+      additionalGenres: additionalGenresScore * Number(formula.additional_genres_score_multiplier ?? 1)
     };
 
     const total = Object.values(breakdown).reduce((totalScore, score) => totalScore + score, 0);
@@ -1057,6 +1102,8 @@ window.HORROR_TAXONOMY = {
         perceivedTags: sharedPerceivedTags,
         formats: sharedFormats,
         triggers: sharedTriggers,
+        additionalGenres: sharedAdditionalGenres,
+        additionalGenresJaccard,
         secondarySubgenres: sharedSecondarySubgenres,
         clusters: sharedClusters
       },
@@ -1087,6 +1134,10 @@ window.HORROR_TAXONOMY = {
 
         if (secondSimilarity.breakdown.canonTags !== firstSimilarity.breakdown.canonTags) {
           return secondSimilarity.breakdown.canonTags - firstSimilarity.breakdown.canonTags;
+        }
+
+        if (secondSimilarity.breakdown.additionalGenres !== firstSimilarity.breakdown.additionalGenres) {
+          return secondSimilarity.breakdown.additionalGenres - firstSimilarity.breakdown.additionalGenres;
         }
 
         const firstHighSignalCanonCount = firstSimilarity.shared.highSignalCanonTags.length;
@@ -1133,6 +1184,7 @@ window.HORROR_TAXONOMY = {
     getPerceivedTags,
     getFormats,
     getTriggers,
+    getAdditionalGenres,
     validateMovieTags,
     calculateSubgenreScores,
     resolveMovieSubgenres,
