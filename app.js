@@ -6569,6 +6569,69 @@ function renderMoviePageNotFound() {
   `;
 }
 
+function getSimilarMoviesForMoviePage(movie, limit = 4) {
+  const getSimilarMovies = window.HORROR_TAXONOMY?.helpers?.getSimilarMovies;
+
+  if (!movie || typeof getSimilarMovies !== 'function' || !Array.isArray(allMovies) || allMovies.length === 0) {
+    return [];
+  }
+
+  return getSimilarMovies(movie, allMovies, limit).map(item => item.movie);
+}
+
+function getMoviePageSimilarCardHtml(movie) {
+  const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
+  const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
+  const averageRating = getMovieAverageRating(movie.id);
+  const votesCount = getMovieRatings(movie.id).length;
+
+  return `
+    <article class="movie-page-similar-card" data-movie-id="${movie.id}">
+      <a href="${buildMoviePageUrl(movie)}" class="movie-page-similar-poster-link" aria-label="Перейти к фильму ${escapeHtml(movie.title)}">
+        <div class="movie-page-similar-poster-wrapper">
+          ${
+            movie.poster_url
+              ? `
+                <img
+                  class="movie-page-similar-poster"
+                  src="${movie.poster_url}"
+                  alt="Постер фильма ${escapeHtml(movie.title)}"
+                  loading="lazy"
+                  decoding="async"
+                >
+              `
+              : `<div class="movie-poster-placeholder">Нет постера</div>`
+          }
+        </div>
+      </a>
+
+      <div class="movie-page-similar-content">
+        <h3 class="movie-page-similar-title">
+          <a href="${buildMoviePageUrl(movie)}" class="movie-title-link">${escapeHtml(movie.title)}</a>
+        </h3>
+
+        ${
+          movie.original_title
+            ? `<div class="movie-page-similar-original-title">${escapeHtml(movie.original_title)}</div>`
+            : ''
+        }
+
+        <div class="movie-page-similar-meta">Год: ${movie.year ?? '-'}</div>
+        <div class="movie-page-similar-meta">Режиссёр: ${movie.director ? escapeHtml(movie.director) : '-'}</div>
+        <div class="movie-page-similar-meta">Жанры: ${genres ? escapeHtml(genres) : '-'}</div>
+        <div class="movie-page-similar-meta">Страны: ${countries ? escapeHtml(countries) : '-'}</div>
+
+        <div class="movie-rating-summary movie-page-similar-rating-summary">
+          <div class="movie-rating-summary-main">
+            <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
+            <span class="movie-rating-meta">(${votesCount} ${getVotesLabel(votesCount)})</span>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
 function renderMoviePage(movie) {
   if (!moviePage || !movie) {
     return;
@@ -6587,147 +6650,163 @@ function renderMoviePage(movie) {
   const synopsis = String(movie.synopsis || '').trim();
   const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
   const isWatchlistBusy = watchlistRequestInFlight.has(String(movie.id));
+  const similarMovies = getSimilarMoviesForMoviePage(movie, 4);
 
   setMoviePageDocumentMeta(movie);
 
   moviePage.innerHTML = `
-    <article class="movie-page-layout" data-movie-id="${movie.id}">
-    <div class="movie-page-poster-column">
-    <div class="movie-page-poster-wrapper">
-      ${
-        movie.poster_url
-          ? `
-            <img
-              class="movie-page-poster"
-              src="${movie.poster_url}"
-              alt="Постер фильма ${escapeHtml(movie.title)}"
-              loading="eager"
-              decoding="async"
-            >
-          `
-          : `<div class="movie-poster-placeholder">Нет постера</div>`
-      }
+    <div class="movie-page-stack">
+      <article class="movie-page-layout" data-movie-id="${movie.id}">
+        <div class="movie-page-poster-column">
+          <div class="movie-page-poster-wrapper">
+            ${
+              movie.poster_url
+                ? `
+                  <img
+                    class="movie-page-poster"
+                    src="${movie.poster_url}"
+                    alt="Постер фильма ${escapeHtml(movie.title)}"
+                    loading="eager"
+                    decoding="async"
+                  >
+                `
+                : `<div class="movie-poster-placeholder">Нет постера</div>`
+            }
 
-      ${
-        currentUser && !userMovieState.isWatched
-          ? `
-            <button
-              type="button"
-              class="movie-page-watchlist-icon ${userMovieState.isInWatchlist ? 'is-active' : ''}"
-              data-movie-page-watchlist-icon-toggle="true"
-              aria-label="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
-              title="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
-              ${isWatchlistBusy ? 'disabled' : ''}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-            </button>
-          `
-          : ''
-      }
+            ${
+              currentUser && !userMovieState.isWatched
+                ? `
+                  <button
+                    type="button"
+                    class="movie-page-watchlist-icon ${userMovieState.isInWatchlist ? 'is-active' : ''}"
+                    data-movie-page-watchlist-icon-toggle="true"
+                    aria-label="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+                    title="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+                    ${isWatchlistBusy ? 'disabled' : ''}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                `
+                : ''
+            }
 
-      ${
-        userMovieState.isWatched
-          ? `
-            <div class="movie-page-watched-icon" aria-label="Просмотрено" title="Просмотрено">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M5 12.5L9.5 17L19 7.5"></path>
-              </svg>
-            </div>
-          `
-          : ''
-      }
-    </div>
-  </div>
-
-      <div class="movie-page-main-column">
-        <div class="movie-page-title-block">
-          <div class="movie-page-title-row">
-            <div class="movie-page-title-main">
-              <h2 class="movie-page-title">${escapeHtml(movie.title)}</h2>
-              ${
-                movie.original_title
-                  ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>`
-                  : ''
-              }
-            </div>
-
-            <div class="movie-page-summary-panel">
-              <div class="movie-rating-summary movie-page-rating-summary">
-                <div class="movie-rating-summary-main">
-                  <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
-                  <span class="movie-rating-meta">(${votesCount} ${getVotesLabel(votesCount)})</span>
-                </div>
-              </div>
-
-              ${
-                currentUser
-                  ? `
-                    <button
-                      type="button"
-                      class="secondary-button movie-page-rate-trigger ${currentUserRating !== null ? 'is-rated' : ''}"
-                      data-open-mobile-rating="true"
-                      ${isRatingBusy ? 'disabled' : ''}
-                    >
-                    ${
-                      currentUserRating !== null
-                        ? `Изменить <span class="movie-page-rate-value">${currentUserRating}</span><span class="movie-page-rate-trigger-star">★</span>`
-                        : 'Оценить'
-                    }
-                    </button>
-                  `
-                  : ''
-              }
-            </div>
+            ${
+              userMovieState.isWatched
+                ? `
+                  <div class="movie-page-watched-icon" aria-label="Просмотрено" title="Просмотрено">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M5 12.5L9.5 17L19 7.5"></path>
+                    </svg>
+                  </div>
+                `
+                : ''
+            }
           </div>
         </div>
 
-        <div class="movie-page-meta-list">
-          <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
-          <div class="movie-page-meta-item"><span>Режиссёр:</span> <strong>${movie.director ? escapeHtml(movie.director) : '-'}</strong></div>
-          <div class="movie-page-meta-item"><span>Жанры:</span> <strong>${genres ? escapeHtml(genres) : '-'}</strong></div>
-          ${
-            movie.primary_subgenre
-              ? `<div class="movie-page-meta-item"><span>Поджанр:</span> <strong>${escapeHtml(getTaxonomyLabel('subgenres', movie.primary_subgenre))}</strong></div>`
-              : ''
-          }
-          ${
-            Array.isArray(movie.formats) &&
-            movie.formats.length > 0 &&
-            !(movie.formats.length === 1 && movie.formats[0] === 'classic')
-              ? `<div class="movie-page-meta-item"><span>Формат:</span> <strong>${escapeHtml(mapTaxonomyLabels('formats', movie.formats).join(', '))}</strong></div>`
-              : ''
-          }
-          <div class="movie-page-meta-item"><span>Страны:</span> <strong>${countries ? escapeHtml(countries) : '-'}</strong></div>
-        </div>
-
-        ${
-          synopsis
-            ? `
-              <div class="movie-page-synopsis-block">
-                <div class="movie-page-subtitle">Описание</div>
-                <div class="movie-page-synopsis-text">${escapeHtml(synopsis).replace(/\n/g, '<br>')}</div>
+        <div class="movie-page-main-column">
+          <div class="movie-page-title-block">
+            <div class="movie-page-title-row">
+              <div class="movie-page-title-main">
+                <h2 class="movie-page-title">${escapeHtml(movie.title)}</h2>
+                ${
+                  movie.original_title
+                    ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>`
+                    : ''
+                }
               </div>
-            `
-            : ''
-        }
 
-        <div class="movie-page-rating-block movie-rating-block">
+              <div class="movie-page-summary-panel">
+                <div class="movie-rating-summary movie-page-rating-summary">
+                  <div class="movie-rating-summary-main">
+                    <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
+                    <span class="movie-rating-meta">(${votesCount} ${getVotesLabel(votesCount)})</span>
+                  </div>
+                </div>
+
+                ${
+                  currentUser
+                    ? `
+                      <button
+                        type="button"
+                        class="secondary-button movie-page-rate-trigger ${currentUserRating !== null ? 'is-rated' : ''}"
+                        data-open-mobile-rating="true"
+                        ${isRatingBusy ? 'disabled' : ''}
+                      >
+                      ${
+                        currentUserRating !== null
+                          ? `Изменить <span class="movie-page-rate-value">${currentUserRating}</span><span class="movie-page-rate-trigger-star">★</span>`
+                          : 'Оценить'
+                      }
+                      </button>
+                    `
+                    : ''
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="movie-page-meta-list">
+            <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
+            <div class="movie-page-meta-item"><span>Режиссёр:</span> <strong>${movie.director ? escapeHtml(movie.director) : '-'}</strong></div>
+            <div class="movie-page-meta-item"><span>Жанры:</span> <strong>${genres ? escapeHtml(genres) : '-'}</strong></div>
+            ${
+              movie.primary_subgenre
+                ? `<div class="movie-page-meta-item"><span>Поджанр:</span> <strong>${escapeHtml(getTaxonomyLabel('subgenres', movie.primary_subgenre))}</strong></div>`
+                : ''
+            }
+            ${
+              Array.isArray(movie.formats) &&
+              movie.formats.length > 0 &&
+              !(movie.formats.length === 1 && movie.formats[0] === 'classic')
+                ? `<div class="movie-page-meta-item"><span>Формат:</span> <strong>${escapeHtml(mapTaxonomyLabels('formats', movie.formats).join(', '))}</strong></div>`
+                : ''
+            }
+            <div class="movie-page-meta-item"><span>Страны:</span> <strong>${countries ? escapeHtml(countries) : '-'}</strong></div>
+          </div>
+
           ${
-            externalLinksHtml
+            synopsis
               ? `
-                <div class="movie-page-external-links-block">
-                  <div class="movie-page-subtitle">Ссылки на фильм</div>
-                  ${externalLinksHtml}
+                <div class="movie-page-synopsis-block">
+                  <div class="movie-page-subtitle">Описание</div>
+                  <div class="movie-page-synopsis-text">${escapeHtml(synopsis).replace(/\n/g, '<br>')}</div>
                 </div>
               `
               : ''
           }
+
+          <div class="movie-page-rating-block movie-rating-block">
+            ${
+              externalLinksHtml
+                ? `
+                  <div class="movie-page-external-links-block">
+                    <div class="movie-page-subtitle">Ссылки на фильм</div>
+                    ${externalLinksHtml}
+                  </div>
+                `
+                : ''
+            }
+          </div>
         </div>
-      </div>
-    </article>
+      </article>
+
+      ${
+        similarMovies.length > 0
+          ? `
+            <section class="movie-page-similar-block" aria-labelledby="moviePageSimilarTitle">
+              <div id="moviePageSimilarTitle" class="movie-page-subtitle">Похожие фильмы</div>
+              <div class="movie-page-similar-grid">
+                ${similarMovies.map(similarMovie => getMoviePageSimilarCardHtml(similarMovie)).join('')}
+              </div>
+            </section>
+          `
+          : ''
+      }
+    </div>
   `;
 
   const watchlistIconButton = moviePage.querySelector('[data-movie-page-watchlist-icon-toggle="true"]');

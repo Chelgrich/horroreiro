@@ -817,6 +817,154 @@ window.HORROR_TAXONOMY = {
     };
   }
 
+  function getResolvedSubgenresForSimilarity(movie) {
+    const resolved = resolveMovieSubgenres(movie);
+
+    return {
+      primary_subgenre: movie?.primary_subgenre || resolved.primary_subgenre || null,
+      secondary_subgenres: Array.isArray(movie?.secondary_subgenres) && movie.secondary_subgenres.length > 0
+        ? movie.secondary_subgenres
+        : (resolved.secondary_subgenres || [])
+    };
+  }
+
+  function calculateMovieSimilarity(baseMovie, candidateMovie) {
+    if (!baseMovie || !candidateMovie) {
+      return {
+        total: 0,
+        breakdown: {
+          canonTags: 0,
+          perceivedTags: 0,
+          formats: 0,
+          triggers: 0,
+          subgenres: 0
+        }
+      };
+    }
+
+    const similarityConfig = taxonomy.similarity_scoring || {};
+    const formula = similarityConfig.formula || {};
+    const canonTagWeights = similarityConfig.canon_tag_weights || {};
+    const formatWeights = similarityConfig.format_weights || {};
+    const triggerWeights = similarityConfig.trigger_weights || {};
+    const subgenreWeights = similarityConfig.subgenre_weights || {};
+
+    const baseCanonTags = getCanonTags(baseMovie);
+    const candidateCanonTags = getCanonTags(candidateMovie);
+    const basePerceivedTags = getPerceivedTags(baseMovie);
+    const candidatePerceivedTags = getPerceivedTags(candidateMovie);
+    const baseFormats = getFormats(baseMovie);
+    const candidateFormats = getFormats(candidateMovie);
+    const baseTriggers = getTriggers(baseMovie);
+    const candidateTriggers = getTriggers(candidateMovie);
+
+    const baseSubgenres = getResolvedSubgenresForSimilarity(baseMovie);
+    const candidateSubgenres = getResolvedSubgenresForSimilarity(candidateMovie);
+
+    const sharedCanonTags = baseCanonTags.filter(tag => candidateCanonTags.includes(tag));
+    const sharedPerceivedTags = basePerceivedTags.filter(tag => candidatePerceivedTags.includes(tag));
+    const sharedFormats = baseFormats.filter(format => candidateFormats.includes(format));
+    const sharedTriggers = baseTriggers.filter(trigger => candidateTriggers.includes(trigger));
+    const sharedSecondarySubgenres = (baseSubgenres.secondary_subgenres || []).filter(subgenre => (
+      (candidateSubgenres.secondary_subgenres || []).includes(subgenre)
+    ));
+
+    const canonTagsScore = sharedCanonTags.reduce((total, tag) => {
+      return total + Number(canonTagWeights[tag] ?? canonTagWeights.default ?? 1);
+    }, 0);
+
+    const perceivedTagsScore = sharedPerceivedTags.length;
+
+    const formatsScore = sharedFormats.reduce((maxScore, format) => {
+      const formatScore = Number(
+        formatWeights.same_format_bonus_formats?.[format] ?? formatWeights.same_format ?? 0
+      );
+
+      return Math.max(maxScore, formatScore);
+    }, 0);
+
+    const triggersScore = sharedTriggers.length * Number(triggerWeights.same_trigger ?? 0);
+
+    let subgenresScore = 0;
+
+    if (
+      baseSubgenres.primary_subgenre &&
+      candidateSubgenres.primary_subgenre &&
+      baseSubgenres.primary_subgenre === candidateSubgenres.primary_subgenre
+    ) {
+      subgenresScore += Number(subgenreWeights.same_primary ?? 0);
+    }
+
+    if (
+      baseSubgenres.primary_subgenre &&
+      (candidateSubgenres.secondary_subgenres || []).includes(baseSubgenres.primary_subgenre)
+    ) {
+      subgenresScore += Number(subgenreWeights.primary_secondary_overlap ?? 0);
+    }
+
+    if (
+      candidateSubgenres.primary_subgenre &&
+      (baseSubgenres.secondary_subgenres || []).includes(candidateSubgenres.primary_subgenre)
+    ) {
+      subgenresScore += Number(subgenreWeights.primary_secondary_overlap ?? 0);
+    }
+
+    subgenresScore += sharedSecondarySubgenres.length * Number(subgenreWeights.same_secondary ?? 0);
+
+    const breakdown = {
+      canonTags: canonTagsScore * Number(formula.canon_tag_score_multiplier ?? 1),
+      perceivedTags: perceivedTagsScore * Number(formula.perceived_tag_score_multiplier ?? 1),
+      formats: formatsScore * Number(formula.format_score_multiplier ?? 1),
+      triggers: triggersScore * Number(formula.trigger_score_multiplier ?? 1),
+      subgenres: subgenresScore * Number(formula.subgenre_score_multiplier ?? 1)
+    };
+
+    return {
+      total: Object.values(breakdown).reduce((total, score) => total + score, 0),
+      breakdown,
+      shared: {
+        canonTags: sharedCanonTags,
+        perceivedTags: sharedPerceivedTags,
+        formats: sharedFormats,
+        triggers: sharedTriggers,
+        secondarySubgenres: sharedSecondarySubgenres
+      },
+      resolved: {
+        base: baseSubgenres,
+        candidate: candidateSubgenres
+      }
+    };
+  }
+
+  function getSimilarMovies(movie, movies, limit = 4) {
+    const safeMovies = Array.isArray(movies) ? movies : [];
+
+    return safeMovies
+      .filter(candidateMovie => candidateMovie && candidateMovie.id !== movie?.id)
+      .map(candidateMovie => ({
+        movie: candidateMovie,
+        similarity: calculateMovieSimilarity(movie, candidateMovie)
+      }))
+      .sort((firstItem, secondItem) => {
+        if (secondItem.similarity.total !== firstItem.similarity.total) {
+          return secondItem.similarity.total - firstItem.similarity.total;
+        }
+
+        const firstYear = Number(firstItem.movie?.year) || 0;
+        const secondYear = Number(secondItem.movie?.year) || 0;
+
+        if (secondYear !== firstYear) {
+          return secondYear - firstYear;
+        }
+
+        return String(firstItem.movie?.title || '').localeCompare(
+          String(secondItem.movie?.title || ''),
+          'ru'
+        );
+      })
+      .slice(0, Math.max(0, Number(limit) || 0));
+  }
+
   taxonomy.helpers = {
     toStringArray,
     getCanonTags,
@@ -825,6 +973,8 @@ window.HORROR_TAXONOMY = {
     getTriggers,
     validateMovieTags,
     calculateSubgenreScores,
-    resolveMovieSubgenres
+    resolveMovieSubgenres,
+    calculateMovieSimilarity,
+    getSimilarMovies
   };
 })();
