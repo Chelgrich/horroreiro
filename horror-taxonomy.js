@@ -769,7 +769,8 @@ const TAXONOMY_SUBGENRES = [
   'body_horror',
   'cannibal_horror',
   'horror_comedy',
-  'zombie'
+  'zombie',
+  'disaster_horror'
 ];
 
 const TAXONOMY_FORMATS = [
@@ -784,7 +785,7 @@ const TAXONOMY_LABELS = {
   subgenres: {
     supernatural_horror: 'Сверхъестественный хоррор',
     haunted_house: 'Дом с привидениями',
-    mystery_horror: 'Мистический хоррор',
+    mystery_horror: 'Мистери-хоррор',
     conspiracy_horror: 'Конспирологический хоррор',
     creature_feature: 'Монстр-муви',
     possession: 'Одержимость',
@@ -794,11 +795,12 @@ const TAXONOMY_LABELS = {
     psychological_horror: 'Психологический хоррор',
     slasher: 'Слэшер',
     animal_attack: 'Нападение животных',
-    infection_outbreak: 'Инфекционный хоррор',
+    infection_outbreak: 'Хоррор-вспышка',
     body_horror: 'Боди-хоррор',
     cannibal_horror: 'Каннибальский хоррор',
-    horror_comedy: 'Комедийный хоррор',
-    zombie: 'Зомби-хоррор'
+    horror_comedy: 'Хоррор-комедия',
+    zombie: 'Зомби-хоррор',
+    disaster_horror: 'Хоррор-катастрофа'
   },
 
   formats: {
