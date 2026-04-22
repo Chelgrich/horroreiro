@@ -3713,10 +3713,21 @@ body:has(.movie-page-shell) .page {
   align-items: start;
 }
 
-.movie-page-similar-grid .movie-card {
-  height: auto;
+.movie-page-similar-grid > * {
   min-width: 0;
+  height: auto;
   align-self: start;
+}
+
+.movie-page-similar-grid .movie-card {
+  min-width: 0;
+  height: auto;
+  align-self: start;
+}
+
+.movie-page-similar-grid .movie-card,
+.movie-page-similar-grid .movie-card .movie-rating-block {
+  overflow: visible;
 }
 
 .movie-page-similar-card {
