@@ -3213,19 +3213,23 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page {
-  overflow: hidden;
+  min-width: 0;
+  overflow: visible;
 }
 
 .movie-page-topbar {
+  min-width: 0;
   margin-bottom: 20px;
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 
 .movie-page-back-link {
   min-width: 0;
+  flex: 1 1 220px;
   text-decoration: none;
 }
 
@@ -3235,6 +3239,7 @@ body:has(.movie-page-shell) .page {
   justify-content: flex-end;
   gap: 8px;
   margin-left: auto;
+  flex: 0 0 auto;
 }
 
 .movie-page-admin-actions.is-visible {
@@ -3841,6 +3846,16 @@ body:has(.movie-page-shell) .page {
   .movie-page-topbar {
     margin-bottom: 16px;
     gap: 10px;
+  }
+
+  .movie-page-back-link {
+    flex: 1 1 100%;
+  }
+
+  .movie-page-admin-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
   }
 
   .movie-page-layout {
