@@ -77,6 +77,7 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
 Ограничивает ширину и задаёт внешние отступы приложения.
 ========================================================== */
 .page {
+  box-sizing: border-box;
   --control-width: 220px;
   --catalog-columns: 4;
   --catalog-grid-gap: 16px;
@@ -3206,6 +3207,7 @@ body:has(.movie-page-shell) {
 
 body:has(.movie-page-shell) .page {
   width: 100%;
+  box-sizing: border-box;
 }
 
 .movie-page-shell {
@@ -3842,7 +3844,7 @@ body:has(.movie-page-shell) .page {
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 680px) {
   .movie-page-topbar {
     margin-bottom: 16px;
     gap: 10px;
