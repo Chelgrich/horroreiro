@@ -735,3 +735,19 @@ function getSimilarMovies(targetMovie, allMovies) {
     .sort((a, b) => b.similarity.finalScore - a.similarity.finalScore)
     .slice(0, SIMILARITY_MODEL.MAX_RESULTS);
 }
+
+function getSimilarMovieCards(targetMovieId, allMovies) {
+  const targetMovie = (allMovies || []).find(movie => String(movie.id) === String(targetMovieId));
+
+  if (!targetMovie) {
+    return [];
+  }
+
+  return getSimilarMovies(targetMovie, allMovies).map(item => ({
+    id: item.movie.id,
+    title: item.movie.title,
+    year: item.movie.year,
+    score: Math.round(item.similarity.finalScore),
+    tier: item.similarity.tier
+  }));
+}
