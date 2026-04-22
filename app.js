@@ -6146,7 +6146,14 @@ if (posterFileInput) {
   posterFileInput.addEventListener('change', updatePosterFileUi);
 }
 
-[movieFormatsInput, tagsPerceivedInput, tagsCanonInput, movieTriggersInput].forEach(inputElement => {
+[
+  movieFormatsInput,
+  movieModifiersInput,
+  movieBroadFamiliesInput,
+  tagsPerceivedInput,
+  tagsCanonInput,
+  movieTriggersInput
+].forEach(inputElement => {
   if (!inputElement) {
     return;
   }
@@ -6486,6 +6493,8 @@ async function fetchMovieByRouteParams(routeParams) {
         director,
         synopsis,
         formats,
+        modifiers,
+        broad_families,
         primary_subgenre,
         secondary_subgenres,
         tags_perceived,
