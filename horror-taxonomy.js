@@ -751,3 +751,92 @@ function getSimilarMovieCards(targetMovieId, allMovies) {
     tier: item.similarity.tier
   }));
 }
+
+const TAXONOMY_SUBGENRES = [
+  'supernatural_horror',
+  'haunted_house',
+  'mystery_horror',
+  'conspiracy_horror',
+  'creature_feature',
+  'possession',
+  'survival_horror',
+  'religious_horror',
+  'folk_horror',
+  'psychological_horror',
+  'slasher',
+  'animal_attack',
+  'infection_outbreak',
+  'body_horror',
+  'cannibal_horror',
+  'horror_comedy',
+  'zombie'
+];
+
+const TAXONOMY_FORMATS = [
+  'found_footage',
+  'mockumentary',
+  'hybrid_narrative',
+  'anthology',
+  'silent_film'
+];
+
+const TAXONOMY_LABELS = {
+  subgenres: {
+    supernatural_horror: 'Сверхъестественный хоррор',
+    haunted_house: 'Дом с привидениями',
+    mystery_horror: 'Мистический хоррор',
+    conspiracy_horror: 'Конспирологический хоррор',
+    creature_feature: 'Монстр-муви',
+    possession: 'Одержимость',
+    survival_horror: 'Хоррор-выживание',
+    religious_horror: 'Религиозный хоррор',
+    folk_horror: 'Фолк-хоррор',
+    psychological_horror: 'Психологический хоррор',
+    slasher: 'Слэшер',
+    animal_attack: 'Нападение животных',
+    infection_outbreak: 'Инфекционный хоррор',
+    body_horror: 'Боди-хоррор',
+    cannibal_horror: 'Каннибальский хоррор',
+    horror_comedy: 'Комедийный хоррор',
+    zombie: 'Зомби-хоррор'
+  },
+
+  formats: {
+    found_footage: 'Найденная плёнка',
+    mockumentary: 'Псевдодокументальный',
+    hybrid_narrative: 'Гибридное повествование',
+    anthology: 'Антология',
+    silent_film: 'Немой фильм'
+  },
+
+  triggers: {}
+};
+
+function resolveMovieSubgenres(movie) {
+  const perceived = Array.isArray(movie?.tags_perceived) ? movie.tags_perceived.filter(Boolean) : [];
+  const subgenres = perceived.filter(tag => TAXONOMY_SUBGENRES.includes(tag));
+
+  return {
+    primary_subgenre: subgenres[0] || null,
+    secondary_subgenres: subgenres.slice(1)
+  };
+}
+
+function validateMovieTags() {
+  return {
+    warnings: []
+  };
+}
+
+window.HORROR_TAXONOMY = {
+  subgenres: TAXONOMY_SUBGENRES,
+  formats: TAXONOMY_FORMATS,
+  triggers: [],
+  labels: TAXONOMY_LABELS,
+  helpers: {
+    resolveMovieSubgenres,
+    validateMovieTags,
+    getSimilarMovies,
+    getSimilarMovieCards
+  }
+};
