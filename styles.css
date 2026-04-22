@@ -2683,7 +2683,7 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 .movie-rating-block {
   position: relative;
   margin-top: auto;
-  padding-top: 10px;
+  padding-top: 0;
   border-top: 1px solid #1f242b;
 }
 
@@ -4664,7 +4664,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     position: absolute;
     left: 0;
     right: 0;
-    top: 42px;
+    top: 30px;
+    margin: 12px 0;
     z-index: 20;
     display: block;
     padding: 16px;
