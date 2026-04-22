@@ -3232,7 +3232,21 @@ body:has(.movie-page-shell) .page {
 .movie-page-back-link {
   min-width: 0;
   flex: 1 1 220px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
   text-decoration: none;
+}
+
+.movie-page-back-link:hover,
+.movie-page-back-link:focus,
+.movie-page-back-link:focus-visible,
+.movie-page-back-link:active {
+  color: #ffffff;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .movie-page-admin-actions {
