@@ -102,6 +102,8 @@ const countriesInput = document.getElementById('countriesInput');
 const searchAliasesInput = document.getElementById('searchAliases');
 const synopsisInput = document.getElementById('synopsis');
 const movieFormatsInput = document.getElementById('movieFormats');
+const movieModifiersInput = document.getElementById('movieModifiers');
+const movieBroadFamiliesInput = document.getElementById('movieBroadFamilies');
 const tagsPerceivedInput = document.getElementById('tagsPerceived');
 const tagsCanonInput = document.getElementById('tagsCanon');
 const movieTriggersInput = document.getElementById('movieTriggers');
@@ -230,6 +232,8 @@ function parseMultilineValues(value) {
 
 function buildMovieTaxonomyDraftFromForm() {
   const formats = parseMultilineValues(movieFormatsInput?.value || '');
+  const modifiers = parseMultilineValues(movieModifiersInput?.value || '');
+  const broadFamilies = parseMultilineValues(movieBroadFamiliesInput?.value || '');
   const tagsPerceived = parseMultilineValues(tagsPerceivedInput?.value || '');
   const tagsCanon = parseMultilineValues(tagsCanonInput?.value || '');
   const triggers = parseMultilineValues(movieTriggersInput?.value || '');
@@ -237,6 +241,8 @@ function buildMovieTaxonomyDraftFromForm() {
   const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
   const taxonomyMovieDraft = {
     formats,
+    modifiers,
+    broad_families: broadFamilies,
     tags_perceived: tagsPerceived,
     tags_canon: tagsCanon,
     triggers
@@ -257,6 +263,8 @@ function buildMovieTaxonomyDraftFromForm() {
 
   return {
     formats,
+    modifiers,
+    broadFamilies,
     tagsPerceived,
     tagsCanon,
     triggers,
@@ -1788,6 +1796,8 @@ function fillFormForEdit(movie) {
   setInputValue(searchAliasesInput, (movie.search_aliases || []).join('\n'), 'searchAliasesInput');
   setInputValue(synopsisInput, movie.synopsis, 'synopsisInput');
   setInputValue(movieFormatsInput, (movie.formats || []).join('\n'), 'movieFormatsInput');
+  setInputValue(movieModifiersInput, (movie.modifiers || []).join('\n'), 'movieModifiersInput');
+  setInputValue(movieBroadFamiliesInput, (movie.broad_families || []).join('\n'), 'movieBroadFamiliesInput');
   setInputValue(tagsPerceivedInput, (movie.tags_perceived || []).join('\n'), 'tagsPerceivedInput');
   setInputValue(tagsCanonInput, (movie.tags_canon || []).join('\n'), 'tagsCanonInput');
   setInputValue(movieTriggersInput, (movie.triggers || []).join('\n'), 'movieTriggersInput');
@@ -3026,6 +3036,8 @@ async function addMovie(event) {
           director: director || null,
           synopsis: synopsis || null,
           formats: taxonomyDraft.formats,
+          modifiers: taxonomyDraft.modifiers,
+          broad_families: taxonomyDraft.broadFamilies,
           primary_subgenre: taxonomyDraft.primarySubgenre,
           secondary_subgenres: taxonomyDraft.secondarySubgenres,
           tags_perceived: taxonomyDraft.tagsPerceived,
@@ -3195,6 +3207,14 @@ async function updateMovie(event) {
 
     if (!areStringArraysEqual(taxonomyDraft.formats, existingMovie.formats || [])) {
       changedFields.formats = taxonomyDraft.formats;
+    }
+
+    if (!areStringArraysEqual(taxonomyDraft.modifiers, existingMovie.modifiers || [])) {
+      changedFields.modifiers = taxonomyDraft.modifiers;
+    }
+
+    if (!areStringArraysEqual(taxonomyDraft.broadFamilies, existingMovie.broad_families || [])) {
+      changedFields.broad_families = taxonomyDraft.broadFamilies;
     }
 
     if ((taxonomyDraft.primarySubgenre || null) !== (existingMovie.primary_subgenre ?? null)) {
