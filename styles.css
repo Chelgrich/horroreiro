@@ -3318,6 +3318,9 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-layout {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
   gap: 24px;
@@ -3780,7 +3783,7 @@ body:has(.movie-page-shell) .page {
 
 @media (max-width: 900px) {
   .movie-page-layout {
-    grid-template-columns: minmax(220px, 248px) minmax(0, 1fr);
+    grid-template-columns: minmax(200px, 232px) minmax(0, 1fr);
     gap: 20px;
     align-items: start;
   }
@@ -3834,7 +3837,7 @@ body:has(.movie-page-shell) .page {
   }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 760px) {
   .movie-page-topbar {
     margin-bottom: 16px;
     gap: 10px;
