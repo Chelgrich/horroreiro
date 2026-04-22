@@ -3710,6 +3710,13 @@ body:has(.movie-page-shell) .page {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
+  align-items: start;
+}
+
+.movie-page-similar-grid .movie-card {
+  height: auto;
+  min-width: 0;
+  align-self: start;
 }
 
 .movie-page-similar-card {
