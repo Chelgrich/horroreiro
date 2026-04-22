@@ -2148,6 +2148,8 @@ async function fetchMovies() {
       director,
       synopsis,
       formats,
+      modifiers,
+      broad_families,
       primary_subgenre,
       secondary_subgenres,
       tags_perceived,
@@ -6411,6 +6413,8 @@ async function fetchMovieById(movieId) {
       director,
       synopsis,
       formats,
+      modifiers,
+      broad_families,
       primary_subgenre,
       secondary_subgenres,
       tags_perceived,
@@ -6569,14 +6573,54 @@ function renderMoviePageNotFound() {
   `;
 }
 
-function getSimilarMoviesForMoviePage(movie, limit = 4) {
-  const getSimilarMovies = window.HORROR_TAXONOMY?.helpers?.getSimilarMovies;
+function getMovieSimilarityExtraGenres(movie) {
+  return (Array.isArray(movie?.movie_genres) ? movie.movie_genres : [])
+    .map(item => item?.genres?.name)
+    .filter(Boolean)
+    .filter(name => normalizeSearchText(name) !== 'ужасы');
+}
 
-  if (!movie || typeof getSimilarMovies !== 'function' || !Array.isArray(allMovies) || allMovies.length === 0) {
+function getMovieSimilarityCountries(movie) {
+  return (Array.isArray(movie?.movie_countries) ? movie.movie_countries : [])
+    .map(item => item?.countries?.name)
+    .filter(Boolean);
+}
+
+function getMovieSimilaritySource(movie) {
+  return {
+    id: String(movie.id),
+    title: String(movie.title || ''),
+    year: Number(movie.year || 0),
+
+    perceived: Array.isArray(movie.tags_perceived) ? movie.tags_perceived : [],
+    canon: Array.isArray(movie.tags_canon) ? movie.tags_canon : [],
+    formats: Array.isArray(movie.formats) ? movie.formats : [],
+    modifiers: Array.isArray(movie.modifiers) ? movie.modifiers : [],
+    broadFamilies: Array.isArray(movie.broad_families) ? movie.broad_families : [],
+
+    extraGenres: getMovieSimilarityExtraGenres(movie),
+    countries: getMovieSimilarityCountries(movie)
+  };
+}
+
+function getSimilarMoviesForMoviePage(movie, limit = 4) {
+  if (!movie || !Array.isArray(allMovies) || allMovies.length === 0) {
     return [];
   }
 
-  return getSimilarMovies(movie, allMovies, limit).map(item => item.movie);
+  if (typeof getSimilarMovies !== 'function') {
+    return [];
+  }
+
+  const similarityMovies = allMovies.map(sourceMovie => getMovieSimilaritySource(sourceMovie));
+  const targetMovie = getMovieSimilaritySource(movie);
+  const similarItems = getSimilarMovies(targetMovie, similarityMovies);
+  const moviesById = new Map(allMovies.map(sourceMovie => [String(sourceMovie.id), sourceMovie]));
+
+  return similarItems
+    .slice(0, limit)
+    .map(item => moviesById.get(String(item.movie.id)))
+    .filter(Boolean);
 }
 
 function getMoviePageSimilarCardHtml(movie) {

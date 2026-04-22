@@ -1,1194 +1,737 @@
-window.HORROR_TAXONOMY = {
-  subgenres: [
-    'slasher',
-    'home_invasion',
-    'monster_horror',
-    'zoo_horror',
-    'body_horror',
-    'supernatural_horror',
-    'possession',
-    'cult_ritual',
-    'survival_game',
-    'trapped_survival',
-    'infection_outbreak',
-    'disaster_horror',
-    'mystery_horror'
-  ],
+const SIMILARITY_MODEL = {
+  MAX_RESULTS: 4,
 
-  formats: [
-    'classic',
-    'found_footage',
-    'screenlife',
-    'anthology'
-  ],
-
-  tags: [
-    'killer',
-    'group',
-    'creature',
-    'ghost',
-    'demon',
-    'curse',
-    'cult',
-    'ritual',
-    'infection',
-    'media',
-    'unknown',
-    'animal',
-    'monster',
-    'humanoid',
-    'natural_origin',
-    'scientific_origin',
-    'alien_origin',
-    'supernatural_origin',
-    'attack',
-    'spreading',
-    'possession',
-    'control',
-    'replacement',
-    'rules',
-    'paranoia_group',
-    'survival',
-    'trapped',
-    'remote',
-    'search',
-    'game',
-    'disaster',
-    'transformation',
-    'undead',
-    'loop',
-    'simulation',
-    'body_horror',
-    'home_space',
-    'intrusion',
-    'siege'
-  ],
-
-  triggers: [
-    'gore',
-    'child_harm',
-    'mental_instability',
-    'reality_distortion',
-    'suicide',
-    'animal_death',
-    'animal_abuse',
-    'domestic_violence',
-    'sexual_violence',
-    'pregnancy',
-    'body_invasion',
-    'breathing_distress',
-    'claustrophobia',
-    'animal_phobia'
-  ],
-
-  labels: {
-    subgenres: {
-      slasher: 'Слэшер',
-      home_invasion: 'Вторжение в дом',
-      monster_horror: 'Монстр-хоррор',
-      zoo_horror: 'Зоо-хоррор',
-      body_horror: 'Боди-хоррор',
-      supernatural_horror: 'Сверхъестественный хоррор',
-      possession: 'Одержимость',
-      cult_ritual: 'Культ и ритуал',
-      survival_game: 'Игра на выживание',
-      trapped_survival: 'Выживание в ловушке',
-      infection_outbreak: 'Заражение',
-      disaster_horror: 'Хоррор-катастрофа',
-      mystery_horror: 'Мистический хоррор'
-    },
-
-    formats: {
-      classic: 'Классический',
-      found_footage: 'Найденная плёнка',
-      screenlife: 'Скринлайф',
-      anthology: 'Антология'
-    },
-
-    triggers: {
-      gore: 'Реалистичное насилие',
-      child_harm: 'Вред детям',
-      mental_instability: 'Психическая нестабильность',
-      reality_distortion: 'Искажение реальности',
-      suicide: 'Самоубийство',
-      animal_death: 'Смерть животных',
-      animal_abuse: 'Жестокость к животным',
-      domestic_violence: 'Домашнее насилие',
-      sexual_violence: 'Сексуализированное насилие',
-      pregnancy: 'Беременность',
-      body_invasion: 'Телесное вторжение',
-      breathing_distress: 'Проблемы с дыханием',
-      claustrophobia: 'Клаустрофобия',
-      animal_phobia: 'Фобия животных'
-    }
+  SCORE_CAPS: {
+    canonExact: 60,
+    canonAffinity: 8,
+    modifiers: 14,
+    broadFamilies: 7,
+    formats: 5,
+    genres: 4,
+    countries: 2
   },
 
-  subgenre_scoring: {
-    weights: {
-      slasher: {
-        killer: 3,
-        attack: 1
-      },
-
-      home_invasion: {
-        intrusion: 3,
-        home_space: 2,
-        siege: 2,
-        killer: 1,
-        group: 1,
-        attack: 1,
-        trapped: 1,
-        survival: 1,
-        remote: 1
-      },
-
-      monster_horror: {
-        creature: 3,
-        monster: 3,
-        humanoid: 2,
-        alien_origin: 2,
-        supernatural_origin: 1,
-        scientific_origin: 1,
-        replacement: 1,
-        transformation: 1,
-        undead: 1,
-        attack: 1,
-        survival: 1,
-        remote: 1
-      },
-
-      zoo_horror: {
-        creature: 3,
-        animal: 3,
-        natural_origin: 2,
-        scientific_origin: 1,
-        attack: 1,
-        survival: 1,
-        trapped: 1,
-        remote: 1
-      },
-
-      body_horror: {
-        body_horror: 4,
-        transformation: 3,
-        replacement: 3,
-        infection: 1,
-        possession: 1,
-        control: 1,
-        scientific_origin: 1,
-        supernatural_origin: 1,
-        creature: 1
-      },
-
-      supernatural_horror: {
-        ghost: 3,
-        demon: 3,
-        curse: 3,
-        ritual: 1,
-        media: 1,
-        humanoid: 1,
-        supernatural_origin: 2,
-        possession: 1,
-        transformation: 1,
-        undead: 1
-      },
-
-      possession: {
-        possession: 3,
-        control: 2
-      },
-
-      cult_ritual: {
-        cult: 3,
-        ritual: 3,
-        control: 1
-      },
-
-      survival_game: {
-        rules: 3,
-        game: 3
-      },
-
-      trapped_survival: {
-        animal: 1,
-        attack: 1,
-        paranoia_group: 1,
-        survival: 2,
-        trapped: 3,
-        remote: 2
-      },
-
-      infection_outbreak: {
-        infection: 4,
-        scientific_origin: 1,
-        spreading: 1,
-        survival: 1,
-        disaster: 1,
-        undead: 2
-      },
-
-      disaster_horror: {
-        spreading: 1,
-        disaster: 3
-      },
-
-      mystery_horror: {
-        curse: 1,
-        media: 1,
-        unknown: 2,
-        replacement: 2,
-        paranoia_group: 2,
-        search: 3
-      }
-    },
-
-    modifiers: [
-      {
-        type: 'bonus_if_all_tags_present',
-        subgenre: 'body_horror',
-        tags: ['body_horror', 'transformation'],
-        bonus: 2
-      },
-      {
-        type: 'bonus_if_all_tags_present',
-        subgenre: 'body_horror',
-        tags: ['body_horror', 'replacement'],
-        bonus: 2
-      },
-      {
-        type: 'bonus_if_all_tags_present',
-        subgenre: 'body_horror',
-        tags: ['body_horror', 'infection'],
-        bonus: 1
-      },
-      {
-        type: 'bonus_if_all_tags_present',
-        subgenre: 'infection_outbreak',
-        tags: ['body_horror', 'infection'],
-        bonus: 1
-      },
-      {
-        type: 'bonus_if_all_tags_present',
-        subgenre: 'monster_horror',
-        tags: ['body_horror', 'creature'],
-        bonus: 1
-      },
-      {
-        type: 'bonus_if_all_tags_present',
-        subgenre: 'supernatural_horror',
-        tags: ['body_horror', 'supernatural_origin'],
-        bonus: 1
-      },
-      {
-        type: 'bonus_if_all_tags_present',
-        subgenre: 'trapped_survival',
-        tags: ['loop', 'trapped', 'survival'],
-        bonus: 1
-      }
-    ],
-
-    requirements: [
-      {
-        type: 'requires_tag',
-        subgenre: 'body_horror',
-        tag: 'body_horror'
-      },
-      {
-        type: 'requires_tag',
-        subgenre: 'infection_outbreak',
-        tag: 'infection'
-      },
-      {
-        type: 'requires_tag',
-        subgenre: 'survival_game',
-        tag: 'rules'
-      },
-      {
-        type: 'requires_tag',
-        subgenre: 'home_invasion',
-        tag: 'intrusion'
-      },
-      {
-        type: 'requires_any_tag',
-        subgenre: 'home_invasion',
-        tags: ['home_space', 'siege']
-      },
-      {
-        type: 'requires_all_tags',
-        subgenre: 'monster_horror',
-        tags: ['creature', 'attack']
-      },
-      {
-        type: 'requires_any_tag',
-        subgenre: 'monster_horror',
-        tags: ['monster', 'humanoid', 'alien_origin', 'supernatural_origin', 'replacement', 'transformation', 'undead']
-      },
-      {
-        type: 'requires_all_tags',
-        subgenre: 'zoo_horror',
-        tags: ['creature', 'animal', 'attack']
-      }
-    ],
-
-    restrictions: [
-      {
-        type: 'zero_score_if_missing_tag',
-        subgenre: 'body_horror',
-        tag: 'body_horror'
-      },
-      {
-        type: 'zero_score_if_missing_tag',
-        subgenre: 'infection_outbreak',
-        tag: 'infection'
-      },
-      {
-        type: 'zero_score_if_missing_tag',
-        subgenre: 'survival_game',
-        tag: 'rules'
-      },
-      {
-        type: 'zero_score_if_missing_tag',
-        subgenre: 'home_invasion',
-        tag: 'intrusion'
-      },
-      {
-        type: 'zero_score_if_not_any_conditions_met',
-        subgenre: 'home_invasion',
-        any_tags: ['home_space', 'siege']
-      },
-      {
-        type: 'zero_score_if_not_all_conditions_met',
-        subgenre: 'monster_horror',
-        all_tags: ['creature', 'attack'],
-        any_tags: ['monster', 'humanoid', 'alien_origin', 'supernatural_origin', 'replacement', 'transformation', 'undead']
-      },
-      {
-        type: 'zero_score_if_not_all_conditions_met',
-        subgenre: 'zoo_horror',
-        all_tags: ['creature', 'animal', 'attack']
-      }
-    ],
-
-    priority_rules: [
-      {
-        type: 'prefer_subgenre_if_all_tags_present',
-        preferred_subgenre: 'body_horror',
-        over_subgenre: 'monster_horror',
-        tags: ['body_horror', 'transformation']
-      },
-      {
-        type: 'prefer_subgenre_if_all_tags_present',
-        preferred_subgenre: 'body_horror',
-        over_subgenre: 'supernatural_horror',
-        tags: ['body_horror', 'transformation']
-      },
-      {
-        type: 'prefer_subgenre_if_all_tags_present',
-        preferred_subgenre: 'body_horror',
-        over_subgenre: 'infection_outbreak',
-        tags: ['body_horror', 'transformation']
-      },
-      {
-        type: 'prefer_subgenre_if_any_tags_present',
-        preferred_subgenre: 'supernatural_horror',
-        over_subgenre: 'monster_horror',
-        tags: ['ghost', 'demon', 'curse']
-      },
-      {
-        type: 'prefer_subgenre_if_tag_present',
-        preferred_subgenre: 'zoo_horror',
-        over_subgenre: 'monster_horror',
-        tag: 'animal'
-      },
-      {
-        type: 'prefer_subgenre_if_tag_present',
-        preferred_subgenre: 'possession',
-        over_subgenre: 'supernatural_horror',
-        tag: 'possession'
-      },
-      {
-        type: 'prefer_subgenre_if_all_tags_present',
-        preferred_subgenre: 'cult_ritual',
-        over_subgenre: 'supernatural_horror',
-        tags: ['cult', 'ritual']
-      },
-      {
-        type: 'prefer_subgenre_if_tag_present',
-        preferred_subgenre: 'infection_outbreak',
-        over_subgenre: 'disaster_horror',
-        tag: 'infection'
-      },
-      {
-        type: 'prefer_subgenre_if_tag_present',
-        preferred_subgenre: 'survival_game',
-        over_subgenre: 'trapped_survival',
-        tag: 'rules'
-      },
-      {
-        type: 'prefer_subgenre_if_tag_present',
-        preferred_subgenre: 'home_invasion',
-        over_subgenre: 'trapped_survival',
-        tag: 'intrusion'
-      },
-      {
-        type: 'prefer_subgenre_if_all_tags_present',
-        preferred_subgenre: 'home_invasion',
-        over_subgenre: 'slasher',
-        tags: ['intrusion', 'home_space']
-      }
-    ],
-
-    tie_break_order: [
-      'survival_game',
-      'possession',
-      'body_horror',
-      'cult_ritual',
-      'infection_outbreak',
-      'home_invasion',
-      'supernatural_horror',
-      'trapped_survival',
-      'zoo_horror',
-      'monster_horror',
-      'mystery_horror',
-      'disaster_horror',
-      'slasher'
-    ],
-
-    secondary_rules: {
-      min_ratio_from_primary: 0.65,
-      max_secondary_count: 2
-    }
+  GATES: {
+    minCanonCoreScore: 14,
+    minFinalScore: 34,
+    minScoreForStrongMatch: 50,
+    minScoreForGoodMatch: 42,
+    minScoreForWeakMatch: 34,
+    minCoreForContextualLayers: 20,
+    minCanonOrModifierForFormats: 12,
+    minModifierScoreForFormats: 4
   },
 
-  similarity_scoring: {
-    formula: {
-      canon_tag_score_multiplier: 1.0,
-      perceived_tag_score_multiplier: 0.15,
-      format_score_multiplier: 1.0,
-      trigger_score_multiplier: 1.0,
-      subgenre_score_multiplier: 1.0,
-      cluster_score_multiplier: 1.0,
-      additional_genres_score_multiplier: 1.0
-    },
-
-    canon_tag_weights: {
-      default: 1,
-      rare_or_high_signal: 3,
-      body_horror: 1,
-      loop: 3,
-      simulation: 3,
-      replacement: 3,
-      paranoia_group: 3
-    },
-
-    format_weights: {
-      same_format: 1,
-      same_format_bonus_formats: {
-        found_footage: 2,
-        screenlife: 2,
-        anthology: 2,
-        classic: 1
-      }
-    },
-
-    trigger_weights: {
-      same_trigger: 0.1
-    },
-
-    subgenre_weights: {
-      same_primary: 1,
-      primary_secondary_overlap: 0.5,
-      same_secondary: 0.25
-    },
-
-    cluster_weights: {
-      default: 2,
-      rare_or_high_signal: 4,
-      by_key: {
-        body_horror_core: 4,
-        replacement_paranoia: 4,
-        loop_trapped_survival: 4,
-        simulation_rules: 4,
-        cult_ritual_core: 4,
-        infection_outbreak_core: 4,
-        home_invasion_core: 4,
-        creature_monster_core: 3,
-        zoo_horror_core: 3,
-        supernatural_core: 3,
-        possession_control_core: 3,
-        mystery_search_unknown: 3
-      }
-    },
-
-    additional_genre_weights: {
-      shared_genre: 1,
-      jaccard_multiplier: 4,
-      no_shared_genres_penalty: 1.5
-    },
-
-    clusters: [
-      { key: 'body_horror_core', tags: ['body_horror', 'transformation'] },
-      { key: 'body_horror_replacement', tags: ['body_horror', 'replacement'] },
-      { key: 'replacement_paranoia', tags: ['replacement', 'paranoia_group'] },
-      { key: 'loop_trapped_survival', tags: ['loop', 'trapped', 'survival'] },
-      { key: 'simulation_rules', tags: ['simulation', 'rules'] },
-      { key: 'cult_ritual_core', tags: ['cult', 'ritual'] },
-      { key: 'infection_outbreak_core', tags: ['infection', 'spreading'] },
-      { key: 'infection_undead_core', tags: ['infection', 'undead'] },
-      { key: 'home_invasion_core', tags: ['intrusion', 'home_space'] },
-      { key: 'home_invasion_siege', tags: ['intrusion', 'siege'] },
-      { key: 'creature_monster_core', tags: ['creature', 'monster', 'attack'] },
-      { key: 'zoo_horror_core', tags: ['creature', 'animal', 'attack'] },
-      { key: 'supernatural_core', tags: ['ghost', 'supernatural_origin'] },
-      { key: 'supernatural_demon_core', tags: ['demon', 'supernatural_origin'] },
-      { key: 'curse_mystery_core', tags: ['curse', 'search'] },
-      { key: 'possession_control_core', tags: ['possession', 'control'] },
-      { key: 'mystery_search_unknown', tags: ['unknown', 'search'] }
-    ],
-
-    eligibility: {
-      min_total_score: 5,
-      min_shared_canon_tags: 2,
-      min_shared_clusters: 1,
-      allow_single_high_signal_canon_tag: true,
-      high_signal_canon_tags: ['loop', 'simulation', 'replacement', 'paranoia_group'],
-      require_one_of: [
-        'enough_shared_canon_tags',
-        'shared_high_signal_canon_tag',
-        'shared_cluster'
-      ]
-    }
+  CONFIDENCE_MULTIPLIERS: {
+    stable: 1.0,
+    observe: 0.88,
+    provisional: 0.78
   },
 
-  dual_layer_logic: {
-    filtering_uses: 'perceived',
-    subgenre_uses: 'canon',
-    recommendations_use: 'canon_primary_perceived_secondary'
-  },
-
-  tag_validation_rules: {
-    warnings: [
-      {
-        code: 'MISSING_BASE_CREATURE',
-        if_tags_present: ['monster'],
-        if_tags_absent: ['creature'],
-        message: 'monster без creature выглядит неконсистентно.'
-      },
-      {
-        code: 'MISSING_BASE_HUMANOID',
-        if_tags_present: ['humanoid'],
-        if_tags_absent: ['creature'],
-        message: 'humanoid без creature выглядит неконсистентно.'
-      },
-      {
-        code: 'MISSING_BASE_ANIMAL',
-        if_tags_present: ['animal'],
-        if_tags_absent: ['creature'],
-        message: 'animal без creature выглядит неконсистентно.'
-      },
-      {
-        code: 'OVERPACKED_CREATURE_CLUSTER',
-        if_tags_present: ['creature', 'monster', 'humanoid', 'animal'],
-        message: 'Слишком плотная разметка creature-кластера. Проверь, нужны ли все уточнения.'
-      },
-      {
-        code: 'POSSESSION_CONTROL_AUTO_BUNDLE',
-        if_tags_present: ['possession', 'control'],
-        message: 'Проверь, control действительно играет отдельную роль, а не добавлен автоматически.'
-      },
-      {
-        code: 'FULL_SURVIVAL_BUNDLE',
-        if_tags_present: ['survival', 'trapped', 'remote'],
-        message: 'Проверь, все три тега действительно нужны, а не описывают один и тот же контур ситуации.'
-      },
-      {
-        code: 'GAME_WITHOUT_RULES',
-        if_tags_present: ['game'],
-        if_tags_absent: ['rules'],
-        message: 'game без rules подозрителен.'
-      },
-      {
-        code: 'BODY_TRANSFORMATION_AUTO_PAIR',
-        if_tags_present: ['transformation', 'body_horror'],
-        message: 'Проверь, оба тега действительно нужны, а не поставлены автоматически парой.'
-      },
-      {
-        code: 'UNKNOWN_OVERUSE',
-        if_tags_present: ['unknown'],
-        message: 'Проверь, unknown отражает структурную неопределённость, а не отсутствие уверенности у разметчика.'
-      },
-      {
-        code: 'LOOP_NOT_GAME',
-        if_tags_present: ['loop'],
-        message: 'loop сам по себе не должен тянуть survival_game.'
-      },
-      {
-        code: 'SIMULATION_NOT_GAME',
-        if_tags_present: ['simulation'],
-        message: 'simulation сам по себе не должен тянуть survival_game.'
-      }
-    ]
+  BASE_SPECIFICITY: {
+    anchor: 1.2,
+    standard: 1.0,
+    broad: 0.82
   }
 };
 
-(function attachHorrorTaxonomyHelpers() {
-  const taxonomy = window.HORROR_TAXONOMY;
+const CANON_TAG_META = {
+  abandoned_settlement: { tier: "standard", confidence: "observe" },
+  abuse_trauma: { tier: "standard", confidence: "stable" },
+  ai_generated: { tier: "standard", confidence: "observe" },
+  alien_creature: { tier: "standard", confidence: "observe" },
+  alien_threat: { tier: "anchor", confidence: "stable" },
+  alternate_dimension: { tier: "anchor", confidence: "stable" },
+  amusement_park: { tier: "standard", confidence: "observe" },
+  ancient_curse: { tier: "standard", confidence: "stable" },
+  anthology_linkage: { tier: "standard", confidence: "stable" },
+  apartment_space: { tier: "standard", confidence: "stable" },
+  aquatic_space: { tier: "standard", confidence: "stable" },
+  assimilation_pressure: { tier: "standard", confidence: "observe" },
+  audio_contact: { tier: "anchor", confidence: "stable" },
+  barn_space: { tier: "standard", confidence: "stable" },
+  bayou_setting: { tier: "standard", confidence: "observe" },
+  black_magic: { tier: "standard", confidence: "stable" },
+  body_transfer: { tier: "anchor", confidence: "stable" },
+  body_transformation: { tier: "anchor", confidence: "stable" },
+  boarding_school: { tier: "standard", confidence: "observe" },
+  buried_past: { tier: "broad", confidence: "stable" },
+  bully_retribution: { tier: "standard", confidence: "observe" },
+  cannibalism: { tier: "anchor", confidence: "stable" },
+  chemical_outbreak: { tier: "anchor", confidence: "stable" },
+  christmas_setting: { tier: "standard", confidence: "stable" },
+  countdown_structure: { tier: "anchor", confidence: "stable" },
+  creature_conflict: { tier: "standard", confidence: "observe" },
+  cult_community: { tier: "anchor", confidence: "stable" },
+  cursed_object: { tier: "anchor", confidence: "stable" },
+  demonic_entity: { tier: "standard", confidence: "stable" },
+  demonic_possession: { tier: "anchor", confidence: "stable" },
+  deserted_island: { tier: "standard", confidence: "observe" },
+  disabled_child: { tier: "standard", confidence: "observe" },
+  distorted_reality: { tier: "anchor", confidence: "stable" },
+  dream_stalker: { tier: "anchor", confidence: "observe" },
+  dysfunctional_family: { tier: "standard", confidence: "stable" },
+  educational_pressure: { tier: "standard", confidence: "observe" },
+  egyptian_theme: { tier: "standard", confidence: "observe" },
+  elder_threat: { tier: "standard", confidence: "observe" },
+  enemy_pursuit: { tier: "anchor", confidence: "stable" },
+  entity_possession: { tier: "anchor", confidence: "stable" },
+  evil_spirit_resurrection: { tier: "standard", confidence: "observe" },
+  family_unit: { tier: "broad", confidence: "stable" },
+  feigned_death: { tier: "anchor", confidence: "observe" },
+  flooding_disaster: { tier: "anchor", confidence: "stable" },
+  folklore_entity: { tier: "anchor", confidence: "stable" },
+  forest_space: { tier: "standard", confidence: "stable" },
+  fractured_memory: { tier: "standard", confidence: "observe" },
+  future_intrusion: { tier: "standard", confidence: "observe" },
+  fungal_infection: { tier: "anchor", confidence: "stable" },
+  gang_war: { tier: "standard", confidence: "observe" },
+  ghost_apparition: { tier: "standard", confidence: "observe" },
+  ghost_possession: { tier: "anchor", confidence: "stable" },
+  giant_creature: { tier: "anchor", confidence: "stable" },
+  grief_trauma: { tier: "standard", confidence: "stable" },
+  group_paranoia: { tier: "standard", confidence: "observe" },
+  guilt_manifestation: { tier: "standard", confidence: "observe" },
+  hallucinated_presence: { tier: "standard", confidence: "observe" },
+  halloween_setting: { tier: "standard", confidence: "stable" },
+  haunted_animatronics: { tier: "anchor", confidence: "stable" },
+  haunted_object: { tier: "standard", confidence: "stable" },
+  home_confinement: { tier: "anchor", confidence: "stable" },
+  home_infiltration: { tier: "standard", confidence: "stable" },
+  home_under_siege: { tier: "anchor", confidence: "stable" },
+  house_space: { tier: "standard", confidence: "stable" },
+  human_hunt: { tier: "anchor", confidence: "observe" },
+  human_monstrosity: { tier: "anchor", confidence: "stable" },
+  identity_erasure: { tier: "anchor", confidence: "stable" },
+  infected_society: { tier: "standard", confidence: "observe" },
+  infrastructure_horror: { tier: "standard", confidence: "observe" },
+  intergenerational_trauma: { tier: "standard", confidence: "stable" },
+  internet_folklore: { tier: "standard", confidence: "stable" },
+  isolated_house: { tier: "standard", confidence: "stable" },
+  isolated_lighthouse: { tier: "standard", confidence: "observe" },
+  isolated_protagonist: { tier: "anchor", confidence: "stable" },
+  isolated_village: { tier: "standard", confidence: "stable" },
+  kidnapping: { tier: "anchor", confidence: "stable" },
+  killer_creature: { tier: "anchor", confidence: "observe" },
+  killer_doll: { tier: "standard", confidence: "observe" },
+  killer_duo: { tier: "standard", confidence: "stable" },
+  killer_santa: { tier: "anchor", confidence: "observe" },
+  liminal_space: { tier: "anchor", confidence: "stable" },
+  life_extension: { tier: "standard", confidence: "stable" },
+  masked_killer: { tier: "anchor", confidence: "stable" },
+  maternal_horror: { tier: "anchor", confidence: "stable" },
+  media_based_investigation: { tier: "anchor", confidence: "stable" },
+  mental_breakdown: { tier: "anchor", confidence: "stable" },
+  mental_illness: { tier: "standard", confidence: "stable" },
+  mind_control_experiment: { tier: "anchor", confidence: "observe" },
+  missing_parent: { tier: "standard", confidence: "observe" },
+  missing_person_investigation: { tier: "anchor", confidence: "stable" },
+  moral_test: { tier: "anchor", confidence: "stable" },
+  mountain_wilderness: { tier: "standard", confidence: "observe" },
+  mutant_creature: { tier: "standard", confidence: "stable" },
+  mutant_society: { tier: "standard", confidence: "observe" },
+  myth_reframing: { tier: "anchor", confidence: "stable" },
+  mythic_creature: { tier: "standard", confidence: "stable" },
+  office_space: { tier: "standard", confidence: "stable" },
+  occult_ritual: { tier: "anchor", confidence: "stable" },
+  occult_trade: { tier: "anchor", confidence: "stable" },
+  obsessive_compulsive_behavior: { tier: "standard", confidence: "observe" },
+  paranormal_media: { tier: "anchor", confidence: "stable" },
+  parent_child_pair: { tier: "standard", confidence: "stable" },
+  pirate_setting: { tier: "standard", confidence: "observe" },
+  plumbing_horror: { tier: "standard", confidence: "observe" },
+  post_apocalyptic_survival: { tier: "standard", confidence: "provisional" },
+  prank_horror: { tier: "anchor", confidence: "stable" },
+  predatory_creature: { tier: "anchor", confidence: "stable" },
+  protagonist_killer: { tier: "anchor", confidence: "stable" },
+  rabies_infection: { tier: "standard", confidence: "observe" },
+  reality_intrusion: { tier: "standard", confidence: "provisional" },
+  religious_fundamentalism: { tier: "standard", confidence: "stable" },
+  rescue_mission: { tier: "standard", confidence: "stable" },
+  revenge_ghost: { tier: "anchor", confidence: "stable" },
+  revenge_mission: { tier: "standard", confidence: "stable" },
+  revenant_killer: { tier: "anchor", confidence: "observe" },
+  road_space: { tier: "standard", confidence: "stable" },
+  roadside_motel: { tier: "standard", confidence: "observe" },
+  ruins_space: { tier: "standard", confidence: "observe" },
+  sacrificial_killings: { tier: "standard", confidence: "stable" },
+  sadistic_captor: { tier: "anchor", confidence: "stable" },
+  school_space: { tier: "standard", confidence: "stable" },
+  scandinavian_setting: { tier: "standard", confidence: "observe" },
+  scientific_creature: { tier: "standard", confidence: "stable" },
+  scientific_experiment: { tier: "standard", confidence: "stable" },
+  scuba_killer: { tier: "standard", confidence: "observe" },
+  serial_killer: { tier: "anchor", confidence: "stable" },
+  shark_attack: { tier: "anchor", confidence: "stable" },
+  sick_child: { tier: "standard", confidence: "observe" },
+  sick_sibling: { tier: "standard", confidence: "observe" },
+  sibling_pair: { tier: "provisional", confidence: "provisional" },
+  small_town_secret: { tier: "standard", confidence: "observe" },
+  snake_attack: { tier: "anchor", confidence: "stable" },
+  snow_isolation: { tier: "standard", confidence: "stable" },
+  social_media_performance: { tier: "anchor", confidence: "stable" },
+  social_status_obsession: { tier: "standard", confidence: "observe" },
+  spatial_loop: { tier: "anchor", confidence: "stable" },
+  spreading_contamination: { tier: "standard", confidence: "observe" },
+  staged_death: { tier: "standard", confidence: "observe" },
+  subway_space: { tier: "standard", confidence: "stable" },
+  supernatural_influence: { tier: "standard", confidence: "observe" },
+  supernatural_killer: { tier: "anchor", confidence: "stable" },
+  terminal_illness: { tier: "standard", confidence: "stable" },
+  theater_space: { tier: "standard", confidence: "stable" },
+  thanksgiving_setting: { tier: "standard", confidence: "observe" },
+  time_displacement: { tier: "anchor", confidence: "stable" },
+  time_loop: { tier: "anchor", confidence: "stable" },
+  time_machine_experiment: { tier: "anchor", confidence: "observe" },
+  toxic_parent: { tier: "standard", confidence: "stable" },
+  transfer_death: { tier: "provisional", confidence: "provisional" },
+  transferable_curse: { tier: "anchor", confidence: "stable" },
+  trauma_driven_killer: { tier: "anchor", confidence: "stable" },
+  trauma_return: { tier: "anchor", confidence: "stable" },
+  trapped_survival: { tier: "anchor", confidence: "stable" },
+  trickster_threat: { tier: "anchor", confidence: "stable" },
+  underground_dystopia: { tier: "anchor", confidence: "observe" },
+  uneasy_alliance: { tier: "standard", confidence: "stable" },
+  unrequited_obsession: { tier: "standard", confidence: "observe" },
+  urban_legend_rabbit_hole: { tier: "anchor", confidence: "stable" },
+  vampire_myth_reframing: { tier: "anchor", confidence: "stable" },
+  virtual_reality_simulation: { tier: "anchor", confidence: "observe" },
+  war_survival: { tier: "standard", confidence: "observe" },
+  waterway_space: { tier: "standard", confidence: "observe" },
+  wedding_frame: { tier: "standard", confidence: "stable" },
+  wish_with_a_price: { tier: "anchor", confidence: "stable" },
+  witchcraft: { tier: "anchor", confidence: "stable" },
+  wwii_horror: { tier: "standard", confidence: "observe" },
+  zombie: { tier: "anchor", confidence: "stable" }
+};
 
-  if (!taxonomy) {
-    return;
+const MODIFIER_WEIGHTS = {
+  horror_comedy: 1.2,
+  surreal: 1.15,
+  satirical: 1.15,
+  grotesque: 1.1,
+  absurdist: 1.1,
+  meta: 1.1,
+  paranoid: 1.05,
+  gross_out: 1.05,
+  claustrophobic: 1.05,
+  practical_effects: 1.0,
+  sleazy: 1.0,
+  psychological: 0.95,
+  campy: 0.95,
+  dark_humor: 0.95,
+  gory: 0.9,
+  tense: 0.9,
+  slow_burn: 0.85,
+  atmospheric: 0.7,
+  bleak: 0.7,
+  experimental: 1.05
+};
+
+const BROAD_FAMILY_WEIGHTS = {
+  threat_origin: 0.6,
+  human_dynamics: 0.6,
+  setting_type: 0.6,
+
+  threat_behavior: 0.8,
+  psychological_wound: 0.8,
+  narrative_function: 0.8,
+  ritual_mechanism: 0.8,
+  reality_structure: 0.8,
+
+  investigation_frame: 1.0,
+  conspiracy_mechanism: 1.0,
+  temporal_mechanism: 1.0,
+  survival_structure: 1.0,
+  pursuit_structure: 1.0,
+  space_mechanism: 1.0,
+  myth_reframing: 1.0,
+  protagonist_structure: 1.0,
+  social_contagion: 1.0
+};
+
+const FORMAT_WEIGHTS = {
+  found_footage: 1.2,
+  mockumentary: 1.15,
+  hybrid_narrative: 1.0,
+  anthology: 1.1,
+  silent_film: 1.15
+};
+
+const EXTRA_GENRE_WEIGHTS = {
+  "Боевик": 0.6,
+  "Детектив": 0.9,
+  "Драма": 0.5,
+  "Комедия": 0.9,
+  "Криминал": 0.9,
+  "Мелодрама": 0.7,
+  "Мюзикл": 1.1,
+  "Приключения": 0.7,
+  "Триллер": 0.7,
+  "Фантастика": 1.0,
+  "Фэнтези": 1.0
+};
+
+const CANON_AFFINITY = {
+  shark_attack: {
+    predatory_creature: 0.35,
+    aquatic_space: 0.2
+  },
+
+  snake_attack: {
+    predatory_creature: 0.35,
+    giant_creature: 0.15
+  },
+
+  ghost_possession: {
+    entity_possession: 0.5,
+    ghost_apparition: 0.35
+  },
+
+  demonic_possession: {
+    entity_possession: 0.45,
+    demonic_entity: 0.3
+  },
+
+  revenge_ghost: {
+    ghost_apparition: 0.45,
+    folklore_entity: 0.15
+  },
+
+  cursed_object: {
+    haunted_object: 0.35,
+    paranormal_media: 0.15
+  },
+
+  haunted_object: {
+    cursed_object: 0.35
+  },
+
+  mythic_creature: {
+    folklore_entity: 0.35
+  },
+
+  folklore_entity: {
+    mythic_creature: 0.35,
+    myth_reframing: 0.15
+  },
+
+  wish_with_a_price: {
+    occult_trade: 0.3
+  },
+
+  occult_trade: {
+    wish_with_a_price: 0.3,
+    occult_ritual: 0.15
+  },
+
+  isolated_house: {
+    house_space: 0.45
+  },
+
+  house_space: {
+    isolated_house: 0.45,
+    barn_space: 0.18
+  },
+
+  kidnapping: {
+    trapped_survival: 0.25,
+    home_confinement: 0.25,
+    sadistic_captor: 0.25
+  },
+
+  trapped_survival: {
+    kidnapping: 0.25,
+    home_confinement: 0.2
+  },
+
+  body_transfer: {
+    distorted_reality: 0.25,
+    alternate_dimension: 0.15
+  },
+
+  distorted_reality: {
+    alternate_dimension: 0.25,
+    body_transfer: 0.25,
+    hallucinated_presence: 0.2,
+    guilt_manifestation: 0.15
+  },
+
+  time_loop: {
+    spatial_loop: 0.35,
+    countdown_structure: 0.15
+  },
+
+  spatial_loop: {
+    time_loop: 0.35,
+    liminal_space: 0.2
+  },
+
+  liminal_space: {
+    spatial_loop: 0.2,
+    subway_space: 0.15
+  },
+
+  media_based_investigation: {
+    paranormal_media: 0.25,
+    audio_contact: 0.2
+  },
+
+  paranormal_media: {
+    media_based_investigation: 0.25,
+    audio_contact: 0.15
+  },
+
+  audio_contact: {
+    paranormal_media: 0.15,
+    media_based_investigation: 0.2
+  },
+
+  zombie: {
+    fungal_infection: 0.2,
+    infected_society: 0.25,
+    chemical_outbreak: 0.15,
+    spreading_contamination: 0.15
+  },
+
+  fungal_infection: {
+    zombie: 0.2,
+    spreading_contamination: 0.25
+  },
+
+  chemical_outbreak: {
+    spreading_contamination: 0.3,
+    zombie: 0.15
+  },
+
+  spreading_contamination: {
+    chemical_outbreak: 0.3,
+    fungal_infection: 0.25,
+    zombie: 0.15
+  },
+
+  human_hunt: {
+    enemy_pursuit: 0.3
+  },
+
+  enemy_pursuit: {
+    human_hunt: 0.3
+  },
+
+  trauma_return: {
+    grief_trauma: 0.2
+  },
+
+  grief_trauma: {
+    trauma_return: 0.2,
+    guilt_manifestation: 0.15
+  },
+
+  maternal_horror: {
+    parent_child_pair: 0.2,
+    grief_trauma: 0.15
+  },
+
+  giant_creature: {
+    predatory_creature: 0.15
+  },
+
+  killer_doll: {
+    cursed_object: 0.15,
+    haunted_object: 0.15
+  }
+};
+
+function getBaseSpecificityMultiplier(tier) {
+  return SIMILARITY_MODEL.BASE_SPECIFICITY[tier] ?? 1.0;
+}
+
+function getConfidenceMultiplier(confidence) {
+  return SIMILARITY_MODEL.CONFIDENCE_MULTIPLIERS[confidence] ?? 1.0;
+}
+
+function getRarityMultiplier(tag, stats) {
+  const N = stats.totalMovies || 1;
+  const freq = stats.canonTagFrequency?.[tag] || 0;
+  const raw = 1 + 0.35 * Math.log((N + 1) / (freq + 1));
+  return Math.max(0.75, Math.min(1.35, raw));
+}
+
+function getCanonTagWeight(tag, stats) {
+  const meta = CANON_TAG_META[tag] || { tier: "standard", confidence: "stable" };
+  return (
+    getBaseSpecificityMultiplier(meta.tier) *
+    getConfidenceMultiplier(meta.confidence) *
+    getRarityMultiplier(tag, stats)
+  );
+}
+
+function buildCanonWeightMap(stats) {
+  const map = {};
+  const allTags = new Set([
+    ...Object.keys(CANON_TAG_META),
+    ...Object.keys(stats.canonTagFrequency || {})
+  ]);
+
+  for (const tag of allTags) {
+    map[tag] = getCanonTagWeight(tag, stats);
   }
 
-  function toStringArray(value) {
-    if (!Array.isArray(value)) {
-      return [];
+  return map;
+}
+
+function weightedJaccard(arrA = [], arrB = [], weightMap = {}) {
+  const setA = new Set(arrA || []);
+  const setB = new Set(arrB || []);
+  const union = new Set([...setA, ...setB]);
+
+  let intersectionWeight = 0;
+  let unionWeight = 0;
+
+  for (const item of union) {
+    const w = weightMap[item] ?? 1;
+    unionWeight += w;
+    if (setA.has(item) && setB.has(item)) {
+      intersectionWeight += w;
     }
-
-    return [...new Set(
-      value
-        .filter(Boolean)
-        .map(item => String(item).trim())
-        .filter(Boolean)
-    )];
   }
 
-  function buildTagSet(tags) {
-    return new Set(toStringArray(tags));
+  return unionWeight === 0 ? 0 : intersectionWeight / unionWeight;
+}
+
+function calcUnionWeight(arrA = [], arrB = [], weightMap = {}) {
+  const union = new Set([...(arrA || []), ...(arrB || [])]);
+  let sum = 0;
+  for (const item of union) {
+    sum += weightMap[item] ?? 1;
   }
+  return sum;
+}
 
-  function hasTag(tagSet, tag) {
-    return tagSet.has(tag);
-  }
+function calcCanonAffinityWeight(arrA = [], arrB = [], canonWeightMap = {}) {
+  const setA = new Set(arrA || []);
+  const setB = new Set(arrB || []);
 
-  function hasAllTags(tagSet, tags) {
-    return (tags || []).every(tag => tagSet.has(tag));
-  }
+  let affinityWeight = 0;
+  const seenPairs = new Set();
 
-  function hasAnyTags(tagSet, tags) {
-    return (tags || []).some(tag => tagSet.has(tag));
-  }
+  for (const tagA of setA) {
+    const links = CANON_AFFINITY[tagA];
+    if (!links) continue;
 
-  function getCanonTags(movie) {
-    return toStringArray(movie?.tags_canon);
-  }
+    for (const [tagB, coeff] of Object.entries(links)) {
+      const pairKey = [tagA, tagB].sort().join("::");
+      if (seenPairs.has(pairKey)) continue;
+      if (!setB.has(tagB)) continue;
+      if (setA.has(tagB)) continue;
 
-  function getPerceivedTags(movie) {
-    return toStringArray(movie?.tags_perceived);
-  }
+      const weightA = canonWeightMap[tagA] ?? 1;
+      const weightB = canonWeightMap[tagB] ?? 1;
 
-  function getFormats(movie) {
-    return toStringArray(movie?.formats);
-  }
-
-  function getTriggers(movie) {
-    return toStringArray(movie?.triggers);
-  }
-
-  function getAdditionalGenres(movie) {
-    const movieGenres = Array.isArray(movie?.movie_genres) ? movie.movie_genres : [];
-
-    return [...new Set(
-      movieGenres
-        .map(item => item?.genres?.name)
-        .filter(Boolean)
-        .map(name => String(name).trim())
-        .filter(name => name && name.toLowerCase() !== 'ужасы')
-    )];
-  }
-
-  function validateMovieTags(movie) {
-    const tags = getCanonTags(movie);
-    const tagSet = buildTagSet(tags);
-    const warnings = [];
-
-    for (const warning of taxonomy.tag_validation_rules?.warnings || []) {
-      const presentOk = hasAllTags(tagSet, warning.if_tags_present || []);
-      const absentOk = !hasAnyTags(tagSet, warning.if_tags_absent || []);
-
-      if (presentOk && absentOk) {
-        warnings.push({
-          code: warning.code,
-          message: warning.message
-        });
-        continue;
-      }
-
-      if (
-        warning.if_tags_present &&
-        !warning.if_tags_absent &&
-        presentOk
-      ) {
-        warnings.push({
-          code: warning.code,
-          message: warning.message
-        });
-      }
+      affinityWeight += Math.min(weightA, weightB) * coeff;
+      seenPairs.add(pairKey);
     }
-
-    return {
-      tags,
-      warnings,
-      isValid: warnings.length === 0
-    };
   }
 
-  function calculateSubgenreScores(movie) {
-    const canonTags = getCanonTags(movie);
-    const tagSet = buildTagSet(canonTags);
-    const weights = taxonomy.subgenre_scoring?.weights || {};
-    const restrictions = taxonomy.subgenre_scoring?.restrictions || [];
-    const modifiers = taxonomy.subgenre_scoring?.modifiers || [];
+  return affinityWeight;
+}
 
-    const scores = {};
+function buildCountryWeights(movies) {
+  const freq = {};
+  const totalMovies = movies.length;
 
-    for (const subgenre of taxonomy.subgenres || []) {
-      const subgenreWeights = weights[subgenre] || {};
-      let score = 0;
-
-      for (const [tag, weight] of Object.entries(subgenreWeights)) {
-        if (hasTag(tagSet, tag)) {
-          score += Number(weight) || 0;
-        }
-      }
-
-      for (const modifier of modifiers || []) {
-        if (modifier.subgenre !== subgenre) {
-          continue;
-        }
-
-        if (
-          modifier.type === 'bonus_if_all_tags_present' &&
-          hasAllTags(tagSet, modifier.tags || [])
-        ) {
-          score += Number(modifier.bonus) || 0;
-        }
-      }
-
-      scores[subgenre] = score;
+  for (const movie of movies) {
+    for (const country of movie.countries || []) {
+      freq[country] = (freq[country] || 0) + 1;
     }
-
-    for (const restriction of restrictions) {
-      const subgenre = restriction.subgenre;
-
-      if (!(subgenre in scores)) {
-        continue;
-      }
-
-      if (
-        restriction.type === 'zero_score_if_missing_tag' &&
-        !hasTag(tagSet, restriction.tag)
-      ) {
-        scores[subgenre] = 0;
-      }
-
-      if (
-        restriction.type === 'zero_score_if_not_any_conditions_met' &&
-        !hasAnyTags(tagSet, restriction.any_tags || [])
-      ) {
-        scores[subgenre] = 0;
-      }
-
-      if (
-        restriction.type === 'zero_score_if_not_all_conditions_met' &&
-        (
-          !hasAllTags(tagSet, restriction.all_tags || []) ||
-          (
-            Array.isArray(restriction.any_tags) &&
-            restriction.any_tags.length > 0 &&
-            !hasAnyTags(tagSet, restriction.any_tags)
-          )
-        )
-      ) {
-        scores[subgenre] = 0;
-      }
-    }
-
-    return scores;
   }
 
-  function applyPriorityRules(scores, movie) {
-    const canonTags = getCanonTags(movie);
-    const tagSet = buildTagSet(canonTags);
-    const nextScores = { ...scores };
+  const weights = {};
 
-    for (const rule of taxonomy.subgenre_scoring?.priority_rules || []) {
-      const preferred = rule.preferred_subgenre;
-      const over = rule.over_subgenre;
-
-      if (!(preferred in nextScores) || !(over in nextScores)) {
-        continue;
-      }
-
-      let ruleMatched = false;
-
-      if (
-        rule.type === 'prefer_subgenre_if_tag_present' &&
-        hasTag(tagSet, rule.tag)
-      ) {
-        ruleMatched = true;
-      }
-
-      if (
-        rule.type === 'prefer_subgenre_if_any_tags_present' &&
-        hasAnyTags(tagSet, rule.tags || [])
-      ) {
-        ruleMatched = true;
-      }
-
-      if (
-        rule.type === 'prefer_subgenre_if_all_tags_present' &&
-        hasAllTags(tagSet, rule.tags || [])
-      ) {
-        ruleMatched = true;
-      }
-
-      if (ruleMatched && nextScores[over] >= nextScores[preferred]) {
-        nextScores[preferred] = nextScores[over] + 0.001;
-      }
-    }
-
-    return nextScores;
+  for (const [country, count] of Object.entries(freq)) {
+    const raw = 0.4 + Math.log((totalMovies + 1) / (count + 1));
+    weights[country] = Math.max(0.4, Math.min(1.4, raw));
   }
 
-  function resolveMovieSubgenres(movie) {
-    const rawScores = calculateSubgenreScores(movie);
-    const scores = applyPriorityRules(rawScores, movie);
-    const ranked = Object.entries(scores)
-      .filter(([, score]) => score > 0)
-      .sort((a, b) => {
-        if (b[1] !== a[1]) {
-          return b[1] - a[1];
-        }
+  return weights;
+}
 
-        const order = taxonomy.subgenre_scoring?.tie_break_order || [];
-        return order.indexOf(a[0]) - order.indexOf(b[0]);
-      });
+function buildSimilarityStats(movies) {
+  const canonTagFrequency = {};
 
-    if (ranked.length === 0) {
-      return {
-        scores,
-        primary_subgenre: null,
-        secondary_subgenres: []
-      };
+  for (const movie of movies) {
+    const uniqueCanon = new Set(movie.canon || []);
+    for (const tag of uniqueCanon) {
+      canonTagFrequency[tag] = (canonTagFrequency[tag] || 0) + 1;
     }
-
-    const primary_subgenre = ranked[0][0];
-    const primaryScore = ranked[0][1];
-    const minRatio = taxonomy.subgenre_scoring?.secondary_rules?.min_ratio_from_primary ?? 0.65;
-    const maxSecondaryCount = taxonomy.subgenre_scoring?.secondary_rules?.max_secondary_count ?? 2;
-
-    const secondary_subgenres = ranked
-      .slice(1)
-      .filter(([, score]) => score >= primaryScore * minRatio)
-      .slice(0, maxSecondaryCount)
-      .map(([subgenre]) => subgenre);
-
-    return {
-      scores,
-      primary_subgenre,
-      secondary_subgenres
-    };
   }
 
-  function getResolvedSubgenresForSimilarity(movie) {
-    const resolved = resolveMovieSubgenres(movie);
-
-    return {
-      primary_subgenre: movie?.primary_subgenre || resolved.primary_subgenre || null,
-      secondary_subgenres: Array.isArray(movie?.secondary_subgenres) && movie.secondary_subgenres.length > 0
-        ? movie.secondary_subgenres
-        : (resolved.secondary_subgenres || [])
-    };
-  }
-
-  function getSharedCanonClusters(baseCanonTags, candidateCanonTags, clusterDefinitions) {
-    const candidateTagSet = new Set(candidateCanonTags);
-
-    return (Array.isArray(clusterDefinitions) ? clusterDefinitions : [])
-      .filter(cluster => {
-        const clusterTags = Array.isArray(cluster?.tags) ? cluster.tags : [];
-
-        return (
-          clusterTags.length > 0 &&
-          clusterTags.every(tag => baseCanonTags.includes(tag)) &&
-          clusterTags.every(tag => candidateTagSet.has(tag))
-        );
-      });
-  }
-
-  function calculateMovieSimilarity(baseMovie, candidateMovie) {
-    if (!baseMovie || !candidateMovie) {
-      return {
-        total: 0,
-        eligible: false,
-        breakdown: {
-          canonTags: 0,
-          perceivedTags: 0,
-          formats: 0,
-          triggers: 0,
-          subgenres: 0,
-          clusters: 0,
-          additionalGenres: 0
-        }
-      };
-    }
-
-    const similarityConfig = taxonomy.similarity_scoring || {};
-    const formula = similarityConfig.formula || {};
-    const canonTagWeights = similarityConfig.canon_tag_weights || {};
-    const formatWeights = similarityConfig.format_weights || {};
-    const triggerWeights = similarityConfig.trigger_weights || {};
-    const subgenreWeights = similarityConfig.subgenre_weights || {};
-    const clusterWeights = similarityConfig.cluster_weights || {};
-    const additionalGenreWeights = similarityConfig.additional_genre_weights || {};
-    const clusterDefinitions = similarityConfig.clusters || [];
-    const eligibilityConfig = similarityConfig.eligibility || {};
-
-    const baseCanonTags = getCanonTags(baseMovie);
-    const candidateCanonTags = getCanonTags(candidateMovie);
-    const basePerceivedTags = getPerceivedTags(baseMovie);
-    const candidatePerceivedTags = getPerceivedTags(candidateMovie);
-    const baseFormats = getFormats(baseMovie);
-    const candidateFormats = getFormats(candidateMovie);
-    const baseTriggers = getTriggers(baseMovie);
-    const candidateTriggers = getTriggers(candidateMovie);
-    const baseAdditionalGenres = getAdditionalGenres(baseMovie);
-    const candidateAdditionalGenres = getAdditionalGenres(candidateMovie);
-
-    const baseSubgenres = getResolvedSubgenresForSimilarity(baseMovie);
-    const candidateSubgenres = getResolvedSubgenresForSimilarity(candidateMovie);
-
-    const sharedCanonTags = baseCanonTags.filter(tag => candidateCanonTags.includes(tag));
-    const sharedPerceivedTags = basePerceivedTags.filter(tag => candidatePerceivedTags.includes(tag));
-    const sharedFormats = baseFormats.filter(format => candidateFormats.includes(format));
-    const sharedTriggers = baseTriggers.filter(trigger => candidateTriggers.includes(trigger));
-    const sharedAdditionalGenres = baseAdditionalGenres.filter(genre => candidateAdditionalGenres.includes(genre));
-    const sharedSecondarySubgenres = (baseSubgenres.secondary_subgenres || []).filter(subgenre => (
-      (candidateSubgenres.secondary_subgenres || []).includes(subgenre)
-    ));
-    const sharedClusters = getSharedCanonClusters(baseCanonTags, candidateCanonTags, clusterDefinitions);
-
-    const additionalGenresUnion = new Set([
-      ...baseAdditionalGenres,
-      ...candidateAdditionalGenres
-    ]);
-    const additionalGenresJaccard = additionalGenresUnion.size > 0
-      ? sharedAdditionalGenres.length / additionalGenresUnion.size
-      : 0;
-
-    const hasSamePrimarySubgenre = Boolean(
-      baseSubgenres.primary_subgenre &&
-      candidateSubgenres.primary_subgenre &&
-      baseSubgenres.primary_subgenre === candidateSubgenres.primary_subgenre
-    );
-
-    const hasPrimarySecondaryOverlap = Boolean(
-      (
-        baseSubgenres.primary_subgenre &&
-        (candidateSubgenres.secondary_subgenres || []).includes(baseSubgenres.primary_subgenre)
-      ) ||
-      (
-        candidateSubgenres.primary_subgenre &&
-        (baseSubgenres.secondary_subgenres || []).includes(candidateSubgenres.primary_subgenre)
-      )
-    );
-
-    const minSharedCanonTags = Number(eligibilityConfig.min_shared_canon_tags ?? 2);
-    const hasEnoughSharedCanonTags = sharedCanonTags.length >= minSharedCanonTags;
-
-    const highSignalCanonTags = Array.isArray(eligibilityConfig.high_signal_canon_tags)
-      ? eligibilityConfig.high_signal_canon_tags
-      : [];
-
-    const sharedHighSignalCanonTags = sharedCanonTags.filter(tag => highSignalCanonTags.includes(tag));
-    const hasSharedHighSignalCanonTag = Boolean(
-      eligibilityConfig.allow_single_high_signal_canon_tag !== false &&
-      sharedHighSignalCanonTags.length > 0
-    );
-
-    const minSharedClusters = Number(eligibilityConfig.min_shared_clusters ?? 1);
-    const hasSharedCluster = sharedClusters.length >= minSharedClusters;
-
-    const requiredEligibilitySignals = Array.isArray(eligibilityConfig.require_one_of)
-      ? eligibilityConfig.require_one_of
-      : [];
-
-    const eligibilitySignals = {
-      enough_shared_canon_tags: hasEnoughSharedCanonTags,
-      shared_high_signal_canon_tag: hasSharedHighSignalCanonTag,
-      shared_cluster: hasSharedCluster
-    };
-
-    const passesStructuralEligibility = requiredEligibilitySignals.length === 0
-      ? true
-      : requiredEligibilitySignals.some(signalKey => eligibilitySignals[signalKey]);
-
-    const canonTagsScore = sharedCanonTags.reduce((total, tag) => {
-      return total + Number(canonTagWeights[tag] ?? canonTagWeights.default ?? 1);
-    }, 0);
-
-    const perceivedTagsScore = sharedPerceivedTags.length;
-
-    const formatsScore = sharedFormats.reduce((maxScore, format) => {
-      const formatScore = Number(
-        formatWeights.same_format_bonus_formats?.[format] ?? formatWeights.same_format ?? 0
-      );
-
-      return Math.max(maxScore, formatScore);
-    }, 0);
-
-    const triggersScore = sharedTriggers.length * Number(triggerWeights.same_trigger ?? 0);
-
-    let subgenresScore = 0;
-
-    if (hasSamePrimarySubgenre) {
-      subgenresScore += Number(subgenreWeights.same_primary ?? 0);
-    }
-
-    if (hasPrimarySecondaryOverlap) {
-      const overlapCount = [
-        baseSubgenres.primary_subgenre &&
-        (candidateSubgenres.secondary_subgenres || []).includes(baseSubgenres.primary_subgenre),
-        candidateSubgenres.primary_subgenre &&
-        (baseSubgenres.secondary_subgenres || []).includes(candidateSubgenres.primary_subgenre)
-      ].filter(Boolean).length;
-
-      subgenresScore += overlapCount * Number(subgenreWeights.primary_secondary_overlap ?? 0);
-    }
-
-    subgenresScore += sharedSecondarySubgenres.length * Number(subgenreWeights.same_secondary ?? 0);
-
-    const clustersScore = sharedClusters.reduce((total, cluster) => {
-      return total + Number(
-        clusterWeights.by_key?.[cluster.key] ??
-        clusterWeights.default ??
-        0
-      );
-    }, 0);
-
-    let additionalGenresScore =
-      (sharedAdditionalGenres.length * Number(additionalGenreWeights.shared_genre ?? 0)) +
-      (additionalGenresJaccard * Number(additionalGenreWeights.jaccard_multiplier ?? 0));
-
-    if (
-      baseAdditionalGenres.length > 0 &&
-      candidateAdditionalGenres.length > 0 &&
-      sharedAdditionalGenres.length === 0
-    ) {
-      additionalGenresScore -= Number(additionalGenreWeights.no_shared_genres_penalty ?? 0);
-    }
-
-    const breakdown = {
-      canonTags: canonTagsScore * Number(formula.canon_tag_score_multiplier ?? 1),
-      perceivedTags: perceivedTagsScore * Number(formula.perceived_tag_score_multiplier ?? 1),
-      formats: formatsScore * Number(formula.format_score_multiplier ?? 1),
-      triggers: triggersScore * Number(formula.trigger_score_multiplier ?? 1),
-      subgenres: subgenresScore * Number(formula.subgenre_score_multiplier ?? 1),
-      clusters: clustersScore * Number(formula.cluster_score_multiplier ?? 1),
-      additionalGenres: additionalGenresScore * Number(formula.additional_genres_score_multiplier ?? 1)
-    };
-
-    const total = Object.values(breakdown).reduce((totalScore, score) => totalScore + score, 0);
-    const minTotalScore = Number(eligibilityConfig.min_total_score ?? 0);
-    const eligible = passesStructuralEligibility && total >= minTotalScore;
-
-    return {
-      total,
-      eligible,
-      breakdown,
-      eligibilitySignals,
-      shared: {
-        canonTags: sharedCanonTags,
-        highSignalCanonTags: sharedHighSignalCanonTags,
-        perceivedTags: sharedPerceivedTags,
-        formats: sharedFormats,
-        triggers: sharedTriggers,
-        additionalGenres: sharedAdditionalGenres,
-        additionalGenresJaccard,
-        secondarySubgenres: sharedSecondarySubgenres,
-        clusters: sharedClusters
-      },
-      resolved: {
-        base: baseSubgenres,
-        candidate: candidateSubgenres
-      }
-    };
-  }
-
-  function getSimilarMovies(movie, movies, limit = 4) {
-    const safeMovies = Array.isArray(movies) ? movies : [];
-
-    return safeMovies
-      .filter(candidateMovie => candidateMovie && candidateMovie.id !== movie?.id)
-      .map(candidateMovie => ({
-        movie: candidateMovie,
-        similarity: calculateMovieSimilarity(movie, candidateMovie)
-      }))
-      .filter(item => item.similarity.eligible)
-      .sort((firstItem, secondItem) => {
-        const firstSimilarity = firstItem.similarity;
-        const secondSimilarity = secondItem.similarity;
-
-        if (secondSimilarity.breakdown.clusters !== firstSimilarity.breakdown.clusters) {
-          return secondSimilarity.breakdown.clusters - firstSimilarity.breakdown.clusters;
-        }
-
-        if (secondSimilarity.breakdown.canonTags !== firstSimilarity.breakdown.canonTags) {
-          return secondSimilarity.breakdown.canonTags - firstSimilarity.breakdown.canonTags;
-        }
-
-        if (secondSimilarity.breakdown.additionalGenres !== firstSimilarity.breakdown.additionalGenres) {
-          return secondSimilarity.breakdown.additionalGenres - firstSimilarity.breakdown.additionalGenres;
-        }
-
-        const firstHighSignalCanonCount = firstSimilarity.shared.highSignalCanonTags.length;
-        const secondHighSignalCanonCount = secondSimilarity.shared.highSignalCanonTags.length;
-
-        if (secondHighSignalCanonCount !== firstHighSignalCanonCount) {
-          return secondHighSignalCanonCount - firstHighSignalCanonCount;
-        }
-
-        if (secondSimilarity.breakdown.formats !== firstSimilarity.breakdown.formats) {
-          return secondSimilarity.breakdown.formats - firstSimilarity.breakdown.formats;
-        }
-
-        if (secondSimilarity.breakdown.subgenres !== firstSimilarity.breakdown.subgenres) {
-          return secondSimilarity.breakdown.subgenres - firstSimilarity.breakdown.subgenres;
-        }
-
-        if (secondSimilarity.breakdown.perceivedTags !== firstSimilarity.breakdown.perceivedTags) {
-          return secondSimilarity.breakdown.perceivedTags - firstSimilarity.breakdown.perceivedTags;
-        }
-
-        if (secondSimilarity.total !== firstSimilarity.total) {
-          return secondSimilarity.total - firstSimilarity.total;
-        }
-
-        const firstYear = Number(firstItem.movie?.year) || 0;
-        const secondYear = Number(secondItem.movie?.year) || 0;
-
-        if (secondYear !== firstYear) {
-          return secondYear - firstYear;
-        }
-
-        return String(firstItem.movie?.title || '').localeCompare(
-          String(secondItem.movie?.title || ''),
-          'ru'
-        );
-      })
-      .slice(0, Math.max(0, Number(limit) || 0));
-  }
-
-  taxonomy.helpers = {
-    toStringArray,
-    getCanonTags,
-    getPerceivedTags,
-    getFormats,
-    getTriggers,
-    getAdditionalGenres,
-    validateMovieTags,
-    calculateSubgenreScores,
-    resolveMovieSubgenres,
-    calculateMovieSimilarity,
-    getSimilarMovies
+  return {
+    totalMovies: movies.length,
+    canonTagFrequency,
+    countryWeights: buildCountryWeights(movies)
   };
-})();
+}
+
+function calcMovieSimilarity(movieA, movieB, stats) {
+  const canonWeights = buildCanonWeightMap(stats);
+
+  const canonExactNorm = weightedJaccard(movieA.canon, movieB.canon, canonWeights);
+  const canonUnionWeight = calcUnionWeight(movieA.canon, movieB.canon, canonWeights);
+  const canonAffinityWeight = calcCanonAffinityWeight(movieA.canon, movieB.canon, canonWeights);
+
+  const canonExactScore =
+    SIMILARITY_MODEL.SCORE_CAPS.canonExact * canonExactNorm;
+
+  const canonAffinityScore =
+    canonUnionWeight === 0
+      ? 0
+      : SIMILARITY_MODEL.SCORE_CAPS.canonAffinity *
+        Math.min(canonAffinityWeight / canonUnionWeight, 1);
+
+  const modifierNorm = weightedJaccard(
+    movieA.modifiers,
+    movieB.modifiers,
+    MODIFIER_WEIGHTS
+  );
+  const modifierScore =
+    SIMILARITY_MODEL.SCORE_CAPS.modifiers * modifierNorm;
+
+  const canonCore = canonExactScore + canonAffinityScore;
+  const canonNormForGates =
+    (SIMILARITY_MODEL.SCORE_CAPS.canonExact + SIMILARITY_MODEL.SCORE_CAPS.canonAffinity) === 0
+      ? 0
+      : canonCore / (
+          SIMILARITY_MODEL.SCORE_CAPS.canonExact +
+          SIMILARITY_MODEL.SCORE_CAPS.canonAffinity
+        );
+
+  const broadNorm = weightedJaccard(
+    movieA.broadFamilies,
+    movieB.broadFamilies,
+    BROAD_FAMILY_WEIGHTS
+  );
+  const broadGate = 0.4 + 0.6 * canonNormForGates;
+  const broadScore =
+    SIMILARITY_MODEL.SCORE_CAPS.broadFamilies * broadNorm * broadGate;
+
+  const formatNorm = weightedJaccard(
+    movieA.formats,
+    movieB.formats,
+    FORMAT_WEIGHTS
+  );
+  const allowFormatBonus =
+    canonCore >= SIMILARITY_MODEL.GATES.minCanonOrModifierForFormats ||
+    modifierScore >= SIMILARITY_MODEL.GATES.minModifierScoreForFormats;
+
+  const formatScore = allowFormatBonus
+    ? SIMILARITY_MODEL.SCORE_CAPS.formats * formatNorm
+    : 0;
+
+  const coreBeforeContext =
+    canonCore + modifierScore + broadScore + formatScore;
+
+  const allowContextualLayers =
+    coreBeforeContext >= SIMILARITY_MODEL.GATES.minCoreForContextualLayers;
+
+  const genreNorm = weightedJaccard(
+    movieA.extraGenres,
+    movieB.extraGenres,
+    EXTRA_GENRE_WEIGHTS
+  );
+  const genreScore = allowContextualLayers
+    ? SIMILARITY_MODEL.SCORE_CAPS.genres * genreNorm
+    : 0;
+
+  const countryNorm = weightedJaccard(
+    movieA.countries,
+    movieB.countries,
+    stats.countryWeights || {}
+  );
+  const countryScore = allowContextualLayers
+    ? SIMILARITY_MODEL.SCORE_CAPS.countries * countryNorm
+    : 0;
+
+  const finalScore =
+    canonExactScore +
+    canonAffinityScore +
+    modifierScore +
+    broadScore +
+    formatScore +
+    genreScore +
+    countryScore;
+
+  const exactCanonOverlapCount = (movieA.canon || []).filter(tag =>
+    (movieB.canon || []).includes(tag)
+  ).length;
+
+  const passesCoreGate =
+    exactCanonOverlapCount >= 1 ||
+    canonCore >= SIMILARITY_MODEL.GATES.minCanonCoreScore;
+
+  const passesFinalGate =
+    finalScore >= SIMILARITY_MODEL.GATES.minFinalScore;
+
+  return {
+    finalScore,
+    passesGate: passesCoreGate && passesFinalGate,
+    tier:
+      finalScore >= SIMILARITY_MODEL.GATES.minScoreForStrongMatch
+        ? "strong"
+        : finalScore >= SIMILARITY_MODEL.GATES.minScoreForGoodMatch
+          ? "good"
+          : finalScore >= SIMILARITY_MODEL.GATES.minScoreForWeakMatch
+            ? "weak"
+            : "none",
+    breakdown: {
+      canonExactScore,
+      canonAffinityScore,
+      modifierScore,
+      broadScore,
+      formatScore,
+      genreScore,
+      countryScore
+    },
+    debug: {
+      exactCanonOverlapCount,
+      passesCoreGate,
+      passesFinalGate,
+      canonCore,
+      coreBeforeContext
+    }
+  };
+}
+
+function getSharedItems(arrA = [], arrB = []) {
+  const setB = new Set(arrB || []);
+  return (arrA || []).filter(item => setB.has(item));
+}
+
+function getSimilarityExplanation(movieA, movieB) {
+  return {
+    sharedCanon: getSharedItems(movieA.canon, movieB.canon),
+    sharedModifiers: getSharedItems(movieA.modifiers, movieB.modifiers),
+    sharedBroadFamilies: getSharedItems(movieA.broadFamilies, movieB.broadFamilies),
+    sharedFormats: getSharedItems(movieA.formats, movieB.formats),
+    sharedGenres: getSharedItems(movieA.extraGenres, movieB.extraGenres),
+    sharedCountries: getSharedItems(movieA.countries, movieB.countries)
+  };
+}
+
+function getSimilarMovies(targetMovie, allMovies) {
+  const stats = buildSimilarityStats(allMovies);
+
+  return allMovies
+    .filter(movie => movie.id !== targetMovie.id)
+    .map(movie => {
+      const similarity = calcMovieSimilarity(targetMovie, movie, stats);
+      return {
+        movie,
+        similarity,
+        explanation: getSimilarityExplanation(targetMovie, movie)
+      };
+    })
+    .filter(item => item.similarity.passesGate)
+    .sort((a, b) => b.similarity.finalScore - a.similarity.finalScore)
+    .slice(0, SIMILARITY_MODEL.MAX_RESULTS);
+}
