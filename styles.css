@@ -3232,7 +3232,7 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-back-link {
   min-width: 0;
-  flex: 1 1 220px;
+  flex: 0 0 auto;
   color: var(--color-text-secondary);
   background: transparent;
   border-color: transparent;
