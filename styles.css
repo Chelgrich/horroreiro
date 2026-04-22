@@ -3732,7 +3732,8 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-similar-card {
   min-width: 0;
-  height: 100%;
+  height: auto;
+  align-self: start;
   display: flex;
   flex-direction: column;
   gap: 12px;
