@@ -3885,13 +3885,13 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-back-link {
-    flex: 1 1 100%;
+    flex: 0 0 auto;
   }
 
   .movie-page-admin-actions {
-    width: 100%;
+    width: auto;
     justify-content: flex-end;
-    margin-left: 0;
+    margin-left: auto;
   }
 
   .movie-page-layout {
