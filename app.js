@@ -154,6 +154,9 @@ let isPasswordRecoveryEntryPage = false;
 let allMovies = [];
 let allMovieRatings = [];
 let allMovieWatchlist = [];
+let allMovieReviews = [];
+let reviewRequestInFlight = new Set();
+let expandedSpoilerReviewIds = new Set();
 let editingMovieId = null;
 let isModalOpen = false;
 let moviesLoadedSuccessfully = false;
@@ -1237,6 +1240,96 @@ function updateLocalWatchlistState(movieId, shouldExist) {
   }
 }
 
+function getMovieReviews(movieId) {
+  return allMovieReviews.filter(item => item.movie_id === movieId);
+}
+
+function getCurrentUserMovieReview(movieId) {
+  if (!currentUser) {
+    return null;
+  }
+
+  return allMovieReviews.find(item => (
+    item.movie_id === movieId && item.user_id === currentUser.id
+  )) || null;
+}
+
+function getMovieReviewAuthorName(review) {
+  return String(
+    review?.profiles?.display_name ||
+    review?.profiles?.default_display_name ||
+    review?.author_display_name ||
+    'Пользователь'
+  ).trim();
+}
+
+function formatMovieReviewDate(dateValue) {
+  if (!dateValue) {
+    return '';
+  }
+
+  const parsedDate = new Date(dateValue);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return '';
+  }
+
+  return parsedDate.toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+}
+
+function canCurrentUserCreateMovieReview(movieId) {
+  return Boolean(currentUser) && getCurrentUserRating(movieId) !== null;
+}
+
+function normalizeMovieReviewText(value) {
+  return String(value || '').trim();
+}
+
+function isMovieReviewExpanded(reviewId) {
+  return expandedSpoilerReviewIds.has(String(reviewId));
+}
+
+function setMovieReviewExpandedState(reviewId, shouldExpand) {
+  const normalizedReviewId = String(reviewId);
+
+  if (shouldExpand) {
+    expandedSpoilerReviewIds.add(normalizedReviewId);
+    return;
+  }
+
+  expandedSpoilerReviewIds.delete(normalizedReviewId);
+}
+
+function sortMovieReviewsForDisplay(reviews, movieId) {
+  const normalizedMovieId = String(movieId || '');
+
+  return [...(Array.isArray(reviews) ? reviews : [])].sort((firstReview, secondReview) => {
+    const isFirstCurrentUserReview = currentUser && String(firstReview.user_id) === String(currentUser.id);
+    const isSecondCurrentUserReview = currentUser && String(secondReview.user_id) === String(currentUser.id);
+
+    if (isFirstCurrentUserReview !== isSecondCurrentUserReview) {
+      return isFirstCurrentUserReview ? -1 : 1;
+    }
+
+    const firstTime = new Date(firstReview.updated_at || firstReview.created_at || 0).getTime();
+    const secondTime = new Date(secondReview.updated_at || secondReview.created_at || 0).getTime();
+
+    if (firstTime !== secondTime) {
+      return secondTime - firstTime;
+    }
+
+    if (String(firstReview.movie_id) !== normalizedMovieId || String(secondReview.movie_id) !== normalizedMovieId) {
+      return 0;
+    }
+
+    return 0;
+  });
+}
+
 /* =========================================================
 JS-БЛОК 5. ПОИСК ПО КАТАЛОГУ
 Проверяет, соответствует ли фильм текущему текстовому запросу.
@@ -2230,6 +2323,95 @@ async function fetchMovieWatchlist() {
   }
 
   allMovieWatchlist = data || [];
+}
+
+async function fetchMovieReviews(movieId) {
+  if (!movieId) {
+    allMovieReviews = [];
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_reviews')
+    .select(`
+      id,
+      movie_id,
+      user_id,
+      review_text,
+      contains_spoilers,
+      created_at,
+      updated_at,
+      profiles:user_id (
+        display_name,
+        default_display_name
+      )
+    `)
+    .eq('movie_id', movieId)
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.error('Ошибка загрузки рецензий:', error);
+    allMovieReviews = [];
+    return;
+  }
+
+  allMovieReviews = data || [];
+}
+
+async function saveMovieReview(movieId, { reviewText, containsSpoilers = false }) {
+  const activeUser = ensureActiveSessionForWrite();
+  const normalizedReviewText = normalizeMovieReviewText(reviewText);
+
+  if (!movieId) {
+    throw new Error('Не найден фильм для сохранения рецензии.');
+  }
+
+  if (!normalizedReviewText) {
+    throw new Error('Текст рецензии не должен быть пустым.');
+  }
+
+  if (normalizedReviewText.length < 80) {
+    throw new Error('Рецензия должна содержать не менее 80 символов.');
+  }
+
+  if (normalizedReviewText.length > 5000) {
+    throw new Error('Рецензия не должна превышать 5000 символов.');
+  }
+
+  const { error } = await supabaseClient
+    .from('movie_reviews')
+    .upsert(
+      {
+        movie_id: movieId,
+        user_id: activeUser.id,
+        review_text: normalizedReviewText,
+        contains_spoilers: Boolean(containsSpoilers)
+      },
+      {
+        onConflict: 'movie_id,user_id'
+      }
+    );
+
+  throwIfSupabaseError(error);
+  await fetchMovieReviews(movieId);
+}
+
+async function removeMovieReview(reviewId, movieId) {
+  if (!reviewId) {
+    throw new Error('Не найдена рецензия для удаления.');
+  }
+
+  ensureActiveSessionForWrite();
+
+  const { error } = await supabaseClient
+    .from('movie_reviews')
+    .delete()
+    .eq('id', reviewId);
+
+  throwIfSupabaseError(error);
+
+  setMovieReviewExpandedState(reviewId, false);
+  await fetchMovieReviews(movieId);
 }
 
 async function reloadCatalogData({ showSkeleton = false } = {}) {
@@ -6942,6 +7124,7 @@ async function initMoviePage() {
       return;
     }
 
+    await fetchMovieReviews(movie.id);
     renderMoviePage(movie);
   } catch (error) {
     console.error('Ошибка загрузки страницы фильма:', error);
@@ -6962,6 +7145,7 @@ async function initMoviePage() {
           return;
         }
 
+        await fetchMovieReviews(movie.id);
         renderMoviePage(movie);
       } catch (error) {
         console.error('Ошибка синхронизации страницы фильма после auth:', error);
