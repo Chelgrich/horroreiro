@@ -7006,6 +7006,10 @@ function getMoviePageReviewFormHtml(movie) {
 function getMoviePageReviewCardHtml(review) {
   const authorName = escapeHtml(getMovieReviewAuthorName(review));
   const reviewDate = formatMovieReviewDate(review.updated_at || review.created_at);
+  const userRating = Number(getMovieRatings(review.movie_id).find(item => String(item.user_id) === String(review.user_id))?.rating ?? 0);
+  const userRatingHtml = Number.isFinite(userRating) && userRating > 0
+    ? `<div class="movie-page-review-user-rating">Оценка пользователя: ${userRating}/10 <span class="movie-page-review-user-rating-star">★</span></div>`
+    : '';
   const isCurrentUserReview = Boolean(currentUser) && String(review.user_id) === String(currentUser.id);
   const isSpoilerReview = Boolean(review.contains_spoilers);
   const isExpandedSpoiler = isMovieReviewExpanded(review.id);
@@ -7023,6 +7027,7 @@ function getMoviePageReviewCardHtml(review) {
               ? `<div class="movie-page-review-date">${escapeHtml(reviewDate)}</div>`
               : ''
           }
+          ${userRatingHtml}
         </div>
 
         ${

@@ -3830,6 +3830,16 @@ body:has(.movie-page-shell) .page {
   color: var(--color-text-muted);
 }
 
+.movie-page-review-user-rating {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+}
+
+.movie-page-review-user-rating-star {
+  color: var(--color-rating-text);
+}
+
 .movie-page-review-spoiler-badge {
   padding: 6px 12px;
   display: inline-flex;
