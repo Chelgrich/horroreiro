@@ -7416,11 +7416,10 @@ function renderMoviePage(movie) {
                         data-open-mobile-rating="true"
                         ${isRatingBusy ? 'disabled' : ''}
                       >
-                        Оценить
                         ${
                           currentUserRating !== null
-                            ? `<span class="movie-page-rate-value">${currentUserRating}</span>`
-                            : `<span class="movie-page-rate-trigger-star">★</span>`
+                            ? `Изменить <span class="movie-page-rate-value">${currentUserRating}</span><span class="movie-page-rate-trigger-star">★</span>`
+                            : 'Оценить'
                         }
                       </button>
                     `
