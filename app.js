@@ -6887,6 +6887,280 @@ function getMoviePageSimilarCardHtml(movie) {
   `;
 }
 
+function getMoviePageReviewFormHtml(movie) {
+  const currentUserReview = getCurrentUserMovieReview(movie.id);
+  const canCreateReview = canCurrentUserCreateMovieReview(movie.id);
+  const isEditingReview = Boolean(currentUserReview);
+  const reviewFormTitle = isEditingReview ? 'Ваша рецензия' : 'Написать рецензию';
+  const reviewButtonLabel = isEditingReview ? 'Сохранить изменения' : 'Опубликовать';
+  const normalizedReviewText = currentUserReview ? escapeHtml(currentUserReview.review_text || '') : '';
+
+  if (!currentUser) {
+    return `
+      <div class="movie-page-review-gate">
+        <div class="movie-page-review-gate-text">Войдите, чтобы оставить рецензию.</div>
+      </div>
+    `;
+  }
+
+  if (!canCreateReview && !isEditingReview) {
+    return `
+      <div class="movie-page-review-gate">
+        <div class="movie-page-review-gate-text">Оставить рецензию можно только после оценки фильма.</div>
+      </div>
+    `;
+  }
+
+  return `
+    <section class="movie-page-review-form-block">
+      <div class="movie-page-subtitle">${reviewFormTitle}</div>
+
+      <form class="movie-page-review-form" data-movie-review-form="true">
+        <textarea
+          class="movie-page-review-textarea"
+          name="reviewText"
+          placeholder="Поделитесь впечатлениями о фильме"
+          rows="7"
+          data-movie-review-textarea="true"
+        >${normalizedReviewText}</textarea>
+
+        <label class="movie-page-review-spoiler-toggle">
+          <input
+            type="checkbox"
+            name="containsSpoilers"
+            data-movie-review-spoilers="true"
+            ${currentUserReview?.contains_spoilers ? 'checked' : ''}
+          >
+          <span>Есть спойлеры</span>
+        </label>
+
+        <div class="movie-page-review-form-actions">
+          <button type="submit" data-movie-review-submit="true">${reviewButtonLabel}</button>
+
+          ${
+            isEditingReview
+              ? `
+                <button
+                  type="button"
+                  class="secondary-button"
+                  data-movie-review-delete="${currentUserReview.id}"
+                >
+                  Удалить
+                </button>
+              `
+              : ''
+          }
+        </div>
+
+        <div class="movie-page-review-form-hint">
+          Минимум 80 символов. Максимум 5000 символов.
+        </div>
+
+        <p class="movie-page-review-form-message" data-movie-review-form-message="true"></p>
+      </form>
+    </section>
+  `;
+}
+
+function getMoviePageReviewCardHtml(review) {
+  const authorName = escapeHtml(getMovieReviewAuthorName(review));
+  const reviewDate = formatMovieReviewDate(review.updated_at || review.created_at);
+  const isCurrentUserReview = Boolean(currentUser) && String(review.user_id) === String(currentUser.id);
+  const isSpoilerReview = Boolean(review.contains_spoilers);
+  const isExpanded = isMovieReviewExpanded(review.id);
+
+  return `
+    <article class="movie-page-review-card" data-movie-review-id="${review.id}">
+      <div class="movie-page-review-card-header">
+        <div class="movie-page-review-card-meta">
+          <div class="movie-page-review-author">${authorName}</div>
+          ${
+            reviewDate
+              ? `<div class="movie-page-review-date">${escapeHtml(reviewDate)}</div>`
+              : ''
+          }
+        </div>
+
+        ${
+          isSpoilerReview
+            ? `<div class="movie-page-review-spoiler-badge">Спойлеры</div>`
+            : ''
+        }
+      </div>
+
+      ${
+        isSpoilerReview && !isExpanded
+          ? `
+            <div class="movie-page-review-spoiler-cover">
+              <div class="movie-page-review-spoiler-cover-text">Рецензия содержит спойлеры.</div>
+              <button
+                type="button"
+                class="secondary-button secondary-button-compact"
+                data-movie-review-show-spoilers="${review.id}"
+              >
+                Показать
+              </button>
+            </div>
+          `
+          : `<div class="movie-page-review-text">${escapeHtml(review.review_text)}</div>`
+      }
+
+      ${
+        isCurrentUserReview
+          ? `
+            <div class="movie-page-review-actions">
+              <button
+                type="button"
+                class="secondary-button secondary-button-compact"
+                data-movie-review-delete="${review.id}"
+              >
+                Удалить
+              </button>
+            </div>
+          `
+          : ''
+      }
+    </article>
+  `;
+}
+
+function getMoviePageReviewsSectionHtml(movie) {
+  const reviews = sortMovieReviewsForDisplay(getMovieReviews(movie.id), movie.id);
+
+  return `
+    <section class="movie-page-reviews-block" aria-labelledby="moviePageReviewsTitle">
+      <div id="moviePageReviewsTitle" class="movie-page-subtitle">Рецензии</div>
+
+      ${getMoviePageReviewFormHtml(movie)}
+
+      ${
+        reviews.length > 0
+          ? `
+            <div class="movie-page-reviews-list">
+              ${reviews.map(review => getMoviePageReviewCardHtml(review)).join('')}
+            </div>
+          `
+          : `
+            <div class="movie-page-review-empty-state">
+              Пока нет ни одной рецензии.
+            </div>
+          `
+      }
+    </section>
+  `;
+}
+
+async function handleMovieReviewFormSubmit(movie, formElement) {
+  if (!formElement || reviewRequestInFlight.has(String(movie.id))) {
+    return;
+  }
+
+  const messageElement = formElement.querySelector('[data-movie-review-form-message="true"]');
+  const textareaElement = formElement.querySelector('[data-movie-review-textarea="true"]');
+  const spoilersCheckbox = formElement.querySelector('[data-movie-review-spoilers="true"]');
+  const submitButtonElement = formElement.querySelector('[data-movie-review-submit="true"]');
+  const deleteButtonElement = formElement.querySelector('[data-movie-review-delete]');
+
+  const setFormMessage = (message = '', type = '') => {
+    if (!messageElement) {
+      return;
+    }
+
+    messageElement.textContent = message;
+    messageElement.classList.remove('is-error', 'is-success');
+
+    if (type) {
+      messageElement.classList.add(`is-${type}`);
+    }
+  };
+
+  try {
+    reviewRequestInFlight.add(String(movie.id));
+
+    if (submitButtonElement) {
+      submitButtonElement.disabled = true;
+    }
+
+    if (deleteButtonElement) {
+      deleteButtonElement.disabled = true;
+    }
+
+    if (textareaElement) {
+      textareaElement.disabled = true;
+    }
+
+    if (spoilersCheckbox) {
+      spoilersCheckbox.disabled = true;
+    }
+
+    setFormMessage('Сохраняю...');
+
+    await saveMovieReview(movie.id, {
+      reviewText: textareaElement?.value || '',
+      containsSpoilers: Boolean(spoilersCheckbox?.checked)
+    });
+
+    setFormMessage('Рецензия сохранена.', 'success');
+    renderMoviePage(movie);
+  } catch (error) {
+    console.error('Ошибка сохранения рецензии:', error);
+    setFormMessage(error?.message || 'Не удалось сохранить рецензию.', 'error');
+  } finally {
+    reviewRequestInFlight.delete(String(movie.id));
+  }
+}
+
+async function handleMovieReviewDelete(movie, reviewId) {
+  if (!reviewId || reviewRequestInFlight.has(String(movie.id))) {
+    return;
+  }
+
+  const isConfirmed = confirm('Удалить рецензию?');
+
+  if (!isConfirmed) {
+    return;
+  }
+
+  try {
+    reviewRequestInFlight.add(String(movie.id));
+    await removeMovieReview(reviewId, movie.id);
+    renderMoviePage(movie);
+  } catch (error) {
+    console.error('Ошибка удаления рецензии:', error);
+    alert(error?.message || 'Не удалось удалить рецензию.');
+  } finally {
+    reviewRequestInFlight.delete(String(movie.id));
+  }
+}
+
+function bindMoviePageReviewEvents(movie) {
+  if (!moviePage || !movie) {
+    return;
+  }
+
+  const reviewForm = moviePage.querySelector('[data-movie-review-form="true"]');
+
+  if (reviewForm) {
+    reviewForm.addEventListener('submit', event => {
+      event.preventDefault();
+      handleMovieReviewFormSubmit(movie, reviewForm);
+    });
+  }
+
+  moviePage.querySelectorAll('[data-movie-review-delete]').forEach(button => {
+    button.addEventListener('click', () => {
+      handleMovieReviewDelete(movie, button.dataset.movieReviewDelete);
+    });
+  });
+
+  moviePage.querySelectorAll('[data-movie-review-show-spoilers]').forEach(button => {
+    button.addEventListener('click', () => {
+      setMovieReviewExpandedState(button.dataset.movieReviewShowSpoilers, true);
+      renderMoviePage(movie);
+    });
+  });
+}
+
 function renderMoviePage(movie) {
   if (!moviePage || !movie) {
     return;
@@ -6906,6 +7180,7 @@ function renderMoviePage(movie) {
   const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
   const isWatchlistBusy = watchlistRequestInFlight.has(String(movie.id));
   const similarMovies = getSimilarMoviesForMoviePage(movie, 4);
+  const reviewsSectionHtml = getMoviePageReviewsSectionHtml(movie);
 
   setMoviePageDocumentMeta(movie);
 
@@ -6951,7 +7226,7 @@ function renderMoviePage(movie) {
             ${
               userMovieState.isWatched
                 ? `
-                  <div class="movie-page-watched-icon" aria-label="Просмотрено" title="Просмотрено">
+                  <div class="movie-page-watched-mark" aria-label="Фильм просмотрен" title="Фильм просмотрен">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M5 12.5L9.5 17L19 7.5"></path>
                     </svg>
@@ -6967,6 +7242,7 @@ function renderMoviePage(movie) {
             <div class="movie-page-title-row">
               <div class="movie-page-title-main">
                 <h2 class="movie-page-title">${escapeHtml(movie.title)}</h2>
+
                 ${
                   movie.original_title
                     ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>`
@@ -6976,7 +7252,7 @@ function renderMoviePage(movie) {
 
               <div class="movie-page-summary-panel">
                 <div class="movie-rating-summary movie-page-rating-summary">
-                  <div class="movie-rating-summary-main">
+                  <div class="movie-rating-summary-main movie-page-rating-summary-main">
                     <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
                     <span class="movie-rating-meta">(${votesCount} ${getVotesLabel(votesCount)})</span>
                   </div>
@@ -6987,54 +7263,137 @@ function renderMoviePage(movie) {
                     ? `
                       <button
                         type="button"
-                        class="secondary-button movie-page-rate-trigger ${currentUserRating !== null ? 'is-rated' : ''}"
+                        class="secondary-button movie-page-rate-trigger"
                         data-open-mobile-rating="true"
                         ${isRatingBusy ? 'disabled' : ''}
                       >
-                      ${
-                        currentUserRating !== null
-                          ? `Изменить <span class="movie-page-rate-value">${currentUserRating}</span><span class="movie-page-rate-trigger-star">★</span>`
-                          : 'Оценить'
-                      }
+                        Оценить
+                        ${
+                          currentUserRating !== null
+                            ? `<span class="movie-page-rate-value">${currentUserRating}</span>`
+                            : `<span class="movie-page-rate-trigger-star">★</span>`
+                        }
                       </button>
                     `
                     : ''
                 }
               </div>
             </div>
-          </div>
 
-          <div class="movie-page-meta-list">
-            <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
-            <div class="movie-page-meta-item"><span>Режиссёр:</span> <strong>${movie.director ? escapeHtml(movie.director) : '-'}</strong></div>
-            <div class="movie-page-meta-item"><span>Жанры:</span> <strong>${genres ? escapeHtml(genres) : '-'}</strong></div>
+            <div class="movie-page-meta-list">
+              <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
+              <div class="movie-page-meta-item"><span>Режиссёр:</span> <strong>${movie.director ? escapeHtml(movie.director) : '-'}</strong></div>
+              <div class="movie-page-meta-item"><span>Жанры:</span> <strong>${genres ? escapeHtml(genres) : '-'}</strong></div>
+              <div class="movie-page-meta-item"><span>Страны:</span> <strong>${countries ? escapeHtml(countries) : '-'}</strong></div>
+            </div>
+
             ${
-              movie.primary_subgenre
-                ? `<div class="movie-page-meta-item"><span>Поджанр:</span> <strong>${escapeHtml(getTaxonomyLabel('subgenres', movie.primary_subgenre))}</strong></div>`
+              Array.isArray(movie.tags_perceived) && movie.tags_perceived.length > 0
+                ? `
+                  <div class="movie-page-taxonomy-block">
+                    <div class="movie-page-subtitle">Perceived tags</div>
+                    <div class="movie-page-taxonomy-list">
+                      <div class="movie-page-taxonomy-item">
+                        <span>Perceived:</span>
+                        <strong>${escapeHtml(mapTaxonomyLabels('perceived_tags', movie.tags_perceived).join(', '))}</strong>
+                      </div>
+                    </div>
+                  </div>
+                `
                 : ''
             }
+
             ${
-              Array.isArray(movie.formats) &&
-              movie.formats.length > 0 &&
-              !(movie.formats.length === 1 && movie.formats[0] === 'classic')
-                ? `<div class="movie-page-meta-item"><span>Формат:</span> <strong>${escapeHtml(mapTaxonomyLabels('formats', movie.formats).join(', '))}</strong></div>`
+              Array.isArray(movie.tags_canon) && movie.tags_canon.length > 0
+                ? `
+                  <div class="movie-page-taxonomy-block">
+                    <div class="movie-page-subtitle">Canon tags</div>
+                    <div class="movie-page-taxonomy-list">
+                      <div class="movie-page-taxonomy-item">
+                        <span>Canon:</span>
+                        <strong>${escapeHtml(mapTaxonomyLabels('canon_tags', movie.tags_canon).join(', '))}</strong>
+                      </div>
+                    </div>
+                  </div>
+                `
                 : ''
             }
-            <div class="movie-page-meta-item"><span>Страны:</span> <strong>${countries ? escapeHtml(countries) : '-'}</strong></div>
-          </div>
 
-          ${
-            synopsis
-              ? `
-                <div class="movie-page-synopsis-block">
-                  <div class="movie-page-subtitle">Описание</div>
-                  <div class="movie-page-synopsis-text">${escapeHtml(synopsis).replace(/\n/g, '<br>')}</div>
-                </div>
-              `
-              : ''
-          }
+            ${
+              Array.isArray(movie.formats) && movie.formats.length > 0
+                ? `
+                  <div class="movie-page-taxonomy-block">
+                    <div class="movie-page-subtitle">Форматы</div>
+                    <div class="movie-page-taxonomy-list">
+                      <div class="movie-page-taxonomy-item">
+                        <span>Форматы:</span>
+                        <strong>${escapeHtml(mapTaxonomyLabels('formats', movie.formats).join(', '))}</strong>
+                      </div>
+                    </div>
+                  </div>
+                `
+                : ''
+            }
 
-          <div class="movie-page-rating-block movie-rating-block">
+            ${
+              Array.isArray(movie.modifiers) && movie.modifiers.length > 0
+                ? `
+                  <div class="movie-page-taxonomy-block">
+                    <div class="movie-page-subtitle">Модификаторы</div>
+                    <div class="movie-page-taxonomy-list">
+                      <div class="movie-page-taxonomy-item">
+                        <span>Модификаторы:</span>
+                        <strong>${escapeHtml(mapTaxonomyLabels('modifiers', movie.modifiers).join(', '))}</strong>
+                      </div>
+                    </div>
+                  </div>
+                `
+                : ''
+            }
+
+            ${
+              Array.isArray(movie.broad_families) && movie.broad_families.length > 0
+                ? `
+                  <div class="movie-page-taxonomy-block">
+                    <div class="movie-page-subtitle">Семейства механик</div>
+                    <div class="movie-page-taxonomy-list">
+                      <div class="movie-page-taxonomy-item">
+                        <span>Семейства:</span>
+                        <strong>${escapeHtml(mapTaxonomyLabels('broad_families', movie.broad_families).join(', '))}</strong>
+                      </div>
+                    </div>
+                  </div>
+                `
+                : ''
+            }
+
+            ${
+              Array.isArray(movie.triggers) && movie.triggers.length > 0
+                ? `
+                  <div class="movie-page-taxonomy-block">
+                    <div class="movie-page-subtitle">Триггеры</div>
+                    <div class="movie-page-taxonomy-list">
+                      <div class="movie-page-taxonomy-item">
+                        <span>Триггеры:</span>
+                        <strong>${escapeHtml(mapTaxonomyLabels('triggers', movie.triggers).join(', '))}</strong>
+                      </div>
+                    </div>
+                  </div>
+                `
+                : ''
+            }
+
+            ${
+              synopsis
+                ? `
+                  <div class="movie-page-synopsis-block">
+                    <div class="movie-page-subtitle">Синопсис</div>
+                    <div class="movie-page-synopsis-text">${escapeHtml(synopsis)}</div>
+                  </div>
+                `
+                : ''
+            }
+
             ${
               externalLinksHtml
                 ? `
@@ -7048,6 +7407,8 @@ function renderMoviePage(movie) {
           </div>
         </div>
       </article>
+
+      ${reviewsSectionHtml}
 
       ${
         similarMovies.length > 0
@@ -7078,6 +7439,8 @@ function renderMoviePage(movie) {
       openMobileRatingModal(movie);
     });
   }
+
+  bindMoviePageReviewEvents(movie);
 }
 
 async function deleteMovieFromMoviePage(movieId, movieTitle) {
