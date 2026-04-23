@@ -7318,7 +7318,11 @@ function renderMoviePage(movie) {
   const currentUserRating = getCurrentUserRating(movie.id);
   const userMovieState = getCurrentUserMovieState(movie.id);
   const primaryPerceivedTagLabel = Array.isArray(movie.tags_perceived) && movie.tags_perceived.length > 0
-    ? getTaxonomyLabel('perceived_tags', movie.tags_perceived[0])
+    ? movie.tags_perceived
+        .slice(0, 2)
+        .map(tag => getTaxonomyLabel('subgenres', tag))
+        .filter(Boolean)
+        .join(', ')
     : '';
   const externalLinksHtml = getMoviePageExternalLinksHtml(movie);
   const synopsis = String(movie.synopsis || '').trim();
