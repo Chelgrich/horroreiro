@@ -2340,11 +2340,7 @@ async function fetchMovieReviews(movieId) {
       review_text,
       contains_spoilers,
       created_at,
-      updated_at,
-      profiles:user_id (
-        display_name,
-        default_display_name
-      )
+      updated_at
     `)
     .eq('movie_id', movieId)
     .order('updated_at', { ascending: false });
@@ -2355,7 +2351,34 @@ async function fetchMovieReviews(movieId) {
     return;
   }
 
-  allMovieReviews = data || [];
+  const reviews = data || [];
+  const uniqueUserIds = [...new Set(
+    reviews
+      .map(review => review.user_id)
+      .filter(Boolean)
+  )];
+
+  let profilesMap = new Map();
+
+  if (uniqueUserIds.length > 0) {
+    const { data: profilesData, error: profilesError } = await supabaseClient
+      .from('profiles')
+      .select('id, display_name, default_display_name')
+      .in('id', uniqueUserIds);
+
+    if (profilesError) {
+      console.error('Ошибка загрузки профилей авторов рецензий:', profilesError);
+    } else {
+      profilesMap = new Map(
+        (profilesData || []).map(profile => [String(profile.id), profile])
+      );
+    }
+  }
+
+  allMovieReviews = reviews.map(review => ({
+    ...review,
+    profiles: profilesMap.get(String(review.user_id)) || null
+  }));
 }
 
 async function saveMovieReview(movieId, { reviewText, containsSpoilers = false }) {
