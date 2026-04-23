@@ -7317,6 +7317,9 @@ function renderMoviePage(movie) {
   const votesCount = getMovieRatings(movie.id).length;
   const currentUserRating = getCurrentUserRating(movie.id);
   const userMovieState = getCurrentUserMovieState(movie.id);
+  const primaryPerceivedTagLabel = Array.isArray(movie.tags_perceived) && movie.tags_perceived.length > 0
+    ? getTaxonomyLabel('perceived_tags', movie.tags_perceived[0])
+    : '';
   const externalLinksHtml = getMoviePageExternalLinksHtml(movie);
   const synopsis = String(movie.synopsis || '').trim();
   const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
@@ -7426,104 +7429,9 @@ function renderMoviePage(movie) {
               <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
               <div class="movie-page-meta-item"><span>Режиссёр:</span> <strong>${movie.director ? escapeHtml(movie.director) : '-'}</strong></div>
               <div class="movie-page-meta-item"><span>Жанры:</span> <strong>${genres ? escapeHtml(genres) : '-'}</strong></div>
+              <div class="movie-page-meta-item"><span>Поджанр:</span> <strong>${primaryPerceivedTagLabel ? escapeHtml(primaryPerceivedTagLabel) : '-'}</strong></div>
               <div class="movie-page-meta-item"><span>Страны:</span> <strong>${countries ? escapeHtml(countries) : '-'}</strong></div>
             </div>
-
-            ${
-              Array.isArray(movie.tags_perceived) && movie.tags_perceived.length > 0
-                ? `
-                  <div class="movie-page-taxonomy-block">
-                    <div class="movie-page-subtitle">Perceived tags</div>
-                    <div class="movie-page-taxonomy-list">
-                      <div class="movie-page-taxonomy-item">
-                        <span>Perceived:</span>
-                        <strong>${escapeHtml(mapTaxonomyLabels('perceived_tags', movie.tags_perceived).join(', '))}</strong>
-                      </div>
-                    </div>
-                  </div>
-                `
-                : ''
-            }
-
-            ${
-              Array.isArray(movie.tags_canon) && movie.tags_canon.length > 0
-                ? `
-                  <div class="movie-page-taxonomy-block">
-                    <div class="movie-page-subtitle">Canon tags</div>
-                    <div class="movie-page-taxonomy-list">
-                      <div class="movie-page-taxonomy-item">
-                        <span>Canon:</span>
-                        <strong>${escapeHtml(mapTaxonomyLabels('canon_tags', movie.tags_canon).join(', '))}</strong>
-                      </div>
-                    </div>
-                  </div>
-                `
-                : ''
-            }
-
-            ${
-              Array.isArray(movie.formats) && movie.formats.length > 0
-                ? `
-                  <div class="movie-page-taxonomy-block">
-                    <div class="movie-page-subtitle">Форматы</div>
-                    <div class="movie-page-taxonomy-list">
-                      <div class="movie-page-taxonomy-item">
-                        <span>Форматы:</span>
-                        <strong>${escapeHtml(mapTaxonomyLabels('formats', movie.formats).join(', '))}</strong>
-                      </div>
-                    </div>
-                  </div>
-                `
-                : ''
-            }
-
-            ${
-              Array.isArray(movie.modifiers) && movie.modifiers.length > 0
-                ? `
-                  <div class="movie-page-taxonomy-block">
-                    <div class="movie-page-subtitle">Модификаторы</div>
-                    <div class="movie-page-taxonomy-list">
-                      <div class="movie-page-taxonomy-item">
-                        <span>Модификаторы:</span>
-                        <strong>${escapeHtml(mapTaxonomyLabels('modifiers', movie.modifiers).join(', '))}</strong>
-                      </div>
-                    </div>
-                  </div>
-                `
-                : ''
-            }
-
-            ${
-              Array.isArray(movie.broad_families) && movie.broad_families.length > 0
-                ? `
-                  <div class="movie-page-taxonomy-block">
-                    <div class="movie-page-subtitle">Семейства механик</div>
-                    <div class="movie-page-taxonomy-list">
-                      <div class="movie-page-taxonomy-item">
-                        <span>Семейства:</span>
-                        <strong>${escapeHtml(mapTaxonomyLabels('broad_families', movie.broad_families).join(', '))}</strong>
-                      </div>
-                    </div>
-                  </div>
-                `
-                : ''
-            }
-
-            ${
-              Array.isArray(movie.triggers) && movie.triggers.length > 0
-                ? `
-                  <div class="movie-page-taxonomy-block">
-                    <div class="movie-page-subtitle">Триггеры</div>
-                    <div class="movie-page-taxonomy-list">
-                      <div class="movie-page-taxonomy-item">
-                        <span>Триггеры:</span>
-                        <strong>${escapeHtml(mapTaxonomyLabels('triggers', movie.triggers).join(', '))}</strong>
-                      </div>
-                    </div>
-                  </div>
-                `
-                : ''
-            }
 
             ${
               synopsis
