@@ -157,6 +157,8 @@ let allMovieWatchlist = [];
 let allMovieReviews = [];
 let reviewRequestInFlight = new Set();
 let expandedSpoilerReviewIds = new Set();
+let expandedMovieReviewTextIds = new Set();
+let editingMovieReviewId = null;
 let editingMovieId = null;
 let isModalOpen = false;
 let moviesLoadedSuccessfully = false;
@@ -1302,6 +1304,37 @@ function setMovieReviewExpandedState(reviewId, shouldExpand) {
   }
 
   expandedSpoilerReviewIds.delete(normalizedReviewId);
+}
+
+function isMovieReviewTextExpanded(reviewId) {
+  return expandedMovieReviewTextIds.has(String(reviewId));
+}
+
+function setMovieReviewTextExpandedState(reviewId, shouldExpand) {
+  const normalizedReviewId = String(reviewId);
+
+  if (shouldExpand) {
+    expandedMovieReviewTextIds.add(normalizedReviewId);
+    return;
+  }
+
+  expandedMovieReviewTextIds.delete(normalizedReviewId);
+}
+
+function isMovieReviewLong(reviewText) {
+  return String(reviewText || '').trim().length > 650;
+}
+
+function startMovieReviewEditing(reviewId) {
+  editingMovieReviewId = String(reviewId);
+}
+
+function stopMovieReviewEditing() {
+  editingMovieReviewId = null;
+}
+
+function isMovieReviewEditing(reviewId) {
+  return String(editingMovieReviewId) === String(reviewId);
 }
 
 function sortMovieReviewsForDisplay(reviews, movieId) {
@@ -6913,10 +6946,6 @@ function getMoviePageSimilarCardHtml(movie) {
 function getMoviePageReviewFormHtml(movie) {
   const currentUserReview = getCurrentUserMovieReview(movie.id);
   const canCreateReview = canCurrentUserCreateMovieReview(movie.id);
-  const isEditingReview = Boolean(currentUserReview);
-  const reviewFormTitle = isEditingReview ? 'Ваша рецензия' : 'Написать рецензию';
-  const reviewButtonLabel = isEditingReview ? 'Сохранить изменения' : 'Опубликовать';
-  const normalizedReviewText = currentUserReview ? escapeHtml(currentUserReview.review_text || '') : '';
 
   if (!currentUser) {
     return `
@@ -6926,7 +6955,11 @@ function getMoviePageReviewFormHtml(movie) {
     `;
   }
 
-  if (!canCreateReview && !isEditingReview) {
+  if (currentUserReview) {
+    return '';
+  }
+
+  if (!canCreateReview) {
     return `
       <div class="movie-page-review-gate">
         <div class="movie-page-review-gate-text">Оставить рецензию можно только после оценки фильма.</div>
@@ -6936,7 +6969,7 @@ function getMoviePageReviewFormHtml(movie) {
 
   return `
     <section class="movie-page-review-form-block">
-      <div class="movie-page-subtitle">${reviewFormTitle}</div>
+      <div class="movie-page-subtitle">Написать рецензию</div>
 
       <form class="movie-page-review-form" data-movie-review-form="true">
         <textarea
@@ -6945,34 +6978,19 @@ function getMoviePageReviewFormHtml(movie) {
           placeholder="Поделитесь впечатлениями о фильме"
           rows="7"
           data-movie-review-textarea="true"
-        >${normalizedReviewText}</textarea>
+        ></textarea>
 
         <label class="movie-page-review-spoiler-toggle">
           <input
             type="checkbox"
             name="containsSpoilers"
             data-movie-review-spoilers="true"
-            ${currentUserReview?.contains_spoilers ? 'checked' : ''}
           >
           <span>Есть спойлеры</span>
         </label>
 
         <div class="movie-page-review-form-actions">
-          <button type="submit" data-movie-review-submit="true">${reviewButtonLabel}</button>
-
-          ${
-            isEditingReview
-              ? `
-                <button
-                  type="button"
-                  class="secondary-button"
-                  data-movie-review-delete="${currentUserReview.id}"
-                >
-                  Удалить
-                </button>
-              `
-              : ''
-          }
+          <button type="submit" data-movie-review-submit="true">Опубликовать</button>
         </div>
 
         <div class="movie-page-review-form-hint">
@@ -6990,7 +7008,10 @@ function getMoviePageReviewCardHtml(review) {
   const reviewDate = formatMovieReviewDate(review.updated_at || review.created_at);
   const isCurrentUserReview = Boolean(currentUser) && String(review.user_id) === String(currentUser.id);
   const isSpoilerReview = Boolean(review.contains_spoilers);
-  const isExpanded = isMovieReviewExpanded(review.id);
+  const isExpandedSpoiler = isMovieReviewExpanded(review.id);
+  const isExpandedText = isMovieReviewTextExpanded(review.id);
+  const isLongReview = isMovieReviewLong(review.review_text);
+  const isEditing = isMovieReviewEditing(review.id);
 
   return `
     <article class="movie-page-review-card" data-movie-review-id="${review.id}">
@@ -7012,26 +7033,95 @@ function getMoviePageReviewCardHtml(review) {
       </div>
 
       ${
-        isSpoilerReview && !isExpanded
+        isEditing
           ? `
-            <div class="movie-page-review-spoiler-cover">
-              <div class="movie-page-review-spoiler-cover-text">Рецензия содержит спойлеры.</div>
-              <button
-                type="button"
-                class="secondary-button secondary-button-compact"
-                data-movie-review-show-spoilers="${review.id}"
-              >
-                Показать
-              </button>
-            </div>
+            <form class="movie-page-review-form movie-page-review-inline-form" data-movie-review-form="true" data-movie-review-id="${review.id}">
+              <textarea
+                class="movie-page-review-textarea"
+                name="reviewText"
+                placeholder="Поделитесь впечатлениями о фильме"
+                rows="7"
+                data-movie-review-textarea="true"
+              >${escapeHtml(review.review_text || '')}</textarea>
+
+              <label class="movie-page-review-spoiler-toggle">
+                <input
+                  type="checkbox"
+                  name="containsSpoilers"
+                  data-movie-review-spoilers="true"
+                  ${review.contains_spoilers ? 'checked' : ''}
+                >
+                <span>Есть спойлеры</span>
+              </label>
+
+              <div class="movie-page-review-form-actions">
+                <button type="submit" data-movie-review-submit="true">Сохранить изменения</button>
+                <button
+                  type="button"
+                  class="secondary-button"
+                  data-movie-review-cancel-edit="true"
+                >
+                  Отмена
+                </button>
+              </div>
+
+              <div class="movie-page-review-form-hint">
+                Минимум 80 символов. Максимум 5000 символов.
+              </div>
+
+              <p class="movie-page-review-form-message" data-movie-review-form-message="true"></p>
+            </form>
           `
-          : `<div class="movie-page-review-text">${escapeHtml(review.review_text)}</div>`
+          : (
+            isSpoilerReview && !isExpandedSpoiler
+              ? `
+                <div class="movie-page-review-spoiler-cover">
+                  <div class="movie-page-review-spoiler-cover-text">Рецензия содержит спойлеры.</div>
+                  <button
+                    type="button"
+                    class="secondary-button secondary-button-compact"
+                    data-movie-review-show-spoilers="${review.id}"
+                  >
+                    Показать
+                  </button>
+                </div>
+              `
+              : `
+                <div class="movie-page-review-text ${isLongReview && !isExpandedText ? 'is-collapsed' : ''}">
+                  ${escapeHtml(review.review_text)}
+                </div>
+
+                ${
+                  isLongReview
+                    ? `
+                      <div class="movie-page-review-more">
+                        <button
+                          type="button"
+                          class="secondary-button secondary-button-compact"
+                          data-movie-review-toggle-text="${review.id}"
+                        >
+                          ${isExpandedText ? 'Свернуть' : 'Читать дальше'}
+                        </button>
+                      </div>
+                    `
+                    : ''
+                }
+              `
+          )
       }
 
       ${
-        isCurrentUserReview
+        isCurrentUserReview && !isEditing
           ? `
             <div class="movie-page-review-actions">
+              <button
+                type="button"
+                class="secondary-button secondary-button-compact"
+                data-movie-review-edit="${review.id}"
+              >
+                Редактировать
+              </button>
+
               <button
                 type="button"
                 class="secondary-button secondary-button-compact"
@@ -7123,6 +7213,7 @@ async function handleMovieReviewFormSubmit(movie, formElement) {
       containsSpoilers: Boolean(spoilersCheckbox?.checked)
     });
 
+    stopMovieReviewEditing();
     setFormMessage('Рецензия сохранена.', 'success');
     renderMoviePage(movie);
   } catch (error) {
@@ -7146,6 +7237,7 @@ async function handleMovieReviewDelete(movie, reviewId) {
 
   try {
     reviewRequestInFlight.add(String(movie.id));
+    stopMovieReviewEditing();
     await removeMovieReview(reviewId, movie.id);
     renderMoviePage(movie);
   } catch (error) {
@@ -7161,14 +7253,12 @@ function bindMoviePageReviewEvents(movie) {
     return;
   }
 
-  const reviewForm = moviePage.querySelector('[data-movie-review-form="true"]');
-
-  if (reviewForm) {
+  moviePage.querySelectorAll('[data-movie-review-form="true"]').forEach(reviewForm => {
     reviewForm.addEventListener('submit', event => {
       event.preventDefault();
       handleMovieReviewFormSubmit(movie, reviewForm);
     });
-  }
+  });
 
   moviePage.querySelectorAll('[data-movie-review-delete]').forEach(button => {
     button.addEventListener('click', () => {
@@ -7176,9 +7266,33 @@ function bindMoviePageReviewEvents(movie) {
     });
   });
 
+  moviePage.querySelectorAll('[data-movie-review-edit]').forEach(button => {
+    button.addEventListener('click', () => {
+      startMovieReviewEditing(button.dataset.movieReviewEdit);
+      renderMoviePage(movie);
+    });
+  });
+
+  moviePage.querySelectorAll('[data-movie-review-cancel-edit="true"]').forEach(button => {
+    button.addEventListener('click', () => {
+      stopMovieReviewEditing();
+      renderMoviePage(movie);
+    });
+  });
+
   moviePage.querySelectorAll('[data-movie-review-show-spoilers]').forEach(button => {
     button.addEventListener('click', () => {
       setMovieReviewExpandedState(button.dataset.movieReviewShowSpoilers, true);
+      renderMoviePage(movie);
+    });
+  });
+
+  moviePage.querySelectorAll('[data-movie-review-toggle-text]').forEach(button => {
+    button.addEventListener('click', () => {
+      const reviewId = button.dataset.movieReviewToggleText;
+      const shouldExpand = !isMovieReviewTextExpanded(reviewId);
+
+      setMovieReviewTextExpandedState(reviewId, shouldExpand);
       renderMoviePage(movie);
     });
   });
