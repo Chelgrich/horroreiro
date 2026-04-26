@@ -225,11 +225,6 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   color: #ffffff;
   background: #171c20;
   border-color: #2f3843;
-  transform: none;
-}
-
-.display-name-button:active {
-  transform: none;
 }
 
 .display-name-button:focus,
@@ -407,11 +402,6 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 
 .auth-popover-item:hover:not(:disabled) {
   background: #222831;
-  transform: none;
-}
-
-.auth-popover-item:active:not(:disabled) {
-  transform: none;
 }
 
 .auth-popover-item:disabled {
@@ -3293,11 +3283,6 @@ body:has(.movie-page-shell) .page {
   color: #ffffff;
   background: #1b2128;
   border-color: #3a444f;
-  transform: none;
-}
-
-.movie-page-admin-icon-button:active {
-  transform: none;
 }
 
 .movie-page-admin-icon-button:focus,
@@ -3844,11 +3829,6 @@ body:has(.movie-page-shell) .page {
   color: #ffffff;
   background: #1b2128;
   border-color: #3a444f;
-  transform: none;
-}
-
-.movie-page-review-icon-button:active {
-  transform: none;
 }
 
 .movie-page-review-icon-button:focus,
