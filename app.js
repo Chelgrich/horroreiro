@@ -7333,6 +7333,30 @@ function bindMoviePageReviewEvents(movie) {
   });
 }
 
+function buildMoviePageViewModel(movie) {
+  return {
+    genres: movie.movie_genres.map(item => item.genres.name).join(', '),
+    countries: movie.movie_countries.map(item => item.countries.name).join(', '),
+    averageRating: getMovieAverageRating(movie.id),
+    votesCount: getMovieRatings(movie.id).length,
+    currentUserRating: getCurrentUserRating(movie.id),
+    userMovieState: getCurrentUserMovieState(movie.id),
+    primaryPerceivedTagLabel: Array.isArray(movie.tags_perceived) && movie.tags_perceived.length > 0
+      ? movie.tags_perceived
+          .slice(0, 2)
+          .map(tag => getTaxonomyLabel('subgenres', tag))
+          .filter(Boolean)
+          .join(', ')
+      : '',
+    externalLinksHtml: getMoviePageExternalLinksHtml(movie),
+    synopsis: String(movie.synopsis || '').trim(),
+    isRatingBusy: ratingRequestInFlight.has(String(movie.id)),
+    isWatchlistBusy: watchlistRequestInFlight.has(String(movie.id)),
+    similarMovies: getSimilarMoviesForMoviePage(movie, 4),
+    reviewsSectionHtml: getMoviePageReviewsSectionHtml(movie)
+  };
+}
+
 function renderMoviePage(movie) {
   if (!moviePage || !movie) {
     return;
@@ -7341,25 +7365,21 @@ function renderMoviePage(movie) {
   currentMoviePageMovieId = movie.id;
   currentMoviePageMovieData = movie;
 
-  const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
-  const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
-  const averageRating = getMovieAverageRating(movie.id);
-  const votesCount = getMovieRatings(movie.id).length;
-  const currentUserRating = getCurrentUserRating(movie.id);
-  const userMovieState = getCurrentUserMovieState(movie.id);
-  const primaryPerceivedTagLabel = Array.isArray(movie.tags_perceived) && movie.tags_perceived.length > 0
-    ? movie.tags_perceived
-        .slice(0, 2)
-        .map(tag => getTaxonomyLabel('subgenres', tag))
-        .filter(Boolean)
-        .join(', ')
-    : '';
-  const externalLinksHtml = getMoviePageExternalLinksHtml(movie);
-  const synopsis = String(movie.synopsis || '').trim();
-  const isRatingBusy = ratingRequestInFlight.has(String(movie.id));
-  const isWatchlistBusy = watchlistRequestInFlight.has(String(movie.id));
-  const similarMovies = getSimilarMoviesForMoviePage(movie, 4);
-  const reviewsSectionHtml = getMoviePageReviewsSectionHtml(movie);
+  const {
+    genres,
+    countries,
+    averageRating,
+    votesCount,
+    currentUserRating,
+    userMovieState,
+    primaryPerceivedTagLabel,
+    externalLinksHtml,
+    synopsis,
+    isRatingBusy,
+    isWatchlistBusy,
+    similarMovies,
+    reviewsSectionHtml
+  } = buildMoviePageViewModel(movie);
 
   setMoviePageDocumentMeta(movie);
 
