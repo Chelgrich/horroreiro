@@ -139,40 +139,7 @@
     ========================================================== -->
     <div id="sharedHeaderMount"></div>
 
-    <div id="authModal" class="modal">
-      <div class="modal-backdrop" id="authModalBackdrop"></div>
-
-      <div class="modal-dialog auth-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
-        <div class="modal-header">
-          <h2 id="authModalTitle">Вход и регистрация</h2>
-          <button type="button" id="closeAuthModalButton" class="modal-close-button" aria-label="Закрыть"></button>
-        </div>
-
-        <form id="loginForm" class="login-form login-form-modal auth-form-shell is-visible">
-          <input type="email" id="loginEmail" name="email" class="auth-mode-field is-visible" placeholder="Email" autocomplete="email">
-          <input type="password" id="loginPassword" name="password" class="auth-mode-field is-visible" placeholder="Пароль" autocomplete="current-password">
-          <input type="text" id="registerNickname" name="registerNickname" class="auth-conditional-field" placeholder="Никнейм" maxlength="24">
-          <div id="registerNicknameHint" class="field-hint auth-conditional-field">
-            Необязательно. Если оставить пустым, присвоится имя вида profile001.
-          </div>
-          <input type="password" id="loginPasswordConfirm" name="passwordConfirm" class="auth-conditional-field" placeholder="Повторите новый пароль" autocomplete="new-password">
-          <button type="submit">Войти</button>
-          <button type="button" id="registerButton" class="secondary-button secondary-button-compact auth-mode-button is-visible">
-            Регистрация
-          </button>
-        </form>
-
-        <div id="authFormLinks" class="auth-form-links auth-mode-block is-visible">
-          <button type="button" id="forgotPasswordButton" class="auth-link-button">
-            Забыли пароль?
-          </button>
-        </div>
-
-        <div id="authToast" class="auth-toast auth-toast-inline is-hidden" aria-live="polite" aria-atomic="true">
-          <p id="authMessage" class="auth-message"></p>
-        </div>
-      </div>
-    </div>
+    <div id="sharedAuthModalMount"></div>
 
     <div id="displayNameModal" class="modal">
       <div class="modal-backdrop" id="displayNameModalBackdrop"></div>
@@ -657,6 +624,7 @@
   <script src="shared-layout.js"></script>
   <script>
     window.SharedLayout?.mountSharedHeader({ isMoviePage: false });
+    window.SharedLayout?.mountSharedAuthModal();
     window.SharedLayout?.mountSharedFooter();
   </script>
 
