@@ -5048,12 +5048,12 @@ function getMovieExternalLinksHtml(movie) {
           aria-label="${link.label}"
           title="${link.label}"
         >
-        <img
-          src="${getMovieExternalIconSrc(link.type)}"
-          alt=""
-          class="movie-external-link-icon"
-          loading="lazy"
-        >
+          <img
+            src="${getMovieExternalIconSrc(link.type)}"
+            alt=""
+            class="movie-external-link-icon"
+            loading="lazy"
+          >
         </a>
       `).join('')}
     </div>
@@ -5063,64 +5063,64 @@ function getMovieExternalLinksHtml(movie) {
 function getPosterHtml(movie, userMovieState, matchedSearchAlias = null) {
   return `
     <div class="movie-poster-block">
-    <a href="${buildMoviePageUrl(movie)}" class="movie-poster-link" aria-label="Открыть страницу фильма ${escapeHtml(movie.title)}">
+      <a href="${buildMoviePageUrl(movie)}" class="movie-poster-link" aria-label="Открыть страницу фильма ${escapeHtml(movie.title)}">
         <div class="movie-poster-wrapper">
-        ${
-          movie.poster_url
-            ? `
-              <div class="movie-poster-skeleton ${loadedPosterUrls.has(movie.poster_url) ? 'is-hidden' : ''}" aria-hidden="true"></div>
-              <img
-                class="movie-poster ${loadedPosterUrls.has(movie.poster_url) ? 'is-loaded' : ''}"
-                src="${movie.poster_url}"
-                alt="Постер фильма ${movie.title}"
-                loading="lazy"
-                decoding="async"
-              >
-            `
-            : `<div class="movie-poster-placeholder">Нет постера</div>`
-        }
+          ${
+            movie.poster_url
+              ? `
+                <div class="movie-poster-skeleton ${loadedPosterUrls.has(movie.poster_url) ? 'is-hidden' : ''}" aria-hidden="true"></div>
+                <img
+                  class="movie-poster ${loadedPosterUrls.has(movie.poster_url) ? 'is-loaded' : ''}"
+                  src="${movie.poster_url}"
+                  alt="Постер фильма ${movie.title}"
+                  loading="lazy"
+                  decoding="async"
+                >
+              `
+              : `<div class="movie-poster-placeholder">Нет постера</div>`
+          }
 
-        ${
-          matchedSearchAlias
-            ? `
-              <div class="movie-search-alias-hint">
-                <span class="movie-search-alias-hint-label">Альт:</span>
-                ${highlightSearchMatches(matchedSearchAlias, searchInput.value)}
-              </div>
-            `
-            : ''
-        }
+          ${
+            matchedSearchAlias
+              ? `
+                <div class="movie-search-alias-hint">
+                  <span class="movie-search-alias-hint-label">Альт:</span>
+                  ${highlightSearchMatches(matchedSearchAlias, searchInput.value)}
+                </div>
+              `
+              : ''
+          }
 
-        ${
-          currentUser && !userMovieState.isWatched
-            ? `
-              <button
-                type="button"
-                class="movie-watchlist-btn ${userMovieState.isInWatchlist ? 'is-active' : ''}"
-                data-watchlist-toggle="true"
-                aria-label="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
-                title="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-              </button>
-            `
-            : ''
-        }
+          ${
+            currentUser && !userMovieState.isWatched
+              ? `
+                <button
+                  type="button"
+                  class="movie-watchlist-btn ${userMovieState.isInWatchlist ? 'is-active' : ''}"
+                  data-watchlist-toggle="true"
+                  aria-label="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+                  title="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              `
+              : ''
+          }
 
-        ${
-          userMovieState.isWatched
-            ? `
-              <div class="movie-watched-icon" aria-label="Просмотрено" title="Просмотрено">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M5 12.5L9.5 17L19 7.5"></path>
-                </svg>
-              </div>
-            `
-            : ''
-        }
+          ${
+            userMovieState.isWatched
+              ? `
+                <div class="movie-watched-icon" aria-label="Просмотрено" title="Просмотрено">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 12.5L9.5 17L19 7.5"></path>
+                  </svg>
+                </div>
+              `
+              : ''
+          }
         </div>
       </a>
     </div>
@@ -5413,7 +5413,7 @@ function createMovieCard(movie) {
     `
     : '';
 
-    card.innerHTML = `
+  card.innerHTML = `
     ${posterHtml}
 
     <h5 class="movie-title">
@@ -5429,30 +5429,30 @@ function createMovieCard(movie) {
     <div class="movie-rating-block">
       ${
         hasExternalLinks
-        ? `
-          <button
-            type="button"
-            class="movie-external-links-toggle secondary-button secondary-button-compact"
-            data-external-links-toggle="true"
-            aria-expanded="false"
-          >
-            Ссылки на фильм
-          </button>
-        `
-        : ''
-    }
-    ${externalLinksBlockHtml}
-    ${ratingSummaryHtml}
-    ${userRatingControlsHtml}
-  </div>
+          ? `
+            <button
+              type="button"
+              class="movie-external-links-toggle secondary-button secondary-button-compact"
+              data-external-links-toggle="true"
+              aria-expanded="false"
+            >
+              Ссылки на фильм
+            </button>
+          `
+          : ''
+      }
+      ${externalLinksBlockHtml}
+      ${ratingSummaryHtml}
+      ${userRatingControlsHtml}
+    </div>
 
-  <div class="movie-card-actions">
-    ${isAdmin ? `
-      <button type="button" class="edit-movie-btn">Редактировать</button>
-      <button type="button" class="delete-movie-btn secondary-button">Удалить</button>
-    ` : ''}
-  </div>
-`;
+    <div class="movie-card-actions">
+      ${isAdmin ? `
+        <button type="button" class="edit-movie-btn">Редактировать</button>
+        <button type="button" class="delete-movie-btn secondary-button">Удалить</button>
+      ` : ''}
+    </div>
+  `;
 
   const actionsBlock = card.querySelector('.movie-card-actions');
   const editBtn = card.querySelector('.edit-movie-btn');
