@@ -7019,23 +7019,59 @@ function getMoviePageReviewCardHtml(review) {
 
   return `
     <article class="movie-page-review-card" data-movie-review-id="${review.id}">
-      <div class="movie-page-review-card-header">
-        <div class="movie-page-review-card-meta">
-          <div class="movie-page-review-author">${authorName}</div>
-          ${
-            reviewDate
-              ? `<div class="movie-page-review-date">${escapeHtml(reviewDate)}</div>`
-              : ''
-          }
-          ${userRatingHtml}
-        </div>
+    <div class="movie-page-review-card-header">
+    <div class="movie-page-review-card-meta">
+      <div class="movie-page-review-author">${authorName}</div>
+      ${
+        reviewDate
+          ? `<div class="movie-page-review-date">${escapeHtml(reviewDate)}</div>`
+          : ''
+      }
+      ${userRatingHtml}
+    </div>
 
-        ${
-          isSpoilerReview
-            ? `<div class="movie-page-review-spoiler-badge">Спойлеры</div>`
-            : ''
-        }
-      </div>
+    <div class="movie-page-review-card-header-side">
+      ${
+        isSpoilerReview
+          ? `<div class="movie-page-review-spoiler-badge">Спойлеры</div>`
+          : ''
+      }
+
+      ${
+        isCurrentUserReview && !isEditing
+          ? `
+            <div class="movie-page-review-icon-actions">
+              <button
+                type="button"
+                class="movie-page-review-icon-button"
+                data-movie-review-edit="${review.id}"
+                aria-label="Редактировать рецензию"
+                title="Редактировать"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"></path>
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                class="movie-page-review-icon-button movie-page-review-icon-button-danger"
+                data-movie-review-delete="${review.id}"
+                aria-label="Удалить рецензию"
+                title="Удалить"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M18 6 6 18"></path>
+                  <path d="M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+          `
+          : ''
+      }
+    </div>
+  </div>
 
       ${
         isEditing
@@ -7116,27 +7152,7 @@ function getMoviePageReviewCardHtml(review) {
       }
 
       ${
-        isCurrentUserReview && !isEditing
-          ? `
-            <div class="movie-page-review-actions">
-              <button
-                type="button"
-                class="secondary-button secondary-button-compact"
-                data-movie-review-edit="${review.id}"
-              >
-                Редактировать
-              </button>
-
-              <button
-                type="button"
-                class="secondary-button secondary-button-compact"
-                data-movie-review-delete="${review.id}"
-              >
-                Удалить
-              </button>
-            </div>
-          `
-          : ''
+        ''
       }
     </article>
   `;

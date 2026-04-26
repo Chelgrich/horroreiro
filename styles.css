@@ -3810,6 +3810,14 @@ body:has(.movie-page-shell) .page {
   gap: 12px;
 }
 
+.movie-page-review-card-header-side {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .movie-page-review-card-meta {
   min-width: 0;
   display: flex;
@@ -3854,6 +3862,64 @@ body:has(.movie-page-shell) .page {
   line-height: 1.2;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.movie-page-review-icon-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.movie-page-review-icon-button {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  background: var(--surface-control-alt);
+  border: 1px solid var(--border-control-strong);
+  border-radius: 999px;
+}
+
+.movie-page-review-icon-button svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.movie-page-review-icon-button:hover {
+  color: #ffffff;
+  background: #1b2128;
+  border-color: #3a444f;
+  transform: none;
+}
+
+.movie-page-review-icon-button:active {
+  transform: none;
+}
+
+.movie-page-review-icon-button:focus,
+.movie-page-review-icon-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
+}
+
+.movie-page-review-icon-button-danger {
+  color: var(--color-danger-text);
+  border-color: var(--color-danger-border-soft);
+}
+
+.movie-page-review-icon-button-danger:hover {
+  background: rgba(255, 123, 114, 0.08);
+  border-color: rgba(255, 123, 114, 0.45);
 }
 
 .movie-page-review-spoiler-cover {
@@ -4213,6 +4279,12 @@ body:has(.movie-page-shell) .page {
   .movie-page-review-card-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 10px;
+  }
+
+  .movie-page-review-card-header-side {
+    width: 100%;
+    justify-content: space-between;
     gap: 10px;
   }
 
