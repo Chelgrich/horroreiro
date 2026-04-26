@@ -4072,8 +4072,14 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(200px, 232px) minmax(0, 1fr);
     gap: 16px;
+    align-items: start;
+  }
+
+  .movie-page-poster-column {
+    width: 100%;
+    max-width: 232px;
   }
 
   .movie-page-rate-trigger {
@@ -4946,6 +4952,15 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 }
 
 @media (max-width: 480px) {
+  .movie-page-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .movie-page-poster-column {
+    max-width: none;
+  }
+
   .page-header-top {
     gap: 8px;
   }
