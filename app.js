@@ -6348,6 +6348,7 @@ function saveCatalogStateAndRenderFilters() {
 
 const handleFiltersChange = () => {
   trackFiltersUsageIfNeeded();
+  refreshDynamicFilterOptions();
   saveCatalogStateAndRenderFilters();
 };
 
