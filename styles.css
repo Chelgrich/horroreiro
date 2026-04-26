@@ -3549,33 +3549,6 @@ body:has(.movie-page-shell) .page {
   color: #ffffff;
 }
 
-.movie-page-taxonomy-block {
-  padding-top: 14px;
-  padding-bottom: 14px;
-  border-top: 1px solid #1f242b;
-}
-
-.movie-page-taxonomy-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.movie-page-taxonomy-item {
-  font-size: 15px;
-  line-height: 1.4;
-  color: #e3e8ee;
-}
-
-.movie-page-taxonomy-item span {
-  color: var(--color-text-muted);
-}
-
-.movie-page-taxonomy-item strong {
-  font-weight: 700;
-  color: #ffffff;
-}
-
 .movie-page-synopsis-block {
   padding-top: 14px;
   padding-bottom: 14px;
@@ -3590,12 +3563,6 @@ body:has(.movie-page-shell) .page {
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
-}
-
-.movie-page-rating-block {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: none;
 }
 
 .movie-page-user-state {
@@ -3980,13 +3947,6 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-review-inline-form {
   margin-top: 14px;
-}
-
-.movie-page-review-actions {
-  margin-top: 14px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
 }
 
 .movie-page-review-empty-state {
