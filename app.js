@@ -2536,9 +2536,7 @@ async function reloadCatalogData({ showSkeleton = false } = {}) {
     loadCountries()
   ]);
 
-  loadSubgenreFilterOptions();
-  loadFormatFilterOptions();
-  loadTriggerFilterOptions();
+  refreshDynamicFilterOptions();
 }
 
 function preserveWindowScrollPosition(callback) {
@@ -6081,7 +6079,6 @@ function renderMovies() {
 
   container.classList.remove('is-catalog-visible');
 
-  refreshDynamicFilterOptions();
   renderActiveFilterChips();
   syncQuickPresetButtons();
 
@@ -6672,6 +6669,7 @@ async function initCatalogPage() {
   await reloadCatalogData({ showSkeleton: true });
   initCatalogViewToggleButton();
   applySavedCatalogState();
+  refreshDynamicFilterOptions();
 
   if (restoredUser && !isPasswordRecoveryMode) {
     syncCatalogAfterAuthChange();
