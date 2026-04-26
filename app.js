@@ -7198,6 +7198,21 @@ function getMoviePageReviewsSectionHtml(movie) {
   `;
 }
 
+function getMoviePageSimilarSectionHtml(similarMovies) {
+  if (!Array.isArray(similarMovies) || similarMovies.length === 0) {
+    return '';
+  }
+
+  return `
+    <section class="movie-page-similar-block" aria-labelledby="moviePageSimilarTitle">
+      <div id="moviePageSimilarTitle" class="movie-page-subtitle">Похожие фильмы</div>
+      <div class="movie-page-similar-grid">
+        ${similarMovies.map(similarMovie => getMoviePageSimilarCardHtml(similarMovie)).join('')}
+      </div>
+    </section>
+  `;
+}
+
 async function handleMovieReviewFormSubmit(movie, formElement) {
   if (!formElement || reviewRequestInFlight.has(String(movie.id))) {
     return;
@@ -7552,19 +7567,7 @@ function renderMoviePage(movie) {
       })}
 
       ${reviewsSectionHtml}
-
-      ${
-        similarMovies.length > 0
-          ? `
-            <section class="movie-page-similar-block" aria-labelledby="moviePageSimilarTitle">
-              <div id="moviePageSimilarTitle" class="movie-page-subtitle">Похожие фильмы</div>
-              <div class="movie-page-similar-grid">
-                ${similarMovies.map(similarMovie => getMoviePageSimilarCardHtml(similarMovie)).join('')}
-              </div>
-            </section>
-          `
-          : ''
-      }
+      ${getMoviePageSimilarSectionHtml(similarMovies)}
     </div>
   `;
 
