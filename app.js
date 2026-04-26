@@ -1246,14 +1246,22 @@ function getMovieReviews(movieId) {
   return allMovieReviews.filter(item => item.movie_id === movieId);
 }
 
+function getMovieReviewByUserId(movieId, userId) {
+  if (!movieId || !userId) {
+    return null;
+  }
+
+  return allMovieReviews.find(item => (
+    item.movie_id === movieId && item.user_id === userId
+  )) || null;
+}
+
 function getCurrentUserMovieReview(movieId) {
   if (!currentUser) {
     return null;
   }
 
-  return allMovieReviews.find(item => (
-    item.movie_id === movieId && item.user_id === currentUser.id
-  )) || null;
+  return getMovieReviewByUserId(movieId, currentUser.id);
 }
 
 function getMovieReviewAuthorName(review) {
@@ -1263,6 +1271,18 @@ function getMovieReviewAuthorName(review) {
     review?.author_display_name ||
     'Пользователь'
   ).trim();
+}
+
+function getMovieReviewUserRating(movieId, userId) {
+  if (!movieId || !userId) {
+    return 0;
+  }
+
+  const ratingRow = getMovieRatings(movieId).find(item => (
+    String(item.user_id) === String(userId)
+  ));
+
+  return Number(ratingRow?.rating ?? 0);
 }
 
 function formatMovieReviewDate(dateValue) {
@@ -1337,9 +1357,7 @@ function isMovieReviewEditing(reviewId) {
   return String(editingMovieReviewId) === String(reviewId);
 }
 
-function sortMovieReviewsForDisplay(reviews, movieId) {
-  const normalizedMovieId = String(movieId || '');
-
+function sortMovieReviewsForDisplay(reviews) {
   return [...(Array.isArray(reviews) ? reviews : [])].sort((firstReview, secondReview) => {
     const isFirstCurrentUserReview = currentUser && String(firstReview.user_id) === String(currentUser.id);
     const isSecondCurrentUserReview = currentUser && String(secondReview.user_id) === String(currentUser.id);
@@ -1353,10 +1371,6 @@ function sortMovieReviewsForDisplay(reviews, movieId) {
 
     if (firstTime !== secondTime) {
       return secondTime - firstTime;
-    }
-
-    if (String(firstReview.movie_id) !== normalizedMovieId || String(secondReview.movie_id) !== normalizedMovieId) {
-      return 0;
     }
 
     return 0;
@@ -7006,7 +7020,7 @@ function getMoviePageReviewFormHtml(movie) {
 function getMoviePageReviewCardHtml(review) {
   const authorName = escapeHtml(getMovieReviewAuthorName(review));
   const reviewDate = formatMovieReviewDate(review.updated_at || review.created_at);
-  const userRating = Number(getMovieRatings(review.movie_id).find(item => String(item.user_id) === String(review.user_id))?.rating ?? 0);
+  const userRating = getMovieReviewUserRating(review.movie_id, review.user_id);
   const userRatingHtml = Number.isFinite(userRating) && userRating > 0
     ? `<div class="movie-page-review-user-rating">Оценка пользователя: ${userRating}/10 <span class="movie-page-review-user-rating-star">★</span></div>`
     : '';
@@ -7159,7 +7173,7 @@ function getMoviePageReviewCardHtml(review) {
 }
 
 function getMoviePageReviewsSectionHtml(movie) {
-  const reviews = sortMovieReviewsForDisplay(getMovieReviews(movie.id), movie.id);
+  const reviews = sortMovieReviewsForDisplay(getMovieReviews(movie.id));
 
   return `
     <section class="movie-page-reviews-block" aria-labelledby="moviePageReviewsTitle">
