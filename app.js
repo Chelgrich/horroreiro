@@ -2286,43 +2286,45 @@ function loadYearFilterOptions() {
 JS-БЛОК 10. ЗАГРУЗКА ДАННЫХ КАТАЛОГА
 Получает фильмы и пользовательские оценки из Supabase.
 ========================================================== */
+const MOVIE_BASE_SELECT = `
+  id,
+  slug,
+  title,
+  original_title,
+  year,
+  director,
+  synopsis,
+  formats,
+  modifiers,
+  broad_families,
+  primary_subgenre,
+  secondary_subgenres,
+  tags_perceived,
+  tags_canon,
+  triggers,
+  search_aliases,
+  rating,
+  poster_url,
+  kinopoisk_url,
+  imdb_url,
+  letterboxd_url,
+  rottentomatoes_url,
+  release_year,
+  release_month,
+  sort_order,
+  movie_genres (
+    position,
+    genres (name)
+  ),
+  movie_countries (
+    countries (name)
+  )
+`;
+
 async function fetchMovies() {
   const { data, error } = await supabaseClient
     .from('movies')
-    .select(`
-      id,
-      slug,
-      title,
-      original_title,
-      year,
-      director,
-      synopsis,
-      formats,
-      modifiers,
-      broad_families,
-      primary_subgenre,
-      secondary_subgenres,
-      tags_perceived,
-      tags_canon,
-      triggers,
-      search_aliases,
-      rating,
-      poster_url,
-      kinopoisk_url,
-      imdb_url,
-      letterboxd_url,
-      rottentomatoes_url,
-      release_year,
-      release_month,
-      sort_order,
-      movie_genres (
-        position,
-        genres (name)
-      ),
-      movie_countries (
-        countries (name)
-      )
-    `)
+    .select(MOVIE_BASE_SELECT)
     .order('title', { ascending: true })
     .order('position', { foreignTable: 'movie_genres', ascending: true });
 
@@ -6683,40 +6685,7 @@ function getMoviePageRouteParams() {
 async function fetchMovieById(movieId) {
   const { data, error } = await supabaseClient
     .from('movies')
-    .select(`
-      id,
-      slug,
-      title,
-      original_title,
-      year,
-      director,
-      synopsis,
-      formats,
-      modifiers,
-      broad_families,
-      primary_subgenre,
-      secondary_subgenres,
-      tags_perceived,
-      tags_canon,
-      triggers,
-      search_aliases,
-      rating,
-      poster_url,
-      kinopoisk_url,
-      imdb_url,
-      letterboxd_url,
-      rottentomatoes_url,
-      release_year,
-      release_month,
-      sort_order,
-      movie_genres (
-        position,
-        genres (name)
-      ),
-      movie_countries (
-        countries (name)
-      )
-    `)
+    .select(MOVIE_BASE_SELECT)
     .eq('id', movieId)
     .order('position', { foreignTable: 'movie_genres', ascending: true })
     .single();
@@ -6736,40 +6705,7 @@ async function fetchMovieByRouteParams(routeParams) {
   if (routeParams.slug) {
     const { data, error } = await supabaseClient
       .from('movies')
-      .select(`
-        id,
-        slug,
-        title,
-        original_title,
-        year,
-        director,
-        synopsis,
-        formats,
-        modifiers,
-        broad_families,
-        primary_subgenre,
-        secondary_subgenres,
-        tags_perceived,
-        tags_canon,
-        triggers,
-        search_aliases,
-        rating,
-        poster_url,
-        kinopoisk_url,
-        imdb_url,
-        letterboxd_url,
-        rottentomatoes_url,
-        release_year,
-        release_month,
-        sort_order,
-        movie_genres (
-          position,
-          genres (name)
-        ),
-        movie_countries (
-          countries (name)
-        )
-      `)
+      .select(MOVIE_BASE_SELECT)
       .eq('slug', routeParams.slug)
       .order('position', { foreignTable: 'movie_genres', ascending: true })
       .maybeSingle();
