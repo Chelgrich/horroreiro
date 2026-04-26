@@ -1494,13 +1494,8 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 
 .search-clear-btn:hover {
   color: #e7ebf0;
-  transform: translateY(-50%);
   background: transparent;
   opacity: 1;
-}
-
-.search-clear-btn:active {
-  transform: translateY(-50%);
 }
 
 /* =========================================================
@@ -4822,10 +4817,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-card .movie-external-links.is-two-rows {
     grid-template-columns: repeat(2, 38px);
-  }
-
-  .movie-external-link {
-    flex: 0 0 38px;
   }
 
   .movie-rating-block {
