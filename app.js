@@ -4423,8 +4423,7 @@ async function toggleMovieWatchlist(movieId) {
     },
     onError: error => {
       console.error('Ошибка переключения watchlist:', error);
-    },
-    preserveWindowScroll: true
+    }
   });
 }
 
