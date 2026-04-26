@@ -2346,7 +2346,6 @@ async function fetchMovies() {
 
   allMovies = data || [];
   moviesLoadedSuccessfully = true;
-  loadYearFilterOptions();
 }
 
 async function fetchMovieRatings() {
@@ -7589,8 +7588,10 @@ async function deleteMovieFromMoviePage(movieId, movieTitle) {
 }
 
 async function loadMoviePageByRouteParams(routeParams) {
-  await fetchMovies();
-  await fetchMovieRatings();
+  await Promise.all([
+    fetchMovies(),
+    fetchMovieRatings()
+  ]);
 
   const movie = await fetchMovieByRouteParams(routeParams);
 
