@@ -2487,9 +2487,9 @@ async function saveMovieReview(movieId, { reviewText, containsSpoilers = false }
       }
     );
 
-    throwIfSupabaseError(error);
-    await refreshMovieReviewsAfterMutation(movieId);
-  }
+  throwIfSupabaseError(error);
+  await refreshMovieReviewsAfterMutation(movieId);
+}
 
 async function removeMovieReview(reviewId, movieId) {
   if (!reviewId) {
@@ -2503,9 +2503,9 @@ async function removeMovieReview(reviewId, movieId) {
     .delete()
     .eq('id', reviewId);
 
-    throwIfSupabaseError(error);
-    await refreshMovieReviewsAfterMutation(movieId, reviewId);
-  }
+  throwIfSupabaseError(error);
+  await refreshMovieReviewsAfterMutation(movieId, reviewId);
+}
 
 async function reloadCatalogData({ showSkeleton = false } = {}) {
   const shouldShowCatalogSkeleton = showSkeleton && Boolean(container);
