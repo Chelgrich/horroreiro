@@ -2134,6 +2134,7 @@ function loadSubgenreFilterOptions() {
       count: subgenreCounts.get(subgenreKey) || 0,
       label: getTaxonomyLabel('subgenres', subgenreKey)
     }))
+    .filter(item => item.count > 0 || item.key === selectedSubgenre)
     .sort((firstItem, secondItem) => {
       if (secondItem.count !== firstItem.count) {
         return secondItem.count - firstItem.count;
@@ -2145,7 +2146,6 @@ function loadSubgenreFilterOptions() {
       const option = document.createElement('option');
       option.value = item.key;
       option.textContent = `${item.label} (${item.count})`;
-      option.disabled = item.count === 0 && item.key !== selectedSubgenre;
       subgenreFilter.appendChild(option);
     });
 
@@ -5822,13 +5822,16 @@ function getSubgenreOptionCounts() {
   const counts = new Map();
 
   moviesWithoutSubgenreFilter.forEach(movie => {
-    const subgenreKey = movie.primary_subgenre;
+    const subgenreKeys = [
+      movie.primary_subgenre,
+      ...(Array.isArray(movie.secondary_subgenres) ? movie.secondary_subgenres : [])
+    ].filter(Boolean);
 
-    if (!subgenreKey) {
-      return;
-    }
+    const uniqueSubgenreKeys = [...new Set(subgenreKeys)];
 
-    counts.set(subgenreKey, (counts.get(subgenreKey) || 0) + 1);
+    uniqueSubgenreKeys.forEach(subgenreKey => {
+      counts.set(subgenreKey, (counts.get(subgenreKey) || 0) + 1);
+    });
   });
 
   return counts;
