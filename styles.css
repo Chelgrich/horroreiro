@@ -3334,14 +3334,6 @@ body:has(.movie-page-shell) .page {
   min-width: 0;
 }
 
-.movie-page-poster-rating {
-  margin-top: 16px;
-}
-
-.movie-page-poster-rating .movie-user-rating {
-  margin-top: 0;
-}
-
 .movie-page-poster-wrapper {
   position: relative;
   width: 100%;
