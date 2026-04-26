@@ -4082,19 +4082,8 @@ body:has(.movie-page-shell) .page {
     justify-content: flex-start;
   }
 
-  .movie-page-rate-trigger {
-    width: auto;
-    white-space: nowrap;
-  }
-
-  .movie-page-title {
-    font-size: 28px;
-    line-height: 1.1;
-  }
-
   .movie-page-original-title {
     margin-top: 6px;
-    font-size: 17px;
     line-height: 1.32;
   }
 
@@ -4124,30 +4113,6 @@ body:has(.movie-page-shell) .page {
     gap: 16px;
   }
 
-  .movie-page-poster-column {
-    max-width: none;
-  }
-
-  .movie-page-title-block {
-    padding-bottom: 12px;
-  }
-
-  .movie-page-title-row {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .movie-page-summary-panel {
-    width: 100%;
-    min-width: 0;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .movie-page-rating-summary {
-    justify-content: flex-start;
-  }
-
   .movie-page-rate-trigger {
     width: 100%;
     white-space: normal;
@@ -4159,9 +4124,7 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-original-title {
-    margin-top: 6px;
     font-size: 15px;
-    line-height: 1.32;
   }
 
   .movie-page-meta-list {
