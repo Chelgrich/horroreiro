@@ -176,6 +176,7 @@ let mobileRatingModalRemoveButton = null;
 let mobileRatingModalMovieId = null;
 let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
+let allGenreNames = [];
 let allCountryNames = [];
 let lastCatalogAnchorMovieId = null;
 let currentMoviePageMovieId = null;
@@ -2075,6 +2076,28 @@ function refreshCustomSelectGroup(selectElements) {
 JS-БЛОК 9. ЗАГРУЗКА СПРАВОЧНИКОВ ДЛЯ ФИЛЬТРОВ
 Получает жанры и страны из базы и заполняет select-поля.
 ========================================================== */
+function refreshGenreFilterOptions() {
+  if (!genreFilter) {
+    return;
+  }
+
+  const selectedGenre = genreFilter.value || '';
+  const genreCounts = getGenreOptionCounts();
+
+  genreFilter.innerHTML = '<option value="">Все доп. жанры</option>';
+
+  allGenreNames.forEach(genreName => {
+    const option = document.createElement('option');
+    option.value = genreName;
+    option.textContent = `${genreName} (${genreCounts.get(genreName) || 0})`;
+    option.disabled = (genreCounts.get(genreName) || 0) === 0 && genreName !== selectedGenre;
+    genreFilter.appendChild(option);
+  });
+
+  genreFilter.value = selectedGenre;
+  refreshCustomSelect(genreFilter);
+}
+
 async function loadGenres() {
   const { data, error } = await supabaseClient
     .from('genres')
@@ -2086,27 +2109,12 @@ async function loadGenres() {
     return;
   }
 
-  if (!genreFilter) {
-    return;
-  }
+  allGenreNames = (data || [])
+    .map(item => item.name)
+    .filter(Boolean)
+    .filter(name => normalizeSearchText(name) !== 'ужасы');
 
-  const selectedGenre = genreFilter.value || '';
-  const genreCounts = getGenreOptionCounts();
-
-  genreFilter.innerHTML = '<option value="">Все доп. жанры</option>';
-
-  data
-    .filter(item => normalizeSearchText(item.name) !== 'ужасы')
-    .forEach(item => {
-      const option = document.createElement('option');
-      option.value = item.name;
-      option.textContent = `${item.name} (${genreCounts.get(item.name) || 0})`;
-      option.disabled = (genreCounts.get(item.name) || 0) === 0 && item.name !== selectedGenre;
-      genreFilter.appendChild(option);
-    });
-
-  genreFilter.value = selectedGenre;
-  refreshCustomSelect(genreFilter);
+  refreshGenreFilterOptions();
 }
 
 function loadSubgenreFilterOptions() {
@@ -5911,6 +5919,7 @@ function getTriggerOptionCounts() {
 }
 
 function refreshDynamicFilterOptions() {
+  refreshGenreFilterOptions();
   loadSubgenreFilterOptions();
   loadFormatFilterOptions();
   refreshCountryFilterOptions();
