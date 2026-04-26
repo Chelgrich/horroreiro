@@ -3804,7 +3804,6 @@ body:has(.movie-page-shell) .page {
   max-width: 680px;
   padding: 16px;
   padding-right: 96px;
-  padding-bottom: 64px;
   background: var(--surface-card);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
@@ -3873,8 +3872,8 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-review-icon-actions {
   position: absolute;
+  top: 16px;
   right: 16px;
-  bottom: 16px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -4288,7 +4287,6 @@ body:has(.movie-page-shell) .page {
     width: 100%;
     padding: 14px;
     padding-right: 88px;
-    padding-bottom: 58px;
   }
 
   .movie-page-review-card-header {
@@ -4304,8 +4302,8 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-review-icon-actions {
+    top: 14px;
     right: 14px;
-    bottom: 14px;
   }
 
   .movie-page-review-spoiler-cover {
