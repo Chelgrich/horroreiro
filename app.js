@@ -6972,7 +6972,11 @@ function getMoviePageReviewBodyHtml(review, {
 }) {
   if (isEditing) {
     return `
-      <form class="movie-page-review-form movie-page-review-inline-form" data-movie-review-form="true" data-movie-review-id="${review.id}">
+      <form
+        class="movie-page-review-form movie-page-review-inline-form"
+        data-movie-review-form="true"
+        data-movie-review-id="${review.id}"
+      >
         <textarea
           class="movie-page-review-textarea"
           name="reviewText"
