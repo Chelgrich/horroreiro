@@ -3565,34 +3565,6 @@ body:has(.movie-page-shell) .page {
   word-break: break-word;
 }
 
-.movie-page-user-state {
-  margin-top: 12px;
-}
-
-.movie-page-actions {
-  margin-top: 12px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.movie-page-actions .secondary-button {
-  min-width: 0;
-}
-
-.movie-page-user-state-badge {
-  min-height: 32px;
-  padding: 6px 12px;
-  display: inline-flex;
-  align-items: center;
-  color: var(--color-text-secondary);
-  background: var(--surface-control);
-  border: 1px solid var(--border-card);
-  border-radius: 999px;
-  font-size: 13px;
-  line-height: 1.2;
-}
-
 .movie-page-external-links-block {
   padding-top: 14px;
   padding-bottom: 14px;
@@ -4201,11 +4173,6 @@ body:has(.movie-page-shell) .page {
     line-height: 1.36;
   }
 
-  .movie-page-taxonomy-item {
-    font-size: 14px;
-    line-height: 1.36;
-  }
-
   .movie-taxonomy-preview-line {
     font-size: 13px;
     line-height: 1.36;
@@ -4223,14 +4190,6 @@ body:has(.movie-page-shell) .page {
 
   .movie-rating-widgets {
     gap: 8px;
-  }
-
-  .movie-page-actions {
-    gap: 8px;
-  }
-
-  .movie-page-actions .secondary-button {
-    width: 100%;
   }
 
   .movie-page-loading-state {
