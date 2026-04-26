@@ -1925,6 +1925,14 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.16);
 }
 
+.trigger-filter-option-label {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .trigger-filter-option-text {
   min-width: 0;
   flex: 0 1 auto;

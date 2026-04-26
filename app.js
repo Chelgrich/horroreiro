@@ -2223,8 +2223,10 @@ function loadTriggerFilterOptions() {
           data-trigger-filter="true"
           ${item.isSelected ? 'checked' : ''}
         >
-        <span class="trigger-filter-option-text">${escapeHtml(item.label)}</span>
-        <span class="trigger-filter-option-count">(${item.count})</span>
+        <span class="trigger-filter-option-label">
+          <span class="trigger-filter-option-text">${escapeHtml(item.label)}</span>
+          <span class="trigger-filter-option-count">(${item.count})</span>
+        </span>
       </label>
     `)
     .join('');
