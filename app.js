@@ -7607,6 +7607,24 @@ async function deleteMovieFromMoviePage(movieId, movieTitle) {
   }
 }
 
+async function loadMoviePageByRouteParams(routeParams) {
+  await fetchMovies();
+  await fetchMovieRatings();
+  await fetchMovieWatchlist();
+
+  const movie = await fetchMovieByRouteParams(routeParams);
+
+  if (!movie) {
+    renderMoviePageNotFound();
+    return null;
+  }
+
+  await fetchMovieReviews(movie.id);
+  renderMoviePage(movie);
+
+  return movie;
+}
+
 async function initMoviePage() {
   const routeParams = getMoviePageRouteParams();
 
@@ -7618,20 +7636,8 @@ async function initMoviePage() {
   await restoreSession();
   trackEmailConfirmedLoginIfNeeded();
 
-  await fetchMovies();
-  await fetchMovieRatings();
-  await fetchMovieWatchlist();
-
   try {
-    const movie = await fetchMovieByRouteParams(routeParams);
-
-    if (!movie) {
-      renderMoviePageNotFound();
-      return;
-    }
-
-    await fetchMovieReviews(movie.id);
-    renderMoviePage(movie);
+    await loadMoviePageByRouteParams(routeParams);
   } catch (error) {
     console.error('Ошибка загрузки страницы фильма:', error);
     renderMoviePageNotFound();
@@ -7639,20 +7645,8 @@ async function initMoviePage() {
 
   bindSharedAuthStateListener({
     onAfterAuthSync: async () => {
-      await fetchMovies();
-      await fetchMovieRatings();
-      await fetchMovieWatchlist();
-
       try {
-        const movie = await fetchMovieByRouteParams(routeParams);
-
-        if (!movie) {
-          renderMoviePageNotFound();
-          return;
-        }
-
-        await fetchMovieReviews(movie.id);
-        renderMoviePage(movie);
+        await loadMoviePageByRouteParams(routeParams);
       } catch (error) {
         console.error('Ошибка синхронизации страницы фильма после auth:', error);
         renderMoviePageNotFound();
