@@ -7464,16 +7464,16 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
   return `
     <div class="movie-page-main-column">
       <div class="movie-page-title-block">
-        <div class="movie-page-title-row">
-          <div class="movie-page-title-main">
-            <h1 class="movie-page-title">${escapeHtml(movie.title)}</h1>
+      <div class="movie-page-title-row">
+      <div class="movie-page-title-main">
+        <h2 class="movie-page-title">${escapeHtml(movie.title)}</h2>
 
-            ${
-              movie.original_title
-                ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>`
-                : ''
-            }
-          </div>
+        ${
+          movie.original_title
+            ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>`
+            : ''
+        }
+      </div>
 
           <div class="movie-page-summary-panel">
             <div class="movie-rating-summary movie-page-rating-summary">
