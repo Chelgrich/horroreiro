@@ -4206,9 +4206,6 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-review-card {
-    position: relative;
-    box-sizing: border-box;
-    width: 100%;
     padding: 14px;
     padding-right: 88px;
   }
@@ -4220,7 +4217,6 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-review-card-header-side {
-    width: auto;
     justify-content: flex-start;
     gap: 10px;
   }
