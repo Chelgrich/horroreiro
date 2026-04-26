@@ -3641,6 +3641,10 @@ body:has(.movie-page-shell) .page {
   border-top: 1px solid #242a31;
 }
 
+.movie-page-reviews-block {
+  --movie-review-space: 14px;
+}
+
 .movie-page-review-form-block {
   margin-bottom: 18px;
 }
@@ -3726,7 +3730,7 @@ body:has(.movie-page-shell) .page {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 14px;
+  gap: var(--movie-review-space, 14px);
 }
 
 .movie-page-review-card {
@@ -3864,7 +3868,7 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-spoiler-cover {
-  margin-top: 14px;
+  margin-top: var(--movie-review-space, 14px);
   padding: 14px 16px;
   display: flex;
   align-items: center;
@@ -3882,7 +3886,7 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-text {
-  margin-top: 14px;
+  margin-top: var(--movie-review-space, 14px);
   font-size: 15px;
   line-height: 1.65;
   color: #dbe2ea;
@@ -3906,7 +3910,7 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-inline-form {
-  margin-top: 14px;
+  margin-top: var(--movie-review-space, 14px);
 }
 
 .movie-page-review-empty-state {
