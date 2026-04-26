@@ -3531,7 +3531,7 @@ body:has(.movie-page-shell) .page {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-bottom: 6px;
+  padding-bottom: 14px;
 }
 
 .movie-page-meta-item {
@@ -3580,6 +3580,7 @@ body:has(.movie-page-shell) .page {
   padding-top: 14px;
   padding-bottom: 14px;
   border-top: 1px solid #1f242b;
+  border-bottom: 1px solid #1f242b;
 }
 
 .movie-page-synopsis-text {
