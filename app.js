@@ -7372,6 +7372,76 @@ function buildMoviePageViewModel(movie) {
   };
 }
 
+function getMoviePagePosterColumnHtml(movie, viewModel) {
+  const {
+    currentUserRating,
+    userMovieState,
+    isWatchlistBusy
+  } = viewModel;
+
+  return `
+    <div class="movie-page-poster-column">
+      <div class="movie-page-poster-wrapper">
+        ${
+          movie.poster_url
+            ? `
+              <img
+                class="movie-page-poster"
+                src="${movie.poster_url}"
+                alt="Постер фильма ${escapeHtml(movie.title)}"
+                loading="eager"
+                decoding="async"
+              >
+            `
+            : `<div class="movie-poster-placeholder">Нет постера</div>`
+        }
+
+        ${
+          currentUser && !userMovieState.isWatched
+            ? `
+              <button
+                type="button"
+                class="movie-page-watchlist-icon ${userMovieState.isInWatchlist ? 'is-active' : ''}"
+                data-movie-page-watchlist-icon-toggle="true"
+                aria-label="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+                title="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+                ${isWatchlistBusy ? 'disabled' : ''}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            `
+            : ''
+        }
+
+        ${
+          userMovieState.isWatched
+            ? `
+              <div class="movie-page-watched-icon" aria-label="Просмотрено" title="Просмотрено">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 12.5L9.5 17L19 7.5"></path>
+                </svg>
+              </div>
+            `
+            : ''
+        }
+      </div>
+
+      ${
+        currentUser
+          ? `
+            <div class="movie-page-poster-rating">
+              ${getUserRatingControlsHtml(currentUserRating)}
+            </div>
+          `
+          : ''
+      }
+    </div>
+  `;
+}
+
 function getMoviePageMainColumnHtml(movie, viewModel) {
   const {
     genres,
@@ -7461,74 +7531,9 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
 }
 
 function getMoviePageHeaderHtml(movie, viewModel) {
-  const {
-    currentUserRating,
-    userMovieState,
-    isWatchlistBusy
-  } = viewModel;
-
   return `
     <article class="movie-page-layout" data-movie-id="${movie.id}">
-      <div class="movie-page-poster-column">
-        <div class="movie-page-poster-wrapper">
-          ${
-            movie.poster_url
-              ? `
-                <img
-                  class="movie-page-poster"
-                  src="${movie.poster_url}"
-                  alt="Постер фильма ${escapeHtml(movie.title)}"
-                  loading="eager"
-                  decoding="async"
-                >
-              `
-              : `<div class="movie-poster-placeholder">Нет постера</div>`
-          }
-
-          ${
-            currentUser && !userMovieState.isWatched
-              ? `
-                <button
-                  type="button"
-                  class="movie-page-watchlist-icon ${userMovieState.isInWatchlist ? 'is-active' : ''}"
-                  data-movie-page-watchlist-icon-toggle="true"
-                  aria-label="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
-                  title="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
-                  ${isWatchlistBusy ? 'disabled' : ''}
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
-                </button>
-              `
-              : ''
-          }
-
-          ${
-            userMovieState.isWatched
-              ? `
-                <div class="movie-page-watched-icon" aria-label="Просмотрено" title="Просмотрено">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M5 12.5L9.5 17L19 7.5"></path>
-                  </svg>
-                </div>
-              `
-              : ''
-          }
-        </div>
-
-        ${
-          currentUser
-            ? `
-              <div class="movie-page-poster-rating">
-                ${getUserRatingControlsHtml(currentUserRating)}
-              </div>
-            `
-            : ''
-        }
-      </div>
-
+      ${getMoviePagePosterColumnHtml(movie, viewModel)}
       ${getMoviePageMainColumnHtml(movie, viewModel)}
     </article>
   `;
