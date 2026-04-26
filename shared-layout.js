@@ -129,34 +129,314 @@
     }
   
     function mountSharedAuthModal() {
-      const authModalMount = document.getElementById('sharedAuthModalMount');
-  
-      if (!authModalMount) {
-        return;
+        const authModalMount = document.getElementById('sharedAuthModalMount');
+    
+        if (!authModalMount) {
+          return;
+        }
+    
+        authModalMount.innerHTML = getSharedAuthModalHtml();
       }
   
-      authModalMount.innerHTML = getSharedAuthModalHtml();
-    }
+      function getSharedDisplayNameModalHtml() {
+        return `
+          <div id="displayNameModal" class="modal">
+            <div class="modal-backdrop" id="displayNameModalBackdrop"></div>
   
-    function getSharedFooterHtml() {
-      return `
-        <footer class="page-footer">
-          <div class="page-footer-inner">
-            <div class="footer-main">
-              <div class="footer-slogan">
-                «ВЫБЕРИ, ЧТО СМОТРЕТЬ СЕГОДНЯ»
+            <div class="modal-dialog display-name-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="displayNameModalTitle">
+              <div class="modal-header">
+                <h2 id="displayNameModalTitle">Изменение никнейма</h2>
+                <button type="button" id="closeDisplayNameModalButton" class="modal-close-button" aria-label="Закрыть"></button>
               </div>
   
-              <div class="footer-brand">Хоррорейро</div>
+              <form id="displayNameForm" class="display-name-form">
+                <input type="text" id="displayNameInput" maxlength="24" autocomplete="off" spellcheck="false">
+                <div class="display-name-form-actions">
+                  <button type="submit" id="saveDisplayNameButton">Сохранить</button>
+                  <button type="button" id="cancelDisplayNameButton" class="secondary-button secondary-button-compact">Отмена</button>
+                </div>
+              </form>
   
-              <div class="footer-author">
-                Хоррор-каталог от Grint_Talks, 2026
-              </div>
+              <p id="displayNameMessage" class="display-name-message"></p>
             </div>
           </div>
-        </footer>
-      `;
-    }
+        `;
+      }
+  
+      function mountSharedDisplayNameModal() {
+        const displayNameModalMount = document.getElementById('sharedDisplayNameModalMount');
+  
+        if (!displayNameModalMount) {
+          return;
+        }
+  
+        displayNameModalMount.innerHTML = getSharedDisplayNameModalHtml();
+      }
+
+      function getSharedMovieModalHtml() {
+        return `
+          <div id="movieModal" class="modal">
+            <div class="modal-backdrop" id="movieModalBackdrop"></div>
+
+            <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+              <div class="modal-header">
+                <h2 id="formTitle">Добавить фильм</h2>
+                <button type="button" id="closeMovieModalButton" class="modal-close-button" aria-label="Закрыть"></button>
+              </div>
+
+              <form id="movieForm" class="movie-form" novalidate>
+                <div class="movie-form-inline-group movie-form-inline-group-titles">
+                  <div class="form-row">
+                    <label for="title">Название:</label>
+                    <input type="text" id="title" name="title" required>
+                  </div>
+
+                  <div class="form-row">
+                    <label for="originalTitle">Оригинальное название:</label>
+                    <input type="text" id="originalTitle" name="originalTitle">
+                  </div>
+
+                  <div class="form-row">
+                    <label for="year">Год:</label>
+                    <input type="number" id="year" name="year" min="1888" max="2100">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <label for="searchAliases">Альтернативные названия:</label>
+                  <textarea id="searchAliases" name="searchAliases" rows="4"></textarea>
+                  <div class="field-hint">
+                    Каждое название с новой строки. Используется только для поиска и не показывается в каталоге.
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <label for="synopsis">Синопсис:</label>
+                  <textarea id="synopsis" name="synopsis" rows="6"></textarea>
+                </div>
+
+                <div class="movie-form-inline-group movie-form-inline-group-taxonomy">
+                  <div class="form-row">
+                    <label for="tagsPerceived">Теги perceived:</label>
+                    <textarea id="tagsPerceived" name="tagsPerceived" rows="4"></textarea>
+                    <div class="field-hint">
+                      Без спойлеров. По одному тегу с новой строки.
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <label for="tagsCanon">Теги canon:</label>
+                    <textarea id="tagsCanon" name="tagsCanon" rows="4"></textarea>
+                    <div class="field-hint">
+                      Реальная внутренняя логика фильма. По одному тегу с новой строки.
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <label for="movieFormats">Форматы:</label>
+                    <textarea id="movieFormats" name="movieFormats" rows="2"></textarea>
+                    <div class="field-hint">
+                      По одному значению с новой строки.
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <label for="movieModifiers">Модификаторы:</label>
+                    <textarea id="movieModifiers" name="movieModifiers" rows="3"></textarea>
+                    <div class="field-hint">
+                      Настроенческие и стилистические признаки. По одному значению с новой строки.
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <label for="movieBroadFamilies">Семейства механик:</label>
+                    <textarea id="movieBroadFamilies" name="movieBroadFamilies" rows="3"></textarea>
+                    <div class="field-hint">
+                      Верхнеуровневые семейства механик. По одному значению с новой строки.
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <label for="movieTriggers">Триггеры:</label>
+                    <textarea id="movieTriggers" name="movieTriggers" rows="3"></textarea>
+                    <div class="field-hint">
+                      По одному значению с новой строки.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-row movie-taxonomy-preview-row">
+                  <label>Результат классификации:</label>
+
+                  <div id="movieTaxonomyPreview" class="movie-taxonomy-preview">
+                    <div class="movie-taxonomy-preview-line">
+                      <span>Поджанр:</span>
+                      <strong id="movieTaxonomyPrimaryPreview">—</strong>
+                    </div>
+
+                    <div class="movie-taxonomy-preview-line">
+                      <span>Доп. поджанры:</span>
+                      <strong id="movieTaxonomySecondaryPreview">—</strong>
+                    </div>
+
+                    <div id="movieTaxonomyWarningsPreview" class="movie-taxonomy-preview-warnings"></div>
+                  </div>
+                </div>
+
+                <div class="movie-form-inline-group movie-form-inline-group-release">
+                  <div class="form-row">
+                    <label for="releaseYear">Год релиза:</label>
+                    <input type="number" id="releaseYear" name="releaseYear" min="1900" max="2100">
+                  </div>
+
+                  <div class="form-row">
+                    <label for="releaseMonth">Месяц:</label>
+                    <select id="releaseMonth" name="releaseMonth">
+                      <option value="">Не выбран</option>
+                      <option value="1">Январь</option>
+                      <option value="2">Февраль</option>
+                      <option value="3">Март</option>
+                      <option value="4">Апрель</option>
+                      <option value="5">Май</option>
+                      <option value="6">Июнь</option>
+                      <option value="7">Июль</option>
+                      <option value="8">Август</option>
+                      <option value="9">Сентябрь</option>
+                      <option value="10">Октябрь</option>
+                      <option value="11">Ноябрь</option>
+                      <option value="12">Декабрь</option>
+                    </select>
+                  </div>
+
+                  <div class="form-row">
+                    <label for="sortOrder">Порядок внутри месяца:</label>
+                    <input type="number" id="sortOrder" name="sortOrder" min="1" step="1">
+                  </div>
+                </div>
+
+                <div class="movie-form-inline-group movie-form-inline-group-meta">
+                  <div class="form-row">
+                    <label for="director">Режиссёр:</label>
+                    <input type="text" id="director" name="director">
+                  </div>
+
+                  <div class="form-row">
+                    <label for="genresInput">Доп. жанры:</label>
+                    <input type="text" id="genresInput" name="genresInput">
+                  </div>
+
+                  <div class="form-row">
+                    <label for="countriesInput">Страны:</label>
+                    <input type="text" id="countriesInput" name="countriesInput">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <label for="posterFile">Постер (файл):</label>
+
+                  <div class="file-input-wrapper">
+                    <input type="file" id="posterFile" name="posterFile" accept="image/*">
+
+                    <label for="posterFile" class="file-input-ui">
+                      <span class="file-input-button">Выберите файл</span>
+                      <span class="file-input-name" id="posterFileName">Файл не выбран</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="movie-form-inline-group movie-form-inline-group-links">
+                  <div class="form-row">
+                    <label for="kinopoiskUrl">Ссылка на Кинопоиск:</label>
+                    <input
+                      type="text"
+                      id="kinopoiskUrl"
+                      name="kinopoiskUrl"
+                      inputmode="url"
+                      autocomplete="off"
+                      spellcheck="false"
+                    >
+                  </div>
+
+                  <div class="form-row">
+                    <label for="imdbUrl">Ссылка на IMDb:</label>
+                    <input
+                      type="text"
+                      id="imdbUrl"
+                      name="imdbUrl"
+                      inputmode="url"
+                      autocomplete="off"
+                      spellcheck="false"
+                    >
+                  </div>
+
+                  <div class="form-row">
+                    <label for="letterboxdUrl">Ссылка на Letterboxd:</label>
+                    <input
+                      type="text"
+                      id="letterboxdUrl"
+                      name="letterboxdUrl"
+                      inputmode="url"
+                      autocomplete="off"
+                      spellcheck="false"
+                    >
+                  </div>
+
+                  <div class="form-row">
+                    <label for="rottentomatoesUrl">Ссылка на RT:</label>
+                    <input
+                      type="text"
+                      id="rottentomatoesUrl"
+                      name="rottentomatoesUrl"
+                      inputmode="url"
+                      autocomplete="off"
+                      spellcheck="false"
+                    >
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" id="submitButton">Добавить фильм</button>
+                  <button type="button" id="cancelEditButton" class="secondary-button form-mode-button">
+                    Отмена редактирования
+                  </button>
+                </div>
+              </form>
+
+              <p id="formMessage" class="form-message"></p>
+            </div>
+          </div>
+        `;
+      }
+
+      function mountSharedMovieModal() {
+        const movieModalMount = document.getElementById('sharedMovieModalMount');
+
+        if (!movieModalMount) {
+          return;
+        }
+
+        movieModalMount.innerHTML = getSharedMovieModalHtml();
+      }
+    
+      function getSharedFooterHtml() {
+        return `
+          <footer class="page-footer">
+            <div class="page-footer-inner">
+              <div class="footer-main">
+                <div class="footer-slogan">
+                  «ВЫБЕРИ, ЧТО СМОТРЕТЬ СЕГОДНЯ»
+                </div>
+    
+                <div class="footer-brand">Хоррорейро</div>
+    
+                <div class="footer-author">
+                  Хоррор-каталог от Grint_Talks, 2026
+                </div>
+              </div>
+            </div>
+          </footer>
+        `;
+      }
   
     function mountSharedFooter() {
       const footerMount = document.getElementById('sharedFooterMount');
@@ -169,8 +449,10 @@
     }
   
     window.SharedLayout = {
-      mountSharedHeader,
-      mountSharedAuthModal,
-      mountSharedFooter
-    };
-  })();
+        mountSharedHeader,
+        mountSharedAuthModal,
+        mountSharedDisplayNameModal,
+        mountSharedMovieModal,
+        mountSharedFooter
+      };
+    })();
