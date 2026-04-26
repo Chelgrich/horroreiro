@@ -7278,6 +7278,18 @@ async function handleMovieReviewDelete(movie, reviewId) {
   }
 }
 
+function bindMoviePageReviewClickAction(selector, handler) {
+  if (!moviePage) {
+    return;
+  }
+
+  moviePage.querySelectorAll(selector).forEach(element => {
+    element.addEventListener('click', () => {
+      handler(element);
+    });
+  });
+}
+
 function bindMoviePageReviewEvents(movie) {
   if (!moviePage || !movie) {
     return;
@@ -7290,41 +7302,31 @@ function bindMoviePageReviewEvents(movie) {
     });
   });
 
-  moviePage.querySelectorAll('[data-movie-review-delete]').forEach(button => {
-    button.addEventListener('click', () => {
-      handleMovieReviewDelete(movie, button.dataset.movieReviewDelete);
-    });
+  bindMoviePageReviewClickAction('[data-movie-review-delete]', button => {
+    handleMovieReviewDelete(movie, button.dataset.movieReviewDelete);
   });
 
-  moviePage.querySelectorAll('[data-movie-review-edit]').forEach(button => {
-    button.addEventListener('click', () => {
-      startMovieReviewEditing(button.dataset.movieReviewEdit);
-      renderMoviePage(movie);
-    });
+  bindMoviePageReviewClickAction('[data-movie-review-edit]', button => {
+    startMovieReviewEditing(button.dataset.movieReviewEdit);
+    renderMoviePage(movie);
   });
 
-  moviePage.querySelectorAll('[data-movie-review-cancel-edit="true"]').forEach(button => {
-    button.addEventListener('click', () => {
-      stopMovieReviewEditing();
-      renderMoviePage(movie);
-    });
+  bindMoviePageReviewClickAction('[data-movie-review-cancel-edit="true"]', () => {
+    stopMovieReviewEditing();
+    renderMoviePage(movie);
   });
 
-  moviePage.querySelectorAll('[data-movie-review-show-spoilers]').forEach(button => {
-    button.addEventListener('click', () => {
-      setMovieReviewExpandedState(button.dataset.movieReviewShowSpoilers, true);
-      renderMoviePage(movie);
-    });
+  bindMoviePageReviewClickAction('[data-movie-review-show-spoilers]', button => {
+    setMovieReviewExpandedState(button.dataset.movieReviewShowSpoilers, true);
+    renderMoviePage(movie);
   });
 
-  moviePage.querySelectorAll('[data-movie-review-toggle-text]').forEach(button => {
-    button.addEventListener('click', () => {
-      const reviewId = button.dataset.movieReviewToggleText;
-      const shouldExpand = !isMovieReviewTextExpanded(reviewId);
+  bindMoviePageReviewClickAction('[data-movie-review-toggle-text]', button => {
+    const reviewId = button.dataset.movieReviewToggleText;
+    const shouldExpand = !isMovieReviewTextExpanded(reviewId);
 
-      setMovieReviewTextExpandedState(reviewId, shouldExpand);
-      renderMoviePage(movie);
-    });
+    setMovieReviewTextExpandedState(reviewId, shouldExpand);
+    renderMoviePage(movie);
   });
 }
 
