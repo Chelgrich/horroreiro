@@ -7372,18 +7372,98 @@ function buildMoviePageViewModel(movie) {
   };
 }
 
-function getMoviePageHeaderHtml(movie, viewModel) {
+function getMoviePageMainColumnHtml(movie, viewModel) {
   const {
     genres,
     countries,
     averageRating,
     votesCount,
     currentUserRating,
-    userMovieState,
     primaryPerceivedTagLabel,
     externalLinksHtml,
     synopsis,
-    isRatingBusy,
+    isRatingBusy
+  } = viewModel;
+
+  return `
+    <div class="movie-page-main-column">
+      <div class="movie-page-title-block">
+        <div class="movie-page-title-row">
+          <div class="movie-page-title-main">
+            <h1 class="movie-page-title">${escapeHtml(movie.title)}</h1>
+
+            ${
+              movie.original_title
+                ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>`
+                : ''
+            }
+          </div>
+
+          <div class="movie-page-summary-panel">
+            <div class="movie-rating-summary movie-page-rating-summary">
+              <div class="movie-rating-summary-main movie-page-rating-summary-main">
+                <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
+                <span class="movie-rating-meta">(${votesCount} ${getVotesLabel(votesCount)})</span>
+              </div>
+            </div>
+
+            ${
+              currentUser
+                ? `
+                  <button
+                    type="button"
+                    class="secondary-button movie-page-rate-trigger"
+                    data-open-mobile-rating="true"
+                    ${isRatingBusy ? 'disabled' : ''}
+                  >
+                    ${
+                      currentUserRating !== null
+                        ? `Изменить <span class="movie-page-rate-value">${currentUserRating}</span><span class="movie-page-rate-trigger-star">★</span>`
+                        : 'Оценить'
+                    }
+                  </button>
+                `
+                : ''
+            }
+          </div>
+        </div>
+
+        <div class="movie-page-meta-list">
+          <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
+          <div class="movie-page-meta-item"><span>Режиссёр:</span> ${movie.director ? escapeHtml(movie.director) : '-'}</div>
+          <div class="movie-page-meta-item"><span>Жанры:</span> ${genres ? escapeHtml(genres) : '-'}</div>
+          <div class="movie-page-meta-item"><span>Поджанр:</span> ${primaryPerceivedTagLabel ? escapeHtml(primaryPerceivedTagLabel) : '-'}</div>
+          <div class="movie-page-meta-item"><span>Страны:</span> ${countries ? escapeHtml(countries) : '-'}</div>
+        </div>
+
+        ${
+          synopsis
+            ? `
+              <div class="movie-page-synopsis-block">
+                <div class="movie-page-synopsis-text">${escapeHtml(synopsis)}</div>
+              </div>
+            `
+            : ''
+        }
+
+        ${
+          externalLinksHtml
+            ? `
+              <div class="movie-page-external-links-block">
+                ${externalLinksHtml}
+              </div>
+            `
+            : ''
+        }
+      </div>
+    </div>
+  `;
+}
+
+function getMoviePageHeaderHtml(movie, viewModel) {
+  const {
+    currentUserRating,
+    userMovieState,
     isWatchlistBusy
   } = viewModel;
 
@@ -7449,77 +7529,7 @@ function getMoviePageHeaderHtml(movie, viewModel) {
         }
       </div>
 
-      <div class="movie-page-main-column">
-        <div class="movie-page-title-block">
-          <div class="movie-page-title-row">
-            <div class="movie-page-title-main">
-              <h1 class="movie-page-title">${escapeHtml(movie.title)}</h1>
-
-              ${
-                movie.original_title
-                  ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>`
-                  : ''
-              }
-            </div>
-
-            <div class="movie-page-summary-panel">
-              <div class="movie-rating-summary movie-page-rating-summary">
-                <div class="movie-rating-summary-main movie-page-rating-summary-main">
-                  <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
-                  <span class="movie-rating-meta">(${votesCount} ${getVotesLabel(votesCount)})</span>
-                </div>
-              </div>
-
-              ${
-                currentUser
-                  ? `
-                    <button
-                      type="button"
-                      class="secondary-button movie-page-rate-trigger"
-                      data-open-mobile-rating="true"
-                      ${isRatingBusy ? 'disabled' : ''}
-                    >
-                      ${
-                        currentUserRating !== null
-                          ? `Изменить <span class="movie-page-rate-value">${currentUserRating}</span><span class="movie-page-rate-trigger-star">★</span>`
-                          : 'Оценить'
-                      }
-                    </button>
-                  `
-                  : ''
-              }
-            </div>
-          </div>
-
-          <div class="movie-page-meta-list">
-            <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
-            <div class="movie-page-meta-item"><span>Режиссёр:</span> ${movie.director ? escapeHtml(movie.director) : '-'}</div>
-            <div class="movie-page-meta-item"><span>Жанры:</span> ${genres ? escapeHtml(genres) : '-'}</div>
-            <div class="movie-page-meta-item"><span>Поджанр:</span> ${primaryPerceivedTagLabel ? escapeHtml(primaryPerceivedTagLabel) : '-'}</div>
-            <div class="movie-page-meta-item"><span>Страны:</span> ${countries ? escapeHtml(countries) : '-'}</div>
-          </div>
-
-          ${
-            synopsis
-              ? `
-                <div class="movie-page-synopsis-block">
-                  <div class="movie-page-synopsis-text">${escapeHtml(synopsis)}</div>
-                </div>
-              `
-              : ''
-          }
-
-          ${
-            externalLinksHtml
-              ? `
-                <div class="movie-page-external-links-block">
-                  ${externalLinksHtml}
-                </div>
-              `
-              : ''
-          }
-        </div>
-      </div>
+      ${getMoviePageMainColumnHtml(movie, viewModel)}
     </article>
   `;
 }
