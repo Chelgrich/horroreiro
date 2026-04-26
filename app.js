@@ -2430,6 +2430,20 @@ async function fetchMovieReviews(movieId) {
   }));
 }
 
+async function reloadMoviePageData(movieId) {
+  if (!movieId) {
+    return null;
+  }
+
+  await Promise.all([
+    fetchMovieRatings(),
+    fetchMovieWatchlist(),
+    fetchMovieReviews(movieId)
+  ]);
+
+  return fetchMovieById(movieId);
+}
+
 async function saveMovieReview(movieId, { reviewText, containsSpoilers = false }) {
   const activeUser = ensureActiveSessionForWrite();
   const normalizedReviewText = normalizeMovieReviewText(reviewText);
@@ -3592,17 +3606,8 @@ async function updateMovie(event) {
     } else if (isMoviePage()) {
       setMovieFormStatus('Обновляю страницу фильма...');
 
-      await withPendingRequestTimeout(
-        Promise.all([
-          fetchMovieRatings(),
-          fetchMovieWatchlist()
-        ]),
-        15000,
-        'Превышено время ожидания обновления данных фильма.'
-      );
-
       const updatedMovie = await withPendingRequestTimeout(
-        fetchMovieById(editingMovieId),
+        reloadMoviePageData(editingMovieId),
         15000,
         'Превышено время ожидания обновления страницы фильма.'
       );
@@ -4303,7 +4308,7 @@ function rerenderCatalogWithFallback(
   animateStateAppearance = true
 ) {
   if (!container && moviePage && currentMoviePageMovieId === movieId) {
-    fetchMovieById(movieId)
+    reloadMoviePageData(movieId)
       .then(movie => {
         if (!movie) {
           renderMoviePageNotFound();
