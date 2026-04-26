@@ -2517,13 +2517,16 @@ async function reloadCatalogData({ showSkeleton = false } = {}) {
   }
 
   await Promise.all([
-    loadCountries(),
     fetchMovies(),
     fetchMovieRatings(),
     fetchMovieWatchlist()
   ]);
 
-  await loadGenres();
+  await Promise.all([
+    loadGenres(),
+    loadCountries()
+  ]);
+
   loadSubgenreFilterOptions();
   loadFormatFilterOptions();
   loadTriggerFilterOptions();
@@ -7584,7 +7587,6 @@ async function deleteMovieFromMoviePage(movieId, movieTitle) {
 async function loadMoviePageByRouteParams(routeParams) {
   await fetchMovies();
   await fetchMovieRatings();
-  await fetchMovieWatchlist();
 
   const movie = await fetchMovieByRouteParams(routeParams);
 
@@ -7609,6 +7611,7 @@ async function initMoviePage() {
 
   await restoreSession();
   trackEmailConfirmedLoginIfNeeded();
+  await fetchMovieWatchlist();
 
   try {
     await loadMoviePageByRouteParams(routeParams);
