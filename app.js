@@ -2195,8 +2195,10 @@ function loadTriggerFilterOptions() {
   }
 
   const selectedTriggerKeys = getSelectedTriggerFilters();
-  const triggerKeys = window.HORROR_TAXONOMY?.triggers || [];
+  const taxonomyTriggerKeys = window.HORROR_TAXONOMY?.triggers || [];
   const triggerCounts = getTriggerOptionCounts();
+  const actualTriggerKeys = Array.from(triggerCounts.keys());
+  const triggerKeys = [...new Set([...taxonomyTriggerKeys, ...actualTriggerKeys])];
 
   triggerFiltersGroup.innerHTML = triggerKeys
     .map(triggerKey => ({
