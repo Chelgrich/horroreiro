@@ -3669,23 +3669,19 @@ async function deleteMovieRecord(movieId) {
 }
 
 async function deleteMovie(movieId, movieTitle) {
-  const isConfirmed = confirm(`Удалить фильм "${movieTitle}"?`);
-
-  if (!isConfirmed) {
-    return;
-  }
-
   try {
-    await deleteMovieRecord(movieId);
+    await runConfirmedAction(`Удалить фильм "${movieTitle}"?`, async () => {
+      await deleteMovieRecord(movieId);
 
-    if (editingMovieId === movieId) {
-      resetFormToCreateMode();
-    }
+      if (editingMovieId === movieId) {
+        resetFormToCreateMode();
+      }
 
-    await reloadCatalogData({ showSkeleton: true });
-    rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.preserveScrollOnly);
+      await reloadCatalogData({ showSkeleton: true });
+      rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.preserveScrollOnly);
 
-    setMovieFormStatus(`Фильм "${movieTitle}" удалён.`);
+      setMovieFormStatus(`Фильм "${movieTitle}" удалён.`);
+    });
   } catch (error) {
     console.error('Ошибка при удалении фильма:', error);
     setMovieFormStatus('Ошибка при удалении фильма. Смотри консоль F12.');
@@ -7263,23 +7259,30 @@ async function handleMovieReviewDelete(movie, reviewId) {
     return;
   }
 
-  const isConfirmed = confirm('Удалить рецензию?');
-
-  if (!isConfirmed) {
-    return;
-  }
-
   try {
-    reviewRequestInFlight.add(String(movie.id));
-    stopMovieReviewEditing();
-    await removeMovieReview(reviewId, movie.id);
-    renderMoviePage(movie);
+    await runConfirmedAction('Удалить рецензию?', async () => {
+      reviewRequestInFlight.add(String(movie.id));
+      stopMovieReviewEditing();
+      await removeMovieReview(reviewId, movie.id);
+      renderMoviePage(movie);
+    });
   } catch (error) {
     console.error('Ошибка удаления рецензии:', error);
     alert(error?.message || 'Не удалось удалить рецензию.');
   } finally {
     reviewRequestInFlight.delete(String(movie.id));
   }
+}
+
+async function runConfirmedAction(confirmMessage, action) {
+  const isConfirmed = confirm(confirmMessage);
+
+  if (!isConfirmed) {
+    return false;
+  }
+
+  await action();
+  return true;
 }
 
 function bindMoviePageReviewClickAction(selector, handler) {
@@ -7591,15 +7594,11 @@ function renderMoviePage(movie) {
 }
 
 async function deleteMovieFromMoviePage(movieId, movieTitle) {
-  const isConfirmed = confirm(`Удалить фильм "${movieTitle}"?`);
-
-  if (!isConfirmed) {
-    return;
-  }
-
   try {
-    await deleteMovieRecord(movieId);
-    window.location.href = 'index.html';
+    await runConfirmedAction(`Удалить фильм "${movieTitle}"?`, async () => {
+      await deleteMovieRecord(movieId);
+      window.location.href = 'index.html';
+    });
   } catch (error) {
     console.error('Ошибка при удалении фильма со страницы detail-page:', error);
   }
