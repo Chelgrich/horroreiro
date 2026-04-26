@@ -811,7 +811,22 @@ const TAXONOMY_LABELS = {
     silent_film: 'Немой фильм'
   },
 
-  triggers: {}
+  triggers: {
+    gore: 'Расчленение',
+    breathing_distress: 'Удушье',
+    mental_instability: 'Психическая нестабильность',
+    child_harm: 'Причинение вреда ребёнку',
+    reality_distortion: 'Искажение реальности',
+    animal_death: 'Смерть животного',
+    suicide: 'Суицид',
+    sexual_violence: 'Сексуализированное насилие',
+    domestic_violence: 'Домашнее насилие',
+    pregnancy: 'Беременность',
+    animal_abuse: 'Жестокость к животным',
+    claustrophobia: 'Клаустрофобия',
+    animal_phobia: 'Страх животных',
+    body_invasion: 'Проникновение в тело'
+  }
 };
 
 function resolveMovieSubgenres(movie) {
@@ -833,7 +848,22 @@ function validateMovieTags() {
 window.HORROR_TAXONOMY = {
   subgenres: TAXONOMY_SUBGENRES,
   formats: TAXONOMY_FORMATS,
-  triggers: [],
+  triggers: [
+    'gore',
+    'breathing_distress',
+    'mental_instability',
+    'child_harm',
+    'reality_distortion',
+    'animal_death',
+    'suicide',
+    'sexual_violence',
+    'domestic_violence',
+    'pregnancy',
+    'animal_abuse',
+    'claustrophobia',
+    'animal_phobia',
+    'body_invasion'
+  ],
   labels: TAXONOMY_LABELS,
   helpers: {
     resolveMovieSubgenres,
