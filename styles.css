@@ -4192,10 +4192,6 @@ body:has(.movie-page-shell) .page {
     line-height: 1.6;
   }
 
-  .movie-page-similar-grid {
-    grid-template-columns: 1fr;
-  }
-
   .movie-page-similar-card {
     padding: 12px 12px 14px;
   }
@@ -4979,6 +4975,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-page-poster-column {
     max-width: none;
+  }
+
+  .movie-page-similar-grid {
+    grid-template-columns: 1fr;
   }
 
   .page-header-top {
