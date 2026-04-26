@@ -4036,6 +4036,7 @@ body:has(.movie-page-shell) .page {
     min-width: 0;
     align-items: flex-start;
     gap: 8px;
+    margin-bottom: 14px;
     padding-top: 14px;
     padding-bottom: 14px;
     border-bottom: 1px solid #1f242b;
