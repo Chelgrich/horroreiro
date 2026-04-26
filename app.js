@@ -7017,6 +7017,92 @@ function getMoviePageReviewFormHtml(movie) {
   `;
 }
 
+function getMoviePageReviewBodyHtml(review, {
+  isEditing,
+  isSpoilerReview,
+  isExpandedSpoiler,
+  isExpandedText,
+  isLongReview
+}) {
+  if (isEditing) {
+    return `
+      <form class="movie-page-review-form movie-page-review-inline-form" data-movie-review-form="true" data-movie-review-id="${review.id}">
+        <textarea
+          class="movie-page-review-textarea"
+          name="reviewText"
+          placeholder="Поделитесь впечатлениями о фильме"
+          rows="7"
+          data-movie-review-textarea="true"
+        >${escapeHtml(review.review_text || '')}</textarea>
+
+        <label class="movie-page-review-spoiler-toggle">
+          <input
+            type="checkbox"
+            name="containsSpoilers"
+            data-movie-review-spoilers="true"
+            ${review.contains_spoilers ? 'checked' : ''}
+          >
+          <span>Есть спойлеры</span>
+        </label>
+
+        <div class="movie-page-review-form-actions">
+          <button type="submit" data-movie-review-submit="true">Сохранить изменения</button>
+          <button
+            type="button"
+            class="secondary-button"
+            data-movie-review-cancel-edit="true"
+          >
+            Отмена
+          </button>
+        </div>
+
+        <div class="movie-page-review-form-hint">
+          Минимум 80 символов. Максимум 5000 символов.
+        </div>
+
+        <p class="movie-page-review-form-message" data-movie-review-form-message="true"></p>
+      </form>
+    `;
+  }
+
+  if (isSpoilerReview && !isExpandedSpoiler) {
+    return `
+      <div class="movie-page-review-spoiler-cover">
+        <div class="movie-page-review-spoiler-cover-text">Рецензия содержит спойлеры.</div>
+        <button
+          type="button"
+          class="secondary-button secondary-button-compact"
+          data-movie-review-show-spoilers="${review.id}"
+        >
+          Показать
+        </button>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="movie-page-review-text ${isLongReview && !isExpandedText ? 'is-collapsed' : ''}">
+      ${escapeHtml(review.review_text)}
+    </div>
+
+    ${
+      isLongReview
+        ? `
+          <div class="movie-page-review-more">
+            <button
+              type="button"
+              class="secondary-button secondary-button-compact"
+              data-movie-review-toggle-text="${review.id}"
+            >
+              ${isExpandedText ? 'Свернуть' : 'Читать дальше'}
+            </button>
+          </div>
+        `
+        : ''
+    }
+  `;
+}
+
 function getMoviePageReviewCardHtml(review) {
   const authorName = escapeHtml(getMovieReviewAuthorName(review));
   const reviewDate = formatMovieReviewDate(review.updated_at || review.created_at);
@@ -7087,87 +7173,13 @@ function getMoviePageReviewCardHtml(review) {
     </div>
   </div>
 
-      ${
-        isEditing
-          ? `
-            <form class="movie-page-review-form movie-page-review-inline-form" data-movie-review-form="true" data-movie-review-id="${review.id}">
-              <textarea
-                class="movie-page-review-textarea"
-                name="reviewText"
-                placeholder="Поделитесь впечатлениями о фильме"
-                rows="7"
-                data-movie-review-textarea="true"
-              >${escapeHtml(review.review_text || '')}</textarea>
-
-              <label class="movie-page-review-spoiler-toggle">
-                <input
-                  type="checkbox"
-                  name="containsSpoilers"
-                  data-movie-review-spoilers="true"
-                  ${review.contains_spoilers ? 'checked' : ''}
-                >
-                <span>Есть спойлеры</span>
-              </label>
-
-              <div class="movie-page-review-form-actions">
-                <button type="submit" data-movie-review-submit="true">Сохранить изменения</button>
-                <button
-                  type="button"
-                  class="secondary-button"
-                  data-movie-review-cancel-edit="true"
-                >
-                  Отмена
-                </button>
-              </div>
-
-              <div class="movie-page-review-form-hint">
-                Минимум 80 символов. Максимум 5000 символов.
-              </div>
-
-              <p class="movie-page-review-form-message" data-movie-review-form-message="true"></p>
-            </form>
-          `
-          : (
-            isSpoilerReview && !isExpandedSpoiler
-              ? `
-                <div class="movie-page-review-spoiler-cover">
-                  <div class="movie-page-review-spoiler-cover-text">Рецензия содержит спойлеры.</div>
-                  <button
-                    type="button"
-                    class="secondary-button secondary-button-compact"
-                    data-movie-review-show-spoilers="${review.id}"
-                  >
-                    Показать
-                  </button>
-                </div>
-              `
-              : `
-                <div class="movie-page-review-text ${isLongReview && !isExpandedText ? 'is-collapsed' : ''}">
-                  ${escapeHtml(review.review_text)}
-                </div>
-
-                ${
-                  isLongReview
-                    ? `
-                      <div class="movie-page-review-more">
-                        <button
-                          type="button"
-                          class="secondary-button secondary-button-compact"
-                          data-movie-review-toggle-text="${review.id}"
-                        >
-                          ${isExpandedText ? 'Свернуть' : 'Читать дальше'}
-                        </button>
-                      </div>
-                    `
-                    : ''
-                }
-              `
-          )
-      }
-
-      ${
-        ''
-      }
+  ${getMoviePageReviewBodyHtml(review, {
+    isEditing,
+    isSpoilerReview,
+    isExpandedSpoiler,
+    isExpandedText,
+    isLongReview
+  })}
     </article>
   `;
 }
