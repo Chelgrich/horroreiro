@@ -7138,7 +7138,7 @@ function getMoviePageReviewCardHtml(review) {
   const reviewDate = formatMovieReviewDate(review.updated_at || review.created_at);
   const userRating = getMovieReviewUserRating(review.movie_id, review.user_id);
   const userRatingHtml = Number.isFinite(userRating) && userRating > 0
-    ? `<div class="movie-page-review-user-rating">Оценка пользователя: ${userRating}/10 <span class="movie-page-review-user-rating-star">★</span></div>`
+    ? `<div class="movie-page-review-user-rating">Оценка: ${userRating}/10 <span class="movie-page-review-user-rating-star">★</span></div>`
     : '';
   const isCurrentUserReview = Boolean(currentUser) && String(review.user_id) === String(currentUser.id);
   const isSpoilerReview = Boolean(review.contains_spoilers);
@@ -7173,10 +7173,10 @@ function getMoviePageReviewsSectionHtml(movie) {
   const reviews = sortMovieReviewsForDisplay(getMovieReviews(movie.id));
 
   return `
-    <section class="movie-page-reviews-block" aria-labelledby="moviePageReviewsTitle">
-      <div id="moviePageReviewsTitle" class="movie-page-subtitle">Рецензии</div>
+  <section class="movie-page-reviews-block" aria-labelledby="moviePageReviewsTitle">
+  <h2 id="moviePageReviewsTitle" class="movie-page-subtitle">Рецензии</h2>
 
-      ${getMoviePageReviewFormHtml(movie)}
+  ${getMoviePageReviewFormHtml(movie)}
 
       ${
         reviews.length > 0
@@ -7201,9 +7201,9 @@ function getMoviePageSimilarSectionHtml(similarMovies) {
   }
 
   return `
-    <section class="movie-page-similar-block" aria-labelledby="moviePageSimilarTitle">
-      <div id="moviePageSimilarTitle" class="movie-page-subtitle">Похожие фильмы</div>
-      <div class="movie-page-similar-grid">
+  <section class="movie-page-similar-block" aria-labelledby="moviePageSimilarTitle">
+  <h2 id="moviePageSimilarTitle" class="movie-page-subtitle">Похожие фильмы</h2>
+  <div class="movie-page-similar-grid">
         ${similarMovies.map(similarMovie => getMoviePageSimilarCardHtml(similarMovie)).join('')}
       </div>
     </section>

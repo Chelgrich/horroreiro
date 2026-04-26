@@ -3878,6 +3878,7 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-text.is-collapsed {
+  margin-top: 0;
   display: -webkit-box;
   -webkit-line-clamp: 8;
   -webkit-box-orient: vertical;
