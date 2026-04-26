@@ -1998,8 +1998,8 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 }
 
 .movies-year-title:not(:first-child) {
-  margin-top: 28px;
-  padding-top: 18px;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 1px solid #242a31;
 }
 
@@ -2683,7 +2683,8 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 .movie-rating-block {
   position: relative;
   margin-top: auto;
-  padding-top: 0;
+  padding-top: 14px;
+  padding-bottom: 14px;
   border-top: 1px solid #1f242b;
 }
 
@@ -3550,6 +3551,7 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-taxonomy-block {
   padding-top: 14px;
+  padding-bottom: 14px;
   border-top: 1px solid #1f242b;
 }
 
@@ -3576,7 +3578,7 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-synopsis-block {
   padding-top: 14px;
-  padding-bottom: 6px;
+  padding-bottom: 14px;
   border-top: 1px solid #1f242b;
 }
 
@@ -3625,7 +3627,8 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-external-links-block {
   padding-top: 14px;
-  border-top: 1px solid #1f242b;
+  padding-bottom: 14px;
+  border-top: none;
 }
 
 .movie-page-external-links-mixed {
@@ -3705,7 +3708,8 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-reviews-block,
 .movie-page-similar-block {
-  padding-top: 18px;
+  padding-top: 14px;
+  padding-bottom: 14px;
   border-top: 1px solid #242a31;
 }
 
