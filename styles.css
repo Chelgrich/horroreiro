@@ -3798,7 +3798,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-card {
-  width: min(100%, 50%);
+  width: 100%;
+  max-width: 680px;
   padding: 16px;
   background: var(--surface-card);
   border: 1px solid var(--border-card);
