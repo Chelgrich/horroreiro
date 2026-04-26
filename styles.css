@@ -3461,7 +3461,7 @@ body:has(.movie-page-shell) .page {
 .movie-page-title-block {
   min-width: 0;
   padding-bottom: 14px;
-  border-bottom: 1px solid #242a31;
+  border-bottom: none;
 }
 
 .movie-page-title-row {
