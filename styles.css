@@ -1413,15 +1413,6 @@ button {
   border-radius: var(--radius-md);
 }
 
-button:hover {
-  opacity: 0.96;
-  transform: translateY(-1px);
-}
-
-button:active {
-  transform: translateY(0) scale(0.96);
-}
-
 .secondary-button {
   height: var(--control-height-md);
   padding: 0 14px;
@@ -1444,6 +1435,15 @@ button:active {
   min-height: 32px;
   padding: 0 12px;
   font-size: 12px;
+}
+
+button:not(.display-name-button):not(.auth-popover-item):not(.search-clear-btn):not(.movie-watchlist-btn):not(.movie-page-watchlist-icon):not(.movie-page-admin-icon-button):not(.movie-page-review-icon-button):not(.rating-star-btn):not(.mobile-rating-star-btn):not(.active-filter-chip-remove):hover {
+  opacity: 0.96;
+  transform: translateY(-1px);
+}
+
+button:not(.display-name-button):not(.auth-popover-item):not(.search-clear-btn):not(.movie-watchlist-btn):not(.movie-page-watchlist-icon):not(.movie-page-admin-icon-button):not(.movie-page-review-icon-button):not(.rating-star-btn):not(.mobile-rating-star-btn):not(.active-filter-chip-remove):active {
+  transform: translateY(0) scale(0.96);
 }
 
 /* =========================================================
