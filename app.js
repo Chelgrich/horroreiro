@@ -7534,39 +7534,14 @@ function renderMoviePage(movie) {
   currentMoviePageMovieId = movie.id;
   currentMoviePageMovieData = movie;
 
-  const {
-    genres,
-    countries,
-    averageRating,
-    votesCount,
-    currentUserRating,
-    userMovieState,
-    primaryPerceivedTagLabel,
-    externalLinksHtml,
-    synopsis,
-    isRatingBusy,
-    isWatchlistBusy,
-    similarMovies,
-    reviewsSectionHtml
-  } = buildMoviePageViewModel(movie);
+  const viewModel = buildMoviePageViewModel(movie);
+  const { similarMovies, reviewsSectionHtml } = viewModel;
 
   setMoviePageDocumentMeta(movie);
 
   moviePage.innerHTML = `
     <div class="movie-page-stack">
-      ${getMoviePageHeaderHtml(movie, {
-        genres,
-        countries,
-        averageRating,
-        votesCount,
-        currentUserRating,
-        userMovieState,
-        primaryPerceivedTagLabel,
-        externalLinksHtml,
-        synopsis,
-        isRatingBusy,
-        isWatchlistBusy
-      })}
+      ${getMoviePageHeaderHtml(movie, viewModel)}
 
       ${reviewsSectionHtml}
       ${getMoviePageSimilarSectionHtml(similarMovies)}
