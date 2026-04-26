@@ -3454,6 +3454,7 @@ body:has(.movie-page-shell) .page {
 .movie-page-title-main {
   min-width: 0;
   flex: 1 1 auto;
+  margin-bottom: 14px;
 }
 
 .movie-page-summary-panel {
