@@ -2539,8 +2539,6 @@ async function reloadCatalogData({ showSkeleton = false } = {}) {
   loadSubgenreFilterOptions();
   loadFormatFilterOptions();
   loadTriggerFilterOptions();
-
-  initCustomSelects();
 }
 
 function preserveWindowScrollPosition(callback) {
