@@ -3595,20 +3595,8 @@ body:has(.movie-page-shell) .page {
 }
 
 @media (max-width: 560px) {
-  .movie-page-external-links-mixed {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .movie-rating-widgets {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
+  .movie-page-external-links-mixed,
+  .movie-rating-widgets,
   .movie-page-external-links-mixed .movie-external-links {
     display: flex;
     align-items: center;
