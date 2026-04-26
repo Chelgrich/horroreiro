@@ -3659,6 +3659,15 @@ async function saveMovie(event) {
 JS-БЛОК 18. УДАЛЕНИЕ ФИЛЬМА
 Удаляет фильм из базы и обновляет каталог.
 ========================================================== */
+async function deleteMovieRecord(movieId) {
+  const { error } = await supabaseClient
+    .from('movies')
+    .delete()
+    .eq('id', movieId);
+
+  throwIfSupabaseError(error);
+}
+
 async function deleteMovie(movieId, movieTitle) {
   const isConfirmed = confirm(`Удалить фильм "${movieTitle}"?`);
 
@@ -3667,12 +3676,7 @@ async function deleteMovie(movieId, movieTitle) {
   }
 
   try {
-    const { error } = await supabaseClient
-      .from('movies')
-      .delete()
-      .eq('id', movieId);
-
-      throwIfSupabaseError(error);
+    await deleteMovieRecord(movieId);
 
     if (editingMovieId === movieId) {
       resetFormToCreateMode();
@@ -7594,13 +7598,7 @@ async function deleteMovieFromMoviePage(movieId, movieTitle) {
   }
 
   try {
-    const { error } = await supabaseClient
-      .from('movies')
-      .delete()
-      .eq('id', movieId);
-
-    throwIfSupabaseError(error);
-
+    await deleteMovieRecord(movieId);
     window.location.href = 'index.html';
   } catch (error) {
     console.error('Ошибка при удалении фильма со страницы detail-page:', error);
