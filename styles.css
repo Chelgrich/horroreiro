@@ -3570,8 +3570,20 @@ body:has(.movie-page-shell) .page {
 }
 
 @media (max-width: 680px) {
-  .movie-page-external-links-mixed,
-  .movie-rating-widgets,
+  .movie-page-external-links-mixed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .movie-rating-widgets {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
   .movie-page-external-links-mixed .movie-external-links {
     display: flex;
     align-items: center;
