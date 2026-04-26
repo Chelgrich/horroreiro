@@ -7623,6 +7623,7 @@ async function initMoviePage() {
   bindSharedAuthStateListener({
     onAfterAuthSync: async () => {
       try {
+        await fetchMovieRatings();
         await loadMoviePageByRouteParams(routeParams);
       } catch (error) {
         console.error('Ошибка синхронизации страницы фильма после auth:', error);
