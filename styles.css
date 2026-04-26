@@ -3798,6 +3798,7 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-card {
+  box-sizing: border-box;
   width: 100%;
   max-width: 680px;
   padding: 16px;
@@ -4276,6 +4277,7 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-review-card {
+    box-sizing: border-box;
     width: 100%;
     padding: 14px;
   }
