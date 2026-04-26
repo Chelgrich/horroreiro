@@ -7433,20 +7433,10 @@ function getMoviePagePosterColumnHtml(movie, viewModel) {
             `
             : ''
         }
-      </div>
-
-      ${
-        currentUser
-          ? `
-            <div class="movie-page-poster-rating">
-              ${getUserRatingControlsHtml(currentUserRating)}
-            </div>
-          `
-          : ''
-      }
-    </div>
-  `;
-}
+        </div>
+        </div>
+      `;
+    }
 
 function getMoviePageMainColumnHtml(movie, viewModel) {
   const {
