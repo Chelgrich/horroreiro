@@ -3555,7 +3555,9 @@ body:has(.movie-page-shell) .page {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .movie-rating-widget-link {
