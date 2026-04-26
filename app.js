@@ -176,6 +176,7 @@ let mobileRatingModalRemoveButton = null;
 let mobileRatingModalMovieId = null;
 let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
+let allCountryNames = [];
 let lastCatalogAnchorMovieId = null;
 let currentMoviePageMovieId = null;
 let currentMoviePageMovieData = null;
@@ -2220,6 +2221,28 @@ function loadTriggerFilterOptions() {
   syncTriggerFiltersTriggerText();
 }
 
+function refreshCountryFilterOptions() {
+  if (!countryFilter) {
+    return;
+  }
+
+  const selectedCountry = countryFilter.value || '';
+  const countryCounts = getCountryOptionCounts();
+
+  countryFilter.innerHTML = '<option value="">Все</option>';
+
+  allCountryNames.forEach(countryName => {
+    const option = document.createElement('option');
+    option.value = countryName;
+    option.textContent = `${countryName} (${countryCounts.get(countryName) || 0})`;
+    option.disabled = (countryCounts.get(countryName) || 0) === 0 && countryName !== selectedCountry;
+    countryFilter.appendChild(option);
+  });
+
+  countryFilter.value = selectedCountry;
+  refreshCustomSelect(countryFilter);
+}
+
 async function loadCountries() {
   const { data, error } = await supabaseClient
     .from('countries')
@@ -2231,25 +2254,11 @@ async function loadCountries() {
     return;
   }
 
-  if (!countryFilter) {
-    return;
-  }
+  allCountryNames = (data || [])
+    .map(item => item.name)
+    .filter(Boolean);
 
-  const selectedCountry = countryFilter.value || '';
-  const countryCounts = getCountryOptionCounts();
-
-  countryFilter.innerHTML = '<option value="">Все</option>';
-
-  data.forEach(item => {
-    const option = document.createElement('option');
-    option.value = item.name;
-    option.textContent = `${item.name} (${countryCounts.get(item.name) || 0})`;
-    option.disabled = (countryCounts.get(item.name) || 0) === 0 && item.name !== selectedCountry;
-    countryFilter.appendChild(option);
-  });
-
-  countryFilter.value = selectedCountry;
-  refreshCustomSelect(countryFilter);
+  refreshCountryFilterOptions();
 }
 
 function loadYearFilterOptions() {
@@ -5910,7 +5919,7 @@ function getTriggerOptionCounts() {
 function refreshDynamicFilterOptions() {
   loadSubgenreFilterOptions();
   loadFormatFilterOptions();
-  loadCountries();
+  refreshCountryFilterOptions();
   loadYearFilterOptions();
   loadTriggerFilterOptions();
 }
@@ -7623,7 +7632,6 @@ async function initMoviePage() {
   bindSharedAuthStateListener({
     onAfterAuthSync: async () => {
       try {
-        await fetchMovieRatings();
         await loadMoviePageByRouteParams(routeParams);
       } catch (error) {
         console.error('Ошибка синхронизации страницы фильма после auth:', error);
