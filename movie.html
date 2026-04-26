@@ -525,23 +525,13 @@
     </section>
   </main>
 
-  <footer class="page-footer">
-    <div class="page-footer-inner">
-      <div class="footer-main">
-        <div class="footer-slogan">
-          «ВЫБЕРИ, ЧТО СМОТРЕТЬ СЕГОДНЯ»
-        </div>
-
-        <div class="footer-brand">Хоррорейро</div>
-
-        <div class="footer-author">
-          Хоррор-каталог от Grint_Talks, 2026
-        </div>
-      </div>
-    </div>
-  </footer>
+  <div id="sharedFooterMount"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="shared-layout.js"></script>
+  <script>
+    window.SharedLayout?.mountSharedFooter();
+  </script>
 
   <script>
     (function () {
