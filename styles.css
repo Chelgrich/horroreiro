@@ -3726,7 +3726,6 @@ body:has(.movie-page-shell) .page {
   width: 100%;
   max-width: 680px;
   padding: 16px;
-  padding-right: 96px;
   background: var(--surface-card);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
@@ -4160,7 +4159,6 @@ body:has(.movie-page-shell) .page {
 
   .movie-page-review-card {
     padding: 14px;
-    padding-right: 88px;
   }
 
   .movie-page-review-card-header {
