@@ -3555,7 +3555,7 @@ body:has(.movie-page-shell) .page {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
 }
