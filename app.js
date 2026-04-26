@@ -5707,9 +5707,14 @@ function getFilteredMovies(options = {}) {
   }
 
   if (!ignoreSubgenre && subgenreFilter.value) {
-    filteredMovies = filteredMovies.filter(movie =>
-      movie.primary_subgenre === subgenreFilter.value
-    );
+    filteredMovies = filteredMovies.filter(movie => {
+      const movieSubgenreKeys = [
+        movie.primary_subgenre,
+        ...(Array.isArray(movie.secondary_subgenres) ? movie.secondary_subgenres : [])
+      ].filter(Boolean);
+
+      return movieSubgenreKeys.includes(subgenreFilter.value);
+    });
   }
 
   if (!ignoreFormat && formatFilter.value) {
