@@ -41,6 +41,7 @@ const authMessage = document.getElementById('authMessage');
 const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
 let taxonomyExportButton = null;
+let taxonomyJsonExportButton = null;
 
 const searchInput = document.getElementById('searchInput');
 const searchClearBtn = document.getElementById('searchClearBtn');
@@ -321,6 +322,16 @@ function normalizeTaxonomyExportValues(values) {
     .join('\n');
 }
 
+function normalizeTaxonomyJsonArray(values) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  return values
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+}
+
 function buildMovieTaxonomyExportBlock(movie) {
   const title = String(movie?.title || 'Без названия').trim();
   const year = movie?.year ? ` (${movie.year})` : '';
@@ -360,6 +371,23 @@ function buildMovieTaxonomyExportBlock(movie) {
     .join('\n');
 }
 
+function buildMovieTaxonomyJsonExportItem(movie) {
+  return {
+    id: movie.id,
+    slug: movie.slug || '',
+    title: movie.title || '',
+    original_title: movie.original_title || '',
+    year: movie.year ?? null,
+    letterboxd_url: movie.letterboxd_url || '',
+    tags_perceived: normalizeTaxonomyJsonArray(movie.tags_perceived),
+    tags_canon: normalizeTaxonomyJsonArray(movie.tags_canon),
+    tags_formats: normalizeTaxonomyJsonArray(movie.formats),
+    tags_modifiers: normalizeTaxonomyJsonArray(movie.modifiers),
+    tags_broad_families: normalizeTaxonomyJsonArray(movie.broad_families),
+    mask_conflict: Boolean(movie.mask_conflict)
+  };
+}
+
 function downloadTextFile(filename, content, mimeType = 'text/plain;charset=utf-8') {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
@@ -374,29 +402,41 @@ function downloadTextFile(filename, content, mimeType = 'text/plain;charset=utf-
   URL.revokeObjectURL(url);
 }
 
-async function exportMovieTaxonomyData() {
-  try {
-    if (!Array.isArray(allMovies) || allMovies.length === 0) {
-      await fetchMovies();
+function sortMoviesForTaxonomyExport(movies) {
+  return [...movies].sort((firstMovie, secondMovie) => {
+    const firstYear = Number(firstMovie.year || 0);
+    const secondYear = Number(secondMovie.year || 0);
+
+    if (secondYear !== firstYear) {
+      return secondYear - firstYear;
     }
 
-    if (!Array.isArray(allMovies) || allMovies.length === 0) {
-      showAuthMessage('Нет фильмов для выгрузки.', 'error', true);
+    return String(firstMovie.title || '').localeCompare(String(secondMovie.title || ''), 'ru');
+  });
+}
+
+async function ensureMoviesForTaxonomyExport() {
+  if (!Array.isArray(allMovies) || allMovies.length === 0) {
+    await fetchMovies();
+  }
+
+  if (!Array.isArray(allMovies) || allMovies.length === 0) {
+    showAuthMessage('Нет фильмов для выгрузки.', 'error', true);
+    return [];
+  }
+
+  return sortMoviesForTaxonomyExport(allMovies);
+}
+
+async function exportMovieTaxonomyData() {
+  try {
+    const sortedMovies = await ensureMoviesForTaxonomyExport();
+
+    if (sortedMovies.length === 0) {
       return;
     }
 
     const exportedAt = new Date().toISOString();
-    const sortedMovies = [...allMovies].sort((firstMovie, secondMovie) => {
-      const firstYear = Number(firstMovie.year || 0);
-      const secondYear = Number(secondMovie.year || 0);
-
-      if (secondYear !== firstYear) {
-        return secondYear - firstYear;
-      }
-
-      return String(firstMovie.title || '').localeCompare(String(secondMovie.title || ''), 'ru');
-    });
-
     const content = [
       'Хоррорейро — выгрузка тегов фильмов',
       `Дата выгрузки: ${exportedAt}`,
@@ -410,27 +450,72 @@ async function exportMovieTaxonomyData() {
     const datePart = exportedAt.slice(0, 10);
     downloadTextFile(`horroreiro-taxonomy-export-${datePart}.txt`, content);
 
-    showAuthMessage(`Выгрузка тегов готова: ${sortedMovies.length} фильмов.`, 'success', true);
+    showAuthMessage(`Текстовая выгрузка тегов готова: ${sortedMovies.length} фильмов.`, 'success', true);
   } catch (error) {
     console.error('Ошибка выгрузки тегов:', error);
     showAuthMessage(`Ошибка выгрузки тегов: ${error.message || 'смотри консоль F12.'}`, 'error', true);
   }
 }
 
+async function exportMovieTaxonomyJsonData() {
+  try {
+    const sortedMovies = await ensureMoviesForTaxonomyExport();
+
+    if (sortedMovies.length === 0) {
+      return;
+    }
+
+    const exportedAt = new Date().toISOString();
+    const content = JSON.stringify({
+      schema: 'horroreiro_taxonomy_tags',
+      version: 1,
+      exported_at: exportedAt,
+      movies_count: sortedMovies.length,
+      movies: sortedMovies.map(buildMovieTaxonomyJsonExportItem)
+    }, null, 2);
+
+    const datePart = exportedAt.slice(0, 10);
+    downloadTextFile(
+      `horroreiro-taxonomy-export-${datePart}.json`,
+      content,
+      'application/json;charset=utf-8'
+    );
+
+    showAuthMessage(`JSON-выгрузка тегов готова: ${sortedMovies.length} фильмов.`, 'success', true);
+  } catch (error) {
+    console.error('Ошибка JSON-выгрузки тегов:', error);
+    showAuthMessage(`Ошибка JSON-выгрузки тегов: ${error.message || 'смотри консоль F12.'}`, 'error', true);
+  }
+}
+
 function initTaxonomyExportButton() {
-  if (!adminPanel || taxonomyExportButton) {
+  if (!adminPanel || (taxonomyExportButton && taxonomyJsonExportButton)) {
     return;
   }
 
-  taxonomyExportButton = document.createElement('button');
-  taxonomyExportButton.type = 'button';
-  taxonomyExportButton.id = 'exportTaxonomyButton';
-  taxonomyExportButton.className = 'secondary-button secondary-button-compact taxonomy-export-button';
-  taxonomyExportButton.textContent = 'Экспорт тегов';
-  taxonomyExportButton.title = 'Скачать выгрузку Perceived, Canon, Formats, Modifiers, Broad families и Mask conflict';
+  if (!taxonomyExportButton) {
+    taxonomyExportButton = document.createElement('button');
+    taxonomyExportButton.type = 'button';
+    taxonomyExportButton.id = 'exportTaxonomyButton';
+    taxonomyExportButton.className = 'secondary-button secondary-button-compact taxonomy-export-button';
+    taxonomyExportButton.textContent = 'Экспорт тегов';
+    taxonomyExportButton.title = 'Скачать текстовую выгрузку Perceived, Canon, Formats, Modifiers, Broad families и Mask conflict';
 
-  taxonomyExportButton.addEventListener('click', exportMovieTaxonomyData);
+    taxonomyExportButton.addEventListener('click', exportMovieTaxonomyData);
+  }
 
+  if (!taxonomyJsonExportButton) {
+    taxonomyJsonExportButton = document.createElement('button');
+    taxonomyJsonExportButton.type = 'button';
+    taxonomyJsonExportButton.id = 'exportTaxonomyJsonButton';
+    taxonomyJsonExportButton.className = 'secondary-button secondary-button-compact taxonomy-export-button';
+    taxonomyJsonExportButton.textContent = 'Экспорт JSON';
+    taxonomyJsonExportButton.title = 'Скачать JSON-выгрузку тегов для последующего импорта';
+
+    taxonomyJsonExportButton.addEventListener('click', exportMovieTaxonomyJsonData);
+  }
+
+  adminPanel.prepend(taxonomyJsonExportButton);
   adminPanel.prepend(taxonomyExportButton);
 }
 

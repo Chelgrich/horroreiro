@@ -466,6 +466,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 .taxonomy-export-button {
   height: 36px;
   white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .floating-add-movie-button {
