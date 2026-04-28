@@ -469,6 +469,15 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   flex: 0 0 auto;
 }
 
+.taxonomy-import-button {
+  color: #d7f7df;
+  border-color: rgba(86, 211, 100, 0.38);
+}
+
+.taxonomy-import-file-input {
+  display: none;
+}
+
 .floating-add-movie-button {
   position: fixed;
   right: 24px;

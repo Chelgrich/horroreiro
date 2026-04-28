@@ -42,6 +42,9 @@ const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
 let taxonomyExportButton = null;
 let taxonomyJsonExportButton = null;
+let taxonomyImportButton = null;
+let taxonomyImportFileInput = null;
+let isTaxonomyImportInProgress = false;
 
 const searchInput = document.getElementById('searchInput');
 const searchClearBtn = document.getElementById('searchClearBtn');
@@ -327,9 +330,285 @@ function normalizeTaxonomyJsonArray(values) {
     return [];
   }
 
-  return values
+  const uniqueValues = new Map();
+
+  values
     .map(value => String(value || '').trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .forEach(value => {
+      const normalizedValue = normalizeSearchText(value);
+
+      if (!uniqueValues.has(normalizedValue)) {
+        uniqueValues.set(normalizedValue, value);
+      }
+    });
+
+  return Array.from(uniqueValues.values());
+}
+
+function normalizeTaxonomyImportBoolean(value) {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  return String(value || '').trim().toLowerCase() === 'true';
+}
+
+function getTaxonomyImportMovies(payload) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.movies)) {
+    return payload.movies;
+  }
+
+  return [];
+}
+
+function getTaxonomyImportChangedFields(importMovie, existingMovie) {
+  const tagsPerceived = normalizeTaxonomyJsonArray(importMovie.tags_perceived);
+  const tagsCanon = normalizeTaxonomyJsonArray(importMovie.tags_canon);
+  const formats = normalizeTaxonomyJsonArray(importMovie.tags_formats);
+  const modifiers = normalizeTaxonomyJsonArray(importMovie.tags_modifiers);
+  const broadFamilies = normalizeTaxonomyJsonArray(importMovie.tags_broad_families);
+  const maskConflict = normalizeTaxonomyImportBoolean(importMovie.mask_conflict);
+
+  const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
+  const resolvedSubgenres = taxonomyHelpers?.resolveMovieSubgenres
+    ? taxonomyHelpers.resolveMovieSubgenres({ tags_perceived: tagsPerceived })
+    : {
+        primary_subgenre: null,
+        secondary_subgenres: []
+      };
+
+  const changedFields = {};
+
+  if (!areStringArraysEqual(tagsPerceived, existingMovie.tags_perceived || [])) {
+    changedFields.tags_perceived = tagsPerceived;
+  }
+
+  if (!areStringArraysEqual(tagsCanon, existingMovie.tags_canon || [])) {
+    changedFields.tags_canon = tagsCanon;
+  }
+
+  if (!areStringArraysEqual(formats, existingMovie.formats || [])) {
+    changedFields.formats = formats;
+  }
+
+  if (!areStringArraysEqual(modifiers, existingMovie.modifiers || [])) {
+    changedFields.modifiers = modifiers;
+  }
+
+  if (!areStringArraysEqual(broadFamilies, existingMovie.broad_families || [])) {
+    changedFields.broad_families = broadFamilies;
+  }
+
+  if ((resolvedSubgenres.primary_subgenre || null) !== (existingMovie.primary_subgenre ?? null)) {
+    changedFields.primary_subgenre = resolvedSubgenres.primary_subgenre || null;
+  }
+
+  if (!areStringArraysEqual(resolvedSubgenres.secondary_subgenres || [], existingMovie.secondary_subgenres || [])) {
+    changedFields.secondary_subgenres = resolvedSubgenres.secondary_subgenres || [];
+  }
+
+  if (maskConflict !== Boolean(existingMovie.mask_conflict)) {
+    changedFields.mask_conflict = maskConflict;
+  }
+
+  return changedFields;
+}
+
+function buildTaxonomyImportPreview(importItems) {
+  const movieById = new Map(
+    allMovies.map(movie => [String(movie.id), movie])
+  );
+
+  const updates = [];
+  const missingItems = [];
+  const invalidItems = [];
+
+  importItems.forEach((importMovie, index) => {
+    const movieId = String(importMovie?.id || '').trim();
+
+    if (!movieId) {
+      invalidItems.push(index + 1);
+      return;
+    }
+
+    const existingMovie = movieById.get(movieId);
+
+    if (!existingMovie) {
+      missingItems.push(importMovie);
+      return;
+    }
+
+    const changedFields = getTaxonomyImportChangedFields(importMovie, existingMovie);
+
+    if (Object.keys(changedFields).length === 0) {
+      return;
+    }
+
+    updates.push({
+      movie: existingMovie,
+      changedFields
+    });
+  });
+
+  return {
+    updates,
+    missingItems,
+    invalidItems
+  };
+}
+
+function formatTaxonomyImportPreviewMessage(preview) {
+  const changedMovieLines = preview.updates
+    .slice(0, 12)
+    .map(item => {
+      const fieldNames = Object.keys(item.changedFields).join(', ');
+      return `• ${item.movie.title || 'Без названия'} — ${fieldNames}`;
+    });
+
+  const moreUpdatesCount = Math.max(0, preview.updates.length - changedMovieLines.length);
+  const messageLines = [
+    'Импорт тегов из JSON',
+    '',
+    `Будет обновлено фильмов: ${preview.updates.length}`,
+    `Не найдено по id: ${preview.missingItems.length}`,
+    `Записей без id: ${preview.invalidItems.length}`
+  ];
+
+  if (changedMovieLines.length > 0) {
+    messageLines.push('', 'Первые изменения:', ...changedMovieLines);
+  }
+
+  if (moreUpdatesCount > 0) {
+    messageLines.push(`…и ещё ${moreUpdatesCount}`);
+  }
+
+  messageLines.push('', 'Применить импорт?');
+
+  return messageLines.join('\n');
+}
+
+function readTextFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      resolve(String(reader.result || ''));
+    };
+
+    reader.onerror = () => {
+      reject(new Error('Не удалось прочитать файл импорта.'));
+    };
+
+    reader.readAsText(file);
+  });
+}
+
+function setTaxonomyImportControlsDisabled(isDisabled) {
+  isTaxonomyImportInProgress = isDisabled;
+
+  if (taxonomyImportButton) {
+    taxonomyImportButton.disabled = isDisabled;
+  }
+
+  if (taxonomyExportButton) {
+    taxonomyExportButton.disabled = isDisabled;
+  }
+
+  if (taxonomyJsonExportButton) {
+    taxonomyJsonExportButton.disabled = isDisabled;
+  }
+}
+
+async function applyTaxonomyImportUpdates(updates) {
+  for (const item of updates) {
+    const { error } = await supabaseClient
+      .from('movies')
+      .update(item.changedFields)
+      .eq('id', item.movie.id);
+
+    throwIfSupabaseError(error);
+  }
+}
+
+async function importMovieTaxonomyJsonFile(file) {
+  if (isTaxonomyImportInProgress) {
+    return;
+  }
+
+  setTaxonomyImportControlsDisabled(true);
+
+  try {
+    ensureActiveSessionForWrite();
+    showAuthMessage('Читаю JSON-импорт тегов...');
+
+    if (!Array.isArray(allMovies) || allMovies.length === 0) {
+      await fetchMovies();
+    }
+
+    const fileText = await readTextFile(file);
+    const payload = JSON.parse(fileText);
+    const importItems = getTaxonomyImportMovies(payload);
+
+    if (importItems.length === 0) {
+      showAuthMessage('В JSON не найден массив movies для импорта.', 'error', true);
+      return;
+    }
+
+    const preview = buildTaxonomyImportPreview(importItems);
+
+    if (preview.updates.length === 0) {
+      showAuthMessage('В импортируемом JSON нет изменений для текущих фильмов.', 'success', true);
+      return;
+    }
+
+    const isConfirmed = confirm(formatTaxonomyImportPreviewMessage(preview));
+
+    if (!isConfirmed) {
+      showAuthMessage('Импорт отменён.', 'info', true);
+      return;
+    }
+
+    showAuthMessage(`Обновляю теги: ${preview.updates.length} фильмов...`);
+
+    await applyTaxonomyImportUpdates(preview.updates);
+    await reloadCatalogData({ showSkeleton: isCatalogPage() });
+
+    if (isCatalogPage()) {
+      rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.preserveScrollOnly);
+    }
+
+    if (isMoviePage() && currentMoviePageMovieId) {
+      const updatedMovie = await reloadMoviePageData(currentMoviePageMovieId);
+
+      if (updatedMovie) {
+        renderMoviePage(updatedMovie);
+      }
+    }
+
+    showAuthMessage(`Импорт тегов применён: ${preview.updates.length} фильмов.`, 'success', true);
+  } catch (error) {
+    console.error('Ошибка импорта тегов:', error);
+    showAuthMessage(`Ошибка импорта тегов: ${error.message || 'смотри консоль F12.'}`, 'error', true);
+  } finally {
+    setTaxonomyImportControlsDisabled(false);
+  }
+}
+
+function handleTaxonomyImportFileChange(event) {
+  const file = event.target.files?.[0] || null;
+
+  event.target.value = '';
+
+  if (!file) {
+    return;
+  }
+
+  importMovieTaxonomyJsonFile(file);
 }
 
 function buildMovieTaxonomyExportBlock(movie) {
@@ -489,7 +768,7 @@ async function exportMovieTaxonomyJsonData() {
 }
 
 function initTaxonomyExportButton() {
-  if (!adminPanel || (taxonomyExportButton && taxonomyJsonExportButton)) {
+  if (!adminPanel || (taxonomyExportButton && taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
     return;
   }
 
@@ -515,6 +794,30 @@ function initTaxonomyExportButton() {
     taxonomyJsonExportButton.addEventListener('click', exportMovieTaxonomyJsonData);
   }
 
+  if (!taxonomyImportFileInput) {
+    taxonomyImportFileInput = document.createElement('input');
+    taxonomyImportFileInput.type = 'file';
+    taxonomyImportFileInput.accept = 'application/json,.json';
+    taxonomyImportFileInput.className = 'taxonomy-import-file-input';
+
+    taxonomyImportFileInput.addEventListener('change', handleTaxonomyImportFileChange);
+  }
+
+  if (!taxonomyImportButton) {
+    taxonomyImportButton = document.createElement('button');
+    taxonomyImportButton.type = 'button';
+    taxonomyImportButton.id = 'importTaxonomyJsonButton';
+    taxonomyImportButton.className = 'secondary-button secondary-button-compact taxonomy-export-button taxonomy-import-button';
+    taxonomyImportButton.textContent = 'Импорт JSON';
+    taxonomyImportButton.title = 'Импортировать JSON-выгрузку тегов и массово обновить только теговые поля';
+
+    taxonomyImportButton.addEventListener('click', () => {
+      taxonomyImportFileInput.click();
+    });
+  }
+
+  adminPanel.prepend(taxonomyImportFileInput);
+  adminPanel.prepend(taxonomyImportButton);
   adminPanel.prepend(taxonomyJsonExportButton);
   adminPanel.prepend(taxonomyExportButton);
 }
