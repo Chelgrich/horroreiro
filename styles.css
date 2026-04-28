@@ -460,6 +460,12 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   min-width: 0;
   min-height: 44px;
   justify-content: flex-end;
+  gap: 8px;
+}
+
+.taxonomy-export-button {
+  height: 36px;
+  white-space: nowrap;
 }
 
 .floating-add-movie-button {
