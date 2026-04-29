@@ -326,7 +326,18 @@ const CANON_TAG_META = {
   apartment_space: { tier: "standard", confidence: "stable" },
   aquatic_space: { tier: "standard", confidence: "stable" },
   assimilation_pressure: { tier: "standard", confidence: "observe" },
-  audio_contact: { tier: "anchor", confidence: "stable" },
+  audio_contact: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['investigation_frame', 'threat_origin'],
+    lanes: ['investigation_media_lane', 'supernatural_entity_lane'],
+    useWhen: 'Контакт с угрозой, призраком, сущностью или прошлым происходит через звук, голос, запись, радио, звонок, плёнку или аудиосообщение.',
+    avoidWhen: 'Звук используется только как атмосфера, скример или обычная улика без отдельной механики контакта.',
+    examples: [],
+    counterExamples: []
+  }),
   barn_space: { tier: "standard", confidence: "stable" },
   bayou_setting: { tier: "standard", confidence: "observe" },
   black_magic: createCanonTagMeta({
@@ -355,7 +366,18 @@ const CANON_TAG_META = {
   }),
   body_transformation: { tier: "anchor", confidence: "stable" },
   boarding_school: { tier: "standard", confidence: "observe" },
-  buried_past: { tier: "broad", confidence: "stable" },
+  buried_past: createCanonTagMeta({
+    tier: "broad",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.investigation_frame,
+    families: ['narrative_function', 'investigation_frame', 'psychological_wound'],
+    lanes: ['investigation_media_lane', 'psychological_reality_lane'],
+    useWhen: 'Скрытое прошлое, старая вина, преступление, семейная тайна или замолчанный факт постепенно раскрываются и объясняют текущую угрозу.',
+    avoidWhen: 'Прошлое просто упоминается в биографии, но не является двигателем расследования или механики ужаса.',
+    examples: ['Добыча для невесты', 'Шелби Оукс. Город-призрак'],
+    counterExamples: []
+  }),
   bully_retribution: { tier: "standard", confidence: "observe" },
   cannibalism: { tier: "anchor", confidence: "stable" },
   chemical_outbreak: { tier: "anchor", confidence: "stable" },
@@ -526,7 +548,18 @@ const CANON_TAG_META = {
     examples: ['Хищный рывок'],
     counterExamples: []
   }),
-  folklore_entity: { tier: "anchor", confidence: "stable" },
+  folklore_entity: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_origin', 'myth_reframing'],
+    lanes: ['folk_myth_lane', 'supernatural_entity_lane'],
+    useWhen: 'Угроза основана на фольклорной сущности, духе, легендарной фигуре, народном поверии или локальном мифе.',
+    avoidWhen: 'Есть просто сельский/лесной сеттинг или народная атмосфера без конкретной фольклорной сущности.',
+    examples: ['Гауа', 'Миля 666'],
+    counterExamples: []
+  }),
   forest_space: { tier: "standard", confidence: "stable" },
   fractured_memory: createCanonTagMeta({
     tier: "standard",
@@ -703,7 +736,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   human_monstrosity: { tier: "anchor", confidence: "stable" },
-  icon_reframing: { tier: "standard", confidence: "stable" },
+  icon_reframing: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['myth_reframing', 'narrative_function'],
+    lanes: ['folk_myth_lane'],
+    useWhen: 'Фильм переосмысляет узнаваемую культурную, сказочную, праздничную, детскую или поп-икону как хоррор-угрозу.',
+    avoidWhen: 'Есть просто знакомый образ или отсылка, но нет хоррор-переосмысления как основной механики.',
+    examples: [],
+    counterExamples: []
+  }),
   identity_erasure: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -719,7 +763,18 @@ const CANON_TAG_META = {
   infected_society: { tier: "standard", confidence: "observe" },
   infrastructure_horror: { tier: "standard", confidence: "observe" },
   intergenerational_trauma: { tier: "standard", confidence: "stable" },
-  internet_folklore: { tier: "standard", confidence: "stable" },
+  internet_folklore: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.investigation_frame,
+    families: ['investigation_frame', 'myth_reframing', 'social_contagion'],
+    lanes: ['investigation_media_lane', 'folk_myth_lane'],
+    useWhen: 'Угроза, легенда, расследование или заражающая идея распространяется через интернет, форумы, соцсети, видео, цифровые следы или сетевой фольклор.',
+    avoidWhen: 'Интернет просто используется персонажами как бытовой инструмент и не формирует легенду/расследование/угрозу.',
+    examples: ['Project MKHEXE'],
+    counterExamples: []
+  }),
   isolated_house: { tier: "standard", confidence: "stable" },
   isolated_lighthouse: { tier: "standard", confidence: "observe" },
   isolated_protagonist: { tier: "anchor", confidence: "stable" },
@@ -804,7 +859,18 @@ const CANON_TAG_META = {
   }),
   mind_control_experiment: { tier: "anchor", confidence: "observe" },
   missing_parent: { tier: "standard", confidence: "observe" },
-  missing_person_investigation: { tier: "anchor", confidence: "stable" },
+  missing_person_investigation: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.investigation_frame,
+    families: ['investigation_frame', 'psychological_wound', 'narrative_function'],
+    lanes: ['investigation_media_lane'],
+    useWhen: 'Поиск пропавшего человека, выяснение обстоятельств исчезновения или следы исчезнувшего персонажа являются двигателем расследования и раскрытия угрозы.',
+    avoidWhen: 'Персонаж отсутствует или умер, но расследование исчезновения не является сюжетной рамкой.',
+    examples: ['Project MKHEXE', 'Дневник Рисы'],
+    counterExamples: []
+  }),
   moral_test: { tier: "anchor", confidence: "stable" },
   mountain_wilderness: { tier: "standard", confidence: "observe" },
   mutant_creature: createCanonTagMeta({
@@ -820,7 +886,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   mutant_society: { tier: "standard", confidence: "observe" },
-  myth_reframing: { tier: "anchor", confidence: "stable" },
+  myth_reframing: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['myth_reframing', 'narrative_function'],
+    lanes: ['folk_myth_lane'],
+    useWhen: 'Фильм переосмысляет миф, легенду, сказку, фольклорный сюжет или культурный образ как работающую хоррор-механику.',
+    avoidWhen: 'Есть только визуальная или маркетинговая отсылка к мифу без реального переосмысления в механике ужаса.',
+    examples: [],
+    counterExamples: []
+  }),
   mythic_creature: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -834,7 +911,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   office_space: { tier: "standard", confidence: "stable" },
-  occult_book: { tier: "standard", confidence: "stable" },
+  occult_book: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.investigation_frame,
+    families: ['investigation_frame', 'ritual_mechanism'],
+    lanes: ['investigation_media_lane', 'ritual_occult_lane'],
+    useWhen: 'Книга, дневник, манускрипт, текст, инструкция или архивный источник раскрывает/запускает оккультную механику угрозы.',
+    avoidWhen: 'Книга просто реквизит или источник справочной информации без роли в угрозе/ритуале.',
+    examples: [],
+    counterExamples: []
+  }),
   occult_ritual: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -872,7 +960,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   obsessive_compulsive_behavior: { tier: "standard", confidence: "observe" },
-  paranormal_media: { tier: "anchor", confidence: "stable" },
+  paranormal_media: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.investigation_frame,
+    families: ['investigation_frame', 'threat_origin'],
+    lanes: ['investigation_media_lane', 'supernatural_entity_lane'],
+    useWhen: 'Медиа-материал, запись, съёмка, трансляция, плёнка, фото или цифровой след содержит/передаёт паранормальную угрозу или контакт.',
+    avoidWhen: 'Медиа используется только как формат фильма или обычный способ документирования без паранормального слоя.',
+    examples: ['Дневник Рисы'],
+    counterExamples: []
+  }),
   parent_child_pair: { tier: "standard", confidence: "stable" },
   pirate_setting: { tier: "standard", confidence: "observe" },
   plumbing_horror: { tier: "standard", confidence: "observe" },
@@ -1037,7 +1136,18 @@ const CANON_TAG_META = {
   sick_sibling: { tier: "standard", confidence: "observe" },
   sibling_pair: { tier: "provisional", confidence: "provisional" },
   ski_resort: { tier: "standard", confidence: "stable" },
-  small_town_secret: { tier: "standard", confidence: "observe" },
+  small_town_secret: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.investigation_frame,
+    families: ['investigation_frame', 'human_dynamics'],
+    lanes: ['investigation_media_lane'],
+    useWhen: 'Маленький город, деревня или закрытое сообщество скрывает тайну, преступление, культовую практику, исчезновение или источник угрозы.',
+    avoidWhen: 'Маленький город просто место действия без тайны, заговора или расследовательского слоя.',
+    examples: [],
+    counterExamples: []
+  }),
   snake_attack: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -1152,8 +1262,30 @@ const CANON_TAG_META = {
   underground_dystopia: { tier: "anchor", confidence: "observe" },
   uneasy_alliance: { tier: "standard", confidence: "stable" },
   unrequited_obsession: { tier: "standard", confidence: "observe" },
-  urban_legend_rabbit_hole: { tier: "anchor", confidence: "stable" },
-  vampire_myth_reframing: { tier: "anchor", confidence: "stable" },
+  urban_legend_rabbit_hole: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.investigation_frame,
+    families: ['investigation_frame', 'myth_reframing'],
+    lanes: ['investigation_media_lane', 'folk_myth_lane'],
+    useWhen: 'Персонажи погружаются в городскую легенду, слух, крипипасту, сетевую историю или локальный миф, и расследование постепенно раскрывает реальную угрозу.',
+    avoidWhen: 'Легенда просто упоминается, но нет структуры расследовательского погружения.',
+    examples: ['Project MKHEXE'],
+    counterExamples: []
+  }),
+  vampire: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_origin', 'threat_behavior', 'myth_reframing'],
+    lanes: ['supernatural_entity_lane', 'folk_myth_lane'],
+    useWhen: 'Вампир, вампирская сущность, кровососущая угроза или вампиризм являются центральной механикой угрозы.',
+    avoidWhen: 'Есть только готическая эстетика, кровь, культовый образ или отсылка к вампирам без реальной вампирской угрозы.',
+    examples: ['Дракула'],
+    counterExamples: []
+  }),
   virtual_reality_simulation: createCanonTagMeta({
     tier: "anchor",
     confidence: "observe",
@@ -1459,7 +1591,8 @@ const SIMILARITY_LANE_CONFIG = {
       'haunted_animatronics',
       'supernatural_killer',
       'supernatural_influence',
-      'evil_spirit_resurrection'
+      'evil_spirit_resurrection',
+      'vampire'
     ]
   },
   ritual_occult_lane: {
@@ -1550,8 +1683,8 @@ const SIMILARITY_LANE_CONFIG = {
       'folklore_entity',
       'mythic_creature',
       'myth_reframing',
-      'vampire_myth_reframing',
       'icon_reframing',
+      'vampire',
       'egyptian_theme'
     ]
   },
@@ -1708,7 +1841,14 @@ const CANON_AFFINITY = {
 
   folklore_entity: {
     mythic_creature: 0.35,
-    myth_reframing: 0.15
+    myth_reframing: 0.15,
+    vampire: 0.15
+  },
+
+  vampire: {
+    folklore_entity: 0.15,
+    myth_reframing: 0.2,
+    supernatural_influence: 0.1
   },
 
   wish_with_a_price: {
@@ -2337,6 +2477,7 @@ const TAXONOMY_SUBGENRES = [
   'cannibal_horror',
   'horror_comedy',
   'zombie',
+  'vampire',
   'disaster_horror'
 ];
 
@@ -2367,6 +2508,7 @@ const TAXONOMY_LABELS = {
     cannibal_horror: 'Каннибальский хоррор',
     horror_comedy: 'Хоррор-комедия',
     zombie: 'Зомби-хоррор',
+    vampire: 'Вампирский хоррор',
     disaster_horror: 'Хоррор-катастрофа'
   },
 
@@ -2468,6 +2610,12 @@ const TAXONOMY_REQUIRED_CANON_GROUPS = {
     {
       label: 'механика заражения',
       tags: ['zombie', 'fungal_infection', 'chemical_outbreak', 'rabies_infection', 'spreading_contamination', 'infected_society']
+    }
+  ],
+  vampire: [
+    {
+      label: 'вампирская угроза',
+      tags: ['vampire']
     }
   ],
   body_horror: [
