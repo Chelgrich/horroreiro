@@ -325,7 +325,18 @@ const CANON_TAG_META = {
   anthology_linkage: { tier: "standard", confidence: "stable" },
   apartment_space: { tier: "standard", confidence: "stable" },
   aquatic_space: { tier: "standard", confidence: "stable" },
-  assimilation_pressure: { tier: "standard", confidence: "observe" },
+  assimilation_pressure: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.human_dynamics,
+    families: ['social_contagion', 'psychological_wound', 'human_dynamics'],
+    lanes: ['body_identity_lane'],
+    useWhen: 'Персонаж вынужден подстраиваться, менять тело, идентичность, статус или поведение под давление группы, культуры, семьи или социальной нормы.',
+    avoidWhen: 'Есть обычное социальное давление, но оно не запускает механику ужаса, трансформации или утраты себя.',
+    examples: ['Отклонение'],
+    counterExamples: []
+  }),
   audio_contact: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -364,7 +375,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  body_transformation: { tier: "anchor", confidence: "stable" },
+  body_transformation: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['threat_behavior', 'reality_structure', 'psychological_wound'],
+    lanes: ['body_identity_lane', 'psychological_reality_lane'],
+    useWhen: 'Тело персонажа физически меняется, мутирует, деформируется, распадается или становится носителем ужаса.',
+    avoidWhen: 'Есть раны, gore или обычное насилие, но нет устойчивой механики телесной трансформации.',
+    examples: ['Мать мух', 'Отклонение'],
+    counterExamples: []
+  }),
   boarding_school: { tier: "standard", confidence: "observe" },
   buried_past: createCanonTagMeta({
     tier: "broad",
@@ -379,7 +401,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   bully_retribution: { tier: "standard", confidence: "observe" },
-  cannibalism: { tier: "anchor", confidence: "stable" },
+  cannibalism: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_behavior,
+    families: ['threat_behavior', 'human_dynamics'],
+    lanes: [],
+    useWhen: 'Каннибализм является центральной угрозой, практикой, мотивацией убийцы, социальной системой или телесной механикой ужаса.',
+    avoidWhen: 'Есть единичное упоминание поедания плоти или gore-эпизод, но каннибализм не является рабочей механикой фильма.',
+    examples: ['Протеин', 'Горный король'],
+    counterExamples: []
+  }),
   chemical_outbreak: { tier: "anchor", confidence: "stable" },
   christmas_setting: { tier: "standard", confidence: "stable" },
   childhood_trauma: { tier: "standard", confidence: "stable" },
@@ -735,7 +768,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  human_monstrosity: { tier: "anchor", confidence: "stable" },
+  human_monstrosity: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_behavior,
+    families: ['threat_behavior', 'human_dynamics', 'psychological_wound'],
+    lanes: [],
+    useWhen: 'Человеческая жестокость, деградация, садизм, расчеловечивание или моральная монструозность являются основной угрозой.',
+    avoidWhen: 'Персонаж просто неприятный, опасный или антагонистичный, но человеческая монструозность не является отдельной механикой ужаса.',
+    examples: ['Куколка', 'Протеин'],
+    counterExamples: []
+  }),
   icon_reframing: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -803,7 +847,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  killer_doll: { tier: "standard", confidence: "observe" },
+  killer_doll: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_origin', 'threat_behavior'],
+    lanes: ['supernatural_entity_lane'],
+    useWhen: 'Кукла, манекен, игрушка или искусственная фигура является активной убийственной угрозой.',
+    avoidWhen: 'Кукла присутствует как символ, реквизит или психологическая проекция без самостоятельной угрозы.',
+    examples: ['Морган: Кукла-убийца'],
+    counterExamples: []
+  }),
   killer_duo: { tier: "standard", confidence: "stable" },
   killer_santa: { tier: "anchor", confidence: "observe" },
   liminal_space: { tier: "anchor", confidence: "stable" },
@@ -820,7 +875,18 @@ const CANON_TAG_META = {
     examples: ['Крик 7', 'Незнакомцы: Часть третья'],
     counterExamples: []
   }),
-  maternal_horror: { tier: "anchor", confidence: "stable" },
+  maternal_horror: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.psychological_wound,
+    families: ['psychological_wound', 'human_dynamics'],
+    lanes: ['body_identity_lane', 'psychological_reality_lane'],
+    useWhen: 'Материнство, беременность, утрата ребёнка, родительская вина или материнская идентичность являются центральной механикой ужаса.',
+    avoidWhen: 'Мать или ребёнок есть в сюжете, но материнская тема не формирует угрозу, травму или телесно-психологическую механику.',
+    examples: ['Кожа к коже', 'Рождённый из грязи'],
+    counterExamples: []
+  }),
   media_based_investigation: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -959,7 +1025,18 @@ const CANON_TAG_META = {
     examples: ['Они придут за тобой', 'Я иду искать 2'],
     counterExamples: []
   }),
-  obsessive_compulsive_behavior: { tier: "standard", confidence: "observe" },
+  obsessive_compulsive_behavior: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.psychological_wound,
+    families: ['psychological_wound', 'human_dynamics'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Навязчивое, компульсивное или ритуализированное поведение персонажа влияет на угрозу, восприятие, конфликт или изоляцию.',
+    avoidWhen: 'Поведенческая особенность упомянута поверхностно и не влияет на механику ужаса.',
+    examples: ['Нечто из унитаза'],
+    counterExamples: []
+  }),
   paranormal_media: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -1173,7 +1250,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   social_media_performance: { tier: "anchor", confidence: "stable" },
-  social_status_obsession: { tier: "standard", confidence: "observe" },
+  social_status_obsession: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.psychological_wound,
+    families: ['psychological_wound', 'human_dynamics', 'social_contagion'],
+    lanes: ['psychological_reality_lane', 'body_identity_lane'],
+    useWhen: 'Одержимость статусом, признанием, красотой, нормой или социальной успешностью запускает трансформацию, насилие, утрату себя или психологический распад.',
+    avoidWhen: 'Социальный статус просто важен персонажу, но не становится механизмом ужаса.',
+    examples: ['Отклонение'],
+    counterExamples: []
+  }),
   spatial_loop: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -1187,7 +1275,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   spreading_contamination: { tier: "standard", confidence: "observe" },
-  staged_death: { tier: "standard", confidence: "observe" },
+  staged_death: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['narrative_function', 'threat_behavior'],
+    lanes: [],
+    useWhen: 'Смерть, убийство или тело инсценируются, подделываются или используются как часть манипуляции, расследования, мести или угрозы.',
+    avoidWhen: 'Есть просто смерть персонажа без инсценировки или обмана вокруг неё.',
+    examples: ['Морган: Кукла-убийца'],
+    counterExamples: []
+  }),
   subway_space: { tier: "standard", confidence: "stable" },
   supernatural_influence: createCanonTagMeta({
     tier: "standard",
@@ -1261,7 +1360,18 @@ const CANON_TAG_META = {
   trickster_threat: { tier: "anchor", confidence: "stable" },
   underground_dystopia: { tier: "anchor", confidence: "observe" },
   uneasy_alliance: { tier: "standard", confidence: "stable" },
-  unrequited_obsession: { tier: "standard", confidence: "observe" },
+  unrequited_obsession: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.psychological_wound,
+    families: ['psychological_wound', 'human_dynamics'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Неразделённая любовь, фиксация, ревность или навязчивая привязанность становятся причиной угрозы, насилия, преследования или распада персонажа.',
+    avoidWhen: 'Романтическая линия есть, но навязчивая одержимость не является механизмом ужаса.',
+    examples: ['Морган: Кукла-убийца'],
+    counterExamples: []
+  }),
   urban_legend_rabbit_hole: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
