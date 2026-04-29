@@ -400,7 +400,18 @@ const CANON_TAG_META = {
     examples: ['Она не мать', 'Одержимость Мары'],
     counterExamples: []
   }),
-  deserted_island: { tier: "standard", confidence: "observe" },
+  deserted_island: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'survival_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Изолированный остров является рабочей ловушкой, средой выживания или причиной невозможности быстро покинуть опасность.',
+    avoidWhen: 'Остров просто место действия, но изоляция не влияет на угрозу или структуру выживания.',
+    examples: ['Остров хищника'],
+    counterExamples: []
+  }),
   disabled_child: { tier: "standard", confidence: "observe" },
   distorted_reality: createCanonTagMeta({
     tier: "anchor",
@@ -421,7 +432,18 @@ const CANON_TAG_META = {
   egyptian_theme: { tier: "standard", confidence: "observe" },
   elder_threat: { tier: "standard", confidence: "observe" },
   elite_predation: { tier: "anchor", confidence: "stable" },
-  enemy_pursuit: { tier: "anchor", confidence: "stable" },
+  enemy_pursuit: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_behavior,
+    families: ['threat_behavior', 'pursuit_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Угроза строится на активном преследовании персонажей врагом, убийцей, группой, существом или враждебной силой.',
+    avoidWhen: 'Персонажи просто находятся в опасности, но структура погони/преследования не является центральной.',
+    examples: ['Добыча для невесты'],
+    counterExamples: []
+  }),
   entity_possession: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -459,7 +481,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   feigned_death: { tier: "anchor", confidence: "observe" },
-  flooding_disaster: { tier: "anchor", confidence: "stable" },
+  flooding_disaster: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.structure,
+    families: ['survival_structure', 'setting_type'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Наводнение, затопление или водная катастрофа является центральной физической угрозой и задаёт структуру выживания.',
+    avoidWhen: 'Вода или потоп присутствуют эпизодически, но не формируют survival-механику.',
+    examples: ['Хищный рывок'],
+    counterExamples: []
+  }),
   folklore_entity: { tier: "anchor", confidence: "stable" },
   forest_space: { tier: "standard", confidence: "stable" },
   fractured_memory: { tier: "standard", confidence: "observe" },
@@ -515,7 +548,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   group_paranoia: { tier: "standard", confidence: "observe" },
-  group_survival: { tier: "standard", confidence: "stable" },
+  group_survival: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.structure,
+    families: ['survival_structure', 'human_dynamics'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Выживание строится вокруг группы персонажей: их совместных решений, конфликтов, разделения ролей или распада группы под угрозой.',
+    avoidWhen: 'В фильме есть несколько персонажей, но групповая динамика не влияет на survival-структуру.',
+    examples: ['Монстр', 'Возвращение гремлинов'],
+    counterExamples: []
+  }),
   guilt_manifestation: { tier: "standard", confidence: "observe" },
   hallucinated_presence: { tier: "standard", confidence: "observe" },
   halloween_setting: { tier: "standard", confidence: "stable" },
@@ -543,11 +587,55 @@ const CANON_TAG_META = {
     examples: ['Верни меня из мёртвых', 'Полезный призрак'],
     counterExamples: []
   }),
-  home_confinement: { tier: "anchor", confidence: "stable" },
-  home_infiltration: { tier: "standard", confidence: "stable" },
-  home_under_siege: { tier: "anchor", confidence: "stable" },
+  home_confinement: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.structure,
+    families: ['survival_structure', 'setting_type'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Дом, квартира, хижина или другое жилище работает как место удержания: персонаж не может свободно выйти или вынужден выживать внутри.',
+    avoidWhen: 'Дом просто место действия без механики удержания или невозможности покинуть пространство.',
+    examples: ['Игра со смертью', 'Одиночка'],
+    counterExamples: []
+  }),
+  home_infiltration: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_behavior,
+    families: ['threat_behavior', 'space_mechanism'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Угроза проникает в дом/жилище или нарушает границу безопасного пространства изнутри или снаружи.',
+    avoidWhen: 'Есть просто домашний сеттинг без вторжения, проникновения или нарушения защитной границы.',
+    examples: [],
+    counterExamples: []
+  }),
+  home_under_siege: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.structure,
+    families: ['survival_structure', 'threat_behavior', 'setting_type'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Дом или жилище становится осаждённым пространством: персонажи защищаются от внешней угрозы, вторжения или давления.',
+    avoidWhen: 'Опасность происходит дома, но нет структуры осады/обороны/давления снаружи.',
+    examples: [],
+    counterExamples: []
+  }),
   house_space: { tier: "standard", confidence: "stable" },
-  human_hunt: { tier: "anchor", confidence: "observe" },
+  human_hunt: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.threat_behavior,
+    families: ['threat_behavior', 'pursuit_structure', 'human_dynamics'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Людей целенаправленно выслеживают, преследуют или используют как добычу в охоте, игре, ритуале или социальной системе насилия.',
+    avoidWhen: 'Есть обычное преследование или убийца, но нет структуры охоты на человека как добычу.',
+    examples: [],
+    counterExamples: []
+  }),
   human_monstrosity: { tier: "anchor", confidence: "stable" },
   icon_reframing: { tier: "standard", confidence: "stable" },
   identity_erasure: { tier: "anchor", confidence: "stable" },
@@ -559,7 +647,18 @@ const CANON_TAG_META = {
   isolated_lighthouse: { tier: "standard", confidence: "observe" },
   isolated_protagonist: { tier: "anchor", confidence: "stable" },
   isolated_village: { tier: "standard", confidence: "stable" },
-  kidnapping: { tier: "anchor", confidence: "stable" },
+  kidnapping: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.structure,
+    families: ['survival_structure', 'threat_behavior', 'human_dynamics'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Похищение, удержание или насильственное перемещение персонажа запускает основную угрозу или survival-структуру.',
+    avoidWhen: 'Персонажа просто заманили или он оказался в опасности без явной механики похищения/удержания.',
+    examples: ['Игра со смертью', 'Куколка'],
+    counterExamples: []
+  }),
   killer_creature: createCanonTagMeta({
     tier: "anchor",
     confidence: "observe",
@@ -661,13 +760,35 @@ const CANON_TAG_META = {
     examples: ['Проклятые'],
     counterExamples: ['Астрал. Школа кошмаров']
   }),
-  one_night_survival: { tier: "anchor", confidence: "stable" },
+  one_night_survival: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.structure,
+    families: ['survival_structure', 'temporal_mechanism'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Основная угроза и выживание сжаты в одну ночь, смену, праздник или короткий временной отрезок с нарастающим давлением.',
+    avoidWhen: 'Действие просто происходит ночью, но временное сжатие не является структурой survival-механики.',
+    examples: ['Они придут за тобой', 'Я иду искать 2'],
+    counterExamples: []
+  }),
   obsessive_compulsive_behavior: { tier: "standard", confidence: "observe" },
   paranormal_media: { tier: "anchor", confidence: "stable" },
   parent_child_pair: { tier: "standard", confidence: "stable" },
   pirate_setting: { tier: "standard", confidence: "observe" },
   plumbing_horror: { tier: "standard", confidence: "observe" },
-  post_apocalyptic_survival: { tier: "standard", confidence: "provisional" },
+  post_apocalyptic_survival: createCanonTagMeta({
+    tier: "standard",
+    confidence: "provisional",
+    status: CANON_TAG_STATUSES.provisional,
+    role: CANON_TAG_ROLES.structure,
+    families: ['survival_structure', 'social_contagion'],
+    lanes: ['survival_containment_lane', 'infection_outbreak_lane'],
+    useWhen: 'Выживание происходит после катастрофы, вспышки, распада общества или массового заражения, и новый порядок мира влияет на угрозу.',
+    avoidWhen: 'Есть заражение или катастрофа, но мир ещё не перешёл в постапокалиптическую survival-структуру.',
+    examples: [],
+    counterExamples: []
+  }),
   prank_horror: { tier: "anchor", confidence: "stable" },
   predatory_creature: createCanonTagMeta({
     tier: "anchor",
@@ -707,7 +828,18 @@ const CANON_TAG_META = {
     examples: ['Райский сад', 'Спаситель'],
     counterExamples: []
   }),
-  rescue_mission: { tier: "standard", confidence: "stable" },
+  rescue_mission: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.structure,
+    families: ['narrative_function', 'survival_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Сюжетная цель персонажей — найти, вытащить, спасти или эвакуировать кого-то из опасного пространства/ситуации.',
+    avoidWhen: 'Персонажи просто пытаются выжить сами, без отдельной спасательной задачи.',
+    examples: ['Они придут за тобой'],
+    counterExamples: []
+  }),
   ritualized_punishment: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -750,7 +882,18 @@ const CANON_TAG_META = {
     examples: ['Они придут за тобой', 'Они были ведьмами'],
     counterExamples: []
   }),
-  sadistic_captor: { tier: "anchor", confidence: "stable" },
+  sadistic_captor: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_behavior', 'human_dynamics', 'survival_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Угроза строится вокруг похитителя/мучителя/надзирателя, который удерживает, ломает, воспитывает, пытает или контролирует жертву.',
+    avoidWhen: 'Есть похищение, но личность похитителя не является садистской управляющей угрозой.',
+    examples: ['Куколка'],
+    counterExamples: []
+  }),
   school_space: { tier: "standard", confidence: "stable" },
   scandinavian_setting: { tier: "standard", confidence: "observe" },
   scientific_creature: createCanonTagMeta({
@@ -808,7 +951,18 @@ const CANON_TAG_META = {
     examples: ['Анаконды'],
     counterExamples: []
   }),
-  snow_isolation: { tier: "standard", confidence: "stable" },
+  snow_isolation: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'survival_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Снег, холод, горы, метель или зимняя изоляция ограничивают движение, спасение или выживание персонажей.',
+    avoidWhen: 'Зимний сеттинг есть только как фон и не влияет на угрозу или survival-структуру.',
+    examples: ['Возвращение гремлинов'],
+    counterExamples: []
+  }),
   social_media_performance: { tier: "anchor", confidence: "stable" },
   social_status_obsession: { tier: "standard", confidence: "observe" },
   spatial_loop: { tier: "anchor", confidence: "stable" },
@@ -869,7 +1023,18 @@ const CANON_TAG_META = {
   urban_legend_rabbit_hole: { tier: "anchor", confidence: "stable" },
   vampire_myth_reframing: { tier: "anchor", confidence: "stable" },
   virtual_reality_simulation: { tier: "anchor", confidence: "observe" },
-  war_survival: { tier: "standard", confidence: "observe" },
+  war_survival: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.structure,
+    families: ['survival_structure', 'human_dynamics'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Военная обстановка, оккупация, фронт, лагерь или боевой конфликт задают survival-механику и ограничивают действия персонажей.',
+    avoidWhen: 'Война присутствует только как исторический фон без survival-структуры.',
+    examples: [],
+    counterExamples: []
+  }),
   waterway_space: { tier: "standard", confidence: "observe" },
   wedding_frame: { tier: "standard", confidence: "stable" },
   wish_with_a_price: createCanonTagMeta({
