@@ -463,6 +463,25 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   gap: 8px;
 }
 
+.taxonomy-admin-toolbar {
+  width: 100%;
+  min-height: 0;
+  margin-bottom: 12px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 12px;
+  flex-wrap: wrap;
+}
+
+.taxonomy-admin-toolbar.is-visible {
+  display: flex;
+}
+
+.taxonomy-admin-toolbar .taxonomy-export-button {
+  width: auto;
+  min-width: 0;
+}
+
 .taxonomy-export-button {
   height: 36px;
   white-space: nowrap;

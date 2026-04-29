@@ -1117,15 +1117,15 @@ function ensureTaxonomyAdminToolbar() {
 
   taxonomyAdminToolbar = document.createElement('div');
   taxonomyAdminToolbar.id = 'taxonomyAdminToolbar';
-  taxonomyAdminToolbar.className = 'admin-panel taxonomy-admin-toolbar';
+  taxonomyAdminToolbar.className = 'auth-ui-block admin-panel taxonomy-admin-toolbar';
   taxonomyAdminToolbar.setAttribute('aria-label', 'Инструменты таксономии');
 
   const headerTop = adminPanel.closest('.page-header-top');
-  const insertAfterElement = headerTop || adminPanel.parentElement;
+  const insertBeforeElement = headerTop || adminPanel;
 
-  insertAfterElement.parentNode.insertBefore(
+  insertBeforeElement.parentNode.insertBefore(
     taxonomyAdminToolbar,
-    insertAfterElement.nextSibling
+    insertBeforeElement
   );
 
   return taxonomyAdminToolbar;
