@@ -261,6 +261,120 @@ const BROAD_FAMILY_WEIGHTS = {
   social_contagion: 1.0
 };
 
+const CANON_BROAD_FAMILY_OVERRIDES = {
+  ai_generated: ['reality_structure', 'narrative_function'],
+  anthology_linkage: ['narrative_function'],
+  buried_past: ['narrative_function', 'investigation_frame'],
+  countdown_structure: ['temporal_mechanism', 'narrative_function'],
+  elite_predation: ['threat_behavior', 'human_dynamics'],
+  cult_community: ['human_dynamics', 'ritual_mechanism', 'social_contagion'],
+  family_unit: ['human_dynamics'],
+  group_survival: ['survival_structure', 'human_dynamics'],
+  human_monstrosity: ['threat_behavior', 'human_dynamics'],
+  icon_reframing: ['myth_reframing', 'narrative_function'],
+  isolated_protagonist: ['protagonist_structure'],
+  life_extension: ['ritual_mechanism', 'narrative_function'],
+  moral_test: ['narrative_function'],
+  myth_reframing: ['myth_reframing'],
+  occult_trade: ['ritual_mechanism', 'narrative_function'],
+  one_night_survival: ['survival_structure', 'temporal_mechanism'],
+  prank_horror: ['narrative_function', 'threat_behavior'],
+  rescue_mission: ['narrative_function', 'survival_structure'],
+  revenge_mission: ['narrative_function'],
+  sacrificial_killings: ['ritual_mechanism', 'threat_behavior'],
+  social_media_performance: ['human_dynamics', 'investigation_frame'],
+  trauma_return: ['psychological_wound', 'narrative_function'],
+  uneasy_alliance: ['human_dynamics'],
+  urban_legend_rabbit_hole: ['investigation_frame', 'myth_reframing'],
+  wish_with_a_price: ['ritual_mechanism', 'narrative_function']
+};
+
+const CANON_BROAD_FAMILY_RULES = [
+  { pattern: /(ritual|occult|witch|magic|curse|sacrificial|religious|wish|trade|punishment)/, families: ['ritual_mechanism'] },
+  { pattern: /(alien|creature|entity|ghost|demonic|demon|zombie|infection|curse|folklore|mythic|witch|supernatural|mutant|scientific|haunted|cursed|revenant|vampire|animatronics)/, families: ['threat_origin'] },
+  { pattern: /(killer|predat|attack|hunt|captor|pursuit|stalker|monstrosity|cannibalism|possession|transformation|erasure|contamination|infiltration|resurrection)/, families: ['threat_behavior'] },
+  { pattern: /(survival|trapped|confinement|siege|rescue|isolation|deserted)/, families: ['survival_structure'] },
+  { pattern: /(space|house|village|school|office|park|island|forest|snow|mountain|lighthouse|motel|settlement|wilderness|subway|theater|apartment|barn|road|ruins|waterway|aquatic|bayou|pirate|scandinavian|thanksgiving|christmas|halloween|wedding|boarding|ski|underground)/, families: ['setting_type'] },
+  { pattern: /(family|parent|child|sibling|romantic|relationship|alliance|community|cult|gang|toxic|disabled|sick|bully|social|unrequited)/, families: ['human_dynamics'] },
+  { pattern: /(trauma|grief|guilt|mental|memory|obsession|pressure|status|abuse|breakdown|illness|maternal|childhood)/, families: ['psychological_wound'] },
+  { pattern: /(reality|dimension|loop|body_transfer|distorted|hallucinated|liminal|simulation|time_machine|time_displacement|future_intrusion|dream|memory|identity)/, families: ['reality_structure'] },
+  { pattern: /(time|countdown|christmas|halloween|thanksgiving|future|loop)/, families: ['temporal_mechanism'] },
+  { pattern: /(investigation|media|audio|internet|urban_legend|buried_past|missing_person|paranormal_media|occult_book|small_town_secret)/, families: ['investigation_frame'] },
+  { pattern: /(pursuit|hunt|stalker|enemy)/, families: ['pursuit_structure'] },
+  { pattern: /(spatial_loop|liminal|infrastructure|plumbing|home_infiltration|subway|alternate_dimension|road_space)/, families: ['space_mechanism'] },
+  { pattern: /(myth|folklore|legend|icon_reframing|vampire|egyptian)/, families: ['myth_reframing'] },
+  { pattern: /(isolated_protagonist|protagonist_killer)/, families: ['protagonist_structure'] },
+  { pattern: /(infected_society|group_paranoia|spreading_contamination|assimilation_pressure|cult_community|religious_fundamentalism|social_media)/, families: ['social_contagion'] }
+];
+
+function normalizeBroadFamilies(families = []) {
+  const allowedFamilies = new Set(Object.keys(BROAD_FAMILY_WEIGHTS));
+  const uniqueFamilies = new Set();
+
+  (families || []).forEach(family => {
+    const normalizedFamily = String(family || '').trim();
+
+    if (allowedFamilies.has(normalizedFamily)) {
+      uniqueFamilies.add(normalizedFamily);
+    }
+  });
+
+  return Array.from(uniqueFamilies);
+}
+
+function getCanonTagBroadFamilies(tag) {
+  const normalizedTag = String(tag || '').trim();
+
+  if (!normalizedTag) {
+    return [];
+  }
+
+  const families = [
+    ...(CANON_BROAD_FAMILY_OVERRIDES[normalizedTag] || [])
+  ];
+
+  CANON_BROAD_FAMILY_RULES.forEach(rule => {
+    if (rule.pattern.test(normalizedTag)) {
+      families.push(...rule.families);
+    }
+  });
+
+  return normalizeBroadFamilies(families);
+}
+
+function deriveBroadFamiliesFromCanon(canonTags = []) {
+  const families = [];
+
+  (canonTags || []).forEach(tag => {
+    families.push(...getCanonTagBroadFamilies(tag));
+  });
+
+  return normalizeBroadFamilies(families);
+}
+
+function resolveMovieBroadFamilies(movie) {
+  const canonTags = Array.isArray(movie?.canon)
+    ? movie.canon
+    : Array.isArray(movie?.tags_canon)
+      ? movie.tags_canon
+      : [];
+  const derivedFamilies = deriveBroadFamiliesFromCanon(canonTags);
+
+  if (derivedFamilies.length > 0) {
+    return derivedFamilies;
+  }
+
+  const manualFamilies = Array.isArray(movie?.broadFamilies)
+    ? movie.broadFamilies
+    : Array.isArray(movie?.broad_families)
+      ? movie.broad_families
+      : Array.isArray(movie?.tags_broad_families)
+        ? movie.tags_broad_families
+        : [];
+
+  return normalizeBroadFamilies(manualFamilies);
+}
+
 const FORMAT_WEIGHTS = {
   found_footage: 1.2,
   mockumentary: 1.15,
@@ -617,11 +731,13 @@ function calcMovieSimilarity(movieA, movieB, stats) {
           SIMILARITY_MODEL.SCORE_CAPS.canonAffinity
         );
 
-  const broadNorm = weightedJaccard(
-    movieA.broadFamilies,
-    movieB.broadFamilies,
-    BROAD_FAMILY_WEIGHTS
-  );
+        const movieABroadFamilies = resolveMovieBroadFamilies(movieA);
+        const movieBBroadFamilies = resolveMovieBroadFamilies(movieB);
+        const broadNorm = weightedJaccard(
+          movieABroadFamilies,
+          movieBBroadFamilies,
+          BROAD_FAMILY_WEIGHTS
+        );
   const broadGate = 0.4 + 0.6 * canonNormForGates;
   const broadScore =
     SIMILARITY_MODEL.SCORE_CAPS.broadFamilies * broadNorm * broadGate;
@@ -722,7 +838,7 @@ function getSimilarityExplanation(movieA, movieB) {
   return {
     sharedCanon: getSharedItems(movieA.canon, movieB.canon),
     sharedModifiers: getSharedItems(movieA.modifiers, movieB.modifiers),
-    sharedBroadFamilies: getSharedItems(movieA.broadFamilies, movieB.broadFamilies),
+    sharedBroadFamilies: getSharedItems(resolveMovieBroadFamilies(movieA), resolveMovieBroadFamilies(movieB)),
     sharedFormats: getSharedItems(movieA.formats, movieB.formats),
     sharedGenres: getSharedItems(movieA.extraGenres, movieB.extraGenres),
     sharedCountries: getSharedItems(movieA.countries, movieB.countries)
@@ -1087,6 +1203,8 @@ window.HORROR_TAXONOMY = {
   labels: TAXONOMY_LABELS,
   helpers: {
     resolveMovieSubgenres,
+    deriveBroadFamiliesFromCanon,
+    resolveMovieBroadFamilies,
     validateMovieTags,
     validateTaxonomyMovies,
     getSimilarMovies,
