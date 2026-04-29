@@ -5255,21 +5255,13 @@ function rerenderCatalogWithFallback(
   preserveCardTop = true,
   animateStateAppearance = true
 ) {
-  if (!container && moviePage && currentMoviePageMovieId === movieId) {
-    reloadMoviePageData(movieId)
-      .then(movie => {
-        if (!movie) {
-          renderMoviePageNotFound();
-          return;
-        }
-
-        renderMoviePage(movie);
-      })
-      .catch(error => {
-        console.error('Ошибка перерендера страницы фильма:', error);
-        renderMoviePageNotFound();
-      });
-
+  if (
+    isMoviePage() &&
+    moviePage &&
+    currentMoviePageMovieData &&
+    String(currentMoviePageMovieId) === String(movieId)
+  ) {
+    renderMoviePage(currentMoviePageMovieData);
     return;
   }
 
