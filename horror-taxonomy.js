@@ -4381,9 +4381,6 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       const hasExplicitGroupSurvivalFrame = hasAnyCanonCoverageValue(canon, [
         'group_paranoia',
         'uneasy_alliance',
-        'family_unit',
-        'sibling_pair',
-        'parent_child_pair',
         'cult_community'
       ]);
       const hasExplicitContainmentFrame = hasAnyCanonCoverageValue(canon, [
