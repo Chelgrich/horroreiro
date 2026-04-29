@@ -40,6 +40,7 @@ const authMessage = document.getElementById('authMessage');
 
 const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
+let taxonomyDiagnosticsButton = null;
 let taxonomyJsonExportButton = null;
 let taxonomyImportButton = null;
 let taxonomyImportFileInput = null;
@@ -517,6 +518,10 @@ function setTaxonomyImportControlsDisabled(isDisabled) {
   if (taxonomyJsonExportButton) {
     taxonomyJsonExportButton.disabled = isDisabled;
   }
+
+  if (taxonomyDiagnosticsButton) {
+    taxonomyDiagnosticsButton.disabled = isDisabled;
+  }
 }
 
 async function applyTaxonomyImportUpdates(updates) {
@@ -733,9 +738,101 @@ async function exportMovieTaxonomyJsonData() {
   }
 }
 
+function countTaxonomyDiagnosticsWarnings(diagnostics) {
+  return diagnostics.reduce((sum, item) => sum + item.warnings.length, 0);
+}
+
+function formatTaxonomyDiagnosticsReport(diagnostics, totalMoviesCount) {
+  const warningsCount = countTaxonomyDiagnosticsWarnings(diagnostics);
+  const reportLines = [
+    'Диагностика тегов Хоррорейро',
+    '',
+    `Проверено фильмов: ${totalMoviesCount}`,
+    `Проблемных фильмов: ${diagnostics.length}`,
+    `Предупреждений: ${warningsCount}`,
+    ''
+  ];
+
+  if (diagnostics.length === 0) {
+    reportLines.push('Проблем не найдено.');
+    return reportLines.join('\n');
+  }
+
+  diagnostics.forEach((item, index) => {
+    reportLines.push(`${index + 1}. ${item.title || 'Без названия'}`);
+
+    item.warnings.forEach(warning => {
+      reportLines.push(`   — ${warning.message}`);
+
+      if (Array.isArray(warning.expectedTags) && warning.expectedTags.length > 0) {
+        reportLines.push(`     Ожидаемые теги: ${warning.expectedTags.join(', ')}`);
+      }
+    });
+
+    reportLines.push('');
+  });
+
+  return reportLines.join('\n').trim();
+}
+
+async function runTaxonomyDiagnostics() {
+  try {
+    const validateTaxonomyMovies = window.HORROR_TAXONOMY?.helpers?.validateTaxonomyMovies;
+
+    if (typeof validateTaxonomyMovies !== 'function') {
+      showAuthMessage('Диагностика тегов недоступна: не найден validateTaxonomyMovies.', 'error', true);
+      return;
+    }
+
+    const sortedMovies = await ensureMoviesForTaxonomyExport();
+
+    if (sortedMovies.length === 0) {
+      return;
+    }
+
+    const diagnostics = validateTaxonomyMovies(sortedMovies);
+    const warningsCount = countTaxonomyDiagnosticsWarnings(diagnostics);
+    const report = formatTaxonomyDiagnosticsReport(diagnostics, sortedMovies.length);
+
+    console.groupCollapsed(`Диагностика тегов: ${diagnostics.length} фильмов, ${warningsCount} предупреждений`);
+    console.log(report);
+    console.log(diagnostics);
+    console.groupEnd();
+
+    if (diagnostics.length === 0) {
+      showAuthMessage(`Диагностика тегов завершена: ${sortedMovies.length} фильмов, проблем не найдено.`, 'success', true);
+      return;
+    }
+
+    const datePart = new Date().toISOString().slice(0, 10);
+
+    downloadTextFile(
+      `horroreiro-taxonomy-diagnostics-${datePart}.txt`,
+      report,
+      'text/plain;charset=utf-8'
+    );
+
+    showAuthMessage(`Диагностика тегов: ${diagnostics.length} фильмов, ${warningsCount} предупреждений. Отчёт скачан.`, 'error', true);
+  } catch (error) {
+    console.error('Ошибка диагностики тегов:', error);
+    showAuthMessage(`Ошибка диагностики тегов: ${error.message || 'смотри консоль F12.'}`, 'error', true);
+  }
+}
+
 function initTaxonomyExportButton() {
-  if (!adminPanel || (taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
+  if (!adminPanel || (taxonomyDiagnosticsButton && taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
     return;
+  }
+
+  if (!taxonomyDiagnosticsButton) {
+    taxonomyDiagnosticsButton = document.createElement('button');
+    taxonomyDiagnosticsButton.type = 'button';
+    taxonomyDiagnosticsButton.id = 'taxonomyDiagnosticsButton';
+    taxonomyDiagnosticsButton.className = 'secondary-button secondary-button-compact taxonomy-export-button';
+    taxonomyDiagnosticsButton.textContent = 'Диагностика тегов';
+    taxonomyDiagnosticsButton.title = 'Проверить теги всех фильмов и скачать отчёт с предупреждениями';
+
+    taxonomyDiagnosticsButton.addEventListener('click', runTaxonomyDiagnostics);
   }
 
   if (!taxonomyJsonExportButton) {
@@ -774,6 +871,7 @@ function initTaxonomyExportButton() {
   adminPanel.prepend(taxonomyImportFileInput);
   adminPanel.prepend(taxonomyImportButton);
   adminPanel.prepend(taxonomyJsonExportButton);
+  adminPanel.prepend(taxonomyDiagnosticsButton);
 }
 
 function getSelectedTriggerFilters() {
