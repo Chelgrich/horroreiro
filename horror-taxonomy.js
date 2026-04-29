@@ -35,6 +35,11 @@ const SIMILARITY_MODEL = {
   }
 };
 
+const HORROR_TAXONOMY_SCRIPT_URL =
+  typeof document !== 'undefined' && document.currentScript?.src
+    ? document.currentScript.src
+    : '';
+
 /*
  * РЕГЛАМЕНТ CANON_TAG_META / TAXONOMY 2.0
  *
@@ -137,6 +142,131 @@ function getCanonTagMetaArray(tag, fieldName) {
   return values
     .map(value => String(value || '').trim())
     .filter(Boolean);
+}
+
+function extractObjectLiteralBodyFromSource(source, startToken) {
+  const startIndex = source.indexOf(startToken);
+
+  if (startIndex === -1) {
+    return '';
+  }
+
+  const openIndex = source.indexOf('{', startIndex);
+
+  if (openIndex === -1) {
+    return '';
+  }
+
+  let depth = 0;
+  let quote = null;
+  let isEscaped = false;
+
+  for (let index = openIndex; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (quote) {
+      if (isEscaped) {
+        isEscaped = false;
+        continue;
+      }
+
+      if (char === '\\') {
+        isEscaped = true;
+        continue;
+      }
+
+      if (char === quote) {
+        quote = null;
+      }
+
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+      continue;
+    }
+
+    if (char === '{') {
+      depth += 1;
+      continue;
+    }
+
+    if (char === '}') {
+      depth -= 1;
+
+      if (depth === 0) {
+        return source.slice(openIndex + 1, index);
+      }
+    }
+  }
+
+  return '';
+}
+
+function getDuplicateCanonTagMetaKeysFromSource(source) {
+  const objectBody = extractObjectLiteralBodyFromSource(source, 'const CANON_TAG_META =');
+
+  if (!objectBody) {
+    return [];
+  }
+
+  const keyMatches = Array.from(objectBody.matchAll(/^\s{2}([A-Za-z_$][\w$]*)\s*:/gm));
+  const firstSeenIndexByKey = new Map();
+  const duplicates = [];
+
+  keyMatches.forEach((match, index) => {
+    const key = match[1];
+
+    if (firstSeenIndexByKey.has(key)) {
+      duplicates.push({
+        key,
+        firstIndex: firstSeenIndexByKey.get(key),
+        duplicateIndex: index
+      });
+      return;
+    }
+
+    firstSeenIndexByKey.set(key, index);
+  });
+
+  return duplicates;
+}
+
+async function auditCanonTagMetaRegistrySource() {
+  if (!HORROR_TAXONOMY_SCRIPT_URL || typeof fetch !== 'function') {
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'Не удалось определить URL horror-taxonomy.js для статической проверки.'
+    };
+  }
+
+  try {
+    const response = await fetch(HORROR_TAXONOMY_SCRIPT_URL, {
+      cache: 'no-store'
+    });
+    const source = await response.text();
+    const duplicateKeys = getDuplicateCanonTagMetaKeysFromSource(source);
+    const report = {
+      ok: duplicateKeys.length === 0,
+      duplicateKeys
+    };
+
+    if (duplicateKeys.length > 0) {
+      console.error('CANON_TAG_META: найдены дубли ключей.', duplicateKeys);
+    }
+
+    return report;
+  } catch (error) {
+    console.warn('CANON_TAG_META: не удалось выполнить статическую проверку дублей.', error);
+
+    return {
+      ok: false,
+      skipped: true,
+      error
+    };
+  }
 }
 
 const CANON_TAG_META = {
@@ -2840,6 +2970,11 @@ window.HORROR_TAXONOMY = {
     getCanonCoverageAuditReport,
     getSimilarMovies,
     getSimilarityAuditReport,
-    getSimilarMovieCards
+    getSimilarMovieCards,
+    auditCanonTagMetaRegistrySource
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.HORROR_TAXONOMY_REGISTRY_AUDIT = auditCanonTagMetaRegistrySource();
+}
