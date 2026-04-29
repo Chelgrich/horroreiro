@@ -283,7 +283,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   abuse_trauma: { tier: "standard", confidence: "stable" },
-  ai_generated: { tier: "standard", confidence: "observe" },
+  ai_generated: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.format_bridge,
+    families: ['reality_structure', 'narrative_function'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'AI-генерация, искусственно созданная образность или машинная природа фильма является заметной частью хоррор-эффекта, формы или концепции.',
+    avoidWhen: 'AI использовался только производственно или маркетингово, но не влияет на восприятие, структуру или механику ужаса.',
+    examples: ['Дракула'],
+    counterExamples: []
+  }),
   alien_creature: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -637,7 +648,6 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   dysfunctional_relationship: { tier: "standard", confidence: "stable" },
-  educational_pressure: { tier: "standard", confidence: "observe" },
   egyptian_theme: { tier: "standard", confidence: "observe" },
   elder_threat: createCanonTagMeta({
     tier: "standard",
@@ -771,7 +781,18 @@ const CANON_TAG_META = {
     examples: ['Под светом'],
     counterExamples: []
   }),
-  future_intrusion: { tier: "standard", confidence: "observe" },
+  future_intrusion: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.temporal_mechanism,
+    families: ['temporal_mechanism', 'reality_structure'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Будущее, будущая версия персонажа, будущая угроза или знание о будущем вторгаются в настоящее и меняют механику ужаса.',
+    avoidWhen: 'Есть обычное предсказание, тревога о будущем или флэшфорвард без реального вмешательства будущего в события.',
+    examples: ['Diabolisch'],
+    counterExamples: []
+  }),
   fungal_infection: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -1137,7 +1158,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   liminal_space: { tier: "anchor", confidence: "stable" },
-  life_extension: { tier: "standard", confidence: "stable" },
+  life_extension: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['ritual_mechanism', 'narrative_function', 'threat_behavior'],
+    lanes: ['ritual_occult_lane'],
+    useWhen: 'Продление жизни, омоложение, бессмертие или сохранение тела/сознания является целью угрозы, ритуала, эксперимента или эксплуатации жертв.',
+    avoidWhen: 'Персонаж просто стар, болен или боится смерти, но продление жизни не является рабочей механикой.',
+    examples: ['Они придут за тобой'],
+    counterExamples: []
+  }),
   masked_killer: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -1198,7 +1230,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  mind_control_experiment: { tier: "anchor", confidence: "observe" },
+  mind_control_experiment: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['conspiracy_mechanism', 'reality_structure', 'threat_behavior'],
+    lanes: ['psychological_reality_lane', 'investigation_media_lane'],
+    useWhen: 'Контроль сознания, поведенческое программирование, психоэксперимент или вмешательство в волю персонажа является центральной механикой угрозы.',
+    avoidWhen: 'Есть обычная манипуляция, внушение или давление без подтверждённой экспериментальной/системной механики контроля сознания.',
+    examples: ['Project MKHEXE'],
+    counterExamples: []
+  }),
   missing_parent: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -1453,7 +1496,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  reality_intrusion: { tier: "standard", confidence: "provisional" },
+  reality_intrusion: createCanonTagMeta({
+    tier: "standard",
+    confidence: "provisional",
+    status: CANON_TAG_STATUSES.provisional,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['reality_structure', 'threat_origin'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Иная реальность, вымышленный слой, медиа-образ, сон, симуляция или альтернативный пласт мира вторгается в обычную реальность персонажей.',
+    avoidWhen: 'Реальность просто искажена субъективно — тогда чаще подходит distorted_reality, hallucinated_presence или alternate_dimension.',
+    examples: [],
+    counterExamples: []
+  }),
   religious_fundamentalism: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -1623,7 +1677,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  scientific_experiment: { tier: "standard", confidence: "stable" },
+  scientific_experiment: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['threat_origin', 'narrative_function'],
+    lanes: [],
+    useWhen: 'Научный эксперимент, лабораторное исследование, технологическое вмешательство или исследовательская ошибка запускают угрозу.',
+    avoidWhen: 'Наука, лаборатория или учёные есть в сеттинге, но эксперимент не является причиной horror-механики.',
+    examples: ['Diabolisch'],
+    counterExamples: []
+  }),
   scuba_killer: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -1829,7 +1894,18 @@ const CANON_TAG_META = {
     examples: ['Джестер 2'],
     counterExamples: []
   }),
-  terminal_illness: { tier: "standard", confidence: "stable" },
+  terminal_illness: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.psychological_wound,
+    families: ['psychological_wound', 'narrative_function'],
+    lanes: ['psychological_reality_lane', 'ritual_occult_lane'],
+    useWhen: 'Смертельная болезнь, неизлечимое состояние или близость смерти мотивируют ритуал, сделку, эксперимент, распад или моральный выбор.',
+    avoidWhen: 'Болезнь упомянута биографически, но не влияет на угрозу или мотивацию.',
+    examples: ['Проклятые'],
+    counterExamples: []
+  }),
   theater_space: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -1867,7 +1943,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  time_machine_experiment: { tier: "anchor", confidence: "observe" },
+  time_machine_experiment: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.temporal_mechanism,
+    families: ['temporal_mechanism', 'reality_structure'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Машина времени, научный временной эксперимент или технологическое вмешательство во время запускают угрозу, петлю, сдвиг или вторжение будущего/прошлого.',
+    avoidWhen: 'Есть временной сдвиг без экспериментальной машины/устройства — тогда использовать time_displacement или time_loop.',
+    examples: [],
+    counterExamples: []
+  }),
   toxic_parent: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -1880,7 +1967,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  transfer_death: { tier: "provisional", confidence: "provisional" },
+  transfer_death: createCanonTagMeta({
+    tier: "standard",
+    confidence: "provisional",
+    status: CANON_TAG_STATUSES.provisional,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['threat_behavior', 'narrative_function', 'ritual_mechanism'],
+    lanes: ['ritual_occult_lane'],
+    useWhen: 'Смерть, проклятие, ущерб или фатальное последствие можно перенести на другого человека, тело, жертву или носителя.',
+    avoidWhen: 'Есть обычная передача проклятия без механики переноса именно смерти/фатальной расплаты — тогда использовать transferable_curse.',
+    examples: [],
+    counterExamples: []
+  }),
   transferable_curse: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
