@@ -982,6 +982,44 @@ async function runTaxonomySimilarityAudit() {
   }
 }
 
+function formatCanonCoverageCandidate(candidate) {
+  return [
+    `   — [${candidate.priorityLabel || candidate.priority || '—'}] ${candidate.label}`,
+    `     Причина: ${candidate.reason}`,
+    `     Триггеры: ${candidate.triggerTags.length ? candidate.triggerTags.join(', ') : '—'}`,
+    `     Проверить теги: ${candidate.suggestedTags.join(', ')}`
+  ].join('\n');
+}
+
+function formatCanonCoverageAuditSection(lines, title, items, priority) {
+  const sectionItems = items
+    .map(item => ({
+      movie: item.movie,
+      candidates: item.candidates.filter(candidate => candidate.priority === priority)
+    }))
+    .filter(item => item.candidates.length > 0);
+
+  lines.push('');
+  lines.push(title);
+  lines.push('');
+
+  if (sectionItems.length === 0) {
+    lines.push('—');
+    return;
+  }
+
+  sectionItems.forEach((item, index) => {
+    const movieYear = item.movie.year ? ` (${item.movie.year})` : '';
+    lines.push(`${index + 1}. ${item.movie.title}${movieYear}`);
+
+    item.candidates.forEach(candidate => {
+      lines.push(formatCanonCoverageCandidate(candidate));
+    });
+
+    lines.push('');
+  });
+}
+
 function formatCanonCoverageAuditReport(audit) {
   const lines = [
     'Аудит canon-покрытия Хоррорейро',
@@ -989,28 +1027,31 @@ function formatCanonCoverageAuditReport(audit) {
     `Проверено фильмов: ${audit.totalMovies}`,
     `Фильмов с кандидатами: ${audit.moviesWithCandidates}`,
     `Групп кандидатов: ${audit.candidatesCount}`,
-    '',
-    'КАНДИДАТЫ НА РУЧНУЮ ПРОВЕРКУ',
-    ''
+    `Высокий приоритет: ${audit.priorityCounts?.high || 0}`,
+    `Средний приоритет: ${audit.priorityCounts?.medium || 0}`,
+    `Низкий приоритет: ${audit.priorityCounts?.low || 0}`
   ];
 
-  if (!audit.items.length) {
-    lines.push('—');
-  } else {
-    audit.items.forEach((item, index) => {
-      const movieYear = item.movie.year ? ` (${item.movie.year})` : '';
-      lines.push(`${index + 1}. ${item.movie.title}${movieYear}`);
+  formatCanonCoverageAuditSection(
+    lines,
+    'ВЫСОКИЙ ПРИОРИТЕТ',
+    audit.items,
+    'high'
+  );
 
-      item.candidates.forEach(candidate => {
-        lines.push(`   — ${candidate.label}`);
-        lines.push(`     Причина: ${candidate.reason}`);
-        lines.push(`     Триггеры: ${candidate.triggerTags.length ? candidate.triggerTags.join(', ') : '—'}`);
-        lines.push(`     Проверить теги: ${candidate.suggestedTags.join(', ')}`);
-      });
+  formatCanonCoverageAuditSection(
+    lines,
+    'СРЕДНИЙ ПРИОРИТЕТ',
+    audit.items,
+    'medium'
+  );
 
-      lines.push('');
-    });
-  }
+  formatCanonCoverageAuditSection(
+    lines,
+    'НИЗКИЙ ПРИОРИТЕТ / СЛАБЫЕ НАПОМИНАНИЯ',
+    audit.items,
+    'low'
+  );
 
   lines.push('');
   lines.push('ЧАСТО ПРЕДЛАГАЕМЫЕ CANON-ТЕГИ');

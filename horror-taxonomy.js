@@ -1788,49 +1788,368 @@ function hasAnyCanonCoverageValue(values = [], expectedValues = []) {
   return (expectedValues || []).some(value => valueSet.has(value));
 }
 
-function getCanonCoverageSuggestions(rule, canonSet) {
-  return (rule.suggestAny || []).filter(tag => !canonSet.has(tag));
+const CANON_COVERAGE_PRIORITY_LABELS = {
+  high: 'Высокий',
+  medium: 'Средний',
+  low: 'Низкий'
+};
+
+const CANON_COVERAGE_PRIORITY_ORDER = {
+  high: 0,
+  medium: 1,
+  low: 2
+};
+
+function getCanonCoverageMissingTags(canonSet, tags = [], limit = 4) {
+  const missingTags = (tags || []).filter(tag => !canonSet.has(tag));
+  return typeof limit === 'number' ? missingTags.slice(0, limit) : missingTags;
+}
+
+function getCanonCoverageRuleTriggers(rule, canonSet, perceivedSet) {
+  return [
+    ...(rule.whenAny || []).filter(tag => canonSet.has(tag)),
+    ...(rule.whenPerceivedAny || []).filter(tag => perceivedSet.has(tag))
+  ];
+}
+
+function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
+  const canon = Array.from(canonSet);
+  const perceived = Array.from(perceivedSet);
+  const hasCanonTrigger = hasAnyCanonCoverageValue(canon, rule.whenAny);
+  const hasPerceivedTrigger = hasAnyCanonCoverageValue(perceived, rule.whenPerceivedAny);
+
+  if (!hasCanonTrigger && !hasPerceivedTrigger) {
+    return null;
+  }
+
+  const alreadyHasRefinement = hasAnyCanonCoverageValue(canon, rule.suggestAny);
+
+  if (alreadyHasRefinement) {
+    return null;
+  }
+
+  switch (rule.code) {
+    case 'possession_refinement': {
+      const suggestedTags = getCanonCoverageMissingTags(
+        canonSet,
+        ['demonic_possession', 'ghost_possession', 'entity_possession'],
+        3
+      );
+
+      return {
+        priority: 'high',
+        reason: 'Perceived указывает на possession, но canon не уточняет тип одержимости.',
+        suggestedTags
+      };
+    }
+
+    case 'masked_killer_refinement': {
+      const hasKillerType = hasAnyCanonCoverageValue(canon, [
+        'serial_killer',
+        'trauma_driven_killer',
+        'supernatural_killer',
+        'revenant_killer',
+        'protagonist_killer',
+        'killer_duo',
+        'killer_santa',
+        'scuba_killer'
+      ]);
+
+      if (hasKillerType) {
+        return null;
+      }
+
+      const suggestedTags = getCanonCoverageMissingTags(
+        canonSet,
+        perceivedSet.has('survival_horror')
+          ? ['serial_killer', 'enemy_pursuit', 'one_night_survival']
+          : ['serial_killer', 'trauma_driven_killer', 'supernatural_killer'],
+        3
+      );
+
+      return {
+        priority: 'high',
+        reason: 'Есть masked_killer, но не указан тип убийцы или структура преследования.',
+        suggestedTags
+      };
+    }
+
+    case 'predatory_creature_refinement': {
+      const hasCreatureType = hasAnyCanonCoverageValue(canon, [
+        'shark_attack',
+        'snake_attack',
+        'giant_creature',
+        'mutant_creature',
+        'mythic_creature',
+        'scientific_creature',
+        'alien_creature',
+        'killer_creature',
+        'creature_conflict',
+        'rabies_infection'
+      ]);
+
+      if (hasCreatureType) {
+        return null;
+      }
+
+      if (canonSet.has('aquatic_space')) {
+        return null;
+      }
+
+      const suggestedTags = getCanonCoverageMissingTags(
+        canonSet,
+        ['giant_creature', 'mutant_creature', 'scientific_creature', 'killer_creature'],
+        4
+      );
+
+      return {
+        priority: 'medium',
+        reason: 'Есть predatory_creature без более конкретного типа существа; проверить только если природа монстра явно известна.',
+        suggestedTags
+      };
+    }
+
+    case 'occult_ritual_refinement': {
+      const suggestedTags = [];
+
+      if (canonSet.has('terminal_illness')) {
+        suggestedTags.push('wish_with_a_price', 'life_extension');
+      }
+
+      if (canonSet.has('sacrificial_killings')) {
+        suggestedTags.push('cult_community', 'ritualized_punishment');
+      }
+
+      if (canonSet.has('religious_fundamentalism')) {
+        suggestedTags.push('ritualized_punishment', 'cult_community');
+      }
+
+      const missingTags = getCanonCoverageMissingTags(canonSet, suggestedTags, 3);
+
+      if (missingTags.length === 0) {
+        return null;
+      }
+
+      return {
+        priority: 'medium',
+        reason: 'Есть occult_ritual и дополнительный контекст, который может требовать точного уточнения механики.',
+        suggestedTags: missingTags
+      };
+    }
+
+    case 'family_unit_refinement': {
+      const suggestedTags = [];
+
+      if (canonSet.has('grief_trauma')) {
+        suggestedTags.push('parent_child_pair', 'intergenerational_trauma', 'toxic_parent');
+      }
+
+      if (canonSet.has('demonic_possession') || canonSet.has('entity_possession')) {
+        suggestedTags.push('parent_child_pair', 'toxic_parent');
+      }
+
+      const missingTags = getCanonCoverageMissingTags(canonSet, suggestedTags, 3);
+
+      if (missingTags.length === 0) {
+        return null;
+      }
+
+      return {
+        priority: 'low',
+        reason: 'Есть family_unit с травматическим или сверхъестественным контекстом; возможно, семейную связь стоит уточнить.',
+        suggestedTags: missingTags
+      };
+    }
+
+    case 'grief_trauma_refinement': {
+      const suggestedTags = [];
+
+      if (canonSet.has('distorted_reality') || canonSet.has('hallucinated_presence')) {
+        suggestedTags.push('guilt_manifestation', 'fractured_memory');
+      }
+
+      if (canonSet.has('buried_past') || canonSet.has('media_based_investigation')) {
+        suggestedTags.push('missing_person_investigation', 'childhood_trauma');
+      }
+
+      if (canonSet.has('family_unit')) {
+        suggestedTags.push('intergenerational_trauma', 'parent_child_pair');
+      }
+
+      const missingTags = getCanonCoverageMissingTags(canonSet, suggestedTags, 3);
+
+      if (missingTags.length === 0) {
+        return null;
+      }
+
+      return {
+        priority: 'low',
+        reason: 'Есть grief_trauma с дополнительным механизмом; возможно, травму стоит уточнить.',
+        suggestedTags: missingTags
+      };
+    }
+
+    case 'investigation_media_refinement': {
+      const suggestedTags = [];
+
+      if (canonSet.has('media_based_investigation') && canonSet.has('buried_past')) {
+        suggestedTags.push('missing_person_investigation', 'occult_book', 'urban_legend_rabbit_hole');
+      }
+
+      if (canonSet.has('paranormal_media')) {
+        suggestedTags.push('audio_contact');
+      }
+
+      const missingTags = getCanonCoverageMissingTags(canonSet, suggestedTags, 3);
+
+      if (missingTags.length === 0) {
+        return null;
+      }
+
+      return {
+        priority: 'medium',
+        reason: 'Есть медиа- или расследовательская рамка с дополнительным контекстом; возможно, нужно уточнить источник расследования.',
+        suggestedTags: missingTags
+      };
+    }
+
+    case 'trapped_survival_refinement': {
+      const suggestedTags = [];
+
+      if (canonSet.has('house_space') || canonSet.has('isolated_house')) {
+        suggestedTags.push('home_confinement', 'home_under_siege');
+      }
+
+      if (canonSet.has('forest_space')) {
+        suggestedTags.push('group_survival', 'enemy_pursuit', 'rescue_mission');
+      }
+
+      if (canonSet.has('snow_isolation')) {
+        suggestedTags.push('group_survival', 'rescue_mission');
+      }
+
+      const missingTags = getCanonCoverageMissingTags(canonSet, suggestedTags, 3);
+
+      if (missingTags.length === 0) {
+        return null;
+      }
+
+      return {
+        priority: 'medium',
+        reason: 'Есть trapped_survival и конкретная среда; возможно, структуру удержания/выживания стоит уточнить.',
+        suggestedTags: missingTags
+      };
+    }
+
+    case 'distorted_reality_refinement': {
+      const suggestedTags = [];
+
+      if (canonSet.has('countdown_structure')) {
+        suggestedTags.push('time_loop');
+      }
+
+      if (canonSet.has('grief_trauma')) {
+        suggestedTags.push('guilt_manifestation', 'fractured_memory');
+      }
+
+      const missingTags = getCanonCoverageMissingTags(canonSet, suggestedTags, 3);
+
+      if (missingTags.length === 0) {
+        return null;
+      }
+
+      return {
+        priority: 'low',
+        reason: 'Есть distorted_reality с дополнительным контекстом; возможно, механизм искажения стоит уточнить.',
+        suggestedTags: missingTags
+      };
+    }
+
+    case 'survival_horror_structure': {
+      const hasSurvivalStructure = hasAnyCanonCoverageValue(canon, [
+        'trapped_survival',
+        'group_survival',
+        'one_night_survival',
+        'home_under_siege',
+        'enemy_pursuit',
+        'human_hunt',
+        'rescue_mission',
+        'post_apocalyptic_survival',
+        'war_survival'
+      ]);
+
+      if (hasSurvivalStructure) {
+        return null;
+      }
+
+      const suggestedTags = [];
+
+      if (hasAnyCanonCoverageValue(canon, ['zombie', 'fungal_infection', 'chemical_outbreak', 'infected_society'])) {
+        suggestedTags.push('group_survival', 'post_apocalyptic_survival');
+      }
+
+      if (hasAnyCanonCoverageValue(canon, ['predatory_creature', 'shark_attack', 'snake_attack', 'giant_creature'])) {
+        suggestedTags.push('trapped_survival', 'group_survival', 'enemy_pursuit');
+      }
+
+      if (canonSet.has('isolated_protagonist')) {
+        suggestedTags.push('trapped_survival');
+      }
+
+      const missingTags = getCanonCoverageMissingTags(canonSet, suggestedTags, 3);
+
+      if (missingTags.length === 0) {
+        return null;
+      }
+
+      return {
+        priority: 'low',
+        reason: 'Фильм воспринимается как survival_horror; есть контекст, который может указывать на конкретную структуру выживания.',
+        suggestedTags: missingTags
+      };
+    }
+
+    default:
+      return null;
+  }
 }
 
 function getCanonCoverageAuditItemsForMovie(movie = {}) {
   const canon = getCanonCoverageValues(movie, ['canon', 'tags_canon']);
   const perceived = getCanonCoverageValues(movie, ['tags_perceived', 'perceived']);
   const canonSet = new Set(canon);
+  const perceivedSet = new Set(perceived);
   const items = [];
 
   CANON_COVERAGE_AUDIT_RULES.forEach(rule => {
-    const hasCanonTrigger = hasAnyCanonCoverageValue(canon, rule.whenAny);
-    const hasPerceivedTrigger = hasAnyCanonCoverageValue(perceived, rule.whenPerceivedAny);
+    const candidate = getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet);
 
-    if (!hasCanonTrigger && !hasPerceivedTrigger) {
-      return;
-    }
-
-    const alreadyHasRefinement = hasAnyCanonCoverageValue(canon, rule.suggestAny);
-
-    if (alreadyHasRefinement) {
-      return;
-    }
-
-    const suggestedTags = getCanonCoverageSuggestions(rule, canonSet);
-
-    if (suggestedTags.length === 0) {
+    if (!candidate || candidate.suggestedTags.length === 0) {
       return;
     }
 
     items.push({
       code: rule.code,
       label: rule.label,
-      reason: rule.reason,
-      triggerTags: [
-        ...(rule.whenAny || []).filter(tag => canonSet.has(tag)),
-        ...(rule.whenPerceivedAny || []).filter(tag => perceived.includes(tag))
-      ],
-      suggestedTags
+      priority: candidate.priority,
+      priorityLabel: CANON_COVERAGE_PRIORITY_LABELS[candidate.priority] || candidate.priority,
+      reason: candidate.reason,
+      triggerTags: getCanonCoverageRuleTriggers(rule, canonSet, perceivedSet),
+      suggestedTags: candidate.suggestedTags
     });
   });
 
-  return items;
+  return items.sort((a, b) => {
+    const priorityDiff =
+      (CANON_COVERAGE_PRIORITY_ORDER[a.priority] ?? 99) -
+      (CANON_COVERAGE_PRIORITY_ORDER[b.priority] ?? 99);
+
+    if (priorityDiff !== 0) {
+      return priorityDiff;
+    }
+
+    return a.label.localeCompare(b.label);
+  });
 }
 
 function getCanonCoverageAuditReport(movies = []) {
@@ -1842,9 +2161,16 @@ function getCanonCoverageAuditReport(movies = []) {
     .filter(item => item.candidates.length > 0);
 
   const tagFrequency = {};
+  const priorityCounts = {
+    high: 0,
+    medium: 0,
+    low: 0
+  };
 
   items.forEach(item => {
     item.candidates.forEach(candidate => {
+      priorityCounts[candidate.priority] = (priorityCounts[candidate.priority] || 0) + 1;
+
       candidate.suggestedTags.forEach(tag => {
         tagFrequency[tag] = (tagFrequency[tag] || 0) + 1;
       });
@@ -1855,6 +2181,7 @@ function getCanonCoverageAuditReport(movies = []) {
     totalMovies: (movies || []).length,
     moviesWithCandidates: items.length,
     candidatesCount: items.reduce((sum, item) => sum + item.candidates.length, 0),
+    priorityCounts,
     items,
     suggestedTagsFrequency: Object.entries(tagFrequency)
       .map(([tag, count]) => ({ tag, count }))
