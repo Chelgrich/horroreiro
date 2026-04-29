@@ -1120,7 +1120,13 @@ function ensureTaxonomyAdminToolbar() {
   taxonomyAdminToolbar.className = 'admin-panel taxonomy-admin-toolbar';
   taxonomyAdminToolbar.setAttribute('aria-label', 'Инструменты таксономии');
 
-  adminPanel.parentNode.insertBefore(taxonomyAdminToolbar, adminPanel);
+  const headerTop = adminPanel.closest('.page-header-top');
+  const insertAfterElement = headerTop || adminPanel.parentElement;
+
+  insertAfterElement.parentNode.insertBefore(
+    taxonomyAdminToolbar,
+    insertAfterElement.nextSibling
+  );
 
   return taxonomyAdminToolbar;
 }
