@@ -415,6 +415,221 @@ function weightedBroadFamilySimilarity(familiesA = [], familiesB = []) {
   );
 }
 
+const SIMILARITY_LANE_CONFIG = {
+  slasher_lane: {
+    perceived: ['slasher'],
+    canon: [
+      'masked_killer',
+      'serial_killer',
+      'supernatural_killer',
+      'killer_duo',
+      'killer_santa',
+      'revenant_killer',
+      'trauma_driven_killer',
+      'protagonist_killer',
+      'scuba_killer'
+    ]
+  },
+  creature_lane: {
+    perceived: ['creature_feature', 'animal_attack'],
+    canon: [
+      'predatory_creature',
+      'giant_creature',
+      'mutant_creature',
+      'mythic_creature',
+      'scientific_creature',
+      'alien_creature',
+      'killer_creature',
+      'creature_conflict',
+      'shark_attack',
+      'snake_attack'
+    ]
+  },
+  supernatural_entity_lane: {
+    perceived: ['supernatural_horror', 'haunted_house', 'possession'],
+    canon: [
+      'demonic_entity',
+      'demonic_possession',
+      'entity_possession',
+      'ghost_possession',
+      'ghost_apparition',
+      'revenge_ghost',
+      'haunted_object',
+      'haunted_animatronics',
+      'supernatural_killer',
+      'supernatural_influence',
+      'evil_spirit_resurrection'
+    ]
+  },
+  ritual_occult_lane: {
+    perceived: ['religious_horror', 'folk_horror'],
+    canon: [
+      'occult_ritual',
+      'occult_trade',
+      'occult_book',
+      'witchcraft',
+      'black_magic',
+      'ancient_curse',
+      'cursed_object',
+      'transferable_curse',
+      'wish_with_a_price',
+      'ritualized_punishment',
+      'sacrificial_killings',
+      'religious_fundamentalism',
+      'cult_community'
+    ]
+  },
+  psychological_reality_lane: {
+    perceived: ['psychological_horror', 'mystery_horror'],
+    canon: [
+      'distorted_reality',
+      'hallucinated_presence',
+      'mental_breakdown',
+      'mental_illness',
+      'fractured_memory',
+      'identity_erasure',
+      'body_transfer',
+      'alternate_dimension',
+      'virtual_reality_simulation',
+      'dream_stalker',
+      'guilt_manifestation',
+      'grief_trauma'
+    ]
+  },
+  survival_containment_lane: {
+    perceived: ['survival_horror', 'disaster_horror'],
+    canon: [
+      'trapped_survival',
+      'home_confinement',
+      'home_under_siege',
+      'home_infiltration',
+      'kidnapping',
+      'sadistic_captor',
+      'enemy_pursuit',
+      'human_hunt',
+      'group_survival',
+      'one_night_survival',
+      'rescue_mission',
+      'flooding_disaster',
+      'snow_isolation',
+      'deserted_island',
+      'war_survival',
+      'post_apocalyptic_survival'
+    ]
+  },
+  infection_outbreak_lane: {
+    perceived: ['infection_outbreak', 'zombie'],
+    canon: [
+      'zombie',
+      'fungal_infection',
+      'chemical_outbreak',
+      'rabies_infection',
+      'spreading_contamination',
+      'infected_society'
+    ]
+  },
+  investigation_media_lane: {
+    perceived: ['mystery_horror', 'conspiracy_horror'],
+    canon: [
+      'media_based_investigation',
+      'paranormal_media',
+      'audio_contact',
+      'internet_folklore',
+      'urban_legend_rabbit_hole',
+      'missing_person_investigation',
+      'small_town_secret',
+      'buried_past',
+      'mind_control_experiment'
+    ],
+    formats: ['found_footage', 'mockumentary', 'hybrid_narrative']
+  },
+  folk_myth_lane: {
+    perceived: ['folk_horror'],
+    canon: [
+      'folklore_entity',
+      'mythic_creature',
+      'myth_reframing',
+      'vampire_myth_reframing',
+      'icon_reframing',
+      'egyptian_theme'
+    ]
+  },
+  body_identity_lane: {
+    perceived: ['body_horror'],
+    canon: [
+      'body_transformation',
+      'body_transfer',
+      'identity_erasure',
+      'maternal_horror',
+      'assimilation_pressure'
+    ]
+  }
+};
+
+function getMovieLaneValues(movie, fields = []) {
+  for (const fieldName of fields) {
+    if (Array.isArray(movie?.[fieldName])) {
+      return movie[fieldName].map(value => String(value || '').trim()).filter(Boolean);
+    }
+  }
+
+  return [];
+}
+
+function hasMovieLaneMatch(values = [], expectedValues = []) {
+  const valueSet = new Set(values || []);
+  return (expectedValues || []).some(value => valueSet.has(value));
+}
+
+function isMovieMaskConflictEnabled(movie) {
+  return movie?.mask_conflict === true || movie?.mask_conflict === 'true';
+}
+
+function resolveMovieSimilarityLanes(movie = {}) {
+  const laneSet = new Set();
+  const canon = getMovieLaneValues(movie, ['canon', 'tags_canon']);
+  const formats = getMovieLaneValues(movie, ['formats', 'tags_formats']);
+  const perceived = isMovieMaskConflictEnabled(movie)
+    ? []
+    : getMovieLaneValues(movie, ['tags_perceived', 'perceived']);
+
+  Object.entries(SIMILARITY_LANE_CONFIG).forEach(([laneName, config]) => {
+    const hasPerceivedMatch = hasMovieLaneMatch(perceived, config.perceived);
+    const hasCanonMatch = hasMovieLaneMatch(canon, config.canon);
+    const hasFormatMatch = hasMovieLaneMatch(formats, config.formats);
+
+    if (hasPerceivedMatch || hasCanonMatch || hasFormatMatch) {
+      laneSet.add(laneName);
+    }
+  });
+
+  return Array.from(laneSet);
+}
+
+function getSimilarityLaneMultiplier({ sharedLanes = [], canonCore = 0, exactCanonOverlapCount = 0, modifierScore = 0 }) {
+  if (sharedLanes.length >= 2) {
+    return 1.06;
+  }
+
+  if (sharedLanes.length === 1) {
+    return 1;
+  }
+
+  if (exactCanonOverlapCount > 0) {
+    return 0.92;
+  }
+
+  if (canonCore >= SIMILARITY_MODEL.GATES.minCanonCoreScore * 1.5) {
+    return 0.88;
+  }
+
+  if (modifierScore >= 6) {
+    return 0.78;
+  }
+
+  return 0.72;
+}
+
 const FORMAT_WEIGHTS = {
   found_footage: 1.2,
   mockumentary: 1.15,
@@ -818,7 +1033,21 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     ? SIMILARITY_MODEL.SCORE_CAPS.countries * countryNorm
     : 0;
 
-  const finalScore =
+  const exactCanonOverlapCount = (movieA.canon || []).filter(tag =>
+    (movieB.canon || []).includes(tag)
+  ).length;
+
+  const movieALanes = resolveMovieSimilarityLanes(movieA);
+  const movieBLanes = resolveMovieSimilarityLanes(movieB);
+  const sharedLanes = getSharedItems(movieALanes, movieBLanes);
+  const laneMultiplier = getSimilarityLaneMultiplier({
+    sharedLanes,
+    canonCore,
+    exactCanonOverlapCount,
+    modifierScore
+  });
+
+  const rawFinalScore =
     canonExactScore +
     canonAffinityScore +
     modifierScore +
@@ -827,20 +1056,23 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     genreScore +
     countryScore;
 
-  const exactCanonOverlapCount = (movieA.canon || []).filter(tag =>
-    (movieB.canon || []).includes(tag)
-  ).length;
+  const finalScore = Math.min(100, rawFinalScore * laneMultiplier);
 
   const passesCoreGate =
     exactCanonOverlapCount >= 1 ||
     canonCore >= SIMILARITY_MODEL.GATES.minCanonCoreScore;
+
+  const passesLaneGate =
+    sharedLanes.length > 0 ||
+    exactCanonOverlapCount >= 1 ||
+    canonCore >= SIMILARITY_MODEL.GATES.minCanonCoreScore * 1.5;
 
   const passesFinalGate =
     finalScore >= SIMILARITY_MODEL.GATES.minFinalScore;
 
   return {
     finalScore,
-    passesGate: passesCoreGate && passesFinalGate,
+    passesGate: passesCoreGate && passesLaneGate && passesFinalGate,
     tier:
       finalScore >= SIMILARITY_MODEL.GATES.minScoreForStrongMatch
         ? "strong"
@@ -861,9 +1093,15 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     debug: {
       exactCanonOverlapCount,
       passesCoreGate,
+      passesLaneGate,
       passesFinalGate,
       canonCore,
-      coreBeforeContext
+      coreBeforeContext,
+      rawFinalScore,
+      laneMultiplier,
+      movieALanes,
+      movieBLanes,
+      sharedLanes
     }
   };
 }
@@ -875,6 +1113,7 @@ function getSharedItems(arrA = [], arrB = []) {
 
 function getSimilarityExplanation(movieA, movieB) {
   return {
+    sharedLanes: getSharedItems(resolveMovieSimilarityLanes(movieA), resolveMovieSimilarityLanes(movieB)),
     sharedCanon: getSharedItems(movieA.canon, movieB.canon),
     sharedModifiers: getSharedItems(movieA.modifiers, movieB.modifiers),
     sharedBroadFamilies: getSharedItems(resolveMovieBroadFamilies(movieA), resolveMovieBroadFamilies(movieB)),
@@ -1244,6 +1483,7 @@ window.HORROR_TAXONOMY = {
     resolveMovieSubgenres,
     deriveBroadFamiliesFromCanon,
     resolveMovieBroadFamilies,
+    resolveMovieSimilarityLanes,
     validateMovieTags,
     validateTaxonomyMovies,
     getSimilarMovies,
