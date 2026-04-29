@@ -208,31 +208,21 @@ const CANON_TAG_META = {
   cannibalism: { tier: "anchor", confidence: "stable" },
   chemical_outbreak: { tier: "anchor", confidence: "stable" },
   christmas_setting: { tier: "standard", confidence: "stable" },
-  ghost_possession: createCanonTagMeta({
-    tier: "anchor",
-    confidence: "stable",
-    status: CANON_TAG_STATUSES.stable,
-    role: CANON_TAG_ROLES.mechanism,
-    families: ['threat_origin', 'threat_behavior', 'psychological_wound'],
-    lanes: ['supernatural_entity_lane', 'psychological_reality_lane'],
-    useWhen: 'Призрак или дух умершего захватывает, использует или подменяет тело/волю персонажа.',
-    avoidWhen: 'Есть только явление призрака без захвата тела или поведения.',
-    examples: ['Полезный призрак', 'Подняться на холм'],
+  childhood_trauma: { tier: "standard", confidence: "stable" },
+  countdown_structure: { tier: "anchor", confidence: "stable" },
+  creature_conflict: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.threat_behavior,
+    families: ['threat_behavior', 'survival_structure'],
+    lanes: ['creature_lane', 'survival_containment_lane'],
+    useWhen: 'Фильм строится на прямом конфликте, схватке или противостоянии между персонажами и существом, а не только на присутствии монстра.',
+    avoidWhen: 'Существо есть, но конфликт не является центральной структурой фильма.',
+    examples: ['Ящер'],
     counterExamples: []
   }),
-  giant_creature: createCanonTagMeta({
-    tier: "anchor",
-    confidence: "stable",
-    status: CANON_TAG_STATUSES.stable,
-    role: CANON_TAG_ROLES.threat_type,
-    families: ['threat_origin', 'threat_behavior'],
-    lanes: ['creature_lane'],
-    useWhen: 'Размер существа является важной частью угрозы: гигантский монстр, огромная животная форма или масштабная creature-опасность.',
-    avoidWhen: 'Существо просто опасное или хищное, но размер не является отдельной механикой угрозы.',
-    examples: ['Анаконды', 'Ящер'],
-    counterExamples: []
-  }),
-  grief_trauma: createCanonTagMeta({
+  cult_community: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -370,7 +360,18 @@ const CANON_TAG_META = {
     examples: ['Полезный призрак', 'Подняться на холм'],
     counterExamples: []
   }),
-  giant_creature: { tier: "anchor", confidence: "stable" },
+  giant_creature: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_origin', 'threat_behavior'],
+    lanes: ['creature_lane'],
+    useWhen: 'Размер существа является важной частью угрозы: гигантский монстр, огромная животная форма или масштабная creature-опасность.',
+    avoidWhen: 'Существо просто опасное или хищное, но размер не является отдельной механикой угрозы.',
+    examples: ['Анаконды', 'Ящер'],
+    counterExamples: []
+  }),
   grief_trauma: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
