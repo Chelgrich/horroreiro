@@ -270,7 +270,18 @@ async function auditCanonTagMetaRegistrySource() {
 }
 
 const CANON_TAG_META = {
-  abandoned_settlement: { tier: "standard", confidence: "observe" },
+  abandoned_settlement: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'survival_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Заброшенный город, посёлок, деревня или поселение работает как изолированное пространство угрозы, тайны, выживания или следов прошлого.',
+    avoidWhen: 'Локация просто выглядит заброшенной, но не влияет на механику угрозы или расследования.',
+    examples: [],
+    counterExamples: []
+  }),
   abuse_trauma: { tier: "standard", confidence: "stable" },
   ai_generated: { tier: "standard", confidence: "observe" },
   alien_creature: createCanonTagMeta({
@@ -309,7 +320,18 @@ const CANON_TAG_META = {
     examples: ['Монстр', 'Возвращение гремлинов'],
     counterExamples: []
   }),
-  amusement_park: { tier: "standard", confidence: "observe" },
+  amusement_park: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'narrative_function'],
+    lanes: [],
+    useWhen: 'Парк развлечений, аттракцион, ярмарочная зона или funhouse-пространство является значимой площадкой угрозы, ловушки, убийств или хоррор-переосмысления развлечения.',
+    avoidWhen: 'Аттракцион или парк мелькает как фон и не формирует horror-механику.',
+    examples: ['Пункт назначения: Новый аттракцион'],
+    counterExamples: []
+  }),
   ancient_curse: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -383,7 +405,18 @@ const CANON_TAG_META = {
     examples: ['Кровавый сарай'],
     counterExamples: []
   }),
-  bayou_setting: { tier: "standard", confidence: "observe" },
+  bayou_setting: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type'],
+    lanes: [],
+    useWhen: 'Байу, болото, заболоченная южная местность или влажная изолированная среда формирует угрозу, фольклорный слой, преследование или невозможность быстро выбраться.',
+    avoidWhen: 'Болотистая местность есть только как визуальный фон.',
+    examples: [],
+    counterExamples: []
+  }),
   black_magic: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -420,7 +453,18 @@ const CANON_TAG_META = {
     examples: ['Мать мух', 'Отклонение'],
     counterExamples: []
   }),
-  boarding_school: { tier: "standard", confidence: "observe" },
+  boarding_school: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'human_dynamics'],
+    lanes: [],
+    useWhen: 'Школа-интернат, закрытое учебное учреждение или кампус с проживанием формирует изоляцию, дисциплинарное давление, тайну или систему насилия.',
+    avoidWhen: 'Учебное заведение просто место действия без закрытой структуры, давления или угрозы.',
+    examples: [],
+    counterExamples: []
+  }),
   buried_past: createCanonTagMeta({
     tier: "broad",
     confidence: "stable",
@@ -433,7 +477,18 @@ const CANON_TAG_META = {
     examples: ['Добыча для невесты', 'Шелби Оукс. Город-призрак'],
     counterExamples: []
   }),
-  bully_retribution: { tier: "standard", confidence: "observe" },
+  bully_retribution: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['psychological_wound', 'threat_behavior', 'human_dynamics'],
+    lanes: ['psychological_reality_lane', 'slasher_lane'],
+    useWhen: 'Буллинг, унижение или травля возвращаются как месть, убийства, сверхъестественная расплата или травматическая причина угрозы.',
+    avoidWhen: 'Буллинг упомянут как фон, но не запускает угрозу или структуру мести.',
+    examples: [],
+    counterExamples: []
+  }),
   cannibalism: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -533,7 +588,18 @@ const CANON_TAG_META = {
     examples: ['Остров хищника'],
     counterExamples: []
   }),
-  disabled_child: { tier: "standard", confidence: "observe" },
+  disabled_child: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.human_dynamics,
+    families: ['human_dynamics', 'psychological_wound'],
+    lanes: [],
+    useWhen: 'Ребёнок с инвалидностью, особенностью развития или зависимостью от ухода является важной частью семейной угрозы, травмы, защиты или морального давления.',
+    avoidWhen: 'Состояние ребёнка упомянуто биографически и не влияет на horror-механику, конфликт или уязвимость.',
+    examples: [],
+    counterExamples: []
+  }),
   distorted_reality: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -558,12 +624,45 @@ const CANON_TAG_META = {
     examples: ['Песочный человек'],
     counterExamples: []
   }),
-  dysfunctional_family: { tier: "standard", confidence: "stable" },
+  dysfunctional_family: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.human_dynamics,
+    families: ['human_dynamics', 'psychological_wound'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Семейная дисфункция, насилие, недоверие, контроль или разрушенная семейная связь прямо формируют конфликт, угрозу или восприятие ужаса.',
+    avoidWhen: 'Семья просто неблагополучная на фоне, но её динамика не влияет на механику фильма.',
+    examples: [],
+    counterExamples: []
+  }),
   dysfunctional_relationship: { tier: "standard", confidence: "stable" },
   educational_pressure: { tier: "standard", confidence: "observe" },
   egyptian_theme: { tier: "standard", confidence: "observe" },
-  elder_threat: { tier: "standard", confidence: "observe" },
-  elite_predation: { tier: "anchor", confidence: "stable" },
+  elder_threat: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_behavior', 'human_dynamics'],
+    lanes: [],
+    useWhen: 'Пожилой персонаж, старик/старуха или группа старших людей являются активной угрозой, источником контроля, насилия, тайны или социальной ловушки.',
+    avoidWhen: 'Пожилой персонаж просто присутствует в сюжете и не является horror-угрозой.',
+    examples: ['Безумная старуха'],
+    counterExamples: []
+  }),
+  elite_predation: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_behavior,
+    families: ['threat_behavior', 'human_dynamics', 'social_contagion'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Богатые, влиятельные или привилегированные люди используют жертв как ресурс, добычу, развлечение, ритуальный материал или средство продления власти/жизни.',
+    avoidWhen: 'Антагонисты просто богаты или статусны, но элитная система эксплуатации не является механизмом ужаса.',
+    examples: ['Они придут за тобой'],
+    counterExamples: []
+  }),
   enemy_pursuit: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -685,7 +784,18 @@ const CANON_TAG_META = {
     examples: ['Зараза'],
     counterExamples: []
   }),
-  gang_war: { tier: "standard", confidence: "observe" },
+  gang_war: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.human_dynamics,
+    families: ['human_dynamics', 'threat_behavior'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Бандитский конфликт, война группировок или криминальное противостояние создают угрозу, давление, преследование или survival-ситуацию.',
+    avoidWhen: 'Криминальный фон есть, но gang-конфликт не влияет на horror-механику.',
+    examples: [],
+    counterExamples: []
+  }),
   ghost_apparition: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -905,7 +1015,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   infrastructure_horror: { tier: "standard", confidence: "observe" },
-  intergenerational_trauma: { tier: "standard", confidence: "stable" },
+  intergenerational_trauma: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.psychological_wound,
+    families: ['psychological_wound', 'human_dynamics'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Травма, вина, проклятие, насилие или семейная тайна передаются между поколениями и формируют текущую угрозу.',
+    avoidWhen: 'Прошлое семьи упомянуто, но межпоколенческая передача травмы или последствий не подтверждена.',
+    examples: ['Белдхэм. Проклятие ведьмы'],
+    counterExamples: []
+  }),
   internet_folklore: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -1078,7 +1199,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   mind_control_experiment: { tier: "anchor", confidence: "observe" },
-  missing_parent: { tier: "standard", confidence: "observe" },
+  missing_parent: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.human_dynamics,
+    families: ['human_dynamics', 'psychological_wound', 'investigation_frame'],
+    lanes: ['investigation_media_lane', 'psychological_reality_lane'],
+    useWhen: 'Отсутствующий, исчезнувший, умерший или недоступный родитель является важной причиной расследования, травмы, семейного конфликта или сверхъестественной связи.',
+    avoidWhen: 'Родитель просто не показан в фильме и его отсутствие не влияет на механику ужаса.',
+    examples: [],
+    counterExamples: []
+  }),
   missing_person_investigation: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -1092,7 +1224,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   moral_test: { tier: "anchor", confidence: "stable" },
-  mountain_wilderness: { tier: "standard", confidence: "observe" },
+  mountain_wilderness: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'survival_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Горы, дикая местность, удалённая тропа или wilderness-пространство ограничивают помощь, передвижение, спасение или усиливают creature/survival-угрозу.',
+    avoidWhen: 'Горный или природный фон не влияет на выживание, изоляцию или угрозу.',
+    examples: ['Йети'],
+    counterExamples: []
+  }),
   mutant_creature: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -1214,9 +1357,42 @@ const CANON_TAG_META = {
     examples: ['Дневник Рисы'],
     counterExamples: []
   }),
-  parent_child_pair: { tier: "standard", confidence: "stable" },
-  pirate_setting: { tier: "standard", confidence: "observe" },
-  plumbing_horror: { tier: "standard", confidence: "observe" },
+  parent_child_pair: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.human_dynamics,
+    families: ['human_dynamics', 'psychological_wound'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Связка родитель–ребёнок является важной механикой угрозы, защиты, вины, утраты, одержимости, контроля или семейной травмы.',
+    avoidWhen: 'Родитель и ребёнок просто присутствуют в сюжете, но их связь не влияет на horror-механику.',
+    examples: ['Белдхэм. Проклятие ведьмы', 'Рождённый из грязи'],
+    counterExamples: []
+  }),
+  pirate_setting: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'myth_reframing'],
+    lanes: ['folk_myth_lane'],
+    useWhen: 'Пиратская, морская-разбойничья или проклятая корабельная среда является значимой частью угрозы, мифа, проклятия или survival-структуры.',
+    avoidWhen: 'Пиратская эстетика есть только как костюм, декор или фон.',
+    examples: ['Капитан Крюк: Проклятые берега'],
+    counterExamples: []
+  }),
+  plumbing_horror: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'space_mechanism'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Сантехника, трубы, канализация, туалет, слив или бытовая инженерная система становятся источником угрозы, вторжения, заражения или аномального пространства.',
+    avoidWhen: 'Сантехника используется только как бытовая деталь или gag без horror-механики.',
+    examples: ['Нечто из унитаза'],
+    counterExamples: []
+  }),
   post_apocalyptic_survival: createCanonTagMeta({
     tier: "standard",
     confidence: "provisional",
@@ -1351,9 +1527,42 @@ const CANON_TAG_META = {
     examples: ['Всё заканчивается'],
     counterExamples: []
   }),
-  romantic_pair: { tier: "standard", confidence: "stable" },
-  roadside_motel: { tier: "standard", confidence: "observe" },
-  ruins_space: { tier: "standard", confidence: "observe" },
+  romantic_pair: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.human_dynamics,
+    families: ['human_dynamics', 'psychological_wound'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Пара, брак, романтическая связь или разрушающиеся отношения являются важной рамкой угрозы, изоляции, зависимости, ревности или выживания.',
+    avoidWhen: 'Романтическая линия есть, но не влияет на horror-механику.',
+    examples: [],
+    counterExamples: []
+  }),
+  roadside_motel: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'survival_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Придорожный мотель, временное убежище у дороги или изолированная ночлежка становится местом ловушки, нападения, тайны или удержания.',
+    avoidWhen: 'Мотель просто короткая остановка без horror-механики.',
+    examples: [],
+    counterExamples: []
+  }),
+  ruins_space: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'investigation_frame'],
+    lanes: ['investigation_media_lane'],
+    useWhen: 'Руины, древнее сооружение, разрушенное место или археологическое пространство являются значимой точкой угрозы, проклятия, расследования или фольклорного контакта.',
+    avoidWhen: 'Руины присутствуют только как атмосферный фон.',
+    examples: [],
+    counterExamples: []
+  }),
   sacrificial_killings: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -1390,7 +1599,18 @@ const CANON_TAG_META = {
     examples: ['Астрал. Школа кошмаров', 'Уиджа. Шёпоты мёртвых'],
     counterExamples: []
   }),
-  scandinavian_setting: { tier: "standard", confidence: "observe" },
+  scandinavian_setting: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type'],
+    lanes: [],
+    useWhen: 'Скандинавская, северная или нордическая среда заметно влияет на фольклорный, природный, изоляционный или социальный слой ужаса.',
+    avoidWhen: 'Страна производства скандинавская, но сама среда не имеет значения для horror-механики.',
+    examples: [],
+    counterExamples: []
+  }),
   scientific_creature: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -1440,10 +1660,54 @@ const CANON_TAG_META = {
     examples: ['Отмель', 'Акула-мумия'],
     counterExamples: []
   }),
-  sick_child: { tier: "standard", confidence: "observe" },
-  sick_sibling: { tier: "standard", confidence: "observe" },
-  sibling_pair: { tier: "provisional", confidence: "provisional" },
-  ski_resort: { tier: "standard", confidence: "stable" },
+  sick_child: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.psychological_wound,
+    families: ['psychological_wound', 'human_dynamics'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Болезнь ребёнка является важной мотивацией, источником вины, страха, ритуала, сделки, защиты или морального давления.',
+    avoidWhen: 'Ребёнок болен только как бытовая деталь и это не влияет на угрозу.',
+    examples: [],
+    counterExamples: []
+  }),
+  sick_sibling: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.psychological_wound,
+    families: ['psychological_wound', 'human_dynamics'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Болезнь брата или сестры влияет на мотивацию, вину, семейный конфликт, ритуал, сделку или готовность персонажа идти на риск.',
+    avoidWhen: 'Болезнь родственника упомянута, но не влияет на horror-механику.',
+    examples: [],
+    counterExamples: []
+  }),
+  sibling_pair: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.human_dynamics,
+    families: ['human_dynamics', 'psychological_wound'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Связка брат/сестра является важной механикой защиты, вины, травмы, поиска, жертвы, зависимости или семейного конфликта.',
+    avoidWhen: 'У персонажа просто есть брат или сестра, но эта связь не влияет на угрозу.',
+    examples: [],
+    counterExamples: []
+  }),
+  ski_resort: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'survival_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Горнолыжный курорт, зимняя база или снежная туристическая зона формирует изоляцию, опасность среды, creature-угрозу или структуру выживания.',
+    avoidWhen: 'Курорт просто обозначен как фон без влияния на угрозу.',
+    examples: ['Возвращение гремлинов'],
+    counterExamples: []
+  }),
   small_town_secret: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -1604,7 +1868,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   time_machine_experiment: { tier: "anchor", confidence: "observe" },
-  toxic_parent: { tier: "standard", confidence: "stable" },
+  toxic_parent: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.human_dynamics,
+    families: ['human_dynamics', 'psychological_wound', 'threat_behavior'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Родительский контроль, насилие, манипуляция, пренебрежение или травматическое воспитание прямо формируют угрозу или психологический распад.',
+    avoidWhen: 'Родитель просто строгий, неприятный или конфликтный, но его токсичность не является horror-механикой.',
+    examples: [],
+    counterExamples: []
+  }),
   transfer_death: { tier: "provisional", confidence: "provisional" },
   transferable_curse: createCanonTagMeta({
     tier: "anchor",
@@ -1666,8 +1941,30 @@ const CANON_TAG_META = {
     examples: ['Джестер 2'],
     counterExamples: []
   }),
-  underground_dystopia: { tier: "anchor", confidence: "observe" },
-  uneasy_alliance: { tier: "standard", confidence: "stable" },
+  underground_dystopia: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'social_contagion', 'survival_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Подземное пространство, бункер, тоннели, нижний город или скрытая инфраструктура работают как замкнутая антиутопическая система выживания, контроля или угрозы.',
+    avoidWhen: 'Подземная локация есть, но не формирует отдельную социальную или survival-механику.',
+    examples: [],
+    counterExamples: []
+  }),
+  uneasy_alliance: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.human_dynamics,
+    families: ['human_dynamics', 'survival_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Персонажи вынуждены сотрудничать с теми, кому не доверяют, чтобы выжить, расследовать угрозу или временно противостоять большему злу.',
+    avoidWhen: 'Персонажи просто спорят или работают вместе без напряжённого вынужденного союза.',
+    examples: [],
+    counterExamples: []
+  }),
   unrequited_obsession: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -1740,7 +2037,18 @@ const CANON_TAG_META = {
     examples: ['Амстердамский кошмар 2'],
     counterExamples: []
   }),
-  wedding_frame: { tier: "standard", confidence: "stable" },
+  wedding_frame: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.structure,
+    families: ['narrative_function', 'human_dynamics'],
+    lanes: [],
+    useWhen: 'Свадьба, брачный ритуал, подготовка к свадьбе или семейное торжество являются важной рамкой угрозы, социального давления, ритуала или ловушки.',
+    avoidWhen: 'Свадьба только упомянута или служит фоном без влияния на horror-механику.',
+    examples: ['Добыча для невесты'],
+    counterExamples: []
+  }),
   wish_with_a_price: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
