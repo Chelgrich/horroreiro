@@ -145,13 +145,14 @@ function getCanonTagMetaArray(tag, fieldName) {
 }
 
 function extractObjectLiteralBodyFromSource(source, startToken) {
-  const startIndex = source.indexOf(startToken);
+  const startPattern = new RegExp(`^\\s*${startToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'm');
+  const startMatch = source.match(startPattern);
 
-  if (startIndex === -1) {
+  if (!startMatch || typeof startMatch.index !== 'number') {
     return '';
   }
 
-  const openIndex = source.indexOf('{', startIndex);
+  const openIndex = source.indexOf('{', startMatch.index);
 
   if (openIndex === -1) {
     return '';
@@ -702,7 +703,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  dysfunctional_relationship: { tier: "standard", confidence: "stable" },
+  dysfunctional_relationship: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.human_dynamics,
+    families: ['human_dynamics', 'psychological_wound'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Токсичные, зависимые, абьюзивные или распадающиеся отношения являются рабочим источником угрозы, изоляции, контроля или психологического распада.',
+    avoidWhen: 'Отношения просто конфликтные или драматические, но не становятся horror-механикой.',
+    examples: [],
+    counterExamples: []
+  }),
   egyptian_theme: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -1123,7 +1135,18 @@ const CANON_TAG_META = {
     examples: ['28 лет спустя: Часть II. Храм костей'],
     counterExamples: []
   }),
-  infrastructure_horror: { tier: "standard", confidence: "observe" },
+  infrastructure_horror: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'space_mechanism', 'social_contagion'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Инфраструктура, инженерная система, городская сеть, транспорт, коммуникации или техническая среда становятся рабочей частью угрозы, ловушки, заражения или аномального пространства.',
+    avoidWhen: 'Инфраструктура есть только как фон или декорация и не влияет на horror-механику.',
+    examples: [],
+    counterExamples: []
+  }),
   intergenerational_trauma: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -1172,7 +1195,18 @@ const CANON_TAG_META = {
     examples: ['Под светом'],
     counterExamples: []
   }),
-  isolated_protagonist: { tier: "anchor", confidence: "stable" },
+  isolated_protagonist: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.structure,
+    families: ['protagonist_structure', 'psychological_wound', 'survival_structure'],
+    lanes: ['psychological_reality_lane', 'survival_containment_lane'],
+    useWhen: 'Одинокий, отрезанный или социально/пространственно изолированный протагонист несёт основную структуру угрозы, восприятия, расследования или выживания.',
+    avoidWhen: 'Персонаж просто главный герой или временно один, но изоляция не влияет на horror-механику.',
+    examples: ['Одиночка'],
+    counterExamples: []
+  }),
   isolated_village: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -1245,7 +1279,18 @@ const CANON_TAG_META = {
     examples: ['Тихая ночь, смертельная ночь'],
     counterExamples: []
   }),
-  liminal_space: { tier: "anchor", confidence: "stable" },
+  liminal_space: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'space_mechanism', 'reality_structure'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Лиминальное, переходное, пустое, повторяющееся или неустойчивое пространство является активной частью тревоги, петли, заблуждения или нарушения реальности.',
+    avoidWhen: 'Локация просто выглядит странной или пустой, но не работает как пространственная механика.',
+    examples: ['Выход 8'],
+    counterExamples: []
+  }),
   life_extension: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -1390,7 +1435,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  mutant_society: { tier: "standard", confidence: "observe" },
+  mutant_society: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.structure,
+    families: ['social_contagion', 'threat_origin', 'human_dynamics'],
+    lanes: ['infection_outbreak_lane'],
+    useWhen: 'Мутанты, изменённые люди или постмутационное сообщество формируют социальную систему, угрозу, новый порядок или структуру выживания.',
+    avoidWhen: 'Есть отдельное мутантное существо, но нет общества, группы или изменённой социальной структуры.',
+    examples: [],
+    counterExamples: []
+  }),
   myth_reframing: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
