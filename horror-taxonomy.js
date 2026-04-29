@@ -4293,8 +4293,11 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
 
     case 'distorted_reality_refinement': {
       const suggestedTags = [];
+      const hasDeathTransferMechanism =
+        canonSet.has('transfer_death') ||
+        canonSet.has('transferable_curse');
 
-      if (canonSet.has('countdown_structure')) {
+      if (canonSet.has('countdown_structure') && !hasDeathTransferMechanism) {
         suggestedTags.push('time_loop');
       }
 
@@ -4335,7 +4338,7 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       const suggestedTags = [];
 
       if (hasAnyCanonCoverageValue(canon, ['zombie', 'fungal_infection', 'chemical_outbreak', 'infected_society'])) {
-        suggestedTags.push('group_survival', 'post_apocalyptic_survival');
+        suggestedTags.push('group_survival');
       }
 
       if (hasAnyCanonCoverageValue(canon, ['predatory_creature', 'shark_attack', 'snake_attack', 'giant_creature'])) {
