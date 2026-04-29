@@ -282,7 +282,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  abuse_trauma: { tier: "standard", confidence: "stable" },
+  abuse_trauma: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.psychological_wound,
+    families: ['psychological_wound', 'human_dynamics', 'threat_behavior'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Пережитое насилие, эксплуатация, унижение, абьюз или травматический опыт являются важной причиной угрозы, распада, мести, контроля или восприятия ужаса.',
+    avoidWhen: 'Насилие просто есть в прошлом персонажа, но не влияет на horror-механику, мотивацию или структуру фильма.',
+    examples: ['Они придут за тобой', 'Куколка'],
+    counterExamples: []
+  }),
   ai_generated: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -355,7 +366,18 @@ const CANON_TAG_META = {
     examples: ['Астрал. Амулет зла', 'Капитан Крюк: Проклятые берега'],
     counterExamples: []
   }),
-  anthology_linkage: { tier: "standard", confidence: "stable" },
+  anthology_linkage: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.format_bridge,
+    families: ['narrative_function'],
+    lanes: [],
+    useWhen: 'Отдельные новеллы, истории или сегменты связаны общей рамкой, предметом, местом, персонажем, проклятием или повторяющейся механикой.',
+    avoidWhen: 'Фильм просто антология по формату, но между сегментами нет значимой внутренней связки.',
+    examples: [],
+    counterExamples: []
+  }),
   apartment_space: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -525,8 +547,30 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   christmas_setting: { tier: "standard", confidence: "stable" },
-  childhood_trauma: { tier: "standard", confidence: "stable" },
-  countdown_structure: { tier: "anchor", confidence: "stable" },
+  childhood_trauma: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.psychological_wound,
+    families: ['psychological_wound', 'human_dynamics'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Детская травма, событие из прошлого, буллинг, семейное насилие или ранний страх возвращаются как источник угрозы, мотивации, искажения восприятия или расследования.',
+    avoidWhen: 'Детство персонажа просто упомянуто, но не влияет на механику ужаса.',
+    examples: [],
+    counterExamples: []
+  }),
+  countdown_structure: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.temporal_mechanism,
+    families: ['temporal_mechanism', 'narrative_function'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Угроза строится вокруг отсчёта, дедлайна, ограниченного времени, предсказанной смерти или неизбежного события, к которому движется сюжет.',
+    avoidWhen: 'Есть просто напряжённый темп или приближающийся финал, но отсчёт не является рабочей структурой угрозы.',
+    examples: [],
+    counterExamples: []
+  }),
   creature_conflict: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -648,7 +692,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   dysfunctional_relationship: { tier: "standard", confidence: "stable" },
-  egyptian_theme: { tier: "standard", confidence: "observe" },
+  egyptian_theme: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['myth_reframing', 'setting_type', 'threat_origin'],
+    lanes: ['folk_myth_lane', 'supernatural_entity_lane'],
+    useWhen: 'Египетская мифология, мумии, проклятия, древние артефакты или египетский ритуально-мифологический слой являются частью механики угрозы.',
+    avoidWhen: 'Египетская эстетика есть только как декор, костюм или визуальная отсылка.',
+    examples: ['Акула-мумия'],
+    counterExamples: []
+  }),
   elder_threat: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -865,7 +920,18 @@ const CANON_TAG_META = {
     examples: ['Возвращение в Сайлент Хилл', 'Верни меня из мёртвых'],
     counterExamples: []
   }),
-  group_paranoia: { tier: "standard", confidence: "observe" },
+  group_paranoia: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.human_dynamics,
+    families: ['human_dynamics', 'psychological_wound', 'social_contagion'],
+    lanes: ['psychological_reality_lane', 'survival_containment_lane'],
+    useWhen: 'Группа персонажей распадается через недоверие, подозрения, страх заражения, обвинения, скрытую угрозу или невозможность понять, кому верить.',
+    avoidWhen: 'Персонажи просто спорят или конфликтуют, но паранойя группы не становится horror-механикой.',
+    examples: [],
+    counterExamples: []
+  }),
   group_survival: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -1266,7 +1332,18 @@ const CANON_TAG_META = {
     examples: ['Project MKHEXE', 'Дневник Рисы'],
     counterExamples: []
   }),
-  moral_test: { tier: "anchor", confidence: "stable" },
+  moral_test: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['narrative_function', 'psychological_wound', 'ritual_mechanism'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Персонажи поставлены перед моральным выбором, испытанием, проверкой вины, жертвой или решением с ценой, и это является структурой ужаса.',
+    avoidWhen: 'У персонажа просто есть сложное решение, но оно не формирует horror-механику или систему наказания.',
+    examples: [],
+    counterExamples: []
+  }),
   mountain_wilderness: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -1556,7 +1633,18 @@ const CANON_TAG_META = {
     examples: ['Затвор', 'Астрал. Амулет зла'],
     counterExamples: []
   }),
-  revenge_mission: { tier: "standard", confidence: "stable" },
+  revenge_mission: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.structure,
+    families: ['narrative_function', 'threat_behavior', 'psychological_wound'],
+    lanes: ['slasher_lane'],
+    useWhen: 'Месть, возмездие или целенаправленное наказание виновных является движущей структурой угрозы, убийств или преследования.',
+    avoidWhen: 'Персонаж просто злится или у антагониста есть обида, но revenge-структура не ведёт сюжет.',
+    examples: [],
+    counterExamples: []
+  }),
   revenant_killer: createCanonTagMeta({
     tier: "anchor",
     confidence: "observe",
@@ -1809,7 +1897,18 @@ const CANON_TAG_META = {
     examples: ['Возвращение гремлинов'],
     counterExamples: []
   }),
-  social_media_performance: { tier: "anchor", confidence: "stable" },
+  social_media_performance: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['human_dynamics', 'investigation_frame', 'social_contagion'],
+    lanes: ['investigation_media_lane'],
+    useWhen: 'Соцсети, стриминг, блогинг, лайвы, публичный образ или онлайн-перформанс запускают угрозу, насилие, манипуляцию или социальное заражение.',
+    avoidWhen: 'Персонажи просто пользуются соцсетями, но онлайн-перформанс не является horror-механикой.',
+    examples: [],
+    counterExamples: []
+  }),
   social_status_obsession: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -2171,7 +2270,18 @@ const CANON_TAG_META = {
     examples: ['Гауа', 'Они были ведьмами'],
     counterExamples: []
   }),
-  wwii_horror: { tier: "standard", confidence: "observe" },
+  wwii_horror: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'human_dynamics', 'survival_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Вторая мировая война, оккупация, нацистская угроза, военный эксперимент или военная травма являются значимой частью horror-механики.',
+    avoidWhen: 'Война есть только как исторический фон и не влияет на угрозу или структуру выживания.',
+    examples: [],
+    counterExamples: []
+  }),
   zombie: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
