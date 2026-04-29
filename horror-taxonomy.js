@@ -127,6 +127,18 @@ function getCanonTagMeta(tag) {
   return createCanonTagMeta(meta);
 }
 
+function getCanonTagMetaArray(tag, fieldName) {
+  const values = getCanonTagMeta(tag)?.[fieldName];
+
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  return values
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+}
+
 const CANON_TAG_META = {
   abandoned_settlement: { tier: "standard", confidence: "observe" },
   abuse_trauma: { tier: "standard", confidence: "stable" },
@@ -542,6 +554,14 @@ function getCanonTagBroadFamilies(tag) {
     return [];
   }
 
+  const metaFamilies = normalizeBroadFamilies(
+    getCanonTagMetaArray(normalizedTag, 'families')
+  );
+
+  if (metaFamilies.length > 0) {
+    return metaFamilies;
+  }
+
   const families = [
     ...(CANON_BROAD_FAMILY_OVERRIDES[normalizedTag] || [])
   ];
@@ -798,6 +818,16 @@ function isMovieMaskConflictEnabled(movie) {
   return movie?.mask_conflict === true || movie?.mask_conflict === 'true';
 }
 
+function getCanonTagsSimilarityLanes(canonTags = []) {
+  const lanes = [];
+
+  (canonTags || []).forEach(tag => {
+    lanes.push(...getCanonTagMetaArray(tag, 'lanes'));
+  });
+
+  return Array.from(new Set(lanes));
+}
+
 function resolveMovieSimilarityLanes(movie = {}) {
   const laneSet = new Set();
   const canon = getMovieLaneValues(movie, ['canon', 'tags_canon']);
@@ -805,6 +835,10 @@ function resolveMovieSimilarityLanes(movie = {}) {
   const perceived = isMovieMaskConflictEnabled(movie)
     ? []
     : getMovieLaneValues(movie, ['tags_perceived', 'perceived']);
+
+  getCanonTagsSimilarityLanes(canon).forEach(laneName => {
+    laneSet.add(laneName);
+  });
 
   Object.entries(SIMILARITY_LANE_CONFIG).forEach(([laneName, config]) => {
     const hasPerceivedMatch = hasMovieLaneMatch(perceived, config.perceived);
@@ -2470,6 +2504,7 @@ window.HORROR_TAXONOMY = {
     resolveMovieBroadFamilies,
     resolveMovieSimilarityLanes,
     getCanonTagMeta,
+    getCanonTagsSimilarityLanes,
     validateMovieTags,
     validateTaxonomyMovies,
     getCanonCoverageAuditReport,
