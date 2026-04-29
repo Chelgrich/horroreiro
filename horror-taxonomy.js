@@ -546,7 +546,18 @@ const CANON_TAG_META = {
     examples: ['Ночь живых мертвецов 2.0'],
     counterExamples: []
   }),
-  christmas_setting: { tier: "standard", confidence: "stable" },
+  christmas_setting: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'temporal_mechanism'],
+    lanes: [],
+    useWhen: 'Рождество, рождественская ночь, праздничная символика или сезонный контекст существенно формируют угрозу, маску, ритуал, иронию или структуру фильма.',
+    avoidWhen: 'Рождество присутствует только как календарный фон и не влияет на horror-механику.',
+    examples: ['Тихая ночь, смертельная ночь', 'Возвращение гремлинов'],
+    counterExamples: []
+  }),
   childhood_trauma: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -968,7 +979,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  halloween_setting: { tier: "standard", confidence: "stable" },
+  halloween_setting: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'temporal_mechanism'],
+    lanes: [],
+    useWhen: 'Хэллоуин, ночь масок, праздничная городская среда или хэллоуинская традиция существенно формируют угрозу, маскировку, охоту или социальный хаос.',
+    avoidWhen: 'Хэллоуин упомянут как дата или декор, но не влияет на механику угрозы.',
+    examples: [],
+    counterExamples: []
+  }),
   haunted_animatronics: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -2017,7 +2039,18 @@ const CANON_TAG_META = {
     examples: ['Мертвы к рассвету'],
     counterExamples: []
   }),
-  thanksgiving_setting: { tier: "standard", confidence: "observe" },
+  thanksgiving_setting: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'temporal_mechanism'],
+    lanes: [],
+    useWhen: 'День благодарения, семейный праздник, праздничный ужин или сезонная традиция существенно формируют угрозу, маску, конфликт, сатиру или структуру убийств.',
+    avoidWhen: 'День благодарения только обозначен как дата и не влияет на horror-механику.',
+    examples: ['Священник: Резня в День благодарения'],
+    counterExamples: []
+  }),
   time_displacement: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
