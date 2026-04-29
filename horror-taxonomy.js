@@ -1844,7 +1844,7 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
     }
 
     case 'masked_killer_refinement': {
-      const hasKillerType = hasAnyCanonCoverageValue(canon, [
+      const hasKillerTypeOrThreatStructure = hasAnyCanonCoverageValue(canon, [
         'serial_killer',
         'trauma_driven_killer',
         'supernatural_killer',
@@ -1852,10 +1852,17 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
         'protagonist_killer',
         'killer_duo',
         'killer_santa',
-        'scuba_killer'
+        'scuba_killer',
+        'kidnapping',
+        'sadistic_captor',
+        'home_confinement',
+        'trapped_survival',
+        'enemy_pursuit',
+        'human_hunt',
+        'one_night_survival'
       ]);
 
-      if (hasKillerType) {
+      if (hasKillerTypeOrThreatStructure) {
         return null;
       }
 
@@ -1869,7 +1876,7 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
 
       return {
         priority: 'high',
-        reason: 'Есть masked_killer, но не указан тип убийцы или структура преследования.',
+        reason: 'Есть masked_killer, но не указан тип убийцы, структура преследования или captivity/survival-механика.',
         suggestedTags
       };
     }
@@ -1892,6 +1899,25 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
         return null;
       }
 
+      const hasCreatureEnvironment = hasAnyCanonCoverageValue(canon, [
+        'aquatic_space',
+        'forest_space',
+        'snow_isolation',
+        'ski_resort',
+        'deserted_island',
+        'mountain_wilderness'
+      ]);
+      const hasCreatureSurvivalStructure = hasAnyCanonCoverageValue(canon, [
+        'group_survival',
+        'trapped_survival',
+        'rescue_mission',
+        'enemy_pursuit'
+      ]);
+
+      if (hasCreatureEnvironment && hasCreatureSurvivalStructure) {
+        return null;
+      }
+
       if (canonSet.has('aquatic_space')) {
         return null;
       }
@@ -1904,7 +1930,7 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
 
       return {
         priority: 'medium',
-        reason: 'Есть predatory_creature без более конкретного типа существа; проверить только если природа монстра явно известна.',
+        reason: 'Есть predatory_creature без более конкретного типа существа; проверить только если природа монстра явно известна и не компенсируется средой/структурой выживания.',
         suggestedTags
       };
     }
@@ -1991,12 +2017,23 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
 
     case 'investigation_media_refinement': {
       const suggestedTags = [];
+      const hasRichInvestigationFrame = hasAnyCanonCoverageValue(canon, [
+        'missing_person_investigation',
+        'buried_past',
+        'urban_legend_rabbit_hole',
+        'internet_folklore',
+        'small_town_secret',
+        'occult_book',
+        'isolated_village',
+        'ghost_possession',
+        'entity_possession'
+      ]);
 
       if (canonSet.has('media_based_investigation') && canonSet.has('buried_past')) {
         suggestedTags.push('missing_person_investigation', 'occult_book', 'urban_legend_rabbit_hole');
       }
 
-      if (canonSet.has('paranormal_media')) {
+      if (canonSet.has('paranormal_media') && !hasRichInvestigationFrame) {
         suggestedTags.push('audio_contact');
       }
 
