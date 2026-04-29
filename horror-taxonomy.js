@@ -375,6 +375,46 @@ function resolveMovieBroadFamilies(movie) {
   return normalizeBroadFamilies(manualFamilies);
 }
 
+const BROAD_FAMILY_CONTEXT_ONLY = new Set([
+  'threat_origin',
+  'threat_behavior',
+  'human_dynamics',
+  'setting_type'
+]);
+
+const BROAD_FAMILY_SCORING_WEIGHTS = {
+  ...BROAD_FAMILY_WEIGHTS,
+  threat_origin: 0.18,
+  threat_behavior: 0.28,
+  human_dynamics: 0.22,
+  setting_type: 0.2
+};
+
+function hasStrongBroadFamily(families = []) {
+  return normalizeBroadFamilies(families).some(family => !BROAD_FAMILY_CONTEXT_ONLY.has(family));
+}
+
+function getBroadFamiliesForSimilarityScoring(families = []) {
+  const normalizedFamilies = normalizeBroadFamilies(families);
+
+  if (!hasStrongBroadFamily(normalizedFamilies)) {
+    return [];
+  }
+
+  return normalizedFamilies;
+}
+
+function weightedBroadFamilySimilarity(familiesA = [], familiesB = []) {
+  const scoringFamiliesA = getBroadFamiliesForSimilarityScoring(familiesA);
+  const scoringFamiliesB = getBroadFamiliesForSimilarityScoring(familiesB);
+
+  return weightedJaccard(
+    scoringFamiliesA,
+    scoringFamiliesB,
+    BROAD_FAMILY_SCORING_WEIGHTS
+  );
+}
+
 const FORMAT_WEIGHTS = {
   found_footage: 1.2,
   mockumentary: 1.15,
@@ -733,12 +773,11 @@ function calcMovieSimilarity(movieA, movieB, stats) {
 
         const movieABroadFamilies = resolveMovieBroadFamilies(movieA);
         const movieBBroadFamilies = resolveMovieBroadFamilies(movieB);
-        const broadNorm = weightedJaccard(
+        const broadNorm = weightedBroadFamilySimilarity(
           movieABroadFamilies,
-          movieBBroadFamilies,
-          BROAD_FAMILY_WEIGHTS
+          movieBBroadFamilies
         );
-  const broadGate = 0.4 + 0.6 * canonNormForGates;
+        const broadGate = 0.4 + 0.6 * canonNormForGates;
   const broadScore =
     SIMILARITY_MODEL.SCORE_CAPS.broadFamilies * broadNorm * broadGate;
 
