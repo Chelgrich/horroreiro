@@ -40,6 +40,7 @@ const authMessage = document.getElementById('authMessage');
 
 const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
+let taxonomyAdminToolbar = null;
 let taxonomyDiagnosticsButton = null;
 let taxonomySimilarityAuditButton = null;
 let taxonomyCanonCoverageAuditButton = null;
@@ -1105,8 +1106,38 @@ async function runTaxonomyCanonCoverageAudit() {
   }
 }
 
+function ensureTaxonomyAdminToolbar() {
+  if (!adminPanel) {
+    return null;
+  }
+
+  if (taxonomyAdminToolbar) {
+    return taxonomyAdminToolbar;
+  }
+
+  taxonomyAdminToolbar = document.createElement('div');
+  taxonomyAdminToolbar.id = 'taxonomyAdminToolbar';
+  taxonomyAdminToolbar.className = 'admin-panel taxonomy-admin-toolbar';
+  taxonomyAdminToolbar.setAttribute('aria-label', 'Инструменты таксономии');
+
+  adminPanel.parentNode.insertBefore(taxonomyAdminToolbar, adminPanel);
+
+  return taxonomyAdminToolbar;
+}
+
+function syncTaxonomyAdminToolbarVisibility() {
+  if (!taxonomyAdminToolbar) {
+    return;
+  }
+
+  taxonomyAdminToolbar.classList.toggle('is-visible', shouldUseAuthenticatedUi() && isAdmin);
+}
+
 function initTaxonomyExportButton() {
-  if (!adminPanel || (taxonomyDiagnosticsButton && taxonomySimilarityAuditButton && taxonomyCanonCoverageAuditButton && taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
+  const taxonomyToolbar = ensureTaxonomyAdminToolbar();
+
+  if (!taxonomyToolbar || (taxonomyDiagnosticsButton && taxonomySimilarityAuditButton && taxonomyCanonCoverageAuditButton && taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
+    syncTaxonomyAdminToolbarVisibility();
     return;
   }
 
@@ -1176,12 +1207,14 @@ function initTaxonomyExportButton() {
     });
   }
 
-  adminPanel.prepend(taxonomyImportFileInput);
-  adminPanel.prepend(taxonomyImportButton);
-  adminPanel.prepend(taxonomyJsonExportButton);
-  adminPanel.prepend(taxonomyCanonCoverageAuditButton);
-  adminPanel.prepend(taxonomySimilarityAuditButton);
-  adminPanel.prepend(taxonomyDiagnosticsButton);
+  taxonomyToolbar.appendChild(taxonomyDiagnosticsButton);
+  taxonomyToolbar.appendChild(taxonomySimilarityAuditButton);
+  taxonomyToolbar.appendChild(taxonomyCanonCoverageAuditButton);
+  taxonomyToolbar.appendChild(taxonomyJsonExportButton);
+  taxonomyToolbar.appendChild(taxonomyImportButton);
+  taxonomyToolbar.appendChild(taxonomyImportFileInput);
+
+  syncTaxonomyAdminToolbarVisibility();
 }
 
 function getSelectedTriggerFilters() {
@@ -2853,6 +2886,7 @@ function updateAuthUI() {
   if (adminPanel) {
     initTaxonomyExportButton();
     adminPanel.classList.toggle('is-visible', shouldShowAuthenticatedUi && isAdmin);
+    syncTaxonomyAdminToolbarVisibility();
   }
 
   if (moviePageAdminActions) {
