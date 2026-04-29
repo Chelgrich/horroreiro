@@ -4405,13 +4405,6 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       ]);
 
       if (
-        hasAnyCanonCoverageValue(canon, ['zombie', 'fungal_infection', 'chemical_outbreak', 'infected_society']) &&
-        hasExplicitGroupSurvivalFrame
-      ) {
-        suggestedTags.push('group_survival');
-      }
-
-      if (
         hasAnyCanonCoverageValue(canon, ['predatory_creature', 'shark_attack', 'snake_attack', 'giant_creature']) &&
         hasExplicitContainmentFrame
       ) {
