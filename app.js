@@ -40,7 +40,6 @@ const authMessage = document.getElementById('authMessage');
 
 const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
-let taxonomyExportButton = null;
 let taxonomyJsonExportButton = null;
 let taxonomyImportButton = null;
 let taxonomyImportFileInput = null;
@@ -515,10 +514,6 @@ function setTaxonomyImportControlsDisabled(isDisabled) {
     taxonomyImportButton.disabled = isDisabled;
   }
 
-  if (taxonomyExportButton) {
-    taxonomyExportButton.disabled = isDisabled;
-  }
-
   if (taxonomyJsonExportButton) {
     taxonomyJsonExportButton.disabled = isDisabled;
   }
@@ -707,35 +702,6 @@ async function ensureMoviesForTaxonomyExport() {
   return sortMoviesForTaxonomyExport(allMovies);
 }
 
-async function exportMovieTaxonomyData() {
-  try {
-    const sortedMovies = await ensureMoviesForTaxonomyExport();
-
-    if (sortedMovies.length === 0) {
-      return;
-    }
-
-    const exportedAt = new Date().toISOString();
-    const content = [
-      'Хоррорейро — выгрузка тегов фильмов',
-      `Дата выгрузки: ${exportedAt}`,
-      `Фильмов: ${sortedMovies.length}`,
-      '',
-      sortedMovies
-        .map(buildMovieTaxonomyExportBlock)
-        .join('\n\n----------------------------------------\n\n')
-    ].join('\n');
-
-    const datePart = exportedAt.slice(0, 10);
-    downloadTextFile(`horroreiro-taxonomy-export-${datePart}.txt`, content);
-
-    showAuthMessage(`Текстовая выгрузка тегов готова: ${sortedMovies.length} фильмов.`, 'success', true);
-  } catch (error) {
-    console.error('Ошибка выгрузки тегов:', error);
-    showAuthMessage(`Ошибка выгрузки тегов: ${error.message || 'смотри консоль F12.'}`, 'error', true);
-  }
-}
-
 async function exportMovieTaxonomyJsonData() {
   try {
     const sortedMovies = await ensureMoviesForTaxonomyExport();
@@ -768,19 +734,8 @@ async function exportMovieTaxonomyJsonData() {
 }
 
 function initTaxonomyExportButton() {
-  if (!adminPanel || (taxonomyExportButton && taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
+  if (!adminPanel || (taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
     return;
-  }
-
-  if (!taxonomyExportButton) {
-    taxonomyExportButton = document.createElement('button');
-    taxonomyExportButton.type = 'button';
-    taxonomyExportButton.id = 'exportTaxonomyButton';
-    taxonomyExportButton.className = 'secondary-button secondary-button-compact taxonomy-export-button';
-    taxonomyExportButton.textContent = 'Экспорт тегов';
-    taxonomyExportButton.title = 'Скачать текстовую выгрузку Perceived, Canon, Formats, Modifiers, Broad families и Mask conflict';
-
-    taxonomyExportButton.addEventListener('click', exportMovieTaxonomyData);
   }
 
   if (!taxonomyJsonExportButton) {
@@ -819,7 +774,6 @@ function initTaxonomyExportButton() {
   adminPanel.prepend(taxonomyImportFileInput);
   adminPanel.prepend(taxonomyImportButton);
   adminPanel.prepend(taxonomyJsonExportButton);
-  adminPanel.prepend(taxonomyExportButton);
 }
 
 function getSelectedTriggerFilters() {
@@ -2865,12 +2819,16 @@ async function fetchMovies() {
     .order('title', { ascending: true })
     .order('position', { foreignTable: 'movie_genres', ascending: true });
 
-  if (error) {
-    moviesLoadedSuccessfully = false;
-    console.error('Ошибка загрузки фильмов:', error);
-    container.innerHTML = 'Ошибка загрузки фильмов. Открой консоль F12.';
-    return;
-  }
+    if (error) {
+      moviesLoadedSuccessfully = false;
+      console.error('Ошибка загрузки фильмов:', error);
+  
+      if (container) {
+        container.innerHTML = 'Ошибка загрузки фильмов. Открой консоль F12.';
+      }
+  
+      return;
+    }
 
   allMovies = data || [];
   moviesLoadedSuccessfully = true;
