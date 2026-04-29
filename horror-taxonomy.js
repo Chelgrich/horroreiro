@@ -579,7 +579,18 @@ const CANON_TAG_META = {
     examples: ['Крик 7', 'Белдхэм. Проклятие ведьмы'],
     counterExamples: []
   }),
-  feigned_death: { tier: "anchor", confidence: "observe" },
+  feigned_death: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['narrative_function', 'threat_behavior'],
+    lanes: [],
+    useWhen: 'Персонаж инсценирует смерть, притворяется мёртвым или использует ложную смерть как способ выживания, обмана, ловушки или раскрытия угрозы.',
+    avoidWhen: 'Есть обычная смерть, staged_death или неопознанное тело, но нет подтверждённой имитации смерти живым персонажем.',
+    examples: ['Игра со смертью'],
+    counterExamples: []
+  }),
   flooding_disaster: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -892,8 +903,30 @@ const CANON_TAG_META = {
     examples: ['Морган: Кукла-убийца'],
     counterExamples: []
   }),
-  killer_duo: { tier: "standard", confidence: "stable" },
-  killer_santa: { tier: "anchor", confidence: "observe" },
+  killer_duo: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_behavior', 'human_dynamics'],
+    lanes: ['slasher_lane'],
+    useWhen: 'Угроза строится вокруг пары убийц, дуэта преследователей или двух согласованно действующих маньяков.',
+    avoidWhen: 'В фильме просто несколько убийц или соучастников, но дуэт не является устойчивой структурой угрозы.',
+    examples: ['Пункт назначения: Новый аттракцион'],
+    counterExamples: []
+  }),
+  killer_santa: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_behavior', 'temporal_mechanism'],
+    lanes: ['slasher_lane'],
+    useWhen: 'Убийца использует образ Санты, рождественского карателя или праздничной маски как центральную механику угрозы.',
+    avoidWhen: 'Есть просто рождественский сеттинг без убийцы-Санты или без работы образа как угрозы.',
+    examples: ['Тихая ночь, смертельная ночь'],
+    counterExamples: []
+  }),
   liminal_space: { tier: "anchor", confidence: "stable" },
   life_extension: { tier: "standard", confidence: "stable" },
   masked_killer: createCanonTagMeta({
@@ -1097,7 +1130,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  prank_horror: { tier: "anchor", confidence: "stable" },
+  prank_horror: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['narrative_function', 'threat_behavior', 'social_contagion'],
+    lanes: [],
+    useWhen: 'Розыгрыш, постановочная провокация, prank-культура или записываемая манипуляция запускают угрозу, эскалацию насилия или раскрытие человеческой монструозности.',
+    avoidWhen: 'Есть юмор, обман или видеоформат, но prank не является причиной horror-механики.',
+    examples: ['Милк и сериал'],
+    counterExamples: []
+  }),
   predatory_creature: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -1110,7 +1154,18 @@ const CANON_TAG_META = {
     examples: ['Анаконды', 'Йети', 'Остров хищника'],
     counterExamples: []
   }),
-  protagonist_killer: { tier: "anchor", confidence: "stable" },
+  protagonist_killer: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_behavior', 'protagonist_structure', 'psychological_wound'],
+    lanes: ['slasher_lane', 'psychological_reality_lane'],
+    useWhen: 'Главный персонаж сам является убийцей, становится центральной угрозой или фильм устроен через его превращение/раскрытие как killer-фигуры.',
+    avoidWhen: 'Протагонист просто совершает насилие в самообороне или морально неоднозначен, но не является horror-угрозой.',
+    examples: ['Тихая ночь, смертельная ночь'],
+    counterExamples: []
+  }),
   rabies_infection: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -1173,7 +1228,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   revenge_mission: { tier: "standard", confidence: "stable" },
-  revenant_killer: { tier: "anchor", confidence: "observe" },
+  revenant_killer: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_origin', 'threat_behavior', 'narrative_function'],
+    lanes: ['slasher_lane', 'supernatural_entity_lane'],
+    useWhen: 'Убийца возвращается из смерти, действует как оживший мститель, revenant-фигура или сверхъестественный каратель.',
+    avoidWhen: 'Есть обычный serial_killer, revenge_mission или revenge_ghost без физической killer-фигуры revenant-типа.',
+    examples: ['Священник: Резня в День благодарения'],
+    counterExamples: []
+  }),
   road_space: { tier: "standard", confidence: "stable" },
   romantic_pair: { tier: "standard", confidence: "stable" },
   roadside_motel: { tier: "standard", confidence: "observe" },
@@ -1217,7 +1283,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   scientific_experiment: { tier: "standard", confidence: "stable" },
-  scuba_killer: { tier: "standard", confidence: "observe" },
+  scuba_killer: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_behavior', 'setting_type'],
+    lanes: ['slasher_lane'],
+    useWhen: 'Убийца устойчиво связан с водолазным/подводным образом, снаряжением, каналами, водой или специфической aquatic-slasher угрозой.',
+    avoidWhen: 'В фильме есть вода или подводная сцена, но killer-фигура не определяется scuba/aquatic-механикой.',
+    examples: ['Амстердамский кошмар 2'],
+    counterExamples: []
+  }),
   serial_killer: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -1344,7 +1421,18 @@ const CANON_TAG_META = {
     examples: ['Одиночка', 'Тихая ночь, смертельная ночь'],
     counterExamples: []
   }),
-  supernatural_killer: { tier: "anchor", confidence: "stable" },
+  supernatural_killer: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_origin', 'threat_behavior'],
+    lanes: ['slasher_lane', 'supernatural_entity_lane'],
+    useWhen: 'Убийца действует как сверхъестественная killer-фигура: не просто человек, а сущность, проклятый убийца, магический каратель или неестественно живучая угроза.',
+    avoidWhen: 'Есть обычный masked_killer или serial_killer без подтверждённой сверхъестественной природы.',
+    examples: ['Джестер 2'],
+    counterExamples: []
+  }),
   terminal_illness: { tier: "standard", confidence: "stable" },
   theater_space: { tier: "standard", confidence: "stable" },
   thanksgiving_setting: { tier: "standard", confidence: "observe" },
@@ -1387,8 +1475,30 @@ const CANON_TAG_META = {
     examples: ['Свист'],
     counterExamples: []
   }),
-  trauma_driven_killer: { tier: "anchor", confidence: "stable" },
-  trauma_return: { tier: "anchor", confidence: "stable" },
+  trauma_driven_killer: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_behavior', 'psychological_wound'],
+    lanes: ['slasher_lane', 'psychological_reality_lane'],
+    useWhen: 'Убийца или killer-фигура мотивированы травмой, прошлым насилием, унижением, семейной раной или психическим переломом.',
+    avoidWhen: 'У убийцы просто есть бэкстори, но травма не объясняет структуру угрозы или мотив убийств.',
+    examples: ['Тихая ночь, смертельная ночь'],
+    counterExamples: []
+  }),
+  trauma_return: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.psychological_wound,
+    families: ['psychological_wound', 'narrative_function'],
+    lanes: ['slasher_lane', 'psychological_reality_lane'],
+    useWhen: 'Прошлая травма возвращается как активная угроза: через нового убийцу, повторение нападения, возвращение преследователя или повторное вскрытие старого насилия.',
+    avoidWhen: 'Персонаж просто помнит травму, но она не возвращается как работающая структура угрозы.',
+    examples: ['Крик 7', 'Незнакомцы: Часть третья'],
+    counterExamples: []
+  }),
   trapped_survival: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -1401,7 +1511,18 @@ const CANON_TAG_META = {
     examples: ['Зараза', 'Монстр'],
     counterExamples: []
   }),
-  trickster_threat: { tier: "anchor", confidence: "stable" },
+  trickster_threat: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_behavior,
+    families: ['threat_behavior', 'narrative_function'],
+    lanes: ['slasher_lane', 'supernatural_entity_lane'],
+    useWhen: 'Угроза действует как трикстер: заманивает, испытывает, издевается, нарушает правила, играет с жертвой или превращает насилие в перформативную игру.',
+    avoidWhen: 'Убийца просто жестокий или саркастичный, но trickster-логика не является устойчивой механикой угрозы.',
+    examples: ['Джестер 2'],
+    counterExamples: []
+  }),
   underground_dystopia: { tier: "anchor", confidence: "observe" },
   uneasy_alliance: { tier: "standard", confidence: "stable" },
   unrequited_obsession: createCanonTagMeta({
