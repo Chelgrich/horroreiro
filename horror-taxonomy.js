@@ -35,6 +35,98 @@ const SIMILARITY_MODEL = {
   }
 };
 
+/*
+ * РЕГЛАМЕНТ CANON_TAG_META / TAXONOMY 2.0
+ *
+ * Canon-тег добавляется не ради подробности, а только если он помогает
+ * точнее описать реальную механику ужаса и улучшает доверительную похожесть.
+ *
+ * Новый canon-тег проходит цикл:
+ * 1. provisional — идея тега, используется осторожно;
+ * 2. observe — тег добавлен, но требует ретро-проверки старых карточек;
+ * 3. stable — тег прошёл проверку и реально помогает системе;
+ * 4. deprecated — тег больше не использовать, заменить другим.
+ *
+ * Перед добавлением нового тега нужно зафиксировать:
+ * — зачем он нужен;
+ * — когда его ставить;
+ * — когда его НЕ ставить;
+ * — какие теги рядом;
+ * — чем он отличается от близких тегов;
+ * — какие старые фильмы надо проверить;
+ * — примеры и анти-примеры.
+ *
+ * После добавления нового тега обязательно:
+ * — запустить «Диагностика тегов»;
+ * — запустить «Аудит canon»;
+ * — при необходимости сделать JSON-патч для старых карточек;
+ * — запустить «Аудит похожести».
+ *
+ * Количество похожих фильмов не является целью.
+ * Пустой блок похожих допустим; плохая рекомендация хуже пустого блока.
+ */
+
+const CANON_TAG_STATUSES = {
+  provisional: 'provisional',
+  observe: 'observe',
+  stable: 'stable',
+  deprecated: 'deprecated'
+};
+
+const CANON_TAG_ROLES = {
+  threat_type: 'threat_type',
+  threat_behavior: 'threat_behavior',
+  mechanism: 'mechanism',
+  structure: 'structure',
+  setting: 'setting',
+  human_dynamics: 'human_dynamics',
+  psychological_wound: 'psychological_wound',
+  investigation_frame: 'investigation_frame',
+  temporal_mechanism: 'temporal_mechanism',
+  format_bridge: 'format_bridge',
+  tone_adjacent: 'tone_adjacent'
+};
+
+function createCanonTagMeta({
+  tier = 'standard',
+  confidence = 'stable',
+  status = CANON_TAG_STATUSES.stable,
+  role = null,
+  families = [],
+  lanes = [],
+  useWhen = '',
+  avoidWhen = '',
+  examples = [],
+  counterExamples = [],
+  replaces = [],
+  replacedBy = []
+} = {}) {
+  return {
+    tier,
+    confidence,
+    status,
+    role,
+    families,
+    lanes,
+    useWhen,
+    avoidWhen,
+    examples,
+    counterExamples,
+    replaces,
+    replacedBy
+  };
+}
+
+function getCanonTagMeta(tag) {
+  const meta = CANON_TAG_META[tag];
+
+  if (!meta) {
+    return createCanonTagMeta();
+  }
+
+  return createCanonTagMeta(meta);
+}
+
 const CANON_TAG_META = {
   abandoned_settlement: { tier: "standard", confidence: "observe" },
   abuse_trauma: { tier: "standard", confidence: "stable" },
@@ -123,7 +215,18 @@ const CANON_TAG_META = {
   killer_santa: { tier: "anchor", confidence: "observe" },
   liminal_space: { tier: "anchor", confidence: "stable" },
   life_extension: { tier: "standard", confidence: "stable" },
-  masked_killer: { tier: "anchor", confidence: "stable" },
+  masked_killer: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_behavior'],
+    lanes: ['slasher_lane'],
+    useWhen: 'Угроза устойчиво считывается как масочный убийца или масочная фигура преследования.',
+    avoidWhen: 'Маска есть только как разовый визуальный элемент и не определяет механику угрозы.',
+    examples: ['Крик 7', 'Незнакомцы: Часть третья'],
+    counterExamples: []
+  }),
   maternal_horror: { tier: "anchor", confidence: "stable" },
   media_based_investigation: { tier: "anchor", confidence: "stable" },
   mental_breakdown: { tier: "anchor", confidence: "stable" },
@@ -140,7 +243,18 @@ const CANON_TAG_META = {
   office_space: { tier: "standard", confidence: "stable" },
   occult_book: { tier: "standard", confidence: "stable" },
   occult_ritual: { tier: "anchor", confidence: "stable" },
-  occult_trade: { tier: "anchor", confidence: "stable" },
+  occult_trade: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['ritual_mechanism', 'narrative_function'],
+    lanes: ['ritual_occult_lane'],
+    useWhen: 'Есть явно подтверждённая сделка, обмен, контракт или цена за сверхъестественный результат.',
+    avoidWhen: 'Есть просто ритуал, проклятие, ведьмовство или оккультная практика без механики сделки.',
+    examples: ['Проклятые'],
+    counterExamples: ['Астрал. Школа кошмаров']
+  }),
   one_night_survival: { tier: "anchor", confidence: "stable" },
   obsessive_compulsive_behavior: { tier: "standard", confidence: "observe" },
   paranormal_media: { tier: "anchor", confidence: "stable" },
@@ -149,7 +263,18 @@ const CANON_TAG_META = {
   plumbing_horror: { tier: "standard", confidence: "observe" },
   post_apocalyptic_survival: { tier: "standard", confidence: "provisional" },
   prank_horror: { tier: "anchor", confidence: "stable" },
-  predatory_creature: { tier: "anchor", confidence: "stable" },
+  predatory_creature: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_origin', 'threat_behavior'],
+    lanes: ['creature_lane'],
+    useWhen: 'Центральная угроза фильма — хищное существо, монстр или животная угроза, охотящаяся на персонажей.',
+    avoidWhen: 'Существо присутствует эпизодически или не является основной механикой угрозы.',
+    examples: ['Анаконды', 'Йети', 'Остров хищника'],
+    counterExamples: []
+  }),
   protagonist_killer: { tier: "anchor", confidence: "stable" },
   rabies_infection: { tier: "standard", confidence: "observe" },
   reality_intrusion: { tier: "standard", confidence: "provisional" },
@@ -838,7 +963,12 @@ function getRarityMultiplier(tag, stats) {
 }
 
 function getCanonTagWeight(tag, stats) {
-  const meta = CANON_TAG_META[tag] || { tier: "standard", confidence: "stable" };
+  const meta = getCanonTagMeta(tag);
+
+  if (meta.status === CANON_TAG_STATUSES.deprecated) {
+    return 0;
+  }
+
   return (
     getBaseSpecificityMultiplier(meta.tier) *
     getConfidenceMultiplier(meta.confidence) *
@@ -2251,6 +2381,7 @@ window.HORROR_TAXONOMY = {
     deriveBroadFamiliesFromCanon,
     resolveMovieBroadFamilies,
     resolveMovieSimilarityLanes,
+    getCanonTagMeta,
     validateMovieTags,
     validateTaxonomyMovies,
     getCanonCoverageAuditReport,
