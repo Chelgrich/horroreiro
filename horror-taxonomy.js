@@ -413,7 +413,18 @@ const CANON_TAG_META = {
     examples: ['Протеин', 'Горный король'],
     counterExamples: []
   }),
-  chemical_outbreak: { tier: "anchor", confidence: "stable" },
+  chemical_outbreak: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['threat_origin', 'social_contagion'],
+    lanes: ['infection_outbreak_lane'],
+    useWhen: 'Угроза вызвана химическим заражением, токсином, веществом, выбросом, экспериментальным препаратом или промышленной/лабораторной утечкой.',
+    avoidWhen: 'Есть болезнь, зомби или заражение, но химическая причина не подтверждена.',
+    examples: ['Ночь живых мертвецов 2.0'],
+    counterExamples: []
+  }),
   christmas_setting: { tier: "standard", confidence: "stable" },
   childhood_trauma: { tier: "standard", confidence: "stable" },
   countdown_structure: { tier: "anchor", confidence: "stable" },
@@ -607,7 +618,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   future_intrusion: { tier: "standard", confidence: "observe" },
-  fungal_infection: { tier: "anchor", confidence: "stable" },
+  fungal_infection: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['threat_origin', 'social_contagion', 'threat_behavior'],
+    lanes: ['infection_outbreak_lane'],
+    useWhen: 'Грибок, споры, мицелий или грибковая биология являются источником заражения, мутации, агрессии, зомби-подобного состояния или распада контроля.',
+    avoidWhen: 'Есть заражение или паразитическая угроза, но грибковая природа не подтверждена.',
+    examples: ['Зараза'],
+    counterExamples: []
+  }),
   gang_war: { tier: "standard", confidence: "observe" },
   ghost_apparition: createCanonTagMeta({
     tier: "standard",
@@ -804,7 +826,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  infected_society: { tier: "standard", confidence: "observe" },
+  infected_society: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.structure,
+    families: ['social_contagion', 'human_dynamics', 'threat_origin'],
+    lanes: ['infection_outbreak_lane'],
+    useWhen: 'Заражение, мутация, эпидемия или постинфекционный порядок меняют общество, группы людей, правила выживания или социальную структуру мира.',
+    avoidWhen: 'Есть отдельные заражённые или монстры, но общество/сообщество не перестроено вокруг заражения.',
+    examples: ['28 лет спустя: Часть II. Храм костей'],
+    counterExamples: []
+  }),
   infrastructure_horror: { tier: "standard", confidence: "observe" },
   intergenerational_trauma: { tier: "standard", confidence: "stable" },
   internet_folklore: createCanonTagMeta({
@@ -1274,7 +1307,18 @@ const CANON_TAG_META = {
     examples: ['Выход 8'],
     counterExamples: []
   }),
-  spreading_contamination: { tier: "standard", confidence: "observe" },
+  spreading_contamination: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.mechanism,
+    families: ['social_contagion', 'threat_origin', 'threat_behavior'],
+    lanes: ['infection_outbreak_lane'],
+    useWhen: 'Угроза распространяется через заражение, контакт, среду, вещество, тело, воздух, объект или цепочку передачи.',
+    avoidWhen: 'Опасность существует локально и не имеет механики распространения.',
+    examples: ['Зараза', 'Кровавый сарай'],
+    counterExamples: []
+  }),
   staged_death: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -1447,7 +1491,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   wwii_horror: { tier: "standard", confidence: "observe" },
-  zombie: { tier: "anchor", confidence: "stable" }
+  zombie: createCanonTagMeta({
+    tier: "anchor",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_origin', 'threat_behavior', 'social_contagion'],
+    lanes: ['infection_outbreak_lane'],
+    useWhen: 'Зомби, ожившие мертвецы, инфицированные зомби-подобные тела или мертвецы как массовая/центральная угроза являются реальной механикой фильма.',
+    avoidWhen: 'Зомби есть только как образ, шутка, костюм, сон или единичная отсылка без работающей угрозы.',
+    examples: ['Зараза', '28 лет спустя: Часть II. Храм костей'],
+    counterExamples: []
+  })
 };
 
 const MODIFIER_WEIGHTS = {
