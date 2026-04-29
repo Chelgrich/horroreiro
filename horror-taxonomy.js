@@ -323,8 +323,30 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   anthology_linkage: { tier: "standard", confidence: "stable" },
-  apartment_space: { tier: "standard", confidence: "stable" },
-  aquatic_space: { tier: "standard", confidence: "stable" },
+  apartment_space: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type'],
+    lanes: [],
+    useWhen: 'Квартира или жилой многоквартирный интерьер является значимым пространством угрозы, изоляции, вторжения или бытового ужаса.',
+    avoidWhen: 'Квартира просто кратко показана и не влияет на механику ужаса.',
+    examples: ['Нечто из унитаза'],
+    counterExamples: []
+  }),
+  aquatic_space: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type'],
+    lanes: [],
+    useWhen: 'Водная среда, море, озеро, бассейн, подводное пространство или береговая зона существенно формируют угрозу.',
+    avoidWhen: 'Вода присутствует как фон, но не влияет на угрозу, изоляцию или survival-механику.',
+    examples: ['Кит-убийца', 'Отмель'],
+    counterExamples: []
+  }),
   assimilation_pressure: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -349,7 +371,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  barn_space: { tier: "standard", confidence: "stable" },
+  barn_space: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type'],
+    lanes: [],
+    useWhen: 'Сарай, амбар, фермерская постройка или хозяйственное пространство является значимым местом угрозы, тайны или удержания.',
+    avoidWhen: 'Сарай мелькает как декорация и не влияет на механику ужаса.',
+    examples: ['Кровавый сарай'],
+    counterExamples: []
+  }),
   bayou_setting: { tier: "standard", confidence: "observe" },
   black_magic: createCanonTagMeta({
     tier: "standard",
@@ -615,7 +648,18 @@ const CANON_TAG_META = {
     examples: ['Гауа', 'Миля 666'],
     counterExamples: []
   }),
-  forest_space: { tier: "standard", confidence: "stable" },
+  forest_space: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type'],
+    lanes: [],
+    useWhen: 'Лес является значимым пространством угрозы, заблуждения, изоляции, фольклорного контакта или survival-механики.',
+    avoidWhen: 'Лес присутствует только как фон или короткая локация без влияния на механику ужаса.',
+    examples: ['Гауа', 'Миля 666', 'Одиночка'],
+    counterExamples: []
+  }),
   fractured_memory: createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
@@ -788,7 +832,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  house_space: { tier: "standard", confidence: "stable" },
+  house_space: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type'],
+    lanes: [],
+    useWhen: 'Дом, особняк, хижина или жилое пространство является важной площадкой угрозы, тайны, удержания, вторжения или семейного конфликта.',
+    avoidWhen: 'Дом просто место действия без отдельной роли в механике ужаса.',
+    examples: ['Игра со смертью', 'Добыча для невесты'],
+    counterExamples: []
+  }),
   human_hunt: createCanonTagMeta({
     tier: "anchor",
     confidence: "observe",
@@ -863,10 +918,43 @@ const CANON_TAG_META = {
     examples: ['Project MKHEXE'],
     counterExamples: []
   }),
-  isolated_house: { tier: "standard", confidence: "stable" },
-  isolated_lighthouse: { tier: "standard", confidence: "observe" },
+  isolated_house: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'survival_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Изолированный дом, хижина или удалённое жилище ограничивает помощь, побег, контакт с внешним миром или усиливает удержание.',
+    avoidWhen: 'Дом находится отдельно, но изоляция не влияет на угрозу или структуру выживания.',
+    examples: ['Одиночка', 'Подняться на холм'],
+    counterExamples: []
+  }),
+  isolated_lighthouse: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'survival_structure'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Маяк или удалённая прибрежная точка работает как изолированное пространство угрозы, памяти, призрачного контакта или выживания.',
+    avoidWhen: 'Маяк только обозначен как место, но изоляция не влияет на horror-механику.',
+    examples: ['Под светом'],
+    counterExamples: []
+  }),
   isolated_protagonist: { tier: "anchor", confidence: "stable" },
-  isolated_village: { tier: "standard", confidence: "stable" },
+  isolated_village: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'human_dynamics'],
+    lanes: [],
+    useWhen: 'Изолированная деревня, посёлок или замкнутое локальное сообщество влияет на угрозу, тайну, культовую структуру или невозможность получить помощь.',
+    avoidWhen: 'Деревня просто место действия без изоляции, коллективного давления или скрытой системы.',
+    examples: ['Долина улыбок', 'Дневник Рисы'],
+    counterExamples: []
+  }),
   kidnapping: createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
@@ -1042,7 +1130,18 @@ const CANON_TAG_META = {
     examples: ['Йети', 'Остров хищника'],
     counterExamples: []
   }),
-  office_space: { tier: "standard", confidence: "stable" },
+  office_space: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type'],
+    lanes: [],
+    useWhen: 'Офис, рабочее пространство или корпоративная среда является значимой площадкой угрозы, ловушки, убийств или социальной сатиры.',
+    avoidWhen: 'Офис появляется как бытовой фон и не влияет на механику ужаса.',
+    examples: ['Канун нового страха'],
+    counterExamples: []
+  }),
   occult_book: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -1240,7 +1339,18 @@ const CANON_TAG_META = {
     examples: ['Священник: Резня в День благодарения'],
     counterExamples: []
   }),
-  road_space: { tier: "standard", confidence: "stable" },
+  road_space: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'space_mechanism'],
+    lanes: [],
+    useWhen: 'Дорога, маршрут, поездка или невозможность съехать с пути формируют структуру угрозы, петли, преследования или заблуждения.',
+    avoidWhen: 'Дорога используется только как проходная локация без влияния на horror-механику.',
+    examples: ['Всё заканчивается'],
+    counterExamples: []
+  }),
   romantic_pair: { tier: "standard", confidence: "stable" },
   roadside_motel: { tier: "standard", confidence: "observe" },
   ruins_space: { tier: "standard", confidence: "observe" },
@@ -1268,7 +1378,18 @@ const CANON_TAG_META = {
     examples: ['Куколка'],
     counterExamples: []
   }),
-  school_space: { tier: "standard", confidence: "stable" },
+  school_space: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'human_dynamics'],
+    lanes: [],
+    useWhen: 'Школа, учебное пространство или образовательная среда влияет на угрозу, травму, буллинг, социальное давление или сверхъестественный конфликт.',
+    avoidWhen: 'Школа просто фоновая локация и не влияет на механику ужаса.',
+    examples: ['Астрал. Школа кошмаров', 'Уиджа. Шёпоты мёртвых'],
+    counterExamples: []
+  }),
   scandinavian_setting: { tier: "standard", confidence: "observe" },
   scientific_creature: createCanonTagMeta({
     tier: "standard",
@@ -1408,7 +1529,18 @@ const CANON_TAG_META = {
     examples: ['Морган: Кукла-убийца'],
     counterExamples: []
   }),
-  subway_space: { tier: "standard", confidence: "stable" },
+  subway_space: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type', 'space_mechanism'],
+    lanes: ['psychological_reality_lane'],
+    useWhen: 'Метро, переход, станция или подземный транспорт работает как лиминальное, повторяющееся, замкнутое или аномальное пространство.',
+    avoidWhen: 'Метро просто транспортная локация без пространственной механики ужаса.',
+    examples: ['Выход 8'],
+    counterExamples: []
+  }),
   supernatural_influence: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -1434,7 +1566,18 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   terminal_illness: { tier: "standard", confidence: "stable" },
-  theater_space: { tier: "standard", confidence: "stable" },
+  theater_space: createCanonTagMeta({
+    tier: "standard",
+    confidence: "stable",
+    status: CANON_TAG_STATUSES.stable,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type'],
+    lanes: [],
+    useWhen: 'Театр, сцена, зал, репетиционное или перформативное пространство влияет на угрозу, ловушку, ритуал или убийства.',
+    avoidWhen: 'Театр только упоминается или используется как фон без роли в horror-механике.',
+    examples: ['Мертвы к рассвету'],
+    counterExamples: []
+  }),
   thanksgiving_setting: { tier: "standard", confidence: "observe" },
   time_displacement: createCanonTagMeta({
     tier: "anchor",
@@ -1585,7 +1728,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  waterway_space: { tier: "standard", confidence: "observe" },
+  waterway_space: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['setting_type'],
+    lanes: [],
+    useWhen: 'Каналы, реки, водные пути или городская водная среда являются значимой частью угрозы, убийств, преследования или изоляции.',
+    avoidWhen: 'Водный путь просто появляется в кадре и не влияет на механику угрозы.',
+    examples: ['Амстердамский кошмар 2'],
+    counterExamples: []
+  }),
   wedding_frame: { tier: "standard", confidence: "stable" },
   wish_with_a_price: createCanonTagMeta({
     tier: "anchor",
