@@ -60,6 +60,7 @@ const CANON_TAG_META = {
   cannibalism: { tier: "anchor", confidence: "stable" },
   chemical_outbreak: { tier: "anchor", confidence: "stable" },
   christmas_setting: { tier: "standard", confidence: "stable" },
+  childhood_trauma: { tier: "standard", confidence: "stable" },
   countdown_structure: { tier: "anchor", confidence: "stable" },
   creature_conflict: { tier: "standard", confidence: "observe" },
   cult_community: { tier: "anchor", confidence: "stable" },
@@ -71,9 +72,11 @@ const CANON_TAG_META = {
   distorted_reality: { tier: "anchor", confidence: "stable" },
   dream_stalker: { tier: "anchor", confidence: "observe" },
   dysfunctional_family: { tier: "standard", confidence: "stable" },
+  dysfunctional_relationship: { tier: "standard", confidence: "stable" },
   educational_pressure: { tier: "standard", confidence: "observe" },
   egyptian_theme: { tier: "standard", confidence: "observe" },
   elder_threat: { tier: "standard", confidence: "observe" },
+  elite_predation: { tier: "anchor", confidence: "stable" },
   enemy_pursuit: { tier: "anchor", confidence: "stable" },
   entity_possession: { tier: "anchor", confidence: "stable" },
   evil_spirit_resurrection: { tier: "standard", confidence: "observe" },
@@ -91,6 +94,7 @@ const CANON_TAG_META = {
   giant_creature: { tier: "anchor", confidence: "stable" },
   grief_trauma: { tier: "standard", confidence: "stable" },
   group_paranoia: { tier: "standard", confidence: "observe" },
+  group_survival: { tier: "standard", confidence: "stable" },
   guilt_manifestation: { tier: "standard", confidence: "observe" },
   hallucinated_presence: { tier: "standard", confidence: "observe" },
   halloween_setting: { tier: "standard", confidence: "stable" },
@@ -102,6 +106,7 @@ const CANON_TAG_META = {
   house_space: { tier: "standard", confidence: "stable" },
   human_hunt: { tier: "anchor", confidence: "observe" },
   human_monstrosity: { tier: "anchor", confidence: "stable" },
+  icon_reframing: { tier: "standard", confidence: "stable" },
   identity_erasure: { tier: "anchor", confidence: "stable" },
   infected_society: { tier: "standard", confidence: "observe" },
   infrastructure_horror: { tier: "standard", confidence: "observe" },
@@ -133,8 +138,10 @@ const CANON_TAG_META = {
   myth_reframing: { tier: "anchor", confidence: "stable" },
   mythic_creature: { tier: "standard", confidence: "stable" },
   office_space: { tier: "standard", confidence: "stable" },
+  occult_book: { tier: "standard", confidence: "stable" },
   occult_ritual: { tier: "anchor", confidence: "stable" },
   occult_trade: { tier: "anchor", confidence: "stable" },
+  one_night_survival: { tier: "anchor", confidence: "stable" },
   obsessive_compulsive_behavior: { tier: "standard", confidence: "observe" },
   paranormal_media: { tier: "anchor", confidence: "stable" },
   parent_child_pair: { tier: "standard", confidence: "stable" },
@@ -148,10 +155,12 @@ const CANON_TAG_META = {
   reality_intrusion: { tier: "standard", confidence: "provisional" },
   religious_fundamentalism: { tier: "standard", confidence: "stable" },
   rescue_mission: { tier: "standard", confidence: "stable" },
+  ritualized_punishment: { tier: "standard", confidence: "stable" },
   revenge_ghost: { tier: "anchor", confidence: "stable" },
   revenge_mission: { tier: "standard", confidence: "stable" },
   revenant_killer: { tier: "anchor", confidence: "observe" },
   road_space: { tier: "standard", confidence: "stable" },
+  romantic_pair: { tier: "standard", confidence: "stable" },
   roadside_motel: { tier: "standard", confidence: "observe" },
   ruins_space: { tier: "standard", confidence: "observe" },
   sacrificial_killings: { tier: "standard", confidence: "stable" },
@@ -166,6 +175,7 @@ const CANON_TAG_META = {
   sick_child: { tier: "standard", confidence: "observe" },
   sick_sibling: { tier: "standard", confidence: "observe" },
   sibling_pair: { tier: "provisional", confidence: "provisional" },
+  ski_resort: { tier: "standard", confidence: "stable" },
   small_town_secret: { tier: "standard", confidence: "observe" },
   snake_attack: { tier: "anchor", confidence: "stable" },
   snow_isolation: { tier: "standard", confidence: "stable" },
@@ -214,6 +224,7 @@ const MODIFIER_WEIGHTS = {
   meta: 1.1,
   paranoid: 1.05,
   gross_out: 1.05,
+  nudity: 0.7,
   claustrophobic: 1.05,
   practical_effects: 1.0,
   sleazy: 1.0,
@@ -839,10 +850,219 @@ function resolveMovieSubgenres(movie) {
   };
 }
 
-function validateMovieTags() {
+const TAXONOMY_LAYER_CONFIG = {
+  perceived: {
+    label: 'Perceived',
+    fields: ['tags_perceived', 'perceived'],
+    allowed: () => TAXONOMY_SUBGENRES
+  },
+  canon: {
+    label: 'Canon',
+    fields: ['tags_canon', 'canon'],
+    allowed: () => Object.keys(CANON_TAG_META)
+  },
+  formats: {
+    label: 'Formats',
+    fields: ['formats', 'tags_formats'],
+    allowed: () => TAXONOMY_FORMATS
+  },
+  modifiers: {
+    label: 'Modifiers',
+    fields: ['modifiers', 'tags_modifiers'],
+    allowed: () => Object.keys(MODIFIER_WEIGHTS)
+  },
+  broadFamilies: {
+    label: 'Broad families',
+    fields: ['broad_families', 'broadFamilies', 'tags_broad_families'],
+    allowed: () => Object.keys(BROAD_FAMILY_WEIGHTS)
+  },
+  triggers: {
+    label: 'Triggers',
+    fields: ['triggers', 'tags_triggers'],
+    allowed: () => Object.keys(TAXONOMY_LABELS.triggers)
+  }
+};
+
+const TAXONOMY_REQUIRED_CANON_GROUPS = {
+  slasher: [
+    {
+      label: 'тип убийцы',
+      tags: ['masked_killer', 'serial_killer', 'supernatural_killer', 'killer_duo', 'killer_santa', 'revenant_killer', 'trauma_driven_killer', 'protagonist_killer', 'killer_creature']
+    }
+  ],
+  creature_feature: [
+    {
+      label: 'тип существа',
+      tags: ['predatory_creature', 'giant_creature', 'mutant_creature', 'mythic_creature', 'scientific_creature', 'alien_creature', 'killer_creature', 'shark_attack', 'snake_attack']
+    }
+  ],
+  animal_attack: [
+    {
+      label: 'тип животной угрозы',
+      tags: ['shark_attack', 'snake_attack', 'predatory_creature', 'giant_creature', 'rabies_infection']
+    }
+  ],
+  possession: [
+    {
+      label: 'тип одержимости',
+      tags: ['demonic_possession', 'ghost_possession', 'entity_possession']
+    }
+  ],
+  infection_outbreak: [
+    {
+      label: 'механика заражения',
+      tags: ['zombie', 'fungal_infection', 'chemical_outbreak', 'rabies_infection', 'spreading_contamination', 'infected_society']
+    }
+  ],
+  body_horror: [
+    {
+      label: 'телесная механика',
+      tags: ['body_transformation', 'body_transfer', 'identity_erasure']
+    }
+  ],
+  folk_horror: [
+    {
+      label: 'фольклорная или ритуальная основа',
+      tags: ['folklore_entity', 'mythic_creature', 'witchcraft', 'occult_ritual', 'black_magic', 'cult_community']
+    }
+  ],
+  religious_horror: [
+    {
+      label: 'религиозная или культовая механика',
+      tags: ['religious_fundamentalism', 'demonic_entity', 'demonic_possession', 'occult_ritual', 'cult_community', 'wish_with_a_price', 'ritualized_punishment']
+    }
+  ]
+};
+
+function getTaxonomyMovieValues(movie, fieldNames = []) {
+  for (const fieldName of fieldNames) {
+    if (Array.isArray(movie?.[fieldName])) {
+      return movie[fieldName].map(tag => String(tag || '').trim()).filter(Boolean);
+    }
+  }
+
+  return [];
+}
+
+function getTaxonomyLayerSets() {
+  return Object.fromEntries(
+    Object.entries(TAXONOMY_LAYER_CONFIG).map(([layerName, config]) => [
+      layerName,
+      new Set(config.allowed())
+    ])
+  );
+}
+
+function findTaxonomyTagLayer(tag, currentLayerName, layerSets) {
+  for (const [layerName, allowedTags] of Object.entries(layerSets)) {
+    if (layerName !== currentLayerName && allowedTags.has(tag)) {
+      return TAXONOMY_LAYER_CONFIG[layerName].label;
+    }
+  }
+
+  return null;
+}
+
+function createTaxonomyWarning(code, message, details = {}) {
   return {
-    warnings: []
+    code,
+    message,
+    ...details
   };
+}
+
+function addTaxonomyWarning(warnings, warning, seenWarnings) {
+  const key = `${warning.code}:${warning.layer || ''}:${warning.tag || ''}:${warning.subgenre || ''}:${warning.group || ''}`;
+
+  if (seenWarnings.has(key)) {
+    return;
+  }
+
+  seenWarnings.add(key);
+  warnings.push(warning);
+}
+
+function validateMovieTags(movie = {}) {
+  const warnings = [];
+  const seenWarnings = new Set();
+  const layerSets = getTaxonomyLayerSets();
+  const taxonomyValues = {};
+
+  for (const [layerName, config] of Object.entries(TAXONOMY_LAYER_CONFIG)) {
+    const values = getTaxonomyMovieValues(movie, config.fields);
+    taxonomyValues[layerName] = values;
+
+    for (const tag of values) {
+      if (layerSets[layerName].has(tag)) {
+        continue;
+      }
+
+      const correctLayerLabel = findTaxonomyTagLayer(tag, layerName, layerSets);
+
+      addTaxonomyWarning(
+        warnings,
+        createTaxonomyWarning(
+          correctLayerLabel ? 'wrong_layer' : 'unknown_tag',
+          correctLayerLabel
+            ? `${config.label}: тег "${tag}" относится к слою ${correctLayerLabel}.`
+            : `${config.label}: неизвестный тег "${tag}".`,
+          {
+            layer: layerName,
+            tag,
+            correctLayer: correctLayerLabel
+          }
+        ),
+        seenWarnings
+      );
+    }
+  }
+
+  const canonSet = new Set(taxonomyValues.canon || []);
+
+  for (const subgenre of taxonomyValues.perceived || []) {
+    const requiredGroups = TAXONOMY_REQUIRED_CANON_GROUPS[subgenre];
+
+    if (!requiredGroups) {
+      continue;
+    }
+
+    for (const group of requiredGroups) {
+      const hasRequiredTag = group.tags.some(tag => canonSet.has(tag));
+
+      if (hasRequiredTag) {
+        continue;
+      }
+
+      addTaxonomyWarning(
+        warnings,
+        createTaxonomyWarning(
+          'missing_canon_anchor',
+          `Perceived "${subgenre}": не хватает canon-якоря для группы "${group.label}".`,
+          {
+            layer: 'canon',
+            subgenre,
+            group: group.label,
+            expectedTags: group.tags
+          }
+        ),
+        seenWarnings
+      );
+    }
+  }
+
+  return {
+    warnings
+  };
+}
+
+function validateTaxonomyMovies(movies = []) {
+  return (movies || [])
+    .map(movie => ({
+      id: movie?.id,
+      title: movie?.title || movie?.original_title || movie?.slug || 'Без названия',
+      warnings: validateMovieTags(movie).warnings
+    }))
+    .filter(item => item.warnings.length > 0);
 }
 
 window.HORROR_TAXONOMY = {
@@ -868,6 +1088,7 @@ window.HORROR_TAXONOMY = {
   helpers: {
     resolveMovieSubgenres,
     validateMovieTags,
+    validateTaxonomyMovies,
     getSimilarMovies,
     getSimilarMovieCards
   }
