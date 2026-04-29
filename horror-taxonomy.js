@@ -1601,6 +1601,267 @@ function validateTaxonomyMovies(movies = []) {
     .filter(item => item.warnings.length > 0);
 }
 
+const CANON_COVERAGE_AUDIT_RULES = [
+  {
+    code: 'occult_ritual_refinement',
+    label: 'Уточнить occult_ritual',
+    whenAny: ['occult_ritual'],
+    suggestAny: [
+      'sacrificial_killings',
+      'cult_community',
+      'black_magic',
+      'witchcraft',
+      'wish_with_a_price',
+      'ritualized_punishment',
+      'life_extension',
+      'occult_trade'
+    ],
+    reason: 'Есть occult_ritual, но нет уточнения: жертвоприношение, культ, магия, цена, наказание или сделка.'
+  },
+  {
+    code: 'family_unit_refinement',
+    label: 'Уточнить family_unit',
+    whenAny: ['family_unit'],
+    suggestAny: [
+      'parent_child_pair',
+      'sibling_pair',
+      'toxic_parent',
+      'dysfunctional_family',
+      'intergenerational_trauma',
+      'romantic_pair',
+      'disabled_child',
+      'sick_child',
+      'sick_sibling',
+      'missing_parent'
+    ],
+    reason: 'Есть family_unit, но не указана конкретная семейная конфигурация или травматическая связь.'
+  },
+  {
+    code: 'grief_trauma_refinement',
+    label: 'Уточнить grief_trauma',
+    whenAny: ['grief_trauma'],
+    suggestAny: [
+      'guilt_manifestation',
+      'trauma_return',
+      'buried_past',
+      'missing_person_investigation',
+      'childhood_trauma',
+      'intergenerational_trauma'
+    ],
+    reason: 'Есть grief_trauma, но не указано, как именно травма работает в механике фильма.'
+  },
+  {
+    code: 'masked_killer_refinement',
+    label: 'Уточнить masked_killer',
+    whenAny: ['masked_killer'],
+    suggestAny: [
+      'serial_killer',
+      'trauma_driven_killer',
+      'supernatural_killer',
+      'revenant_killer',
+      'protagonist_killer',
+      'enemy_pursuit',
+      'human_hunt',
+      'home_under_siege',
+      'one_night_survival'
+    ],
+    reason: 'Есть masked_killer, но не уточнён тип убийцы, структура преследования или модель выживания.'
+  },
+  {
+    code: 'predatory_creature_refinement',
+    label: 'Уточнить predatory_creature',
+    whenAny: ['predatory_creature'],
+    suggestAny: [
+      'shark_attack',
+      'snake_attack',
+      'giant_creature',
+      'mutant_creature',
+      'mythic_creature',
+      'scientific_creature',
+      'alien_creature',
+      'killer_creature',
+      'creature_conflict',
+      'rabies_infection'
+    ],
+    reason: 'Есть predatory_creature, но не указан более конкретный тип угрозы или природа существа.'
+  },
+  {
+    code: 'investigation_media_refinement',
+    label: 'Уточнить расследовательскую рамку',
+    whenAny: ['media_based_investigation', 'paranormal_media'],
+    suggestAny: [
+      'audio_contact',
+      'buried_past',
+      'missing_person_investigation',
+      'urban_legend_rabbit_hole',
+      'internet_folklore',
+      'small_town_secret',
+      'occult_book'
+    ],
+    reason: 'Есть медиа- или расследовательская рамка, но не уточнён источник расследования или скрытая правда.'
+  },
+  {
+    code: 'trapped_survival_refinement',
+    label: 'Уточнить trapped_survival',
+    whenAny: ['trapped_survival'],
+    suggestAny: [
+      'home_confinement',
+      'home_under_siege',
+      'kidnapping',
+      'sadistic_captor',
+      'group_survival',
+      'one_night_survival',
+      'enemy_pursuit',
+      'rescue_mission',
+      'snow_isolation',
+      'deserted_island'
+    ],
+    reason: 'Есть trapped_survival, но не указано, чем именно удерживаются персонажи или какая структура выживания работает.'
+  },
+  {
+    code: 'distorted_reality_refinement',
+    label: 'Уточнить distorted_reality',
+    whenAny: ['distorted_reality'],
+    suggestAny: [
+      'time_loop',
+      'spatial_loop',
+      'alternate_dimension',
+      'hallucinated_presence',
+      'fractured_memory',
+      'virtual_reality_simulation',
+      'dream_stalker',
+      'guilt_manifestation'
+    ],
+    reason: 'Есть distorted_reality, но не уточнён механизм искажения реальности.'
+  },
+  {
+    code: 'possession_refinement',
+    label: 'Уточнить possession',
+    whenPerceivedAny: ['possession'],
+    suggestAny: [
+      'demonic_possession',
+      'ghost_possession',
+      'entity_possession'
+    ],
+    reason: 'Фильм воспринимается как possession, но не указан тип одержимости.'
+  },
+  {
+    code: 'survival_horror_structure',
+    label: 'Уточнить survival_horror',
+    whenPerceivedAny: ['survival_horror'],
+    suggestAny: [
+      'trapped_survival',
+      'group_survival',
+      'one_night_survival',
+      'home_under_siege',
+      'enemy_pursuit',
+      'human_hunt',
+      'rescue_mission',
+      'post_apocalyptic_survival',
+      'war_survival'
+    ],
+    reason: 'Фильм воспринимается как survival_horror, но не указана конкретная структура выживания.'
+  }
+];
+
+function getCanonCoverageAuditMovieInfo(movie) {
+  return {
+    id: movie?.id,
+    slug: movie?.slug || '',
+    title: movie?.title || movie?.original_title || movie?.slug || 'Без названия',
+    year: movie?.year ?? null
+  };
+}
+
+function getCanonCoverageValues(movie, fieldNames = []) {
+  for (const fieldName of fieldNames) {
+    if (Array.isArray(movie?.[fieldName])) {
+      return movie[fieldName].map(value => String(value || '').trim()).filter(Boolean);
+    }
+  }
+
+  return [];
+}
+
+function hasAnyCanonCoverageValue(values = [], expectedValues = []) {
+  const valueSet = new Set(values || []);
+  return (expectedValues || []).some(value => valueSet.has(value));
+}
+
+function getCanonCoverageSuggestions(rule, canonSet) {
+  return (rule.suggestAny || []).filter(tag => !canonSet.has(tag));
+}
+
+function getCanonCoverageAuditItemsForMovie(movie = {}) {
+  const canon = getCanonCoverageValues(movie, ['canon', 'tags_canon']);
+  const perceived = getCanonCoverageValues(movie, ['tags_perceived', 'perceived']);
+  const canonSet = new Set(canon);
+  const items = [];
+
+  CANON_COVERAGE_AUDIT_RULES.forEach(rule => {
+    const hasCanonTrigger = hasAnyCanonCoverageValue(canon, rule.whenAny);
+    const hasPerceivedTrigger = hasAnyCanonCoverageValue(perceived, rule.whenPerceivedAny);
+
+    if (!hasCanonTrigger && !hasPerceivedTrigger) {
+      return;
+    }
+
+    const alreadyHasRefinement = hasAnyCanonCoverageValue(canon, rule.suggestAny);
+
+    if (alreadyHasRefinement) {
+      return;
+    }
+
+    const suggestedTags = getCanonCoverageSuggestions(rule, canonSet);
+
+    if (suggestedTags.length === 0) {
+      return;
+    }
+
+    items.push({
+      code: rule.code,
+      label: rule.label,
+      reason: rule.reason,
+      triggerTags: [
+        ...(rule.whenAny || []).filter(tag => canonSet.has(tag)),
+        ...(rule.whenPerceivedAny || []).filter(tag => perceived.includes(tag))
+      ],
+      suggestedTags
+    });
+  });
+
+  return items;
+}
+
+function getCanonCoverageAuditReport(movies = []) {
+  const items = (movies || [])
+    .map(movie => ({
+      movie: getCanonCoverageAuditMovieInfo(movie),
+      candidates: getCanonCoverageAuditItemsForMovie(movie)
+    }))
+    .filter(item => item.candidates.length > 0);
+
+  const tagFrequency = {};
+
+  items.forEach(item => {
+    item.candidates.forEach(candidate => {
+      candidate.suggestedTags.forEach(tag => {
+        tagFrequency[tag] = (tagFrequency[tag] || 0) + 1;
+      });
+    });
+  });
+
+  return {
+    totalMovies: (movies || []).length,
+    moviesWithCandidates: items.length,
+    candidatesCount: items.reduce((sum, item) => sum + item.candidates.length, 0),
+    items,
+    suggestedTagsFrequency: Object.entries(tagFrequency)
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))
+  };
+}
+
 window.HORROR_TAXONOMY = {
   subgenres: TAXONOMY_SUBGENRES,
   formats: TAXONOMY_FORMATS,
@@ -1628,6 +1889,7 @@ window.HORROR_TAXONOMY = {
     resolveMovieSimilarityLanes,
     validateMovieTags,
     validateTaxonomyMovies,
+    getCanonCoverageAuditReport,
     getSimilarMovies,
     getSimilarityAuditReport,
     getSimilarMovieCards

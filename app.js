@@ -42,6 +42,7 @@ const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
 let taxonomyDiagnosticsButton = null;
 let taxonomySimilarityAuditButton = null;
+let taxonomyCanonCoverageAuditButton = null;
 let taxonomyJsonExportButton = null;
 let taxonomyImportButton = null;
 let taxonomyImportFileInput = null;
@@ -542,6 +543,10 @@ function setTaxonomyImportControlsDisabled(isDisabled) {
   if (taxonomySimilarityAuditButton) {
     taxonomySimilarityAuditButton.disabled = isDisabled;
   }
+
+  if (taxonomyCanonCoverageAuditButton) {
+    taxonomyCanonCoverageAuditButton.disabled = isDisabled;
+  }
 }
 
 async function applyTaxonomyImportUpdates(updates) {
@@ -977,8 +982,90 @@ async function runTaxonomySimilarityAudit() {
   }
 }
 
+function formatCanonCoverageAuditReport(audit) {
+  const lines = [
+    'Аудит canon-покрытия Хоррорейро',
+    '',
+    `Проверено фильмов: ${audit.totalMovies}`,
+    `Фильмов с кандидатами: ${audit.moviesWithCandidates}`,
+    `Групп кандидатов: ${audit.candidatesCount}`,
+    '',
+    'КАНДИДАТЫ НА РУЧНУЮ ПРОВЕРКУ',
+    ''
+  ];
+
+  if (!audit.items.length) {
+    lines.push('—');
+  } else {
+    audit.items.forEach((item, index) => {
+      const movieYear = item.movie.year ? ` (${item.movie.year})` : '';
+      lines.push(`${index + 1}. ${item.movie.title}${movieYear}`);
+
+      item.candidates.forEach(candidate => {
+        lines.push(`   — ${candidate.label}`);
+        lines.push(`     Причина: ${candidate.reason}`);
+        lines.push(`     Триггеры: ${candidate.triggerTags.length ? candidate.triggerTags.join(', ') : '—'}`);
+        lines.push(`     Проверить теги: ${candidate.suggestedTags.join(', ')}`);
+      });
+
+      lines.push('');
+    });
+  }
+
+  lines.push('');
+  lines.push('ЧАСТО ПРЕДЛАГАЕМЫЕ CANON-ТЕГИ');
+  lines.push('');
+
+  if (!audit.suggestedTagsFrequency.length) {
+    lines.push('—');
+  } else {
+    audit.suggestedTagsFrequency.forEach(item => {
+      lines.push(`— ${item.tag}: ${item.count}`);
+    });
+  }
+
+  return lines.join('\n').trim();
+}
+
+async function runTaxonomyCanonCoverageAudit() {
+  try {
+    const getCanonCoverageAuditReport = window.HORROR_TAXONOMY?.helpers?.getCanonCoverageAuditReport;
+
+    if (typeof getCanonCoverageAuditReport !== 'function') {
+      showAuthMessage('Аудит canon-покрытия недоступен: не найден getCanonCoverageAuditReport.', 'error', true);
+      return;
+    }
+
+    const sortedMovies = await ensureMoviesForTaxonomyExport();
+
+    if (sortedMovies.length === 0) {
+      return;
+    }
+
+    const audit = getCanonCoverageAuditReport(sortedMovies);
+    const report = formatCanonCoverageAuditReport(audit);
+    const datePart = new Date().toISOString().slice(0, 10);
+
+    console.groupCollapsed(`Аудит canon-покрытия: ${audit.moviesWithCandidates} фильмов, ${audit.candidatesCount} групп кандидатов`);
+    console.log(report);
+    console.log(audit);
+    console.groupEnd();
+
+    downloadTextFile(
+      `horroreiro-canon-coverage-audit-${datePart}.txt`,
+      report,
+      'text/plain;charset=utf-8'
+    );
+
+    showAuthMessage(`Аудит canon-покрытия готов: ${audit.moviesWithCandidates} фильмов с кандидатами.`, 'success', true);
+  } catch (error) {
+    console.error('Ошибка аудита canon-покрытия:', error);
+    showAuthMessage(`Ошибка аудита canon-покрытия: ${error.message || 'смотри консоль F12.'}`, 'error', true);
+  }
+}
+
 function initTaxonomyExportButton() {
-  if (!adminPanel || (taxonomyDiagnosticsButton && taxonomySimilarityAuditButton && taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
+  if (!adminPanel || (taxonomyDiagnosticsButton && taxonomySimilarityAuditButton && taxonomyCanonCoverageAuditButton && taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
     return;
   }
 
@@ -1002,6 +1089,17 @@ function initTaxonomyExportButton() {
     taxonomySimilarityAuditButton.title = 'Скачать отчёт по сильным, слабым и подозрительным похожим фильмам';
 
     taxonomySimilarityAuditButton.addEventListener('click', runTaxonomySimilarityAudit);
+  }
+
+  if (!taxonomyCanonCoverageAuditButton) {
+    taxonomyCanonCoverageAuditButton = document.createElement('button');
+    taxonomyCanonCoverageAuditButton.type = 'button';
+    taxonomyCanonCoverageAuditButton.id = 'taxonomyCanonCoverageAuditButton';
+    taxonomyCanonCoverageAuditButton.className = 'secondary-button secondary-button-compact taxonomy-export-button';
+    taxonomyCanonCoverageAuditButton.textContent = 'Аудит canon';
+    taxonomyCanonCoverageAuditButton.title = 'Найти фильмы, где могут отсутствовать уже существующие canon-теги';
+
+    taxonomyCanonCoverageAuditButton.addEventListener('click', runTaxonomyCanonCoverageAudit);
   }
 
   if (!taxonomyJsonExportButton) {
@@ -1040,6 +1138,7 @@ function initTaxonomyExportButton() {
   adminPanel.prepend(taxonomyImportFileInput);
   adminPanel.prepend(taxonomyImportButton);
   adminPanel.prepend(taxonomyJsonExportButton);
+  adminPanel.prepend(taxonomyCanonCoverageAuditButton);
   adminPanel.prepend(taxonomySimilarityAuditButton);
   adminPanel.prepend(taxonomyDiagnosticsButton);
 }
