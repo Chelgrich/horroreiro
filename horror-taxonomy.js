@@ -1141,6 +1141,148 @@ function getSimilarMovies(targetMovie, allMovies) {
     .slice(0, SIMILARITY_MODEL.MAX_RESULTS);
 }
 
+function roundSimilarityNumber(value) {
+  return Math.round((Number(value) || 0) * 10) / 10;
+}
+
+function getSimilarityAuditMovieInfo(movie) {
+  return {
+    id: movie?.id,
+    title: movie?.title || movie?.original_title || movie?.slug || 'Без названия',
+    year: movie?.year ?? null
+  };
+}
+
+function getSimilarityAuditPairItem(movieA, movieB, similarity, explanation) {
+  return {
+    movieA: getSimilarityAuditMovieInfo(movieA),
+    movieB: getSimilarityAuditMovieInfo(movieB),
+    score: roundSimilarityNumber(similarity.finalScore),
+    tier: similarity.tier,
+    passesGate: similarity.passesGate,
+    sharedLanes: explanation.sharedLanes || [],
+    sharedCanon: explanation.sharedCanon || [],
+    sharedModifiers: explanation.sharedModifiers || [],
+    sharedBroadFamilies: explanation.sharedBroadFamilies || [],
+    sharedFormats: explanation.sharedFormats || [],
+    sharedGenres: explanation.sharedGenres || [],
+    sharedCountries: explanation.sharedCountries || [],
+    breakdown: Object.fromEntries(
+      Object.entries(similarity.breakdown || {}).map(([key, value]) => [
+        key,
+        roundSimilarityNumber(value)
+      ])
+    ),
+    debug: {
+      ...(similarity.debug || {}),
+      rawFinalScore: roundSimilarityNumber(similarity.debug?.rawFinalScore),
+      laneMultiplier: roundSimilarityNumber(similarity.debug?.laneMultiplier || 1)
+    }
+  };
+}
+
+function isSimilarityAuditPairSuspicious(pair) {
+  if (!pair.passesGate) {
+    return false;
+  }
+
+  const hasNoSharedCanon = pair.sharedCanon.length === 0;
+  const hasNoSharedLanes = pair.sharedLanes.length === 0;
+  const hasOnlySoftOverlap =
+    hasNoSharedCanon &&
+    pair.sharedModifiers.length >= 2 &&
+    pair.sharedBroadFamilies.length >= 2;
+
+  return hasNoSharedLanes || hasOnlySoftOverlap;
+}
+
+function getCanonTagAuditStats(movies = [], limit = 20) {
+  const frequency = {};
+  const moviesByTag = {};
+
+  (movies || []).forEach(movie => {
+    const uniqueCanonTags = new Set(movie?.canon || []);
+
+    uniqueCanonTags.forEach(tag => {
+      frequency[tag] = (frequency[tag] || 0) + 1;
+
+      if (!moviesByTag[tag]) {
+        moviesByTag[tag] = [];
+      }
+
+      moviesByTag[tag].push(getSimilarityAuditMovieInfo(movie));
+    });
+  });
+
+  const entries = Object.entries(frequency)
+    .map(([tag, count]) => ({
+      tag,
+      count,
+      movies: moviesByTag[tag] || []
+    }));
+
+  return {
+    mostFrequent: entries
+      .slice()
+      .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))
+      .slice(0, limit),
+    singleUse: entries
+      .filter(item => item.count === 1)
+      .sort((a, b) => a.tag.localeCompare(b.tag))
+      .slice(0, limit)
+  };
+}
+
+function getSimilarityAuditReport(allMovies = [], options = {}) {
+  const movies = (allMovies || []).filter(Boolean);
+  const topPairsLimit = options.topPairsLimit ?? 20;
+  const suspiciousPairsLimit = options.suspiciousPairsLimit ?? 20;
+  const canonTagsLimit = options.canonTagsLimit ?? 20;
+  const stats = buildSimilarityStats(movies);
+  const passedPairs = [];
+  const suspiciousPairs = [];
+  const similarCountByMovieId = new Map(
+    movies.map(movie => [String(movie.id), 0])
+  );
+
+  for (let firstIndex = 0; firstIndex < movies.length; firstIndex += 1) {
+    for (let secondIndex = firstIndex + 1; secondIndex < movies.length; secondIndex += 1) {
+      const movieA = movies[firstIndex];
+      const movieB = movies[secondIndex];
+      const similarity = calcMovieSimilarity(movieA, movieB, stats);
+      const explanation = getSimilarityExplanation(movieA, movieB);
+      const pair = getSimilarityAuditPairItem(movieA, movieB, similarity, explanation);
+
+      if (!similarity.passesGate) {
+        continue;
+      }
+
+      passedPairs.push(pair);
+
+      similarCountByMovieId.set(String(movieA.id), (similarCountByMovieId.get(String(movieA.id)) || 0) + 1);
+      similarCountByMovieId.set(String(movieB.id), (similarCountByMovieId.get(String(movieB.id)) || 0) + 1);
+
+      if (isSimilarityAuditPairSuspicious(pair)) {
+        suspiciousPairs.push(pair);
+      }
+    }
+  }
+
+  passedPairs.sort((a, b) => b.score - a.score);
+  suspiciousPairs.sort((a, b) => b.score - a.score);
+
+  return {
+    totalMovies: movies.length,
+    passedPairsCount: passedPairs.length,
+    topPairs: passedPairs.slice(0, topPairsLimit),
+    suspiciousPairs: suspiciousPairs.slice(0, suspiciousPairsLimit),
+    moviesWithoutSimilar: movies
+      .filter(movie => (similarCountByMovieId.get(String(movie.id)) || 0) === 0)
+      .map(getSimilarityAuditMovieInfo),
+    canonTags: getCanonTagAuditStats(movies, canonTagsLimit)
+  };
+}
+
 function getSimilarMovieCards(targetMovieId, allMovies) {
   const targetMovie = (allMovies || []).find(movie => String(movie.id) === String(targetMovieId));
 
@@ -1487,6 +1629,7 @@ window.HORROR_TAXONOMY = {
     validateMovieTags,
     validateTaxonomyMovies,
     getSimilarMovies,
+    getSimilarityAuditReport,
     getSimilarMovieCards
   }
 };

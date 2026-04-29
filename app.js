@@ -41,6 +41,7 @@ const authMessage = document.getElementById('authMessage');
 const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
 let taxonomyDiagnosticsButton = null;
+let taxonomySimilarityAuditButton = null;
 let taxonomyJsonExportButton = null;
 let taxonomyImportButton = null;
 let taxonomyImportFileInput = null;
@@ -537,6 +538,10 @@ function setTaxonomyImportControlsDisabled(isDisabled) {
   if (taxonomyDiagnosticsButton) {
     taxonomyDiagnosticsButton.disabled = isDisabled;
   }
+
+  if (taxonomySimilarityAuditButton) {
+    taxonomySimilarityAuditButton.disabled = isDisabled;
+  }
 }
 
 async function applyTaxonomyImportUpdates(updates) {
@@ -836,8 +841,144 @@ async function runTaxonomyDiagnostics() {
   }
 }
 
+function formatSimilarityAuditPair(pair, index) {
+  const lines = [
+    `${index + 1}. ${pair.movieA.title} ↔ ${pair.movieB.title}`,
+    `   Score: ${pair.score}; tier: ${pair.tier}`,
+    `   Lanes: ${pair.sharedLanes.length ? pair.sharedLanes.join(', ') : '—'}`,
+    `   Canon: ${pair.sharedCanon.length ? pair.sharedCanon.join(', ') : '—'}`,
+    `   Modifiers: ${pair.sharedModifiers.length ? pair.sharedModifiers.join(', ') : '—'}`,
+    `   Broad families: ${pair.sharedBroadFamilies.length ? pair.sharedBroadFamilies.join(', ') : '—'}`
+  ];
+
+  if (pair.debug) {
+    lines.push(
+      `   Debug: canonCore=${Math.round(pair.debug.canonCore || 0)}, laneMultiplier=${pair.debug.laneMultiplier || 1}`
+    );
+  }
+
+  return lines.join('\n');
+}
+
+function formatTaxonomySimilarityAuditReport(audit) {
+  const lines = [
+    'Аудит похожести Хоррорейро',
+    '',
+    `Проверено фильмов: ${audit.totalMovies}`,
+    `Пар, прошедших gate: ${audit.passedPairsCount}`,
+    `Фильмов без похожих: ${audit.moviesWithoutSimilar.length}`,
+    `Подозрительных пар: ${audit.suspiciousPairs.length}`,
+    '',
+    'ТОП СИЛЬНЕЙШИХ ПАР',
+    ''
+  ];
+
+  if (audit.topPairs.length === 0) {
+    lines.push('—');
+  } else {
+    audit.topPairs.forEach((pair, index) => {
+      lines.push(formatSimilarityAuditPair(pair, index));
+      lines.push('');
+    });
+  }
+
+  lines.push('');
+  lines.push('ПОДОЗРИТЕЛЬНЫЕ ПАРЫ');
+  lines.push('');
+
+  if (audit.suspiciousPairs.length === 0) {
+    lines.push('—');
+  } else {
+    audit.suspiciousPairs.forEach((pair, index) => {
+      lines.push(formatSimilarityAuditPair(pair, index));
+      lines.push('');
+    });
+  }
+
+  lines.push('');
+  lines.push('ФИЛЬМЫ БЕЗ ПОХОЖИХ');
+  lines.push('');
+
+  if (audit.moviesWithoutSimilar.length === 0) {
+    lines.push('—');
+  } else {
+    audit.moviesWithoutSimilar.forEach(movie => {
+      lines.push(`— ${movie.title}${movie.year ? ` (${movie.year})` : ''}`);
+    });
+  }
+
+  lines.push('');
+  lines.push('САМЫЕ ЧАСТЫЕ CANON-ТЕГИ');
+  lines.push('');
+
+  if (!audit.canonTags?.mostFrequent?.length) {
+    lines.push('—');
+  } else {
+    audit.canonTags.mostFrequent.forEach(item => {
+      lines.push(`— ${item.tag}: ${item.count}`);
+    });
+  }
+
+  lines.push('');
+  lines.push('CANON-ТЕГИ, КОТОРЫЕ ВСТРЕЧАЮТСЯ ОДИН РАЗ');
+  lines.push('');
+
+  if (!audit.canonTags?.singleUse?.length) {
+    lines.push('—');
+  } else {
+    audit.canonTags.singleUse.forEach(item => {
+      const movieTitle = item.movies?.[0]?.title || 'Без названия';
+      lines.push(`— ${item.tag}: ${movieTitle}`);
+    });
+  }
+
+  return lines.join('\n').trim();
+}
+
+async function runTaxonomySimilarityAudit() {
+  try {
+    const getSimilarityAuditReport = window.HORROR_TAXONOMY?.helpers?.getSimilarityAuditReport;
+
+    if (typeof getSimilarityAuditReport !== 'function') {
+      showAuthMessage('Аудит похожести недоступен: не найден getSimilarityAuditReport.', 'error', true);
+      return;
+    }
+
+    const sortedMovies = await ensureMoviesForTaxonomyExport();
+
+    if (sortedMovies.length === 0) {
+      return;
+    }
+
+    const similarityMovies = sortedMovies.map(movie => getMovieSimilaritySource(movie));
+    const audit = getSimilarityAuditReport(similarityMovies, {
+      topPairsLimit: 20,
+      suspiciousPairsLimit: 20,
+      canonTagsLimit: 25
+    });
+    const report = formatTaxonomySimilarityAuditReport(audit);
+    const datePart = new Date().toISOString().slice(0, 10);
+
+    console.groupCollapsed(`Аудит похожести: ${audit.totalMovies} фильмов, ${audit.passedPairsCount} пар`);
+    console.log(report);
+    console.log(audit);
+    console.groupEnd();
+
+    downloadTextFile(
+      `horroreiro-similarity-audit-${datePart}.txt`,
+      report,
+      'text/plain;charset=utf-8'
+    );
+
+    showAuthMessage(`Аудит похожести готов: ${audit.passedPairsCount} пар, ${audit.moviesWithoutSimilar.length} фильмов без похожих.`, 'success', true);
+  } catch (error) {
+    console.error('Ошибка аудита похожести:', error);
+    showAuthMessage(`Ошибка аудита похожести: ${error.message || 'смотри консоль F12.'}`, 'error', true);
+  }
+}
+
 function initTaxonomyExportButton() {
-  if (!adminPanel || (taxonomyDiagnosticsButton && taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
+  if (!adminPanel || (taxonomyDiagnosticsButton && taxonomySimilarityAuditButton && taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
     return;
   }
 
@@ -850,6 +991,17 @@ function initTaxonomyExportButton() {
     taxonomyDiagnosticsButton.title = 'Проверить теги всех фильмов и скачать отчёт с предупреждениями';
 
     taxonomyDiagnosticsButton.addEventListener('click', runTaxonomyDiagnostics);
+  }
+
+  if (!taxonomySimilarityAuditButton) {
+    taxonomySimilarityAuditButton = document.createElement('button');
+    taxonomySimilarityAuditButton.type = 'button';
+    taxonomySimilarityAuditButton.id = 'taxonomySimilarityAuditButton';
+    taxonomySimilarityAuditButton.className = 'secondary-button secondary-button-compact taxonomy-export-button';
+    taxonomySimilarityAuditButton.textContent = 'Аудит похожести';
+    taxonomySimilarityAuditButton.title = 'Скачать отчёт по сильным, слабым и подозрительным похожим фильмам';
+
+    taxonomySimilarityAuditButton.addEventListener('click', runTaxonomySimilarityAudit);
   }
 
   if (!taxonomyJsonExportButton) {
@@ -888,6 +1040,7 @@ function initTaxonomyExportButton() {
   adminPanel.prepend(taxonomyImportFileInput);
   adminPanel.prepend(taxonomyImportButton);
   adminPanel.prepend(taxonomyJsonExportButton);
+  adminPanel.prepend(taxonomySimilarityAuditButton);
   adminPanel.prepend(taxonomyDiagnosticsButton);
 }
 
