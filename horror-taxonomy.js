@@ -4202,6 +4202,23 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
 
     case 'grief_trauma_refinement': {
       const suggestedTags = [];
+      const hasSpecificGriefMechanism = hasAnyCanonCoverageValue(canon, [
+        'guilt_manifestation',
+        'fractured_memory',
+        'intergenerational_trauma',
+        'missing_person_investigation',
+        'childhood_trauma',
+        'maternal_horror',
+        'parent_child_pair',
+        'sibling_pair',
+        'time_machine_experiment',
+        'body_transformation',
+        'dysfunctional_family'
+      ]);
+
+      if (hasSpecificGriefMechanism) {
+        return null;
+      }
 
       if (canonSet.has('distorted_reality') || canonSet.has('hallucinated_presence')) {
         suggestedTags.push('guilt_manifestation', 'fractured_memory');
@@ -4296,6 +4313,31 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       const hasDeathTransferMechanism =
         canonSet.has('transfer_death') ||
         canonSet.has('transferable_curse');
+      const hasSpecificRealityMechanism = hasAnyCanonCoverageValue(canon, [
+        'time_loop',
+        'spatial_loop',
+        'alternate_dimension',
+        'hallucinated_presence',
+        'fractured_memory',
+        'virtual_reality_simulation',
+        'dream_stalker',
+        'body_transfer',
+        'identity_erasure',
+        'time_machine_experiment',
+        'time_displacement',
+        'future_intrusion',
+        'reality_intrusion'
+      ]);
+      const hasSpecificGriefRealityMechanism = hasAnyCanonCoverageValue(canon, [
+        'guilt_manifestation',
+        'maternal_horror',
+        'body_transformation',
+        'dysfunctional_family'
+      ]);
+
+      if (hasSpecificRealityMechanism || hasSpecificGriefRealityMechanism) {
+        return null;
+      }
 
       if (canonSet.has('countdown_structure') && !hasDeathTransferMechanism) {
         suggestedTags.push('time_loop');
@@ -4336,17 +4378,58 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       }
 
       const suggestedTags = [];
+      const hasExplicitGroupSurvivalFrame = hasAnyCanonCoverageValue(canon, [
+        'group_paranoia',
+        'uneasy_alliance',
+        'family_unit',
+        'sibling_pair',
+        'parent_child_pair',
+        'cult_community'
+      ]);
+      const hasExplicitContainmentFrame = hasAnyCanonCoverageValue(canon, [
+        'isolated_house',
+        'deserted_island',
+        'snow_isolation',
+        'isolated_lighthouse',
+        'roadside_motel',
+        'abandoned_settlement',
+        'underground_dystopia',
+        'home_confinement',
+        'kidnapping',
+        'sadistic_captor'
+      ]);
+      const hasExplicitPursuitFrame = hasAnyCanonCoverageValue(canon, [
+        'masked_killer',
+        'serial_killer',
+        'human_hunt',
+        'revenant_killer',
+        'supernatural_killer',
+        'killer_duo'
+      ]);
 
-      if (hasAnyCanonCoverageValue(canon, ['zombie', 'fungal_infection', 'chemical_outbreak', 'infected_society'])) {
+      if (
+        hasAnyCanonCoverageValue(canon, ['zombie', 'fungal_infection', 'chemical_outbreak', 'infected_society']) &&
+        hasExplicitGroupSurvivalFrame
+      ) {
         suggestedTags.push('group_survival');
       }
 
-      if (hasAnyCanonCoverageValue(canon, ['predatory_creature', 'shark_attack', 'snake_attack', 'giant_creature'])) {
-        suggestedTags.push('trapped_survival', 'group_survival', 'enemy_pursuit');
+      if (
+        hasAnyCanonCoverageValue(canon, ['predatory_creature', 'shark_attack', 'snake_attack', 'giant_creature']) &&
+        hasExplicitContainmentFrame
+      ) {
+        suggestedTags.push('trapped_survival');
       }
 
-      if (canonSet.has('isolated_protagonist')) {
-        suggestedTags.push('trapped_survival');
+      if (
+        hasAnyCanonCoverageValue(canon, ['predatory_creature', 'shark_attack', 'snake_attack', 'giant_creature']) &&
+        hasExplicitGroupSurvivalFrame
+      ) {
+        suggestedTags.push('group_survival');
+      }
+
+      if (hasExplicitPursuitFrame) {
+        suggestedTags.push('enemy_pursuit');
       }
 
       const missingTags = getCanonCoverageMissingTags(canonSet, suggestedTags, 3);
