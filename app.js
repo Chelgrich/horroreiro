@@ -7519,8 +7519,7 @@ function bindSharedAuthStateListener({ onAfterAuthSync } = {}) {
     );
     const shouldSkipAuthSync = (
       nextUserId === currentUserId &&
-      event !== 'SIGNED_OUT' &&
-      event !== 'SIGNED_IN'
+      event !== 'SIGNED_OUT'
     );
 
     if (shouldIgnoreForeignRecoverySignIn) {
@@ -8264,6 +8263,9 @@ function buildMoviePageViewModel(movie) {
           .filter(Boolean)
           .join(', ')
       : '',
+    formatsLabel: Array.isArray(movie.formats) && movie.formats.length > 0
+      ? mapTaxonomyLabels('formats', movie.formats).join(', ')
+      : '',
     externalLinksHtml: getMoviePageExternalLinksHtml(movie),
     synopsis: String(movie.synopsis || '').trim(),
     isRatingBusy: ratingRequestInFlight.has(String(movie.id)),
@@ -8341,6 +8343,7 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
     votesCount,
     currentUserRating,
     primaryPerceivedTagLabel,
+    formatsLabel,
     externalLinksHtml,
     synopsis,
     isRatingBusy
@@ -8394,6 +8397,11 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
           <div class="movie-page-meta-item"><span>Режиссёр:</span> ${movie.director ? escapeHtml(movie.director) : '-'}</div>
           <div class="movie-page-meta-item"><span>Жанры:</span> ${genres ? escapeHtml(genres) : '-'}</div>
           <div class="movie-page-meta-item"><span>Поджанр:</span> ${primaryPerceivedTagLabel ? escapeHtml(primaryPerceivedTagLabel) : '-'}</div>
+          ${
+            formatsLabel
+              ? `<div class="movie-page-meta-item"><span>Формат:</span> ${escapeHtml(formatsLabel)}</div>`
+              : ''
+          }
           <div class="movie-page-meta-item"><span>Страны:</span> ${countries ? escapeHtml(countries) : '-'}</div>
         </div>
 
