@@ -245,9 +245,10 @@ function parseMultilineValues(value) {
 function buildMovieTaxonomyDraftFromForm() {
   const formats = parseMultilineValues(movieFormatsInput?.value || '');
   const modifiers = parseMultilineValues(movieModifiersInput?.value || '');
-  const broadFamilies = parseMultilineValues(movieBroadFamiliesInput?.value || '');
+  const manualBroadFamilies = parseMultilineValues(movieBroadFamiliesInput?.value || '');
   const tagsPerceived = parseMultilineValues(tagsPerceivedInput?.value || '');
   const tagsCanon = parseMultilineValues(tagsCanonInput?.value || '');
+  const broadFamilies = resolveTaxonomyBroadFamiliesFromCanon(tagsCanon, manualBroadFamilies);
   const triggers = parseMultilineValues(movieTriggersInput?.value || '');
 
   const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
@@ -366,12 +367,26 @@ function getTaxonomyImportMovies(payload) {
   return [];
 }
 
+function resolveTaxonomyBroadFamiliesFromCanon(tagsCanon, fallbackFamilies = []) {
+  const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
+  const derivedBroadFamilies = taxonomyHelpers?.deriveBroadFamiliesFromCanon
+    ? taxonomyHelpers.deriveBroadFamiliesFromCanon(tagsCanon)
+    : [];
+
+  if (Array.isArray(derivedBroadFamilies) && derivedBroadFamilies.length > 0) {
+    return normalizeTaxonomyJsonArray(derivedBroadFamilies);
+  }
+
+  return normalizeTaxonomyJsonArray(fallbackFamilies);
+}
+
 function getTaxonomyImportChangedFields(importMovie, existingMovie) {
   const tagsPerceived = normalizeTaxonomyJsonArray(importMovie.tags_perceived);
   const tagsCanon = normalizeTaxonomyJsonArray(importMovie.tags_canon);
   const formats = normalizeTaxonomyJsonArray(importMovie.tags_formats);
   const modifiers = normalizeTaxonomyJsonArray(importMovie.tags_modifiers);
-  const broadFamilies = normalizeTaxonomyJsonArray(importMovie.tags_broad_families);
+  const manualBroadFamilies = normalizeTaxonomyJsonArray(importMovie.tags_broad_families);
+  const broadFamilies = resolveTaxonomyBroadFamiliesFromCanon(tagsCanon, manualBroadFamilies);
   const maskConflict = normalizeTaxonomyImportBoolean(importMovie.mask_conflict);
 
   const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
@@ -638,7 +653,7 @@ function buildMovieTaxonomyExportBlock(movie) {
     normalizeTaxonomyExportValues(movie.modifiers),
     '',
     'Broad families:',
-    normalizeTaxonomyExportValues(movie.broad_families),
+    normalizeTaxonomyExportValues(resolveTaxonomyBroadFamiliesFromCanon(movie.tags_canon, movie.broad_families)),
     '',
     'Mask conflict:',
     movie.mask_conflict ? 'true' : 'false'
@@ -651,6 +666,8 @@ function buildMovieTaxonomyExportBlock(movie) {
 }
 
 function buildMovieTaxonomyJsonExportItem(movie) {
+  const tagsCanon = normalizeTaxonomyJsonArray(movie.tags_canon);
+
   return {
     id: movie.id,
     slug: movie.slug || '',
@@ -659,10 +676,10 @@ function buildMovieTaxonomyJsonExportItem(movie) {
     year: movie.year ?? null,
     letterboxd_url: movie.letterboxd_url || '',
     tags_perceived: normalizeTaxonomyJsonArray(movie.tags_perceived),
-    tags_canon: normalizeTaxonomyJsonArray(movie.tags_canon),
+    tags_canon: tagsCanon,
     tags_formats: normalizeTaxonomyJsonArray(movie.formats),
     tags_modifiers: normalizeTaxonomyJsonArray(movie.modifiers),
-    tags_broad_families: normalizeTaxonomyJsonArray(movie.broad_families),
+    tags_broad_families: resolveTaxonomyBroadFamiliesFromCanon(tagsCanon, movie.broad_families),
     mask_conflict: Boolean(movie.mask_conflict)
   };
 }
