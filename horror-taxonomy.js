@@ -295,7 +295,7 @@ const CANON_BROAD_FAMILY_RULES = [
   { pattern: /(killer|predat|attack|hunt|captor|pursuit|stalker|monstrosity|cannibalism|possession|transformation|erasure|contamination|infiltration|resurrection)/, families: ['threat_behavior'] },
   { pattern: /(survival|trapped|confinement|siege|rescue|isolation|deserted)/, families: ['survival_structure'] },
   { pattern: /(space|house|village|school|office|park|island|forest|snow|mountain|lighthouse|motel|settlement|wilderness|subway|theater|apartment|barn|road|ruins|waterway|aquatic|bayou|pirate|scandinavian|thanksgiving|christmas|halloween|wedding|boarding|ski|underground)/, families: ['setting_type'] },
-  { pattern: /(family|parent|child|sibling|romantic|relationship|alliance|community|cult|gang|toxic|disabled|sick|bully|social|unrequited)/, families: ['human_dynamics'] },
+  { pattern: /(family|parent|child|sibling|romantic|relationship|alliance|community|cult_community|gang|toxic|disabled|sick|bully|social|unrequited)/, families: ['human_dynamics'] },
   { pattern: /(trauma|grief|guilt|mental|memory|obsession|pressure|status|abuse|breakdown|illness|maternal|childhood)/, families: ['psychological_wound'] },
   { pattern: /(reality|dimension|loop|body_transfer|distorted|hallucinated|liminal|simulation|time_machine|time_displacement|future_intrusion|dream|memory|identity)/, families: ['reality_structure'] },
   { pattern: /(time|countdown|christmas|halloween|thanksgiving|future|loop)/, families: ['temporal_mechanism'] },
