@@ -6293,6 +6293,29 @@ function syncOpenExternalLinksLayouts() {
   });
 }
 
+function shouldResetMovieCardFocusAfterLinkOpen(event) {
+  return (
+    event.button === 1 ||
+    event.ctrlKey ||
+    event.metaKey ||
+    event.shiftKey
+  );
+}
+
+function resetMovieCardFocusAfterLinkOpen(event) {
+  if (!shouldResetMovieCardFocusAfterLinkOpen(event)) {
+    return;
+  }
+
+  const link = event.currentTarget;
+
+  window.setTimeout(() => {
+    if (document.activeElement === link && typeof link.blur === 'function') {
+      link.blur();
+    }
+  }, 0);
+}
+
 function createMovieCard(movie) {
   const card = document.createElement('article');
   const movieId = movie.id;
@@ -6400,8 +6423,14 @@ function createMovieCard(movie) {
   const isWatchlistBusy = watchlistRequestInFlight.has(String(movieId));
   const posterImage = card.querySelector('.movie-poster');
   const posterSkeleton = card.querySelector('.movie-poster-skeleton');
+  const moviePageLinks = card.querySelectorAll('.movie-poster-link, .movie-title-link');
 
   bindPosterLoadState(posterImage, posterSkeleton);
+
+  moviePageLinks.forEach(link => {
+    link.addEventListener('click', resetMovieCardFocusAfterLinkOpen);
+    link.addEventListener('auxclick', resetMovieCardFocusAfterLinkOpen);
+  });
 
   if (actionsBlock && !editBtn && !deleteBtn) {
     actionsBlock.remove();
