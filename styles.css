@@ -2223,9 +2223,9 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 
 .movie-card:focus-within {
   transform: none;
-  border-color: rgba(91, 140, 255, 0.56);
+  border-color: #3a444f;
   box-shadow:
-    0 0 0 1px rgba(91, 140, 255, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.02),
     0 10px 24px rgba(0, 0, 0, 0.22);
 }
 
