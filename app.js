@@ -8016,12 +8016,6 @@ function getMoviePageReviewHeaderHtml(review, {
 
       <div class="movie-page-review-card-header-side">
         ${
-          isSpoilerReview
-            ? `<div class="movie-page-review-spoiler-badge">Спойлеры</div>`
-            : ''
-        }
-
-        ${
           isCurrentUserReview && !isEditing
             ? `
               <div class="movie-page-review-icon-actions">
