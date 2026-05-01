@@ -4467,7 +4467,16 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     width: 100%;
     max-width: var(--modal-dialog-max-width);
     max-height: calc(100vh - var(--modal-dialog-max-height-offset));
+    max-height: calc(100dvh - var(--modal-dialog-max-height-offset));
     margin: 0 auto;
+  }
+
+  .filters-modal-dialog {
+    max-height: calc(100vh - var(--modal-dialog-max-height-offset));
+    max-height: calc(100dvh - var(--modal-dialog-max-height-offset));
+    margin: 0 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .mobile-rating-modal-dialog {
