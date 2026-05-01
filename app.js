@@ -40,7 +40,6 @@ const authMessage = document.getElementById('authMessage');
 
 const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
-let taxonomyAdminToolbar = null;
 let taxonomyDiagnosticsButton = null;
 let taxonomySimilarityAuditButton = null;
 let taxonomyCanonCoverageAuditButton = null;
@@ -1106,44 +1105,33 @@ async function runTaxonomyCanonCoverageAudit() {
   }
 }
 
-function ensureTaxonomyAdminToolbar() {
-  if (!adminPanel) {
-    return null;
-  }
+function syncTaxonomyPopoverControlsVisibility() {
+  const shouldShowTaxonomyControls = shouldUseAuthenticatedUi() && isAdmin;
 
-  if (taxonomyAdminToolbar) {
-    return taxonomyAdminToolbar;
-  }
-
-  taxonomyAdminToolbar = document.createElement('div');
-  taxonomyAdminToolbar.id = 'taxonomyAdminToolbar';
-  taxonomyAdminToolbar.className = 'auth-ui-block admin-panel taxonomy-admin-toolbar';
-  taxonomyAdminToolbar.setAttribute('aria-label', 'Инструменты таксономии');
-
-  const headerTop = adminPanel.closest('.page-header-top');
-  const insertBeforeElement = headerTop || adminPanel;
-
-  insertBeforeElement.parentNode.insertBefore(
-    taxonomyAdminToolbar,
-    insertBeforeElement
-  );
-
-  return taxonomyAdminToolbar;
+  [
+    taxonomyDiagnosticsButton,
+    taxonomySimilarityAuditButton,
+    taxonomyCanonCoverageAuditButton,
+    taxonomyJsonExportButton,
+    taxonomyImportButton
+  ].forEach(button => {
+    if (button) {
+      button.hidden = !shouldShowTaxonomyControls;
+    }
+  });
 }
 
-function syncTaxonomyAdminToolbarVisibility() {
-  if (!taxonomyAdminToolbar) {
+function appendTaxonomyPopoverControl(control) {
+  if (!authPopoverMenu || !control) {
     return;
   }
 
-  taxonomyAdminToolbar.classList.toggle('is-visible', shouldUseAuthenticatedUi() && isAdmin);
+  authPopoverMenu.insertBefore(control, logoutMenuButton || null);
 }
 
 function initTaxonomyExportButton() {
-  const taxonomyToolbar = ensureTaxonomyAdminToolbar();
-
-  if (!taxonomyToolbar || (taxonomyDiagnosticsButton && taxonomySimilarityAuditButton && taxonomyCanonCoverageAuditButton && taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
-    syncTaxonomyAdminToolbarVisibility();
+  if (!authPopoverMenu || (taxonomyDiagnosticsButton && taxonomySimilarityAuditButton && taxonomyCanonCoverageAuditButton && taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
+    syncTaxonomyPopoverControlsVisibility();
     return;
   }
 
@@ -1151,7 +1139,7 @@ function initTaxonomyExportButton() {
     taxonomyDiagnosticsButton = document.createElement('button');
     taxonomyDiagnosticsButton.type = 'button';
     taxonomyDiagnosticsButton.id = 'taxonomyDiagnosticsButton';
-    taxonomyDiagnosticsButton.className = 'secondary-button secondary-button-compact taxonomy-export-button';
+    taxonomyDiagnosticsButton.className = 'auth-popover-item taxonomy-popover-item';
     taxonomyDiagnosticsButton.textContent = 'Диагностика тегов';
     taxonomyDiagnosticsButton.title = 'Проверить теги всех фильмов и скачать отчёт с предупреждениями';
 
@@ -1162,7 +1150,7 @@ function initTaxonomyExportButton() {
     taxonomySimilarityAuditButton = document.createElement('button');
     taxonomySimilarityAuditButton.type = 'button';
     taxonomySimilarityAuditButton.id = 'taxonomySimilarityAuditButton';
-    taxonomySimilarityAuditButton.className = 'secondary-button secondary-button-compact taxonomy-export-button';
+    taxonomySimilarityAuditButton.className = 'auth-popover-item taxonomy-popover-item';
     taxonomySimilarityAuditButton.textContent = 'Аудит похожести';
     taxonomySimilarityAuditButton.title = 'Скачать отчёт по сильным, слабым и подозрительным похожим фильмам';
 
@@ -1173,7 +1161,7 @@ function initTaxonomyExportButton() {
     taxonomyCanonCoverageAuditButton = document.createElement('button');
     taxonomyCanonCoverageAuditButton.type = 'button';
     taxonomyCanonCoverageAuditButton.id = 'taxonomyCanonCoverageAuditButton';
-    taxonomyCanonCoverageAuditButton.className = 'secondary-button secondary-button-compact taxonomy-export-button';
+    taxonomyCanonCoverageAuditButton.className = 'auth-popover-item taxonomy-popover-item';
     taxonomyCanonCoverageAuditButton.textContent = 'Аудит canon';
     taxonomyCanonCoverageAuditButton.title = 'Найти фильмы, где могут отсутствовать уже существующие canon-теги';
 
@@ -1184,7 +1172,7 @@ function initTaxonomyExportButton() {
     taxonomyJsonExportButton = document.createElement('button');
     taxonomyJsonExportButton.type = 'button';
     taxonomyJsonExportButton.id = 'exportTaxonomyJsonButton';
-    taxonomyJsonExportButton.className = 'secondary-button secondary-button-compact taxonomy-export-button';
+    taxonomyJsonExportButton.className = 'auth-popover-item taxonomy-popover-item';
     taxonomyJsonExportButton.textContent = 'Экспорт JSON';
     taxonomyJsonExportButton.title = 'Скачать JSON-выгрузку тегов для последующего импорта';
 
@@ -1204,7 +1192,7 @@ function initTaxonomyExportButton() {
     taxonomyImportButton = document.createElement('button');
     taxonomyImportButton.type = 'button';
     taxonomyImportButton.id = 'importTaxonomyJsonButton';
-    taxonomyImportButton.className = 'secondary-button secondary-button-compact taxonomy-export-button taxonomy-import-button';
+    taxonomyImportButton.className = 'auth-popover-item taxonomy-popover-item taxonomy-import-button';
     taxonomyImportButton.textContent = 'Импорт JSON';
     taxonomyImportButton.title = 'Импортировать JSON-выгрузку тегов и массово обновить только теговые поля';
 
@@ -1213,14 +1201,14 @@ function initTaxonomyExportButton() {
     });
   }
 
-  taxonomyToolbar.appendChild(taxonomyDiagnosticsButton);
-  taxonomyToolbar.appendChild(taxonomySimilarityAuditButton);
-  taxonomyToolbar.appendChild(taxonomyCanonCoverageAuditButton);
-  taxonomyToolbar.appendChild(taxonomyJsonExportButton);
-  taxonomyToolbar.appendChild(taxonomyImportButton);
-  taxonomyToolbar.appendChild(taxonomyImportFileInput);
+  authPopoverMenu.appendChild(taxonomyImportFileInput);
+  appendTaxonomyPopoverControl(taxonomyDiagnosticsButton);
+  appendTaxonomyPopoverControl(taxonomySimilarityAuditButton);
+  appendTaxonomyPopoverControl(taxonomyCanonCoverageAuditButton);
+  appendTaxonomyPopoverControl(taxonomyJsonExportButton);
+  appendTaxonomyPopoverControl(taxonomyImportButton);
 
-  syncTaxonomyAdminToolbarVisibility();
+  syncTaxonomyPopoverControlsVisibility();
 }
 
 function getSelectedTriggerFilters() {
@@ -2889,10 +2877,11 @@ function updateAuthUI() {
     loginForm.classList.toggle('is-visible', !shouldShowAuthenticatedUi);
   }
 
+  initTaxonomyExportButton();
+  syncTaxonomyPopoverControlsVisibility();
+
   if (adminPanel) {
-    initTaxonomyExportButton();
     adminPanel.classList.toggle('is-visible', shouldShowAuthenticatedUi && isAdmin);
-    syncTaxonomyAdminToolbarVisibility();
   }
 
   if (moviePageAdminActions) {
