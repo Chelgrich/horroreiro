@@ -162,6 +162,8 @@ let allMovies = [];
 let allMovieRatings = [];
 let allMovieWatchlist = [];
 let allMovieReviews = [];
+let catalogReviewedMovieIds = new Set();
+let reviewedOnlyFilter = false;
 let reviewRequestInFlight = new Set();
 let expandedSpoilerReviewIds = new Set();
 let expandedMovieReviewTextIds = new Set();
@@ -1685,6 +1687,7 @@ function saveCatalogState() {
         rating: ratingFilter.value,
         year: yearFilter.value,
         triggerExcludes: getSelectedTriggerFilters(),
+        withReviews: reviewedOnlyFilter,
         watchlist: currentUser ? watchlistFilter.value : '',
         watched: currentUser ? watchedFilter.value : '',
         viewMode: viewMode.value,
@@ -1710,6 +1713,7 @@ function applySavedCatalogState() {
       countryFilter.value = catalogState.country || '';
       ratingFilter.value = catalogState.rating || '';
       yearFilter.value = catalogState.year || '';
+      reviewedOnlyFilter = Boolean(catalogState.withReviews);
       watchlistFilter.value = currentUser ? (catalogState.watchlist || '') : '';
       watchedFilter.value = currentUser ? (catalogState.watched || '') : '';
 
@@ -3361,6 +3365,24 @@ async function fetchMovieReviews(movieId) {
   }));
 }
 
+async function fetchCatalogReviewSummary() {
+  const { data, error } = await supabaseClient
+    .from('movie_reviews')
+    .select('movie_id');
+
+  if (error) {
+    console.error('Ошибка загрузки сводки рецензий:', error);
+    catalogReviewedMovieIds = new Set();
+    return;
+  }
+
+  catalogReviewedMovieIds = new Set(
+    (data || [])
+      .map(item => String(item.movie_id || ''))
+      .filter(Boolean)
+  );
+}
+
 async function reloadMoviePageData(movieId) {
   if (!movieId) {
     return null;
@@ -3450,7 +3472,8 @@ async function reloadCatalogData({ showSkeleton = false } = {}) {
   await Promise.all([
     fetchMovies(),
     fetchMovieRatings(),
-    fetchMovieWatchlist()
+    fetchMovieWatchlist(),
+    fetchCatalogReviewSummary()
   ]);
 
   await Promise.all([
@@ -3668,6 +3691,7 @@ function resetFilterControls({ preserveSearch = false } = {}) {
   countryFilter.value = '';
   ratingFilter.value = '';
   yearFilter.value = '';
+  reviewedOnlyFilter = false;
   watchlistFilter.value = '';
   watchedFilter.value = '';
 
@@ -3708,6 +3732,14 @@ function getActiveQuickPresetKey() {
 
   if (hasSearchQuery || hasGenreFilter || hasSubgenreFilter || hasFormatFilter || hasTriggerFilters || hasCountryFilter || hasYearFilter) {
     return null;
+  }
+
+  if (
+    reviewedOnlyFilter &&
+    ratingFilter.value === '' &&
+    (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
+  ) {
+    return 'with-reviews';
   }
 
   if (
@@ -3754,10 +3786,27 @@ function getActiveQuickPresetKey() {
   return null;
 }
 
+function ensureReviewedQuickPresetButton() {
+  if (!quickPresetsBar || quickPresetsBar.querySelector('[data-quick-preset="with-reviews"]')) {
+    return;
+  }
+
+  const reviewedPresetButton = document.createElement('button');
+
+  reviewedPresetButton.type = 'button';
+  reviewedPresetButton.className = 'quick-preset-button';
+  reviewedPresetButton.dataset.quickPreset = 'with-reviews';
+  reviewedPresetButton.textContent = 'С рецензиями';
+
+  quickPresetsBar.appendChild(reviewedPresetButton);
+}
+
 function syncQuickPresetButtons() {
   if (!quickPresetsBar) {
     return;
   }
+
+  ensureReviewedQuickPresetButton();
 
   const activePresetKey = getActiveQuickPresetKey();
 
@@ -3781,6 +3830,10 @@ function applyQuickPreset(presetKey) {
 
   if (presetKey === 'low-rated') {
     ratingFilter.value = '3';
+  }
+
+  if (presetKey === 'with-reviews') {
+    reviewedOnlyFilter = true;
   }
 
   if (presetKey === 'watchlist' && currentUser) {
@@ -3808,6 +3861,10 @@ function applyQuickPreset(presetKey) {
 
 function getActiveFilterChips() {
   const chips = [];
+
+  if (reviewedOnlyFilter) {
+    chips.push({ label: 'Рецензии: с рецензиями', key: 'with-reviews' });
+  }
 
   if (watchlistFilter.value === 'in_watchlist') {
     chips.push({ label: 'Смотреть позже: только в списке', key: 'watchlist' });
@@ -3930,6 +3987,10 @@ function clearFilterChip(filterKey) {
   if (filterKey === 'format') {
     formatFilter.value = '';
     refreshCustomSelect(formatFilter);
+  }
+
+  if (filterKey === 'with-reviews') {
+    reviewedOnlyFilter = false;
   }
 
   if (filterKey.startsWith('trigger:')) {
@@ -6693,6 +6754,12 @@ function getFilteredMovies(options = {}) {
     filteredMovies = filteredMovies.filter(movie =>
       movie.year !== null &&
       Number(movie.year) === Number(selectedYear)
+    );
+  }
+
+  if (reviewedOnlyFilter) {
+    filteredMovies = filteredMovies.filter(movie =>
+      catalogReviewedMovieIds.has(String(movie.id))
     );
   }
 
