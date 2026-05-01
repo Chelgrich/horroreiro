@@ -1831,6 +1831,18 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
+  scarecrow_killer: createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.threat_type,
+    families: ['threat_behavior', 'setting_type', 'myth_reframing'],
+    lanes: ['slasher_lane', 'folk_myth_lane'],
+    useWhen: 'Пугало, чучело, scarecrow-костюм или ожившая scarecrow-фигура является устойчивой идентичностью убийцы, монстра или центральной угрозы.',
+    avoidWhen: 'Пугало присутствует только как декор, постерный образ, разовый scarecrow-jumpscare или хэллоуинский реквизит без роли в механике угрозы.',
+    examples: ['Die’ced: Reloaded'],
+    counterExamples: []
+  }),
   scientific_creature: createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
