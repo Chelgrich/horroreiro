@@ -3951,19 +3951,19 @@ body:has(.movie-page-shell) .page {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .movie-page-similar-grid > * {
   min-width: 0;
-  height: auto;
-  align-self: start;
+  height: 100%;
+  align-self: stretch;
 }
 
 .movie-page-similar-grid .movie-card {
   min-width: 0;
-  height: auto;
-  align-self: start;
+  height: 100%;
+  align-self: stretch;
 }
 
 .movie-page-similar-grid .movie-card,
@@ -3973,8 +3973,9 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-similar-card {
   min-width: 0;
-  height: auto;
-  align-self: start;
+  height: 100%;
+  align-self: stretch;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 12px;
