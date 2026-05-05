@@ -4012,9 +4012,11 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-similar-poster-wrapper {
+  position: relative;
   width: 100%;
   aspect-ratio: 2 / 3;
   overflow: hidden;
+  isolation: isolate;
   background: #0f1114;
   border: 1px solid #2c333b;
   border-radius: 8px;
