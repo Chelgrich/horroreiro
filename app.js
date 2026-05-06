@@ -164,6 +164,7 @@ let allMovieWatchlist = [];
 let allMovieReviews = [];
 let catalogReviewedMovieIds = new Set();
 let reviewedOnlyFilter = false;
+let astralOnlyFilter = false;
 let reviewRequestInFlight = new Set();
 let expandedSpoilerReviewIds = new Set();
 let expandedMovieReviewTextIds = new Set();
@@ -1688,6 +1689,7 @@ function saveCatalogState() {
         year: yearFilter.value,
         triggerExcludes: getSelectedTriggerFilters(),
         withReviews: reviewedOnlyFilter,
+        astrals: astralOnlyFilter,
         watchlist: currentUser ? watchlistFilter.value : '',
         watched: currentUser ? watchedFilter.value : '',
         viewMode: viewMode.value,
@@ -1714,6 +1716,7 @@ function applySavedCatalogState() {
       ratingFilter.value = catalogState.rating || '';
       yearFilter.value = catalogState.year || '';
       reviewedOnlyFilter = Boolean(catalogState.withReviews);
+      astralOnlyFilter = Boolean(catalogState.astrals);
       watchlistFilter.value = currentUser ? (catalogState.watchlist || '') : '';
       watchedFilter.value = currentUser ? (catalogState.watched || '') : '';
 
@@ -3692,6 +3695,7 @@ function resetFilterControls({ preserveSearch = false } = {}) {
   ratingFilter.value = '';
   yearFilter.value = '';
   reviewedOnlyFilter = false;
+  astralOnlyFilter = false;
   watchlistFilter.value = '';
   watchedFilter.value = '';
 
@@ -3732,6 +3736,15 @@ function getActiveQuickPresetKey() {
 
   if (hasSearchQuery || hasGenreFilter || hasSubgenreFilter || hasFormatFilter || hasTriggerFilters || hasCountryFilter || hasYearFilter) {
     return null;
+  }
+
+  if (
+    astralOnlyFilter &&
+    !reviewedOnlyFilter &&
+    ratingFilter.value === '' &&
+    (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
+  ) {
+    return 'astrals';
   }
 
   if (
@@ -3801,12 +3814,28 @@ function ensureReviewedQuickPresetButton() {
   quickPresetsBar.appendChild(reviewedPresetButton);
 }
 
+function ensureAstralQuickPresetButton() {
+  if (!quickPresetsBar || quickPresetsBar.querySelector('[data-quick-preset="astrals"]')) {
+    return;
+  }
+
+  const astralPresetButton = document.createElement('button');
+
+  astralPresetButton.type = 'button';
+  astralPresetButton.className = 'quick-preset-button';
+  astralPresetButton.dataset.quickPreset = 'astrals';
+  astralPresetButton.textContent = 'Астралы';
+
+  quickPresetsBar.appendChild(astralPresetButton);
+}
+
 function syncQuickPresetButtons() {
   if (!quickPresetsBar) {
     return;
   }
 
   ensureReviewedQuickPresetButton();
+  ensureAstralQuickPresetButton();
 
   const activePresetKey = getActiveQuickPresetKey();
 
@@ -3835,6 +3864,10 @@ function applyQuickPreset(presetKey) {
     reviewedOnlyFilter = true;
   }
 
+  if (presetKey === 'astrals') {
+    astralOnlyFilter = true;
+  }
+
   if (presetKey === 'watchlist' && currentUser) {
     watchlistFilter.value = 'in_watchlist';
   }
@@ -3859,6 +3892,10 @@ function applyQuickPreset(presetKey) {
 
 function getActiveFilterChips() {
   const chips = [];
+
+  if (astralOnlyFilter) {
+    chips.push({ label: 'Серия: Астралы', key: 'astrals' });
+  }
 
   if (reviewedOnlyFilter) {
     chips.push({ label: 'Рецензии: с рецензиями', key: 'with-reviews' });
@@ -3989,6 +4026,10 @@ function clearFilterChip(filterKey) {
 
   if (filterKey === 'with-reviews') {
     reviewedOnlyFilter = false;
+  }
+
+  if (filterKey === 'astrals') {
+    astralOnlyFilter = false;
   }
 
   if (filterKey.startsWith('trigger:')) {
@@ -6752,6 +6793,12 @@ function getFilteredMovies(options = {}) {
     filteredMovies = filteredMovies.filter(movie =>
       movie.year !== null &&
       Number(movie.year) === Number(selectedYear)
+    );
+  }
+
+  if (astralOnlyFilter) {
+    filteredMovies = filteredMovies.filter(movie =>
+      normalizeSearchText(movie.title).includes('астрал')
     );
   }
 
