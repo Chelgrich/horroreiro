@@ -1707,7 +1707,7 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 .astral-preset-toast {
   position: fixed;
   right: 0;
-  bottom: max(18px, env(safe-area-inset-bottom));
+  bottom: 0;
   z-index: 1600;
   width: clamp(130px, 16vw, 230px);
   pointer-events: none;
@@ -4897,7 +4897,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .astral-preset-toast {
     width: clamp(112px, 34vw, 160px);
-    bottom: max(14px, env(safe-area-inset-bottom));
+    bottom: 0;
   }
 
   .filters {
