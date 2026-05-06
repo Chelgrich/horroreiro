@@ -3822,7 +3822,6 @@ function syncQuickPresetButtons() {
 
 function applyQuickPreset(presetKey) {
   resetFilterControls();
-  sortMode.value = 'default';
 
   if (presetKey === 'top-rated') {
     ratingFilter.value = '7';
@@ -3851,8 +3850,7 @@ function applyQuickPreset(presetKey) {
   refreshCustomSelectGroup([
     ratingFilter,
     watchlistFilter,
-    watchedFilter,
-    sortMode
+    watchedFilter
   ]);
 
   syncCatalogViewToggleButton();
