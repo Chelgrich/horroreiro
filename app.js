@@ -84,6 +84,7 @@ const moviePageDeleteButton = document.getElementById('moviePageDeleteButton');
 const moviesSectionTitle = document.querySelector('.movies-section .section-title');
 const moviesResultCount = document.getElementById('moviesResultCount');
 let catalogViewToggleButton = null;
+let astralPresetToastTimerId = null;
 
 const movieForm = document.getElementById('movieForm');
 const formTitle = document.getElementById('formTitle');
@@ -3721,6 +3722,57 @@ function clearSearchAndRerenderPreservingPosition() {
   rerenderCatalogPreservingPosition();
 }
 
+function ensureAstralPresetToast() {
+  let toast = document.getElementById('astralPresetToast');
+
+  if (toast) {
+    return toast;
+  }
+
+  toast = document.createElement('div');
+  toast.id = 'astralPresetToast';
+  toast.className = 'astral-preset-toast';
+  toast.setAttribute('aria-hidden', 'true');
+
+  toast.innerHTML = `
+    <img
+      src="/insidious.webp"
+      alt=""
+      class="astral-preset-toast-image"
+      loading="eager"
+      decoding="async"
+    >
+  `;
+
+  document.body.appendChild(toast);
+
+  return toast;
+}
+
+function showAstralPresetToast() {
+  const toast = ensureAstralPresetToast();
+
+  if (!toast) {
+    return;
+  }
+
+  if (astralPresetToastTimerId) {
+    clearTimeout(astralPresetToastTimerId);
+    astralPresetToastTimerId = null;
+  }
+
+  toast.classList.remove('is-visible');
+
+  void toast.offsetWidth;
+
+  toast.classList.add('is-visible');
+
+  astralPresetToastTimerId = setTimeout(() => {
+    toast.classList.remove('is-visible');
+    astralPresetToastTimerId = null;
+  }, 1350);
+}
+
 function getActiveQuickPresetKey() {
   const hasSearchQuery = searchInput.value.trim() !== '';
   const hasGenreFilter = Boolean(genreFilter.value);
@@ -3852,6 +3904,12 @@ function syncQuickPresetButtons() {
 }
 
 function applyQuickPreset(presetKey) {
+  const shouldShowAstralPresetToast = (
+    presetKey === 'astrals' &&
+    searchInput &&
+    searchInput.value.trim() === ''
+  );
+
   resetFilterControls();
 
   if (presetKey === 'top-rated') {
@@ -3872,6 +3930,10 @@ function applyQuickPreset(presetKey) {
 
     if (searchClearBtn) {
       searchClearBtn.classList.add('is-visible');
+    }
+
+    if (shouldShowAstralPresetToast) {
+      showAstralPresetToast();
     }
   }
 

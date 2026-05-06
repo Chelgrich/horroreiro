@@ -1704,6 +1704,55 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   box-shadow: 0 0 0 1px var(--accent-soft-shadow);
 }
 
+.astral-preset-toast {
+  position: fixed;
+  right: 0;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 1600;
+  width: clamp(130px, 16vw, 230px);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(115%) scale(0.96);
+  will-change: transform, opacity;
+}
+
+.astral-preset-toast.is-visible {
+  animation: astral-preset-toast-peek 1.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.astral-preset-toast-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.48));
+}
+
+@keyframes astral-preset-toast-peek {
+  0% {
+    opacity: 0;
+    transform: translateX(115%) scale(0.96);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  24% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+
+  72% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(115%) scale(0.98);
+  }
+}
+
 .active-filter-chip {
   min-height: 32px;
   padding: 6px 16px;
@@ -4844,6 +4893,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .quick-preset-button {
     font-size: 12px;
+  }
+
+  .astral-preset-toast {
+    width: clamp(112px, 34vw, 160px);
+    bottom: max(14px, env(safe-area-inset-bottom));
   }
 
   .filters {
