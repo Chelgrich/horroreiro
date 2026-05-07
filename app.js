@@ -163,6 +163,11 @@ let allMovies = [];
 let allMovieRatings = [];
 let allMovieWatchlist = [];
 let allMovieReviews = [];
+let movieRatingsByMovieId = new Map();
+let movieRatingStatsByMovieId = new Map();
+let movieRatingByMovieAndUserKey = new Map();
+let currentUserRatingsByMovieId = new Map();
+let currentUserWatchlistMovieIds = new Set();
 let catalogReviewedMovieIds = new Set();
 let reviewedOnlyFilter = false;
 let reviewRequestInFlight = new Set();
@@ -2097,6 +2102,67 @@ function shouldUseAuthenticatedUi() {
   return Boolean(currentUser) && !isPasswordRecoveryMode;
 }
 
+function getMovieUserRatingKey(movieId, userId) {
+  return `${String(movieId)}::${String(userId)}`;
+}
+
+function rebuildMovieRatingIndexes() {
+  movieRatingsByMovieId = new Map();
+  movieRatingStatsByMovieId = new Map();
+  movieRatingByMovieAndUserKey = new Map();
+  currentUserRatingsByMovieId = new Map();
+
+  allMovieRatings.forEach(item => {
+    const movieId = String(item.movie_id ?? '');
+
+    if (!movieId) {
+      return;
+    }
+
+    if (!movieRatingsByMovieId.has(movieId)) {
+      movieRatingsByMovieId.set(movieId, []);
+    }
+
+    movieRatingsByMovieId.get(movieId).push(item);
+
+    const stats = movieRatingStatsByMovieId.get(movieId) || {
+      count: 0,
+      sum: 0,
+      average: 0
+    };
+
+    stats.count += 1;
+    stats.sum += Number(item.rating || 0);
+    stats.average = Number((stats.sum / stats.count).toFixed(1));
+    movieRatingStatsByMovieId.set(movieId, stats);
+
+    if (item.user_id) {
+      movieRatingByMovieAndUserKey.set(
+        getMovieUserRatingKey(movieId, item.user_id),
+        Number(item.rating || 0)
+      );
+    }
+
+    if (currentUser && String(item.user_id) === String(currentUser.id)) {
+      currentUserRatingsByMovieId.set(movieId, Number(item.rating || 0));
+    }
+  });
+}
+
+function rebuildCurrentUserWatchlistIndex() {
+  currentUserWatchlistMovieIds = new Set();
+
+  if (!currentUser) {
+    return;
+  }
+
+  allMovieWatchlist.forEach(item => {
+    if (String(item.user_id) === String(currentUser.id)) {
+      currentUserWatchlistMovieIds.add(String(item.movie_id));
+    }
+  });
+}
+
 function getCurrentUserMovieState(movieId) {
   if (!shouldUseAuthenticatedUi()) {
     return {
@@ -2106,9 +2172,7 @@ function getCurrentUserMovieState(movieId) {
     };
   }
 
-  const hasWatchlistRecord = allMovieWatchlist.some(item => (
-    item.movie_id === movieId && item.user_id === currentUser.id
-  ));
+  const hasWatchlistRecord = currentUserWatchlistMovieIds.has(String(movieId));
   const isWatched = getCurrentUserRating(movieId) !== null;
 
   return {
@@ -2132,7 +2196,8 @@ function updateLocalWatchlistState(movieId, shouldExist) {
   }
 
   const existingRecordIndex = allMovieWatchlist.findIndex(item => (
-    item.movie_id === movieId && item.user_id === currentUser.id
+    String(item.movie_id) === String(movieId) &&
+    String(item.user_id) === String(currentUser.id)
   ));
 
   if (shouldExist) {
@@ -2143,12 +2208,15 @@ function updateLocalWatchlistState(movieId, shouldExist) {
       });
     }
 
+    currentUserWatchlistMovieIds.add(String(movieId));
     return;
   }
 
   if (existingRecordIndex !== -1) {
     allMovieWatchlist.splice(existingRecordIndex, 1);
   }
+
+  currentUserWatchlistMovieIds.delete(String(movieId));
 }
 
 function getMovieReviews(movieId) {
@@ -2187,11 +2255,9 @@ function getMovieReviewUserRating(movieId, userId) {
     return 0;
   }
 
-  const ratingRow = getMovieRatings(movieId).find(item => (
-    String(item.user_id) === String(userId)
-  ));
-
-  return Number(ratingRow?.rating ?? 0);
+  return Number(
+    movieRatingByMovieAndUserKey.get(getMovieUserRatingKey(movieId, userId)) ?? 0
+  );
 }
 
 function formatMovieReviewDate(dateValue) {
@@ -3284,15 +3350,18 @@ async function fetchMovieRatings() {
   if (error) {
     console.error('Ошибка загрузки оценок фильмов:', error);
     allMovieRatings = [];
+    rebuildMovieRatingIndexes();
     return;
   }
 
   allMovieRatings = data || [];
+  rebuildMovieRatingIndexes();
 }
 
 async function fetchMovieWatchlist() {
   if (!shouldUseAuthenticatedUi()) {
     allMovieWatchlist = [];
+    rebuildCurrentUserWatchlistIndex();
     return;
   }
 
@@ -3304,10 +3373,12 @@ async function fetchMovieWatchlist() {
   if (error) {
     console.error('Ошибка загрузки watchlist:', error);
     allMovieWatchlist = [];
+    rebuildCurrentUserWatchlistIndex();
     return;
   }
 
   allMovieWatchlist = data || [];
+  rebuildCurrentUserWatchlistIndex();
 }
 
 async function fetchMovieReviews(movieId) {
@@ -3634,20 +3705,17 @@ JS-БЛОК 11. РАСЧЁТ И ЧТЕНИЕ ОЦЕНОК
 оценку текущего пользователя.
 ========================================================== */
 function getMovieRatings(movieId) {
-  return allMovieRatings.filter(item => item.movie_id === movieId);
+  return movieRatingsByMovieId.get(String(movieId)) || [];
 }
 
 function getMovieAverageRating(movieId) {
-  const ratings = getMovieRatings(movieId);
+  const stats = movieRatingStatsByMovieId.get(String(movieId));
 
-  if (ratings.length === 0) {
+  if (!stats || stats.count === 0) {
     return 0;
   }
 
-  const sum = ratings.reduce((acc, item) => acc + Number(item.rating || 0), 0);
-  const average = sum / ratings.length;
-
-  return Number(average.toFixed(1));
+  return stats.average;
 }
 
 function getCurrentUserRating(movieId) {
@@ -3655,11 +3723,11 @@ function getCurrentUserRating(movieId) {
     return null;
   }
 
-  const userRatingRow = allMovieRatings.find(item => (
-    item.movie_id === movieId && item.user_id === currentUser.id
-  ));
+  const movieKey = String(movieId);
 
-  return userRatingRow ? Number(userRatingRow.rating) : null;
+  return currentUserRatingsByMovieId.has(movieKey)
+    ? Number(currentUserRatingsByMovieId.get(movieKey))
+    : null;
 }
 
 function isMovieWatchedByCurrentUser(movieId) {
@@ -4813,6 +4881,8 @@ async function restoreSession() {
 
 async function applyCurrentSessionUser(user) {
   currentUser = user ?? null;
+  rebuildMovieRatingIndexes();
+  rebuildCurrentUserWatchlistIndex();
   await loadCurrentUserRole();
   updateAuthUI();
 }
@@ -5522,8 +5592,10 @@ async function removeUserMovieRating(movieId) {
       }
 
       allMovieRatings = allMovieRatings.filter(item => !(
-        item.movie_id === movieId && item.user_id === currentUser.id
+        String(item.movie_id) === String(movieId) &&
+        String(item.user_id) === String(currentUser.id)
       ));
+      rebuildMovieRatingIndexes();
 
       updateLocalWatchlistState(movieId, true);
     },
@@ -5766,7 +5838,8 @@ async function saveUserMovieRating(movieId, ratingValue) {
       }
 
       allMovieRatings = allMovieRatings.filter(item => !(
-        item.movie_id === movieId && item.user_id === currentUser.id
+        String(item.movie_id) === String(movieId) &&
+        String(item.user_id) === String(currentUser.id)
       ));
 
       allMovieRatings.push({
@@ -5774,6 +5847,7 @@ async function saveUserMovieRating(movieId, ratingValue) {
         user_id: currentUser.id,
         rating: normalizedRating
       });
+      rebuildMovieRatingIndexes();
 
       if (typeof ym === 'function') {
         const lastRatedMovie = sessionStorage.getItem('last_rated_movie');

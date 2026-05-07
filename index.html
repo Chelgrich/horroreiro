@@ -393,8 +393,10 @@
       envReadyPromise
         .then(() => {
           const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
-          return loadScript('custom-select.js', buildVersion)
-            .then(() => loadScript('horror-taxonomy.js', buildVersion))
+          return Promise.all([
+            loadScript('custom-select.js', buildVersion),
+            loadScript('horror-taxonomy.js', buildVersion)
+          ])
             .then(() => loadScript('app.js', buildVersion));
         })
         .catch(error => {
