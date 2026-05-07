@@ -163,7 +163,6 @@ let allMovies = [];
 let allMovieRatings = [];
 let allMovieWatchlist = [];
 let allMovieReviews = [];
-let movieRatingsByMovieId = new Map();
 let movieRatingStatsByMovieId = new Map();
 let movieRatingByMovieAndUserKey = new Map();
 let currentUserRatingsByMovieId = new Map();
@@ -2107,8 +2106,6 @@ function getMovieUserRatingKey(movieId, userId) {
 }
 
 function rebuildMovieRatingIndexes() {
-  movieRatingsByMovieId = new Map();
-  movieRatingStatsByMovieId = new Map();
   movieRatingByMovieAndUserKey = new Map();
   currentUserRatingsByMovieId = new Map();
 
@@ -2118,23 +2115,6 @@ function rebuildMovieRatingIndexes() {
     if (!movieId) {
       return;
     }
-
-    if (!movieRatingsByMovieId.has(movieId)) {
-      movieRatingsByMovieId.set(movieId, []);
-    }
-
-    movieRatingsByMovieId.get(movieId).push(item);
-
-    const stats = movieRatingStatsByMovieId.get(movieId) || {
-      count: 0,
-      sum: 0,
-      average: 0
-    };
-
-    stats.count += 1;
-    stats.sum += Number(item.rating || 0);
-    stats.average = Number((stats.sum / stats.count).toFixed(1));
-    movieRatingStatsByMovieId.set(movieId, stats);
 
     if (item.user_id) {
       movieRatingByMovieAndUserKey.set(
@@ -2146,6 +2126,125 @@ function rebuildMovieRatingIndexes() {
     if (currentUser && String(item.user_id) === String(currentUser.id)) {
       currentUserRatingsByMovieId.set(movieId, Number(item.rating || 0));
     }
+  });
+}
+
+function setKnownMovieRatingRows(rows) {
+  allMovieRatings = Array.isArray(rows) ? rows : [];
+  rebuildMovieRatingIndexes();
+}
+
+function upsertKnownMovieRatingRows(rows, shouldRemoveExisting = null) {
+  const nextRowsByKey = new Map();
+
+  allMovieRatings.forEach(row => {
+    if (typeof shouldRemoveExisting === 'function' && shouldRemoveExisting(row)) {
+      return;
+    }
+
+    nextRowsByKey.set(getMovieUserRatingKey(row.movie_id, row.user_id), row);
+  });
+
+  (Array.isArray(rows) ? rows : []).forEach(row => {
+    if (!row?.movie_id || !row?.user_id) {
+      return;
+    }
+
+    nextRowsByKey.set(getMovieUserRatingKey(row.movie_id, row.user_id), row);
+  });
+
+  allMovieRatings = Array.from(nextRowsByKey.values());
+  rebuildMovieRatingIndexes();
+}
+
+function removeKnownMovieRatingRows(shouldRemove) {
+  if (typeof shouldRemove !== 'function') {
+    return;
+  }
+
+  allMovieRatings = allMovieRatings.filter(row => !shouldRemove(row));
+  rebuildMovieRatingIndexes();
+}
+
+function applyMovieRatingStatsRows(rows) {
+  movieRatingStatsByMovieId = new Map();
+
+  (Array.isArray(rows) ? rows : []).forEach(row => {
+    const movieId = String(row.movie_id ?? '');
+    const count = Number(row.votes_count ?? row.count ?? 0);
+
+    if (!movieId || count <= 0) {
+      return;
+    }
+
+    const average = Number(row.average_rating ?? row.avg_rating ?? 0);
+    const sum = Number(row.rating_sum ?? average * count);
+
+    movieRatingStatsByMovieId.set(movieId, {
+      count,
+      sum,
+      average: Number(average.toFixed(1))
+    });
+  });
+}
+
+function applyMovieRatingStatsFromRows(rows) {
+  const statsByMovieId = new Map();
+
+  (Array.isArray(rows) ? rows : []).forEach(row => {
+    const movieId = String(row.movie_id ?? '');
+
+    if (!movieId) {
+      return;
+    }
+
+    const stats = statsByMovieId.get(movieId) || {
+      count: 0,
+      sum: 0,
+      average: 0
+    };
+
+    stats.count += 1;
+    stats.sum += Number(row.rating || 0);
+    stats.average = Number((stats.sum / stats.count).toFixed(1));
+    statsByMovieId.set(movieId, stats);
+  });
+
+  movieRatingStatsByMovieId = statsByMovieId;
+}
+
+function updateLocalMovieRatingStats(movieId, nextRating, previousRating = null) {
+  const movieKey = String(movieId);
+  const hadPreviousRating = previousRating !== null && previousRating !== undefined;
+  const hasNextRating = nextRating !== null && nextRating !== undefined;
+  const previousStats = movieRatingStatsByMovieId.get(movieKey) || {
+    count: 0,
+    sum: 0,
+    average: 0
+  };
+
+  let nextCount = previousStats.count;
+  let nextSum = previousStats.sum;
+
+  if (hadPreviousRating) {
+    nextCount = Math.max(0, nextCount - 1);
+    nextSum = Math.max(0, nextSum - Number(previousRating || 0));
+  }
+
+  if (hasNextRating) {
+    nextCount += 1;
+    nextSum += Number(nextRating || 0);
+  }
+
+  if (nextCount === 0) {
+    movieRatingStatsByMovieId.delete(movieKey);
+    return;
+  }
+
+  movieRatingStatsByMovieId.set(movieKey, {
+    count: nextCount,
+    sum: nextSum,
+    average: Number((nextSum / nextCount).toFixed(1))
   });
 }
 
@@ -3343,19 +3442,65 @@ async function fetchMovies() {
 }
 
 async function fetchMovieRatings() {
+  const hasFullRatingRows = await fetchMovieRatingStats();
+
+  if (hasFullRatingRows) {
+    return;
+  }
+
+  await fetchCurrentUserRatings();
+}
+
+async function fetchMovieRatingStats() {
+  const { data, error } = await supabaseClient
+    .from('movie_rating_stats')
+    .select('movie_id, average_rating, votes_count, rating_sum');
+
+  if (error) {
+    console.warn('Не удалось загрузить агрегаты оценок, используем fallback:', error);
+    return fetchFullMovieRatingsFallback();
+  }
+
+  applyMovieRatingStatsRows(data || []);
+  return false;
+}
+
+async function fetchFullMovieRatingsFallback() {
   const { data, error } = await supabaseClient
     .from('movie_ratings')
     .select('movie_id, user_id, rating');
 
   if (error) {
     console.error('Ошибка загрузки оценок фильмов:', error);
-    allMovieRatings = [];
-    rebuildMovieRatingIndexes();
+    setKnownMovieRatingRows([]);
+    applyMovieRatingStatsRows([]);
+    return false;
+  }
+
+  setKnownMovieRatingRows(data || []);
+  applyMovieRatingStatsFromRows(data || []);
+  return true;
+}
+
+async function fetchCurrentUserRatings() {
+  if (!currentUser) {
+    setKnownMovieRatingRows([]);
     return;
   }
 
-  allMovieRatings = data || [];
-  rebuildMovieRatingIndexes();
+  const activeUserId = currentUser.id;
+  const { data, error } = await supabaseClient
+    .from('movie_ratings')
+    .select('movie_id, user_id, rating')
+    .eq('user_id', activeUserId);
+
+  if (error) {
+    console.error('Ошибка загрузки оценок текущего пользователя:', error);
+    setKnownMovieRatingRows([]);
+    return;
+  }
+
+  setKnownMovieRatingRows(data || []);
 }
 
 async function fetchMovieWatchlist() {
@@ -3413,14 +3558,25 @@ async function fetchMovieReviews(movieId) {
       .map(review => review.user_id)
       .filter(Boolean)
   )];
+  const uniqueUserIdSet = new Set(uniqueUserIds.map(userId => String(userId)));
 
   let profilesMap = new Map();
 
   if (uniqueUserIds.length > 0) {
-    const { data: profilesData, error: profilesError } = await supabaseClient
-      .from('profiles')
-      .select('id, display_name, default_display_name')
-      .in('id', uniqueUserIds);
+    const [
+      { data: profilesData, error: profilesError },
+      { data: reviewRatingsData, error: reviewRatingsError }
+    ] = await Promise.all([
+      supabaseClient
+        .from('profiles')
+        .select('id, display_name, default_display_name')
+        .in('id', uniqueUserIds),
+      supabaseClient
+        .from('movie_ratings')
+        .select('movie_id, user_id, rating')
+        .eq('movie_id', movieId)
+        .in('user_id', uniqueUserIds)
+    ]);
 
     if (profilesError) {
       console.error('Ошибка загрузки профилей авторов рецензий:', profilesError);
@@ -3429,6 +3585,23 @@ async function fetchMovieReviews(movieId) {
         (profilesData || []).map(profile => [String(profile.id), profile])
       );
     }
+
+    if (reviewRatingsError) {
+      console.error('Ошибка загрузки оценок авторов рецензий:', reviewRatingsError);
+    } else {
+      upsertKnownMovieRatingRows(
+        reviewRatingsData || [],
+        row => (
+          String(row.movie_id) === String(movieId) &&
+          uniqueUserIdSet.has(String(row.user_id))
+        )
+      );
+    }
+  } else {
+    removeKnownMovieRatingRows(row => (
+      String(row.movie_id) === String(movieId) &&
+      (!currentUser || String(row.user_id) !== String(currentUser.id))
+    ));
   }
 
   allMovieReviews = reviews.map(review => ({
@@ -3462,9 +3635,10 @@ async function reloadMoviePageData(movieId) {
 
   await Promise.all([
     fetchMovieRatings(),
-    fetchMovieWatchlist(),
-    fetchMovieReviews(movieId)
+    fetchMovieWatchlist()
   ]);
+
+  await fetchMovieReviews(movieId);
 
   return fetchMovieById(movieId);
 }
@@ -3704,8 +3878,8 @@ JS-БЛОК 11. РАСЧЁТ И ЧТЕНИЕ ОЦЕНОК
 Собирает оценки фильма, считает средний рейтинг и находит
 оценку текущего пользователя.
 ========================================================== */
-function getMovieRatings(movieId) {
-  return movieRatingsByMovieId.get(String(movieId)) || [];
+function getMovieVotesCount(movieId) {
+  return movieRatingStatsByMovieId.get(String(movieId))?.count || 0;
 }
 
 function getMovieAverageRating(movieId) {
@@ -5577,6 +5751,8 @@ async function removeUserMovieRating(movieId) {
     return;
   }
 
+  const previousRating = getCurrentUserRating(movieId);
+
   await runMovieMutationWithUiSync({
     movieId,
     requestSet: ratingRequestInFlight,
@@ -5596,6 +5772,7 @@ async function removeUserMovieRating(movieId) {
         String(item.user_id) === String(currentUser.id)
       ));
       rebuildMovieRatingIndexes();
+      updateLocalMovieRatingStats(movieId, null, previousRating);
 
       updateLocalWatchlistState(movieId, true);
     },
@@ -5816,6 +5993,8 @@ async function saveUserMovieRating(movieId, ratingValue) {
     return;
   }
 
+  const previousRating = getCurrentUserRating(movieId);
+
   await runMovieMutationWithUiSync({
     movieId,
     requestSet: ratingRequestInFlight,
@@ -5848,6 +6027,7 @@ async function saveUserMovieRating(movieId, ratingValue) {
         rating: normalizedRating
       });
       rebuildMovieRatingIndexes();
+      updateLocalMovieRatingStats(movieId, normalizedRating, previousRating);
 
       if (typeof ym === 'function') {
         const lastRatedMovie = sessionStorage.getItem('last_rated_movie');
@@ -6559,7 +6739,7 @@ function createMovieCard(movie) {
   const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
   const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
   const averageRating = getMovieAverageRating(movieId);
-  const votesCount = getMovieRatings(movieId).length;
+  const votesCount = getMovieVotesCount(movieId);
 
   const ratingSummaryHtml = `
     <div class="movie-rating-summary">
@@ -7125,8 +7305,8 @@ function sortMoviesWithinMonth(movies, monthSortMode, monthSortDirection = 'desc
         return (ratingA - ratingB) * directionMultiplier;
       }
 
-      const votesA = getMovieRatings(a.id).length;
-      const votesB = getMovieRatings(b.id).length;
+      const votesA = getMovieVotesCount(a.id);
+      const votesB = getMovieVotesCount(b.id);
 
       if (votesA !== votesB) {
         return (votesA - votesB) * directionMultiplier;
@@ -7832,7 +8012,10 @@ function bindSharedAuthStateListener({ onAfterAuthSync } = {}) {
         return;
       }
 
-      await fetchMovieWatchlist();
+      await Promise.all([
+        fetchMovieRatings(),
+        fetchMovieWatchlist()
+      ]);
 
       if (currentRequestId !== authStateSyncRequestId) {
         return;
@@ -8054,7 +8237,7 @@ function getMoviePageSimilarCardHtml(movie) {
   const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
   const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
   const averageRating = getMovieAverageRating(movie.id);
-  const votesCount = getMovieRatings(movie.id).length;
+  const votesCount = getMovieVotesCount(movie.id);
 
   return `
     <article class="movie-page-similar-card" data-movie-id="${movie.id}">
@@ -8538,7 +8721,7 @@ function buildMoviePageViewModel(movie) {
     genres: movie.movie_genres.map(item => item.genres.name).join(', '),
     countries: movie.movie_countries.map(item => item.countries.name).join(', '),
     averageRating: getMovieAverageRating(movie.id),
-    votesCount: getMovieRatings(movie.id).length,
+    votesCount: getMovieVotesCount(movie.id),
     currentUserRating: getCurrentUserRating(movie.id),
     userMovieState: getCurrentUserMovieState(movie.id),
     primaryPerceivedTagLabel: Array.isArray(movie.tags_perceived) && movie.tags_perceived.length > 0
