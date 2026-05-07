@@ -160,6 +160,7 @@ let isAuthRegisterMode = false;
 let isPasswordRecoveryMode = false;
 let isPasswordRecoveryEntryPage = false;
 let allMovies = [];
+let catalogMovieMetaById = new Map();
 let allMovieRatings = [];
 let allMovieWatchlist = [];
 let allMovieReviews = [];
@@ -2472,6 +2473,63 @@ function textMatchesSearchQuery(text, searchQuery) {
   return queryWords.every(word => normalizedText.includes(word));
 }
 
+function getCatalogMovieMeta(movie) {
+  const movieId = String(movie?.id ?? '');
+
+  if (movieId && catalogMovieMetaById.has(movieId)) {
+    return catalogMovieMetaById.get(movieId);
+  }
+
+  return buildCatalogMovieMeta(movie);
+}
+
+function buildCatalogMovieMeta(movie) {
+  const movieGenres = Array.isArray(movie?.movie_genres) ? movie.movie_genres : [];
+  const movieCountries = Array.isArray(movie?.movie_countries) ? movie.movie_countries : [];
+  const searchAliases = Array.isArray(movie?.search_aliases)
+    ? movie.search_aliases.filter(Boolean)
+    : [];
+  const subgenreKeys = [
+    movie?.primary_subgenre,
+    ...(Array.isArray(movie?.secondary_subgenres) ? movie.secondary_subgenres : [])
+  ].filter(Boolean);
+
+  return {
+    genreNames: new Set(
+      movieGenres
+        .map(item => item?.genres?.name)
+        .filter(Boolean)
+    ),
+    countryNames: new Set(
+      movieCountries
+        .map(item => item?.countries?.name)
+        .filter(Boolean)
+    ),
+    subgenreKeys: new Set(subgenreKeys),
+    formatKeys: new Set(Array.isArray(movie?.formats) ? movie.formats.filter(Boolean) : []),
+    triggerKeys: new Set(Array.isArray(movie?.triggers) ? movie.triggers.filter(Boolean) : []),
+    searchAliases,
+    visibleSearchTexts: [
+      movie?.title,
+      movie?.original_title,
+      movie?.director
+    ].map(value => normalizeSearchText(value)),
+    searchableText: normalizeSearchText([
+      movie?.title,
+      movie?.original_title,
+      movie?.director,
+      ...searchAliases
+    ].join(' '))
+  };
+}
+
+function rebuildCatalogMovieMeta() {
+  catalogMovieMetaById = new Map(
+    (Array.isArray(allMovies) ? allMovies : [])
+      .map(movie => [String(movie.id), buildCatalogMovieMeta(movie)])
+  );
+}
+
 function getMatchedSearchAlias(movie, searchQuery) {
   const normalizedQuery = normalizeSearchText(searchQuery);
 
@@ -2479,17 +2537,17 @@ function getMatchedSearchAlias(movie, searchQuery) {
     return null;
   }
 
-  const hasVisibleMatch = [
-    movie.title,
-    movie.original_title,
-    movie.director
-  ].some(value => textMatchesSearchQuery(value, searchQuery));
+  const meta = getCatalogMovieMeta(movie);
+  const queryWords = normalizedQuery.split(' ').filter(Boolean);
+  const hasVisibleMatch = meta.visibleSearchTexts.some(text =>
+    queryWords.every(word => text.includes(word))
+  );
 
   if (hasVisibleMatch) {
     return null;
   }
 
-  return (movie.search_aliases || []).find(alias => textMatchesSearchQuery(alias, searchQuery)) || null;
+  return meta.searchAliases.find(alias => textMatchesSearchQuery(alias, searchQuery)) || null;
 }
 
 function movieMatchesSearch(movie, searchQuery) {
@@ -2499,16 +2557,10 @@ function movieMatchesSearch(movie, searchQuery) {
     return true;
   }
 
-  const searchableText = normalizeSearchText([
-    movie.title,
-    movie.original_title,
-    movie.director,
-    ...(movie.search_aliases || [])
-  ].join(' '));
-
+  const meta = getCatalogMovieMeta(movie);
   const queryWords = normalizedQuery.split(' ').filter(Boolean);
 
-  return queryWords.every(word => searchableText.includes(word));
+  return queryWords.every(word => meta.searchableText.includes(word));
 }
 
 /* =========================================================
@@ -3442,6 +3494,7 @@ async function fetchMovies() {
     }
 
   allMovies = data || [];
+  rebuildCatalogMovieMeta();
   moviesLoadedSuccessfully = true;
 }
 
@@ -7058,24 +7111,19 @@ function getFilteredMovies(options = {}) {
 
   if (!ignoreGenre && selectedGenre) {
     filteredMovies = filteredMovies.filter(movie =>
-      movie.movie_genres.some(item => item.genres.name === selectedGenre)
+      getCatalogMovieMeta(movie).genreNames.has(selectedGenre)
     );
   }
 
   if (!ignoreSubgenre && subgenreFilter.value) {
-    filteredMovies = filteredMovies.filter(movie => {
-      const movieSubgenreKeys = [
-        movie.primary_subgenre,
-        ...(Array.isArray(movie.secondary_subgenres) ? movie.secondary_subgenres : [])
-      ].filter(Boolean);
-
-      return movieSubgenreKeys.includes(subgenreFilter.value);
-    });
+    filteredMovies = filteredMovies.filter(movie =>
+      getCatalogMovieMeta(movie).subgenreKeys.has(subgenreFilter.value)
+    );
   }
 
   if (!ignoreFormat && formatFilter.value) {
     filteredMovies = filteredMovies.filter(movie =>
-      Array.isArray(movie.formats) && movie.formats.includes(formatFilter.value)
+      getCatalogMovieMeta(movie).formatKeys.has(formatFilter.value)
     );
   }
 
@@ -7085,15 +7133,15 @@ function getFilteredMovies(options = {}) {
 
   if (selectedTriggerExcludes.length > 0) {
     filteredMovies = filteredMovies.filter(movie => {
-      const movieTriggers = Array.isArray(movie.triggers) ? movie.triggers : [];
+      const movieTriggers = getCatalogMovieMeta(movie).triggerKeys;
 
-      return !selectedTriggerExcludes.some(triggerKey => movieTriggers.includes(triggerKey));
+      return !selectedTriggerExcludes.some(triggerKey => movieTriggers.has(triggerKey));
     });
   }
 
   if (!ignoreCountry && selectedCountry) {
     filteredMovies = filteredMovies.filter(movie =>
-      movie.movie_countries.some(item => item.countries.name === selectedCountry)
+      getCatalogMovieMeta(movie).countryNames.has(selectedCountry)
     );
   }
 
@@ -7164,11 +7212,7 @@ function getGenreOptionCounts() {
   const counts = new Map();
 
   moviesWithoutGenreFilter.forEach(movie => {
-    const movieGenres = Array.isArray(movie.movie_genres) ? movie.movie_genres : [];
-
-    movieGenres.forEach(item => {
-      const genreName = item?.genres?.name;
-
+    getCatalogMovieMeta(movie).genreNames.forEach(genreName => {
       if (!genreName || normalizeSearchText(genreName) === 'ужасы') {
         return;
       }
@@ -7189,14 +7233,7 @@ function getSubgenreOptionCounts() {
   const counts = new Map();
 
   moviesWithoutSubgenreFilter.forEach(movie => {
-    const subgenreKeys = [
-      movie.primary_subgenre,
-      ...(Array.isArray(movie.secondary_subgenres) ? movie.secondary_subgenres : [])
-    ].filter(Boolean);
-
-    const uniqueSubgenreKeys = [...new Set(subgenreKeys)];
-
-    uniqueSubgenreKeys.forEach(subgenreKey => {
+    getCatalogMovieMeta(movie).subgenreKeys.forEach(subgenreKey => {
       counts.set(subgenreKey, (counts.get(subgenreKey) || 0) + 1);
     });
   });
@@ -7213,9 +7250,7 @@ function getFormatOptionCounts() {
   const counts = new Map();
 
   moviesWithoutFormatFilter.forEach(movie => {
-    const movieFormats = Array.isArray(movie.formats) ? movie.formats : [];
-
-    movieFormats.forEach(formatKey => {
+    getCatalogMovieMeta(movie).formatKeys.forEach(formatKey => {
       counts.set(formatKey, (counts.get(formatKey) || 0) + 1);
     });
   });
@@ -7232,11 +7267,7 @@ function getCountryOptionCounts() {
   const counts = new Map();
 
   moviesWithoutCountryFilter.forEach(movie => {
-    const movieCountries = Array.isArray(movie.movie_countries) ? movie.movie_countries : [];
-
-    movieCountries.forEach(item => {
-      const countryName = item?.countries?.name;
-
+    getCatalogMovieMeta(movie).countryNames.forEach(countryName => {
       if (!countryName) {
         return;
       }
@@ -7278,9 +7309,7 @@ function getTriggerOptionCounts() {
   const counts = new Map();
 
   moviesWithoutTriggerExcludes.forEach(movie => {
-    const movieTriggers = Array.isArray(movie.triggers) ? movie.triggers : [];
-
-    movieTriggers.forEach(triggerKey => {
+    getCatalogMovieMeta(movie).triggerKeys.forEach(triggerKey => {
       counts.set(triggerKey, (counts.get(triggerKey) || 0) + 1);
     });
   });
