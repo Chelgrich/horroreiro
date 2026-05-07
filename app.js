@@ -195,6 +195,9 @@ let allCountryNames = [];
 let lastCatalogAnchorMovieId = null;
 let currentMoviePageMovieId = null;
 let currentMoviePageMovieData = null;
+let currentMoviePageSimilarMovieId = null;
+let currentMoviePageSimilarMovies = [];
+let moviePageSimilarRequestId = 0;
 let shouldFadeCatalogAfterSkeleton = false;
 let catalogFadeCleanupTimerId = null;
 
@@ -619,6 +622,7 @@ async function importMovieTaxonomyJsonFile(file) {
 
       if (updatedMovie) {
         renderMoviePage(updatedMovie);
+        loadMoviePageSimilarMovies(updatedMovie);
       }
     }
 
@@ -4960,6 +4964,7 @@ async function updateMovie(event) {
         }
 
         renderMoviePage(updatedMovie);
+        loadMoviePageSimilarMovies(updatedMovie);
       } else {
         renderMoviePageNotFound();
       }
@@ -8164,6 +8169,7 @@ function renderMoviePageNotFound() {
 
   currentMoviePageMovieId = null;
   currentMoviePageMovieData = null;
+  resetMoviePageSimilarState();
 
   setMoviePageDocumentMeta(null);
 
@@ -8231,6 +8237,57 @@ function getSimilarMoviesForMoviePage(movie, limit = 4) {
     .slice(0, limit)
     .map(item => moviesById.get(String(item.movie.id)))
     .filter(Boolean);
+}
+
+function resetMoviePageSimilarState() {
+  currentMoviePageSimilarMovieId = null;
+  currentMoviePageSimilarMovies = [];
+  moviePageSimilarRequestId += 1;
+}
+
+function renderMoviePageSimilarSection(movieId) {
+  const mount = moviePage?.querySelector('[data-movie-page-similar-mount="true"]');
+
+  if (!mount) {
+    return;
+  }
+
+  const similarMovies = String(currentMoviePageSimilarMovieId) === String(movieId)
+    ? currentMoviePageSimilarMovies
+    : [];
+
+  mount.innerHTML = getMoviePageSimilarSectionHtml(similarMovies);
+}
+
+async function loadMoviePageSimilarMovies(movie, limit = 4) {
+  if (!movie || !moviePage) {
+    return;
+  }
+
+  const requestId = ++moviePageSimilarRequestId;
+  const movieId = String(movie.id);
+
+  currentMoviePageSimilarMovieId = movieId;
+  currentMoviePageSimilarMovies = [];
+  renderMoviePageSimilarSection(movieId);
+
+  try {
+    if (!Array.isArray(allMovies) || allMovies.length === 0) {
+      await fetchMovies();
+    }
+
+    if (
+      requestId !== moviePageSimilarRequestId ||
+      String(currentMoviePageMovieId) !== movieId
+    ) {
+      return;
+    }
+
+    currentMoviePageSimilarMovies = getSimilarMoviesForMoviePage(movie, limit);
+    renderMoviePageSimilarSection(movieId);
+  } catch (error) {
+    console.error('Ошибка загрузки похожих фильмов:', error);
+  }
 }
 
 function getMoviePageSimilarCardHtml(movie) {
@@ -8738,7 +8795,6 @@ function buildMoviePageViewModel(movie) {
     synopsis: String(movie.synopsis || '').trim(),
     isRatingBusy: ratingRequestInFlight.has(String(movie.id)),
     isWatchlistBusy: watchlistRequestInFlight.has(String(movie.id)),
-    similarMovies: getSimilarMoviesForMoviePage(movie, 4),
     reviewsSectionHtml: getMoviePageReviewsSectionHtml(movie)
   };
 }
@@ -8915,7 +8971,7 @@ function renderMoviePage(movie) {
   currentMoviePageMovieData = movie;
 
   const viewModel = buildMoviePageViewModel(movie);
-  const { similarMovies, reviewsSectionHtml } = viewModel;
+  const { reviewsSectionHtml } = viewModel;
 
   setMoviePageDocumentMeta(movie);
 
@@ -8924,7 +8980,13 @@ function renderMoviePage(movie) {
       ${getMoviePageHeaderHtml(movie, viewModel)}
 
       ${reviewsSectionHtml}
-      ${getMoviePageSimilarSectionHtml(similarMovies)}
+      <div data-movie-page-similar-mount="true">
+        ${
+          String(currentMoviePageSimilarMovieId) === String(movie.id)
+            ? getMoviePageSimilarSectionHtml(currentMoviePageSimilarMovies)
+            : ''
+        }
+      </div>
     </div>
   `;
 
@@ -8958,12 +9020,10 @@ async function deleteMovieFromMoviePage(movieId, movieTitle) {
 }
 
 async function loadMoviePageByRouteParams(routeParams) {
-  await Promise.all([
-    fetchMovies(),
+  const [movie] = await Promise.all([
+    fetchMovieByRouteParams(routeParams),
     fetchMovieRatings()
   ]);
-
-  const movie = await fetchMovieByRouteParams(routeParams);
 
   if (!movie) {
     renderMoviePageNotFound();
@@ -8972,6 +9032,7 @@ async function loadMoviePageByRouteParams(routeParams) {
 
   await fetchMovieReviews(movie.id);
   renderMoviePage(movie);
+  loadMoviePageSimilarMovies(movie);
 
   return movie;
 }
