@@ -6146,29 +6146,123 @@ async function saveUserMovieRating(movieId, ratingValue) {
 JS-БЛОК 21. ОТРИСОВКА КАТАЛОГА ФИЛЬМОВ
 Применяет поиск, фильтры и сортировку, затем выводит карточки.
 ========================================================== */
-function renderMoviesSkeleton(cardsCount = 8) {
-  container.innerHTML = Array.from({ length: cardsCount }, () => `
-    <article class="movie-card movie-card-skeleton">
-      <div class="movie-poster-wrapper movie-poster-wrapper-skeleton">
-        <div class="movie-poster-skeleton" aria-hidden="true"></div>
+function renderMoviesSkeleton(cardsCount = 12) {
+  const skeletonMovies = getCatalogSkeletonMovies(cardsCount);
+
+  container.innerHTML = skeletonMovies
+    .map(movie => getMovieCardSkeletonHtml(movie))
+    .join('');
+}
+
+function getCatalogSkeletonMovies(cardsCount) {
+  const skeletonMovies = moviesLoadedSuccessfully
+    ? getFilteredMovies().slice(0, cardsCount)
+    : [];
+
+  return Array.from({ length: cardsCount }, (_, index) => skeletonMovies[index] || null);
+}
+
+function getMovieCardSkeletonHtml(movie = null) {
+  const hasOriginalTitle = !movie || Boolean(movie.original_title);
+  const hasExternalLinks = !movie || hasMovieExternalLinks(movie);
+
+  return `
+    <article class="movie-card movie-card-skeleton" aria-hidden="true">
+      <div class="movie-poster-block">
+        <div class="movie-poster-link">
+          <div class="movie-poster-wrapper movie-poster-wrapper-skeleton">
+            <div class="movie-poster-skeleton" aria-hidden="true"></div>
+          </div>
+        </div>
       </div>
 
-      <div class="movie-text-skeleton movie-text-skeleton-title"></div>
-      <div class="movie-text-skeleton"></div>
-      <div class="movie-text-skeleton"></div>
-      <div class="movie-text-skeleton"></div>
-      <div class="movie-text-skeleton"></div>
+      <h5 class="movie-title movie-title-skeleton">
+        <span class="movie-text-skeleton movie-text-skeleton-title"></span>
+      </h5>
+
+      ${hasOriginalTitle ? '<p><span class="movie-text-skeleton movie-text-skeleton-original"></span></p>' : ''}
+      <p><span class="movie-text-skeleton movie-text-skeleton-year"></span></p>
+      <p><span class="movie-text-skeleton movie-text-skeleton-director"></span></p>
+      <p><span class="movie-text-skeleton movie-text-skeleton-genres"></span></p>
+      <p><span class="movie-text-skeleton movie-text-skeleton-countries"></span></p>
 
       <div class="movie-rating-block">
-        <div class="movie-text-skeleton movie-rating-skeleton"></div>
+        ${hasExternalLinks ? getMovieExternalLinksSkeletonHtml() : ''}
+        <div class="movie-rating-summary movie-rating-summary-skeleton">
+          <div class="movie-rating-summary-main">
+            <span class="movie-rating-value movie-text-skeleton movie-rating-value-skeleton"></span>
+            <span class="movie-rating-meta movie-text-skeleton movie-rating-meta-skeleton"></span>
+          </div>
+          <span class="remove-rating-inline-btn secondary-button secondary-button-compact movie-text-skeleton remove-rating-inline-skeleton"></span>
+        </div>
+        ${getUserRatingSkeletonHtml()}
+      </div>
+
+      <div class="movie-card-actions">
+        ${isAdmin ? getMovieCardActionsSkeletonHtml() : ''}
       </div>
     </article>
-  `).join('');
+  `;
+}
+
+function getMovieExternalLinksSkeletonHtml() {
+  return `
+    <span class="movie-external-links-toggle secondary-button secondary-button-compact movie-text-skeleton movie-external-links-toggle-skeleton"></span>
+    <div class="movie-external-links-collapsible">
+      <div class="movie-external-links movie-external-links-skeleton" aria-hidden="true">
+        ${Array.from({ length: 4 }, () => '<span class="movie-external-link movie-external-link-skeleton"></span>').join('')}
+      </div>
+    </div>
+  `;
+}
+
+function getUserRatingSkeletonHtml() {
+  if (!currentUser) {
+    return '';
+  }
+
+  return `
+    <div class="movie-user-rating movie-user-rating-skeleton">
+      <div class="movie-user-rating-label">
+        <span class="movie-text-skeleton movie-user-rating-label-skeleton"></span>
+      </div>
+
+      <div class="movie-user-rating-desktop">
+        <div class="movie-user-rating-stars">
+          ${Array.from({ length: 10 }, () => '<button type="button" class="rating-star-btn" tabindex="-1" disabled>★</button>').join('')}
+        </div>
+
+        <div class="movie-user-rating-scale" aria-hidden="true">
+          ${Array.from({ length: 10 }, (_, index) => `<span class="movie-user-rating-scale-item">${index + 1}</span>`).join('')}
+        </div>
+      </div>
+
+      <div class="movie-user-rating-mobile">
+        <span class="movie-user-rating-mobile-trigger secondary-button secondary-button-compact movie-text-skeleton movie-user-rating-mobile-skeleton"></span>
+      </div>
+    </div>
+  `;
+}
+
+function getMovieCardActionsSkeletonHtml() {
+  return `
+    <span class="movie-card-action-skeleton movie-card-action-skeleton-edit movie-text-skeleton"></span>
+    <span class="movie-card-action-skeleton movie-card-action-skeleton-delete movie-text-skeleton"></span>
+  `;
+}
+
+function hasMovieExternalLinks(movie) {
+  return Boolean(
+    movie?.kinopoisk_url ||
+    movie?.imdb_url ||
+    movie?.letterboxd_url ||
+    movie?.rottentomatoes_url
+  );
 }
 
 function getCatalogSkeletonCardsCount() {
   if (!container) {
-    return 8;
+    return 12;
   }
 
   const renderedCardsCount = container.querySelectorAll('.movie-card').length;
@@ -6183,7 +6277,7 @@ function getCatalogSkeletonCardsCount() {
     return Math.min(estimatedCardsCount, 12);
   }
 
-  return 8;
+  return 12;
 }
 
 function getVotesLabel(votesCount) {
