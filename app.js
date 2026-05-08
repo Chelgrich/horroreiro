@@ -163,6 +163,8 @@ let isPasswordRecoveryEntryPage = false;
 let allMovies = [];
 let catalogMoviesById = new Map();
 let catalogMovieMetaById = new Map();
+let catalogMovieSimilaritySources = [];
+let catalogMovieSimilaritySourceById = new Map();
 let allMovieRatings = [];
 let allMovieWatchlist = [];
 let allMovieReviews = [];
@@ -483,10 +485,6 @@ function getTaxonomyImportChangedFields(importMovie, existingMovie) {
 }
 
 function buildTaxonomyImportPreview(importItems) {
-  const movieById = new Map(
-    allMovies.map(movie => [String(movie.id), movie])
-  );
-
   const updates = [];
   const missingItems = [];
   const invalidItems = [];
@@ -499,7 +497,7 @@ function buildTaxonomyImportPreview(importItems) {
       return;
     }
 
-    const existingMovie = movieById.get(movieId);
+    const existingMovie = getCatalogMovieById(movieId);
 
     if (!existingMovie) {
       missingItems.push(importMovie);
@@ -1002,7 +1000,7 @@ async function runTaxonomySimilarityAudit() {
       return;
     }
 
-    const similarityMovies = sortedMovies.map(movie => getMovieSimilaritySource(movie));
+    const similarityMovies = sortedMovies.map(movie => getCatalogMovieSimilaritySource(movie));
     const audit = getSimilarityAuditReport(similarityMovies, {
       topPairsLimit: 20,
       suspiciousPairsLimit: 20,
@@ -2528,6 +2526,16 @@ function getCatalogMovieById(movieId) {
   return catalogMoviesById.get(String(movieId)) || null;
 }
 
+function getCatalogMovieSimilaritySource(movie) {
+  if (!movie) {
+    return null;
+  }
+
+  const movieId = String(movie?.id ?? '');
+
+  return catalogMovieSimilaritySourceById.get(movieId) || getMovieSimilaritySource(movie);
+}
+
 function buildCatalogMovieMeta(movie) {
   const movieGenres = Array.isArray(movie?.movie_genres) ? movie.movie_genres : [];
   const movieCountries = Array.isArray(movie?.movie_countries) ? movie.movie_countries : [];
@@ -2571,12 +2579,21 @@ function buildCatalogMovieMeta(movie) {
 function rebuildCatalogMovieMeta() {
   const movies = Array.isArray(allMovies) ? allMovies : [];
 
-  catalogMoviesById = new Map(
-    movies.map(movie => [String(movie.id), movie])
-  );
-  catalogMovieMetaById = new Map(
-    movies.map(movie => [String(movie.id), buildCatalogMovieMeta(movie)])
-  );
+  catalogMoviesById = new Map();
+  catalogMovieMetaById = new Map();
+  catalogMovieSimilaritySources = [];
+  catalogMovieSimilaritySourceById = new Map();
+
+  movies.forEach(movie => {
+    const movieId = String(movie.id);
+    const meta = buildCatalogMovieMeta(movie);
+    const similaritySource = getMovieSimilaritySource(movie, meta);
+
+    catalogMoviesById.set(movieId, movie);
+    catalogMovieMetaById.set(movieId, meta);
+    catalogMovieSimilaritySourceById.set(movieId, similaritySource);
+    catalogMovieSimilaritySources.push(similaritySource);
+  });
 }
 
 function getMatchedSearchAlias(movie, searchQuery, queryWords = null) {
@@ -4844,7 +4861,7 @@ async function updateMovie(event) {
     return;
   }
 
-  const existingMovie = allMovies.find(movie => movie.id === editingMovieId)
+  const existingMovie = getCatalogMovieById(editingMovieId)
     || (currentMoviePageMovieData && currentMoviePageMovieData.id === editingMovieId
       ? currentMoviePageMovieData
       : null);
@@ -8629,7 +8646,14 @@ function getMovieSimilarityCountries(movie) {
     .filter(Boolean);
 }
 
-function getMovieSimilaritySource(movie) {
+function getMovieSimilaritySource(movie, meta = getCatalogMovieMeta(movie)) {
+  const extraGenres = meta
+    ? Array.from(meta.genreNames).filter(name => normalizeSearchText(name) !== 'ужасы')
+    : getMovieSimilarityExtraGenres(movie);
+  const countries = meta
+    ? Array.from(meta.countryNames)
+    : getMovieSimilarityCountries(movie);
+
   return {
     id: String(movie.id),
     title: String(movie.title || ''),
@@ -8641,8 +8665,8 @@ function getMovieSimilaritySource(movie) {
     modifiers: Array.isArray(movie.modifiers) ? movie.modifiers : [],
     broadFamilies: Array.isArray(movie.broad_families) ? movie.broad_families : [],
 
-    extraGenres: getMovieSimilarityExtraGenres(movie),
-    countries: getMovieSimilarityCountries(movie)
+    extraGenres,
+    countries
   };
 }
 
@@ -8657,8 +8681,13 @@ function getSimilarMoviesForMoviePage(movie, limit = 4) {
     return [];
   }
 
-  const similarityMovies = allMovies.map(sourceMovie => getMovieSimilaritySource(sourceMovie));
-  const targetMovie = getMovieSimilaritySource(movie);
+  const similarityMovies = catalogMovieSimilaritySources;
+  const targetMovie = getCatalogMovieSimilaritySource(movie);
+
+  if (!targetMovie) {
+    return [];
+  }
+
   const similarItems = getSimilarMoviesHelper(targetMovie, similarityMovies);
 
   return similarItems
