@@ -161,6 +161,7 @@ let isAuthRegisterMode = false;
 let isPasswordRecoveryMode = false;
 let isPasswordRecoveryEntryPage = false;
 let allMovies = [];
+let catalogMoviesById = new Map();
 let catalogMovieMetaById = new Map();
 let allMovieRatings = [];
 let allMovieWatchlist = [];
@@ -2523,6 +2524,10 @@ function getCatalogMovieMeta(movie) {
   return buildCatalogMovieMeta(movie);
 }
 
+function getCatalogMovieById(movieId) {
+  return catalogMoviesById.get(String(movieId)) || null;
+}
+
 function buildCatalogMovieMeta(movie) {
   const movieGenres = Array.isArray(movie?.movie_genres) ? movie.movie_genres : [];
   const movieCountries = Array.isArray(movie?.movie_countries) ? movie.movie_countries : [];
@@ -2564,9 +2569,13 @@ function buildCatalogMovieMeta(movie) {
 }
 
 function rebuildCatalogMovieMeta() {
+  const movies = Array.isArray(allMovies) ? allMovies : [];
+
+  catalogMoviesById = new Map(
+    movies.map(movie => [String(movie.id), movie])
+  );
   catalogMovieMetaById = new Map(
-    (Array.isArray(allMovies) ? allMovies : [])
-      .map(movie => [String(movie.id), buildCatalogMovieMeta(movie)])
+    movies.map(movie => [String(movie.id), buildCatalogMovieMeta(movie)])
   );
 }
 
@@ -6342,7 +6351,7 @@ function sortMovies(movies, selectedSortMode) {
   });
 }
 
-function getUserRatingControlsHtml(currentUserRating) {
+function getUserRatingControlsHtml(currentUserRating, isRatingBusy = false) {
   if (!currentUser) {
     return '';
   }
@@ -6365,6 +6374,7 @@ function getUserRatingControlsHtml(currentUserRating) {
                 class="rating-star-btn ${isActive ? 'is-active' : ''}"
                 data-rating-value="${value}"
                 aria-label="Оценка ${value} из 10"
+                ${isRatingBusy ? 'disabled' : ''}
               >
                 ★
               </button>
@@ -6384,6 +6394,7 @@ function getUserRatingControlsHtml(currentUserRating) {
           type="button"
           class="movie-user-rating-mobile-trigger secondary-button secondary-button-compact ${hasCurrentUserRating ? 'is-rated' : ''}"
           data-open-mobile-rating="true"
+          ${isRatingBusy ? 'disabled' : ''}
         >
           ${hasCurrentUserRating ? `${currentUserRating}/10 <span class="movie-user-rating-mobile-star">★</span>` : 'Оценить'}
         </button>
@@ -6589,7 +6600,8 @@ function getPosterHtml(
   movie,
   userMovieState,
   matchedSearchAlias = null,
-  highlightText = createSearchHighlighter(searchInput.value)
+  highlightText = createSearchHighlighter(searchInput.value),
+  isWatchlistBusy = false
 ) {
   return `
     <div class="movie-poster-block">
@@ -6630,6 +6642,7 @@ function getPosterHtml(
                   data-watchlist-toggle="true"
                   aria-label="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
                   title="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
+                  ${isWatchlistBusy ? 'disabled' : ''}
                 >
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
@@ -6900,18 +6913,187 @@ function shouldResetMovieCardFocusAfterLinkOpen(event) {
   );
 }
 
-function resetMovieCardFocusAfterLinkOpen(event) {
+function resetMovieCardFocusAfterLinkOpen(event, link = event.currentTarget) {
   if (!shouldResetMovieCardFocusAfterLinkOpen(event)) {
     return;
   }
-
-  const link = event.currentTarget;
 
   window.setTimeout(() => {
     if (document.activeElement === link && typeof link.blur === 'function') {
       link.blur();
     }
   }, 0);
+}
+
+function getCatalogCardActionContext(target) {
+  if (!container || !target) {
+    return null;
+  }
+
+  const card = target.closest('.movie-card[data-movie-id]');
+
+  if (!card || !container.contains(card)) {
+    return null;
+  }
+
+  const movieId = card.dataset.movieId;
+
+  if (!movieId) {
+    return null;
+  }
+
+  return {
+    card,
+    movieId,
+    movie: getCatalogMovieById(movieId)
+  };
+}
+
+function closeCatalogExternalLinksCard(card) {
+  if (!card) {
+    return;
+  }
+
+  const toggle = card.querySelector('[data-external-links-toggle="true"]');
+  const panel = card.querySelector('[data-external-links-collapsible]');
+  const grid = card.querySelector('.movie-external-links');
+
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.textContent = 'Ссылки на фильм';
+  }
+
+  if (panel) {
+    panel.classList.remove('is-open');
+  }
+
+  if (grid) {
+    setTimeout(() => {
+      grid.classList.remove('is-two-rows');
+    }, 180);
+  }
+
+  card.classList.remove('has-open-external-links');
+}
+
+function toggleCatalogExternalLinksPanel(toggleButton, card) {
+  const panel = card?.querySelector('[data-external-links-collapsible]');
+
+  if (!toggleButton || !card || !panel) {
+    return;
+  }
+
+  const isExpanded = toggleButton.getAttribute('aria-expanded') === 'true';
+  const openedCard = container.querySelector('.movie-card.has-open-external-links');
+
+  if (openedCard && openedCard !== card) {
+    closeCatalogExternalLinksCard(openedCard);
+  }
+
+  if (isExpanded) {
+    closeCatalogExternalLinksCard(card);
+    return;
+  }
+
+  const grid = card.querySelector('.movie-external-links');
+
+  if (grid) {
+    grid.classList.remove('is-two-rows');
+  }
+
+  toggleButton.setAttribute('aria-expanded', 'true');
+  toggleButton.textContent = 'Свернуть';
+  panel.classList.add('is-open');
+  card.classList.add('has-open-external-links');
+
+  requestAnimationFrame(syncOpenExternalLinksLayouts);
+}
+
+function handleCatalogCardAuxClick(event) {
+  const link = event.target.closest('.movie-poster-link, .movie-title-link');
+
+  if (link && container?.contains(link)) {
+    resetMovieCardFocusAfterLinkOpen(event, link);
+  }
+}
+
+function handleCatalogCardClick(event) {
+  const target = event.target;
+
+  if (!container || !container.contains(target)) {
+    return;
+  }
+
+  const link = target.closest('.movie-poster-link, .movie-title-link');
+
+  if (link) {
+    resetMovieCardFocusAfterLinkOpen(event, link);
+  }
+
+  const context = getCatalogCardActionContext(target);
+
+  if (!context) {
+    return;
+  }
+
+  const { card, movieId, movie } = context;
+  const watchlistToggleBtn = target.closest('[data-watchlist-toggle="true"]');
+
+  if (watchlistToggleBtn) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!watchlistToggleBtn.disabled) {
+      toggleMovieWatchlist(movieId);
+    }
+
+    return;
+  }
+
+  const externalLinksToggleBtn = target.closest('[data-external-links-toggle="true"]');
+
+  if (externalLinksToggleBtn) {
+    toggleCatalogExternalLinksPanel(externalLinksToggleBtn, card);
+    return;
+  }
+
+  const removeRatingBtn = target.closest('[data-remove-rating="true"]');
+
+  if (removeRatingBtn) {
+    if (!removeRatingBtn.disabled) {
+      removeUserMovieRating(movieId);
+    }
+
+    return;
+  }
+
+  const openMobileRatingBtn = target.closest('[data-open-mobile-rating="true"]');
+
+  if (openMobileRatingBtn) {
+    if (movie && !openMobileRatingBtn.disabled) {
+      openMobileRatingModal(movie);
+    }
+
+    return;
+  }
+
+  const editBtn = target.closest('.edit-movie-btn');
+
+  if (editBtn) {
+    if (isAdmin && movie) {
+      fillFormForEdit(movie);
+    }
+
+    return;
+  }
+
+  const deleteBtn = target.closest('.delete-movie-btn');
+
+  if (deleteBtn && isAdmin && movie) {
+    armDeleteMovieButton(deleteBtn, () => {
+      deleteMovie(movieId, movie.title);
+    });
+  }
 }
 
 function createMovieCardRenderContext(searchQuery = searchInput.value) {
@@ -6952,6 +7134,8 @@ function createMovieCard(movie, renderContext = createMovieCardRenderContext()) 
   const countries = meta.countriesText;
   const averageRating = getMovieAverageRating(movieId);
   const votesCount = getMovieVotesCount(movieId);
+  const isRatingBusy = ratingRequestInFlight.has(String(movieId));
+  const isWatchlistBusy = watchlistRequestInFlight.has(String(movieId));
 
   const ratingSummaryHtml = `
     <div class="movie-rating-summary">
@@ -6966,14 +7150,21 @@ function createMovieCard(movie, renderContext = createMovieCardRenderContext()) 
         class="remove-rating-inline-btn secondary-button secondary-button-compact ${currentUserRating === null ? 'is-hidden-placeholder' : ''}"
         data-remove-rating="true"
         ${currentUserRating === null ? 'tabindex="-1" aria-hidden="true"' : ''}
+        ${isRatingBusy || currentUserRating === null ? 'disabled' : ''}
       >
         Удалить оценку
       </button>
     </div>
   `;
 
-  const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
-  const posterHtml = getPosterHtml(movie, userMovieState, matchedSearchAlias, highlightText);
+  const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating, isRatingBusy);
+  const posterHtml = getPosterHtml(
+    movie,
+    userMovieState,
+    matchedSearchAlias,
+    highlightText,
+    isWatchlistBusy
+  );
   const externalLinksHtml = getMovieExternalLinksHtml(movie);
   const hasExternalLinks = externalLinksHtml !== '';
   const externalLinksBlockHtml = hasExternalLinks
@@ -7017,54 +7208,20 @@ function createMovieCard(movie, renderContext = createMovieCardRenderContext()) 
       ${userRatingControlsHtml}
     </div>
 
-    <div class="movie-card-actions">
-      ${isAdmin ? `
+    ${isAdmin ? `
+      <div class="movie-card-actions">
         <button type="button" class="edit-movie-btn">Редактировать</button>
         <button type="button" class="delete-movie-btn secondary-button">Удалить</button>
-      ` : ''}
-    </div>
+      </div>
+    ` : ''}
   `;
 
-  const actionsBlock = card.querySelector('.movie-card-actions');
-  const editBtn = card.querySelector('.edit-movie-btn');
-  const deleteBtn = card.querySelector('.delete-movie-btn');
   const starsContainer = card.querySelector('.movie-user-rating-stars');
   const voteButtons = card.querySelectorAll('.rating-star-btn');
-  const removeRatingBtn = card.querySelector('.remove-rating-inline-btn');
-  const watchlistToggleBtn = card.querySelector('[data-watchlist-toggle="true"]');
-  const externalLinksToggleBtn = card.querySelector('[data-external-links-toggle="true"]');
-  const externalLinksCollapsible = card.querySelector('[data-external-links-collapsible]');
-  const openMobileRatingBtn = card.querySelector('[data-open-mobile-rating="true"]');
-  const isRatingBusy = ratingRequestInFlight.has(String(movieId));
-  const isWatchlistBusy = watchlistRequestInFlight.has(String(movieId));
   const posterImage = card.querySelector('.movie-poster');
   const posterSkeleton = card.querySelector('.movie-poster-skeleton');
-  const moviePageLinks = card.querySelectorAll('.movie-poster-link, .movie-title-link');
 
   bindPosterLoadState(posterImage, posterSkeleton);
-
-  moviePageLinks.forEach(link => {
-    link.addEventListener('click', resetMovieCardFocusAfterLinkOpen);
-    link.addEventListener('auxclick', resetMovieCardFocusAfterLinkOpen);
-  });
-
-  if (actionsBlock && !editBtn && !deleteBtn) {
-    actionsBlock.remove();
-  }
-
-  if (editBtn) {
-    editBtn.addEventListener('click', () => {
-      fillFormForEdit(movie);
-    });
-  }
-
-  if (deleteBtn) {
-    deleteBtn.addEventListener('click', () => {
-      armDeleteMovieButton(deleteBtn, () => {
-        deleteMovie(movieId, movie.title);
-      });
-    });
-  }
 
   bindMovieRatingControls({
     movieId,
@@ -7072,93 +7229,6 @@ function createMovieCard(movie, renderContext = createMovieCardRenderContext()) 
     starsContainer,
     voteButtons
   });
-
-  if (removeRatingBtn) {
-    removeRatingBtn.disabled = isRatingBusy || currentUserRating === null;
-
-    if (currentUserRating !== null) {
-      removeRatingBtn.addEventListener('click', () => {
-        removeUserMovieRating(movieId);
-      });
-    }
-  }
-
-  if (watchlistToggleBtn) {
-    watchlistToggleBtn.disabled = isWatchlistBusy;
-
-    watchlistToggleBtn.addEventListener('click', event => {
-      event.preventDefault();
-      event.stopPropagation();
-      toggleMovieWatchlist(movieId);
-    });
-  }
-
-  if (openMobileRatingBtn) {
-    openMobileRatingBtn.disabled = isRatingBusy;
-
-    openMobileRatingBtn.addEventListener('click', () => {
-      openMobileRatingModal(movie);
-    });
-  }
-
-  if (externalLinksToggleBtn && externalLinksCollapsible) {
-    externalLinksToggleBtn.addEventListener('click', () => {
-      const isExpanded = externalLinksToggleBtn.getAttribute('aria-expanded') === 'true';
-
-      const openedCard = container.querySelector('.movie-card.has-open-external-links');
-
-      if (openedCard && openedCard !== card) {
-        const openedToggle = openedCard.querySelector('[data-external-links-toggle="true"]');
-        const openedPanel = openedCard.querySelector('[data-external-links-collapsible]');
-        const openedGrid = openedCard.querySelector('.movie-external-links');
-
-        if (openedToggle) {
-          openedToggle.setAttribute('aria-expanded', 'false');
-          openedToggle.textContent = 'Ссылки на фильм';
-        }
-
-        if (openedPanel) {
-          openedPanel.classList.remove('is-open');
-        }
-
-        if (openedGrid) {
-          setTimeout(() => {
-            openedGrid.classList.remove('is-two-rows');
-          }, 180);
-        }
-
-        openedCard.classList.remove('has-open-external-links');
-      }
-
-      const grid = card.querySelector('.movie-external-links');
-
-      if (isExpanded) {
-        externalLinksToggleBtn.setAttribute('aria-expanded', 'false');
-        externalLinksToggleBtn.textContent = 'Ссылки на фильм';
-        externalLinksCollapsible.classList.remove('is-open');
-        card.classList.remove('has-open-external-links');
-
-        if (grid) {
-          setTimeout(() => {
-            grid.classList.remove('is-two-rows');
-          }, 180);
-        }
-
-        return;
-      }
-
-      if (grid) {
-        grid.classList.remove('is-two-rows');
-      }
-
-      externalLinksToggleBtn.setAttribute('aria-expanded', 'true');
-      externalLinksToggleBtn.textContent = 'Свернуть';
-      externalLinksCollapsible.classList.add('is-open');
-      card.classList.add('has-open-external-links');
-
-      requestAnimationFrame(syncOpenExternalLinksLayouts);
-    });
-  }
 
   return card;
 }
@@ -7176,7 +7246,7 @@ function rerenderMovieCard(
     return;
   }
 
-  const movie = allMovies.find(item => String(item.id) === String(movieId));
+  const movie = getCatalogMovieById(movieId);
 
   if (!movie) {
     rerenderCatalogAfterDataReload(movieId);
@@ -8207,6 +8277,11 @@ if (moviePageDeleteButton) {
   });
 }
 
+if (container) {
+  container.addEventListener('click', handleCatalogCardClick);
+  container.addEventListener('auxclick', handleCatalogCardAuxClick);
+}
+
 document.addEventListener('click', event => {
   const clickedInsideAuthMenu = event.target.closest('.auth-menu-wrap');
 
@@ -8232,26 +8307,7 @@ document.addEventListener('click', event => {
     return;
   }
 
-  const toggle = openedCard.querySelector('[data-external-links-toggle="true"]');
-  const panel = openedCard.querySelector('[data-external-links-collapsible]');
-  const grid = openedCard.querySelector('.movie-external-links');
-
-  if (toggle) {
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.textContent = 'Ссылки на фильм';
-  }
-
-  if (panel) {
-    panel.classList.remove('is-open');
-  }
-
-  if (grid) {
-    setTimeout(() => {
-      grid.classList.remove('is-two-rows');
-    }, 180);
-  }
-
-  openedCard.classList.remove('has-open-external-links');
+  closeCatalogExternalLinksCard(openedCard);
 });
 
 window.addEventListener('resize', syncOpenExternalLinksLayouts);
@@ -8589,11 +8645,10 @@ function getSimilarMoviesForMoviePage(movie, limit = 4) {
   const similarityMovies = allMovies.map(sourceMovie => getMovieSimilaritySource(sourceMovie));
   const targetMovie = getMovieSimilaritySource(movie);
   const similarItems = getSimilarMoviesHelper(targetMovie, similarityMovies);
-  const moviesById = new Map(allMovies.map(sourceMovie => [String(sourceMovie.id), sourceMovie]));
 
   return similarItems
     .slice(0, limit)
-    .map(item => moviesById.get(String(item.movie.id)))
+    .map(item => getCatalogMovieById(item.movie.id))
     .filter(Boolean);
 }
 
