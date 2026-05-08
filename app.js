@@ -147,6 +147,9 @@ const EMAIL_CONFIRMATION_TRACKED_KEY = 'horroreiro_email_confirmation_tracked';
 const PASSWORD_RECOVERY_PENDING_KEY = 'horroreiro_password_recovery_pending';
 const CATALOG_SCROLL_POSITION_KEY = 'horroreiro_catalog_scroll_position';
 const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
+const CATALOG_SESSION_SNAPSHOT_KEY = 'horroreiro_catalog_session_snapshot';
+const CATALOG_SESSION_SNAPSHOT_VERSION = 1;
+const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 const HORROR_TAXONOMY_SCRIPT_SRC = 'horror-taxonomy.js';
 const AUTH_REQUEST_TIMEOUT_MS = 20000;
 const AUTH_PROFILE_REQUEST_TIMEOUT_MS = 15000;
@@ -1666,6 +1669,284 @@ function restoreCatalogScrollPosition() {
   } catch (error) {
     console.warn('Ошибка восстановления позиции каталога:', error);
   }
+}
+
+function getMovieRatingStatsSnapshotRows() {
+  return Array.from(movieRatingStatsByMovieId.entries()).map(([movieId, stats]) => ({
+    movie_id: movieId,
+    count: stats.count,
+    sum: stats.sum,
+    average: stats.average
+  }));
+}
+
+function getCurrentUserMovieRatingSnapshotRows() {
+  if (!currentUser) {
+    return [];
+  }
+
+  return allMovieRatings.filter(row => String(row?.user_id) === String(currentUser.id));
+}
+
+function applyMovieRatingStatsSnapshotRows(rows) {
+  movieRatingStatsByMovieId = new Map();
+
+  (Array.isArray(rows) ? rows : []).forEach(row => {
+    const movieId = String(row?.movie_id ?? '');
+    const count = Number(row?.count || 0);
+    const sum = Number(row?.sum || 0);
+    const average = Number(row?.average || 0);
+
+    if (!movieId || count <= 0) {
+      return;
+    }
+
+    movieRatingStatsByMovieId.set(movieId, {
+      count,
+      sum,
+      average
+    });
+  });
+}
+
+function createCatalogSessionSnapshotPayload() {
+  if (!moviesLoadedSuccessfully || !Array.isArray(allMovies) || allMovies.length === 0) {
+    return null;
+  }
+
+  return {
+    version: CATALOG_SESSION_SNAPSHOT_VERSION,
+    buildVersion: APP_BUILD_VERSION,
+    savedAt: Date.now(),
+    userId: currentUser?.id || null,
+    movies: allMovies,
+    movieRatings: getCurrentUserMovieRatingSnapshotRows(),
+    movieRatingStats: getMovieRatingStatsSnapshotRows(),
+    movieWatchlist: allMovieWatchlist,
+    reviewedMovieIds: Array.from(catalogReviewedMovieIds)
+  };
+}
+
+function getCatalogSessionSnapshotSignature(snapshot) {
+  if (!snapshot) {
+    return '';
+  }
+
+  const sortByMovieAndUser = (firstItem, secondItem) => {
+    const movieCompare = String(firstItem?.movie_id || '').localeCompare(String(secondItem?.movie_id || ''));
+
+    if (movieCompare !== 0) {
+      return movieCompare;
+    }
+
+    return String(firstItem?.user_id || '').localeCompare(String(secondItem?.user_id || ''));
+  };
+
+  return JSON.stringify({
+    version: snapshot.version,
+    buildVersion: snapshot.buildVersion,
+    userId: snapshot.userId || null,
+    movies: snapshot.movies || [],
+    movieRatings: [...(snapshot.movieRatings || [])].sort(sortByMovieAndUser),
+    movieRatingStats: [...(snapshot.movieRatingStats || [])].sort((firstItem, secondItem) =>
+      String(firstItem?.movie_id || '').localeCompare(String(secondItem?.movie_id || ''))
+    ),
+    movieWatchlist: [...(snapshot.movieWatchlist || [])].sort(sortByMovieAndUser),
+    reviewedMovieIds: [...(snapshot.reviewedMovieIds || [])].sort()
+  });
+}
+
+function readCatalogSessionSnapshot({ allowStale = false } = {}) {
+  try {
+    const rawSnapshot = sessionStorage.getItem(CATALOG_SESSION_SNAPSHOT_KEY);
+
+    if (!rawSnapshot) {
+      return null;
+    }
+
+    const snapshot = JSON.parse(rawSnapshot);
+    const snapshotAge = Date.now() - Number(snapshot?.savedAt || 0);
+
+    if (
+      snapshot?.version !== CATALOG_SESSION_SNAPSHOT_VERSION ||
+      snapshot?.buildVersion !== APP_BUILD_VERSION ||
+      !Array.isArray(snapshot?.movies) ||
+      (!allowStale && snapshotAge > CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS)
+    ) {
+      sessionStorage.removeItem(CATALOG_SESSION_SNAPSHOT_KEY);
+      return null;
+    }
+
+    return snapshot;
+  } catch (error) {
+    console.warn('Ошибка чтения снимка каталога:', error);
+    sessionStorage.removeItem(CATALOG_SESSION_SNAPSHOT_KEY);
+    return null;
+  }
+}
+
+function writeCatalogSessionSnapshot(snapshot) {
+  try {
+    if (!snapshot) {
+      return;
+    }
+
+    sessionStorage.setItem(
+      CATALOG_SESSION_SNAPSHOT_KEY,
+      JSON.stringify({
+        ...snapshot,
+        savedAt: Date.now()
+      })
+    );
+  } catch (error) {
+    console.warn('Ошибка сохранения снимка каталога:', error);
+  }
+}
+
+function persistCatalogSessionSnapshot() {
+  if (!isCatalogPage()) {
+    return;
+  }
+
+  writeCatalogSessionSnapshot(createCatalogSessionSnapshotPayload());
+}
+
+function hydrateCatalogFromSessionSnapshot(snapshot = readCatalogSessionSnapshot()) {
+  if (!snapshot) {
+    return false;
+  }
+
+  const snapshotUserId = snapshot.userId || null;
+  const activeUserId = currentUser?.id || null;
+  const canUseUserScopedData = snapshotUserId === activeUserId;
+
+  allMovies = snapshot.movies || [];
+  moviesLoadedSuccessfully = allMovies.length > 0;
+  rebuildCatalogMovieMeta();
+  applyMovieRatingStatsSnapshotRows(snapshot.movieRatingStats);
+
+  allMovieRatings = canUseUserScopedData && Array.isArray(snapshot.movieRatings)
+    ? snapshot.movieRatings
+    : [];
+  rebuildMovieRatingIndexes();
+
+  allMovieWatchlist = canUseUserScopedData && Array.isArray(snapshot.movieWatchlist)
+    ? snapshot.movieWatchlist
+    : [];
+  rebuildCurrentUserWatchlistIndex();
+
+  catalogReviewedMovieIds = new Set(
+    (Array.isArray(snapshot.reviewedMovieIds) ? snapshot.reviewedMovieIds : [])
+      .map(movieId => String(movieId || ''))
+      .filter(Boolean)
+  );
+
+  return moviesLoadedSuccessfully;
+}
+
+function syncCatalogSessionSnapshotMovieState(movieId, { syncReviews = false, syncMovie = null } = {}) {
+  const snapshot = readCatalogSessionSnapshot({ allowStale: true });
+
+  if (!snapshot || !movieId) {
+    return;
+  }
+
+  const movieKey = String(movieId);
+  const snapshotUserId = snapshot.userId || null;
+  const activeUserId = currentUser?.id || null;
+  const canUpdateUserScopedData = snapshotUserId === activeUserId;
+
+  if (syncMovie) {
+    snapshot.movies = (snapshot.movies || []).map(movie =>
+      String(movie?.id) === movieKey ? syncMovie : movie
+    );
+  }
+
+  const nextStats = movieRatingStatsByMovieId.get(movieKey);
+  const movieRatingStats = (snapshot.movieRatingStats || [])
+    .filter(row => String(row?.movie_id) !== movieKey);
+
+  if (nextStats && nextStats.count > 0) {
+    movieRatingStats.push({
+      movie_id: movieKey,
+      count: nextStats.count,
+      sum: nextStats.sum,
+      average: nextStats.average
+    });
+  }
+
+  snapshot.movieRatingStats = movieRatingStats;
+
+  if (canUpdateUserScopedData && currentUser) {
+    const movieRatings = (snapshot.movieRatings || []).filter(row => !(
+      String(row?.movie_id) === movieKey &&
+      String(row?.user_id) === activeUserId
+    ));
+    const currentUserRating = getCurrentUserRating(movieKey);
+
+    if (currentUserRating !== null) {
+      movieRatings.push({
+        movie_id: movieId,
+        user_id: activeUserId,
+        rating: currentUserRating
+      });
+    }
+
+    snapshot.movieRatings = movieRatings;
+
+    const movieWatchlist = (snapshot.movieWatchlist || []).filter(row => !(
+      String(row?.movie_id) === movieKey &&
+      String(row?.user_id) === activeUserId
+    ));
+
+    if (currentUserWatchlistMovieIds.has(movieKey)) {
+      movieWatchlist.push({
+        movie_id: movieId,
+        user_id: activeUserId
+      });
+    }
+
+    snapshot.movieWatchlist = movieWatchlist;
+  }
+
+  if (syncReviews) {
+    const reviewedMovieIds = new Set(
+      (snapshot.reviewedMovieIds || [])
+        .map(reviewedMovieId => String(reviewedMovieId || ''))
+        .filter(Boolean)
+    );
+    const hasReviews = allMovieReviews.some(review => String(review.movie_id) === movieKey);
+
+    if (hasReviews) {
+      reviewedMovieIds.add(movieKey);
+    } else {
+      reviewedMovieIds.delete(movieKey);
+    }
+
+    snapshot.reviewedMovieIds = Array.from(reviewedMovieIds);
+  }
+
+  writeCatalogSessionSnapshot(snapshot);
+}
+
+function removeMovieFromCatalogSessionSnapshot(movieId) {
+  const snapshot = readCatalogSessionSnapshot({ allowStale: true });
+
+  if (!snapshot || !movieId) {
+    return;
+  }
+
+  const movieKey = String(movieId);
+
+  snapshot.movies = (snapshot.movies || []).filter(movie => String(movie?.id) !== movieKey);
+  snapshot.movieRatings = (snapshot.movieRatings || []).filter(row => String(row?.movie_id) !== movieKey);
+  snapshot.movieRatingStats = (snapshot.movieRatingStats || []).filter(row => String(row?.movie_id) !== movieKey);
+  snapshot.movieWatchlist = (snapshot.movieWatchlist || []).filter(row => String(row?.movie_id) !== movieKey);
+  snapshot.reviewedMovieIds = (snapshot.reviewedMovieIds || []).filter(reviewedMovieId =>
+    String(reviewedMovieId) !== movieKey
+  );
+
+  writeCatalogSessionSnapshot(snapshot);
 }
 
 function debounce(callback, delay = 200) {
@@ -3632,7 +3913,7 @@ const MOVIE_BASE_SELECT = `
   )
 `;
 
-async function fetchMovies() {
+async function fetchMovies({ preserveExistingCatalogOnError = false } = {}) {
   const { data, error } = await supabaseClient
     .from('movies')
     .select(MOVIE_BASE_SELECT)
@@ -3640,19 +3921,23 @@ async function fetchMovies() {
     .order('position', { foreignTable: 'movie_genres', ascending: true });
 
     if (error) {
-      moviesLoadedSuccessfully = false;
+      if (!preserveExistingCatalogOnError) {
+        moviesLoadedSuccessfully = false;
+      }
+
       console.error('Ошибка загрузки фильмов:', error);
   
-      if (container) {
+      if (container && !preserveExistingCatalogOnError) {
         container.innerHTML = 'Ошибка загрузки фильмов. Открой консоль F12.';
       }
   
-      return;
+      return false;
     }
 
   allMovies = data || [];
   rebuildCatalogMovieMeta();
   moviesLoadedSuccessfully = true;
+  return true;
 }
 
 async function fetchMovieRatings() {
@@ -3864,6 +4149,7 @@ async function refreshMovieReviewsAfterMutation(movieId, reviewIdToCollapse = nu
   }
 
   await fetchMovieReviews(movieId);
+  syncCatalogSessionSnapshotMovieState(movieId, { syncReviews: true });
 }
 
 async function saveMovieReview(movieId, { reviewText, containsSpoilers = false }) {
@@ -3922,6 +4208,10 @@ async function removeMovieReview(reviewId, movieId) {
 
 async function reloadCatalogData({ showSkeleton = false, refreshFilters = true } = {}) {
   const shouldShowCatalogSkeleton = showSkeleton && Boolean(container);
+  const shouldPreserveExistingCatalogOnMovieLoadError = (
+    !shouldShowCatalogSkeleton &&
+    moviesLoadedSuccessfully
+  );
 
   shouldFadeCatalogAfterSkeleton = shouldShowCatalogSkeleton;
 
@@ -3930,7 +4220,9 @@ async function reloadCatalogData({ showSkeleton = false, refreshFilters = true }
   }
 
   await Promise.all([
-    fetchMovies(),
+    fetchMovies({
+      preserveExistingCatalogOnError: shouldPreserveExistingCatalogOnMovieLoadError
+    }),
     fetchMovieRatings(),
     fetchMovieWatchlist(),
     fetchCatalogReviewSummary()
@@ -3939,6 +4231,8 @@ async function reloadCatalogData({ showSkeleton = false, refreshFilters = true }
   if (refreshFilters) {
     refreshDynamicFilterOptions();
   }
+
+  persistCatalogSessionSnapshot();
 }
 
 function preserveWindowScrollPosition(callback) {
@@ -5171,6 +5465,7 @@ async function updateMovie(event) {
         }
 
         renderMoviePage(updatedMovie);
+        syncCatalogSessionSnapshotMovieState(editingMovieId, { syncMovie: updatedMovie });
         loadMoviePageSimilarMovies(updatedMovie);
       } else {
         renderMoviePageNotFound();
@@ -5814,6 +6109,10 @@ function triggerTemporaryFeedbackAnimation(element, baseKey, type = 'success', d
 }
 
 function showMovieRatingFeedback(movieId, type = 'success') {
+  if (!container) {
+    return;
+  }
+
   const card = container.querySelector(`[data-movie-id="${movieId}"]`);
 
   if (!card) {
@@ -5923,6 +6222,7 @@ async function runMovieMutationWithUiSync({
     requestSet.delete(String(movieId));
 
     if (actionSucceeded) {
+      syncCatalogSessionSnapshotMovieState(movieId);
       rerender();
 
       if (typeof onSuccess === 'function') {
@@ -8552,6 +8852,7 @@ window.addEventListener('pagehide', event => {
 
   saveCatalogScrollPosition();
   saveCatalogAnchorMovieId();
+  persistCatalogSessionSnapshot();
 });
 
 document.addEventListener('keydown', event => {
@@ -8684,6 +8985,18 @@ async function initCatalogPage() {
 
   const restoredUser = await restoreSession();
   trackEmailConfirmedLoginIfNeeded();
+  const hydratedSnapshot = readCatalogSessionSnapshot();
+  const didHydrateCatalogFromSnapshot = hydrateCatalogFromSessionSnapshot(hydratedSnapshot);
+  let hydratedCatalogSignature = '';
+
+  if (didHydrateCatalogFromSnapshot) {
+    applySavedCatalogState();
+    refreshDynamicFilterOptions();
+    renderMovies();
+    updateFiltersButtonLabel();
+    restoreCatalogScrollPosition();
+    hydratedCatalogSignature = getCatalogSessionSnapshotSignature(createCatalogSessionSnapshotPayload());
+  }
 
   bindSharedAuthStateListener({
     onAfterAuthSync: () => {
@@ -8692,18 +9005,38 @@ async function initCatalogPage() {
     }
   });
 
-  await reloadCatalogData({ showSkeleton: true, refreshFilters: false });
+  await reloadCatalogData({
+    showSkeleton: !didHydrateCatalogFromSnapshot,
+    refreshFilters: false
+  });
   applySavedCatalogState();
   refreshDynamicFilterOptions();
 
-  if (restoredUser && !isPasswordRecoveryMode) {
+  const refreshedCatalogSignature = getCatalogSessionSnapshotSignature(createCatalogSessionSnapshotPayload());
+  const canReuseHydratedCatalog = (
+    didHydrateCatalogFromSnapshot &&
+    hydratedCatalogSignature &&
+    hydratedCatalogSignature === refreshedCatalogSignature
+  );
+
+  if (canReuseHydratedCatalog) {
+    updateFiltersButtonLabel();
+    return;
+  }
+
+  if (didHydrateCatalogFromSnapshot) {
+    preserveWindowScrollPosition(renderMovies);
+  } else if (restoredUser && !isPasswordRecoveryMode) {
     syncCatalogAfterAuthChange();
   } else {
     renderMovies();
   }
 
   updateFiltersButtonLabel();
-  restoreCatalogScrollPosition();
+
+  if (!didHydrateCatalogFromSnapshot) {
+    restoreCatalogScrollPosition();
+  }
 }
 
 function getMoviePageRouteParams() {
@@ -9682,6 +10015,7 @@ async function deleteMovieFromMoviePage(movieId, movieTitle) {
   try {
     await runConfirmedAction(`Удалить фильм "${movieTitle}"?`, async () => {
       await deleteMovieRecord(movieId);
+      removeMovieFromCatalogSessionSnapshot(movieId);
       window.location.href = 'index.html';
     });
   } catch (error) {
