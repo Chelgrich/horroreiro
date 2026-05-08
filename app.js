@@ -3241,13 +3241,12 @@ function refreshCustomSelectGroup(selectElements) {
 JS-БЛОК 9. ЗАГРУЗКА СПРАВОЧНИКОВ ДЛЯ ФИЛЬТРОВ
 Получает жанры и страны из базы и заполняет select-поля.
 ========================================================== */
-function refreshGenreFilterOptions() {
+function refreshGenreFilterOptions(genreCounts = getGenreOptionCounts()) {
   if (!genreFilter) {
     return;
   }
 
   const selectedGenre = genreFilter.value || '';
-  const genreCounts = getGenreOptionCounts();
 
   genreFilter.innerHTML = '<option value="">Все доп. жанры</option>';
 
@@ -3280,14 +3279,13 @@ async function loadGenres() {
     .filter(name => normalizeSearchText(name) !== 'ужасы');
 }
 
-function loadSubgenreFilterOptions() {
+function loadSubgenreFilterOptions(subgenreCounts = getSubgenreOptionCounts()) {
   if (!subgenreFilter) {
     return;
   }
 
   const selectedSubgenre = subgenreFilter.value || '';
   const subgenreKeys = window.HORROR_TAXONOMY?.subgenres || [];
-  const subgenreCounts = getSubgenreOptionCounts();
 
   subgenreFilter.innerHTML = '<option value="">Все</option>';
 
@@ -3316,14 +3314,13 @@ function loadSubgenreFilterOptions() {
   refreshCustomSelect(subgenreFilter);
 }
 
-function loadFormatFilterOptions() {
+function loadFormatFilterOptions(formatCounts = getFormatOptionCounts()) {
   if (!formatFilter) {
     return;
   }
 
   const selectedFormat = formatFilter.value || '';
   const formatKeys = window.HORROR_TAXONOMY?.formats || [];
-  const formatCounts = getFormatOptionCounts();
 
   formatFilter.innerHTML = '<option value="">Все</option>';
 
@@ -3352,14 +3349,13 @@ function loadFormatFilterOptions() {
   refreshCustomSelect(formatFilter);
 }
 
-function loadTriggerFilterOptions() {
+function loadTriggerFilterOptions(triggerCounts = getTriggerOptionCounts()) {
   if (!triggerFiltersGroup) {
     return;
   }
 
   const selectedTriggerKeys = getSelectedTriggerFilters();
   const taxonomyTriggerKeys = window.HORROR_TAXONOMY?.triggers || [];
-  const triggerCounts = getTriggerOptionCounts();
   const actualTriggerKeys = Array.from(triggerCounts.keys());
   const triggerKeys = [...new Set([...taxonomyTriggerKeys, ...actualTriggerKeys])];
 
@@ -3397,13 +3393,12 @@ function loadTriggerFilterOptions() {
   syncTriggerFiltersTriggerText();
 }
 
-function refreshCountryFilterOptions() {
+function refreshCountryFilterOptions(countryCounts = getCountryOptionCounts()) {
   if (!countryFilter) {
     return;
   }
 
   const selectedCountry = countryFilter.value || '';
-  const countryCounts = getCountryOptionCounts();
 
   countryFilter.innerHTML = '<option value="">Все</option>';
 
@@ -3435,13 +3430,12 @@ async function loadCountries() {
     .filter(Boolean);
 }
 
-function loadYearFilterOptions() {
+function loadYearFilterOptions(yearCounts = getYearOptionCounts()) {
   if (!yearFilter) {
     return;
   }
 
   const selectedYear = yearFilter.value || '';
-  const yearCounts = getYearOptionCounts();
 
   const years = [
     ...new Set(
@@ -3793,7 +3787,7 @@ async function removeMovieReview(reviewId, movieId) {
   await refreshMovieReviewsAfterMutation(movieId, reviewId);
 }
 
-async function reloadCatalogData({ showSkeleton = false } = {}) {
+async function reloadCatalogData({ showSkeleton = false, refreshFilters = true } = {}) {
   const shouldShowCatalogSkeleton = showSkeleton && Boolean(container);
 
   shouldFadeCatalogAfterSkeleton = shouldShowCatalogSkeleton;
@@ -3811,7 +3805,9 @@ async function reloadCatalogData({ showSkeleton = false } = {}) {
     loadCountries()
   ]);
 
-  refreshDynamicFilterOptions();
+  if (refreshFilters) {
+    refreshDynamicFilterOptions();
+  }
 }
 
 function preserveWindowScrollPosition(callback) {
@@ -7438,13 +7434,179 @@ function getTriggerOptionCounts() {
   return counts;
 }
 
+function getCatalogFilterStateSnapshot() {
+  const minRating = ratingFilter.value;
+  const selectedWatchlist = watchlistFilter.value;
+  const selectedWatched = watchedFilter.value;
+
+  return {
+    selectedGenre: genreFilter.value,
+    selectedSubgenre: subgenreFilter.value,
+    selectedFormat: formatFilter.value,
+    selectedTriggerExcludes: getSelectedTriggerFilters(),
+    selectedCountry: countryFilter.value,
+    minRating,
+    minimumRating: Number(minRating),
+    selectedYear: yearFilter.value,
+    selectedYearNumber: Number(yearFilter.value),
+    selectedWatchlist,
+    hasWatchlistFilter: selectedWatchlist === 'in_watchlist' || selectedWatchlist === 'not_in_watchlist',
+    selectedWatched,
+    hasWatchedFilter: selectedWatched === 'watched' || selectedWatched === 'unwatched',
+    searchQuery: searchInput.value,
+    hasSearchQuery: searchInput.value.trim() !== '',
+    hasCurrentUser: Boolean(currentUser),
+    isLowRatedPresetActive: getActiveQuickPresetKey() === 'low-rated',
+    reviewedOnly: reviewedOnlyFilter
+  };
+}
+
+function getCatalogFilterMatches(movie, filterState, meta = getCatalogMovieMeta(movie)) {
+  const currentUserMovieState = (
+    filterState.hasCurrentUser &&
+    (filterState.hasWatchlistFilter || filterState.hasWatchedFilter)
+  )
+    ? getCurrentUserMovieState(movie.id)
+    : null;
+  const averageRating = filterState.minRating !== ''
+    ? getMovieAverageRating(movie.id)
+    : 0;
+
+  return {
+    search: !filterState.hasSearchQuery || movieMatchesSearch(movie, filterState.searchQuery),
+    genre: !filterState.selectedGenre || meta.genreNames.has(filterState.selectedGenre),
+    subgenre: !filterState.selectedSubgenre || meta.subgenreKeys.has(filterState.selectedSubgenre),
+    format: !filterState.selectedFormat || meta.formatKeys.has(filterState.selectedFormat),
+    triggerExcludes: (
+      filterState.selectedTriggerExcludes.length === 0 ||
+      !filterState.selectedTriggerExcludes.some(triggerKey => meta.triggerKeys.has(triggerKey))
+    ),
+    country: !filterState.selectedCountry || meta.countryNames.has(filterState.selectedCountry),
+    rating: (
+      filterState.minRating === '' ||
+      (
+        filterState.isLowRatedPresetActive
+          ? averageRating > 0 && averageRating <= filterState.minimumRating
+          : averageRating >= filterState.minimumRating
+      )
+    ),
+    year: (
+      !filterState.selectedYear ||
+      (
+        movie.year !== null &&
+        Number(movie.year) === filterState.selectedYearNumber
+      )
+    ),
+    reviews: !filterState.reviewedOnly || catalogReviewedMovieIds.has(String(movie.id)),
+    watchlist: (
+      !filterState.hasCurrentUser ||
+      !filterState.hasWatchlistFilter ||
+      (
+        filterState.selectedWatchlist === 'in_watchlist'
+          ? currentUserMovieState.isInWatchlist
+          : !currentUserMovieState.isInWatchlist
+      )
+    ),
+    watched: (
+      !filterState.hasCurrentUser ||
+      !filterState.hasWatchedFilter ||
+      (
+        filterState.selectedWatched === 'watched'
+          ? currentUserMovieState.isWatched
+          : !currentUserMovieState.isWatched
+      )
+    )
+  };
+}
+
+function matchesCatalogFilterCountScope(matches, ignoredFilterKey) {
+  return (
+    matches.search &&
+    (ignoredFilterKey === 'genre' || matches.genre) &&
+    (ignoredFilterKey === 'subgenre' || matches.subgenre) &&
+    (ignoredFilterKey === 'format' || matches.format) &&
+    (ignoredFilterKey === 'triggerExcludes' || matches.triggerExcludes) &&
+    (ignoredFilterKey === 'country' || matches.country) &&
+    (ignoredFilterKey === 'year' || matches.year) &&
+    matches.rating &&
+    matches.reviews &&
+    matches.watchlist &&
+    matches.watched
+  );
+}
+
+function addCount(counts, value) {
+  if (!value) {
+    return;
+  }
+
+  counts.set(value, (counts.get(value) || 0) + 1);
+}
+
+function getDynamicFilterOptionCounts() {
+  const counts = {
+    genreCounts: new Map(),
+    subgenreCounts: new Map(),
+    formatCounts: new Map(),
+    triggerCounts: new Map(),
+    countryCounts: new Map(),
+    yearCounts: new Map()
+  };
+  const filterState = getCatalogFilterStateSnapshot();
+
+  allMovies.forEach(movie => {
+    const meta = getCatalogMovieMeta(movie);
+    const matches = getCatalogFilterMatches(movie, filterState, meta);
+
+    if (matchesCatalogFilterCountScope(matches, 'genre')) {
+      meta.genreNames.forEach(genreName => {
+        if (normalizeSearchText(genreName) !== 'ужасы') {
+          addCount(counts.genreCounts, genreName);
+        }
+      });
+    }
+
+    if (matchesCatalogFilterCountScope(matches, 'subgenre')) {
+      meta.subgenreKeys.forEach(subgenreKey => {
+        addCount(counts.subgenreCounts, subgenreKey);
+      });
+    }
+
+    if (matchesCatalogFilterCountScope(matches, 'format')) {
+      meta.formatKeys.forEach(formatKey => {
+        addCount(counts.formatCounts, formatKey);
+      });
+    }
+
+    if (matchesCatalogFilterCountScope(matches, 'triggerExcludes')) {
+      meta.triggerKeys.forEach(triggerKey => {
+        addCount(counts.triggerCounts, triggerKey);
+      });
+    }
+
+    if (matchesCatalogFilterCountScope(matches, 'country')) {
+      meta.countryNames.forEach(countryName => {
+        addCount(counts.countryCounts, countryName);
+      });
+    }
+
+    if (matchesCatalogFilterCountScope(matches, 'year')) {
+      addCount(counts.yearCounts, Number(movie?.year));
+    }
+  });
+
+  return counts;
+}
+
 function refreshDynamicFilterOptions() {
-  refreshGenreFilterOptions();
-  loadSubgenreFilterOptions();
-  loadFormatFilterOptions();
-  refreshCountryFilterOptions();
-  loadYearFilterOptions();
-  loadTriggerFilterOptions();
+  const filterOptionCounts = getDynamicFilterOptionCounts();
+
+  refreshGenreFilterOptions(filterOptionCounts.genreCounts);
+  loadSubgenreFilterOptions(filterOptionCounts.subgenreCounts);
+  loadFormatFilterOptions(filterOptionCounts.formatCounts);
+  refreshCountryFilterOptions(filterOptionCounts.countryCounts);
+  loadYearFilterOptions(filterOptionCounts.yearCounts);
+  loadTriggerFilterOptions(filterOptionCounts.triggerCounts);
 }
 
 function sortMoviesWithinMonth(movies, monthSortMode, monthSortDirection = 'desc') {
@@ -8197,7 +8359,7 @@ async function initCatalogPage() {
     }
   });
 
-  await reloadCatalogData({ showSkeleton: true });
+  await reloadCatalogData({ showSkeleton: true, refreshFilters: false });
   applySavedCatalogState();
   refreshDynamicFilterOptions();
 
