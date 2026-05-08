@@ -2660,6 +2660,8 @@ function buildCatalogMovieCardRenderMeta(movie, genresText, countriesText) {
 
 function rebuildCatalogMovieMeta() {
   const movies = Array.isArray(allMovies) ? allMovies : [];
+  const catalogGenreNames = new Set();
+  const catalogCountryNames = new Set();
 
   catalogMoviesById = new Map();
   catalogMovieMetaById = new Map();
@@ -2675,7 +2677,24 @@ function rebuildCatalogMovieMeta() {
     catalogMovieMetaById.set(movieId, meta);
     catalogMovieSimilaritySourceById.set(movieId, similaritySource);
     catalogMovieSimilaritySources.push(similaritySource);
+
+    meta.genreNames.forEach(genreName => {
+      if (normalizeSearchText(genreName) !== 'ужасы') {
+        catalogGenreNames.add(genreName);
+      }
+    });
+
+    meta.countryNames.forEach(countryName => {
+      catalogCountryNames.add(countryName);
+    });
   });
+
+  allGenreNames = Array.from(catalogGenreNames).sort((firstName, secondName) =>
+    firstName.localeCompare(secondName, 'ru')
+  );
+  allCountryNames = Array.from(catalogCountryNames).sort((firstName, secondName) =>
+    firstName.localeCompare(secondName, 'ru')
+  );
 }
 
 function getMatchedSearchAlias(movie, searchQuery, queryWords = null) {
@@ -3375,8 +3394,8 @@ function refreshCustomSelectGroup(selectElements) {
 }
 
 /* =========================================================
-JS-БЛОК 9. ЗАГРУЗКА СПРАВОЧНИКОВ ДЛЯ ФИЛЬТРОВ
-Получает жанры и страны из базы и заполняет select-поля.
+JS-БЛОК 9. СПРАВОЧНИКИ ФИЛЬТРОВ
+Заполняет select-поля по уже загруженному каталогу.
 ========================================================== */
 function refreshGenreFilterOptions(genreCounts = getGenreOptionCounts()) {
   if (!genreFilter) {
@@ -3384,10 +3403,15 @@ function refreshGenreFilterOptions(genreCounts = getGenreOptionCounts()) {
   }
 
   const selectedGenre = genreFilter.value || '';
+  const genreNames = allGenreNames.includes(selectedGenre) || !selectedGenre
+    ? allGenreNames
+    : [...allGenreNames, selectedGenre].sort((firstName, secondName) =>
+        firstName.localeCompare(secondName, 'ru')
+      );
 
   genreFilter.innerHTML = '<option value="">Все доп. жанры</option>';
 
-  allGenreNames.forEach(genreName => {
+  genreNames.forEach(genreName => {
     const option = document.createElement('option');
     option.value = genreName;
     option.textContent = `${genreName} (${genreCounts.get(genreName) || 0})`;
@@ -3397,23 +3421,6 @@ function refreshGenreFilterOptions(genreCounts = getGenreOptionCounts()) {
 
   genreFilter.value = selectedGenre;
   refreshCustomSelect(genreFilter);
-}
-
-async function loadGenres() {
-  const { data, error } = await supabaseClient
-    .from('genres')
-    .select('name')
-    .order('name', { ascending: true });
-
-  if (error) {
-    console.error('Ошибка загрузки жанров:', error);
-    return;
-  }
-
-  allGenreNames = (data || [])
-    .map(item => item.name)
-    .filter(Boolean)
-    .filter(name => normalizeSearchText(name) !== 'ужасы');
 }
 
 function loadSubgenreFilterOptions(subgenreCounts = getSubgenreOptionCounts()) {
@@ -3536,10 +3543,15 @@ function refreshCountryFilterOptions(countryCounts = getCountryOptionCounts()) {
   }
 
   const selectedCountry = countryFilter.value || '';
+  const countryNames = allCountryNames.includes(selectedCountry) || !selectedCountry
+    ? allCountryNames
+    : [...allCountryNames, selectedCountry].sort((firstName, secondName) =>
+        firstName.localeCompare(secondName, 'ru')
+      );
 
   countryFilter.innerHTML = '<option value="">Все</option>';
 
-  allCountryNames.forEach(countryName => {
+  countryNames.forEach(countryName => {
     const option = document.createElement('option');
     option.value = countryName;
     option.textContent = `${countryName} (${countryCounts.get(countryName) || 0})`;
@@ -3549,22 +3561,6 @@ function refreshCountryFilterOptions(countryCounts = getCountryOptionCounts()) {
 
   countryFilter.value = selectedCountry;
   refreshCustomSelect(countryFilter);
-}
-
-async function loadCountries() {
-  const { data, error } = await supabaseClient
-    .from('countries')
-    .select('name')
-    .order('name', { ascending: true });
-
-  if (error) {
-    console.error('Ошибка загрузки стран:', error);
-    return;
-  }
-
-  allCountryNames = (data || [])
-    .map(item => item.name)
-    .filter(Boolean);
 }
 
 function loadYearFilterOptions(yearCounts = getYearOptionCounts()) {
@@ -3937,9 +3933,7 @@ async function reloadCatalogData({ showSkeleton = false, refreshFilters = true }
     fetchMovies(),
     fetchMovieRatings(),
     fetchMovieWatchlist(),
-    fetchCatalogReviewSummary(),
-    loadGenres(),
-    loadCountries()
+    fetchCatalogReviewSummary()
   ]);
 
   if (refreshFilters) {
