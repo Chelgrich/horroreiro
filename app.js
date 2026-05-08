@@ -147,6 +147,7 @@ const EMAIL_CONFIRMATION_TRACKED_KEY = 'horroreiro_email_confirmation_tracked';
 const PASSWORD_RECOVERY_PENDING_KEY = 'horroreiro_password_recovery_pending';
 const CATALOG_SCROLL_POSITION_KEY = 'horroreiro_catalog_scroll_position';
 const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
+const HORROR_TAXONOMY_SCRIPT_SRC = 'horror-taxonomy.js';
 
 let currentUser = null;
 let currentUserRole = null;
@@ -199,6 +200,7 @@ let currentMoviePageMovieData = null;
 let currentMoviePageSimilarMovieId = null;
 let currentMoviePageSimilarMovies = [];
 let moviePageSimilarRequestId = 0;
+let horrorTaxonomyLoadPromise = null;
 let shouldFadeCatalogAfterSkeleton = false;
 let catalogFadeCleanupTimerId = null;
 
@@ -310,6 +312,38 @@ function normalizeSearchText(value) {
     .replaceAll('ё', 'е')
     .trim()
     .replace(/\s+/g, ' ');
+}
+
+function isHorrorTaxonomyReady() {
+  return Boolean(window.HORROR_TAXONOMY?.helpers);
+}
+
+function ensureHorrorTaxonomyLoaded() {
+  if (isHorrorTaxonomyReady()) {
+    return Promise.resolve(true);
+  }
+
+  if (horrorTaxonomyLoadPromise) {
+    return horrorTaxonomyLoadPromise;
+  }
+
+  horrorTaxonomyLoadPromise = new Promise(resolve => {
+    const script = document.createElement('script');
+    const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+
+    script.src = `${HORROR_TAXONOMY_SCRIPT_SRC}?v=${encodeURIComponent(buildVersion)}`;
+    script.async = true;
+    script.dataset.lazyScript = HORROR_TAXONOMY_SCRIPT_SRC;
+    script.onload = () => resolve(isHorrorTaxonomyReady());
+    script.onerror = () => {
+      console.error('Ошибка загрузки horror-taxonomy.js');
+      resolve(false);
+    };
+
+    document.body.appendChild(script);
+  });
+
+  return horrorTaxonomyLoadPromise;
 }
 
 function getTaxonomyLabel(groupName, key) {
@@ -8253,13 +8287,15 @@ function getSimilarMoviesForMoviePage(movie, limit = 4) {
     return [];
   }
 
-  if (typeof getSimilarMovies !== 'function') {
+  const getSimilarMoviesHelper = window.HORROR_TAXONOMY?.helpers?.getSimilarMovies;
+
+  if (typeof getSimilarMoviesHelper !== 'function') {
     return [];
   }
 
   const similarityMovies = allMovies.map(sourceMovie => getMovieSimilaritySource(sourceMovie));
   const targetMovie = getMovieSimilaritySource(movie);
-  const similarItems = getSimilarMovies(targetMovie, similarityMovies);
+  const similarItems = getSimilarMoviesHelper(targetMovie, similarityMovies);
   const moviesById = new Map(allMovies.map(sourceMovie => [String(sourceMovie.id), sourceMovie]));
 
   return similarItems
@@ -8301,9 +8337,14 @@ async function loadMoviePageSimilarMovies(movie, limit = 4) {
   renderMoviePageSimilarSection(movieId);
 
   try {
-    if (!Array.isArray(allMovies) || allMovies.length === 0) {
-      await fetchMovies();
+    const shouldFetchMovies = !Array.isArray(allMovies) || allMovies.length === 0;
+    const loadingTasks = [ensureHorrorTaxonomyLoaded()];
+
+    if (shouldFetchMovies) {
+      loadingTasks.push(fetchMovies());
     }
+
+    const [isTaxonomyReady] = await Promise.all(loadingTasks);
 
     if (
       requestId !== moviePageSimilarRequestId ||
@@ -8311,6 +8352,12 @@ async function loadMoviePageSimilarMovies(movie, limit = 4) {
     ) {
       return;
     }
+
+    if (!isTaxonomyReady) {
+      return;
+    }
+
+    renderMoviePage(movie);
 
     currentMoviePageSimilarMovies = getSimilarMoviesForMoviePage(movie, limit);
     renderMoviePageSimilarSection(movieId);
