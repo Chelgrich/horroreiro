@@ -2637,17 +2637,28 @@ function getMatchedSearchAlias(movie, searchQuery, queryWords = null) {
   }) || null;
 }
 
-function movieMatchesSearch(movie, searchQuery) {
+function getSearchQueryWords(searchQuery) {
   const normalizedQuery = normalizeSearchText(searchQuery);
 
   if (!normalizedQuery) {
+    return [];
+  }
+
+  return normalizedQuery.split(' ').filter(Boolean);
+}
+
+function movieMatchesSearch(movie, searchQuery, queryWords = null) {
+  const words = Array.isArray(queryWords)
+    ? queryWords
+    : getSearchQueryWords(searchQuery);
+
+  if (words.length === 0) {
     return true;
   }
 
   const meta = getCatalogMovieMeta(movie);
-  const queryWords = normalizedQuery.split(' ').filter(Boolean);
 
-  return queryWords.every(word => meta.searchableText.includes(word));
+  return words.every(word => meta.searchableText.includes(word));
 }
 
 /* =========================================================
@@ -7241,13 +7252,11 @@ function handleCatalogCardClick(event) {
 }
 
 function createMovieCardRenderContext(searchQuery = searchInput.value) {
-  const normalizedSearchQuery = normalizeSearchText(searchQuery);
+  const queryWords = getSearchQueryWords(searchQuery);
 
   return {
     searchQuery,
-    queryWords: normalizedSearchQuery
-      ? normalizedSearchQuery.split(' ').filter(Boolean)
-      : [],
+    queryWords,
     highlightText: createSearchHighlighter(searchQuery)
   };
 }
@@ -7441,119 +7450,20 @@ function rerenderMovieCard(
 
 function getFilteredMovies(options = {}) {
   const {
-    ignoreGenre = false,
-    ignoreSubgenre = false,
-    ignoreFormat = false,
-    ignoreCountry = false,
-    ignoreYear = false,
-    ignoreTriggerExcludes = false,
     skipSorting = false
   } = options;
 
-  const selectedGenre = genreFilter.value;
-  const selectedCountry = countryFilter.value;
-  const minRating = ratingFilter.value;
-  const selectedYear = yearFilter.value;
-  const selectedWatchlist = watchlistFilter.value;
-  const selectedWatched = watchedFilter.value;
   const selectedSortMode = sortMode.value;
-  const searchQuery = searchInput.value;
-  const hasSearchQuery = searchQuery.trim() !== '';
+  const filterState = getCatalogFilterStateSnapshot(options);
+  const filteredMovies = [];
 
-  let filteredMovies = [...allMovies];
+  allMovies.forEach(movie => {
+    const meta = getCatalogMovieMeta(movie);
 
-  if (hasSearchQuery) {
-    filteredMovies = filteredMovies.filter(movie =>
-      movieMatchesSearch(movie, searchQuery)
-    );
-  }
-
-  if (!ignoreGenre && selectedGenre) {
-    filteredMovies = filteredMovies.filter(movie =>
-      getCatalogMovieMeta(movie).genreNames.has(selectedGenre)
-    );
-  }
-
-  if (!ignoreSubgenre && subgenreFilter.value) {
-    filteredMovies = filteredMovies.filter(movie =>
-      getCatalogMovieMeta(movie).subgenreKeys.has(subgenreFilter.value)
-    );
-  }
-
-  if (!ignoreFormat && formatFilter.value) {
-    filteredMovies = filteredMovies.filter(movie =>
-      getCatalogMovieMeta(movie).formatKeys.has(formatFilter.value)
-    );
-  }
-
-  const selectedTriggerExcludes = ignoreTriggerExcludes
-    ? []
-    : getSelectedTriggerFilters();
-
-  if (selectedTriggerExcludes.length > 0) {
-    filteredMovies = filteredMovies.filter(movie => {
-      const movieTriggers = getCatalogMovieMeta(movie).triggerKeys;
-
-      return !selectedTriggerExcludes.some(triggerKey => movieTriggers.has(triggerKey));
-    });
-  }
-
-  if (!ignoreCountry && selectedCountry) {
-    filteredMovies = filteredMovies.filter(movie =>
-      getCatalogMovieMeta(movie).countryNames.has(selectedCountry)
-    );
-  }
-
-  if (minRating !== '') {
-    const isLowRatedPresetActive = getActiveQuickPresetKey() === 'low-rated';
-
-    filteredMovies = filteredMovies.filter(movie => {
-      const averageRating = getMovieAverageRating(movie.id);
-
-      return isLowRatedPresetActive
-        ? averageRating > 0 && averageRating <= Number(minRating)
-        : averageRating >= Number(minRating);
-    });
-  }
-
-  if (!ignoreYear && selectedYear) {
-    filteredMovies = filteredMovies.filter(movie =>
-      movie.year !== null &&
-      Number(movie.year) === Number(selectedYear)
-    );
-  }
-
-  if (reviewedOnlyFilter) {
-    filteredMovies = filteredMovies.filter(movie =>
-      catalogReviewedMovieIds.has(String(movie.id))
-    );
-  }
-
-  const hasCurrentUser = Boolean(currentUser);
-
-  if (hasCurrentUser && selectedWatchlist === 'in_watchlist') {
-    filteredMovies = filteredMovies.filter(movie =>
-      isMovieInCurrentUserWatchlist(movie.id)
-    );
-  }
-
-  if (hasCurrentUser && selectedWatchlist === 'not_in_watchlist') {
-    filteredMovies = filteredMovies.filter(movie =>
-      !isMovieInCurrentUserWatchlist(movie.id)
-    );
-  }
-
-  if (hasCurrentUser && selectedWatched === 'watched') {
-    filteredMovies = filteredMovies.filter(movie =>
-      isMovieWatchedByCurrentUser(movie.id)
-    );
-  }
-
-  if (hasCurrentUser && selectedWatched === 'unwatched') {
-    filteredMovies = filteredMovies.filter(movie =>
-      !isMovieWatchedByCurrentUser(movie.id)
-    );
-  }
+    if (doesMovieMatchCatalogFilters(movie, filterState, meta)) {
+      filteredMovies.push(movie);
+    }
+  });
 
   if (!skipSorting) {
     sortMovies(filteredMovies, selectedSortMode);
@@ -7676,31 +7586,131 @@ function getTriggerOptionCounts() {
   return counts;
 }
 
-function getCatalogFilterStateSnapshot() {
+function getCatalogFilterStateSnapshot(options = {}) {
+  const {
+    ignoreGenre = false,
+    ignoreSubgenre = false,
+    ignoreFormat = false,
+    ignoreCountry = false,
+    ignoreYear = false,
+    ignoreTriggerExcludes = false
+  } = options;
   const minRating = ratingFilter.value;
   const selectedWatchlist = watchlistFilter.value;
   const selectedWatched = watchedFilter.value;
+  const searchQuery = searchInput.value;
+  const searchQueryWords = getSearchQueryWords(searchQuery);
+  const selectedTriggerExcludes = ignoreTriggerExcludes
+    ? []
+    : getSelectedTriggerFilters();
 
   return {
-    selectedGenre: genreFilter.value,
-    selectedSubgenre: subgenreFilter.value,
-    selectedFormat: formatFilter.value,
-    selectedTriggerExcludes: getSelectedTriggerFilters(),
-    selectedCountry: countryFilter.value,
+    selectedGenre: ignoreGenre ? '' : genreFilter.value,
+    selectedSubgenre: ignoreSubgenre ? '' : subgenreFilter.value,
+    selectedFormat: ignoreFormat ? '' : formatFilter.value,
+    selectedTriggerExcludes,
+    hasTriggerExcludes: selectedTriggerExcludes.length > 0,
+    selectedCountry: ignoreCountry ? '' : countryFilter.value,
     minRating,
     minimumRating: Number(minRating),
-    selectedYear: yearFilter.value,
+    selectedYear: ignoreYear ? '' : yearFilter.value,
     selectedYearNumber: Number(yearFilter.value),
     selectedWatchlist,
     hasWatchlistFilter: selectedWatchlist === 'in_watchlist' || selectedWatchlist === 'not_in_watchlist',
     selectedWatched,
     hasWatchedFilter: selectedWatched === 'watched' || selectedWatched === 'unwatched',
-    searchQuery: searchInput.value,
-    hasSearchQuery: searchInput.value.trim() !== '',
+    searchQuery,
+    searchQueryWords,
+    hasSearchQuery: searchQueryWords.length > 0,
     hasCurrentUser: Boolean(currentUser),
     isLowRatedPresetActive: getActiveQuickPresetKey() === 'low-rated',
     reviewedOnly: reviewedOnlyFilter
   };
+}
+
+function doesMovieMatchCatalogFilters(movie, filterState, meta = getCatalogMovieMeta(movie)) {
+  if (
+    filterState.hasSearchQuery &&
+    !movieMatchesSearch(movie, filterState.searchQuery, filterState.searchQueryWords)
+  ) {
+    return false;
+  }
+
+  if (filterState.selectedGenre && !meta.genreNames.has(filterState.selectedGenre)) {
+    return false;
+  }
+
+  if (filterState.selectedSubgenre && !meta.subgenreKeys.has(filterState.selectedSubgenre)) {
+    return false;
+  }
+
+  if (filterState.selectedFormat && !meta.formatKeys.has(filterState.selectedFormat)) {
+    return false;
+  }
+
+  if (
+    filterState.hasTriggerExcludes &&
+    filterState.selectedTriggerExcludes.some(triggerKey => meta.triggerKeys.has(triggerKey))
+  ) {
+    return false;
+  }
+
+  if (filterState.selectedCountry && !meta.countryNames.has(filterState.selectedCountry)) {
+    return false;
+  }
+
+  if (filterState.minRating !== '') {
+    const averageRating = getMovieAverageRating(movie.id);
+    const matchesRating = filterState.isLowRatedPresetActive
+      ? averageRating > 0 && averageRating <= filterState.minimumRating
+      : averageRating >= filterState.minimumRating;
+
+    if (!matchesRating) {
+      return false;
+    }
+  }
+
+  if (
+    filterState.selectedYear &&
+    (
+      movie.year === null ||
+      Number(movie.year) !== filterState.selectedYearNumber
+    )
+  ) {
+    return false;
+  }
+
+  if (filterState.reviewedOnly && !catalogReviewedMovieIds.has(String(movie.id))) {
+    return false;
+  }
+
+  let currentUserMovieState = null;
+
+  if (filterState.hasCurrentUser && filterState.hasWatchlistFilter) {
+    currentUserMovieState = getCurrentUserMovieState(movie.id);
+
+    if (
+      filterState.selectedWatchlist === 'in_watchlist'
+        ? !currentUserMovieState.isInWatchlist
+        : currentUserMovieState.isInWatchlist
+    ) {
+      return false;
+    }
+  }
+
+  if (filterState.hasCurrentUser && filterState.hasWatchedFilter) {
+    currentUserMovieState = currentUserMovieState || getCurrentUserMovieState(movie.id);
+
+    if (
+      filterState.selectedWatched === 'watched'
+        ? !currentUserMovieState.isWatched
+        : currentUserMovieState.isWatched
+    ) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function getCatalogFilterMatches(movie, filterState, meta = getCatalogMovieMeta(movie)) {
@@ -7713,14 +7723,18 @@ function getCatalogFilterMatches(movie, filterState, meta = getCatalogMovieMeta(
   const averageRating = filterState.minRating !== ''
     ? getMovieAverageRating(movie.id)
     : 0;
+  const hasTriggerExcludes = filterState.hasTriggerExcludes ?? filterState.selectedTriggerExcludes.length > 0;
 
   return {
-    search: !filterState.hasSearchQuery || movieMatchesSearch(movie, filterState.searchQuery),
+    search: (
+      !filterState.hasSearchQuery ||
+      movieMatchesSearch(movie, filterState.searchQuery, filterState.searchQueryWords)
+    ),
     genre: !filterState.selectedGenre || meta.genreNames.has(filterState.selectedGenre),
     subgenre: !filterState.selectedSubgenre || meta.subgenreKeys.has(filterState.selectedSubgenre),
     format: !filterState.selectedFormat || meta.formatKeys.has(filterState.selectedFormat),
     triggerExcludes: (
-      filterState.selectedTriggerExcludes.length === 0 ||
+      !hasTriggerExcludes ||
       !filterState.selectedTriggerExcludes.some(triggerKey => meta.triggerKeys.has(triggerKey))
     ),
     country: !filterState.selectedCountry || meta.countryNames.has(filterState.selectedCountry),
