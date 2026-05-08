@@ -208,6 +208,7 @@ let moviePageSimilarRequestId = 0;
 let horrorTaxonomyLoadPromise = null;
 let shouldFadeCatalogAfterSkeleton = false;
 let catalogFadeCleanupTimerId = null;
+const userRatingControlsHtmlCache = new Map();
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -2561,20 +2562,26 @@ function buildCatalogMovieMeta(movie) {
   const searchAliases = Array.isArray(movie?.search_aliases)
     ? movie.search_aliases.filter(Boolean)
     : [];
+  const searchAliasEntries = searchAliases.map(alias => ({
+    alias,
+    normalizedAlias: normalizeSearchText(alias)
+  }));
   const subgenreKeys = [
     movie?.primary_subgenre,
     ...(Array.isArray(movie?.secondary_subgenres) ? movie.secondary_subgenres : [])
   ].filter(Boolean);
+  const genresText = genreNames.join(', ');
+  const countriesText = countryNames.join(', ');
 
   return {
     genreNames: new Set(genreNames),
     countryNames: new Set(countryNames),
-    genresText: genreNames.join(', '),
-    countriesText: countryNames.join(', '),
+    genresText,
+    countriesText,
     subgenreKeys: new Set(subgenreKeys),
     formatKeys: new Set(Array.isArray(movie?.formats) ? movie.formats.filter(Boolean) : []),
     triggerKeys: new Set(Array.isArray(movie?.triggers) ? movie.triggers.filter(Boolean) : []),
-    searchAliases,
+    searchAliasEntries,
     visibleSearchTexts: [
       movie?.title,
       movie?.original_title,
@@ -2585,7 +2592,69 @@ function buildCatalogMovieMeta(movie) {
       movie?.original_title,
       movie?.director,
       ...searchAliases
-    ].join(' '))
+    ].join(' ')),
+    cardRender: buildCatalogMovieCardRenderMeta(movie, genresText, countriesText)
+  };
+}
+
+function buildCatalogMovieCardRenderMeta(movie, genresText, countriesText) {
+  const titleText = String(movie?.title || '');
+  const originalTitleText = String(movie?.original_title || '');
+  const directorText = String(movie?.director || '');
+  const escapedTitle = escapeHtml(titleText);
+  const escapedOriginalTitle = escapeHtml(originalTitleText);
+  const escapedDirector = directorText ? escapeHtml(directorText) : '-';
+  const escapedGenres = escapeHtml(genresText || '-');
+  const escapedCountries = escapeHtml(countriesText || '-');
+  const pageUrl = buildMoviePageUrl(movie);
+  const externalLinksHtml = getMovieExternalLinksHtml(movie);
+  const hasExternalLinks = externalLinksHtml !== '';
+  const externalLinksToggleHtml = hasExternalLinks
+    ? `
+      <button
+        type="button"
+        class="movie-external-links-toggle secondary-button secondary-button-compact"
+        data-external-links-toggle="true"
+        aria-expanded="false"
+      >
+        Ссылки на фильм
+      </button>
+    `
+    : '';
+  const externalLinksBlockHtml = hasExternalLinks
+    ? `
+      <div class="movie-external-links-collapsible" data-external-links-collapsible>
+        ${externalLinksHtml}
+      </div>
+    `
+    : '';
+
+  return {
+    titleText,
+    originalTitleText,
+    directorText,
+    posterUrl: movie?.poster_url || '',
+    pageUrl,
+    escapedTitle,
+    escapedOriginalTitle,
+    escapedDirector,
+    escapedGenres,
+    escapedCountries,
+    escapedPosterAlt: escapeHtml(`Постер фильма ${titleText}`),
+    escapedPageLabel: escapeHtml(`Открыть страницу фильма ${titleText}`),
+    externalLinksToggleHtml,
+    externalLinksBlockHtml,
+    staticDetailsHtml: `
+      <h5 class="movie-title">
+        <a href="${pageUrl}" class="movie-title-link">${escapedTitle}</a>
+      </h5>
+
+      ${originalTitleText ? `<p>Оригинальное название: ${escapedOriginalTitle}</p>` : ''}
+      <p>Год: ${escapeHtml(movie?.year ?? '-')}</p>
+      <p>Режиссёр: ${escapedDirector}</p>
+      <p>Жанры: ${escapedGenres}</p>
+      <p>Страны: ${escapedCountries}</p>
+    `
   };
 }
 
@@ -2630,11 +2699,9 @@ function getMatchedSearchAlias(movie, searchQuery, queryWords = null) {
     return null;
   }
 
-  return meta.searchAliases.find(alias => {
-    const normalizedAlias = normalizeSearchText(alias);
-
-    return words.every(word => normalizedAlias.includes(word));
-  }) || null;
+  return meta.searchAliasEntries.find(entry =>
+    words.every(word => entry.normalizedAlias.includes(word))
+  )?.alias || null;
 }
 
 function getSearchQueryWords(searchQuery) {
@@ -6490,13 +6557,19 @@ function getUserRatingControlsHtml(currentUserRating, isRatingBusy = false) {
   }
 
   const hasCurrentUserRating = currentUserRating !== null;
+  const normalizedRating = currentUserRating ?? 0;
+  const cacheKey = `${normalizedRating}:${isRatingBusy ? 'busy' : 'idle'}`;
 
-  return `
+  if (userRatingControlsHtmlCache.has(cacheKey)) {
+    return userRatingControlsHtmlCache.get(cacheKey);
+  }
+
+  const controlsHtml = `
     <div class="movie-user-rating">
       <div class="movie-user-rating-label">Ваша оценка</div>
 
       <div class="movie-user-rating-desktop">
-        <div class="movie-user-rating-stars ${isRatingBusy ? 'is-busy' : ''}" data-current-rating="${currentUserRating ?? 0}">
+        <div class="movie-user-rating-stars ${isRatingBusy ? 'is-busy' : ''}" data-current-rating="${normalizedRating}">
           ${Array.from({ length: 10 }, (_, index) => {
             const value = index + 1;
             const isActive = hasCurrentUserRating && value <= currentUserRating;
@@ -6533,6 +6606,42 @@ function getUserRatingControlsHtml(currentUserRating, isRatingBusy = false) {
         </button>
       </div>
     </div>
+  `;
+
+  userRatingControlsHtmlCache.set(cacheKey, controlsHtml);
+
+  return controlsHtml;
+}
+
+function getHighlightedCatalogText(value, renderContext, fallbackHtml = escapeHtml(value)) {
+  return renderContext.queryWords.length > 0
+    ? renderContext.highlightText(value)
+    : fallbackHtml;
+}
+
+function getMovieCardDetailsHtml(movie, renderContext, cardRenderMeta) {
+  if (renderContext.queryWords.length === 0) {
+    return cardRenderMeta.staticDetailsHtml;
+  }
+
+  const titleHtml = getHighlightedCatalogText(movie.title, renderContext, cardRenderMeta.escapedTitle);
+  const originalTitleHtml = movie.original_title
+    ? getHighlightedCatalogText(movie.original_title, renderContext, cardRenderMeta.escapedOriginalTitle)
+    : '';
+  const directorHtml = movie.director
+    ? getHighlightedCatalogText(movie.director, renderContext, cardRenderMeta.escapedDirector)
+    : '-';
+
+  return `
+    <h5 class="movie-title">
+      <a href="${cardRenderMeta.pageUrl}" class="movie-title-link">${titleHtml}</a>
+    </h5>
+
+    ${originalTitleHtml ? `<p>Оригинальное название: ${originalTitleHtml}</p>` : ''}
+    <p>Год: ${escapeHtml(movie.year ?? '-')}</p>
+    <p>Режиссёр: ${directorHtml}</p>
+    <p>Жанры: ${cardRenderMeta.escapedGenres}</p>
+    <p>Страны: ${cardRenderMeta.escapedCountries}</p>
   `;
 }
 
@@ -6733,21 +6842,28 @@ function getPosterHtml(
   movie,
   userMovieState,
   matchedSearchAlias = null,
-  highlightText = createSearchHighlighter(searchInput.value),
-  isWatchlistBusy = false
+  renderContext = createMovieCardRenderContext(),
+  isWatchlistBusy = false,
+  cardRenderMeta = getCatalogMovieMeta(movie).cardRender
 ) {
+  const posterUrl = cardRenderMeta.posterUrl;
+  const isPosterLoaded = posterUrl && loadedPosterUrls.has(posterUrl);
+  const matchedSearchAliasHtml = matchedSearchAlias
+    ? getHighlightedCatalogText(matchedSearchAlias, renderContext)
+    : '';
+
   return `
     <div class="movie-poster-block">
-      <a href="${buildMoviePageUrl(movie)}" class="movie-poster-link" aria-label="Открыть страницу фильма ${escapeHtml(movie.title)}">
+      <a href="${cardRenderMeta.pageUrl}" class="movie-poster-link" aria-label="${cardRenderMeta.escapedPageLabel}">
         <div class="movie-poster-wrapper">
           ${
-            movie.poster_url
+            posterUrl
               ? `
-                <div class="movie-poster-skeleton ${loadedPosterUrls.has(movie.poster_url) ? 'is-hidden' : ''}" aria-hidden="true"></div>
+                <div class="movie-poster-skeleton ${isPosterLoaded ? 'is-hidden' : ''}" aria-hidden="true"></div>
                 <img
-                  class="movie-poster ${loadedPosterUrls.has(movie.poster_url) ? 'is-loaded' : ''}"
-                  src="${movie.poster_url}"
-                  alt="Постер фильма ${movie.title}"
+                  class="movie-poster ${isPosterLoaded ? 'is-loaded' : ''}"
+                  src="${posterUrl}"
+                  alt="${cardRenderMeta.escapedPosterAlt}"
                   loading="lazy"
                   decoding="async"
                 >
@@ -6760,7 +6876,7 @@ function getPosterHtml(
               ? `
                 <div class="movie-search-alias-hint">
                   <span class="movie-search-alias-hint-label">Альт:</span>
-                  ${highlightText(matchedSearchAlias)}
+                  ${matchedSearchAliasHtml}
                 </div>
               `
               : ''
@@ -7267,12 +7383,12 @@ function createMovieCard(movie, renderContext = createMovieCardRenderContext()) 
   const currentUserRating = getCurrentUserRating(movieId);
   const userMovieState = getCurrentUserMovieState(movieId);
   const meta = getCatalogMovieMeta(movie);
+  const cardRenderMeta = meta.cardRender;
   const matchedSearchAlias = getMatchedSearchAlias(
     movie,
     renderContext.searchQuery,
     renderContext.queryWords
   );
-  const highlightText = renderContext.highlightText;
 
   card.className = 'movie-card';
 
@@ -7283,8 +7399,6 @@ function createMovieCard(movie, renderContext = createMovieCardRenderContext()) 
   }
   card.dataset.movieId = String(movieId);
 
-  const genres = meta.genresText;
-  const countries = meta.countriesText;
   const averageRating = getMovieAverageRating(movieId);
   const votesCount = getMovieVotesCount(movieId);
   const isRatingBusy = ratingRequestInFlight.has(String(movieId));
@@ -7315,48 +7429,20 @@ function createMovieCard(movie, renderContext = createMovieCardRenderContext()) 
     movie,
     userMovieState,
     matchedSearchAlias,
-    highlightText,
-    isWatchlistBusy
+    renderContext,
+    isWatchlistBusy,
+    cardRenderMeta
   );
-  const externalLinksHtml = getMovieExternalLinksHtml(movie);
-  const hasExternalLinks = externalLinksHtml !== '';
-  const externalLinksBlockHtml = hasExternalLinks
-    ? `
-      <div class="movie-external-links-collapsible" data-external-links-collapsible>
-        ${externalLinksHtml}
-      </div>
-    `
-    : '';
+  const detailsHtml = getMovieCardDetailsHtml(movie, renderContext, cardRenderMeta);
 
   card.innerHTML = `
     ${posterHtml}
 
-    <h5 class="movie-title">
-      <a href="${buildMoviePageUrl(movie)}" class="movie-title-link">${highlightText(movie.title)}</a>
-    </h5>
-
-    ${movie.original_title ? `<p>Оригинальное название: ${highlightText(movie.original_title)}</p>` : ''}
-    <p>Год: ${movie.year ?? '-'}</p>
-    <p>Режиссёр: ${movie.director ? highlightText(movie.director) : '-'}</p>
-    <p>Жанры: ${genres || '-'}</p>
-    <p>Страны: ${countries || '-'}</p>
+    ${detailsHtml}
 
     <div class="movie-rating-block">
-      ${
-        hasExternalLinks
-          ? `
-            <button
-              type="button"
-              class="movie-external-links-toggle secondary-button secondary-button-compact"
-              data-external-links-toggle="true"
-              aria-expanded="false"
-            >
-              Ссылки на фильм
-            </button>
-          `
-          : ''
-      }
-      ${externalLinksBlockHtml}
+      ${cardRenderMeta.externalLinksToggleHtml}
+      ${cardRenderMeta.externalLinksBlockHtml}
       ${ratingSummaryHtml}
       ${userRatingControlsHtml}
     </div>
