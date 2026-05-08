@@ -3278,8 +3278,6 @@ async function loadGenres() {
     .map(item => item.name)
     .filter(Boolean)
     .filter(name => normalizeSearchText(name) !== 'ужасы');
-
-  refreshGenreFilterOptions();
 }
 
 function loadSubgenreFilterOptions() {
@@ -3435,8 +3433,6 @@ async function loadCountries() {
   allCountryNames = (data || [])
     .map(item => item.name)
     .filter(Boolean);
-
-  refreshCountryFilterOptions();
 }
 
 function loadYearFilterOptions() {
@@ -3810,10 +3806,7 @@ async function reloadCatalogData({ showSkeleton = false } = {}) {
     fetchMovies(),
     fetchMovieRatings(),
     fetchMovieWatchlist(),
-    fetchCatalogReviewSummary()
-  ]);
-
-  await Promise.all([
+    fetchCatalogReviewSummary(),
     loadGenres(),
     loadCountries()
   ]);
