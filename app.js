@@ -148,6 +148,8 @@ const PASSWORD_RECOVERY_PENDING_KEY = 'horroreiro_password_recovery_pending';
 const CATALOG_SCROLL_POSITION_KEY = 'horroreiro_catalog_scroll_position';
 const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
 const HORROR_TAXONOMY_SCRIPT_SRC = 'horror-taxonomy.js';
+const AUTH_REQUEST_TIMEOUT_MS = 20000;
+const AUTH_PROFILE_REQUEST_TIMEOUT_MS = 15000;
 
 let currentUser = null;
 let currentUserRole = null;
@@ -1847,6 +1849,14 @@ async function withPendingRequestTimeout(promise, timeoutMs, timeoutMessage) {
   }
 }
 
+function withAuthRequestTimeout(promise, timeoutMessage, timeoutMs = AUTH_REQUEST_TIMEOUT_MS) {
+  return withPendingRequestTimeout(promise, timeoutMs, timeoutMessage);
+}
+
+function withAuthProfileRequestTimeout(promise, timeoutMessage) {
+  return withAuthRequestTimeout(promise, timeoutMessage, AUTH_PROFILE_REQUEST_TIMEOUT_MS);
+}
+
 function throwIfSupabaseError(error) {
   if (error) {
     throw error;
@@ -2114,11 +2124,14 @@ async function loadCurrentUserRole() {
   }
 
   try {
-    const { data, error } = await supabaseClient
-      .from('profiles')
-      .select('role, display_name, default_display_name')
-      .eq('id', currentUser.id)
-      .single();
+    const { data, error } = await withAuthProfileRequestTimeout(
+      supabaseClient
+        .from('profiles')
+        .select('role, display_name, default_display_name')
+        .eq('id', currentUser.id)
+        .single(),
+      'Не удалось загрузить профиль пользователя. Проверь соединение и попробуй обновить страницу.'
+    );
 
     if (error) {
       console.error('Ошибка загрузки профиля пользователя:', error);
@@ -2740,7 +2753,10 @@ async function cancelPasswordRecoveryFlow() {
   clearEmailConfirmationParamsFromUrl();
 
   try {
-    await supabaseClient.auth.signOut({ scope: 'global' });
+    await withAuthRequestTimeout(
+      supabaseClient.auth.signOut({ scope: 'global' }),
+      'Не удалось отменить восстановление пароля. Проверь соединение и попробуй снова.'
+    );
   } catch (error) {
     console.error('Ошибка отмены recovery-сессии:', error);
   }
@@ -2748,7 +2764,10 @@ async function cancelPasswordRecoveryFlow() {
 
 async function clearLocalRecoverySession() {
   try {
-    await supabaseClient.auth.signOut({ scope: 'local' });
+    await withAuthRequestTimeout(
+      supabaseClient.auth.signOut({ scope: 'local' }),
+      'Не удалось очистить временную recovery-сессию. Проверь соединение и попробуй снова.'
+    );
   } catch (error) {
     console.error('Ошибка локальной очистки recovery-сессии:', error);
   }
@@ -5147,7 +5166,19 @@ JS-БЛОК 19. АВТОРИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ
 Восстанавливает сессию, выполняет вход, регистрацию и выход.
 ========================================================== */
 async function restoreSession() {
-  const { data, error } = await supabaseClient.auth.getSession();
+  let data = null;
+  let error = null;
+
+  try {
+    ({ data, error } = await withAuthRequestTimeout(
+      supabaseClient.auth.getSession(),
+      'Не удалось восстановить сессию. Проверь соединение и обнови страницу.'
+    ));
+  } catch (requestError) {
+    console.error('Ошибка получения сессии:', requestError);
+    await applyCurrentSessionUser(null);
+    return null;
+  }
 
   if (error) {
     console.error('Ошибка получения сессии:', error);
@@ -5254,7 +5285,10 @@ async function isDisplayNameAvailable(displayName, excludeUserId = null) {
     query = query.neq('id', excludeUserId);
   }
 
-  const { data, error } = await query.limit(1);
+  const { data, error } = await withAuthProfileRequestTimeout(
+    query.limit(1),
+    'Не удалось проверить никнейм. Проверь соединение и попробуй снова.'
+  );
 
   if (error) {
     throw error;
@@ -5315,12 +5349,15 @@ async function saveDisplayName(event) {
       return;
     }
 
-    const { error: authError } = await supabaseClient.auth.updateUser({
-      data: {
-        ...(currentUser.user_metadata || {}),
-        display_name: nextDisplayName
-      }
-    });
+    const { error: authError } = await withAuthRequestTimeout(
+      supabaseClient.auth.updateUser({
+        data: {
+          ...(currentUser.user_metadata || {}),
+          display_name: nextDisplayName
+        }
+      }),
+      'Не удалось обновить никнейм в аккаунте. Проверь соединение и попробуй снова.'
+    );
 
     if (authError) {
       console.error('Ошибка обновления user_metadata.display_name:', authError);
@@ -5328,12 +5365,15 @@ async function saveDisplayName(event) {
       return;
     }
 
-    const { error: profileError } = await supabaseClient
-      .from('profiles')
-      .update({
-        display_name: nextDisplayName
-      })
-      .eq('id', currentUser.id);
+    const { error: profileError } = await withAuthProfileRequestTimeout(
+      supabaseClient
+        .from('profiles')
+        .update({
+          display_name: nextDisplayName
+        })
+        .eq('id', currentUser.id),
+      'Не удалось сохранить никнейм в профиле. Проверь соединение и попробуй снова.'
+    );
 
     if (profileError) {
       console.error('Ошибка обновления profiles.display_name:', profileError);
@@ -5347,6 +5387,9 @@ async function saveDisplayName(event) {
     setTimeout(() => {
       closeDisplayNameModal();
     }, 500);
+  } catch (error) {
+    console.error('Ошибка сохранения никнейма:', error);
+    setDisplayNameMessage(error?.message || 'Не удалось сохранить никнейм. Попробуйте ещё раз.', 'error');
   } finally {
     isDisplayNameSubmitting = false;
 
@@ -5383,9 +5426,12 @@ async function sendPasswordResetEmail() {
   showAuthMessage('Отправляю письмо для сброса пароля...');
 
   try {
-    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin
-    });
+    const { error } = await withAuthRequestTimeout(
+      supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin
+      }),
+      'Не удалось отправить письмо для сброса пароля. Проверь соединение и попробуй снова.'
+    );
 
     if (error) {
       console.error('Ошибка отправки письма для сброса пароля:', error);
@@ -5401,6 +5447,12 @@ async function sendPasswordResetEmail() {
     showAuthMessage(
       'Если такой e-mail существует, мы отправили письмо со ссылкой для сброса пароля.',
       'success'
+    );
+  } catch (error) {
+    console.error('Ошибка отправки письма для сброса пароля:', error);
+    showAuthMessage(
+      getReadableAuthErrorMessage(error, 'Не удалось отправить письмо для сброса пароля. Попробуй позже.'),
+      'error'
     );
   } finally {
     setAuthSubmittingState(false);
@@ -5438,9 +5490,12 @@ async function saveNewPassword() {
   showAuthMessage('Сохраняю новый пароль...');
 
   try {
-    const { error } = await supabaseClient.auth.updateUser({
-      password: nextPassword
-    });
+    const { error } = await withAuthRequestTimeout(
+      supabaseClient.auth.updateUser({
+        password: nextPassword
+      }),
+      'Не удалось сохранить новый пароль. Проверь соединение и попробуй снова.'
+    );
 
     if (error) {
       console.error('Ошибка сохранения нового пароля:', error);
@@ -5459,13 +5514,22 @@ async function saveNewPassword() {
 
     setTimeout(async () => {
       try {
-        await supabaseClient.auth.signOut({ scope: 'local' });
+        await withAuthRequestTimeout(
+          supabaseClient.auth.signOut({ scope: 'local' }),
+          'Не удалось завершить recovery-сессию. Проверь соединение и попробуй снова.'
+        );
       } catch (error) {
         console.error('Ошибка завершения recovery-сессии:', error);
       }
 
       closeAuthModal();
     }, 900);
+  } catch (error) {
+    console.error('Ошибка сохранения нового пароля:', error);
+    showAuthMessage(
+      getReadableAuthErrorMessage(error, 'Не удалось сохранить новый пароль. Попробуй ещё раз.'),
+      'error'
+    );
   } finally {
     setAuthSubmittingState(false);
   }
@@ -5488,17 +5552,32 @@ async function login(event) {
     return;
   }
 
+  const email = loginEmail.value.trim();
+  const password = loginPassword.value;
+
+  if (!email || !password) {
+    showAuthMessage('Введи e-mail и пароль для входа.', 'error');
+
+    if (!email) {
+      loginEmail.focus();
+    } else {
+      loginPassword.focus();
+    }
+
+    return;
+  }
+
   setAuthSubmittingState(true);
   showAuthMessage('Выполняю вход...');
 
   try {
-    const email = loginEmail.value.trim();
-    const password = loginPassword.value;
-
-    const { error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
+    const { error } = await withAuthRequestTimeout(
+      supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      }),
+      'Не удалось выполнить вход. Проверь соединение и попробуй снова.'
+    );
 
     if (error) {
       console.error('Ошибка входа:', error);
@@ -5516,6 +5595,12 @@ async function login(event) {
     setTimeout(() => {
       closeAuthModal();
     }, 300);
+  } catch (error) {
+    console.error('Ошибка входа:', error);
+    showAuthMessage(
+      getReadableAuthErrorMessage(error, 'Ошибка входа. Проверь e-mail и пароль.'),
+      'error'
+    );
   } finally {
     setAuthSubmittingState(false);
   }
@@ -5556,16 +5641,19 @@ async function register() {
       }
     }
 
-    const { error } = await supabaseClient.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: {
-          display_name: registerNickname || null
+    const { error } = await withAuthRequestTimeout(
+      supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: {
+            display_name: registerNickname || null
+          }
         }
-      }
-    });
+      }),
+      'Не удалось зарегистрировать аккаунт. Проверь соединение и попробуй снова.'
+    );
 
     if (error) {
       console.error('Ошибка регистрации:', error);
@@ -5588,21 +5676,38 @@ async function register() {
     localStorage.setItem(EMAIL_CONFIRMATION_PENDING_KEY, '1');
     localStorage.removeItem(EMAIL_CONFIRMATION_TRACKED_KEY);
     trackGoal('register');
+  } catch (error) {
+    console.error('Ошибка регистрации:', error);
+    showAuthMessage(
+      getReadableAuthErrorMessage(error, 'Ошибка регистрации. Проверь e-mail, пароль и никнейм.'),
+      'error'
+    );
   } finally {
     setAuthSubmittingState(false);
   }
 }
 
 async function logout() {
-  const { error } = await supabaseClient.auth.signOut();
+  try {
+    const { error } = await withAuthRequestTimeout(
+      supabaseClient.auth.signOut(),
+      'Не удалось выйти. Проверь соединение и попробуй снова.'
+    );
 
-  if (error) {
+    if (error) {
+      console.error('Ошибка выхода:', error);
+      showAuthMessage('Не удалось выйти.', 'error');
+      return;
+    }
+
+    window.location.replace(window.location.pathname + window.location.search);
+  } catch (error) {
     console.error('Ошибка выхода:', error);
-    showAuthMessage('Не удалось выйти.', 'error');
-    return;
+    showAuthMessage(
+      getReadableAuthErrorMessage(error, 'Не удалось выйти. Попробуй ещё раз.'),
+      'error'
+    );
   }
-
-  window.location.replace(window.location.pathname + window.location.search);
 }
 
 /* =========================================================
@@ -8454,24 +8559,28 @@ function bindSharedAuthStateListener({ onAfterAuthSync } = {}) {
     const currentRequestId = ++authStateSyncRequestId;
 
     setTimeout(async () => {
-      await applyCurrentSessionUser(session?.user ?? null);
-      trackEmailConfirmedLoginIfNeeded();
+      try {
+        await applyCurrentSessionUser(session?.user ?? null);
+        trackEmailConfirmedLoginIfNeeded();
 
-      if (currentRequestId !== authStateSyncRequestId) {
-        return;
-      }
+        if (currentRequestId !== authStateSyncRequestId) {
+          return;
+        }
 
-      await Promise.all([
-        fetchMovieRatings(),
-        fetchMovieWatchlist()
-      ]);
+        await Promise.all([
+          fetchMovieRatings(),
+          fetchMovieWatchlist()
+        ]);
 
-      if (currentRequestId !== authStateSyncRequestId) {
-        return;
-      }
+        if (currentRequestId !== authStateSyncRequestId) {
+          return;
+        }
 
-      if (typeof onAfterAuthSync === 'function') {
-        onAfterAuthSync();
+        if (typeof onAfterAuthSync === 'function') {
+          onAfterAuthSync();
+        }
+      } catch (error) {
+        console.error('Ошибка синхронизации auth-состояния:', error);
       }
     }, 0);
   });
