@@ -1548,28 +1548,34 @@ function escapeHtml(value) {
 }
 
 function highlightSearchMatches(text, searchQuery) {
+  return createSearchHighlighter(searchQuery)(text);
+}
+
+function createSearchHighlighter(searchQuery) {
   const normalizedQuery = normalizeSearchText(searchQuery);
-  const safeText = escapeHtml(text);
 
   if (!normalizedQuery) {
-    return safeText;
+    return escapeHtml;
   }
 
-  const words = [...new Set(
+  const regexes = [...new Set(
     normalizedQuery
       .split(' ')
       .map(word => escapeRegExp(word))
       .filter(Boolean)
-  )].sort((a, b) => b.length - a.length);
+  )]
+    .sort((a, b) => b.length - a.length)
+    .map(word => new RegExp(`(${word})`, 'gi'));
 
-  let result = safeText;
+  return text => {
+    let result = escapeHtml(text);
 
-  words.forEach(word => {
-    const regex = new RegExp(`(${word})`, 'gi');
-    result = result.replace(regex, '<mark>$1</mark>');
-  });
+    regexes.forEach(regex => {
+      result = result.replace(regex, '<mark>$1</mark>');
+    });
 
-  return result;
+    return result;
+  };
 }
 
 function saveCatalogScrollPosition() {
@@ -2520,6 +2526,12 @@ function getCatalogMovieMeta(movie) {
 function buildCatalogMovieMeta(movie) {
   const movieGenres = Array.isArray(movie?.movie_genres) ? movie.movie_genres : [];
   const movieCountries = Array.isArray(movie?.movie_countries) ? movie.movie_countries : [];
+  const genreNames = movieGenres
+    .map(item => item?.genres?.name)
+    .filter(Boolean);
+  const countryNames = movieCountries
+    .map(item => item?.countries?.name)
+    .filter(Boolean);
   const searchAliases = Array.isArray(movie?.search_aliases)
     ? movie.search_aliases.filter(Boolean)
     : [];
@@ -2529,16 +2541,10 @@ function buildCatalogMovieMeta(movie) {
   ].filter(Boolean);
 
   return {
-    genreNames: new Set(
-      movieGenres
-        .map(item => item?.genres?.name)
-        .filter(Boolean)
-    ),
-    countryNames: new Set(
-      movieCountries
-        .map(item => item?.countries?.name)
-        .filter(Boolean)
-    ),
+    genreNames: new Set(genreNames),
+    countryNames: new Set(countryNames),
+    genresText: genreNames.join(', '),
+    countriesText: countryNames.join(', '),
     subgenreKeys: new Set(subgenreKeys),
     formatKeys: new Set(Array.isArray(movie?.formats) ? movie.formats.filter(Boolean) : []),
     triggerKeys: new Set(Array.isArray(movie?.triggers) ? movie.triggers.filter(Boolean) : []),
@@ -2564,24 +2570,32 @@ function rebuildCatalogMovieMeta() {
   );
 }
 
-function getMatchedSearchAlias(movie, searchQuery) {
-  const normalizedQuery = normalizeSearchText(searchQuery);
+function getMatchedSearchAlias(movie, searchQuery, queryWords = null) {
+  const normalizedQuery = Array.isArray(queryWords)
+    ? queryWords.join(' ')
+    : normalizeSearchText(searchQuery);
 
   if (!normalizedQuery) {
     return null;
   }
 
   const meta = getCatalogMovieMeta(movie);
-  const queryWords = normalizedQuery.split(' ').filter(Boolean);
+  const words = Array.isArray(queryWords)
+    ? queryWords
+    : normalizedQuery.split(' ').filter(Boolean);
   const hasVisibleMatch = meta.visibleSearchTexts.some(text =>
-    queryWords.every(word => text.includes(word))
+    words.every(word => text.includes(word))
   );
 
   if (hasVisibleMatch) {
     return null;
   }
 
-  return meta.searchAliases.find(alias => textMatchesSearchQuery(alias, searchQuery)) || null;
+  return meta.searchAliases.find(alias => {
+    const normalizedAlias = normalizeSearchText(alias);
+
+    return words.every(word => normalizedAlias.includes(word));
+  }) || null;
 }
 
 function movieMatchesSearch(movie, searchQuery) {
@@ -6571,7 +6585,12 @@ function getMovieExternalLinksHtml(movie) {
   `;
 }
 
-function getPosterHtml(movie, userMovieState, matchedSearchAlias = null) {
+function getPosterHtml(
+  movie,
+  userMovieState,
+  matchedSearchAlias = null,
+  highlightText = createSearchHighlighter(searchInput.value)
+) {
   return `
     <div class="movie-poster-block">
       <a href="${buildMoviePageUrl(movie)}" class="movie-poster-link" aria-label="Открыть страницу фильма ${escapeHtml(movie.title)}">
@@ -6596,7 +6615,7 @@ function getPosterHtml(movie, userMovieState, matchedSearchAlias = null) {
               ? `
                 <div class="movie-search-alias-hint">
                   <span class="movie-search-alias-hint-label">Альт:</span>
-                  ${highlightSearchMatches(matchedSearchAlias, searchInput.value)}
+                  ${highlightText(matchedSearchAlias)}
                 </div>
               `
               : ''
@@ -6895,12 +6914,30 @@ function resetMovieCardFocusAfterLinkOpen(event) {
   }, 0);
 }
 
-function createMovieCard(movie) {
+function createMovieCardRenderContext(searchQuery = searchInput.value) {
+  const normalizedSearchQuery = normalizeSearchText(searchQuery);
+
+  return {
+    searchQuery,
+    queryWords: normalizedSearchQuery
+      ? normalizedSearchQuery.split(' ').filter(Boolean)
+      : [],
+    highlightText: createSearchHighlighter(searchQuery)
+  };
+}
+
+function createMovieCard(movie, renderContext = createMovieCardRenderContext()) {
   const card = document.createElement('article');
   const movieId = movie.id;
   const currentUserRating = getCurrentUserRating(movieId);
   const userMovieState = getCurrentUserMovieState(movieId);
-  const matchedSearchAlias = getMatchedSearchAlias(movie, searchInput.value);
+  const meta = getCatalogMovieMeta(movie);
+  const matchedSearchAlias = getMatchedSearchAlias(
+    movie,
+    renderContext.searchQuery,
+    renderContext.queryWords
+  );
+  const highlightText = renderContext.highlightText;
 
   card.className = 'movie-card';
 
@@ -6911,8 +6948,8 @@ function createMovieCard(movie) {
   }
   card.dataset.movieId = String(movieId);
 
-  const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
-  const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
+  const genres = meta.genresText;
+  const countries = meta.countriesText;
   const averageRating = getMovieAverageRating(movieId);
   const votesCount = getMovieVotesCount(movieId);
 
@@ -6936,7 +6973,7 @@ function createMovieCard(movie) {
   `;
 
   const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating);
-  const posterHtml = getPosterHtml(movie, userMovieState, matchedSearchAlias);
+  const posterHtml = getPosterHtml(movie, userMovieState, matchedSearchAlias, highlightText);
   const externalLinksHtml = getMovieExternalLinksHtml(movie);
   const hasExternalLinks = externalLinksHtml !== '';
   const externalLinksBlockHtml = hasExternalLinks
@@ -6951,12 +6988,12 @@ function createMovieCard(movie) {
     ${posterHtml}
 
     <h5 class="movie-title">
-      <a href="${buildMoviePageUrl(movie)}" class="movie-title-link">${highlightSearchMatches(movie.title, searchInput.value)}</a>
+      <a href="${buildMoviePageUrl(movie)}" class="movie-title-link">${highlightText(movie.title)}</a>
     </h5>
 
-    ${movie.original_title ? `<p>Оригинальное название: ${highlightSearchMatches(movie.original_title, searchInput.value)}</p>` : ''}
+    ${movie.original_title ? `<p>Оригинальное название: ${highlightText(movie.original_title)}</p>` : ''}
     <p>Год: ${movie.year ?? '-'}</p>
-    <p>Режиссёр: ${movie.director ? highlightSearchMatches(movie.director, searchInput.value) : '-'}</p>
+    <p>Режиссёр: ${movie.director ? highlightText(movie.director) : '-'}</p>
     <p>Жанры: ${genres || '-'}</p>
     <p>Страны: ${countries || '-'}</p>
 
@@ -7652,7 +7689,12 @@ function sortMoviesWithinMonth(movies, monthSortMode, monthSortDirection = 'desc
   return sortedMovies;
 }
 
-function createMonthSection(month, movies, initialReleaseDirection = 'desc') {
+function createMonthSection(
+  month,
+  movies,
+  initialReleaseDirection = 'desc',
+  renderContext = createMovieCardRenderContext()
+) {
   const monthSection = document.createElement('section');
   const monthHeader = document.createElement('div');
   const monthTitle = document.createElement('h4');
@@ -7722,7 +7764,7 @@ function createMonthSection(month, movies, initialReleaseDirection = 'desc') {
     monthCards.innerHTML = '';
 
     sortedMonthMovies.forEach(movie => {
-      monthCards.appendChild(createMovieCard(movie));
+      monthCards.appendChild(createMovieCard(movie, renderContext));
     });
 
     syncSortButtonsUi();
@@ -7772,6 +7814,7 @@ function renderMovies() {
   syncQuickPresetButtons();
 
   const filteredMovies = getFilteredMovies();
+  const cardRenderContext = createMovieCardRenderContext(searchInput.value);
 
   if (moviesResultCount) {
     moviesResultCount.textContent = `Найдено: ${filteredMovies.length}`;
@@ -7788,7 +7831,7 @@ function renderMovies() {
     const moviesFragment = document.createDocumentFragment();
 
     filteredMovies.forEach(movie => {
-      moviesFragment.appendChild(createMovieCard(movie));
+      moviesFragment.appendChild(createMovieCard(movie, cardRenderContext));
     });
 
     container.appendChild(moviesFragment);
@@ -7808,7 +7851,8 @@ function renderMovies() {
         createMonthSection(
           currentMonth,
           currentMonthMovies,
-          defaultMonthReleaseDirection
+          defaultMonthReleaseDirection,
+          cardRenderContext
         )
       );
       currentMonth = null;
@@ -8616,8 +8660,9 @@ async function loadMoviePageSimilarMovies(movie, limit = 4) {
 }
 
 function getMoviePageSimilarCardHtml(movie) {
-  const genres = movie.movie_genres.map(item => item.genres.name).join(', ');
-  const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
+  const meta = getCatalogMovieMeta(movie);
+  const genres = meta.genresText;
+  const countries = meta.countriesText;
   const averageRating = getMovieAverageRating(movie.id);
   const votesCount = getMovieVotesCount(movie.id);
 
