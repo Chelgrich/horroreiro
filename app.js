@@ -1949,6 +1949,54 @@ function removeMovieFromCatalogSessionSnapshot(movieId) {
   writeCatalogSessionSnapshot(snapshot);
 }
 
+function getMovieFromCatalogSessionSnapshot(routeParams, snapshot = readCatalogSessionSnapshot()) {
+  if (!routeParams || !snapshot || !Array.isArray(snapshot.movies)) {
+    return null;
+  }
+
+  if (routeParams.slug) {
+    return snapshot.movies.find(movie => String(movie?.slug || '') === String(routeParams.slug)) || null;
+  }
+
+  if (routeParams.id) {
+    return snapshot.movies.find(movie => String(movie?.id || '') === String(routeParams.id)) || null;
+  }
+
+  return null;
+}
+
+function hydrateMoviePageFromCatalogSnapshot(routeParams) {
+  const snapshot = readCatalogSessionSnapshot();
+  const snapshotMovie = getMovieFromCatalogSessionSnapshot(routeParams, snapshot);
+
+  if (!snapshotMovie) {
+    return null;
+  }
+
+  hydrateCatalogFromSessionSnapshot(snapshot);
+  allMovieReviews = [];
+
+  return getCatalogMovieById(snapshotMovie.id) || snapshotMovie;
+}
+
+function getMoviePageTopRenderSignature(movie) {
+  if (!movie) {
+    return '';
+  }
+
+  const movieId = String(movie.id);
+  const ratingStats = movieRatingStatsByMovieId.get(movieId) || null;
+
+  return JSON.stringify({
+    userId: currentUser?.id || null,
+    isAdmin,
+    movie,
+    ratingStats,
+    currentUserRating: getCurrentUserRating(movieId),
+    userMovieState: getCurrentUserMovieState(movieId)
+  });
+}
+
 function debounce(callback, delay = 200) {
   let timeoutId = null;
 
@@ -9283,7 +9331,9 @@ async function loadMoviePageSimilarMovies(movie, limit = 4) {
       return;
     }
 
-    renderMoviePage(movie);
+    if (!moviePage.querySelector('[data-movie-page-similar-mount="true"]')) {
+      renderMoviePage(movie);
+    }
 
     currentMoviePageSimilarMovies = getSimilarMoviesForMoviePage(movie, limit);
     renderMoviePageSimilarSection(movieId);
@@ -9591,17 +9641,23 @@ function getMoviePageReviewCardHtml(review) {
   `;
 }
 
-function getMoviePageReviewsSectionHtml(movie) {
+function getMoviePageReviewsSectionHtml(movie, { isLoading = false } = {}) {
   const reviews = sortMovieReviewsForDisplay(getMovieReviews(movie.id));
 
   return `
-  <section class="movie-page-reviews-block" aria-labelledby="moviePageReviewsTitle">
+  <section class="movie-page-reviews-block" aria-labelledby="moviePageReviewsTitle" data-movie-page-reviews-section="true">
   <h2 id="moviePageReviewsTitle" class="movie-page-subtitle">Рецензии</h2>
 
-  ${getMoviePageReviewFormHtml(movie)}
+  ${isLoading ? '' : getMoviePageReviewFormHtml(movie)}
 
       ${
-        reviews.length > 0
+        isLoading
+          ? `
+            <div class="movie-page-review-empty-state">
+              Загружаю рецензии...
+            </div>
+          `
+          : reviews.length > 0
           ? `
             <div class="movie-page-reviews-list">
               ${reviews.map(review => getMoviePageReviewCardHtml(review)).join('')}
@@ -9776,7 +9832,7 @@ function bindMoviePageReviewEvents(movie) {
   });
 }
 
-function buildMoviePageViewModel(movie) {
+function buildMoviePageViewModel(movie, { reviewsLoading = false } = {}) {
   return {
     genres: movie.movie_genres.map(item => item.genres.name).join(', '),
     countries: movie.movie_countries.map(item => item.countries.name).join(', '),
@@ -9798,7 +9854,7 @@ function buildMoviePageViewModel(movie) {
     synopsis: String(movie.synopsis || '').trim(),
     isRatingBusy: ratingRequestInFlight.has(String(movie.id)),
     isWatchlistBusy: watchlistRequestInFlight.has(String(movie.id)),
-    reviewsSectionHtml: getMoviePageReviewsSectionHtml(movie)
+    reviewsSectionHtml: getMoviePageReviewsSectionHtml(movie, { isLoading: reviewsLoading })
   };
 }
 
@@ -9965,7 +10021,7 @@ function getMoviePageHeaderHtml(movie, viewModel) {
   `;
 }
 
-function renderMoviePage(movie) {
+function renderMoviePage(movie, options = {}) {
   if (!moviePage || !movie) {
     return;
   }
@@ -9973,7 +10029,7 @@ function renderMoviePage(movie) {
   currentMoviePageMovieId = movie.id;
   currentMoviePageMovieData = movie;
 
-  const viewModel = buildMoviePageViewModel(movie);
+  const viewModel = buildMoviePageViewModel(movie, options);
   const { reviewsSectionHtml } = viewModel;
 
   setMoviePageDocumentMeta(movie);
@@ -10011,6 +10067,37 @@ function renderMoviePage(movie) {
   bindMoviePageReviewEvents(movie);
 }
 
+function renderMoviePageReviewsSection(movie) {
+  if (!moviePage || !movie) {
+    return;
+  }
+
+  const reviewsSection = moviePage.querySelector('[data-movie-page-reviews-section="true"]');
+
+  if (!reviewsSection) {
+    renderMoviePage(movie);
+    return;
+  }
+
+  reviewsSection.outerHTML = getMoviePageReviewsSectionHtml(movie);
+  bindMoviePageReviewEvents(movie);
+}
+
+function renderMoviePageReviewsStatus(message) {
+  const reviewsSection = moviePage?.querySelector('[data-movie-page-reviews-section="true"]');
+
+  if (!reviewsSection) {
+    return;
+  }
+
+  reviewsSection.innerHTML = `
+    <h2 id="moviePageReviewsTitle" class="movie-page-subtitle">Рецензии</h2>
+    <div class="movie-page-review-empty-state">
+      ${escapeHtml(message)}
+    </div>
+  `;
+}
+
 async function deleteMovieFromMoviePage(movieId, movieTitle) {
   try {
     await runConfirmedAction(`Удалить фильм "${movieTitle}"?`, async () => {
@@ -10023,19 +10110,51 @@ async function deleteMovieFromMoviePage(movieId, movieTitle) {
   }
 }
 
-async function loadMoviePageByRouteParams(routeParams) {
-  const [movie] = await Promise.all([
-    fetchMovieByRouteParams(routeParams),
-    fetchMovieRatings()
-  ]);
+async function loadMoviePageByRouteParams(routeParams, {
+  warmMovie = null,
+  warmTopSignature = '',
+  skipUserStateFetch = false
+} = {}) {
+  const loadingTasks = [fetchMovieByRouteParams(routeParams)];
+
+  if (!skipUserStateFetch) {
+    loadingTasks.push(fetchMovieRatings(), fetchMovieWatchlist());
+  }
+
+  const [movie] = await Promise.all(loadingTasks);
 
   if (!movie) {
+    if (warmMovie) {
+      removeMovieFromCatalogSessionSnapshot(warmMovie.id);
+    }
+
     renderMoviePageNotFound();
     return null;
   }
 
   await fetchMovieReviews(movie.id);
-  renderMoviePage(movie);
+  syncCatalogSessionSnapshotMovieState(movie.id, {
+    syncReviews: true,
+    syncMovie: movie
+  });
+
+  const nextTopSignature = getMoviePageTopRenderSignature(movie);
+  const canReuseWarmTop = (
+    warmMovie &&
+    String(warmMovie.id) === String(movie.id) &&
+    warmTopSignature &&
+    warmTopSignature === nextTopSignature &&
+    String(currentMoviePageMovieId) === String(movie.id)
+  );
+
+  if (canReuseWarmTop) {
+    currentMoviePageMovieData = movie;
+    setMoviePageDocumentMeta(movie);
+    renderMoviePageReviewsSection(movie);
+  } else {
+    renderMoviePage(movie);
+  }
+
   loadMoviePageSimilarMovies(movie);
 
   return movie;
@@ -10051,19 +10170,36 @@ async function initMoviePage() {
 
   await restoreSession();
   trackEmailConfirmedLoginIfNeeded();
-  await fetchMovieWatchlist();
+  const warmMovie = hydrateMoviePageFromCatalogSnapshot(routeParams);
+  const warmTopSignature = warmMovie
+    ? getMoviePageTopRenderSignature(warmMovie)
+    : '';
+
+  if (warmMovie) {
+    renderMoviePage(warmMovie, { reviewsLoading: true });
+  }
 
   try {
-    await loadMoviePageByRouteParams(routeParams);
+    await loadMoviePageByRouteParams(routeParams, {
+      warmMovie,
+      warmTopSignature
+    });
   } catch (error) {
     console.error('Ошибка загрузки страницы фильма:', error);
-    renderMoviePageNotFound();
+
+    if (!warmMovie) {
+      renderMoviePageNotFound();
+    } else {
+      renderMoviePageReviewsStatus('Не удалось обновить рецензии. Попробуй обновить страницу.');
+    }
   }
 
   bindSharedAuthStateListener({
     onAfterAuthSync: async () => {
       try {
-        await loadMoviePageByRouteParams(routeParams);
+        await loadMoviePageByRouteParams(routeParams, {
+          skipUserStateFetch: true
+        });
       } catch (error) {
         console.error('Ошибка синхронизации страницы фильма после auth:', error);
         renderMoviePageNotFound();
