@@ -6363,7 +6363,7 @@ function getUserRatingControlsHtml(currentUserRating, isRatingBusy = false) {
       <div class="movie-user-rating-label">Ваша оценка</div>
 
       <div class="movie-user-rating-desktop">
-        <div class="movie-user-rating-stars" data-current-rating="${currentUserRating ?? 0}">
+        <div class="movie-user-rating-stars ${isRatingBusy ? 'is-busy' : ''}" data-current-rating="${currentUserRating ?? 0}">
           ${Array.from({ length: 10 }, (_, index) => {
             const value = index + 1;
             const isActive = hasCurrentUserRating && value <= currentUserRating;
@@ -6814,73 +6814,85 @@ function bindPosterLoadState(posterImage, posterSkeleton) {
   }, { once: true });
 }
 
-function bindMovieRatingControls({
-  movieId,
-  currentUserRating,
-  starsContainer,
-  voteButtons
-}) {
-  if (!starsContainer || voteButtons.length === 0) {
+function getCatalogRatingStarContext(target) {
+  const starButton = target.closest('.rating-star-btn');
+
+  if (!starButton || !container?.contains(starButton)) {
+    return null;
+  }
+
+  const starsContainer = starButton.closest('.movie-user-rating-stars');
+  const card = starButton.closest('.movie-card[data-movie-id]');
+
+  if (!starsContainer || !card) {
+    return null;
+  }
+
+  return {
+    starButton,
+    starsContainer,
+    card,
+    movieId: card.dataset.movieId
+  };
+}
+
+function applyCatalogRatingStarState(starsContainer, activeValue, mode = 'selected') {
+  if (!starsContainer) {
     return;
   }
 
+  const voteButtons = starsContainer.querySelectorAll('.rating-star-btn');
   const scaleItems = starsContainer.parentElement?.querySelectorAll('.movie-user-rating-scale-item') || [];
-  const isRatingBusy = () => ratingRequestInFlight.has(String(movieId));
-
-  const syncRatingBusyState = () => {
-    const isBusy = isRatingBusy();
-
-    starsContainer.classList.toggle('is-busy', isBusy);
-
-    voteButtons.forEach(button => {
-      button.disabled = isBusy;
-    });
-  };
-
-  const applyStarState = (activeValue, mode = 'selected') => {
-    voteButtons.forEach(button => {
-      const buttonValue = Number(button.dataset.ratingValue);
-      const isFilled = buttonValue <= activeValue;
-
-      button.classList.toggle('is-hovered', mode === 'hover' && isFilled);
-      button.classList.toggle('is-active', mode === 'selected' && isFilled);
-    });
-
-    scaleItems.forEach(item => {
-      const itemValue = Number(item.textContent);
-      const isFilled = itemValue <= activeValue;
-
-      item.classList.toggle('is-hovered', mode === 'hover' && isFilled);
-      item.classList.toggle('is-active', mode === 'selected' && isFilled);
-    });
-  };
-
-  syncRatingBusyState();
 
   voteButtons.forEach(button => {
-    button.addEventListener('mouseenter', () => {
-      if (isRatingBusy()) {
-        return;
-      }
+    const buttonValue = Number(button.dataset.ratingValue);
+    const isFilled = buttonValue <= activeValue;
 
-      const hoverValue = Number(button.dataset.ratingValue);
-      applyStarState(hoverValue, 'hover');
-    });
-
-    button.addEventListener('click', () => {
-      if (isRatingBusy()) {
-        return;
-      }
-
-      const ratingValue = Number(button.dataset.ratingValue);
-      saveUserMovieRating(movieId, ratingValue);
-    });
+    button.classList.toggle('is-hovered', mode === 'hover' && isFilled);
+    button.classList.toggle('is-active', mode === 'selected' && isFilled);
   });
 
-  starsContainer.addEventListener('mouseleave', () => {
-    const selectedValue = currentUserRating ?? 0;
-    applyStarState(selectedValue, 'selected');
+  scaleItems.forEach(item => {
+    const itemValue = Number(item.textContent);
+    const isFilled = itemValue <= activeValue;
+
+    item.classList.toggle('is-hovered', mode === 'hover' && isFilled);
+    item.classList.toggle('is-active', mode === 'selected' && isFilled);
   });
+}
+
+function resetCatalogRatingStarState(starsContainer) {
+  const selectedValue = Number(starsContainer?.dataset.currentRating || 0);
+
+  applyCatalogRatingStarState(starsContainer, selectedValue, 'selected');
+}
+
+function handleCatalogRatingStarMouseOver(event) {
+  const context = getCatalogRatingStarContext(event.target);
+
+  if (!context || context.starButton.disabled || ratingRequestInFlight.has(String(context.movieId))) {
+    return;
+  }
+
+  applyCatalogRatingStarState(
+    context.starsContainer,
+    Number(context.starButton.dataset.ratingValue),
+    'hover'
+  );
+}
+
+function handleCatalogRatingStarMouseOut(event) {
+  const starsContainer = event.target.closest('.movie-user-rating-stars');
+
+  if (!starsContainer || !container?.contains(starsContainer)) {
+    return;
+  }
+
+  if (event.relatedTarget && starsContainer.contains(event.relatedTarget)) {
+    return;
+  }
+
+  resetCatalogRatingStarState(starsContainer);
 }
 
 function syncOpenExternalLinksLayouts() {
@@ -7037,6 +7049,16 @@ function handleCatalogCardClick(event) {
   }
 
   const { card, movieId, movie } = context;
+  const ratingStarBtn = target.closest('.rating-star-btn');
+
+  if (ratingStarBtn) {
+    if (!ratingStarBtn.disabled && !ratingRequestInFlight.has(String(movieId))) {
+      saveUserMovieRating(movieId, Number(ratingStarBtn.dataset.ratingValue));
+    }
+
+    return;
+  }
+
   const watchlistToggleBtn = target.closest('[data-watchlist-toggle="true"]');
 
   if (watchlistToggleBtn) {
@@ -7216,19 +7238,10 @@ function createMovieCard(movie, renderContext = createMovieCardRenderContext()) 
     ` : ''}
   `;
 
-  const starsContainer = card.querySelector('.movie-user-rating-stars');
-  const voteButtons = card.querySelectorAll('.rating-star-btn');
   const posterImage = card.querySelector('.movie-poster');
   const posterSkeleton = card.querySelector('.movie-poster-skeleton');
 
   bindPosterLoadState(posterImage, posterSkeleton);
-
-  bindMovieRatingControls({
-    movieId,
-    currentUserRating,
-    starsContainer,
-    voteButtons
-  });
 
   return card;
 }
@@ -8280,6 +8293,8 @@ if (moviePageDeleteButton) {
 if (container) {
   container.addEventListener('click', handleCatalogCardClick);
   container.addEventListener('auxclick', handleCatalogCardAuxClick);
+  container.addEventListener('mouseover', handleCatalogRatingStarMouseOver);
+  container.addEventListener('mouseout', handleCatalogRatingStarMouseOut);
 }
 
 document.addEventListener('click', event => {
