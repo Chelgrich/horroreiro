@@ -8130,8 +8130,6 @@ function renderMovies() {
     return;
   }
 
-  container.innerHTML = '';
-
   if (viewMode.value === 'list') {
     const moviesFragment = document.createDocumentFragment();
 
@@ -8139,7 +8137,7 @@ function renderMovies() {
       moviesFragment.appendChild(createMovieCard(movie, cardRenderContext));
     });
 
-    container.appendChild(moviesFragment);
+    container.replaceChildren(moviesFragment);
   } else {
     let lastYear = null;
     let currentMonth = null;
@@ -8183,7 +8181,7 @@ function renderMovies() {
     });
 
     flushCurrentMonth();
-    container.appendChild(moviesFragment);
+    container.replaceChildren(moviesFragment);
   }
 }
 
