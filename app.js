@@ -8191,6 +8191,7 @@ function bindSharedAuthStateListener({ onAfterAuthSync } = {}) {
 }
 
 async function initCatalogPage() {
+  initCatalogViewToggleButton();
   renderMoviesSkeleton();
 
   const restoredUser = await restoreSession();
@@ -8204,7 +8205,6 @@ async function initCatalogPage() {
   });
 
   await reloadCatalogData({ showSkeleton: true });
-  initCatalogViewToggleButton();
   applySavedCatalogState();
   refreshDynamicFilterOptions();
 
