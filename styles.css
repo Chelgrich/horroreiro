@@ -4992,7 +4992,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     justify-content: center;
   }
 
+  .catalog-pagination-controls,
   .catalog-pagination-pages {
+    gap: clamp(4px, 1.2vw, 6px);
+    flex-wrap: nowrap;
     justify-content: center;
   }
 
