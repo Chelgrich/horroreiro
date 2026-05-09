@@ -149,6 +149,7 @@ const PASSWORD_RECOVERY_PENDING_KEY = 'horroreiro_password_recovery_pending';
 const CATALOG_SCROLL_POSITION_KEY = 'horroreiro_catalog_scroll_position';
 const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
 const CATALOG_SESSION_SNAPSHOT_KEY = 'horroreiro_catalog_session_snapshot';
+const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
 const CATALOG_SESSION_SNAPSHOT_VERSION = 5;
 const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 const HORROR_TAXONOMY_SCRIPT_SRC = 'horror-taxonomy.js';
@@ -1837,6 +1838,33 @@ function getCatalogSessionSnapshotSignature(snapshot) {
   });
 }
 
+function getStableStringHash(value) {
+  const text = String(value || '');
+  let hash = 2166136261;
+
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(36);
+}
+
+function getCatalogDataSignatureHash(snapshot) {
+  return getStableStringHash(getCatalogSessionSnapshotSignature(snapshot));
+}
+
+function getCatalogRenderStateSignature() {
+  const filterState = getCatalogFilterStateSnapshot();
+
+  return JSON.stringify({
+    userId: currentUser?.id || null,
+    viewMode: viewMode?.value || 'list',
+    sortMode: sortMode?.value || 'default',
+    filterState
+  });
+}
+
 function readCatalogSessionSnapshot({ allowStale = false } = {}) {
   try {
     const rawSnapshot = sessionStorage.getItem(CATALOG_SESSION_SNAPSHOT_KEY);
@@ -1884,12 +1912,105 @@ function writeCatalogSessionSnapshot(snapshot) {
   }
 }
 
+function readCatalogDomSnapshot({ allowStale = false } = {}) {
+  try {
+    const rawSnapshot = sessionStorage.getItem(CATALOG_DOM_SNAPSHOT_KEY);
+
+    if (!rawSnapshot) {
+      return null;
+    }
+
+    const snapshot = JSON.parse(rawSnapshot);
+    const snapshotAge = Date.now() - Number(snapshot?.savedAt || 0);
+
+    if (
+      snapshot?.version !== CATALOG_SESSION_SNAPSHOT_VERSION ||
+      snapshot?.buildVersion !== APP_BUILD_VERSION ||
+      snapshot?.viewMode !== 'list' ||
+      typeof snapshot?.containerHtml !== 'string' ||
+      !snapshot.containerHtml ||
+      (!allowStale && snapshotAge > CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS)
+    ) {
+      sessionStorage.removeItem(CATALOG_DOM_SNAPSHOT_KEY);
+      return null;
+    }
+
+    return snapshot;
+  } catch (error) {
+    console.warn('Ошибка чтения DOM-снимка каталога:', error);
+    sessionStorage.removeItem(CATALOG_DOM_SNAPSHOT_KEY);
+    return null;
+  }
+}
+
+function writeCatalogDomSnapshot(snapshot) {
+  try {
+    if (!snapshot) {
+      sessionStorage.removeItem(CATALOG_DOM_SNAPSHOT_KEY);
+      return;
+    }
+
+    sessionStorage.setItem(
+      CATALOG_DOM_SNAPSHOT_KEY,
+      JSON.stringify({
+        ...snapshot,
+        savedAt: Date.now()
+      })
+    );
+  } catch (error) {
+    console.warn('Ошибка сохранения DOM-снимка каталога:', error);
+    sessionStorage.removeItem(CATALOG_DOM_SNAPSHOT_KEY);
+  }
+}
+
+function createCatalogDomSnapshotPayload(sessionSnapshot = createCatalogSessionSnapshotPayload()) {
+  if (
+    !isCatalogPage() ||
+    !container ||
+    !sessionSnapshot ||
+    !moviesLoadedSuccessfully ||
+    viewMode?.value !== 'list' ||
+    container.querySelector('.movie-card-skeleton')
+  ) {
+    return null;
+  }
+
+  const containerHtml = container.innerHTML;
+
+  if (!containerHtml.trim()) {
+    return null;
+  }
+
+  return {
+    version: CATALOG_SESSION_SNAPSHOT_VERSION,
+    buildVersion: APP_BUILD_VERSION,
+    savedAt: Date.now(),
+    userId: currentUser?.id || null,
+    viewMode: 'list',
+    renderStateSignature: getCatalogRenderStateSignature(),
+    dataSignatureHash: getCatalogDataSignatureHash(sessionSnapshot),
+    moviesResultCountText: moviesResultCount?.textContent || '',
+    containerHtml
+  };
+}
+
+function persistCatalogDomSnapshot(sessionSnapshot = createCatalogSessionSnapshotPayload()) {
+  if (!isCatalogPage()) {
+    return;
+  }
+
+  writeCatalogDomSnapshot(createCatalogDomSnapshotPayload(sessionSnapshot));
+}
+
 function persistCatalogSessionSnapshot() {
   if (!isCatalogPage()) {
     return;
   }
 
-  writeCatalogSessionSnapshot(createCatalogSessionSnapshotPayload());
+  const sessionSnapshot = createCatalogSessionSnapshotPayload();
+
+  writeCatalogSessionSnapshot(sessionSnapshot);
+  persistCatalogDomSnapshot(sessionSnapshot);
 }
 
 function hydrateCatalogFromSessionSnapshot(snapshot = readCatalogSessionSnapshot()) {
@@ -2058,6 +2179,60 @@ function hydrateMoviePageFromCatalogSnapshot(routeParams) {
   allMovieReviews = [];
 
   return getCatalogMovieById(snapshotMovie.id) || snapshotMovie;
+}
+
+function bindRestoredCatalogPosterLoadStates() {
+  if (!container) {
+    return;
+  }
+
+  container.querySelectorAll('.movie-poster').forEach(posterImage => {
+    const posterSkeleton = posterImage
+      .closest('.movie-poster-wrapper')
+      ?.querySelector('.movie-poster-skeleton');
+
+    bindPosterLoadState(posterImage, posterSkeleton);
+  });
+}
+
+function bindRestoredCatalogDomState() {
+  bindRestoredCatalogPosterLoadStates();
+  bindCatalogEmptyStateEvents();
+
+  requestAnimationFrame(syncOpenExternalLinksLayouts);
+}
+
+function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
+  if (!container || !sessionSnapshot || viewMode?.value !== 'list') {
+    return false;
+  }
+
+  const domSnapshot = readCatalogDomSnapshot();
+
+  if (!domSnapshot) {
+    return false;
+  }
+
+  const isSameUser = (domSnapshot.userId || null) === (currentUser?.id || null);
+  const hasSameData = domSnapshot.dataSignatureHash === getCatalogDataSignatureHash(sessionSnapshot);
+  const hasSameRenderState = domSnapshot.renderStateSignature === getCatalogRenderStateSignature();
+
+  if (!isSameUser || !hasSameData || !hasSameRenderState) {
+    return false;
+  }
+
+  renderActiveFilterChips();
+  syncQuickPresetButtons();
+
+  if (moviesResultCount) {
+    moviesResultCount.textContent = domSnapshot.moviesResultCountText || `Найдено: ${getFilteredMovies().length}`;
+  }
+
+  container.classList.remove('is-catalog-fading', 'is-catalog-visible');
+  container.innerHTML = domSnapshot.containerHtml;
+  bindRestoredCatalogDomState();
+
+  return true;
 }
 
 function getMoviePageTopRenderSignature(movie) {
@@ -7342,6 +7517,38 @@ function getPosterHtml(
   `;
 }
 
+function handleCatalogEmptyStateClick(event) {
+  const actionButton = event.target.closest('[data-empty-state-action]');
+
+  if (!actionButton) {
+    return;
+  }
+
+  const action = actionButton.dataset.emptyStateAction;
+
+  if (action === 'reset-search') {
+    clearSearchAndRerenderPreservingPosition();
+  }
+
+  if (action === 'reset-filters') {
+    resetCatalogFiltersAndRerender({ preserveSearch: true });
+  }
+
+  if (action === 'reset-all') {
+    resetCatalogFiltersAndRerender();
+  }
+}
+
+function bindCatalogEmptyStateEvents() {
+  const emptyStateElement = container?.querySelector('.empty-state');
+
+  if (!emptyStateElement) {
+    return;
+  }
+
+  emptyStateElement.addEventListener('click', handleCatalogEmptyStateClick);
+}
+
 function renderEmptyState() {
   const searchQuery = searchInput.value.trim();
   const hasSearchQuery = searchQuery !== '';
@@ -7432,31 +7639,7 @@ function renderEmptyState() {
     </div>
   `;
 
-  const emptyStateElement = container.querySelector('.empty-state');
-
-  if (emptyStateElement) {
-    emptyStateElement.addEventListener('click', event => {
-      const actionButton = event.target.closest('[data-empty-state-action]');
-
-      if (!actionButton) {
-        return;
-      }
-
-      const action = actionButton.dataset.emptyStateAction;
-
-      if (action === 'reset-search') {
-        clearSearchAndRerenderPreservingPosition();
-      }
-
-      if (action === 'reset-filters') {
-        resetCatalogFiltersAndRerender({ preserveSearch: true });
-      }
-
-      if (action === 'reset-all') {
-        resetCatalogFiltersAndRerender();
-      }
-    });
-  }
+  bindCatalogEmptyStateEvents();
 }
 
 function bindPosterLoadState(posterImage, posterSkeleton) {
@@ -7943,6 +8126,7 @@ function rerenderMovieCard(
   }
 
   if (!preserveCardTop) {
+    persistCatalogDomSnapshot();
     return;
   }
 
@@ -7955,6 +8139,8 @@ function rerenderMovieCard(
       behavior: 'auto'
     });
   }
+
+  persistCatalogDomSnapshot();
 }
 
 function getFilteredMovies(options = {}) {
@@ -8550,6 +8736,7 @@ function renderMovies() {
 
   if (filteredMovies.length === 0) {
     renderEmptyState();
+    persistCatalogDomSnapshot();
     return;
   }
 
@@ -8606,6 +8793,8 @@ function renderMovies() {
     flushCurrentMonth();
     container.replaceChildren(moviesFragment);
   }
+
+  persistCatalogDomSnapshot();
 }
 
 /* =========================================================
@@ -9116,12 +9305,18 @@ async function initCatalogPage() {
   trackEmailConfirmedLoginIfNeeded();
   const hydratedSnapshot = readCatalogSessionSnapshot();
   const didHydrateCatalogFromSnapshot = hydrateCatalogFromSessionSnapshot(hydratedSnapshot);
+  let didHydrateCatalogDomFromSnapshot = false;
   let hydratedCatalogSignature = '';
 
   if (didHydrateCatalogFromSnapshot) {
     applySavedCatalogState();
     refreshDynamicFilterOptions();
-    renderMovies();
+    didHydrateCatalogDomFromSnapshot = hydrateCatalogDomFromSessionSnapshot(hydratedSnapshot);
+
+    if (!didHydrateCatalogDomFromSnapshot) {
+      renderMovies();
+    }
+
     updateFiltersButtonLabel();
     restoreCatalogScrollPosition();
     hydratedCatalogSignature = getCatalogSessionSnapshotSignature(createCatalogSessionSnapshotPayload());
