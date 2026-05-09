@@ -718,6 +718,90 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   border-color: #3a444f;
 }
 
+.catalog-pagination {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-text-muted);
+}
+
+.catalog-pagination[hidden] {
+  display: none;
+}
+
+.catalog-pagination-top {
+  margin-top: 10px;
+  margin-bottom: 2px;
+}
+
+.catalog-pagination-bottom {
+  margin-top: 18px;
+}
+
+.catalog-pagination-status {
+  flex: 0 0 auto;
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.catalog-pagination-controls,
+.catalog-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.catalog-pagination-controls {
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.catalog-pagination-button {
+  min-width: 34px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  background: var(--surface-control-alt);
+  border-color: var(--border-control);
+  white-space: nowrap;
+}
+
+.catalog-pagination-page {
+  width: 34px;
+  padding: 0;
+}
+
+.catalog-pagination-button.is-active {
+  color: var(--accent-soft-text);
+  background: var(--accent-soft-bg);
+  border-color: var(--accent-soft-border);
+}
+
+.catalog-pagination-button:disabled {
+  opacity: 0.46;
+  cursor: default;
+}
+
+.catalog-pagination-button:disabled:hover,
+.catalog-pagination-button:disabled:active {
+  opacity: 0.46;
+  transform: none;
+}
+
+.catalog-pagination-ellipsis {
+  min-width: 18px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
 /* =========================================================
 CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 Контейнер модалки, затемнение и диалог с прокруткой.
@@ -4896,6 +4980,32 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     font-size: 12px;
     text-align: left;
     top: 0;
+  }
+
+  .catalog-pagination {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .catalog-pagination-status {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .catalog-pagination-controls,
+  .catalog-pagination-pages {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .catalog-pagination-button {
+    height: 34px;
+    min-height: 34px;
+  }
+
+  .catalog-pagination-edge {
+    display: none;
   }
 
   .movies-section-heading {

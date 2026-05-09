@@ -76,6 +76,8 @@ const moviePageEditButton = document.getElementById('moviePageEditButton');
 const moviePageDeleteButton = document.getElementById('moviePageDeleteButton');
 const moviesSectionTitle = document.querySelector('.movies-section .section-title');
 const moviesResultCount = document.getElementById('moviesResultCount');
+const catalogPaginationTop = document.getElementById('catalogPaginationTop');
+const catalogPaginationBottom = document.getElementById('catalogPaginationBottom');
 let catalogViewToggleButton = null;
 let astralPresetToastTimerId = null;
 
@@ -145,6 +147,7 @@ const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
 const CATALOG_SESSION_SNAPSHOT_VERSION = 5;
 const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
+const CATALOG_PAGE_SIZE = 40;
 const HORROR_TAXONOMY_SCRIPT_SRC = 'horror-taxonomy.js';
 const TAXONOMY_ADMIN_SCRIPT_SRC = 'taxonomy-admin.js';
 const AUTH_REQUEST_TIMEOUT_MS = 20000;
@@ -210,6 +213,7 @@ let shouldFadeCatalogAfterSkeleton = false;
 let catalogFadeCleanupTimerId = null;
 let catalogDomSnapshotSchedule = null;
 let pendingCatalogDomSnapshotSessionSnapshot = null;
+let currentCatalogPage = 1;
 const userRatingControlsHtmlCache = new Map();
 
 function applyBuildVersionSoftResetIfNeeded() {
@@ -1005,6 +1009,7 @@ function getCatalogRenderStateSignature() {
     userId: currentUser?.id || null,
     viewMode: viewMode?.value || 'list',
     sortMode: sortMode?.value || 'default',
+    page: currentCatalogPage,
     filterState
   });
 }
@@ -1457,10 +1462,16 @@ function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
   renderActiveFilterChips();
   syncQuickPresetButtons();
 
+  const paginationState = getCatalogPaginationState(getFilteredMovies().length);
+
   if (moviesResultCount) {
-    moviesResultCount.textContent = domSnapshot.moviesResultCountText || `Найдено: ${getFilteredMovies().length}`;
+    moviesResultCount.textContent = domSnapshot.moviesResultCountText || getMoviesResultCountText(
+      paginationState.totalItems,
+      paginationState
+    );
   }
 
+  renderCatalogPagination(paginationState);
   container.classList.remove('is-catalog-fading', 'is-catalog-visible');
   container.innerHTML = domSnapshot.containerHtml;
   bindRestoredCatalogDomState();
@@ -1502,6 +1513,10 @@ function debounce(callback, delay = 200) {
 
 let catalogRenderFrameId = null;
 
+function resetCatalogPaginationPage() {
+  currentCatalogPage = 1;
+}
+
 function scheduleCatalogRender(renderCallback = renderMovies) {
   if (catalogRenderFrameId !== null) {
     cancelAnimationFrame(catalogRenderFrameId);
@@ -1533,13 +1548,18 @@ function createDebouncedCatalogRender(delay) {
   return debounce(renderCatalogAndRestoreScrollPosition, delay);
 }
 
-function prepareCatalogStateForDeferredRender() {
+function prepareCatalogStateForDeferredRender({ resetPage = false } = {}) {
+  if (resetPage) {
+    resetCatalogPaginationPage();
+  }
+
   saveCatalogScrollPosition();
   saveCatalogAnchorMovieId();
   saveCatalogState();
 }
 
 function applyCatalogViewModeChange() {
+  resetCatalogPaginationPage();
   syncCatalogViewToggleButton();
   rerenderCatalogPreservingPosition();
 }
@@ -1561,7 +1581,8 @@ function saveCatalogState() {
         watchlist: currentUser ? watchlistFilter.value : '',
         watched: currentUser ? watchedFilter.value : '',
         viewMode: viewMode.value,
-        sortMode: sortMode.value
+        sortMode: sortMode.value,
+        page: currentCatalogPage
       })
     );
   } catch (error) {
@@ -1600,6 +1621,7 @@ function applySavedCatalogState() {
       }
       viewMode.value = catalogState.viewMode || 'list';
       sortMode.value = catalogState.sortMode || 'default';
+      currentCatalogPage = Math.max(1, Number(catalogState.page) || 1);
     }
 
     if (searchClearBtn) {
@@ -3980,6 +4002,8 @@ function clearSearchInput() {
 }
 
 function resetFilterControls({ preserveSearch = false } = {}) {
+  resetCatalogPaginationPage();
+
   if (!preserveSearch) {
     clearSearchInput();
   }
@@ -4017,6 +4041,7 @@ function resetCatalogFiltersAndRerender({ preserveSearch = false } = {}) {
 
 function clearSearchAndRerenderPreservingPosition() {
   clearSearchInput();
+  resetCatalogPaginationPage();
   rerenderCatalogPreservingPosition();
 }
 
@@ -6219,8 +6244,208 @@ async function saveUserMovieRating(movieId, ratingValue) {
 JS-БЛОК 21. ОТРИСОВКА КАТАЛОГА ФИЛЬМОВ
 Применяет поиск, фильтры и сортировку, затем выводит карточки.
 ========================================================== */
+function getCatalogPaginationContainers() {
+  return [catalogPaginationTop, catalogPaginationBottom].filter(Boolean);
+}
+
+function getCatalogPaginationState(totalItems) {
+  const normalizedTotalItems = Math.max(0, Number(totalItems) || 0);
+  const totalPages = Math.max(1, Math.ceil(normalizedTotalItems / CATALOG_PAGE_SIZE));
+  const clampedPage = Math.min(Math.max(1, Number(currentCatalogPage) || 1), totalPages);
+  const startIndex = normalizedTotalItems > 0
+    ? (clampedPage - 1) * CATALOG_PAGE_SIZE
+    : 0;
+  const endIndex = Math.min(startIndex + CATALOG_PAGE_SIZE, normalizedTotalItems);
+
+  currentCatalogPage = clampedPage;
+
+  return {
+    totalItems: normalizedTotalItems,
+    totalPages,
+    currentPage: clampedPage,
+    startIndex,
+    endIndex,
+    startItemNumber: normalizedTotalItems > 0 ? startIndex + 1 : 0,
+    endItemNumber: endIndex,
+    hasMultiplePages: totalPages > 1
+  };
+}
+
+function getCatalogPaginationPageItems(currentPage, totalPages) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages = [1];
+  const rangeStart = Math.max(2, currentPage - 1);
+  const rangeEnd = Math.min(totalPages - 1, currentPage + 1);
+
+  if (rangeStart > 2) {
+    pages.push('ellipsis-start');
+  }
+
+  for (let page = rangeStart; page <= rangeEnd; page += 1) {
+    pages.push(page);
+  }
+
+  if (rangeEnd < totalPages - 1) {
+    pages.push('ellipsis-end');
+  }
+
+  pages.push(totalPages);
+
+  return pages;
+}
+
+function getCatalogPaginationButtonHtml({ label, targetPage, isDisabled = false, extraClassName = '', ariaLabel = '' }) {
+  const disabledAttribute = isDisabled ? ' disabled aria-disabled="true"' : '';
+  const ariaLabelAttribute = ariaLabel ? ` aria-label="${escapeHtml(ariaLabel)}"` : '';
+
+  return `
+    <button
+      type="button"
+      class="catalog-pagination-button ${extraClassName}"
+      data-catalog-page="${targetPage}"
+      ${ariaLabelAttribute}
+      ${disabledAttribute}
+    >${escapeHtml(label)}</button>
+  `;
+}
+
+function getCatalogPaginationHtml(paginationState) {
+  const {
+    currentPage,
+    totalPages,
+    totalItems,
+    startItemNumber,
+    endItemNumber
+  } = paginationState;
+  const pageItems = getCatalogPaginationPageItems(currentPage, totalPages);
+  const isFirstPage = currentPage === 1;
+  const isLastPage = currentPage === totalPages;
+  const pageButtonsHtml = pageItems.map(item => {
+    if (typeof item === 'string') {
+      return '<span class="catalog-pagination-ellipsis" aria-hidden="true">…</span>';
+    }
+
+    const isCurrentPage = item === currentPage;
+    const currentAttribute = isCurrentPage ? ' aria-current="page"' : '';
+    const activeClassName = isCurrentPage ? ' is-active' : '';
+
+    return `
+      <button
+        type="button"
+        class="catalog-pagination-button catalog-pagination-page${activeClassName}"
+        data-catalog-page="${item}"
+        aria-label="Страница ${item}"
+        ${currentAttribute}
+      >${item}</button>
+    `;
+  }).join('');
+
+  return `
+    <div class="catalog-pagination-status">
+      Страница ${currentPage} из ${totalPages} · ${startItemNumber}–${endItemNumber} из ${totalItems}
+    </div>
+    <div class="catalog-pagination-controls" role="group" aria-label="Навигация по страницам каталога">
+      ${getCatalogPaginationButtonHtml({
+        label: 'В начало',
+        targetPage: 1,
+        isDisabled: isFirstPage,
+        extraClassName: 'catalog-pagination-edge',
+        ariaLabel: 'Перейти на первую страницу каталога'
+      })}
+      ${getCatalogPaginationButtonHtml({
+        label: 'Назад',
+        targetPage: Math.max(1, currentPage - 1),
+        isDisabled: isFirstPage,
+        ariaLabel: 'Перейти на предыдущую страницу каталога'
+      })}
+      <div class="catalog-pagination-pages" role="group" aria-label="Страницы каталога">
+        ${pageButtonsHtml}
+      </div>
+      ${getCatalogPaginationButtonHtml({
+        label: 'Вперёд',
+        targetPage: Math.min(totalPages, currentPage + 1),
+        isDisabled: isLastPage,
+        ariaLabel: 'Перейти на следующую страницу каталога'
+      })}
+      ${getCatalogPaginationButtonHtml({
+        label: 'В конец',
+        targetPage: totalPages,
+        isDisabled: isLastPage,
+        extraClassName: 'catalog-pagination-edge',
+        ariaLabel: 'Перейти на последнюю страницу каталога'
+      })}
+    </div>
+  `;
+}
+
+function renderCatalogPagination(paginationState) {
+  getCatalogPaginationContainers().forEach(paginationContainer => {
+    if (!paginationState?.hasMultiplePages) {
+      paginationContainer.hidden = true;
+      paginationContainer.innerHTML = '';
+      return;
+    }
+
+    paginationContainer.hidden = false;
+    paginationContainer.innerHTML = getCatalogPaginationHtml(paginationState);
+  });
+}
+
+function clearCatalogPagination() {
+  renderCatalogPagination(null);
+}
+
+function getMoviesResultCountText(totalItems, paginationState) {
+  if (!paginationState?.hasMultiplePages) {
+    return `Найдено: ${totalItems}`;
+  }
+
+  return `Найдено: ${totalItems} · показано ${paginationState.startItemNumber}–${paginationState.endItemNumber}`;
+}
+
+function scrollCatalogToPageStart() {
+  const moviesSection = moviesSectionTitle?.closest('.movies-section') || container;
+
+  if (!moviesSection) {
+    return;
+  }
+
+  const top = Math.max(0, window.scrollY + moviesSection.getBoundingClientRect().top - 12);
+
+  scrollWindowToPosition(top);
+}
+
+function focusCurrentCatalogPaginationButton() {
+  const currentPageButton = catalogPaginationTop?.querySelector('[aria-current="page"]')
+    || catalogPaginationBottom?.querySelector('[aria-current="page"]');
+
+  currentPageButton?.focus({ preventScroll: true });
+}
+
+function goToCatalogPage(nextPage) {
+  const normalizedPage = Math.max(1, Number(nextPage) || 1);
+
+  if (normalizedPage === currentCatalogPage) {
+    return;
+  }
+
+  currentCatalogPage = normalizedPage;
+  saveCatalogState();
+  renderMovies();
+
+  requestAnimationFrame(() => {
+    scrollCatalogToPageStart();
+    focusCurrentCatalogPaginationButton();
+  });
+}
+
 function renderMoviesSkeleton(cardsCount = 12) {
   const skeletonMovies = getCatalogSkeletonMovies(cardsCount);
+
+  clearCatalogPagination();
 
   container.innerHTML = skeletonMovies
     .map(movie => getMovieCardSkeletonHtml(movie))
@@ -6228,9 +6453,16 @@ function renderMoviesSkeleton(cardsCount = 12) {
 }
 
 function getCatalogSkeletonMovies(cardsCount) {
-  const skeletonMovies = moviesLoadedSuccessfully
-    ? getFilteredMovies().slice(0, cardsCount)
-    : [];
+  if (!moviesLoadedSuccessfully) {
+    return Array.from({ length: cardsCount }, () => null);
+  }
+
+  const filteredMovies = getFilteredMovies();
+  const paginationState = getCatalogPaginationState(filteredMovies.length);
+  const skeletonMovies = filteredMovies.slice(
+    paginationState.startIndex,
+    paginationState.startIndex + cardsCount
+  );
 
   return Array.from({ length: cardsCount }, (_, index) => skeletonMovies[index] || null);
 }
@@ -7991,22 +8223,27 @@ function renderMovies() {
   syncQuickPresetButtons();
 
   const filteredMovies = getFilteredMovies();
+  const paginationState = getCatalogPaginationState(filteredMovies.length);
+  const pageMovies = filteredMovies.slice(paginationState.startIndex, paginationState.endIndex);
   const cardRenderContext = createMovieCardRenderContext(searchInput.value);
 
   if (moviesResultCount) {
-    moviesResultCount.textContent = `Найдено: ${filteredMovies.length}`;
+    moviesResultCount.textContent = getMoviesResultCountText(filteredMovies.length, paginationState);
   }
 
   if (filteredMovies.length === 0) {
+    clearCatalogPagination();
     renderEmptyState();
     persistCatalogDomSnapshot();
     return;
   }
 
+  renderCatalogPagination(paginationState);
+
   if (viewMode.value === 'list') {
     const moviesFragment = document.createDocumentFragment();
 
-    filteredMovies.forEach(movie => {
+    pageMovies.forEach(movie => {
       moviesFragment.appendChild(createMovieCard(movie, cardRenderContext));
     });
 
@@ -8035,7 +8272,7 @@ function renderMovies() {
       currentMonthMovies = [];
     };
     
-    filteredMovies.forEach(movie => {
+    pageMovies.forEach(movie => {
       const year = movie.release_year;
       const month = movie.release_month;
     
@@ -8208,7 +8445,7 @@ if (searchInput) {
       lastSearchQuery = '';
     }
 
-    prepareCatalogStateForDeferredRender();
+    prepareCatalogStateForDeferredRender({ resetPage: true });
     debouncedRenderMovies();
   });
 
@@ -8233,7 +8470,7 @@ if (searchClearBtn && searchInput) {
 const debouncedRenderMoviesForFilters = createDebouncedCatalogRender(120);
 
 function saveCatalogStateAndRenderFilters() {
-  prepareCatalogStateForDeferredRender();
+  prepareCatalogStateForDeferredRender({ resetPage: true });
   debouncedRenderMoviesForFilters();
 }
 
@@ -8284,9 +8521,22 @@ if (viewMode) {
 if (sortMode) {
   sortMode.addEventListener('change', () => {
     trackSortUsageIfNeeded();
+    resetCatalogPaginationPage();
     rerenderCatalogPreservingPosition();
   });
 }
+
+getCatalogPaginationContainers().forEach(paginationContainer => {
+  paginationContainer.addEventListener('click', event => {
+    const pageButton = event.target.closest('[data-catalog-page]');
+
+    if (!pageButton || pageButton.disabled) {
+      return;
+    }
+
+    goToCatalogPage(pageButton.dataset.catalogPage);
+  });
+});
 
 if (quickPresetsBar) {
   quickPresetsBar.addEventListener('click', event => {
