@@ -148,6 +148,8 @@ const CATALOG_SESSION_SNAPSHOT_VERSION = 5;
 const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
 const CATALOG_PAGE_SIZE = 40;
+const CATALOG_PAGINATION_PAGE_SLOTS = 6;
+const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
 const HORROR_TAXONOMY_SCRIPT_SRC = 'horror-taxonomy.js';
 const TAXONOMY_ADMIN_SCRIPT_SRC = 'taxonomy-admin.js';
 const AUTH_REQUEST_TIMEOUT_MS = 20000;
@@ -214,6 +216,7 @@ let catalogFadeCleanupTimerId = null;
 let catalogDomSnapshotSchedule = null;
 let pendingCatalogDomSnapshotSessionSnapshot = null;
 let currentCatalogPage = 1;
+let currentCatalogPaginationSlots = null;
 const userRatingControlsHtmlCache = new Map();
 
 function applyBuildVersionSoftResetIfNeeded() {
@@ -6271,30 +6274,47 @@ function getCatalogPaginationState(totalItems) {
   };
 }
 
-function getCatalogPaginationPageItems(currentPage, totalPages) {
-  if (totalPages <= 7) {
+function getCatalogPaginationSlots() {
+  return typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 360px)').matches
+    ? CATALOG_PAGINATION_COMPACT_PAGE_SLOTS
+    : CATALOG_PAGINATION_PAGE_SLOTS;
+}
+
+function getCatalogPaginationPageItems(currentPage, totalPages, maxSlots = getCatalogPaginationSlots()) {
+  if (totalPages <= maxSlots) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
   }
 
-  const pages = [1];
-  const rangeStart = Math.max(2, currentPage - 1);
-  const rangeEnd = Math.min(totalPages - 1, currentPage + 1);
+  if (maxSlots <= 4) {
+    if (currentPage <= 2) {
+      return [1, 2, 'ellipsis-end', totalPages];
+    }
 
-  if (rangeStart > 2) {
-    pages.push('ellipsis-start');
+    if (currentPage >= totalPages - 1) {
+      return [1, 'ellipsis-start', totalPages - 1, totalPages];
+    }
+
+    return currentPage <= Math.ceil(totalPages / 2)
+      ? [1, currentPage, 'ellipsis-end', totalPages]
+      : [1, 'ellipsis-start', currentPage, totalPages];
   }
 
-  for (let page = rangeStart; page <= rangeEnd; page += 1) {
-    pages.push(page);
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 'ellipsis-end', totalPages];
   }
 
-  if (rangeEnd < totalPages - 1) {
-    pages.push('ellipsis-end');
+  if (currentPage >= totalPages - 3) {
+    return [
+      1,
+      'ellipsis-start',
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+      totalPages
+    ];
   }
 
-  pages.push(totalPages);
-
-  return pages;
+  return [1, 'ellipsis-start', currentPage, currentPage + 1, 'ellipsis-end', totalPages];
 }
 
 function getCatalogPaginationButtonHtml({ label, targetPage, isDisabled = false, extraClassName = '', ariaLabel = '' }) {
@@ -6315,10 +6335,7 @@ function getCatalogPaginationButtonHtml({ label, targetPage, isDisabled = false,
 function getCatalogPaginationHtml(paginationState) {
   const {
     currentPage,
-    totalPages,
-    totalItems,
-    startItemNumber,
-    endItemNumber
+    totalPages
   } = paginationState;
   const pageItems = getCatalogPaginationPageItems(currentPage, totalPages);
   const isFirstPage = currentPage === 1;
@@ -6344,38 +6361,23 @@ function getCatalogPaginationHtml(paginationState) {
   }).join('');
 
   return `
-    <div class="catalog-pagination-status">
-      Страница ${currentPage} из ${totalPages} · ${startItemNumber}–${endItemNumber} из ${totalItems}
-    </div>
     <div class="catalog-pagination-controls" role="group" aria-label="Навигация по страницам каталога">
       ${getCatalogPaginationButtonHtml({
-        label: 'В начало',
-        targetPage: 1,
-        isDisabled: isFirstPage,
-        extraClassName: 'catalog-pagination-edge',
-        ariaLabel: 'Перейти на первую страницу каталога'
-      })}
-      ${getCatalogPaginationButtonHtml({
-        label: 'Назад',
+        label: '<',
         targetPage: Math.max(1, currentPage - 1),
         isDisabled: isFirstPage,
+        extraClassName: 'catalog-pagination-arrow',
         ariaLabel: 'Перейти на предыдущую страницу каталога'
       })}
       <div class="catalog-pagination-pages" role="group" aria-label="Страницы каталога">
         ${pageButtonsHtml}
       </div>
       ${getCatalogPaginationButtonHtml({
-        label: 'Вперёд',
+        label: '>',
         targetPage: Math.min(totalPages, currentPage + 1),
         isDisabled: isLastPage,
+        extraClassName: 'catalog-pagination-arrow',
         ariaLabel: 'Перейти на следующую страницу каталога'
-      })}
-      ${getCatalogPaginationButtonHtml({
-        label: 'В конец',
-        targetPage: totalPages,
-        isDisabled: isLastPage,
-        extraClassName: 'catalog-pagination-edge',
-        ariaLabel: 'Перейти на последнюю страницу каталога'
       })}
     </div>
   `;
@@ -6440,6 +6442,24 @@ function goToCatalogPage(nextPage) {
     scrollCatalogToPageStart();
     focusCurrentCatalogPaginationButton();
   });
+}
+
+function syncCatalogPaginationSlotCount() {
+  const nextSlots = getCatalogPaginationSlots();
+
+  if (currentCatalogPaginationSlots === nextSlots) {
+    return;
+  }
+
+  currentCatalogPaginationSlots = nextSlots;
+
+  if (!isCatalogPage() || !moviesLoadedSuccessfully) {
+    return;
+  }
+
+  const paginationState = getCatalogPaginationState(getFilteredMovies().length);
+
+  renderCatalogPagination(paginationState);
 }
 
 function renderMoviesSkeleton(cardsCount = 12) {
@@ -8217,6 +8237,7 @@ function renderMovies() {
     return;
   }
 
+  currentCatalogPaginationSlots = getCatalogPaginationSlots();
   container.classList.remove('is-catalog-visible');
 
   renderActiveFilterChips();
@@ -8670,7 +8691,10 @@ document.addEventListener('click', event => {
   closeCatalogExternalLinksCard(openedCard);
 });
 
-window.addEventListener('resize', syncOpenExternalLinksLayouts);
+window.addEventListener('resize', () => {
+  syncOpenExternalLinksLayouts();
+  syncCatalogPaginationSlotCount();
+});
 
 window.addEventListener('pagehide', event => {
   if (event.persisted) {
