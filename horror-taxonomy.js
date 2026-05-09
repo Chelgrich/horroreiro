@@ -379,7 +379,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Квартирное пространство': createCanonTagMeta({
+  'Квартира как пространство угрозы': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -391,7 +391,7 @@ const CANON_TAG_META = {
     examples: ['Нечто из унитаза'],
     counterExamples: []
   }),
-  'Водное пространство': createCanonTagMeta({
+  'Водная среда': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -403,7 +403,7 @@ const CANON_TAG_META = {
     examples: ['Кит-убийца', 'Отмель'],
     counterExamples: []
   }),
-  'Давление ассимиляции': createCanonTagMeta({
+  'Утрата себя под давлением': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -427,7 +427,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Амбарное пространство': createCanonTagMeta({
+  'Сарай / амбар': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -439,7 +439,7 @@ const CANON_TAG_META = {
     examples: ['Кровавый сарай'],
     counterExamples: []
   }),
-  'Байу-сеттинг': createCanonTagMeta({
+  'Заболоченная среда': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -463,7 +463,7 @@ const CANON_TAG_META = {
     examples: ['Астрал. Заклятие мёртвых', 'Зеркала. Пожиратели душ'],
     counterExamples: []
   }),
-  'Перенос тела': createCanonTagMeta({
+  'Перенос сознания': createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -511,7 +511,7 @@ const CANON_TAG_META = {
     examples: ['Добыча для невесты', 'Шелби Оукс. Город-призрак'],
     counterExamples: []
   }),
-  'Возмездие буллинга': createCanonTagMeta({
+  'Месть за травлю': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -535,7 +535,7 @@ const CANON_TAG_META = {
     examples: ['Протеин', 'Горный король'],
     counterExamples: []
   }),
-  'Химическая вспышка': createCanonTagMeta({
+  'Химическое заражение': createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -571,7 +571,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Структура обратного отсчёта': createCanonTagMeta({
+  'Обратный отсчёт': createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -583,7 +583,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Конфликт с существом': createCanonTagMeta({
+  'Противостояние с существом': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -595,7 +595,7 @@ const CANON_TAG_META = {
     examples: ['Ящер'],
     counterExamples: []
   }),
-  'Культовое сообщество': createCanonTagMeta({
+  'Опасный культ': createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -679,7 +679,7 @@ const CANON_TAG_META = {
     examples: ['Возвращение в Сайлент Хилл', 'Кожа к коже'],
     counterExamples: []
   }),
-  'Сновидческий преследователь': createCanonTagMeta({
+  'Угроза через сон': createCanonTagMeta({
     tier: "anchor",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -727,7 +727,7 @@ const CANON_TAG_META = {
     examples: ['Акула-мумия'],
     counterExamples: []
   }),
-  'Угроза пожилых': createCanonTagMeta({
+  'Угроза старшего поколения': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -739,7 +739,7 @@ const CANON_TAG_META = {
     examples: ['Безумная старуха'],
     counterExamples: []
   }),
-  'Хищничество элиты': createCanonTagMeta({
+  'Жертвы элиты': createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -751,7 +751,7 @@ const CANON_TAG_META = {
     examples: ['Они придут за тобой'],
     counterExamples: []
   }),
-  'Преследование врагом': createCanonTagMeta({
+  'Преследование': createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -775,7 +775,7 @@ const CANON_TAG_META = {
     examples: ['Рождённый из грязи', 'Что случилось с Дороти Белл?'],
     counterExamples: []
   }),
-  'Воскрешение злого духа': createCanonTagMeta({
+  'Пробуждённое зло': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -787,7 +787,7 @@ const CANON_TAG_META = {
     examples: ['Они были ведьмами'],
     counterExamples: []
   }),
-  'Семейная единица': createCanonTagMeta({
+  'Семейная динамика': createCanonTagMeta({
     tier: "broad",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -797,18 +797,6 @@ const CANON_TAG_META = {
     useWhen: 'Семейная ячейка является важной рамкой конфликта, травмы, угрозы или мотивации персонажей.',
     avoidWhen: 'Родственники просто присутствуют в сюжете, но семейная связь не влияет на механику ужаса.',
     examples: ['Крик 7', 'Белдхэм. Проклятие ведьмы'],
-    counterExamples: []
-  }),
-  'Инсценированная смерть': createCanonTagMeta({
-    tier: "anchor",
-    confidence: "observe",
-    status: CANON_TAG_STATUSES.observe,
-    role: CANON_TAG_ROLES.mechanism,
-    families: ['Нарративная функция', 'Поведение угрозы'],
-    lanes: [],
-    useWhen: 'Персонаж инсценирует смерть, притворяется мёртвым или использует ложную смерть как способ выживания, обмана, ловушки или раскрытия угрозы.',
-    avoidWhen: 'Есть обычная смерть, Постановочная смерть или неопознанное тело, но нет подтверждённой имитации смерти живым персонажем.',
-    examples: ['Игра со смертью'],
     counterExamples: []
   }),
   'Наводнение-катастрофа': createCanonTagMeta({
@@ -835,7 +823,7 @@ const CANON_TAG_META = {
     examples: ['Гауа', 'Миля 666'],
     counterExamples: []
   }),
-  'Лесное пространство': createCanonTagMeta({
+  'Лес как пространство угрозы': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -847,7 +835,7 @@ const CANON_TAG_META = {
     examples: ['Гауа', 'Миля 666', 'Одиночка'],
     counterExamples: []
   }),
-  'Расколотая память': createCanonTagMeta({
+  'Память как ключ к угрозе': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -859,7 +847,7 @@ const CANON_TAG_META = {
     examples: ['Под светом'],
     counterExamples: []
   }),
-  'Вторжение будущего': createCanonTagMeta({
+  'Вторжение из будущего': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -895,7 +883,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Призрачное явление': createCanonTagMeta({
+  'Проявление призрака': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -967,7 +955,7 @@ const CANON_TAG_META = {
     examples: ['Монстр', 'Возвращение гремлинов'],
     counterExamples: []
   }),
-  'Проявление вины': createCanonTagMeta({
+  'Материализованная вина': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -979,7 +967,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Галлюцинаторное присутствие': createCanonTagMeta({
+  'Галлюцинации': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -1063,7 +1051,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Домашнее пространство': createCanonTagMeta({
+  'Дом как пространство угрозы': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -1087,7 +1075,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Человеческая монструозность': createCanonTagMeta({
+  'Человек как монстр': createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -1099,7 +1087,7 @@ const CANON_TAG_META = {
     examples: ['Куколка', 'Протеин'],
     counterExamples: []
   }),
-  'Переосмысление иконы': createCanonTagMeta({
+  'Страшная версия знакомого образа': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -1375,7 +1363,7 @@ const CANON_TAG_META = {
     examples: ['Project MKHEXE'],
     counterExamples: []
   }),
-  'Отсутствующий родитель': createCanonTagMeta({
+  'Утрата родителя': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -1435,7 +1423,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Мутантное общество': createCanonTagMeta({
+  'Сообщество мутантов': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -1471,7 +1459,7 @@ const CANON_TAG_META = {
     examples: ['Йети', 'Остров хищника'],
     counterExamples: []
   }),
-  'Офисное пространство': createCanonTagMeta({
+  'Офис как пространство угрозы': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -1519,7 +1507,7 @@ const CANON_TAG_META = {
     examples: ['Проклятые'],
     counterExamples: ['Астрал. Школа кошмаров']
   }),
-  'Выживание одной ночи': createCanonTagMeta({
+  'Выжить до утра': createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -1543,7 +1531,7 @@ const CANON_TAG_META = {
     examples: ['Нечто из унитаза'],
     counterExamples: []
   }),
-  'Паранормальные медиа': createCanonTagMeta({
+  'Медиа как канал угрозы': createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -1579,7 +1567,7 @@ const CANON_TAG_META = {
     examples: ['Капитан Крюк: Проклятые берега'],
     counterExamples: []
   }),
-  'Хоррор коммуникаций': createCanonTagMeta({
+  'Канализация / трубы как угроза': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -1651,7 +1639,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Вторжение реальности': createCanonTagMeta({
+  'Вторжение иной реальности': createCanonTagMeta({
     tier: "standard",
     confidence: "provisional",
     status: CANON_TAG_STATUSES.provisional,
@@ -1659,7 +1647,7 @@ const CANON_TAG_META = {
     families: ['Структура реальности', 'Источник угрозы'],
     lanes: ['psychological_reality_lane'],
     useWhen: 'Иная реальность, вымышленный слой, медиа-образ, сон, симуляция или альтернативный пласт мира вторгается в обычную реальность персонажей.',
-    avoidWhen: 'Реальность просто искажена субъективно — тогда чаще подходит Искажённая реальность, Галлюцинаторное присутствие или Альтернативное измерение.',
+    avoidWhen: 'Реальность просто искажена субъективно — тогда чаще подходит Искажённая реальность, Галлюцинации или Альтернативное измерение.',
     examples: [],
     counterExamples: []
   }),
@@ -1687,7 +1675,7 @@ const CANON_TAG_META = {
     examples: ['Они придут за тобой'],
     counterExamples: []
   }),
-  'Ритуализированное наказание': createCanonTagMeta({
+  'Правило расплаты': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -1707,11 +1695,11 @@ const CANON_TAG_META = {
     families: ['Источник угрозы', 'Нарративная функция', 'Психологическая рана'],
     lanes: ['supernatural_entity_lane', 'psychological_reality_lane'],
     useWhen: 'Призрак или дух умершего возвращается как мстящая сила, связанная с прошлой несправедливостью, преступлением или травмой.',
-    avoidWhen: 'Есть обычный Призрачное явление или Призрачная одержимость без мотива мести.',
+    avoidWhen: 'Есть обычное проявление призрака или призрачная одержимость без мотива мести.',
     examples: ['Затвор', 'Астрал. Амулет зла'],
     counterExamples: []
   }),
-  'Миссия мести': createCanonTagMeta({
+  'Месть как структура угрозы': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -1723,7 +1711,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Возвращённый убийца': createCanonTagMeta({
+  'Восставший убийца': createCanonTagMeta({
     tier: "anchor",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -1731,11 +1719,11 @@ const CANON_TAG_META = {
     families: ['Источник угрозы', 'Поведение угрозы', 'Нарративная функция'],
     lanes: ['slasher_lane', 'supernatural_entity_lane'],
     useWhen: 'Убийца возвращается из смерти, действует как оживший мститель, revenant-фигура или сверхъестественный каратель.',
-    avoidWhen: 'Есть обычный Серийный убийца, Миссия мести или Мстительный призрак без физической killer-фигуры revenant-типа.',
+    avoidWhen: 'Есть серийный убийца, месть как структура угрозы или мстительный призрак без физической killer-фигуры revenant-типа.',
     examples: ['Священник: Резня в День благодарения'],
     counterExamples: []
   }),
-  'Дорожное пространство': createCanonTagMeta({
+  'Опасный маршрут': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -1771,7 +1759,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Пространство руин': createCanonTagMeta({
+  'Руины как пространство угрозы': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -1795,7 +1783,7 @@ const CANON_TAG_META = {
     examples: ['Они придут за тобой', 'Они были ведьмами'],
     counterExamples: []
   }),
-  'Садистский похититель': createCanonTagMeta({
+  'Садистское удержание': createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -1807,7 +1795,7 @@ const CANON_TAG_META = {
     examples: ['Куколка'],
     counterExamples: []
   }),
-  'Школьное пространство': createCanonTagMeta({
+  'Школа как пространство угрозы': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -1915,7 +1903,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Больной сиблинг': createCanonTagMeta({
+  'Больной брат / сестра': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -1927,7 +1915,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Пара сиблингов': createCanonTagMeta({
+  'Отношения братьев/сестёр': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -2047,7 +2035,7 @@ const CANON_TAG_META = {
     examples: ['Морган: Кукла-убийца'],
     counterExamples: []
   }),
-  'Пространство метро': createCanonTagMeta({
+  'Метро как пространство угрозы': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -2079,7 +2067,7 @@ const CANON_TAG_META = {
     families: ['Источник угрозы', 'Поведение угрозы'],
     lanes: ['slasher_lane', 'supernatural_entity_lane'],
     useWhen: 'Убийца действует как сверхъестественная killer-фигура: не просто человек, а сущность, проклятый убийца, магический каратель или неестественно живучая угроза.',
-    avoidWhen: 'Есть обычный Убийца в маске или Серийный убийца без подтверждённой сверхъестественной природы.',
+    avoidWhen: 'Есть убийца в маске или серийный убийца без подтверждённой сверхъестественной природы.',
     examples: ['Джестер 2'],
     counterExamples: []
   }),
@@ -2095,7 +2083,7 @@ const CANON_TAG_META = {
     examples: ['Проклятые'],
     counterExamples: []
   }),
-  'Театральное пространство': createCanonTagMeta({
+  'Театр как пространство угрозы': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -2119,7 +2107,7 @@ const CANON_TAG_META = {
     examples: ['Священник: Резня в День благодарения'],
     counterExamples: []
   }),
-  'Временное смещение': createCanonTagMeta({
+  'Временная аномалия': createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -2151,7 +2139,7 @@ const CANON_TAG_META = {
     families: ['Временной механизм', 'Структура реальности'],
     lanes: ['psychological_reality_lane'],
     useWhen: 'Машина времени, научный временной эксперимент или технологическое вмешательство во время запускают угрозу, петлю, сдвиг или вторжение будущего/прошлого.',
-    avoidWhen: 'Есть временной сдвиг без экспериментальной машины/устройства — тогда использовать Временное смещение или Временная петля.',
+    avoidWhen: 'Есть временной сдвиг без экспериментальной машины/устройства — тогда использовать Временная аномалия или Временная петля.',
     examples: [],
     counterExamples: []
   }),
@@ -2167,7 +2155,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Перенос смерти': createCanonTagMeta({
+  'Передача смерти': createCanonTagMeta({
     tier: "standard",
     confidence: "provisional",
     status: CANON_TAG_STATUSES.provisional,
@@ -2251,7 +2239,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Ненадёжный союз': createCanonTagMeta({
+  'Вынужденный союз': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -2275,7 +2263,7 @@ const CANON_TAG_META = {
     examples: ['Морган: Кукла-убийца'],
     counterExamples: []
   }),
-  'Кроличья нора городской легенды': createCanonTagMeta({
+  'Расследование городской легенды': createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -2323,7 +2311,7 @@ const CANON_TAG_META = {
     examples: [],
     counterExamples: []
   }),
-  'Водный путь': createCanonTagMeta({
+  'Водные пути': createCanonTagMeta({
     tier: "standard",
     confidence: "observe",
     status: CANON_TAG_STATUSES.observe,
@@ -2331,11 +2319,11 @@ const CANON_TAG_META = {
     families: ['Тип сеттинга'],
     lanes: [],
     useWhen: 'Каналы, реки, водные пути или городская водная среда являются значимой частью угрозы, убийств, преследования или изоляции.',
-    avoidWhen: 'Водный путь просто появляется в кадре и не влияет на механику угрозы.',
+    avoidWhen: 'Водные пути просто появляются в кадре и не влияют на механику угрозы.',
     examples: ['Амстердамский кошмар 2'],
     counterExamples: []
   }),
-  'Свадебная рамка': createCanonTagMeta({
+  'Свадьба как рамка угрозы': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -2347,7 +2335,7 @@ const CANON_TAG_META = {
     examples: ['Добыча для невесты'],
     counterExamples: []
   }),
-  'Желание с ценой': createCanonTagMeta({
+  'Расплата за желание': createCanonTagMeta({
     tier: "anchor",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
@@ -2398,7 +2386,6 @@ const CANON_TAG_META = {
 };
 
 const MODIFIER_WEIGHTS = {
-  'Хоррор-комедия': 1.2,
   'Сюрреалистичный': 1.15,
   'Сатирический': 1.15,
   'Гротескный': 1.1,
@@ -2447,28 +2434,28 @@ const CANON_BROAD_FAMILY_OVERRIDES = {
   'AI-генерация': ['Структура реальности', 'Нарративная функция'],
   'Антологическая связка': ['Нарративная функция'],
   'Похороненное прошлое': ['Нарративная функция', 'Рамка расследования'],
-  'Структура обратного отсчёта': ['Временной механизм', 'Нарративная функция'],
-  'Хищничество элиты': ['Поведение угрозы', 'Человеческая динамика'],
-  'Культовое сообщество': ['Человеческая динамика', 'Ритуальный механизм', 'Социальное заражение'],
-  'Семейная единица': ['Человеческая динамика'],
+  'Обратный отсчёт': ['Временной механизм', 'Нарративная функция'],
+  'Жертвы элиты': ['Поведение угрозы', 'Человеческая динамика'],
+  'Опасный культ': ['Человеческая динамика', 'Ритуальный механизм', 'Социальное заражение'],
+  'Семейная динамика': ['Человеческая динамика'],
   'Групповое выживание': ['Структура выживания', 'Человеческая динамика'],
-  'Человеческая монструозность': ['Поведение угрозы', 'Человеческая динамика'],
-  'Переосмысление иконы': ['Переосмысление мифа', 'Нарративная функция'],
+  'Человек как монстр': ['Поведение угрозы', 'Человеческая динамика'],
+  'Страшная версия знакомого образа': ['Переосмысление мифа', 'Нарративная функция'],
   'Изолированный протагонист': ['Структура протагониста'],
   'Продление жизни': ['Ритуальный механизм', 'Нарративная функция'],
   'Моральное испытание': ['Нарративная функция'],
   'Переосмысление мифа': ['Переосмысление мифа'],
   'Оккультная сделка': ['Ритуальный механизм', 'Нарративная функция'],
-  'Выживание одной ночи': ['Структура выживания', 'Временной механизм'],
+  'Выжить до утра': ['Структура выживания', 'Временной механизм'],
   'Пранк-хоррор': ['Нарративная функция', 'Поведение угрозы'],
   'Спасательная миссия': ['Нарративная функция', 'Структура выживания'],
-  'Миссия мести': ['Нарративная функция'],
+  'Месть как структура угрозы': ['Нарративная функция'],
   'Жертвенные убийства': ['Ритуальный механизм', 'Поведение угрозы'],
   'Перформанс в соцсетях': ['Человеческая динамика', 'Рамка расследования'],
   'Возвращение травмы': ['Психологическая рана', 'Нарративная функция'],
-  'Ненадёжный союз': ['Человеческая динамика'],
-  'Кроличья нора городской легенды': ['Рамка расследования', 'Переосмысление мифа'],
-  'Желание с ценой': ['Ритуальный механизм', 'Нарративная функция']
+  'Вынужденный союз': ['Человеческая динамика'],
+  'Расследование городской легенды': ['Рамка расследования', 'Переосмысление мифа'],
+  'Расплата за желание': ['Ритуальный механизм', 'Нарративная функция']
 };
 
 const CANON_BROAD_FAMILY_RULES = [
@@ -2614,7 +2601,7 @@ const SIMILARITY_LANE_CONFIG = {
       'Сверхъестественный убийца',
       'Дуэт убийц',
       'Санта-убийца',
-      'Возвращённый убийца',
+      'Восставший убийца',
       'Убийца, движимый травмой',
       'Протагонист-убийца',
       'Дайвер-убийца'
@@ -2630,7 +2617,7 @@ const SIMILARITY_LANE_CONFIG = {
       'Научно созданное существо',
       'Инопланетное существо',
       'Существо-убийца',
-      'Конфликт с существом',
+      'Противостояние с существом',
       'Атака акулы',
       'Атака змеи'
     ]
@@ -2642,13 +2629,13 @@ const SIMILARITY_LANE_CONFIG = {
       'Демоническая одержимость',
       'Одержимость сущностью',
       'Призрачная одержимость',
-      'Призрачное явление',
+      'Проявление призрака',
       'Мстительный призрак',
       'Одержимый предмет',
       'Одержимые аниматроники',
       'Сверхъестественный убийца',
       'Сверхъестественное влияние',
-      'Воскрешение злого духа',
+      'Пробуждённое зло',
       'Вампир'
     ]
   },
@@ -2663,27 +2650,27 @@ const SIMILARITY_LANE_CONFIG = {
       'Древнее проклятие',
       'Проклятый предмет',
       'Передаваемое проклятие',
-      'Желание с ценой',
-      'Ритуализированное наказание',
+      'Расплата за желание',
+      'Правило расплаты',
       'Жертвенные убийства',
       'Религиозный фундаментализм',
-      'Культовое сообщество'
+      'Опасный культ'
     ]
   },
   psychological_reality_lane: {
     perceived: ['Психологический хоррор', 'Мистери-хоррор'],
     canon: [
       'Искажённая реальность',
-      'Галлюцинаторное присутствие',
+      'Галлюцинации',
       'Психический срыв',
       'Психическое заболевание',
-      'Расколотая память',
+      'Память как ключ к угрозе',
       'Стирание личности',
-      'Перенос тела',
+      'Перенос сознания',
       'Альтернативное измерение',
       'Симуляция виртуальной реальности',
-      'Сновидческий преследователь',
-      'Проявление вины',
+      'Угроза через сон',
+      'Материализованная вина',
       'Травма утраты'
     ]
   },
@@ -2695,11 +2682,11 @@ const SIMILARITY_LANE_CONFIG = {
       'Дом в осаде',
       'Вторжение в дом',
       'Похищение',
-      'Садистский похититель',
-      'Преследование врагом',
+      'Садистское удержание',
+      'Преследование',
       'Охота на людей',
       'Групповое выживание',
-      'Выживание одной ночи',
+      'Выжить до утра',
       'Спасательная миссия',
       'Наводнение-катастрофа',
       'Снежная изоляция',
@@ -2709,11 +2696,11 @@ const SIMILARITY_LANE_CONFIG = {
     ]
   },
   infection_outbreak_lane: {
-    perceived: ['Хоррор-вспышка', 'Зомби-хоррор'],
+    perceived: ['Инфекционный хоррор', 'Зомби-хоррор'],
     canon: [
       'Зомби',
       'Грибковая инфекция',
-      'Химическая вспышка',
+      'Химическое заражение',
       'Заражение бешенством',
       'Распространяющееся заражение',
       'Инфицированное общество'
@@ -2723,10 +2710,10 @@ const SIMILARITY_LANE_CONFIG = {
     perceived: ['Мистери-хоррор', 'Конспирологический хоррор'],
     canon: [
       'Медиа-расследование',
-      'Паранормальные медиа',
+      'Медиа как канал угрозы',
       'Аудиоконтакт',
       'Интернет-фольклор',
-      'Кроличья нора городской легенды',
+      'Расследование городской легенды',
       'Расследование пропажи',
       'Тайна маленького города',
       'Похороненное прошлое',
@@ -2740,7 +2727,7 @@ const SIMILARITY_LANE_CONFIG = {
       'Фольклорная сущность',
       'Мифическое существо',
       'Переосмысление мифа',
-      'Переосмысление иконы',
+      'Страшная версия знакомого образа',
       'Вампир',
       'Египетская тема'
     ]
@@ -2749,10 +2736,10 @@ const SIMILARITY_LANE_CONFIG = {
     perceived: ['Боди-хоррор'],
     canon: [
       'Телесная трансформация',
-      'Перенос тела',
+      'Перенос сознания',
       'Стирание личности',
       'Материнский хоррор',
-      'Давление ассимиляции'
+      'Утрата себя под давлением'
     ]
   }
 };
@@ -2860,7 +2847,7 @@ const EXTRA_GENRE_WEIGHTS = {
 const CANON_AFFINITY = {
   'Атака акулы': {
     'Хищное существо': 0.35,
-    'Водное пространство': 0.2
+    'Водная среда': 0.2
   },
 
   'Атака змеи': {
@@ -2870,7 +2857,7 @@ const CANON_AFFINITY = {
 
   'Призрачная одержимость': {
     'Одержимость сущностью': 0.5,
-    'Призрачное явление': 0.35
+    'Проявление призрака': 0.35
   },
 
   'Демоническая одержимость': {
@@ -2879,13 +2866,13 @@ const CANON_AFFINITY = {
   },
 
   'Мстительный призрак': {
-    'Призрачное явление': 0.45,
+    'Проявление призрака': 0.45,
     'Фольклорная сущность': 0.15
   },
 
   'Проклятый предмет': {
     'Одержимый предмет': 0.35,
-    'Паранормальные медиа': 0.15
+    'Медиа как канал угрозы': 0.15
   },
 
   'Одержимый предмет': {
@@ -2908,28 +2895,28 @@ const CANON_AFFINITY = {
     'Сверхъестественное влияние': 0.1
   },
 
-  'Желание с ценой': {
+  'Расплата за желание': {
     'Оккультная сделка': 0.3
   },
 
   'Оккультная сделка': {
-    'Желание с ценой': 0.3,
+    'Расплата за желание': 0.3,
     'Оккультный ритуал': 0.15
   },
 
   'Изолированный дом': {
-    'Домашнее пространство': 0.45
+    'Дом как пространство угрозы': 0.45
   },
 
-  'Домашнее пространство': {
+  'Дом как пространство угрозы': {
     'Изолированный дом': 0.45,
-    'Амбарное пространство': 0.18
+    'Сарай / амбар': 0.18
   },
 
   'Похищение': {
     'Выживание в ловушке': 0.25,
     'Домашнее заточение': 0.25,
-    'Садистский похититель': 0.25
+    'Садистское удержание': 0.25
   },
 
   'Выживание в ловушке': {
@@ -2937,21 +2924,21 @@ const CANON_AFFINITY = {
     'Домашнее заточение': 0.2
   },
 
-  'Перенос тела': {
+  'Перенос сознания': {
     'Искажённая реальность': 0.25,
     'Альтернативное измерение': 0.15
   },
 
   'Искажённая реальность': {
     'Альтернативное измерение': 0.25,
-    'Перенос тела': 0.25,
-    'Галлюцинаторное присутствие': 0.2,
-    'Проявление вины': 0.15
+    'Перенос сознания': 0.25,
+    'Галлюцинации': 0.2,
+    'Материализованная вина': 0.15
   },
 
   'Временная петля': {
     'Пространственная петля': 0.35,
-    'Структура обратного отсчёта': 0.15
+    'Обратный отсчёт': 0.15
   },
 
   'Пространственная петля': {
@@ -2961,28 +2948,28 @@ const CANON_AFFINITY = {
 
   'Лиминальное пространство': {
     'Пространственная петля': 0.2,
-    'Пространство метро': 0.15
+    'Метро как пространство угрозы': 0.15
   },
 
   'Медиа-расследование': {
-    'Паранормальные медиа': 0.25,
+    'Медиа как канал угрозы': 0.25,
     'Аудиоконтакт': 0.2
   },
 
-  'Паранормальные медиа': {
+  'Медиа как канал угрозы': {
     'Медиа-расследование': 0.25,
     'Аудиоконтакт': 0.15
   },
 
   'Аудиоконтакт': {
-    'Паранормальные медиа': 0.15,
+    'Медиа как канал угрозы': 0.15,
     'Медиа-расследование': 0.2
   },
 
   'Зомби': {
     'Грибковая инфекция': 0.2,
     'Инфицированное общество': 0.25,
-    'Химическая вспышка': 0.15,
+    'Химическое заражение': 0.15,
     'Распространяющееся заражение': 0.15
   },
 
@@ -2991,22 +2978,22 @@ const CANON_AFFINITY = {
     'Распространяющееся заражение': 0.25
   },
 
-  'Химическая вспышка': {
+  'Химическое заражение': {
     'Распространяющееся заражение': 0.3,
     'Зомби': 0.15
   },
 
   'Распространяющееся заражение': {
-    'Химическая вспышка': 0.3,
+    'Химическое заражение': 0.3,
     'Грибковая инфекция': 0.25,
     'Зомби': 0.15
   },
 
   'Охота на людей': {
-    'Преследование врагом': 0.3
+    'Преследование': 0.3
   },
 
-  'Преследование врагом': {
+  'Преследование': {
     'Охота на людей': 0.3
   },
 
@@ -3016,7 +3003,7 @@ const CANON_AFFINITY = {
 
   'Травма утраты': {
     'Возвращение травмы': 0.2,
-    'Проявление вины': 0.15
+    'Материализованная вина': 0.15
   },
 
   'Материнский хоррор': {
@@ -3529,10 +3516,9 @@ const TAXONOMY_SUBGENRES = [
   'Психологический хоррор',
   'Слэшер',
   'Нападение животных',
-  'Хоррор-вспышка',
+  'Инфекционный хоррор',
   'Боди-хоррор',
   'Каннибальский хоррор',
-  'Хоррор-комедия',
   'Зомби-хоррор',
   'Вампирский хоррор',
   'Хоррор-катастрофа'
@@ -3610,7 +3596,7 @@ const TAXONOMY_REQUIRED_CANON_GROUPS = {
   'Слэшер': [
     {
       label: 'тип убийцы',
-      tags: ['Убийца в маске', 'Серийный убийца', 'Сверхъестественный убийца', 'Дуэт убийц', 'Санта-убийца', 'Возвращённый убийца', 'Убийца, движимый травмой', 'Протагонист-убийца', 'Существо-убийца']
+      tags: ['Убийца в маске', 'Серийный убийца', 'Сверхъестественный убийца', 'Дуэт убийц', 'Санта-убийца', 'Восставший убийца', 'Убийца, движимый травмой', 'Протагонист-убийца', 'Существо-убийца']
     }
   ],
   'Монстр-муви': [
@@ -3631,10 +3617,10 @@ const TAXONOMY_REQUIRED_CANON_GROUPS = {
       tags: ['Демоническая одержимость', 'Призрачная одержимость', 'Одержимость сущностью']
     }
   ],
-  'Хоррор-вспышка': [
+  'Инфекционный хоррор': [
     {
       label: 'механика заражения',
-      tags: ['Зомби', 'Грибковая инфекция', 'Химическая вспышка', 'Заражение бешенством', 'Распространяющееся заражение', 'Инфицированное общество']
+      tags: ['Зомби', 'Грибковая инфекция', 'Химическое заражение', 'Заражение бешенством', 'Распространяющееся заражение', 'Инфицированное общество']
     }
   ],
   'Вампирский хоррор': [
@@ -3646,19 +3632,19 @@ const TAXONOMY_REQUIRED_CANON_GROUPS = {
   'Боди-хоррор': [
     {
       label: 'телесная механика',
-      tags: ['Телесная трансформация', 'Перенос тела', 'Стирание личности']
+      tags: ['Телесная трансформация', 'Перенос сознания', 'Стирание личности']
     }
   ],
   'Фолк-хоррор': [
     {
       label: 'фольклорная или ритуальная основа',
-      tags: ['Фольклорная сущность', 'Мифическое существо', 'Ведьмовство', 'Оккультный ритуал', 'Чёрная магия', 'Культовое сообщество']
+      tags: ['Фольклорная сущность', 'Мифическое существо', 'Ведьмовство', 'Оккультный ритуал', 'Чёрная магия', 'Опасный культ']
     }
   ],
   'Религиозный хоррор': [
     {
       label: 'религиозная или культовая механика',
-      tags: ['Религиозный фундаментализм', 'Демоническая сущность', 'Демоническая одержимость', 'Оккультный ритуал', 'Культовое сообщество', 'Желание с ценой', 'Ритуализированное наказание']
+      tags: ['Религиозный фундаментализм', 'Демоническая сущность', 'Демоническая одержимость', 'Оккультный ритуал', 'Опасный культ', 'Расплата за желание', 'Правило расплаты']
     }
   ]
 };
@@ -3801,11 +3787,11 @@ const CANON_COVERAGE_AUDIT_RULES = [
     whenAny: ['Оккультный ритуал'],
     suggestAny: [
       'Жертвенные убийства',
-      'Культовое сообщество',
+      'Опасный культ',
       'Чёрная магия',
       'Ведьмовство',
-      'Желание с ценой',
-      'Ритуализированное наказание',
+      'Расплата за желание',
+      'Правило расплаты',
       'Продление жизни',
       'Оккультная сделка'
     ],
@@ -3813,28 +3799,28 @@ const CANON_COVERAGE_AUDIT_RULES = [
   },
   {
     code: 'family_unit_refinement',
-    label: 'Уточнить Семейная единица',
-    whenAny: ['Семейная единица'],
+    label: 'Уточнить Семейная динамика',
+    whenAny: ['Семейная динамика'],
     suggestAny: [
       'Пара родитель-ребёнок',
-      'Пара сиблингов',
+      'Отношения братьев/сестёр',
       'Токсичный родитель',
       'Дисфункциональная семья',
       'Межпоколенческая травма',
       'Романтическая пара',
       'Ребёнок с инвалидностью',
       'Больной ребёнок',
-      'Больной сиблинг',
-      'Отсутствующий родитель'
+      'Больной брат / сестра',
+      'Утрата родителя'
     ],
-    reason: 'Есть Семейная единица, но не указана конкретная семейная конфигурация или травматическая связь.'
+    reason: 'Есть Семейная динамика, но не указана конкретная семейная конфигурация или травматическая связь.'
   },
   {
     code: 'grief_trauma_refinement',
     label: 'Уточнить Травма утраты',
     whenAny: ['Травма утраты'],
     suggestAny: [
-      'Проявление вины',
+      'Материализованная вина',
       'Возвращение травмы',
       'Похороненное прошлое',
       'Расследование пропажи',
@@ -3851,12 +3837,12 @@ const CANON_COVERAGE_AUDIT_RULES = [
       'Серийный убийца',
       'Убийца, движимый травмой',
       'Сверхъестественный убийца',
-      'Возвращённый убийца',
+      'Восставший убийца',
       'Протагонист-убийца',
-      'Преследование врагом',
+      'Преследование',
       'Охота на людей',
       'Дом в осаде',
-      'Выживание одной ночи'
+      'Выжить до утра'
     ],
     reason: 'Есть Убийца в маске, но не уточнён тип убийцы, структура преследования или модель выживания.'
   },
@@ -3873,7 +3859,7 @@ const CANON_COVERAGE_AUDIT_RULES = [
       'Научно созданное существо',
       'Инопланетное существо',
       'Существо-убийца',
-      'Конфликт с существом',
+      'Противостояние с существом',
       'Заражение бешенством'
     ],
     reason: 'Есть Хищное существо, но не указан более конкретный тип угрозы или природа существа.'
@@ -3881,12 +3867,12 @@ const CANON_COVERAGE_AUDIT_RULES = [
   {
     code: 'investigation_media_refinement',
     label: 'Уточнить расследовательскую рамку',
-    whenAny: ['Медиа-расследование', 'Паранормальные медиа'],
+    whenAny: ['Медиа-расследование', 'Медиа как канал угрозы'],
     suggestAny: [
       'Аудиоконтакт',
       'Похороненное прошлое',
       'Расследование пропажи',
-      'Кроличья нора городской легенды',
+      'Расследование городской легенды',
       'Интернет-фольклор',
       'Тайна маленького города',
       'Оккультная книга'
@@ -3901,10 +3887,10 @@ const CANON_COVERAGE_AUDIT_RULES = [
       'Домашнее заточение',
       'Дом в осаде',
       'Похищение',
-      'Садистский похититель',
+      'Садистское удержание',
       'Групповое выживание',
-      'Выживание одной ночи',
-      'Преследование врагом',
+      'Выжить до утра',
+      'Преследование',
       'Спасательная миссия',
       'Снежная изоляция',
       'Необитаемый остров'
@@ -3919,11 +3905,11 @@ const CANON_COVERAGE_AUDIT_RULES = [
       'Временная петля',
       'Пространственная петля',
       'Альтернативное измерение',
-      'Галлюцинаторное присутствие',
-      'Расколотая память',
+      'Галлюцинации',
+      'Память как ключ к угрозе',
       'Симуляция виртуальной реальности',
-      'Сновидческий преследователь',
-      'Проявление вины'
+      'Угроза через сон',
+      'Материализованная вина'
     ],
     reason: 'Есть Искажённая реальность, но не уточнён механизм искажения реальности.'
   },
@@ -3945,9 +3931,9 @@ const CANON_COVERAGE_AUDIT_RULES = [
     suggestAny: [
       'Выживание в ловушке',
       'Групповое выживание',
-      'Выживание одной ночи',
+      'Выжить до утра',
       'Дом в осаде',
-      'Преследование врагом',
+      'Преследование',
       'Охота на людей',
       'Спасательная миссия',
       'Постапокалиптическое выживание',
@@ -4041,18 +4027,18 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
         'Серийный убийца',
         'Убийца, движимый травмой',
         'Сверхъестественный убийца',
-        'Возвращённый убийца',
+        'Восставший убийца',
         'Протагонист-убийца',
         'Дуэт убийц',
         'Санта-убийца',
         'Дайвер-убийца',
         'Похищение',
-        'Садистский похититель',
+        'Садистское удержание',
         'Домашнее заточение',
         'Выживание в ловушке',
-        'Преследование врагом',
+        'Преследование',
         'Охота на людей',
-        'Выживание одной ночи'
+        'Выжить до утра'
       ]);
 
       if (hasKillerTypeOrThreatStructure) {
@@ -4062,7 +4048,7 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       const suggestedTags = getCanonCoverageMissingTags(
         canonSet,
         perceivedSet.has('Хоррор-выживание')
-          ? ['Серийный убийца', 'Преследование врагом', 'Выживание одной ночи']
+          ? ['Серийный убийца', 'Преследование', 'Выжить до утра']
           : ['Серийный убийца', 'Убийца, движимый травмой', 'Сверхъестественный убийца'],
         3
       );
@@ -4084,7 +4070,7 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
         'Научно созданное существо',
         'Инопланетное существо',
         'Существо-убийца',
-        'Конфликт с существом',
+        'Противостояние с существом',
         'Заражение бешенством'
       ]);
 
@@ -4093,8 +4079,8 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       }
 
       const hasCreatureEnvironment = hasAnyCanonCoverageValue(canon, [
-        'Водное пространство',
-        'Лесное пространство',
+        'Водная среда',
+        'Лес как пространство угрозы',
         'Снежная изоляция',
         'Горнолыжный курорт',
         'Необитаемый остров',
@@ -4104,14 +4090,14 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
         'Групповое выживание',
         'Выживание в ловушке',
         'Спасательная миссия',
-        'Преследование врагом'
+        'Преследование'
       ]);
 
       if (hasCreatureEnvironment && hasCreatureSurvivalStructure) {
         return null;
       }
 
-      if (canonSet.has('Водное пространство')) {
+      if (canonSet.has('Водная среда')) {
         return null;
       }
 
@@ -4132,15 +4118,15 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       const suggestedTags = [];
 
       if (canonSet.has('Терминальная болезнь')) {
-        suggestedTags.push('Желание с ценой', 'Продление жизни');
+        suggestedTags.push('Расплата за желание', 'Продление жизни');
       }
 
       if (canonSet.has('Жертвенные убийства')) {
-        suggestedTags.push('Культовое сообщество', 'Ритуализированное наказание');
+        suggestedTags.push('Опасный культ', 'Правило расплаты');
       }
 
       if (canonSet.has('Религиозный фундаментализм')) {
-        suggestedTags.push('Ритуализированное наказание', 'Культовое сообщество');
+        suggestedTags.push('Правило расплаты', 'Опасный культ');
       }
 
       const missingTags = getCanonCoverageMissingTags(canonSet, suggestedTags, 3);
@@ -4175,7 +4161,7 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
 
       return {
         priority: 'low',
-        reason: 'Есть Семейная единица с травматическим или сверхъестественным контекстом; возможно, семейную связь стоит уточнить.',
+        reason: 'Есть Семейная динамика с травматическим или сверхъестественным контекстом; возможно, семейную связь стоит уточнить.',
         suggestedTags: missingTags
       };
     }
@@ -4183,14 +4169,14 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
     case 'grief_trauma_refinement': {
       const suggestedTags = [];
       const hasSpecificGriefMechanism = hasAnyCanonCoverageValue(canon, [
-        'Проявление вины',
-        'Расколотая память',
+        'Материализованная вина',
+        'Память как ключ к угрозе',
         'Межпоколенческая травма',
         'Расследование пропажи',
         'Детская травма',
         'Материнский хоррор',
         'Пара родитель-ребёнок',
-        'Пара сиблингов',
+        'Отношения братьев/сестёр',
         'Эксперимент с машиной времени',
         'Телесная трансформация',
         'Дисфункциональная семья'
@@ -4200,15 +4186,15 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
         return null;
       }
 
-      if (canonSet.has('Искажённая реальность') || canonSet.has('Галлюцинаторное присутствие')) {
-        suggestedTags.push('Проявление вины', 'Расколотая память');
+      if (canonSet.has('Искажённая реальность') || canonSet.has('Галлюцинации')) {
+        suggestedTags.push('Материализованная вина', 'Память как ключ к угрозе');
       }
 
       if (canonSet.has('Похороненное прошлое') || canonSet.has('Медиа-расследование')) {
         suggestedTags.push('Расследование пропажи', 'Детская травма');
       }
 
-      if (canonSet.has('Семейная единица')) {
+      if (canonSet.has('Семейная динамика')) {
         suggestedTags.push('Межпоколенческая травма', 'Пара родитель-ребёнок');
       }
 
@@ -4230,7 +4216,7 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       const hasRichInvestigationFrame = hasAnyCanonCoverageValue(canon, [
         'Расследование пропажи',
         'Похороненное прошлое',
-        'Кроличья нора городской легенды',
+        'Расследование городской легенды',
         'Интернет-фольклор',
         'Тайна маленького города',
         'Оккультная книга',
@@ -4240,10 +4226,10 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       ]);
 
       if (canonSet.has('Медиа-расследование') && canonSet.has('Похороненное прошлое')) {
-        suggestedTags.push('Расследование пропажи', 'Оккультная книга', 'Кроличья нора городской легенды');
+        suggestedTags.push('Расследование пропажи', 'Оккультная книга', 'Расследование городской легенды');
       }
 
-      if (canonSet.has('Паранормальные медиа') && !hasRichInvestigationFrame) {
+      if (canonSet.has('Медиа как канал угрозы') && !hasRichInvestigationFrame) {
         suggestedTags.push('Аудиоконтакт');
       }
 
@@ -4263,12 +4249,12 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
     case 'trapped_survival_refinement': {
       const suggestedTags = [];
 
-      if (canonSet.has('Домашнее пространство') || canonSet.has('Изолированный дом')) {
+      if (canonSet.has('Дом как пространство угрозы') || canonSet.has('Изолированный дом')) {
         suggestedTags.push('Домашнее заточение', 'Дом в осаде');
       }
 
-      if (canonSet.has('Лесное пространство')) {
-        suggestedTags.push('Групповое выживание', 'Преследование врагом', 'Спасательная миссия');
+      if (canonSet.has('Лес как пространство угрозы')) {
+        suggestedTags.push('Групповое выживание', 'Преследование', 'Спасательная миссия');
       }
 
       if (canonSet.has('Снежная изоляция')) {
@@ -4291,25 +4277,25 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
     case 'distorted_reality_refinement': {
       const suggestedTags = [];
       const hasDeathTransferMechanism =
-        canonSet.has('Перенос смерти') ||
+        canonSet.has('Передача смерти') ||
         canonSet.has('Передаваемое проклятие');
       const hasSpecificRealityMechanism = hasAnyCanonCoverageValue(canon, [
         'Временная петля',
         'Пространственная петля',
         'Альтернативное измерение',
-        'Галлюцинаторное присутствие',
-        'Расколотая память',
+        'Галлюцинации',
+        'Память как ключ к угрозе',
         'Симуляция виртуальной реальности',
-        'Сновидческий преследователь',
-        'Перенос тела',
+        'Угроза через сон',
+        'Перенос сознания',
         'Стирание личности',
         'Эксперимент с машиной времени',
-        'Временное смещение',
-        'Вторжение будущего',
-        'Вторжение реальности'
+        'Временная аномалия',
+        'Вторжение из будущего',
+        'Вторжение иной реальности'
       ]);
       const hasSpecificGriefRealityMechanism = hasAnyCanonCoverageValue(canon, [
-        'Проявление вины',
+        'Материализованная вина',
         'Материнский хоррор',
         'Телесная трансформация',
         'Дисфункциональная семья'
@@ -4319,12 +4305,12 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
         return null;
       }
 
-      if (canonSet.has('Структура обратного отсчёта') && !hasDeathTransferMechanism) {
+      if (canonSet.has('Обратный отсчёт') && !hasDeathTransferMechanism) {
         suggestedTags.push('Временная петля');
       }
 
       if (canonSet.has('Травма утраты')) {
-        suggestedTags.push('Проявление вины', 'Расколотая память');
+        suggestedTags.push('Материализованная вина', 'Память как ключ к угрозе');
       }
 
       const missingTags = getCanonCoverageMissingTags(canonSet, suggestedTags, 3);
@@ -4344,9 +4330,9 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       const hasSurvivalStructure = hasAnyCanonCoverageValue(canon, [
         'Выживание в ловушке',
         'Групповое выживание',
-        'Выживание одной ночи',
+        'Выжить до утра',
         'Дом в осаде',
-        'Преследование врагом',
+        'Преследование',
         'Охота на людей',
         'Спасательная миссия',
         'Постапокалиптическое выживание',
@@ -4360,8 +4346,8 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       const suggestedTags = [];
       const hasExplicitGroupSurvivalFrame = hasAnyCanonCoverageValue(canon, [
         'Групповая паранойя',
-        'Ненадёжный союз',
-        'Культовое сообщество'
+        'Вынужденный союз',
+        'Опасный культ'
       ]);
       const hasExplicitContainmentFrame = hasAnyCanonCoverageValue(canon, [
         'Изолированный дом',
@@ -4373,13 +4359,13 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
         'Подземная антиутопия',
         'Домашнее заточение',
         'Похищение',
-        'Садистский похититель'
+        'Садистское удержание'
       ]);
       const hasExplicitPursuitFrame = hasAnyCanonCoverageValue(canon, [
         'Убийца в маске',
         'Серийный убийца',
         'Охота на людей',
-        'Возвращённый убийца',
+        'Восставший убийца',
         'Сверхъестественный убийца',
         'Дуэт убийц'
       ]);
@@ -4399,7 +4385,7 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       }
 
       if (hasExplicitPursuitFrame) {
-        suggestedTags.push('Преследование врагом');
+        suggestedTags.push('Преследование');
       }
 
       const missingTags = getCanonCoverageMissingTags(canonSet, suggestedTags, 3);
