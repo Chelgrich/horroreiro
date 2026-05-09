@@ -43,6 +43,7 @@ const openAddMovieButton = document.getElementById('openAddMovieButton');
 let taxonomyDiagnosticsButton = null;
 let taxonomySimilarityAuditButton = null;
 let taxonomyCanonCoverageAuditButton = null;
+let taxonomyTagsExportButton = null;
 let taxonomyJsonExportButton = null;
 let taxonomyImportButton = null;
 let taxonomyImportFileInput = null;
@@ -581,6 +582,10 @@ function setTaxonomyImportControlsDisabled(isDisabled) {
   if (taxonomyCanonCoverageAuditButton) {
     taxonomyCanonCoverageAuditButton.disabled = isDisabled;
   }
+
+  if (taxonomyTagsExportButton) {
+    taxonomyTagsExportButton.disabled = isDisabled;
+  }
 }
 
 async function applyTaxonomyImportUpdates(updates) {
@@ -797,6 +802,85 @@ async function exportMovieTaxonomyJsonData() {
   } catch (error) {
     console.error('Ошибка JSON-выгрузки тегов:', error);
     showAuthMessage(`Ошибка JSON-выгрузки тегов: ${error.message || 'смотри консоль F12.'}`, 'error', true);
+  }
+}
+
+function formatTaxonomyTagExportItemDetails(item) {
+  const details = [];
+
+  if (Array.isArray(item.families) && item.families.length > 1) {
+    details.push(`семейства: ${item.families.join(', ')}`);
+  }
+
+  if (Number.isFinite(Number(item.weight))) {
+    details.push(`вес: ${item.weight}`);
+  }
+
+  return details.length > 0 ? ` (${details.join('; ')})` : '';
+}
+
+function formatTaxonomyTagsMarkdownExport(exportData, exportedAt) {
+  const sections = Array.isArray(exportData?.sections) ? exportData.sections : [];
+  const reportLines = [
+    '# Реестр тегов Хоррорейро',
+    '',
+    `Экспортировано: ${exportedAt}`,
+    `Всего тегов: ${exportData?.total_tags || 0}`,
+    ''
+  ];
+
+  sections.forEach(section => {
+    const groups = Array.isArray(section.groups) ? section.groups : [];
+
+    reportLines.push(`## ${section.title} (${section.count || 0})`, '');
+
+    groups.forEach(group => {
+      const tags = Array.isArray(group.tags) ? group.tags : [];
+
+      reportLines.push(`### ${group.title} (${group.count || tags.length})`);
+
+      tags.forEach(item => {
+        reportLines.push(`- ${item.value}${formatTaxonomyTagExportItemDetails(item)}`);
+      });
+
+      reportLines.push('');
+    });
+  });
+
+  return reportLines.join('\n').trimEnd() + '\n';
+}
+
+async function exportTaxonomyTagsRegistry() {
+  try {
+    const isTaxonomyLoaded = await ensureHorrorTaxonomyLoaded();
+
+    if (!isTaxonomyLoaded) {
+      showAuthMessage('Экспорт тегов недоступен: не удалось загрузить таксономию.', 'error', true);
+      return;
+    }
+
+    const getTaxonomyTagExportData = window.HORROR_TAXONOMY?.helpers?.getTaxonomyTagExportData;
+
+    if (typeof getTaxonomyTagExportData !== 'function') {
+      showAuthMessage('Экспорт тегов недоступен: не найден реестр таксономии.', 'error', true);
+      return;
+    }
+
+    const exportedAt = new Date().toISOString();
+    const exportData = getTaxonomyTagExportData();
+    const report = formatTaxonomyTagsMarkdownExport(exportData, exportedAt);
+    const datePart = exportedAt.slice(0, 10);
+
+    downloadTextFile(
+      `horroreiro-taxonomy-tags-${datePart}.md`,
+      report,
+      'text/markdown;charset=utf-8'
+    );
+
+    showAuthMessage(`Экспорт тегов готов: ${exportData.total_tags || 0} значений.`, 'success', true);
+  } catch (error) {
+    console.error('Ошибка экспорта тегов:', error);
+    showAuthMessage(`Ошибка экспорта тегов: ${error.message || 'смотри консоль F12.'}`, 'error', true);
   }
 }
 
@@ -1147,6 +1231,7 @@ function syncTaxonomyPopoverControlsVisibility() {
     taxonomyDiagnosticsButton,
     taxonomySimilarityAuditButton,
     taxonomyCanonCoverageAuditButton,
+    taxonomyTagsExportButton,
     taxonomyJsonExportButton,
     taxonomyImportButton
   ].forEach(button => {
@@ -1165,7 +1250,7 @@ function appendTaxonomyPopoverControl(control) {
 }
 
 function initTaxonomyExportButton() {
-  if (!authPopoverMenu || (taxonomyDiagnosticsButton && taxonomySimilarityAuditButton && taxonomyCanonCoverageAuditButton && taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
+  if (!authPopoverMenu || (taxonomyDiagnosticsButton && taxonomySimilarityAuditButton && taxonomyCanonCoverageAuditButton && taxonomyTagsExportButton && taxonomyJsonExportButton && taxonomyImportButton && taxonomyImportFileInput)) {
     syncTaxonomyPopoverControlsVisibility();
     return;
   }
@@ -1201,6 +1286,17 @@ function initTaxonomyExportButton() {
     taxonomyCanonCoverageAuditButton.title = 'Найти фильмы, где могут отсутствовать уже существующие canon-теги';
 
     taxonomyCanonCoverageAuditButton.addEventListener('click', runTaxonomyCanonCoverageAudit);
+  }
+
+  if (!taxonomyTagsExportButton) {
+    taxonomyTagsExportButton = document.createElement('button');
+    taxonomyTagsExportButton.type = 'button';
+    taxonomyTagsExportButton.id = 'exportTaxonomyTagsButton';
+    taxonomyTagsExportButton.className = 'auth-popover-item taxonomy-popover-item';
+    taxonomyTagsExportButton.textContent = 'Экспорт тегов';
+    taxonomyTagsExportButton.title = 'Скачать реестр всех заведённых тегов с группировкой по типам и семействам';
+
+    taxonomyTagsExportButton.addEventListener('click', exportTaxonomyTagsRegistry);
   }
 
   if (!taxonomyJsonExportButton) {
@@ -1240,6 +1336,7 @@ function initTaxonomyExportButton() {
   appendTaxonomyPopoverControl(taxonomyDiagnosticsButton);
   appendTaxonomyPopoverControl(taxonomySimilarityAuditButton);
   appendTaxonomyPopoverControl(taxonomyCanonCoverageAuditButton);
+  appendTaxonomyPopoverControl(taxonomyTagsExportButton);
   appendTaxonomyPopoverControl(taxonomyJsonExportButton);
   appendTaxonomyPopoverControl(taxonomyImportButton);
 

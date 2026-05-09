@@ -4495,6 +4495,177 @@ function getCanonCoverageAuditReport(movies = []) {
   };
 }
 
+function createTaxonomyTagExportItem(value, details = {}) {
+  return {
+    value,
+    ...details
+  };
+}
+
+function sortTaxonomyTagExportItems(items = []) {
+  return [...items].sort((firstItem, secondItem) =>
+    String(firstItem.value || '').localeCompare(String(secondItem.value || ''), 'ru')
+  );
+}
+
+function createTaxonomyTagExportGroup(title, tags = []) {
+  return {
+    title,
+    count: tags.length,
+    tags
+  };
+}
+
+function createFlatTaxonomyTagExportSection(key, title, groupTitle, values = []) {
+  const tags = values.map(value => createTaxonomyTagExportItem(value));
+
+  return {
+    key,
+    title,
+    count: tags.length,
+    groups: [
+      createTaxonomyTagExportGroup(groupTitle, tags)
+    ]
+  };
+}
+
+function getTaxonomyWeightGroupTitle(weight) {
+  const numericWeight = Number(weight);
+
+  if (!Number.isFinite(numericWeight)) {
+    return 'Без веса';
+  }
+
+  return `Вес ${String(numericWeight).replace(/\.0+$/, '')}`;
+}
+
+function createWeightedTaxonomyTagExportSection(key, title, weightsByTag = {}) {
+  const groupsByWeight = new Map();
+
+  Object.entries(weightsByTag).forEach(([tag, weight]) => {
+    const groupTitle = getTaxonomyWeightGroupTitle(weight);
+
+    if (!groupsByWeight.has(groupTitle)) {
+      groupsByWeight.set(groupTitle, {
+        title: groupTitle,
+        weight: Number(weight),
+        tags: []
+      });
+    }
+
+    groupsByWeight.get(groupTitle).tags.push(createTaxonomyTagExportItem(tag, {
+      weight
+    }));
+  });
+
+  const groups = Array.from(groupsByWeight.values())
+    .sort((firstGroup, secondGroup) => {
+      const firstWeight = Number.isFinite(firstGroup.weight) ? firstGroup.weight : -Infinity;
+      const secondWeight = Number.isFinite(secondGroup.weight) ? secondGroup.weight : -Infinity;
+
+      if (secondWeight !== firstWeight) {
+        return secondWeight - firstWeight;
+      }
+
+      return firstGroup.title.localeCompare(secondGroup.title, 'ru');
+    })
+    .map(group => createTaxonomyTagExportGroup(
+      group.title,
+      sortTaxonomyTagExportItems(group.tags)
+    ));
+
+  return {
+    key,
+    title,
+    count: Object.keys(weightsByTag).length,
+    groups
+  };
+}
+
+function createCanonTaxonomyTagExportSection() {
+  const fallbackGroupTitle = 'Без семейства';
+  const groupsByFamily = new Map();
+
+  Object.keys(BROAD_FAMILY_WEIGHTS).forEach(family => {
+    groupsByFamily.set(family, []);
+  });
+
+  groupsByFamily.set(fallbackGroupTitle, []);
+
+  Object.keys(CANON_TAG_META).forEach(tag => {
+    const meta = getCanonTagMeta(tag);
+    const families = normalizeBroadFamilies(meta.families);
+    const groupTitle = families[0] || fallbackGroupTitle;
+
+    if (!groupsByFamily.has(groupTitle)) {
+      groupsByFamily.set(groupTitle, []);
+    }
+
+    groupsByFamily.get(groupTitle).push(createTaxonomyTagExportItem(tag, {
+      families,
+      role: meta.role,
+      tier: meta.tier,
+      status: meta.status,
+      confidence: meta.confidence,
+      lanes: getCanonTagMetaArray(tag, 'lanes')
+    }));
+  });
+
+  return {
+    key: 'canon',
+    title: 'Canon-теги',
+    count: Object.keys(CANON_TAG_META).length,
+    groups: Array.from(groupsByFamily.entries())
+      .filter(([, tags]) => tags.length > 0)
+      .map(([title, tags]) => createTaxonomyTagExportGroup(
+        title,
+        sortTaxonomyTagExportItems(tags)
+      ))
+  };
+}
+
+function getTaxonomyTagExportData() {
+  const sections = [
+    createFlatTaxonomyTagExportSection(
+      'perceived',
+      'Поджанры / perceived',
+      'Все поджанры',
+      TAXONOMY_SUBGENRES
+    ),
+    createCanonTaxonomyTagExportSection(),
+    createFlatTaxonomyTagExportSection(
+      'formats',
+      'Форматы',
+      'Все форматы',
+      TAXONOMY_FORMATS
+    ),
+    createWeightedTaxonomyTagExportSection(
+      'modifiers',
+      'Модификаторы',
+      MODIFIER_WEIGHTS
+    ),
+    createWeightedTaxonomyTagExportSection(
+      'broadFamilies',
+      'Семейства механик',
+      BROAD_FAMILY_WEIGHTS
+    ),
+    createFlatTaxonomyTagExportSection(
+      'triggers',
+      'Триггеры',
+      'Все триггеры',
+      TAXONOMY_TRIGGERS
+    )
+  ];
+
+  return {
+    schema: 'horroreiro_taxonomy_registry',
+    version: 1,
+    generated_from: 'horror-taxonomy.js',
+    total_tags: sections.reduce((sum, section) => sum + section.count, 0),
+    sections
+  };
+}
+
 window.HORROR_TAXONOMY = {
   subgenres: TAXONOMY_SUBGENRES,
   formats: TAXONOMY_FORMATS,
@@ -4512,6 +4683,7 @@ window.HORROR_TAXONOMY = {
     getSimilarMovies,
     getSimilarityAuditReport,
     getSimilarMovieCards,
+    getTaxonomyTagExportData,
     auditCanonTagMetaRegistrySource
   }
 };
