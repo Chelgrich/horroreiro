@@ -8468,29 +8468,66 @@ function bindSharedAuthStateListener({ onAfterAuthSync } = {}) {
   });
 }
 
-async function initCatalogPage() {
-  initCatalogViewToggleButton();
-  renderMoviesSkeleton();
-
-  const restoredUser = await restoreSession();
-  trackEmailConfirmedLoginIfNeeded();
-  const hydratedSnapshot = readCatalogSessionSnapshot();
+function hydrateCatalogPageFromSnapshot(hydratedSnapshot, { shouldRestoreScroll = true } = {}) {
   const didHydrateCatalogFromSnapshot = hydrateCatalogFromSessionSnapshot(hydratedSnapshot);
   let didHydrateCatalogDomFromSnapshot = false;
   let hydratedCatalogSignature = '';
 
-  if (didHydrateCatalogFromSnapshot) {
-    applySavedCatalogState();
-    refreshDynamicFilterOptions();
-    didHydrateCatalogDomFromSnapshot = hydrateCatalogDomFromSessionSnapshot(hydratedSnapshot);
+  if (!didHydrateCatalogFromSnapshot) {
+    return {
+      didHydrateCatalogFromSnapshot,
+      didHydrateCatalogDomFromSnapshot,
+      hydratedCatalogSignature
+    };
+  }
 
-    if (!didHydrateCatalogDomFromSnapshot) {
-      renderMovies();
-    }
+  applySavedCatalogState();
+  refreshDynamicFilterOptions();
+  didHydrateCatalogDomFromSnapshot = hydrateCatalogDomFromSessionSnapshot(hydratedSnapshot);
 
-    updateFiltersButtonLabel();
+  if (!didHydrateCatalogDomFromSnapshot) {
+    renderMovies();
+  }
+
+  updateFiltersButtonLabel();
+
+  if (shouldRestoreScroll) {
     restoreCatalogScrollPosition();
-    hydratedCatalogSignature = getCatalogSessionSnapshotSignature(createCatalogSessionSnapshotPayload());
+  }
+
+  hydratedCatalogSignature = getCatalogSessionSnapshotSignature(createCatalogSessionSnapshotPayload());
+
+  return {
+    didHydrateCatalogFromSnapshot,
+    didHydrateCatalogDomFromSnapshot,
+    hydratedCatalogSignature
+  };
+}
+
+async function initCatalogPage() {
+  initCatalogViewToggleButton();
+  renderMoviesSkeleton();
+
+  const restoreSessionPromise = restoreSession();
+  const hydratedSnapshot = readCatalogSessionSnapshot();
+  const preAuthUserId = currentUser?.id || null;
+  let hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot);
+
+  const restoredUser = await restoreSessionPromise;
+  trackEmailConfirmedLoginIfNeeded();
+
+  const activeUserId = currentUser?.id || null;
+  const shouldRehydrateForRestoredUser = (
+    hydratedSnapshot &&
+    activeUserId &&
+    activeUserId !== preAuthUserId &&
+    (hydratedSnapshot.userId || null) === activeUserId
+  );
+
+  if (shouldRehydrateForRestoredUser) {
+    hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot, {
+      shouldRestoreScroll: false
+    });
   }
 
   bindSharedAuthStateListener({
@@ -8501,7 +8538,7 @@ async function initCatalogPage() {
   });
 
   await reloadCatalogData({
-    showSkeleton: !didHydrateCatalogFromSnapshot,
+    showSkeleton: !hydrationState.didHydrateCatalogFromSnapshot,
     refreshFilters: false
   });
   applySavedCatalogState();
@@ -8509,9 +8546,9 @@ async function initCatalogPage() {
 
   const refreshedCatalogSignature = getCatalogSessionSnapshotSignature(createCatalogSessionSnapshotPayload());
   const canReuseHydratedCatalog = (
-    didHydrateCatalogFromSnapshot &&
-    hydratedCatalogSignature &&
-    hydratedCatalogSignature === refreshedCatalogSignature
+    hydrationState.didHydrateCatalogFromSnapshot &&
+    hydrationState.hydratedCatalogSignature &&
+    hydrationState.hydratedCatalogSignature === refreshedCatalogSignature
   );
 
   if (canReuseHydratedCatalog) {
@@ -8519,7 +8556,7 @@ async function initCatalogPage() {
     return;
   }
 
-  if (didHydrateCatalogFromSnapshot) {
+  if (hydrationState.didHydrateCatalogFromSnapshot) {
     preserveWindowScrollPosition(renderMovies);
   } else if (restoredUser && !isPasswordRecoveryMode) {
     syncCatalogAfterAuthChange();
@@ -8529,7 +8566,7 @@ async function initCatalogPage() {
 
   updateFiltersButtonLabel();
 
-  if (!didHydrateCatalogFromSnapshot) {
+  if (!hydrationState.didHydrateCatalogFromSnapshot) {
     restoreCatalogScrollPosition();
   }
 }
