@@ -6285,36 +6285,40 @@ function getCatalogPaginationPageItems(currentPage, totalPages, maxSlots = getCa
     return Array.from({ length: totalPages }, (_, index) => index + 1);
   }
 
-  if (maxSlots <= 4) {
-    if (currentPage <= 2) {
-      return [1, 2, 'ellipsis-end', totalPages];
+  const edgeWindowSize = maxSlots <= 4 ? 3 : 4;
+  const pages = new Set([1, totalPages, currentPage]);
+  const neighborStart = Math.max(1, currentPage - 1);
+  const neighborEnd = Math.min(totalPages, currentPage + 1);
+
+  for (let page = neighborStart; page <= neighborEnd; page += 1) {
+    pages.add(page);
+  }
+
+  if (currentPage <= edgeWindowSize - 1) {
+    for (let page = 1; page <= Math.min(totalPages, edgeWindowSize); page += 1) {
+      pages.add(page);
     }
+  }
 
-    if (currentPage >= totalPages - 1) {
-      return [1, 'ellipsis-start', totalPages - 1, totalPages];
+  if (currentPage >= totalPages - edgeWindowSize + 2) {
+    for (let page = Math.max(1, totalPages - edgeWindowSize + 1); page <= totalPages; page += 1) {
+      pages.add(page);
     }
-
-    return currentPage <= Math.ceil(totalPages / 2)
-      ? [1, currentPage, 'ellipsis-end', totalPages]
-      : [1, 'ellipsis-start', currentPage, totalPages];
   }
 
-  if (currentPage <= 4) {
-    return [1, 2, 3, 4, 'ellipsis-end', totalPages];
-  }
+  return Array.from(pages)
+    .sort((firstPage, secondPage) => firstPage - secondPage)
+    .reduce((items, page, index, sortedPages) => {
+      const previousPage = sortedPages[index - 1];
 
-  if (currentPage >= totalPages - 3) {
-    return [
-      1,
-      'ellipsis-start',
-      totalPages - 3,
-      totalPages - 2,
-      totalPages - 1,
-      totalPages
-    ];
-  }
+      if (previousPage && page - previousPage > 1) {
+        items.push(`ellipsis-${previousPage}-${page}`);
+      }
 
-  return [1, 'ellipsis-start', currentPage, currentPage + 1, 'ellipsis-end', totalPages];
+      items.push(page);
+
+      return items;
+    }, []);
 }
 
 function getCatalogPaginationButtonHtml({ label, targetPage, isDisabled = false, extraClassName = '', ariaLabel = '' }) {

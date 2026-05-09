@@ -5329,19 +5329,19 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .catalog-pagination-controls,
   .catalog-pagination-pages {
-    gap: 4px;
+    gap: clamp(2px, 1vw, 4px);
   }
 
   .catalog-pagination-button {
-    min-width: 30px;
-    width: 30px;
+    min-width: clamp(24px, 8vw, 30px);
+    width: clamp(24px, 8vw, 30px);
     height: 32px;
     min-height: 32px;
     padding: 0;
   }
 
   .catalog-pagination-ellipsis {
-    min-width: 14px;
+    min-width: 10px;
   }
 
   .movie-page-similar-grid {
