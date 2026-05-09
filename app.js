@@ -144,6 +144,7 @@ const CATALOG_SESSION_SNAPSHOT_KEY = 'horroreiro_catalog_session_snapshot';
 const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
 const CATALOG_SESSION_SNAPSHOT_VERSION = 5;
 const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
+const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
 const HORROR_TAXONOMY_SCRIPT_SRC = 'horror-taxonomy.js';
 const TAXONOMY_ADMIN_SCRIPT_SRC = 'taxonomy-admin.js';
 const AUTH_REQUEST_TIMEOUT_MS = 20000;
@@ -207,6 +208,8 @@ let horrorTaxonomyLoadPromise = null;
 let taxonomyAdminLoadPromise = null;
 let shouldFadeCatalogAfterSkeleton = false;
 let catalogFadeCleanupTimerId = null;
+let catalogDomSnapshotSchedule = null;
+let pendingCatalogDomSnapshotSessionSnapshot = null;
 const userRatingControlsHtmlCache = new Map();
 
 function applyBuildVersionSoftResetIfNeeded() {
@@ -1135,15 +1138,102 @@ function createCatalogDomSnapshotPayload(sessionSnapshot = createCatalogSessionS
   };
 }
 
-function persistCatalogDomSnapshot(sessionSnapshot = createCatalogSessionSnapshotPayload()) {
+function canQueueCatalogDomSnapshot() {
+  return Boolean(
+    isCatalogPage() &&
+    container &&
+    moviesLoadedSuccessfully &&
+    viewMode?.value === 'list' &&
+    !container.querySelector('.movie-card-skeleton')
+  );
+}
+
+function canPersistCatalogDomSnapshot(sessionSnapshot) {
+  return Boolean(canQueueCatalogDomSnapshot() && sessionSnapshot);
+}
+
+function cancelScheduledCatalogDomSnapshot() {
+  if (!catalogDomSnapshotSchedule) {
+    return;
+  }
+
+  if (
+    catalogDomSnapshotSchedule.type === 'idle' &&
+    typeof window.cancelIdleCallback === 'function'
+  ) {
+    window.cancelIdleCallback(catalogDomSnapshotSchedule.id);
+  }
+
+  if (catalogDomSnapshotSchedule.type === 'timeout') {
+    clearTimeout(catalogDomSnapshotSchedule.id);
+  }
+
+  catalogDomSnapshotSchedule = null;
+}
+
+function flushCatalogDomSnapshot(sessionSnapshot = pendingCatalogDomSnapshotSessionSnapshot) {
+  cancelScheduledCatalogDomSnapshot();
+  pendingCatalogDomSnapshotSessionSnapshot = null;
+
+  const nextSessionSnapshot = sessionSnapshot || createCatalogSessionSnapshotPayload();
+
+  if (!canPersistCatalogDomSnapshot(nextSessionSnapshot)) {
+    writeCatalogDomSnapshot(null);
+    return;
+  }
+
+  writeCatalogDomSnapshot(createCatalogDomSnapshotPayload(nextSessionSnapshot));
+}
+
+function scheduleCatalogDomSnapshot(sessionSnapshot) {
+  pendingCatalogDomSnapshotSessionSnapshot = sessionSnapshot;
+  cancelScheduledCatalogDomSnapshot();
+
+  const writePendingSnapshot = () => {
+    catalogDomSnapshotSchedule = null;
+    flushCatalogDomSnapshot();
+  };
+
+  if (typeof window.requestIdleCallback === 'function') {
+    catalogDomSnapshotSchedule = {
+      type: 'idle',
+      id: window.requestIdleCallback(writePendingSnapshot, {
+        timeout: CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS
+      })
+    };
+    return;
+  }
+
+  catalogDomSnapshotSchedule = {
+    type: 'timeout',
+    id: setTimeout(writePendingSnapshot, 120)
+  };
+}
+
+function persistCatalogDomSnapshot(
+  sessionSnapshot = null,
+  { immediate = false } = {}
+) {
   if (!isCatalogPage()) {
     return;
   }
 
-  writeCatalogDomSnapshot(createCatalogDomSnapshotPayload(sessionSnapshot));
+  if (!canQueueCatalogDomSnapshot()) {
+    cancelScheduledCatalogDomSnapshot();
+    pendingCatalogDomSnapshotSessionSnapshot = null;
+    writeCatalogDomSnapshot(null);
+    return;
+  }
+
+  if (immediate) {
+    flushCatalogDomSnapshot(sessionSnapshot);
+    return;
+  }
+
+  scheduleCatalogDomSnapshot(sessionSnapshot);
 }
 
-function persistCatalogSessionSnapshot() {
+function persistCatalogSessionSnapshot({ persistDomSnapshotImmediately = false } = {}) {
   if (!isCatalogPage()) {
     return;
   }
@@ -1151,7 +1241,9 @@ function persistCatalogSessionSnapshot() {
   const sessionSnapshot = createCatalogSessionSnapshotPayload();
 
   writeCatalogSessionSnapshot(sessionSnapshot);
-  persistCatalogDomSnapshot(sessionSnapshot);
+  persistCatalogDomSnapshot(sessionSnapshot, {
+    immediate: persistDomSnapshotImmediately
+  });
 }
 
 function hydrateCatalogFromSessionSnapshot(snapshot = readCatalogSessionSnapshot()) {
@@ -8341,7 +8433,9 @@ window.addEventListener('pagehide', event => {
 
   saveCatalogScrollPosition();
   saveCatalogAnchorMovieId();
-  persistCatalogSessionSnapshot();
+  persistCatalogSessionSnapshot({
+    persistDomSnapshotImmediately: true
+  });
 });
 
 document.addEventListener('keydown', event => {
