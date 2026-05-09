@@ -977,7 +977,8 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
   margin-bottom: 12px;
 }
 
-.form-row label {
+.form-row label,
+.form-row .form-row-label {
   font-size: 13px;
   line-height: 1.2;
   font-weight: 600;
@@ -4673,7 +4674,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     gap: 5px;
   }
 
-  .filters .form-row label {
+  .filters .form-row label,
+  .filters .form-row .form-row-label {
     font-size: 13px;
     line-height: 1.2;
   }

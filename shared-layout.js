@@ -266,7 +266,7 @@
                 </div>
 
                 <div class="form-row movie-taxonomy-preview-row">
-                  <label>Результат классификации:</label>
+                  <div class="form-row-label">Результат классификации:</div>
 
                   <div id="movieTaxonomyPreview" class="movie-taxonomy-preview">
                     <div class="movie-taxonomy-preview-line">

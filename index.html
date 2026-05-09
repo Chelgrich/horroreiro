@@ -291,7 +291,7 @@
           </div>
 
           <div class="form-row form-row-triggers-exclude">
-            <label for="triggerFiltersToggle">Триггеры:</label>
+            <div id="triggerFiltersLabel" class="form-row-label">Триггеры:</div>
 
             <div class="trigger-filters-select" id="triggerFiltersSelect">
               <button
@@ -300,6 +300,7 @@
                 class="trigger-filters-trigger"
                 aria-expanded="false"
                 aria-controls="triggerFiltersDropdown"
+                aria-labelledby="triggerFiltersLabel triggerFiltersTriggerText"
               >
                 <span id="triggerFiltersTriggerText">Скрыть по триггерам</span>
               </button>
