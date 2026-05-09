@@ -148,7 +148,7 @@ const PASSWORD_RECOVERY_PENDING_KEY = 'horroreiro_password_recovery_pending';
 const CATALOG_SCROLL_POSITION_KEY = 'horroreiro_catalog_scroll_position';
 const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
 const CATALOG_SESSION_SNAPSHOT_KEY = 'horroreiro_catalog_session_snapshot';
-const CATALOG_SESSION_SNAPSHOT_VERSION = 1;
+const CATALOG_SESSION_SNAPSHOT_VERSION = 2;
 const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 const HORROR_TAXONOMY_SCRIPT_SRC = 'horror-taxonomy.js';
 const AUTH_REQUEST_TIMEOUT_MS = 20000;
@@ -353,22 +353,6 @@ function ensureHorrorTaxonomyLoaded() {
   });
 
   return horrorTaxonomyLoadPromise;
-}
-
-function getTaxonomyLabel(groupName, key) {
-  const normalizedKey = String(key || '').trim();
-
-  if (!normalizedKey) {
-    return '';
-  }
-
-  return window.HORROR_TAXONOMY?.labels?.[groupName]?.[normalizedKey] || normalizedKey;
-}
-
-function mapTaxonomyLabels(groupName, values) {
-  return (Array.isArray(values) ? values : [])
-    .filter(Boolean)
-    .map(value => getTaxonomyLabel(groupName, value));
 }
 
 function normalizeTaxonomyExportValues(values) {
@@ -1323,7 +1307,7 @@ function syncTriggerFiltersTriggerText() {
   }
 
   if (selectedTriggerKeys.length === 1) {
-    triggerFiltersTriggerText.textContent = `Исключить: ${getTaxonomyLabel('triggers', selectedTriggerKeys[0])}`;
+    triggerFiltersTriggerText.textContent = `Исключить: ${selectedTriggerKeys[0]}`;
     return;
   }
 
@@ -1337,10 +1321,10 @@ function updateMovieTaxonomyPreview() {
 
   const taxonomyDraft = buildMovieTaxonomyDraftFromForm();
   const primaryLabel = taxonomyDraft.primarySubgenre
-    ? getTaxonomyLabel('subgenres', taxonomyDraft.primarySubgenre)
+    ? taxonomyDraft.primarySubgenre
     : '—';
   const secondaryLabels = taxonomyDraft.secondarySubgenres.length > 0
-    ? mapTaxonomyLabels('subgenres', taxonomyDraft.secondarySubgenres).join(', ')
+    ? taxonomyDraft.secondarySubgenres.join(', ')
     : '—';
 
   movieTaxonomyPrimaryPreview.textContent = primaryLabel;
@@ -3766,7 +3750,7 @@ function loadSubgenreFilterOptions(subgenreCounts = getSubgenreOptionCounts()) {
     .map(subgenreKey => ({
       key: subgenreKey,
       count: subgenreCounts.get(subgenreKey) || 0,
-      label: getTaxonomyLabel('subgenres', subgenreKey)
+      label: subgenreKey
     }))
     .filter(item => item.count > 0 || item.key === selectedSubgenre)
     .sort((firstItem, secondItem) => {
@@ -3801,7 +3785,7 @@ function loadFormatFilterOptions(formatCounts = getFormatOptionCounts()) {
     .map(formatKey => ({
       key: formatKey,
       count: formatCounts.get(formatKey) || 0,
-      label: getTaxonomyLabel('formats', formatKey)
+      label: formatKey
     }))
     .sort((firstItem, secondItem) => {
       if (secondItem.count !== firstItem.count) {
@@ -3836,7 +3820,7 @@ function loadTriggerFilterOptions(triggerCounts = getTriggerOptionCounts()) {
     .map(triggerKey => ({
       key: triggerKey,
       count: triggerCounts.get(triggerKey) || 0,
-      label: getTaxonomyLabel('triggers', triggerKey),
+      label: triggerKey,
       isSelected: selectedTriggerKeys.includes(triggerKey)
     }))
     .filter(item => item.count > 0 || item.isSelected)
@@ -4783,21 +4767,21 @@ function getActiveFilterChips() {
 
   if (subgenreFilter.value) {
     chips.push({
-      label: `Поджанр: ${getTaxonomyLabel('subgenres', subgenreFilter.value)}`,
+      label: `Поджанр: ${subgenreFilter.value}`,
       key: 'subgenre'
     });
   }
 
   if (formatFilter.value) {
     chips.push({
-      label: `Формат: ${getTaxonomyLabel('formats', formatFilter.value)}`,
+      label: `Формат: ${formatFilter.value}`,
       key: 'format'
     });
   }
 
   getSelectedTriggerFilters().forEach(triggerKey => {
     chips.push({
-      label: `Исключить: ${getTaxonomyLabel('triggers', triggerKey)}`,
+      label: `Исключить: ${triggerKey}`,
       key: `trigger:${triggerKey}`
     });
   });
@@ -9839,7 +9823,7 @@ function getMoviePageSubgenreLabel(movie) {
 
   return movie.tags_perceived
     .slice(0, 2)
-    .map(tag => getTaxonomyLabel('subgenres', tag))
+    .map(tag => String(tag || '').trim())
     .filter(Boolean)
     .join(', ');
 }
@@ -9849,7 +9833,10 @@ function getMoviePageFormatsLabel(movie) {
     return '';
   }
 
-  return mapTaxonomyLabels('formats', movie.formats).join(', ');
+  return movie.formats
+    .map(format => String(format || '').trim())
+    .filter(Boolean)
+    .join(', ');
 }
 
 function buildMoviePageViewModel(movie, { reviewsLoading = false } = {}) {
@@ -9991,10 +9978,10 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
           <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
           <div class="movie-page-meta-item"><span>Режиссёр:</span> ${movie.director ? escapeHtml(movie.director) : '-'}</div>
           <div class="movie-page-meta-item"><span>Жанры:</span> ${genres ? escapeHtml(genres) : '-'}</div>
-          <div class="movie-page-meta-item"><span>Поджанр:</span> <span data-movie-page-subgenre-label="true">${primaryPerceivedTagLabel ? escapeHtml(primaryPerceivedTagLabel) : '-'}</span></div>
+          <div class="movie-page-meta-item"><span>Поджанр:</span> ${primaryPerceivedTagLabel ? escapeHtml(primaryPerceivedTagLabel) : '-'}</div>
           ${
             formatsLabel
-              ? `<div class="movie-page-meta-item"><span>Формат:</span> <span data-movie-page-formats-label="true">${escapeHtml(formatsLabel)}</span></div>`
+              ? `<div class="movie-page-meta-item"><span>Формат:</span> ${escapeHtml(formatsLabel)}</div>`
               : ''
           }
           <div class="movie-page-meta-item"><span>Страны:</span> ${countries ? escapeHtml(countries) : '-'}</div>
@@ -10077,49 +10064,6 @@ function renderMoviePage(movie, options = {}) {
   }
 
   bindMoviePageReviewEvents(movie);
-  queueMoviePageTaxonomyMetaRefresh(movie);
-}
-
-function renderMoviePageTaxonomyMeta(movie) {
-  if (!moviePage || !movie) {
-    return;
-  }
-
-  const subgenreLabelElement = moviePage.querySelector('[data-movie-page-subgenre-label="true"]');
-  const formatsLabelElement = moviePage.querySelector('[data-movie-page-formats-label="true"]');
-
-  if (subgenreLabelElement) {
-    subgenreLabelElement.textContent = getMoviePageSubgenreLabel(movie) || '-';
-  }
-
-  if (formatsLabelElement) {
-    formatsLabelElement.textContent = getMoviePageFormatsLabel(movie);
-  }
-}
-
-function queueMoviePageTaxonomyMetaRefresh(movie) {
-  if (!movie) {
-    return;
-  }
-
-  const movieId = String(movie.id);
-
-  const refreshIfCurrentMovie = () => {
-    if (String(currentMoviePageMovieId) === movieId) {
-      renderMoviePageTaxonomyMeta(movie);
-    }
-  };
-
-  if (isHorrorTaxonomyReady()) {
-    refreshIfCurrentMovie();
-    return;
-  }
-
-  ensureHorrorTaxonomyLoaded().then(isTaxonomyReady => {
-    if (isTaxonomyReady) {
-      refreshIfCurrentMovie();
-    }
-  });
 }
 
 function renderMoviePageReviewsSection(movie) {
@@ -10205,7 +10149,6 @@ async function loadMoviePageByRouteParams(routeParams, {
   if (canReuseWarmTop) {
     currentMoviePageMovieData = movie;
     setMoviePageDocumentMeta(movie);
-    queueMoviePageTaxonomyMetaRefresh(movie);
     renderMoviePageReviewsSection(movie);
   } else {
     renderMoviePage(movie);

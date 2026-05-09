@@ -2607,7 +2607,7 @@ function weightedBroadFamilySimilarity(familiesA = [], familiesB = []) {
 
 const SIMILARITY_LANE_CONFIG = {
   slasher_lane: {
-    perceived: ['slasher'],
+    perceived: ['Слэшер'],
     canon: [
       'masked_killer',
       'serial_killer',
@@ -2621,7 +2621,7 @@ const SIMILARITY_LANE_CONFIG = {
     ]
   },
   creature_lane: {
-    perceived: ['creature_feature', 'animal_attack'],
+    perceived: ['Монстр-муви', 'Нападение животных'],
     canon: [
       'predatory_creature',
       'giant_creature',
@@ -2636,7 +2636,7 @@ const SIMILARITY_LANE_CONFIG = {
     ]
   },
   supernatural_entity_lane: {
-    perceived: ['supernatural_horror', 'haunted_house', 'possession'],
+    perceived: ['Сверхъестественный хоррор', 'Дом с привидениями', 'Одержимость'],
     canon: [
       'demonic_entity',
       'demonic_possession',
@@ -2653,7 +2653,7 @@ const SIMILARITY_LANE_CONFIG = {
     ]
   },
   ritual_occult_lane: {
-    perceived: ['religious_horror', 'folk_horror'],
+    perceived: ['Религиозный хоррор', 'Фолк-хоррор'],
     canon: [
       'occult_ritual',
       'occult_trade',
@@ -2671,7 +2671,7 @@ const SIMILARITY_LANE_CONFIG = {
     ]
   },
   psychological_reality_lane: {
-    perceived: ['psychological_horror', 'mystery_horror'],
+    perceived: ['Психологический хоррор', 'Мистери-хоррор'],
     canon: [
       'distorted_reality',
       'hallucinated_presence',
@@ -2688,7 +2688,7 @@ const SIMILARITY_LANE_CONFIG = {
     ]
   },
   survival_containment_lane: {
-    perceived: ['survival_horror', 'disaster_horror'],
+    perceived: ['Хоррор-выживание', 'Хоррор-катастрофа'],
     canon: [
       'trapped_survival',
       'home_confinement',
@@ -2709,7 +2709,7 @@ const SIMILARITY_LANE_CONFIG = {
     ]
   },
   infection_outbreak_lane: {
-    perceived: ['infection_outbreak', 'zombie'],
+    perceived: ['Хоррор-вспышка', 'Зомби-хоррор'],
     canon: [
       'zombie',
       'fungal_infection',
@@ -2720,7 +2720,7 @@ const SIMILARITY_LANE_CONFIG = {
     ]
   },
   investigation_media_lane: {
-    perceived: ['mystery_horror', 'conspiracy_horror'],
+    perceived: ['Мистери-хоррор', 'Конспирологический хоррор'],
     canon: [
       'media_based_investigation',
       'paranormal_media',
@@ -2732,10 +2732,10 @@ const SIMILARITY_LANE_CONFIG = {
       'buried_past',
       'mind_control_experiment'
     ],
-    formats: ['found_footage', 'mockumentary', 'hybrid_narrative']
+    formats: ['Найденная плёнка', 'Псевдодокументальный', 'Гибридное повествование']
   },
   folk_myth_lane: {
-    perceived: ['folk_horror'],
+    perceived: ['Фолк-хоррор'],
     canon: [
       'folklore_entity',
       'mythic_creature',
@@ -2746,7 +2746,7 @@ const SIMILARITY_LANE_CONFIG = {
     ]
   },
   body_identity_lane: {
-    perceived: ['body_horror'],
+    perceived: ['Боди-хоррор'],
     canon: [
       'body_transformation',
       'body_transfer',
@@ -2836,11 +2836,11 @@ function getSimilarityLaneMultiplier({ sharedLanes = [], canonCore = 0, exactCan
 }
 
 const FORMAT_WEIGHTS = {
-  found_footage: 1.2,
-  mockumentary: 1.15,
-  hybrid_narrative: 1.0,
-  anthology: 1.1,
-  silent_film: 1.15
+  'Найденная плёнка': 1.2,
+  'Псевдодокументальный': 1.15,
+  'Гибридное повествование': 1.0,
+  'Антология': 1.1,
+  'Немой фильм': 1.15
 };
 
 const EXTRA_GENRE_WEIGHTS = {
@@ -3517,83 +3517,51 @@ function getSimilarMovieCards(targetMovieId, allMovies) {
 }
 
 const TAXONOMY_SUBGENRES = [
-  'supernatural_horror',
-  'haunted_house',
-  'mystery_horror',
-  'conspiracy_horror',
-  'creature_feature',
-  'possession',
-  'survival_horror',
-  'religious_horror',
-  'folk_horror',
-  'psychological_horror',
-  'slasher',
-  'animal_attack',
-  'infection_outbreak',
-  'body_horror',
-  'cannibal_horror',
-  'horror_comedy',
-  'zombie',
-  'vampire',
-  'disaster_horror'
+  'Сверхъестественный хоррор',
+  'Дом с привидениями',
+  'Мистери-хоррор',
+  'Конспирологический хоррор',
+  'Монстр-муви',
+  'Одержимость',
+  'Хоррор-выживание',
+  'Религиозный хоррор',
+  'Фолк-хоррор',
+  'Психологический хоррор',
+  'Слэшер',
+  'Нападение животных',
+  'Хоррор-вспышка',
+  'Боди-хоррор',
+  'Каннибальский хоррор',
+  'Хоррор-комедия',
+  'Зомби-хоррор',
+  'Вампирский хоррор',
+  'Хоррор-катастрофа'
 ];
 
 const TAXONOMY_FORMATS = [
-  'found_footage',
-  'mockumentary',
-  'hybrid_narrative',
-  'anthology',
-  'silent_film'
+  'Найденная плёнка',
+  'Псевдодокументальный',
+  'Гибридное повествование',
+  'Антология',
+  'Немой фильм'
 ];
 
-const TAXONOMY_LABELS = {
-  subgenres: {
-    supernatural_horror: 'Сверхъестественный хоррор',
-    haunted_house: 'Дом с привидениями',
-    mystery_horror: 'Мистери-хоррор',
-    conspiracy_horror: 'Конспирологический хоррор',
-    creature_feature: 'Монстр-муви',
-    possession: 'Одержимость',
-    survival_horror: 'Хоррор-выживание',
-    religious_horror: 'Религиозный хоррор',
-    folk_horror: 'Фолк-хоррор',
-    psychological_horror: 'Психологический хоррор',
-    slasher: 'Слэшер',
-    animal_attack: 'Нападение животных',
-    infection_outbreak: 'Хоррор-вспышка',
-    body_horror: 'Боди-хоррор',
-    cannibal_horror: 'Каннибальский хоррор',
-    horror_comedy: 'Хоррор-комедия',
-    zombie: 'Зомби-хоррор',
-    vampire: 'Вампирский хоррор',
-    disaster_horror: 'Хоррор-катастрофа'
-  },
-
-  formats: {
-    found_footage: 'Найденная плёнка',
-    mockumentary: 'Псевдодокументальный',
-    hybrid_narrative: 'Гибридное повествование',
-    anthology: 'Антология',
-    silent_film: 'Немой фильм'
-  },
-
-  triggers: {
-    gore: 'Расчленение',
-    breathing_distress: 'Удушье',
-    mental_instability: 'Психическая нестабильность',
-    child_harm: 'Причинение вреда ребёнку',
-    reality_distortion: 'Искажение реальности',
-    animal_death: 'Смерть животного',
-    suicide: 'Суицид',
-    sexual_violence: 'Сексуализированное насилие',
-    domestic_violence: 'Домашнее насилие',
-    pregnancy: 'Беременность',
-    animal_abuse: 'Жестокость к животным',
-    claustrophobia: 'Клаустрофобия',
-    animal_phobia: 'Страх животных',
-    body_invasion: 'Проникновение в тело'
-  }
-};
+const TAXONOMY_TRIGGERS = [
+  'Расчленение',
+  'Удушье',
+  'Психическая нестабильность',
+  'Причинение вреда ребёнку',
+  'Искажение реальности',
+  'Смерть животного',
+  'Суицид',
+  'Сексуализированное насилие',
+  'Домашнее насилие',
+  'Беременность',
+  'Жестокость к животным',
+  'Клаустрофобия',
+  'Страх животных',
+  'Проникновение в тело'
+];
 
 function resolveMovieSubgenres(movie) {
   const perceived = Array.isArray(movie?.tags_perceived) ? movie.tags_perceived.filter(Boolean) : [];
@@ -3634,60 +3602,60 @@ const TAXONOMY_LAYER_CONFIG = {
   triggers: {
     label: 'Triggers',
     fields: ['triggers', 'tags_triggers'],
-    allowed: () => Object.keys(TAXONOMY_LABELS.triggers)
+    allowed: () => TAXONOMY_TRIGGERS
   }
 };
 
 const TAXONOMY_REQUIRED_CANON_GROUPS = {
-  slasher: [
+  'Слэшер': [
     {
       label: 'тип убийцы',
       tags: ['masked_killer', 'serial_killer', 'supernatural_killer', 'killer_duo', 'killer_santa', 'revenant_killer', 'trauma_driven_killer', 'protagonist_killer', 'killer_creature']
     }
   ],
-  creature_feature: [
+  'Монстр-муви': [
     {
       label: 'тип существа',
       tags: ['predatory_creature', 'giant_creature', 'mutant_creature', 'mythic_creature', 'scientific_creature', 'alien_creature', 'killer_creature', 'shark_attack', 'snake_attack']
     }
   ],
-  animal_attack: [
+  'Нападение животных': [
     {
       label: 'тип животной угрозы',
       tags: ['shark_attack', 'snake_attack', 'predatory_creature', 'giant_creature', 'rabies_infection']
     }
   ],
-  possession: [
+  'Одержимость': [
     {
       label: 'тип одержимости',
       tags: ['demonic_possession', 'ghost_possession', 'entity_possession']
     }
   ],
-  infection_outbreak: [
+  'Хоррор-вспышка': [
     {
       label: 'механика заражения',
       tags: ['zombie', 'fungal_infection', 'chemical_outbreak', 'rabies_infection', 'spreading_contamination', 'infected_society']
     }
   ],
-  vampire: [
+  'Вампирский хоррор': [
     {
       label: 'вампирская угроза',
       tags: ['vampire']
     }
   ],
-  body_horror: [
+  'Боди-хоррор': [
     {
       label: 'телесная механика',
       tags: ['body_transformation', 'body_transfer', 'identity_erasure']
     }
   ],
-  folk_horror: [
+  'Фолк-хоррор': [
     {
       label: 'фольклорная или ритуальная основа',
       tags: ['folklore_entity', 'mythic_creature', 'witchcraft', 'occult_ritual', 'black_magic', 'cult_community']
     }
   ],
-  religious_horror: [
+  'Религиозный хоррор': [
     {
       label: 'религиозная или культовая механика',
       tags: ['religious_fundamentalism', 'demonic_entity', 'demonic_possession', 'occult_ritual', 'cult_community', 'wish_with_a_price', 'ritualized_punishment']
@@ -3961,19 +3929,19 @@ const CANON_COVERAGE_AUDIT_RULES = [
   },
   {
     code: 'possession_refinement',
-    label: 'Уточнить possession',
-    whenPerceivedAny: ['possession'],
+    label: 'Уточнить одержимость',
+    whenPerceivedAny: ['Одержимость'],
     suggestAny: [
       'demonic_possession',
       'ghost_possession',
       'entity_possession'
     ],
-    reason: 'Фильм воспринимается как possession, но не указан тип одержимости.'
+    reason: 'Фильм воспринимается как одержимость, но не указан тип одержимости.'
   },
   {
     code: 'survival_horror_structure',
-    label: 'Уточнить survival_horror',
-    whenPerceivedAny: ['survival_horror'],
+    label: 'Уточнить хоррор-выживание',
+    whenPerceivedAny: ['Хоррор-выживание'],
     suggestAny: [
       'trapped_survival',
       'group_survival',
@@ -3985,7 +3953,7 @@ const CANON_COVERAGE_AUDIT_RULES = [
       'post_apocalyptic_survival',
       'war_survival'
     ],
-    reason: 'Фильм воспринимается как survival_horror, но не указана конкретная структура выживания.'
+    reason: 'Фильм воспринимается как хоррор-выживание, но не указана конкретная структура выживания.'
   }
 ];
 
@@ -4063,7 +4031,7 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
 
       return {
         priority: 'high',
-        reason: 'Perceived указывает на possession, но canon не уточняет тип одержимости.',
+        reason: 'Perceived указывает на одержимость, но canon не уточняет тип одержимости.',
         suggestedTags
       };
     }
@@ -4093,7 +4061,7 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
 
       const suggestedTags = getCanonCoverageMissingTags(
         canonSet,
-        perceivedSet.has('survival_horror')
+        perceivedSet.has('Хоррор-выживание')
           ? ['serial_killer', 'enemy_pursuit', 'one_night_survival']
           : ['serial_killer', 'trauma_driven_killer', 'supernatural_killer'],
         3
@@ -4442,7 +4410,7 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
 
       return {
         priority: 'low',
-        reason: 'Фильм воспринимается как survival_horror; есть контекст, который может указывать на конкретную структуру выживания.',
+        reason: 'Фильм воспринимается как хоррор-выживание; есть контекст, который может указывать на конкретную структуру выживания.',
         suggestedTags: missingTags
       };
     }
@@ -4530,23 +4498,7 @@ function getCanonCoverageAuditReport(movies = []) {
 window.HORROR_TAXONOMY = {
   subgenres: TAXONOMY_SUBGENRES,
   formats: TAXONOMY_FORMATS,
-  triggers: [
-    'gore',
-    'breathing_distress',
-    'mental_instability',
-    'child_harm',
-    'reality_distortion',
-    'animal_death',
-    'suicide',
-    'sexual_violence',
-    'domestic_violence',
-    'pregnancy',
-    'animal_abuse',
-    'claustrophobia',
-    'animal_phobia',
-    'body_invasion'
-  ],
-  labels: TAXONOMY_LABELS,
+  triggers: TAXONOMY_TRIGGERS,
   helpers: {
     resolveMovieSubgenres,
     deriveBroadFamiliesFromCanon,

@@ -3669,11 +3669,6 @@ body:has(.movie-page-shell) .page {
   color: var(--color-text-muted);
 }
 
-.movie-page-meta-item [data-movie-page-subgenre-label="true"],
-.movie-page-meta-item [data-movie-page-formats-label="true"] {
-  color: #ffffff;
-}
-
 .movie-page-meta-item strong {
   font-weight: 700;
   color: #ffffff;
