@@ -152,6 +152,10 @@ const CATALOG_PAGINATION_PAGE_SLOTS = 6;
 const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
 const HORROR_TAXONOMY_SCRIPT_SRC = 'horror-taxonomy.js';
 const TAXONOMY_ADMIN_SCRIPT_SRC = 'taxonomy-admin.js';
+const SITE_ORIGIN = 'https://horroreiro.ru';
+const DEFAULT_SOCIAL_IMAGE_URL = `${SITE_ORIGIN}/og-preview.jpg`;
+const MOVIE_STRUCTURED_DATA_SCRIPT_ID = 'movieStructuredData';
+const CATALOG_STRUCTURED_DATA_SCRIPT_ID = 'catalogItemListStructuredData';
 const AUTH_REQUEST_TIMEOUT_MS = 20000;
 const AUTH_PROFILE_REQUEST_TIMEOUT_MS = 15000;
 
@@ -657,12 +661,42 @@ async function buildUniqueMovieSlug(title, year = null, excludeMovieId = null) {
   }
 }
 
+function isLocalDevRouteHost() {
+  const hostname = window.location.hostname;
+
+  return (
+    window.location.protocol === 'file:' ||
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1'
+  );
+}
+
+function buildMovieCanonicalPath(movie) {
+  if (movie?.slug) {
+    return `/movie/${encodeURIComponent(movie.slug)}`;
+  }
+
+  return `/movie.html?id=${encodeURIComponent(movie?.id || '')}`;
+}
+
+function buildMovieCanonicalUrl(movie) {
+  return `${SITE_ORIGIN}${buildMovieCanonicalPath(movie)}`;
+}
+
+function buildCatalogPageUrl() {
+  return isLocalDevRouteHost() ? 'index.html' : '/';
+}
+
 function buildMoviePageUrl(movie) {
+  if (movie?.slug && !isLocalDevRouteHost()) {
+    return buildMovieCanonicalPath(movie);
+  }
+
   if (movie?.slug) {
     return `movie.html?slug=${encodeURIComponent(movie.slug)}`;
   }
 
-  return `movie.html?id=${encodeURIComponent(movie.id)}`;
+  return `movie.html?id=${encodeURIComponent(movie?.id || '')}`;
 }
 
 function escapeRegExp(value) {
@@ -1469,7 +1503,7 @@ function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
   renderActiveFilterChips();
   syncQuickPresetButtons();
 
-  const { paginationState } = getCatalogDerivedState();
+  const { paginationState, pageMovies } = getCatalogDerivedState();
 
   if (moviesResultCount) {
     moviesResultCount.textContent = domSnapshot.moviesResultCountText || getMoviesResultCountText(
@@ -1478,6 +1512,7 @@ function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
     );
   }
 
+  updateCatalogStructuredData(pageMovies, paginationState);
   renderCatalogPagination(paginationState);
   container.classList.remove('is-catalog-fading', 'is-catalog-visible');
   container.innerHTML = domSnapshot.containerHtml;
@@ -8251,12 +8286,14 @@ function renderMovies() {
   }
 
   if (filteredTotal === 0) {
+    updateCatalogStructuredData([], paginationState);
     clearCatalogPagination();
     renderEmptyState();
     persistCatalogDomSnapshot();
     return;
   }
 
+  updateCatalogStructuredData(pageMovies, paginationState);
   renderCatalogPagination(paginationState);
 
   if (viewMode.value === 'list') {
@@ -8939,11 +8976,17 @@ async function initCatalogPage() {
 
 function getMoviePageRouteParams() {
   const searchParams = new URLSearchParams(window.location.search);
+  const pathSlugMatch = window.location.pathname.match(/\/movie\/([^/]+)\/?$/);
+  const pathMovieSlug = pathSlugMatch ? decodeURIComponent(pathSlugMatch[1] || '').trim() : '';
   const rawMovieSlug = searchParams.get('slug');
   const rawMovieId = searchParams.get('id');
 
   const movieSlug = String(rawMovieSlug || '').trim();
   const movieId = String(rawMovieId || '').trim();
+
+  if (pathMovieSlug) {
+    return { slug: pathMovieSlug, id: null };
+  }
 
   if (movieSlug) {
     return { slug: movieSlug, id: null };
@@ -9016,26 +9059,268 @@ function getMoviePageReleaseLabel(movie) {
   return getMonthName(movie.release_month);
 }
 
-function setMoviePageDocumentMeta(movie) {
-  if (!movie) {
-    document.title = 'Фильм не найден — Хоррорейро';
+function normalizeSeoText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function truncateSeoText(value, maxLength = 165) {
+  const text = normalizeSeoText(value);
+
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function getMovieSeoTitle(movie) {
+  const yearSuffix = movie?.year ? ` (${movie.year})` : '';
+
+  return `${movie?.title || 'Фильм ужасов'}${yearSuffix} — Хоррорейро`;
+}
+
+function getMovieSeoDescription(movie) {
+  const meta = getCatalogMovieMeta(movie);
+  const genresText = meta?.genresText ? `жанры: ${meta.genresText}` : '';
+  const details = [
+    movie?.year ? `${movie.year}` : '',
+    movie?.director ? `режиссёр: ${movie.director}` : '',
+    genresText
+  ].filter(Boolean).join(' · ');
+  const text = [
+    `${movie?.title || 'Фильм ужасов'} в каталоге Хоррорейро.`,
+    details,
+    movie?.synopsis
+  ].filter(Boolean).join(' ');
+
+  return truncateSeoText(text);
+}
+
+function getMovieSocialImage(movie) {
+  return movie?.poster_url || DEFAULT_SOCIAL_IMAGE_URL;
+}
+
+function getMovieSameAsLinks(movie) {
+  return [
+    movie?.kinopoisk_url,
+    movie?.imdb_url,
+    movie?.letterboxd_url,
+    movie?.rottentomatoes_url
+  ].filter(Boolean);
+}
+
+function getMovieDatePublished(movie) {
+  const releaseYear = movie?.release_year || movie?.year;
+  const releaseMonth = movie?.release_month;
+
+  if (!releaseYear) {
+    return null;
+  }
+
+  if (releaseMonth) {
+    return `${releaseYear}-${String(releaseMonth).padStart(2, '0')}-01`;
+  }
+
+  return String(releaseYear);
+}
+
+function upsertDocumentMeta({ name = '', property = '', content = '' }) {
+  const selector = name
+    ? `meta[name="${name}"]`
+    : `meta[property="${property}"]`;
+  let metaElement = document.head.querySelector(selector);
+
+  if (!metaElement) {
+    metaElement = document.createElement('meta');
+
+    if (name) {
+      metaElement.setAttribute('name', name);
+    } else {
+      metaElement.setAttribute('property', property);
+    }
+
+    document.head.appendChild(metaElement);
+  }
+
+  metaElement.setAttribute('content', content);
+}
+
+function upsertDocumentCanonical(canonicalUrl) {
+  let canonicalLink = document.head.querySelector('link[rel="canonical"]');
+
+  if (!canonicalLink) {
+    canonicalLink = document.createElement('link');
+    canonicalLink.setAttribute('rel', 'canonical');
+    document.head.appendChild(canonicalLink);
+  }
+
+  canonicalLink.setAttribute('href', canonicalUrl);
+}
+
+function upsertStructuredDataScript(scriptId, data) {
+  let scriptElement = document.getElementById(scriptId);
+
+  if (!scriptElement) {
+    scriptElement = document.createElement('script');
+    scriptElement.id = scriptId;
+    scriptElement.type = 'application/ld+json';
+    document.head.appendChild(scriptElement);
+  }
+
+  scriptElement.textContent = JSON.stringify(data);
+}
+
+function removeStructuredDataScript(scriptId) {
+  document.getElementById(scriptId)?.remove();
+}
+
+function buildMovieStructuredData(movie) {
+  const meta = getCatalogMovieMeta(movie);
+  const canonicalUrl = buildMovieCanonicalUrl(movie);
+  const votesCount = getMovieVotesCount(movie.id);
+  const averageRating = getMovieAverageRating(movie.id);
+  const genreNames = meta ? Array.from(meta.genreNames) : [];
+  const countryNames = meta ? Array.from(meta.countryNames) : [];
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Movie',
+    name: movie.title,
+    url: canonicalUrl,
+    image: getMovieSocialImage(movie),
+    description: getMovieSeoDescription(movie),
+    inLanguage: 'ru-RU'
+  };
+
+  if (movie.original_title) {
+    structuredData.alternateName = movie.original_title;
+  }
+
+  if (movie.director) {
+    structuredData.director = String(movie.director)
+      .split(',')
+      .map(name => normalizeSeoText(name))
+      .filter(Boolean)
+      .map(name => ({
+        '@type': 'Person',
+        name
+      }));
+  }
+
+  if (genreNames.length > 0) {
+    structuredData.genre = genreNames;
+  }
+
+  if (countryNames.length > 0) {
+    structuredData.countryOfOrigin = countryNames.map(name => ({
+      '@type': 'Country',
+      name
+    }));
+  }
+
+  const datePublished = getMovieDatePublished(movie);
+
+  if (datePublished) {
+    structuredData.datePublished = datePublished;
+  }
+
+  const sameAs = getMovieSameAsLinks(movie);
+
+  if (sameAs.length > 0) {
+    structuredData.sameAs = sameAs;
+  }
+
+  if (votesCount > 0 && averageRating > 0) {
+    structuredData.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: Number(averageRating.toFixed(1)),
+      bestRating: 10,
+      worstRating: 1,
+      ratingCount: votesCount
+    };
+  }
+
+  return structuredData;
+}
+
+function buildCatalogItemListStructuredData(pageMovies, paginationState) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Фильмы ужасов — Хоррорейро',
+    url: `${SITE_ORIGIN}/`,
+    numberOfItems: paginationState?.totalItems || pageMovies.length,
+    itemListElement: pageMovies.map((movie, index) => {
+      const meta = getCatalogMovieMeta(movie);
+      const movieData = {
+        '@type': 'Movie',
+        name: movie.title,
+        url: buildMovieCanonicalUrl(movie),
+        image: getMovieSocialImage(movie)
+      };
+      const datePublished = getMovieDatePublished(movie);
+
+      if (movie.original_title) {
+        movieData.alternateName = movie.original_title;
+      }
+
+      if (datePublished) {
+        movieData.datePublished = datePublished;
+      }
+
+      if (meta?.genresText) {
+        movieData.genre = Array.from(meta.genreNames);
+      }
+
+      return {
+        '@type': 'ListItem',
+        position: (paginationState?.startIndex || 0) + index + 1,
+        url: buildMovieCanonicalUrl(movie),
+        item: movieData
+      };
+    })
+  };
+}
+
+function updateCatalogStructuredData(pageMovies, paginationState) {
+  if (!Array.isArray(pageMovies) || pageMovies.length === 0) {
+    removeStructuredDataScript(CATALOG_STRUCTURED_DATA_SCRIPT_ID);
     return;
   }
 
-  document.title = `${movie.title} — Хоррорейро`;
+  upsertStructuredDataScript(
+    CATALOG_STRUCTURED_DATA_SCRIPT_ID,
+    buildCatalogItemListStructuredData(pageMovies, paginationState)
+  );
+}
 
-  const descriptionText = [
-    movie.original_title ? `Оригинальное название: ${movie.original_title}.` : '',
-    movie.year ? `Год: ${movie.year}.` : '',
-    movie.director ? `Режиссёр: ${movie.director}.` : '',
-    'Страница фильма в каталоге Хоррорейро.'
-  ].filter(Boolean).join(' ');
-
-  const descriptionMeta = document.querySelector('meta[name="description"]');
-
-  if (descriptionMeta) {
-    descriptionMeta.setAttribute('content', descriptionText);
+function setMoviePageDocumentMeta(movie) {
+  if (!movie) {
+    document.title = 'Фильм не найден — Хоррорейро';
+    upsertDocumentCanonical(window.location.href);
+    upsertDocumentMeta({ name: 'robots', content: 'noindex, follow' });
+    removeStructuredDataScript(MOVIE_STRUCTURED_DATA_SCRIPT_ID);
+    return;
   }
+
+  const title = getMovieSeoTitle(movie);
+  const description = getMovieSeoDescription(movie);
+  const canonicalUrl = buildMovieCanonicalUrl(movie);
+  const imageUrl = getMovieSocialImage(movie);
+
+  document.title = title;
+  upsertDocumentMeta({ name: 'description', content: description });
+  upsertDocumentMeta({ name: 'robots', content: 'index, follow' });
+  upsertDocumentCanonical(canonicalUrl);
+  upsertDocumentMeta({ property: 'og:type', content: 'video.movie' });
+  upsertDocumentMeta({ property: 'og:title', content: title });
+  upsertDocumentMeta({ property: 'og:description', content: description });
+  upsertDocumentMeta({ property: 'og:url', content: canonicalUrl });
+  upsertDocumentMeta({ property: 'og:image', content: imageUrl });
+  upsertDocumentMeta({ name: 'twitter:title', content: title });
+  upsertDocumentMeta({ name: 'twitter:description', content: description });
+  upsertDocumentMeta({ name: 'twitter:image', content: imageUrl });
+  upsertDocumentMeta({ name: 'twitter:url', content: canonicalUrl });
+  upsertStructuredDataScript(MOVIE_STRUCTURED_DATA_SCRIPT_ID, buildMovieStructuredData(movie));
 }
 
 function renderMoviePageNotFound() {
@@ -9057,7 +9342,7 @@ function renderMoviePageNotFound() {
         Возможно, ссылка устарела или фильм был удалён из каталога.
       </div>
       <div class="empty-state-actions">
-        <a href="index.html" class="secondary-button secondary-button-compact empty-state-reset-btn">
+        <a href="${buildCatalogPageUrl()}" class="secondary-button secondary-button-compact empty-state-reset-btn">
           Вернуться в каталог
         </a>
       </div>
@@ -9802,7 +10087,7 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
       <div class="movie-page-title-block">
       <div class="movie-page-title-row">
       <div class="movie-page-title-main">
-        <h2 class="movie-page-title">${escapeHtml(movie.title)}</h2>
+        <h1 class="movie-page-title">${escapeHtml(movie.title)}</h1>
 
         ${
           movie.original_title
@@ -9968,7 +10253,7 @@ async function deleteMovieFromMoviePage(movieId, movieTitle) {
     await runConfirmedAction(`Удалить фильм "${movieTitle}"?`, async () => {
       await deleteMovieRecord(movieId);
       removeMovieFromCatalogSessionSnapshot(movieId);
-      window.location.href = 'index.html';
+      window.location.href = buildCatalogPageUrl();
     });
   } catch (error) {
     console.error('Ошибка при удалении фильма со страницы detail-page:', error);

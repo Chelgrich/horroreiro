@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "include": [
+    "/env",
+    "/movie/*",
+    "/movie.html",
+    "/sitemap.xml"
+  ],
+  "exclude": []
+}

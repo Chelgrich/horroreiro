@@ -355,14 +355,12 @@
     </section>
 
     <section class="section seo-text-bottom">
-      <h2 class="section-title">Актуальные фильмы ужасов — новинки и релизы</h2>
+      <h2 class="section-title">Хоррорейро — каталог фильмов ужасов</h2>
       <p>
-        Хоррорейро — каталог фильмов ужасов с фокусом на актуальные релизы и новинки.
-        Здесь удобно следить за выходящими фильмами ужасов, использовать фильтры и находить хорроры по жанру, стране, году и рейтингу.
+        Хоррорейро — удобный каталог хорроров, где можно отслеживать свежие фильмы ужасов, премьеры и новые релизы разных стран.
       </p>
       <p>
-        Каталог будет последовательно наполняться новыми фильмами ужасов по мере их выхода.
-        Это база для тех, кто хочет держать под рукой свежие хоррор-релизы и быстро возвращаться к ним позже.
+        Фильтры по жанру, году, стране и рейтингу помогают быстрее найти подходящий фильм, сохранить его в вочлист и вернуться к просмотру позже.
       </p>
     </section>
   </main>
@@ -374,14 +372,6 @@
   Клиент для работы с базой, авторизацией и storage.
   ========================================================== -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="shared-layout.js"></script>
-  <script>
-    window.SharedLayout?.mountSharedHeader({ isMoviePage: false });
-    window.SharedLayout?.mountSharedAuthModal();
-    window.SharedLayout?.mountSharedDisplayNameModal();
-    window.SharedLayout?.mountSharedMovieModal();
-    window.SharedLayout?.mountSharedFooter();
-  </script>
 
   <!-- =========================================================
   HTML-БЛОК 11. ПОДКЛЮЧЕНИЕ СКРИПТОВ ПРИЛОЖЕНИЯ
@@ -406,7 +396,15 @@
       envReadyPromise
         .then(() => {
           const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
-          return loadScript('custom-select.js', buildVersion)
+          return loadScript('shared-layout.js', buildVersion)
+            .then(() => {
+              window.SharedLayout?.mountSharedHeader({ isMoviePage: false });
+              window.SharedLayout?.mountSharedAuthModal();
+              window.SharedLayout?.mountSharedDisplayNameModal();
+              window.SharedLayout?.mountSharedMovieModal();
+              window.SharedLayout?.mountSharedFooter();
+            })
+            .then(() => loadScript('custom-select.js', buildVersion))
             .then(() => loadScript('app.js', buildVersion));
         })
         .catch(error => {

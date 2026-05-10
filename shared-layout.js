@@ -1,8 +1,8 @@
 (function () {
     function getSharedHeaderHtml({ isMoviePage = false } = {}) {
       const logoHtml = isMoviePage
-        ? `<h1><a href="index.html" class="page-logo-link">Хоррорейро</a></h1>`
-        : `<h1>Хоррорейро</h1>`;
+        ? `<div class="page-logo"><a href="/" class="page-logo-link">Хоррорейро</a></div>`
+        : `<h1 class="page-logo">Хоррорейро</h1>`;
   
       return `
         <header class="page-header">

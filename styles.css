@@ -136,7 +136,7 @@ body {
   color-scheme: dark;
 }
 
-.page-header h1 {
+.page-logo {
   margin: 0;
   min-height: 44px;
   display: flex;
@@ -4766,7 +4766,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     visibility: hidden;
   }
   
-  h1 {
+  .page-logo {
     min-width: 0;
     flex: 0 0 auto;
     justify-content: center;
@@ -4890,7 +4890,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     gap: 6px;
   }
 
-  h1 {
+  .page-logo {
     font-size: 26px;
     letter-spacing: 1px;
   }

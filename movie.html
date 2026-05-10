@@ -27,8 +27,6 @@
 
   <meta name="description" content="Страница фильма в каталоге Хоррорейро: рейтинг, ссылки, пользовательская оценка и основные данные о хорроре.">
 
-  <link rel="canonical" href="https://horroreiro.ru/movie.html">
-
   <meta property="og:type" content="website">
   <meta property="og:title" content="Фильм ужасов — Хоррорейро">
   <meta property="og:description" content="Страница фильма в каталоге Хоррорейро: рейтинг, ссылки, пользовательская оценка и основные данные о хорроре.">
@@ -137,7 +135,7 @@
     ========================================================== -->
     <section class="section movie-page">
       <div class="movie-page-topbar">
-        <a href="index.html" class="secondary-button movie-page-back-link">← Назад к каталогу</a>
+        <a href="/" class="secondary-button movie-page-back-link">← Назад к каталогу</a>
 
         <div id="moviePageAdminActions" class="movie-page-admin-actions auth-ui-block">
           <button
@@ -169,7 +167,9 @@
       </div>
 
       <div id="moviePage" class="movie-page-content-shell">
+        <!-- MOVIE_PAGE_FALLBACK_START -->
         <div class="movie-page-loading-state">Загрузка фильма...</div>
+        <!-- MOVIE_PAGE_FALLBACK_END -->
       </div>
     </section>
   </main>
@@ -177,14 +177,6 @@
   <div id="sharedFooterMount"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="shared-layout.js"></script>
-  <script>
-    window.SharedLayout?.mountSharedHeader({ isMoviePage: true });
-    window.SharedLayout?.mountSharedAuthModal();
-    window.SharedLayout?.mountSharedDisplayNameModal();
-    window.SharedLayout?.mountSharedMovieModal();
-    window.SharedLayout?.mountSharedFooter();
-  </script>
 
   <script>
     (function () {
@@ -203,7 +195,15 @@
       envReadyPromise
         .then(() => {
           const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
-          return loadScript('custom-select.js', buildVersion)
+          return loadScript('shared-layout.js', buildVersion)
+            .then(() => {
+              window.SharedLayout?.mountSharedHeader({ isMoviePage: true });
+              window.SharedLayout?.mountSharedAuthModal();
+              window.SharedLayout?.mountSharedDisplayNameModal();
+              window.SharedLayout?.mountSharedMovieModal();
+              window.SharedLayout?.mountSharedFooter();
+            })
+            .then(() => loadScript('custom-select.js', buildVersion))
             .then(() => loadScript('app.js', buildVersion));
         })
         .catch(error => {
