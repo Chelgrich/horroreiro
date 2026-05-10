@@ -40,6 +40,12 @@ html::-webkit-scrollbar-corner {
   --catalog-pagination-button-width: 34px;
   --catalog-pagination-button-height: 32px;
   --catalog-pagination-ellipsis-width: 18px;
+  --poster-aspect-ratio: 2 / 3;
+  --poster-overlay-offset: 10px;
+  --poster-overlay-size: 32px;
+  --poster-overlay-radius: 8px;
+  --poster-overlay-icon-size: 17px;
+  --icon-stroke-width: 1.8;
   --radius-lg: 10px;
   --radius-md: 6px;
 
@@ -155,6 +161,16 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
   box-sizing: border-box;
   --catalog-columns: 4;
   --catalog-grid-gap: 16px;
+  --movie-card-title-padding-bottom: 10px;
+  --movie-card-title-font-size: 20px;
+  --movie-card-title-line-height: 1.2;
+  --movie-card-title-letter-spacing: normal;
+  --movie-card-title-overflow-wrap: normal;
+  --movie-card-title-word-break: normal;
+  --movie-card-text-font-size: 14px;
+  --movie-card-text-line-height: 1.4;
+  --movie-card-text-overflow-wrap: normal;
+  --movie-card-text-word-break: normal;
   max-width: var(--page-max-width);
   margin: 0 auto;
   padding: 24px;
@@ -263,7 +279,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   display: block;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.8;
+  stroke-width: var(--icon-stroke-width);
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -307,9 +323,9 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   margin-left: 8px;
 }
 
-.auth-icon-button {
-  width: 44px;
-  height: 44px;
+.auth-icon-button,
+.movie-page-admin-icon-button,
+.movie-page-review-icon-button {
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -318,6 +334,11 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   background: var(--surface-control-alt);
   border: 1px solid var(--border-control-strong);
   border-radius: 999px;
+}
+
+.auth-icon-button {
+  width: 44px;
+  height: 44px;
   box-shadow: 0 0 0 rgba(0, 0, 0, 0);
   transition:
     transform 0.18s ease,
@@ -327,29 +348,47 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
     color 0.18s ease;
 }
 
-.auth-icon-button svg {
-  width: 20px;
-  height: 20px;
+.auth-icon-button svg,
+.movie-page-admin-icon-button svg,
+.movie-page-review-icon-button svg {
   display: block;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.8;
+  stroke-width: var(--icon-stroke-width);
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.auth-icon-button:hover {
+.auth-icon-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.auth-icon-button:hover,
+.movie-page-admin-icon-button:hover,
+.movie-page-review-icon-button:hover {
   color: var(--color-text-primary);
   background: var(--surface-control-hover);
   border-color: var(--border-control-hover);
+}
+
+.auth-icon-button:hover {
   box-shadow:
     0 10px 22px rgba(0, 0, 0, 0.24),
     0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 
 .auth-icon-button:focus,
-.auth-icon-button:focus-visible {
+.auth-icon-button:focus-visible,
+.movie-page-admin-icon-button:focus,
+.movie-page-admin-icon-button:focus-visible,
+.movie-page-review-icon-button:focus,
+.movie-page-review-icon-button:focus-visible {
   outline: none;
+}
+
+.auth-icon-button:focus,
+.auth-icon-button:focus-visible {
   color: var(--color-text-primary);
   border-color: var(--control-focus-border);
   box-shadow: 0 0 0 3px var(--control-focus-ring);
@@ -1545,12 +1584,36 @@ button {
   font-size: 12px;
 }
 
-button:not(.display-name-button):not(.auth-popover-item):not(.search-clear-btn):not(.movie-watchlist-btn):not(.movie-page-watchlist-icon):not(.movie-page-admin-icon-button):not(.movie-page-review-icon-button):not(.rating-star-btn):not(.mobile-rating-star-btn):not(.active-filter-chip-remove):not(.catalog-pagination-button):hover {
+button:not(:where(
+  .display-name-button,
+  .auth-popover-item,
+  .search-clear-btn,
+  .movie-watchlist-btn,
+  .movie-page-watchlist-icon,
+  .movie-page-admin-icon-button,
+  .movie-page-review-icon-button,
+  .rating-star-btn,
+  .mobile-rating-star-btn,
+  .active-filter-chip-remove,
+  .catalog-pagination-button
+)):hover {
   opacity: 0.96;
   transform: translateY(-1px);
 }
 
-button:not(.display-name-button):not(.auth-popover-item):not(.search-clear-btn):not(.movie-watchlist-btn):not(.movie-page-watchlist-icon):not(.movie-page-admin-icon-button):not(.movie-page-review-icon-button):not(.rating-star-btn):not(.mobile-rating-star-btn):not(.active-filter-chip-remove):not(.catalog-pagination-button):active {
+button:not(:where(
+  .display-name-button,
+  .auth-popover-item,
+  .search-clear-btn,
+  .movie-watchlist-btn,
+  .movie-page-watchlist-icon,
+  .movie-page-admin-icon-button,
+  .movie-page-review-icon-button,
+  .rating-star-btn,
+  .mobile-rating-star-btn,
+  .active-filter-chip-remove,
+  .catalog-pagination-button
+)):active {
   transform: translateY(0) scale(0.96);
 }
 
@@ -2561,12 +2624,15 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 
 .movie-card h5 {
   margin: 0 0 2px;
-  padding-bottom: 10px;
-  font-size: 20px;
+  padding-bottom: var(--movie-card-title-padding-bottom);
+  font-size: var(--movie-card-title-font-size);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: var(--movie-card-title-line-height);
+  letter-spacing: var(--movie-card-title-letter-spacing);
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--border-divider);
+  overflow-wrap: var(--movie-card-title-overflow-wrap);
+  word-break: var(--movie-card-title-word-break);
 }
 
 .movie-title-link {
@@ -2584,10 +2650,12 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 
 .movie-card p {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--movie-card-text-font-size);
   font-weight: 400;
-  line-height: 1.4;
+  line-height: var(--movie-card-text-line-height);
   color: #e3e8ee;
+  overflow-wrap: var(--movie-card-text-overflow-wrap);
+  word-break: var(--movie-card-text-word-break);
 }
 
 .movie-card p + p {
@@ -2626,7 +2694,8 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   margin: -4px -16px 14px;
 }
 
-.movie-poster-link {
+.movie-poster-link,
+.movie-page-similar-poster-link {
   display: block;
   color: inherit;
   text-decoration: none;
@@ -2635,21 +2704,30 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
 .movie-poster-link:hover,
 .movie-poster-link:focus,
 .movie-poster-link:focus-visible,
-.movie-poster-link:active {
+.movie-poster-link:active,
+.movie-page-similar-poster-link:hover,
+.movie-page-similar-poster-link:focus,
+.movie-page-similar-poster-link:focus-visible,
+.movie-page-similar-poster-link:active {
   color: inherit;
   text-decoration: none;
 }
 
-.movie-poster-wrapper {
+.movie-poster-wrapper,
+.movie-page-poster-wrapper,
+.movie-page-similar-poster-wrapper {
   position: relative;
   width: 100%;
-  aspect-ratio: 2 / 3;
-  flex: 0 0 auto;
+  aspect-ratio: var(--poster-aspect-ratio);
   overflow: hidden;
-  contain: layout paint;
-  isolation: isolate;
   background: var(--surface-media);
   border: 1px solid var(--border-media);
+}
+
+.movie-poster-wrapper {
+  flex: 0 0 auto;
+  contain: layout paint;
+  isolation: isolate;
   border-radius: 6px;
 }
 
@@ -2746,21 +2824,24 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
 }
 
 .movie-watchlist-btn,
-.movie-watched-icon {
+.movie-watched-icon,
+.movie-page-watchlist-icon,
+.movie-page-watched-icon {
   position: absolute;
-  top: 10px;
+  top: var(--poster-overlay-offset);
   z-index: 3;
-  width: 32px;
-  height: 32px;
+  width: var(--poster-overlay-size);
+  height: var(--poster-overlay-size);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: var(--poster-overlay-radius);
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
 }
 
-.movie-watchlist-btn {
-  left: 10px;
+.movie-watchlist-btn,
+.movie-page-watchlist-icon {
+  left: var(--poster-overlay-offset);
   padding: 0;
   color: var(--color-text-primary);
   background: rgba(17, 22, 28, 0.82);
@@ -2773,14 +2854,16 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
     box-shadow 0.18s ease;
 }
 
-.movie-watchlist-btn:hover {
+.movie-watchlist-btn:hover,
+.movie-page-watchlist-icon:hover {
   transform: translateY(-1px) scale(1.06);
   background: rgba(32, 40, 50, 0.95);
   border-color: rgba(255, 255, 255, 0.22);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
 }
 
-.movie-watchlist-btn.is-active {
+.movie-watchlist-btn.is-active,
+.movie-page-watchlist-icon.is-active {
   background: rgba(91, 140, 255, 0.88);
   border-color: rgba(91, 140, 255, 0.92);
 }
@@ -2801,19 +2884,25 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
 }
 
 .movie-watchlist-btn svg,
-.movie-watched-icon svg {
-  width: 17px;
-  height: 17px;
+.movie-watched-icon svg,
+.movie-page-watchlist-icon svg,
+.movie-page-watched-icon svg {
+  width: var(--poster-overlay-icon-size);
+  height: var(--poster-overlay-icon-size);
   fill: none;
   stroke: var(--color-text-primary);
-  stroke-width: 1.8;
+  stroke-width: var(--icon-stroke-width);
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.movie-watched-icon {
-  right: 10px;
+.movie-watched-icon,
+.movie-page-watched-icon {
+  right: var(--poster-overlay-offset);
   background: #22a861;
+}
+
+.movie-watched-icon {
   pointer-events: none;
 }
 
@@ -3497,36 +3586,15 @@ body:has(.movie-page-shell) .page {
   width: 40px;
   height: 40px;
   min-width: 40px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-secondary);
-  background: var(--surface-control-alt);
-  border: 1px solid var(--border-control-strong);
-  border-radius: 999px;
 }
 
 .movie-page-admin-icon-button svg {
   width: 18px;
   height: 18px;
-  display: block;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.movie-page-admin-icon-button:hover {
-  color: var(--color-text-primary);
-  background: var(--surface-control-hover);
-  border-color: var(--border-control-hover);
 }
 
 .movie-page-admin-icon-button:focus,
 .movie-page-admin-icon-button:focus-visible {
-  outline: none;
   box-shadow: 0 0 0 3px var(--control-focus-ring);
 }
 
@@ -3579,55 +3647,15 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-poster-wrapper {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 2 / 3;
-  overflow: hidden;
-  background: var(--surface-media);
-  border: 1px solid var(--border-media);
   border-radius: 8px;
 }
 
-.movie-page-poster {
+.movie-page-poster,
+.movie-page-similar-poster {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.movie-page-watchlist-icon,
-.movie-page-watched-icon {
-  position: absolute;
-  top: 10px;
-  z-index: 3;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
-}
-
-.movie-page-watchlist-icon {
-  left: 10px;
-  padding: 0;
-  color: var(--color-text-primary);
-  background: rgba(17, 22, 28, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(6px);
-  transition:
-    transform 0.18s ease,
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
-}
-
-.movie-page-watchlist-icon:hover {
-  transform: translateY(-1px) scale(1.06);
-  background: rgba(32, 40, 50, 0.95);
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
 }
 
 .movie-page-watchlist-icon:active {
@@ -3643,28 +3671,10 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-watchlist-icon.is-active {
-  background: rgba(91, 140, 255, 0.88);
-  border-color: rgba(91, 140, 255, 0.92);
   box-shadow:
     0 6px 14px rgba(0, 0, 0, 0.35),
     0 0 0 1px rgba(91, 140, 255, 0.14),
     0 0 14px rgba(91, 140, 255, 0.18);
-}
-
-.movie-page-watched-icon {
-  right: 10px;
-  background: #22a861;
-}
-
-.movie-page-watchlist-icon svg,
-.movie-page-watched-icon svg {
-  width: 17px;
-  height: 17px;
-  fill: none;
-  stroke: var(--color-text-primary);
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .movie-page-main-column {
@@ -4035,36 +4045,15 @@ body:has(.movie-page-shell) .page {
   width: 32px;
   height: 32px;
   min-width: 32px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-secondary);
-  background: var(--surface-control-alt);
-  border: 1px solid var(--border-control-strong);
-  border-radius: 999px;
 }
 
 .movie-page-review-icon-button svg {
   width: 15px;
   height: 15px;
-  display: block;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.movie-page-review-icon-button:hover {
-  color: var(--color-text-primary);
-  background: var(--surface-control-hover);
-  border-color: var(--border-control-hover);
 }
 
 .movie-page-review-icon-button:focus,
 .movie-page-review-icon-button:focus-visible {
-  outline: none;
   box-shadow: 0 0 0 3px var(--control-focus-ring);
 }
 
@@ -4185,36 +4174,9 @@ body:has(.movie-page-shell) .page {
     0 10px 24px rgba(0, 0, 0, 0.24);
 }
 
-.movie-page-similar-poster-link {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-}
-
-.movie-page-similar-poster-link:hover,
-.movie-page-similar-poster-link:focus,
-.movie-page-similar-poster-link:focus-visible,
-.movie-page-similar-poster-link:active {
-  color: inherit;
-  text-decoration: none;
-}
-
 .movie-page-similar-poster-wrapper {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 2 / 3;
-  overflow: hidden;
   isolation: isolate;
-  background: var(--surface-media);
-  border: 1px solid var(--border-media);
   border-radius: 8px;
-}
-
-.movie-page-similar-poster {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .movie-page-similar-content {
@@ -4554,6 +4516,9 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 @media (max-width: 900px) {
   .page {
     padding: 16px;
+    --movie-card-title-padding-bottom: 8px;
+    --movie-card-text-font-size: 13px;
+    --movie-card-text-line-height: 1.36;
   }
 
   .page-header-top {
@@ -4883,16 +4848,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     margin: -2px -8px 12px;
   }
 
-  .movie-card h5 {
-    padding-bottom: 8px;
-    font-size: 20px;
-  }
-
-  .movie-card p {
-    font-size: 13px;
-    line-height: 1.36;
-  }
-
   .movie-card p:first-of-type {
     margin-top: 8px;
   }
@@ -4924,6 +4879,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     --catalog-grid-gap: 12px;
     --catalog-pagination-gap: clamp(4px, 1.2vw, 6px);
     --catalog-pagination-button-height: 34px;
+    --movie-card-title-padding-bottom: 7px;
+    --movie-card-title-font-size: 16px;
+    --movie-card-title-line-height: 1.16;
+    --movie-card-text-font-size: 12px;
+    --movie-card-text-line-height: 1.28;
   }
 
   .page-header-top {
@@ -5067,17 +5027,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-poster-block {
     margin: -2px -4px 10px;
-  }
-
-  .movie-card h5 {
-    padding-bottom: 7px;
-    font-size: 16px;
-    line-height: 1.16;
-  }
-
-  .movie-card p {
-    font-size: 12px;
-    line-height: 1.28;
   }
 
   .movie-card p + p {
@@ -5320,6 +5269,16 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     --catalog-pagination-button-width: clamp(24px, 8vw, 30px);
     --catalog-pagination-button-height: 32px;
     --catalog-pagination-ellipsis-width: 10px;
+    --movie-card-title-padding-bottom: 8px;
+    --movie-card-title-font-size: 20px;
+    --movie-card-title-line-height: 1.18;
+    --movie-card-title-letter-spacing: 0.2px;
+    --movie-card-title-overflow-wrap: anywhere;
+    --movie-card-title-word-break: break-word;
+    --movie-card-text-font-size: 14px;
+    --movie-card-text-line-height: 1.32;
+    --movie-card-text-overflow-wrap: anywhere;
+    --movie-card-text-word-break: break-word;
   }
 
   .movie-page-similar-grid {
@@ -5372,22 +5331,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .movie-user-rating-mobile-trigger {
     font-size: 14px;
     line-height: 1.2;
-  }
-
-  .movie-card h5 {
-    padding-bottom: 8px;
-    font-size: 20px;
-    line-height: 1.18;
-    letter-spacing: 0.2px;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-  }
-
-  .movie-card p {
-    font-size: 14px;
-    line-height: 1.32;
-    overflow-wrap: anywhere;
-    word-break: break-word;
   }
 
   .movie-rating-block {
