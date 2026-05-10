@@ -18,6 +18,6 @@ export async function onRequestGet(context) {
     });
   } catch (error) {
     console.error('Movie SEO route failed:', error);
-    return env.ASSETS.fetch(new URL('/movie.html', request.url));
+    return env.ASSETS.fetch(new URL('/movie.html', request.url).toString());
   }
 }

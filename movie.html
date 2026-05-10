@@ -49,7 +49,7 @@
 
   <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
   <style>
     html:not(.app-ready) body {
@@ -74,12 +74,18 @@
         APP_BUILD_VERSION: 'dev-local'
       };
 
+      function getVersionedAssetUrl(src, buildVersion) {
+        const assetPath = window.location.protocol === 'file:' ? src : `/${src}`;
+
+        return `${assetPath}?v=${encodeURIComponent(buildVersion)}`;
+      }
+
       function applyEnvAndLoadStyles() {
         const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
 
         const stylesheet = document.createElement('link');
         stylesheet.rel = 'stylesheet';
-        stylesheet.href = `styles.css?v=${encodeURIComponent(buildVersion)}`;
+        stylesheet.href = getVersionedAssetUrl('styles.css', buildVersion);
         stylesheet.onload = () => {
           document.documentElement.classList.add('app-ready');
           resolve();
@@ -185,7 +191,9 @@
       function loadScript(src, buildVersion) {
         return new Promise((resolve, reject) => {
           const script = document.createElement('script');
-          script.src = `${src}?v=${encodeURIComponent(buildVersion)}`;
+          const assetPath = window.location.protocol === 'file:' ? src : `/${src}`;
+
+          script.src = `${assetPath}?v=${encodeURIComponent(buildVersion)}`;
           script.onload = resolve;
           script.onerror = reject;
           document.body.appendChild(script);

@@ -377,7 +377,7 @@ function applyNotFoundSeoToHtml(html, requestUrl) {
 
 async function getMovieHtmlAsset(env, request) {
   const assetUrl = new URL('/movie.html', request.url);
-  return env.ASSETS.fetch(assetUrl);
+  return env.ASSETS.fetch(assetUrl.toString());
 }
 
 function createHtmlResponse(html, assetResponse, { status = 200, cacheControl = 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400' } = {}) {
