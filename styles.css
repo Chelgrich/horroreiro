@@ -31,16 +31,91 @@ html::-webkit-scrollbar-corner {
 }
 
 :root {
+  --page-max-width: 1440px;
+  --control-width: 220px;
+  --control-height-lg: 44px;
+  --control-height-md: 36px;
+  --control-height-sm: 32px;
+  --catalog-pagination-gap: 6px;
+  --catalog-pagination-button-width: 34px;
+  --catalog-pagination-button-height: 32px;
+  --catalog-pagination-ellipsis-width: 18px;
   --radius-lg: 10px;
   --radius-md: 6px;
 
   --surface-control-alt: #1a1f26;
   --surface-control: #121519;
+  --surface-control-hover: #1b2128;
+  --surface-panel: #1a1d21;
+  --surface-card: #15191d;
+  --surface-card-hover: #171c20;
+  --surface-media: #0f1114;
 
+  --border-panel: #2a2f36;
+  --border-card: #2a3038;
+  --border-control: #313842;
   --border-control-strong: #353d48;
+  --border-control-hover: #3a444f;
+  --border-divider: #1f242b;
+  --border-media: #2c333b;
+  --control-hover-border: #5c6b7c;
+  --control-focus-border: #5c6b7c;
+  --control-focus-ring: rgba(92, 107, 124, 0.2);
 
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #e7ebf0;
+  --color-text-tertiary: #cfd6de;
+  --color-text-muted: #9aa3ad;
+  --color-text-dim: #8f99a5;
   --color-danger-text: #ffd9d4;
+  --color-danger-bg: rgba(120, 34, 34, 0.28);
+  --color-danger-border: rgba(255, 123, 114, 0.5);
   --color-danger-border-soft: rgba(255, 123, 114, 0.38);
+  --color-danger-shadow: rgba(255, 123, 114, 0.14);
+  --color-success-base: 34, 168, 97;
+  --color-success-border: rgba(34, 168, 97, 0.5);
+  --color-success-bg-soft: rgba(34, 168, 97, 0.06);
+  --color-success-shadow: rgba(34, 168, 97, 0.18);
+  --color-watchlist-base: 91, 140, 255;
+  --color-watchlist-border: rgba(91, 140, 255, 0.45);
+  --color-watchlist-bg-soft: rgba(91, 140, 255, 0.06);
+  --color-watchlist-shadow: rgba(91, 140, 255, 0.16);
+  --color-rating-text: #f5c518;
+  --color-rating-mark-text: #111315;
+  --color-rating-mark-bg: rgba(245, 197, 24, 0.92);
+  --color-rating-glow-soft: rgba(245, 197, 24, 0.14);
+  --color-rating-glow-medium: rgba(245, 197, 24, 0.18);
+
+  --accent-primary: #5b8cff;
+  --accent-soft-text: #dbe7ff;
+  --accent-soft-bg: rgba(91, 140, 255, 0.16);
+  --accent-soft-bg-hover: rgba(91, 140, 255, 0.2);
+  --accent-soft-border: rgba(91, 140, 255, 0.42);
+  --accent-soft-border-hover: rgba(91, 140, 255, 0.5);
+  --accent-soft-shadow: rgba(91, 140, 255, 0.16);
+
+  --modal-page-padding-top: 84px;
+  --modal-page-padding-x: 24px;
+  --modal-page-padding-bottom: 24px;
+  --modal-dialog-max-width: 720px;
+  --modal-dialog-max-height-offset: 108px;
+  --modal-dialog-padding: 20px;
+  --modal-header-gap: 12px;
+  --modal-title-safe-right: 40px;
+  --modal-close-offset: 16px;
+  --modal-close-size: 32px;
+  --modal-mobile-page-padding-top: 70px;
+  --modal-mobile-page-padding-x: 16px;
+  --modal-mobile-page-padding-bottom: 16px;
+  --modal-mobile-dialog-max-height-offset: 86px;
+  --modal-backdrop-bg: rgba(0, 0, 0, 0.7);
+  --modal-dialog-bg: var(--surface-control-alt);
+  --modal-dialog-border: 1px solid var(--border-card);
+  --modal-dialog-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  --modal-auth-dialog-max-width: 520px;
+  --modal-display-name-dialog-max-width: 380px;
+  --modal-space-sm: 12px;
+  --modal-space-md: 16px;
 }
 
 body {
@@ -65,7 +140,7 @@ body {
   letter-spacing: 2px;
   line-height: 44px;
   text-transform: uppercase;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 h3 {
@@ -78,78 +153,9 @@ CSS-БЛОК 2. ОСНОВНОЙ КОНТЕЙНЕР СТРАНИЦЫ
 ========================================================== */
 .page {
   box-sizing: border-box;
-  --control-width: 220px;
   --catalog-columns: 4;
   --catalog-grid-gap: 16px;
-  --radius-lg: 10px;
-  --radius-md: 6px;
-  --control-height-lg: 44px;
-  --control-height-md: 36px;
-  --control-height-sm: 32px;
-  --surface-panel: #1a1d21;
-  --surface-card: #15191d;
-  --surface-card-hover: #171c20;
-  --surface-control: #121519;
-  --surface-control-alt: #1a1f26;
-  --border-panel: #2a2f36;
-  --border-card: #2a3038;
-  --border-control: #313842;
-  --border-control-strong: #353d48;
-  --control-hover-border: #5c6b7c;
-  --control-focus-border: #5c6b7c;
-  --control-focus-ring: rgba(92, 107, 124, 0.2);
-  --accent-soft-text: #dbe7ff;
-  --accent-soft-bg: rgba(91, 140, 255, 0.16);
-  --accent-soft-bg-hover: rgba(91, 140, 255, 0.2);
-  --accent-soft-border: rgba(91, 140, 255, 0.42);
-  --accent-soft-border-hover: rgba(91, 140, 255, 0.5);
-  --accent-soft-shadow: rgba(91, 140, 255, 0.16);
-  --color-danger-text: #ffd9d4;
-  --color-danger-bg: rgba(120, 34, 34, 0.28);
-  --color-danger-border: rgba(255, 123, 114, 0.5);
-  --color-danger-shadow: rgba(255, 123, 114, 0.14);
-  --color-success-base: 34, 168, 97;
-  --color-success-border: rgba(34, 168, 97, 0.5);
-  --color-success-bg-soft: rgba(34, 168, 97, 0.06);
-  --color-success-shadow: rgba(34, 168, 97, 0.18);
-  --color-watchlist-base: 91, 140, 255;
-  --color-watchlist-border: rgba(91, 140, 255, 0.45);
-  --color-watchlist-bg-soft: rgba(91, 140, 255, 0.06);
-  --color-watchlist-shadow: rgba(91, 140, 255, 0.16);
-  --color-rating-base: 245, 197, 24;
-  --color-rating-text: #f5c518;
-  --color-rating-mark-text: #111315;
-  --color-rating-mark-bg: rgba(245, 197, 24, 0.92);
-  --color-rating-glow-soft: rgba(245, 197, 24, 0.14);
-  --color-rating-glow-medium: rgba(245, 197, 24, 0.18);
-  --modal-page-padding-top: 84px;
-  --modal-page-padding-x: 24px;
-  --modal-page-padding-bottom: 24px;
-  --modal-dialog-max-width: 720px;
-  --modal-dialog-max-height-offset: 108px;
-  --modal-dialog-padding: 20px;
-  --modal-header-gap: 12px;
-  --modal-title-safe-right: 40px;
-  --modal-close-offset: 16px;
-  --modal-close-size: 32px;
-  --modal-mobile-page-padding-top: 70px;
-  --modal-mobile-page-padding-x: 16px;
-  --modal-mobile-page-padding-bottom: 16px;
-  --modal-mobile-dialog-max-height-offset: 86px;
-  --modal-backdrop-bg: rgba(0, 0, 0, 0.7);
-  --modal-dialog-bg: var(--surface-control-alt);
-  --modal-dialog-border: 1px solid var(--border-card);
-  --modal-dialog-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
-  --modal-auth-dialog-max-width: 520px;
-  --modal-display-name-dialog-max-width: 380px;
-  --modal-space-sm: 12px;
-  --modal-space-md: 16px;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #e7ebf0;
-  --color-text-tertiary: #cfd6de;
-  --color-text-muted: #9aa3ad;
-  --color-text-dim: #8f99a5;
-  max-width: 1440px;
+  max-width: var(--page-max-width);
   margin: 0 auto;
   padding: 24px;
 }
@@ -222,8 +228,8 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .display-name-button:hover {
-  color: #ffffff;
-  background: #171c20;
+  color: var(--color-text-primary);
+  background: var(--surface-card-hover);
   border-color: #2f3843;
 }
 
@@ -333,9 +339,9 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .auth-icon-button:hover {
-  color: #ffffff;
-  background: #1b2128;
-  border-color: #3a444f;
+  color: var(--color-text-primary);
+  background: var(--surface-control-hover);
+  border-color: var(--border-control-hover);
   box-shadow:
     0 10px 22px rgba(0, 0, 0, 0.24),
     0 0 0 1px rgba(255, 255, 255, 0.03);
@@ -344,7 +350,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 .auth-icon-button:focus,
 .auth-icon-button:focus-visible {
   outline: none;
-  color: #ffffff;
+  color: var(--color-text-primary);
   border-color: var(--control-focus-border);
   box-shadow: 0 0 0 3px var(--control-focus-ring);
 }
@@ -531,7 +537,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .floating-add-movie-button:hover {
-  color: #ffffff;
+  color: var(--color-text-primary);
   background: var(--accent-soft-bg-hover);
   border-color: var(--accent-soft-border-hover);
   box-shadow:
@@ -543,7 +549,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 .floating-add-movie-button:focus,
 .floating-add-movie-button:focus-visible {
   outline: none;
-  color: #ffffff;
+  color: var(--color-text-primary);
   border-color: var(--control-focus-border);
   box-shadow:
     0 0 0 3px var(--control-focus-ring),
@@ -651,7 +657,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   font-size: 26px;
   font-weight: 700;
   line-height: 1.15;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .movies-section-header .section-title,
@@ -714,8 +720,8 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 
 .catalog-view-toggle:hover {
   color: #e3e8ee;
-  background: #1b2128;
-  border-color: #3a444f;
+  background: var(--surface-control-hover);
+  border-color: var(--border-control-hover);
 }
 
 .catalog-pagination {
@@ -744,7 +750,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 .catalog-pagination-pages {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--catalog-pagination-gap);
   flex-wrap: wrap;
 }
 
@@ -754,9 +760,9 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 }
 
 .catalog-pagination-button {
-  min-width: 34px;
-  height: 32px;
-  min-height: 32px;
+  min-width: var(--catalog-pagination-button-width);
+  height: var(--catalog-pagination-button-height);
+  min-height: var(--catalog-pagination-button-height);
   padding: 0 10px;
   justify-content: center;
   font-size: 12px;
@@ -768,12 +774,12 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 }
 
 .catalog-pagination-arrow {
-  width: 34px;
+  width: var(--catalog-pagination-button-width);
   padding: 0;
 }
 
 .catalog-pagination-page {
-  width: 34px;
+  width: var(--catalog-pagination-button-width);
   padding: 0;
 }
 
@@ -789,7 +795,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 }
 
 .catalog-pagination-ellipsis {
-  min-width: 18px;
+  min-width: var(--catalog-pagination-ellipsis-width);
   text-align: center;
   color: var(--color-text-muted);
 }
@@ -896,7 +902,7 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 
 .modal-close-button:hover {
   opacity: 1;
-  background: #1b2128;
+  background: var(--surface-control-hover);
 }
 
 .auth-modal-dialog {
@@ -1140,7 +1146,7 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
 }
 
 .movie-taxonomy-preview-line strong {
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-weight: 700;
 }
 
@@ -1233,7 +1239,7 @@ input {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  color: #ffffff;
+  color: var(--color-text-primary);
   background: var(--surface-control-alt);
   border: 1px solid var(--border-control-strong);
   border-radius: var(--radius-md);
@@ -1410,7 +1416,7 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
 
 .custom-select:not(.is-placeholder-selected) .custom-select-trigger:hover .custom-select-label,
 .custom-select:not(.is-placeholder-selected).is-open .custom-select-label {
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .custom-select.is-open {
@@ -1485,7 +1491,7 @@ CSS-БЛОК 8A. КАСТОМНЫЕ SELECT
 
 .custom-select-option.is-selected {
   background: #283240;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .custom-select-option.is-disabled {
@@ -1508,10 +1514,10 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--color-text-primary);
   cursor: pointer;
-  background: #5b8cff;
-  border: 1px solid #5b8cff;
+  background: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
   border-radius: var(--radius-md);
 }
 
@@ -1598,7 +1604,7 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
   height: 36px;
   border: none;
   background: transparent;
-  color: #8f99a5;
+  color: var(--color-text-dim);
   font-size: 28px;
   line-height: 1;
   cursor: pointer;
@@ -1614,7 +1620,7 @@ CSS-БЛОК 10. ПАНЕЛЬ ФИЛЬТРОВ
 }
 
 .search-clear-btn:hover {
-  color: #e7ebf0;
+  color: var(--color-text-secondary);
   background: transparent;
   opacity: 1;
 }
@@ -2041,7 +2047,7 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #cfd6de;
+  color: var(--color-text-tertiary);
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid #2b333c;
   border-radius: 8px;
@@ -2085,7 +2091,7 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 }
 
 .trigger-filter-option input:checked {
-  border-color: #ffffff;
+  border-color: var(--color-text-primary);
   background: #f3f5f7;
   box-shadow: inset 0 0 0 3px #6a2e2e;
 }
@@ -2170,7 +2176,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: 0.2px;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .movies-year-title:not(:first-child) {
@@ -2213,7 +2219,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   font-weight: 600;
   color: var(--color-text-tertiary);
   background: #161b21;
-  border: 1px solid #313842;
+  border: 1px solid var(--border-control);
   border-radius: 999px;
   white-space: nowrap;
 }
@@ -2237,8 +2243,8 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   text-align: center;
   background:
     radial-gradient(circle at top, rgba(91, 140, 255, 0.08), transparent 46%),
-    #15191d;
-  border: 1px solid #2a3038;
+    var(--surface-card);
+  border: 1px solid var(--border-card);
   border-radius: 10px;
 }
 
@@ -2262,7 +2268,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   font-size: 22px;
   font-weight: 700;
   line-height: 1.2;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .empty-state-text {
@@ -2290,7 +2296,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 
 .empty-state-reset-btn:hover {
   background: #182028;
-  border-color: #3a444f;
+  border-color: var(--border-control-hover);
 }
 
 /* =========================================================
@@ -2334,7 +2340,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 .movie-card:hover {
   transform: none;
   background: var(--surface-card-hover);
-  border-color: #3a444f;
+  border-color: var(--border-control-hover);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.02),
     0 10px 24px rgba(0, 0, 0, 0.24);
@@ -2347,18 +2353,18 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 .movie-card-rated:hover {
   background:
     linear-gradient(rgba(var(--color-success-base), 0.08), rgba(var(--color-success-base), 0.08)),
-    #171c20;
+    var(--surface-card-hover);
 }
 
 .movie-card-watchlist:hover {
   background:
     linear-gradient(rgba(var(--color-watchlist-base), 0.08), rgba(var(--color-watchlist-base), 0.08)),
-    #171c20;
+    var(--surface-card-hover);
 }
 
 .movie-card:focus-within {
   transform: none;
-  border-color: #3a444f;
+  border-color: var(--border-control-hover);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.02),
     0 10px 24px rgba(0, 0, 0, 0.22);
@@ -2372,7 +2378,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   border-color: var(--color-success-border);
   background:
     linear-gradient(var(--color-success-bg-soft), var(--color-success-bg-soft)),
-    #15191d;
+    var(--surface-card);
   box-shadow:
     0 0 0 1px var(--color-success-shadow),
     0 0 10px rgba(var(--color-success-base), 0.12);
@@ -2397,7 +2403,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   border-color: var(--color-watchlist-border);
   background:
     linear-gradient(var(--color-watchlist-bg-soft), var(--color-watchlist-bg-soft)),
-    #15191d;
+    var(--surface-card);
   box-shadow:
     0 0 0 1px var(--color-watchlist-shadow),
     0 0 10px rgba(var(--color-watchlist-base), 0.12);
@@ -2550,7 +2556,7 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
 }
 
 .movie-poster-wrapper-skeleton {
-  background: #0f1114;
+  background: var(--surface-media);
 }
 
 .movie-card h5 {
@@ -2559,8 +2565,8 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   font-size: 20px;
   font-weight: 700;
   line-height: 1.2;
-  color: #ffffff;
-  border-bottom: 1px solid #1f242b;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--border-divider);
 }
 
 .movie-title-link {
@@ -2642,8 +2648,8 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   overflow: hidden;
   contain: layout paint;
   isolation: isolate;
-  background: #0f1114;
-  border: 1px solid #2c333b;
+  background: var(--surface-media);
+  border: 1px solid var(--border-media);
   border-radius: 6px;
 }
 
@@ -2664,7 +2670,7 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.04), transparent 52%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
-    #0f1114;
+    var(--surface-media);
 }
 
 .movie-external-links {
@@ -2756,7 +2762,7 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
 .movie-watchlist-btn {
   left: 10px;
   padding: 0;
-  color: #ffffff;
+  color: var(--color-text-primary);
   background: rgba(17, 22, 28, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(6px);
@@ -2799,7 +2805,7 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   width: 17px;
   height: 17px;
   fill: none;
-  stroke: #ffffff;
+  stroke: var(--color-text-primary);
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -2880,7 +2886,7 @@ CSS-БЛОК 13. ПОСТЕР ФИЛЬМА
   padding: 6px 8px;
   font-size: 12px;
   line-height: 1.3;
-  color: #e7ebf0;
+  color: var(--color-text-secondary);
   background: rgba(17, 22, 28, 0.86);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -2908,7 +2914,7 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   margin-top: auto;
   padding-top: 14px;
   padding-bottom: 14px;
-  border-top: 1px solid #1f242b;
+  border-top: 1px solid var(--border-divider);
 }
 
 .movie-rating-block .movie-external-links {
@@ -3275,7 +3281,7 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
   margin: 0;
   font-size: 18px;
   line-height: 1.2;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .mobile-rating-modal-close {
@@ -3292,7 +3298,7 @@ CSS-БЛОК 15. ДЕЙСТВИЯ В КАРТОЧКЕ
 .mobile-rating-modal-meta strong {
   font-size: 18px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   letter-spacing: 0.2px;
 }
 
@@ -3468,7 +3474,7 @@ body:has(.movie-page-shell) .page {
 .movie-page-back-link:focus,
 .movie-page-back-link:focus-visible,
 .movie-page-back-link:active {
-  color: #ffffff;
+  color: var(--color-text-primary);
   background: transparent;
   border-color: transparent;
   box-shadow: none;
@@ -3513,9 +3519,9 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-admin-icon-button:hover {
-  color: #ffffff;
-  background: #1b2128;
-  border-color: #3a444f;
+  color: var(--color-text-primary);
+  background: var(--surface-control-hover);
+  border-color: var(--border-control-hover);
 }
 
 .movie-page-admin-icon-button:focus,
@@ -3535,7 +3541,7 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-admin-icon-button-danger.is-delete-confirm {
-  color: #ffffff;
+  color: var(--color-text-primary);
   background: rgba(255, 123, 114, 0.22);
   border-color: rgba(255, 123, 114, 0.62);
   box-shadow:
@@ -3577,8 +3583,8 @@ body:has(.movie-page-shell) .page {
   width: 100%;
   aspect-ratio: 2 / 3;
   overflow: hidden;
-  background: #0f1114;
-  border: 1px solid #2c333b;
+  background: var(--surface-media);
+  border: 1px solid var(--border-media);
   border-radius: 8px;
 }
 
@@ -3606,7 +3612,7 @@ body:has(.movie-page-shell) .page {
 .movie-page-watchlist-icon {
   left: 10px;
   padding: 0;
-  color: #ffffff;
+  color: var(--color-text-primary);
   background: rgba(17, 22, 28, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(6px);
@@ -3655,7 +3661,7 @@ body:has(.movie-page-shell) .page {
   width: 17px;
   height: 17px;
   fill: none;
-  stroke: #ffffff;
+  stroke: var(--color-text-primary);
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -3724,7 +3730,7 @@ body:has(.movie-page-shell) .page {
   font-size: 34px;
   line-height: 1.08;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -3757,14 +3763,14 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-meta-item strong {
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .movie-page-synopsis-block {
   padding-top: 14px;
   padding-bottom: 14px;
-  border-top: 1px solid #1f242b;
-  border-bottom: 1px solid #1f242b;
+  border-top: 1px solid var(--border-divider);
+  border-bottom: 1px solid var(--border-divider);
 }
 
 .movie-page-synopsis-text {
@@ -3850,7 +3856,7 @@ body:has(.movie-page-shell) .page {
   font-size: 24px;
   line-height: 1.15;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .movie-page-stack {
@@ -3995,7 +4001,7 @@ body:has(.movie-page-shell) .page {
   font-size: 15px;
   line-height: 1.3;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -4051,9 +4057,9 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-icon-button:hover {
-  color: #ffffff;
-  background: #1b2128;
-  border-color: #3a444f;
+  color: var(--color-text-primary);
+  background: var(--surface-control-hover);
+  border-color: var(--border-control-hover);
 }
 
 .movie-page-review-icon-button:focus,
@@ -4173,7 +4179,7 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-similar-card:hover {
   background: var(--surface-card-hover);
-  border-color: #3a444f;
+  border-color: var(--border-control-hover);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.02),
     0 10px 24px rgba(0, 0, 0, 0.24);
@@ -4199,8 +4205,8 @@ body:has(.movie-page-shell) .page {
   aspect-ratio: 2 / 3;
   overflow: hidden;
   isolation: isolate;
-  background: #0f1114;
-  border: 1px solid #2c333b;
+  background: var(--surface-media);
+  border: 1px solid var(--border-media);
   border-radius: 8px;
 }
 
@@ -4224,7 +4230,7 @@ body:has(.movie-page-shell) .page {
   font-size: 18px;
   line-height: 1.2;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -4253,11 +4259,6 @@ body:has(.movie-page-shell) .page {
   .movie-page-layout {
     grid-template-columns: minmax(200px, 232px) minmax(0, 1fr);
     gap: 20px;
-    align-items: start;
-  }
-
-  .movie-page-poster-column {
-    max-width: none;
   }
 
   .movie-page-main-column {
@@ -4280,7 +4281,7 @@ body:has(.movie-page-shell) .page {
     gap: 8px;
     margin-bottom: 14px;
     padding-bottom: 14px;
-    border-bottom: 1px solid #1f242b;
+    border-bottom: 1px solid var(--border-divider);
   }
 
   .movie-page-rating-summary {
@@ -4314,9 +4315,7 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-layout {
-    grid-template-columns: minmax(200px, 232px) minmax(0, 1fr);
     gap: 16px;
-    align-items: start;
   }
 
   .movie-page-poster-column {
@@ -4444,7 +4443,7 @@ body:has(.movie-page-shell) .page-footer {
 }
 
 .page-footer-inner {
-  max-width: 1440px;
+  max-width: var(--page-max-width);
   margin: 0 auto;
 }
 
@@ -4462,7 +4461,7 @@ body:has(.movie-page-shell) .page-footer {
   font-size: 18px;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .footer-slogan {
@@ -4923,6 +4922,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .page {
     --catalog-columns: 2;
     --catalog-grid-gap: 12px;
+    --catalog-pagination-gap: clamp(4px, 1.2vw, 6px);
+    --catalog-pagination-button-height: 34px;
   }
 
   .page-header-top {
@@ -4994,14 +4995,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .catalog-pagination-controls,
   .catalog-pagination-pages {
-    gap: clamp(4px, 1.2vw, 6px);
     flex-wrap: nowrap;
     justify-content: center;
-  }
-
-  .catalog-pagination-button {
-    height: 34px;
-    min-height: 34px;
   }
 
   .movies-section-heading {
@@ -5149,10 +5144,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     pointer-events: auto;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
-  }
-
-  .movie-rating-block .movie-external-links {
-    margin-bottom: 0;
   }
 
   .movie-rating-summary {
@@ -5325,23 +5316,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 @media (max-width: 360px) {
   .page {
     --catalog-columns: 1;
-  }
-
-  .catalog-pagination-controls,
-  .catalog-pagination-pages {
-    gap: clamp(2px, 1vw, 4px);
-  }
-
-  .catalog-pagination-button {
-    min-width: clamp(24px, 8vw, 30px);
-    width: clamp(24px, 8vw, 30px);
-    height: 32px;
-    min-height: 32px;
-    padding: 0;
-  }
-
-  .catalog-pagination-ellipsis {
-    min-width: 10px;
+    --catalog-pagination-gap: clamp(2px, 1vw, 4px);
+    --catalog-pagination-button-width: clamp(24px, 8vw, 30px);
+    --catalog-pagination-button-height: 32px;
+    --catalog-pagination-ellipsis-width: 10px;
   }
 
   .movie-page-similar-grid {
