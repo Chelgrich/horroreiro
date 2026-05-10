@@ -217,6 +217,8 @@ let catalogDomSnapshotSchedule = null;
 let pendingCatalogDomSnapshotSessionSnapshot = null;
 let currentCatalogPage = 1;
 let currentCatalogPaginationSlots = null;
+let catalogDataVersion = 0;
+let catalogDerivedStateCache = null;
 const userRatingControlsHtmlCache = new Map();
 
 function applyBuildVersionSoftResetIfNeeded() {
@@ -1284,6 +1286,8 @@ function hydrateCatalogFromSessionSnapshot(snapshot = readCatalogSessionSnapshot
       .filter(Boolean)
   );
 
+  markCatalogDataChanged();
+
   return moviesLoadedSuccessfully;
 }
 
@@ -1465,7 +1469,7 @@ function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
   renderActiveFilterChips();
   syncQuickPresetButtons();
 
-  const paginationState = getCatalogPaginationState(getFilteredMovies().length);
+  const { paginationState } = getCatalogDerivedState();
 
   if (moviesResultCount) {
     moviesResultCount.textContent = domSnapshot.moviesResultCountText || getMoviesResultCountText(
@@ -1515,6 +1519,18 @@ function debounce(callback, delay = 200) {
 }
 
 let catalogRenderFrameId = null;
+
+function invalidateCatalogDerivedState({ bumpDataVersion = false } = {}) {
+  if (bumpDataVersion) {
+    catalogDataVersion += 1;
+  }
+
+  catalogDerivedStateCache = null;
+}
+
+function markCatalogDataChanged() {
+  invalidateCatalogDerivedState({ bumpDataVersion: true });
+}
 
 function resetCatalogPaginationPage() {
   currentCatalogPage = 1;
@@ -2033,6 +2049,7 @@ function rebuildMovieRatingIndexes() {
 function setKnownMovieRatingRows(rows) {
   allMovieRatings = Array.isArray(rows) ? rows : [];
   rebuildMovieRatingIndexes();
+  markCatalogDataChanged();
 }
 
 function upsertKnownMovieRatingRows(rows, shouldRemoveExisting = null) {
@@ -2056,6 +2073,7 @@ function upsertKnownMovieRatingRows(rows, shouldRemoveExisting = null) {
 
   allMovieRatings = Array.from(nextRowsByKey.values());
   rebuildMovieRatingIndexes();
+  markCatalogDataChanged();
 }
 
 function removeKnownMovieRatingRows(shouldRemove) {
@@ -2065,6 +2083,7 @@ function removeKnownMovieRatingRows(shouldRemove) {
 
   allMovieRatings = allMovieRatings.filter(row => !shouldRemove(row));
   rebuildMovieRatingIndexes();
+  markCatalogDataChanged();
 }
 
 function applyMovieRatingStatsRows(rows) {
@@ -2087,6 +2106,8 @@ function applyMovieRatingStatsRows(rows) {
       average: Number(average.toFixed(1))
     });
   });
+
+  markCatalogDataChanged();
 }
 
 function applyMovieRatingStatsFromRows(rows) {
@@ -2112,6 +2133,7 @@ function applyMovieRatingStatsFromRows(rows) {
   });
 
   movieRatingStatsByMovieId = statsByMovieId;
+  markCatalogDataChanged();
 }
 
 function updateLocalMovieRatingStats(movieId, nextRating, previousRating = null) {
@@ -2139,6 +2161,7 @@ function updateLocalMovieRatingStats(movieId, nextRating, previousRating = null)
 
   if (nextCount === 0) {
     movieRatingStatsByMovieId.delete(movieKey);
+    markCatalogDataChanged();
     return;
   }
 
@@ -2147,6 +2170,7 @@ function updateLocalMovieRatingStats(movieId, nextRating, previousRating = null)
     sum: nextSum,
     average: Number((nextSum / nextCount).toFixed(1))
   });
+  markCatalogDataChanged();
 }
 
 function rebuildCurrentUserWatchlistIndex() {
@@ -2209,6 +2233,7 @@ function updateLocalWatchlistState(movieId, shouldExist) {
     }
 
     currentUserWatchlistMovieIds.add(String(movieId));
+    markCatalogDataChanged();
     return;
   }
 
@@ -2217,6 +2242,7 @@ function updateLocalWatchlistState(movieId, shouldExist) {
   }
 
   currentUserWatchlistMovieIds.delete(String(movieId));
+  markCatalogDataChanged();
 }
 
 function getMovieReviews(movieId) {
@@ -3250,7 +3276,7 @@ function refreshCustomSelectGroup(selectElements) {
 JS-БЛОК 9. СПРАВОЧНИКИ ФИЛЬТРОВ
 Заполняет select-поля по уже загруженному каталогу.
 ========================================================== */
-function refreshGenreFilterOptions(genreCounts = getGenreOptionCounts()) {
+function refreshGenreFilterOptions(genreCounts = new Map()) {
   if (!genreFilter) {
     return;
   }
@@ -3276,7 +3302,7 @@ function refreshGenreFilterOptions(genreCounts = getGenreOptionCounts()) {
   refreshCustomSelect(genreFilter);
 }
 
-function loadSubgenreFilterOptions(subgenreCounts = getSubgenreOptionCounts()) {
+function loadSubgenreFilterOptions(subgenreCounts = new Map()) {
   if (!subgenreFilter) {
     return;
   }
@@ -3313,7 +3339,7 @@ function loadSubgenreFilterOptions(subgenreCounts = getSubgenreOptionCounts()) {
   refreshCustomSelect(subgenreFilter);
 }
 
-function loadFormatFilterOptions(formatCounts = getFormatOptionCounts()) {
+function loadFormatFilterOptions(formatCounts = new Map()) {
   if (!formatFilter) {
     return;
   }
@@ -3350,7 +3376,7 @@ function loadFormatFilterOptions(formatCounts = getFormatOptionCounts()) {
   refreshCustomSelect(formatFilter);
 }
 
-function loadTriggerFilterOptions(triggerCounts = getTriggerOptionCounts()) {
+function loadTriggerFilterOptions(triggerCounts = new Map()) {
   if (!triggerFiltersGroup) {
     return;
   }
@@ -3394,7 +3420,7 @@ function loadTriggerFilterOptions(triggerCounts = getTriggerOptionCounts()) {
   syncTriggerFiltersTriggerText();
 }
 
-function refreshCountryFilterOptions(countryCounts = getCountryOptionCounts()) {
+function refreshCountryFilterOptions(countryCounts = new Map()) {
   if (!countryFilter) {
     return;
   }
@@ -3420,7 +3446,7 @@ function refreshCountryFilterOptions(countryCounts = getCountryOptionCounts()) {
   refreshCustomSelect(countryFilter);
 }
 
-function loadYearFilterOptions(yearCounts = getYearOptionCounts()) {
+function loadYearFilterOptions(yearCounts = new Map()) {
   if (!yearFilter) {
     return;
   }
@@ -3513,6 +3539,7 @@ async function fetchMovies({ preserveExistingCatalogOnError = false } = {}) {
   allMovies = data || [];
   rebuildCatalogMovieMeta();
   moviesLoadedSuccessfully = true;
+  markCatalogDataChanged();
   return true;
 }
 
@@ -3582,6 +3609,7 @@ async function fetchMovieWatchlist() {
   if (!shouldUseAuthenticatedUi()) {
     allMovieWatchlist = [];
     rebuildCurrentUserWatchlistIndex();
+    markCatalogDataChanged();
     return;
   }
 
@@ -3594,11 +3622,13 @@ async function fetchMovieWatchlist() {
     console.error('Ошибка загрузки watchlist:', error);
     allMovieWatchlist = [];
     rebuildCurrentUserWatchlistIndex();
+    markCatalogDataChanged();
     return;
   }
 
   allMovieWatchlist = data || [];
   rebuildCurrentUserWatchlistIndex();
+  markCatalogDataChanged();
 }
 
 async function fetchMovieReviews(movieId) {
@@ -3693,6 +3723,7 @@ async function fetchCatalogReviewSummary() {
   if (error) {
     console.error('Ошибка загрузки сводки рецензий:', error);
     catalogReviewedMovieIds = new Set();
+    markCatalogDataChanged();
     return;
   }
 
@@ -3701,6 +3732,7 @@ async function fetchCatalogReviewSummary() {
       .map(item => String(item.movie_id || ''))
       .filter(Boolean)
   );
+  markCatalogDataChanged();
 }
 
 async function reloadMoviePageData(movieId) {
@@ -3725,6 +3757,12 @@ async function refreshMovieReviewsAfterMutation(movieId, reviewIdToCollapse = nu
   }
 
   await fetchMovieReviews(movieId);
+  if (allMovieReviews.some(review => String(review.movie_id) === String(movieId))) {
+    catalogReviewedMovieIds.add(String(movieId));
+  } else {
+    catalogReviewedMovieIds.delete(String(movieId));
+  }
+  markCatalogDataChanged();
   syncCatalogSessionSnapshotMovieState(movieId, { syncReviews: true });
 }
 
@@ -6461,7 +6499,7 @@ function syncCatalogPaginationSlotCount() {
     return;
   }
 
-  const paginationState = getCatalogPaginationState(getFilteredMovies().length);
+  const { paginationState } = getCatalogDerivedState();
 
   renderCatalogPagination(paginationState);
 }
@@ -6481,8 +6519,7 @@ function getCatalogSkeletonMovies(cardsCount) {
     return Array.from({ length: cardsCount }, () => null);
   }
 
-  const filteredMovies = getFilteredMovies();
-  const paginationState = getCatalogPaginationState(filteredMovies.length);
+  const { filteredMovies, paginationState } = getCatalogDerivedState();
   const skeletonMovies = filteredMovies.slice(
     paginationState.startIndex,
     paginationState.startIndex + cardsCount
@@ -6600,7 +6637,8 @@ function getCatalogSkeletonCardsCount() {
     return renderedCardsCount;
   }
 
-  const estimatedCardsCount = Number(getFilteredMovies()?.length || 0);
+  const { filteredTotal } = getCatalogDerivedState();
+  const estimatedCardsCount = Number(filteredTotal || 0);
 
   if (estimatedCardsCount > 0) {
     return Math.min(estimatedCardsCount, 12);
@@ -7662,13 +7700,41 @@ function rerenderMovieCard(
   persistCatalogDomSnapshot();
 }
 
-function getFilteredMovies(options = {}) {
+function getCatalogDerivedStateSignature(filterState, selectedSortMode) {
+  return JSON.stringify({
+    dataVersion: catalogDataVersion,
+    pageSize: CATALOG_PAGE_SIZE,
+    userId: currentUser?.id || null,
+    viewMode: viewMode?.value || 'list',
+    sortMode: selectedSortMode,
+    page: currentCatalogPage,
+    filterState
+  });
+}
+
+function hasCatalogFilterStateOverrides(options = {}) {
   const {
-    skipSorting = false
+    skipSorting = false,
+    ignoreGenre = false,
+    ignoreSubgenre = false,
+    ignoreFormat = false,
+    ignoreCountry = false,
+    ignoreYear = false,
+    ignoreTriggerExcludes = false
   } = options;
 
-  const selectedSortMode = sortMode.value;
-  const filterState = getCatalogFilterStateSnapshot(options);
+  return Boolean(
+    skipSorting ||
+    ignoreGenre ||
+    ignoreSubgenre ||
+    ignoreFormat ||
+    ignoreCountry ||
+    ignoreYear ||
+    ignoreTriggerExcludes
+  );
+}
+
+function filterCatalogMovies(filterState, { skipSorting = false, selectedSortMode = sortMode?.value || 'default' } = {}) {
   const filteredMovies = [];
 
   allMovies.forEach(movie => {
@@ -7686,118 +7752,44 @@ function getFilteredMovies(options = {}) {
   return filteredMovies;
 }
 
-function getGenreOptionCounts() {
-  const moviesWithoutGenreFilter = getFilteredMovies({
-    ignoreGenre: true,
-    skipSorting: true
-  });
+function getCatalogDerivedState() {
+  const selectedSortMode = sortMode?.value || 'default';
+  const filterState = getCatalogFilterStateSnapshot();
+  const cacheSignature = getCatalogDerivedStateSignature(filterState, selectedSortMode);
 
-  const counts = new Map();
+  if (catalogDerivedStateCache?.signature === cacheSignature) {
+    return catalogDerivedStateCache.state;
+  }
 
-  moviesWithoutGenreFilter.forEach(movie => {
-    getCatalogMovieMeta(movie).genreNames.forEach(genreName => {
-      if (!genreName || normalizeSearchText(genreName) === 'ужасы') {
-        return;
-      }
+  const filteredMovies = filterCatalogMovies(filterState, { selectedSortMode });
+  const paginationState = getCatalogPaginationState(filteredMovies.length);
+  const pageMovies = filteredMovies.slice(paginationState.startIndex, paginationState.endIndex);
+  const state = {
+    filteredMovies,
+    filteredTotal: filteredMovies.length,
+    pageMovies,
+    paginationState,
+    filterState,
+    selectedSortMode
+  };
 
-      counts.set(genreName, (counts.get(genreName) || 0) + 1);
-    });
-  });
+  catalogDerivedStateCache = {
+    signature: getCatalogDerivedStateSignature(filterState, selectedSortMode),
+    state
+  };
 
-  return counts;
+  return state;
 }
 
-function getSubgenreOptionCounts() {
-  const moviesWithoutSubgenreFilter = getFilteredMovies({
-    ignoreSubgenre: true,
-    skipSorting: true
+function getFilteredMovies(options = {}) {
+  if (!hasCatalogFilterStateOverrides(options)) {
+    return getCatalogDerivedState().filteredMovies;
+  }
+
+  return filterCatalogMovies(getCatalogFilterStateSnapshot(options), {
+    skipSorting: Boolean(options.skipSorting),
+    selectedSortMode: sortMode?.value || 'default'
   });
-
-  const counts = new Map();
-
-  moviesWithoutSubgenreFilter.forEach(movie => {
-    getCatalogMovieMeta(movie).subgenreKeys.forEach(subgenreKey => {
-      counts.set(subgenreKey, (counts.get(subgenreKey) || 0) + 1);
-    });
-  });
-
-  return counts;
-}
-
-function getFormatOptionCounts() {
-  const moviesWithoutFormatFilter = getFilteredMovies({
-    ignoreFormat: true,
-    skipSorting: true
-  });
-
-  const counts = new Map();
-
-  moviesWithoutFormatFilter.forEach(movie => {
-    getCatalogMovieMeta(movie).formatKeys.forEach(formatKey => {
-      counts.set(formatKey, (counts.get(formatKey) || 0) + 1);
-    });
-  });
-
-  return counts;
-}
-
-function getCountryOptionCounts() {
-  const moviesWithoutCountryFilter = getFilteredMovies({
-    ignoreCountry: true,
-    skipSorting: true
-  });
-
-  const counts = new Map();
-
-  moviesWithoutCountryFilter.forEach(movie => {
-    getCatalogMovieMeta(movie).countryNames.forEach(countryName => {
-      if (!countryName) {
-        return;
-      }
-
-      counts.set(countryName, (counts.get(countryName) || 0) + 1);
-    });
-  });
-
-  return counts;
-}
-
-function getYearOptionCounts() {
-  const moviesWithoutYearFilter = getFilteredMovies({
-    ignoreYear: true,
-    skipSorting: true
-  });
-
-  const counts = new Map();
-
-  moviesWithoutYearFilter.forEach(movie => {
-    const yearValue = movie?.year;
-
-    if (!yearValue) {
-      return;
-    }
-
-    counts.set(Number(yearValue), (counts.get(Number(yearValue)) || 0) + 1);
-  });
-
-  return counts;
-}
-
-function getTriggerOptionCounts() {
-  const moviesWithoutTriggerExcludes = getFilteredMovies({
-    ignoreTriggerExcludes: true,
-    skipSorting: true
-  });
-
-  const counts = new Map();
-
-  moviesWithoutTriggerExcludes.forEach(movie => {
-    getCatalogMovieMeta(movie).triggerKeys.forEach(triggerKey => {
-      counts.set(triggerKey, (counts.get(triggerKey) || 0) + 1);
-    });
-  });
-
-  return counts;
 }
 
 function getCatalogFilterStateSnapshot(options = {}) {
@@ -8247,16 +8239,18 @@ function renderMovies() {
   renderActiveFilterChips();
   syncQuickPresetButtons();
 
-  const filteredMovies = getFilteredMovies();
-  const paginationState = getCatalogPaginationState(filteredMovies.length);
-  const pageMovies = filteredMovies.slice(paginationState.startIndex, paginationState.endIndex);
+  const {
+    filteredTotal,
+    paginationState,
+    pageMovies
+  } = getCatalogDerivedState();
   const cardRenderContext = createMovieCardRenderContext(searchInput.value);
 
   if (moviesResultCount) {
-    moviesResultCount.textContent = getMoviesResultCountText(filteredMovies.length, paginationState);
+    moviesResultCount.textContent = getMoviesResultCountText(filteredTotal, paginationState);
   }
 
-  if (filteredMovies.length === 0) {
+  if (filteredTotal === 0) {
     clearCatalogPagination();
     renderEmptyState();
     persistCatalogDomSnapshot();
