@@ -788,7 +788,7 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   'Преследование': createCanonTagMeta({
-    tier: "anchor",
+    tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
     role: CANON_TAG_ROLES.threat_behavior,
@@ -2264,7 +2264,7 @@ const CANON_TAG_META = {
     counterExamples: []
   }),
   'Выживание в ловушке': createCanonTagMeta({
-    tier: "anchor",
+    tier: "standard",
     confidence: "stable",
     status: CANON_TAG_STATUSES.stable,
     role: CANON_TAG_ROLES.structure,
@@ -2664,7 +2664,8 @@ const SIMILARITY_LANE_CONFIG = {
       'Восставший убийца',
       'Убийца, движимый травмой',
       'Протагонист-убийца',
-      'Дайвер-убийца'
+      'Дайвер-убийца',
+      'Пугало-убийца'
     ]
   },
   creature_lane: {
@@ -3204,14 +3205,17 @@ function calcCanonAffinityWeight(arrA = [], arrB = [], canonWeightMap = {}) {
   const seenPairs = new Set();
 
   for (const tagA of setA) {
-    const links = CANON_AFFINITY[tagA];
-    if (!links) continue;
+    for (const tagB of setB) {
+      if (tagA === tagB) continue;
 
-    for (const [tagB, coeff] of Object.entries(links)) {
       const pairKey = [tagA, tagB].sort().join("::");
       if (seenPairs.has(pairKey)) continue;
-      if (!setB.has(tagB)) continue;
-      if (setA.has(tagB)) continue;
+
+      const forwardCoeff = CANON_AFFINITY[tagA]?.[tagB] ?? 0;
+      const reverseCoeff = CANON_AFFINITY[tagB]?.[tagA] ?? 0;
+      const coeff = Math.max(forwardCoeff, reverseCoeff);
+
+      if (coeff <= 0) continue;
 
       const weightA = canonWeightMap[tagA] ?? 1;
       const weightB = canonWeightMap[tagB] ?? 1;
@@ -3700,7 +3704,7 @@ const TAXONOMY_REQUIRED_CANON_GROUPS = {
   'Слэшер': [
     {
       label: 'тип убийцы',
-      tags: ['Убийца в маске', 'Серийный убийца', 'Сверхъестественный убийца', 'Дуэт убийц', 'Санта-убийца', 'Восставший убийца', 'Убийца, движимый травмой', 'Протагонист-убийца', 'Существо-убийца']
+      tags: ['Убийца в маске', 'Серийный убийца', 'Сверхъестественный убийца', 'Дуэт убийц', 'Санта-убийца', 'Восставший убийца', 'Убийца, движимый травмой', 'Протагонист-убийца', 'Дайвер-убийца', 'Пугало-убийца', 'Существо-убийца']
     }
   ],
   'Монстр-муви': [
@@ -3731,6 +3735,18 @@ const TAXONOMY_REQUIRED_CANON_GROUPS = {
     {
       label: 'вампирская угроза',
       tags: ['Вампир']
+    }
+  ],
+  'Зомби-хоррор': [
+    {
+      label: 'зомби-угроза',
+      tags: ['Зомби']
+    }
+  ],
+  'Каннибальский хоррор': [
+    {
+      label: 'каннибальская механика',
+      tags: ['Каннибализм']
     }
   ],
   'Боди-хоррор': [
@@ -4173,6 +4189,7 @@ function getCanonCoverageRuleCandidate(rule, canonSet, perceivedSet) {
       const hasCreatureType = hasAnyCanonCoverageValue(canon, [
         'Атака акулы',
         'Атака змеи',
+        'Атака паука',
         'Гигантское существо',
         'Существо-мутант',
         'Мифическое существо',
