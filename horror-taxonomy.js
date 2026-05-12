@@ -4,10 +4,10 @@ const SIMILARITY_MODEL = {
   SCORE_CAPS: {
     canonExact: 60,
     canonAffinity: 8,
-    modifiers: 14,
+    modifiers: 16,
     broadFamilies: 7,
     formats: 5,
-    genres: 4,
+    genres: 5,
     countries: 2
   },
 
@@ -2447,10 +2447,10 @@ const CANON_TAG_META = {
 
 const MODIFIER_WEIGHTS = {
   'Сюрреалистичный': 1.15,
-  'Сатирический': 1.15,
+  'Сатирический': 1.3,
   'Гротескный': 1.1,
   'Абсурдистский': 1.1,
-  'Мета': 1.1,
+  'Мета': 1.25,
   'Параноидальный': 1.05,
   'Грубый физиологический': 1.05,
   'Нагота': 0.7,
@@ -2459,7 +2459,7 @@ const MODIFIER_WEIGHTS = {
   'Эксплуатационный': 1.0,
   'Психологический': 0.95,
   'Кэмповый': 0.95,
-  'Чёрный юмор': 0.95,
+  'Чёрный юмор': 1.25,
   'Кровавый': 0.9,
   'Напряжённый': 0.9,
   'Медленное нагнетание': 0.85,
@@ -2901,7 +2901,7 @@ const EXTRA_GENRE_WEIGHTS = {
   "Боевик": 0.6,
   "Детектив": 0.9,
   "Драма": 0.5,
-  "Комедия": 0.9,
+  "Комедия": 1.25,
   "Криминал": 0.9,
   "Мелодрама": 0.7,
   "Мюзикл": 1.1,
@@ -2910,6 +2910,48 @@ const EXTRA_GENRE_WEIGHTS = {
   "Фантастика": 1.0,
   "Фэнтези": 1.0
 };
+
+const COMEDY_TONE_MODIFIERS = [
+  'Сатирический',
+  'Чёрный юмор',
+  'Мета'
+];
+
+function getMovieComedyToneScore(movie) {
+  const genres = Array.isArray(movie?.extraGenres) ? movie.extraGenres : [];
+  const modifiers = Array.isArray(movie?.modifiers) ? movie.modifiers : [];
+
+  let score = genres.includes('Комедия') ? 1.25 : 0;
+
+  COMEDY_TONE_MODIFIERS.forEach(modifier => {
+    if (modifiers.includes(modifier)) {
+      score += MODIFIER_WEIGHTS[modifier] || 1;
+    }
+  });
+
+  return score;
+}
+
+function getComedyToneMultiplier(movieA, movieB) {
+  const movieAScore = getMovieComedyToneScore(movieA);
+  const movieBScore = getMovieComedyToneScore(movieB);
+
+  if (movieAScore === 0 && movieBScore === 0) {
+    return 1;
+  }
+
+  if (movieAScore > 0 && movieBScore > 0) {
+    return 1.04;
+  }
+
+  const strongestToneScore = Math.max(movieAScore, movieBScore);
+
+  if (strongestToneScore >= 2) {
+    return 0.88;
+  }
+
+  return 0.94;
+}
 
 const CANON_AFFINITY = {
   'Атака акулы': {
@@ -3358,6 +3400,7 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     exactCanonOverlapCount,
     modifierScore
   });
+  const comedyToneMultiplier = getComedyToneMultiplier(movieA, movieB);
 
   const rawFinalScore =
     canonExactScore +
@@ -3368,7 +3411,7 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     genreScore +
     countryScore;
 
-  const finalScore = Math.min(100, rawFinalScore * laneMultiplier);
+  const finalScore = Math.min(100, rawFinalScore * laneMultiplier * comedyToneMultiplier);
 
   const passesCoreGate =
     exactCanonOverlapCount >= 1 ||
@@ -3411,6 +3454,9 @@ function calcMovieSimilarity(movieA, movieB, stats) {
       coreBeforeContext,
       rawFinalScore,
       laneMultiplier,
+      comedyToneMultiplier,
+      movieAComedyToneScore: getMovieComedyToneScore(movieA),
+      movieBComedyToneScore: getMovieComedyToneScore(movieB),
       movieALanes,
       movieBLanes,
       sharedLanes
