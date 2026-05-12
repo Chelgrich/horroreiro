@@ -2899,6 +2899,66 @@ function getSharedSecondaryPerceivedLanes(movieA = {}, movieB = {}) {
     .filter(laneName => !scoringSharedLaneSet.has(laneName));
 }
 
+const STRONG_SLASHER_CANON_TAGS = [
+  'Убийца в маске',
+  'Сверхъестественный убийца',
+  'Восставший убийца',
+  'Санта-убийца',
+  'Пугало-убийца',
+  'Дайвер-убийца',
+  'Дуэт убийц'
+];
+
+function hasPrimaryPerceivedTag(movie = {}, tag) {
+  return getMoviePerceivedLaneValues(movie, 'primary').includes(tag);
+}
+
+function hasStrongSlasherSignal(movie = {}) {
+  const canon = getMovieLaneValues(movie, ['canon', 'tags_canon']);
+
+  return (
+    hasPrimaryPerceivedTag(movie, 'Слэшер') ||
+    canon.some(tag => STRONG_SLASHER_CANON_TAGS.includes(tag))
+  );
+}
+
+function getPrimarySlasherMismatchAdjustment(movieA = {}, movieB = {}, sharedLanes = []) {
+  if (!sharedLanes.includes('slasher_lane')) {
+    return {
+      multiplier: 1,
+      maxScore: 100,
+      reason: 'neutral'
+    };
+  }
+
+  const movieAIsPrimarySlasher = hasPrimaryPerceivedTag(movieA, 'Слэшер');
+  const movieBIsPrimarySlasher = hasPrimaryPerceivedTag(movieB, 'Слэшер');
+
+  if (movieAIsPrimarySlasher === movieBIsPrimarySlasher) {
+    return {
+      multiplier: 1,
+      maxScore: 100,
+      reason: 'matched_primary_slasher'
+    };
+  }
+
+  const nonPrimarySlasherMovie = movieAIsPrimarySlasher ? movieB : movieA;
+
+  if (hasStrongSlasherSignal(nonPrimarySlasherMovie)) {
+    return {
+      multiplier: 1,
+      maxScore: 100,
+      reason: 'strong_slasher_signal'
+    };
+  }
+
+  return {
+    multiplier: 0.72,
+    maxScore: SIMILARITY_MODEL.GATES.minFinalScore - 0.1,
+    reason: 'primary_slasher_mismatch'
+  };
+}
+
 function getSimilarityLaneMultiplier({ sharedLanes = [], canonCore = 0, exactCanonOverlapCount = 0, modifierScore = 0 }) {
   if (sharedLanes.length >= 2) {
     return 1.06;
@@ -3454,6 +3514,11 @@ function calcMovieSimilarity(movieA, movieB, stats) {
       ? 1.015
       : 1;
   const comedyToneAdjustment = getComedyToneAdjustment(movieA, movieB);
+  const primarySlasherMismatchAdjustment = getPrimarySlasherMismatchAdjustment(
+    movieA,
+    movieB,
+    sharedLanes
+  );
 
   const rawFinalScore =
     canonExactScore +
@@ -3467,10 +3532,12 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     const finalScore = Math.min(
       100,
       comedyToneAdjustment.maxScore,
+      primarySlasherMismatchAdjustment.maxScore,
       rawFinalScore *
         laneMultiplier *
         secondaryPerceivedLaneMultiplier *
-        comedyToneAdjustment.multiplier
+        comedyToneAdjustment.multiplier *
+        primarySlasherMismatchAdjustment.multiplier
     );
 
   const passesCoreGate =
@@ -3518,6 +3585,9 @@ function calcMovieSimilarity(movieA, movieB, stats) {
       comedyToneMultiplier: comedyToneAdjustment.multiplier,
       comedyToneMaxScore: comedyToneAdjustment.maxScore,
       comedyToneReason: comedyToneAdjustment.reason,
+      primarySlasherMismatchMultiplier: primarySlasherMismatchAdjustment.multiplier,
+      primarySlasherMismatchMaxScore: primarySlasherMismatchAdjustment.maxScore,
+      primarySlasherMismatchReason: primarySlasherMismatchAdjustment.reason,
       movieAComedyToneScore: getMovieComedyToneScore(movieA),
       movieBComedyToneScore: getMovieComedyToneScore(movieB),
       movieAAllLanes,
