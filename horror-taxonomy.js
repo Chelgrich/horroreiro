@@ -2932,25 +2932,33 @@ function getMovieComedyToneScore(movie) {
   return score;
 }
 
-function getComedyToneMultiplier(movieA, movieB) {
+function getComedyToneAdjustment(movieA, movieB) {
   const movieAScore = getMovieComedyToneScore(movieA);
   const movieBScore = getMovieComedyToneScore(movieB);
+  const hasMovieAComedyTone = movieAScore > 0;
+  const hasMovieBComedyTone = movieBScore > 0;
 
-  if (movieAScore === 0 && movieBScore === 0) {
-    return 1;
+  if (!hasMovieAComedyTone && !hasMovieBComedyTone) {
+    return {
+      multiplier: 1,
+      maxScore: 100,
+      reason: 'neutral'
+    };
   }
 
-  if (movieAScore > 0 && movieBScore > 0) {
-    return 1.04;
+  if (hasMovieAComedyTone && hasMovieBComedyTone) {
+    return {
+      multiplier: 1.06,
+      maxScore: 100,
+      reason: 'shared_comedy_tone'
+    };
   }
 
-  const strongestToneScore = Math.max(movieAScore, movieBScore);
-
-  if (strongestToneScore >= 2) {
-    return 0.88;
-  }
-
-  return 0.94;
+  return {
+    multiplier: 0.68,
+    maxScore: SIMILARITY_MODEL.GATES.minFinalScore - 0.1,
+    reason: 'comedy_tone_mismatch'
+  };
 }
 
 const CANON_AFFINITY = {
@@ -3400,7 +3408,7 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     exactCanonOverlapCount,
     modifierScore
   });
-  const comedyToneMultiplier = getComedyToneMultiplier(movieA, movieB);
+  const comedyToneAdjustment = getComedyToneAdjustment(movieA, movieB);
 
   const rawFinalScore =
     canonExactScore +
@@ -3411,7 +3419,11 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     genreScore +
     countryScore;
 
-  const finalScore = Math.min(100, rawFinalScore * laneMultiplier * comedyToneMultiplier);
+  const finalScore = Math.min(
+    100,
+    comedyToneAdjustment.maxScore,
+    rawFinalScore * laneMultiplier * comedyToneAdjustment.multiplier
+  );
 
   const passesCoreGate =
     exactCanonOverlapCount >= 1 ||
@@ -3454,7 +3466,9 @@ function calcMovieSimilarity(movieA, movieB, stats) {
       coreBeforeContext,
       rawFinalScore,
       laneMultiplier,
-      comedyToneMultiplier,
+      comedyToneMultiplier: comedyToneAdjustment.multiplier,
+      comedyToneMaxScore: comedyToneAdjustment.maxScore,
+      comedyToneReason: comedyToneAdjustment.reason,
       movieAComedyToneScore: getMovieComedyToneScore(movieA),
       movieBComedyToneScore: getMovieComedyToneScore(movieB),
       movieALanes,
