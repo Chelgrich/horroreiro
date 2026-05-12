@@ -2840,13 +2840,32 @@ function getCanonTagsSimilarityLanes(canonTags = []) {
   return Array.from(new Set(lanes));
 }
 
-function resolveMovieSimilarityLanes(movie = {}) {
+function getMoviePerceivedLaneValues(movie = {}, mode = 'all') {
+  if (isMovieMaskConflictEnabled(movie)) {
+    return [];
+  }
+
+  const perceived = getMovieLaneValues(movie, ['tags_perceived', 'perceived']);
+
+  if (mode === 'primary') {
+    return perceived.slice(0, 1);
+  }
+
+  if (mode === 'secondary') {
+    return perceived.slice(1);
+  }
+
+  return perceived;
+}
+
+function resolveMovieSimilarityLanes(movie = {}, { includeSecondaryPerceived = true } = {}) {
   const laneSet = new Set();
   const canon = getMovieLaneValues(movie, ['canon', 'tags_canon']);
   const formats = getMovieLaneValues(movie, ['formats', 'tags_formats']);
-  const perceived = isMovieMaskConflictEnabled(movie)
-    ? []
-    : getMovieLaneValues(movie, ['tags_perceived', 'perceived']);
+  const perceived = getMoviePerceivedLaneValues(
+    movie,
+    includeSecondaryPerceived ? 'all' : 'primary'
+  );
 
   getCanonTagsSimilarityLanes(canon).forEach(laneName => {
     laneSet.add(laneName);
@@ -2863,6 +2882,21 @@ function resolveMovieSimilarityLanes(movie = {}) {
   });
 
   return Array.from(laneSet);
+}
+
+function getSharedSecondaryPerceivedLanes(movieA = {}, movieB = {}) {
+  const movieAAllLanes = resolveMovieSimilarityLanes(movieA);
+  const movieBAllLanes = resolveMovieSimilarityLanes(movieB);
+  const movieAScoringLanes = resolveMovieSimilarityLanes(movieA, {
+    includeSecondaryPerceived: false
+  });
+  const movieBScoringLanes = resolveMovieSimilarityLanes(movieB, {
+    includeSecondaryPerceived: false
+  });
+  const scoringSharedLaneSet = new Set(getSharedItems(movieAScoringLanes, movieBScoringLanes));
+
+  return getSharedItems(movieAAllLanes, movieBAllLanes)
+    .filter(laneName => !scoringSharedLaneSet.has(laneName));
 }
 
 function getSimilarityLaneMultiplier({ sharedLanes = [], canonCore = 0, exactCanonOverlapCount = 0, modifierScore = 0 }) {
@@ -3399,15 +3433,26 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     (movieB.canon || []).includes(tag)
   ).length;
 
-  const movieALanes = resolveMovieSimilarityLanes(movieA);
-  const movieBLanes = resolveMovieSimilarityLanes(movieB);
+  const movieAAllLanes = resolveMovieSimilarityLanes(movieA);
+  const movieBAllLanes = resolveMovieSimilarityLanes(movieB);
+  const movieALanes = resolveMovieSimilarityLanes(movieA, {
+    includeSecondaryPerceived: false
+  });
+  const movieBLanes = resolveMovieSimilarityLanes(movieB, {
+    includeSecondaryPerceived: false
+  });
   const sharedLanes = getSharedItems(movieALanes, movieBLanes);
+  const sharedSecondaryPerceivedLanes = getSharedSecondaryPerceivedLanes(movieA, movieB);
   const laneMultiplier = getSimilarityLaneMultiplier({
     sharedLanes,
     canonCore,
     exactCanonOverlapCount,
     modifierScore
   });
+  const secondaryPerceivedLaneMultiplier =
+    sharedLanes.length > 0 && sharedSecondaryPerceivedLanes.length > 0
+      ? 1.015
+      : 1;
   const comedyToneAdjustment = getComedyToneAdjustment(movieA, movieB);
 
   const rawFinalScore =
@@ -3419,11 +3464,14 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     genreScore +
     countryScore;
 
-  const finalScore = Math.min(
-    100,
-    comedyToneAdjustment.maxScore,
-    rawFinalScore * laneMultiplier * comedyToneAdjustment.multiplier
-  );
+    const finalScore = Math.min(
+      100,
+      comedyToneAdjustment.maxScore,
+      rawFinalScore *
+        laneMultiplier *
+        secondaryPerceivedLaneMultiplier *
+        comedyToneAdjustment.multiplier
+    );
 
   const passesCoreGate =
     exactCanonOverlapCount >= 1 ||
@@ -3466,14 +3514,18 @@ function calcMovieSimilarity(movieA, movieB, stats) {
       coreBeforeContext,
       rawFinalScore,
       laneMultiplier,
+      secondaryPerceivedLaneMultiplier,
       comedyToneMultiplier: comedyToneAdjustment.multiplier,
       comedyToneMaxScore: comedyToneAdjustment.maxScore,
       comedyToneReason: comedyToneAdjustment.reason,
       movieAComedyToneScore: getMovieComedyToneScore(movieA),
       movieBComedyToneScore: getMovieComedyToneScore(movieB),
+      movieAAllLanes,
+      movieBAllLanes,
       movieALanes,
       movieBLanes,
-      sharedLanes
+      sharedLanes,
+      sharedSecondaryPerceivedLanes
     }
   };
 }
@@ -3485,7 +3537,11 @@ function getSharedItems(arrA = [], arrB = []) {
 
 function getSimilarityExplanation(movieA, movieB) {
   return {
-    sharedLanes: getSharedItems(resolveMovieSimilarityLanes(movieA), resolveMovieSimilarityLanes(movieB)),
+    sharedLanes: getSharedItems(
+      resolveMovieSimilarityLanes(movieA, { includeSecondaryPerceived: false }),
+      resolveMovieSimilarityLanes(movieB, { includeSecondaryPerceived: false })
+    ),
+    sharedSecondaryPerceivedLanes: getSharedSecondaryPerceivedLanes(movieA, movieB),
     sharedCanon: getSharedItems(movieA.canon, movieB.canon),
     sharedModifiers: getSharedItems(movieA.modifiers, movieB.modifiers),
     sharedBroadFamilies: getSharedItems(resolveMovieBroadFamilies(movieA), resolveMovieBroadFamilies(movieB)),
@@ -3533,6 +3589,7 @@ function getSimilarityAuditPairItem(movieA, movieB, similarity, explanation) {
     tier: similarity.tier,
     passesGate: similarity.passesGate,
     sharedLanes: explanation.sharedLanes || [],
+    sharedSecondaryPerceivedLanes: explanation.sharedSecondaryPerceivedLanes || [],
     sharedCanon: explanation.sharedCanon || [],
     sharedModifiers: explanation.sharedModifiers || [],
     sharedBroadFamilies: explanation.sharedBroadFamilies || [],
