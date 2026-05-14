@@ -9382,6 +9382,7 @@ function getMovieSimilaritySource(movie, meta = getCatalogMovieMeta(movie)) {
     formats: Array.isArray(movie.formats) ? movie.formats : [],
     modifiers: Array.isArray(movie.modifiers) ? movie.modifiers : [],
     broadFamilies: Array.isArray(movie.broad_families) ? movie.broad_families : [],
+    mask_conflict: movie.mask_conflict === true || movie.mask_conflict === 'true',
 
     extraGenres,
     countries
@@ -9406,10 +9407,9 @@ function getSimilarMoviesForMoviePage(movie, limit = 4) {
     return [];
   }
 
-  const similarItems = getSimilarMoviesHelper(targetMovie, similarityMovies);
+  const similarItems = getSimilarMoviesHelper(targetMovie, similarityMovies, { limit });
 
   return similarItems
-    .slice(0, limit)
     .map(item => getCatalogMovieById(item.movie.id))
     .filter(Boolean);
 }
