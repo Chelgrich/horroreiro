@@ -2991,6 +2991,11 @@ const SIMILARITY_CORE_ROLE_GROUPS = {
   ]
 };
 
+const SIMILARITY_BROAD_THREAT_TYPE_ONLY_ANCHOR_TAGS = new Set([
+  'Хищное существо',
+  'Существо-убийца'
+]);
+
 function getSharedCanonTagsByRoleGroup(sharedCanon = [], roleGroup = []) {
   return sharedCanon.filter(tag => {
     const role = getCanonTagMeta(tag)?.role;
@@ -3007,6 +3012,15 @@ function getMovieCanonTagsByRoleGroup(movie = {}, roleGroup = []) {
 
     return roleGroup.includes(role);
   });
+}
+
+function hasOnlyBroadThreatTypeAnchor(sharedThreatTypeTags = []) {
+  return (
+    sharedThreatTypeTags.length > 0 &&
+    sharedThreatTypeTags.every(tag =>
+      SIMILARITY_BROAD_THREAT_TYPE_ONLY_ANCHOR_TAGS.has(tag)
+    )
+  );
 }
 
 function getCoreRoleAlignmentAdjustment(sharedCanon = []) {
@@ -3148,6 +3162,10 @@ function getCoreAnchorAdjustment(movieA = {}, movieB = {}, coreRoleAlignmentAdju
     movieASettingTags.length > 0 &&
     movieBSettingTags.length > 0 &&
     !hasSharedSetting;
+  const hasBroadThreatTypeOnlyAnchor =
+    hasSharedThreatType &&
+    !hasSharedSetting &&
+    hasOnlyBroadThreatTypeAnchor(sharedThreatTypeTags);
 
   const baseResult = {
     movieAThreatTypeTags,
@@ -3157,7 +3175,8 @@ function getCoreAnchorAdjustment(movieA = {}, movieB = {}, coreRoleAlignmentAdju
     hasSharedThreatType,
     hasSharedSetting,
     hasThreatTypeMismatch,
-    hasSettingMismatch
+    hasSettingMismatch,
+    hasBroadThreatTypeOnlyAnchor
   };
 
   if (hasThreatTypeMismatch && hasSettingMismatch) {
@@ -3187,6 +3206,16 @@ function getCoreAnchorAdjustment(movieA = {}, movieB = {}, coreRoleAlignmentAdju
       maxScore: SIMILARITY_MODEL.GATES.minFinalScore - 0.1,
       passesGate: false,
       reason: 'setting_mismatch'
+    };
+  }
+
+  if (hasBroadThreatTypeOnlyAnchor) {
+    return {
+      ...baseResult,
+      multiplier: 0.62,
+      maxScore: SIMILARITY_MODEL.GATES.minFinalScore - 0.1,
+      passesGate: false,
+      reason: 'broad_threat_type_without_setting_anchor'
     };
   }
 
