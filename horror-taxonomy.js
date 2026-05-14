@@ -3599,9 +3599,8 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     ? SIMILARITY_MODEL.SCORE_CAPS.countries * countryNorm
     : 0;
 
-  const exactCanonOverlapCount = (movieA.canon || []).filter(tag =>
-    (movieB.canon || []).includes(tag)
-  ).length;
+  const sharedCanon = getSharedItems(movieA.canon, movieB.canon);
+  const exactCanonOverlapCount = sharedCanon.length;
 
   const movieAAllLanes = resolveMovieSimilarityLanes(movieA);
   const movieBAllLanes = resolveMovieSimilarityLanes(movieB);
