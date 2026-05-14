@@ -415,6 +415,18 @@ const CANON_TAG_META = {
     examples: ['Зиам'],
     counterExamples: []
   }),
+  'Пещеры как пространство угрозы': createCanonTagMeta({
+    tier: "standard",
+    confidence: "observe",
+    status: CANON_TAG_STATUSES.observe,
+    role: CANON_TAG_ROLES.setting,
+    families: ['Тип сеттинга', 'Структура выживания'],
+    lanes: ['survival_containment_lane'],
+    useWhen: 'Пещера, система пещер, грот, шахтный ход, тоннель или подземная природная среда является значимым пространством угрозы, изоляции, заблуждения, преследования или невозможности выбраться.',
+    avoidWhen: 'Пещера появляется только как краткая локация, проход, фон или атмосферная декорация и не влияет на horror-механику.',
+    examples: ['Хищник. Спуск в преисподнюю'],
+    counterExamples: []
+  }),
   'Водная среда': createCanonTagMeta({
     tier: "standard",
     confidence: "stable",
@@ -2758,6 +2770,7 @@ const SIMILARITY_LANE_CONFIG = {
       'Космическая среда',
       'Самолёт как ловушка',
       'Больница как пространство угрозы',
+      'Пещеры как пространство угрозы',
       'Военное выживание',
       'Постапокалиптическое выживание'
     ]
@@ -2956,6 +2969,96 @@ function getPrimarySlasherMismatchAdjustment(movieA = {}, movieB = {}, sharedLan
     multiplier: 0.72,
     maxScore: SIMILARITY_MODEL.GATES.minFinalScore - 0.1,
     reason: 'primary_slasher_mismatch'
+  };
+}
+
+const SIMILARITY_CORE_ROLE_GROUPS = {
+  threat: [
+    CANON_TAG_ROLES.threat_type,
+    CANON_TAG_ROLES.threat_behavior
+  ],
+  setting: [
+    CANON_TAG_ROLES.setting
+  ],
+  structure: [
+    CANON_TAG_ROLES.structure,
+    CANON_TAG_ROLES.investigation_frame,
+    CANON_TAG_ROLES.temporal_mechanism
+  ]
+};
+
+function getSharedCanonTagsByRoleGroup(sharedCanon = [], roleGroup = []) {
+  return sharedCanon.filter(tag => {
+    const role = getCanonTagMeta(tag)?.role;
+
+    return roleGroup.includes(role);
+  });
+}
+
+function getCoreRoleAlignmentAdjustment(sharedCanon = []) {
+  const sharedThreatTags = getSharedCanonTagsByRoleGroup(
+    sharedCanon,
+    SIMILARITY_CORE_ROLE_GROUPS.threat
+  );
+  const sharedSettingTags = getSharedCanonTagsByRoleGroup(
+    sharedCanon,
+    SIMILARITY_CORE_ROLE_GROUPS.setting
+  );
+  const sharedStructureTags = getSharedCanonTagsByRoleGroup(
+    sharedCanon,
+    SIMILARITY_CORE_ROLE_GROUPS.structure
+  );
+
+  const hasThreatMatch = sharedThreatTags.length > 0;
+  const hasSettingMatch = sharedSettingTags.length > 0;
+  const hasStructureMatch = sharedStructureTags.length > 0;
+
+  if (hasThreatMatch && hasSettingMatch) {
+    return {
+      multiplier: 1.14,
+      reason: 'shared_threat_and_setting',
+      sharedThreatTags,
+      sharedSettingTags,
+      sharedStructureTags
+    };
+  }
+
+  if (hasThreatMatch) {
+    return {
+      multiplier: 1.07,
+      reason: 'shared_threat',
+      sharedThreatTags,
+      sharedSettingTags,
+      sharedStructureTags
+    };
+  }
+
+  if (hasSettingMatch) {
+    return {
+      multiplier: 1.05,
+      reason: 'shared_setting',
+      sharedThreatTags,
+      sharedSettingTags,
+      sharedStructureTags
+    };
+  }
+
+  if (hasStructureMatch && sharedCanon.length === sharedStructureTags.length) {
+    return {
+      multiplier: 0.84,
+      reason: 'structure_only',
+      sharedThreatTags,
+      sharedSettingTags,
+      sharedStructureTags
+    };
+  }
+
+  return {
+    multiplier: 1,
+    reason: 'neutral',
+    sharedThreatTags,
+    sharedSettingTags,
+    sharedStructureTags
   };
 }
 
@@ -3158,6 +3261,13 @@ const CANON_AFFINITY = {
     'Инфраструктурный хоррор': 0.18,
     'Научный эксперимент': 0.12,
     'Домашнее заточение': 0.1
+  },
+
+  'Пещеры как пространство угрозы': {
+    'Выживание в ловушке': 0.22,
+    'Групповое выживание': 0.14,
+    'Хищное существо': 0.12,
+    'Преследование': 0.1
   },
 
   'Космическая среда': {
@@ -3513,14 +3623,15 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     sharedLanes.length > 0 && sharedSecondaryPerceivedLanes.length > 0
       ? 1.015
       : 1;
-  const comedyToneAdjustment = getComedyToneAdjustment(movieA, movieB);
-  const primarySlasherMismatchAdjustment = getPrimarySlasherMismatchAdjustment(
-    movieA,
-    movieB,
-    sharedLanes
-  );
-
-  const rawFinalScore =
+      const comedyToneAdjustment = getComedyToneAdjustment(movieA, movieB);
+      const primarySlasherMismatchAdjustment = getPrimarySlasherMismatchAdjustment(
+        movieA,
+        movieB,
+        sharedLanes
+      );
+      const coreRoleAlignmentAdjustment = getCoreRoleAlignmentAdjustment(sharedCanon);
+    
+      const rawFinalScore =
     canonExactScore +
     canonAffinityScore +
     modifierScore +
@@ -3537,7 +3648,8 @@ function calcMovieSimilarity(movieA, movieB, stats) {
         laneMultiplier *
         secondaryPerceivedLaneMultiplier *
         comedyToneAdjustment.multiplier *
-        primarySlasherMismatchAdjustment.multiplier
+        primarySlasherMismatchAdjustment.multiplier *
+        coreRoleAlignmentAdjustment.multiplier
     );
 
   const passesCoreGate =
@@ -3588,6 +3700,11 @@ function calcMovieSimilarity(movieA, movieB, stats) {
       primarySlasherMismatchMultiplier: primarySlasherMismatchAdjustment.multiplier,
       primarySlasherMismatchMaxScore: primarySlasherMismatchAdjustment.maxScore,
       primarySlasherMismatchReason: primarySlasherMismatchAdjustment.reason,
+      coreRoleAlignmentMultiplier: coreRoleAlignmentAdjustment.multiplier,
+      coreRoleAlignmentReason: coreRoleAlignmentAdjustment.reason,
+      sharedThreatTags: coreRoleAlignmentAdjustment.sharedThreatTags,
+      sharedSettingTags: coreRoleAlignmentAdjustment.sharedSettingTags,
+      sharedStructureTags: coreRoleAlignmentAdjustment.sharedStructureTags,
       movieAComedyToneScore: getMovieComedyToneScore(movieA),
       movieBComedyToneScore: getMovieComedyToneScore(movieB),
       movieAAllLanes,
