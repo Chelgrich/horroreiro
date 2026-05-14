@@ -709,19 +709,128 @@
     }
   }
 
+  const SIMILARITY_AUDIT_GATE_REASON_LABELS = {
+    passed: 'прошёл',
+    core_gate_failed: 'не прошло ядро',
+    lane_gate_failed: 'не совпал lane',
+    final_score_below_threshold: 'низкий итоговый score',
+    comedy_tone_mismatch: 'конфликт комедийного тона',
+    primary_slasher_mismatch: 'конфликт primary slasher',
+    no_shared_core: 'нет общего ядра'
+  };
+
+  function formatSimilarityAuditMovieTitle(movie = {}) {
+    const title = movie.title || movie.original_title || movie.slug || 'Без названия';
+    return `${title}${movie.year ? ` (${movie.year})` : ''}`;
+  }
+
+  function formatSimilarityAuditList(values, fallback = '—') {
+    return Array.isArray(values) && values.length > 0
+      ? values.join(', ')
+      : fallback;
+  }
+
+  function formatSimilarityAuditGateReasons(reasons = []) {
+    return formatSimilarityAuditList(
+      reasons.map(reason => SIMILARITY_AUDIT_GATE_REASON_LABELS[reason] || reason)
+    );
+  }
+
+  function formatSimilarityAuditDebug(debug = {}) {
+    const parts = [];
+
+    if (Number.isFinite(Number(debug.canonCore))) {
+      parts.push(`canonCore=${debug.canonCore}`);
+    }
+
+    if (Number.isFinite(Number(debug.targetCoverageNorm))) {
+      parts.push(`targetCoverage=${debug.targetCoverageNorm}`);
+    }
+
+    if (Number.isFinite(Number(debug.laneMultiplier))) {
+      parts.push(`laneMultiplier=${debug.laneMultiplier}`);
+    }
+
+    if (debug.coreRoleAlignmentReason) {
+      parts.push(`role=${debug.coreRoleAlignmentReason}`);
+    }
+
+    if (debug.comedyToneReason && debug.comedyToneReason !== 'neutral') {
+      parts.push(`tone=${debug.comedyToneReason}`);
+    }
+
+    if (debug.primarySlasherMismatchReason && debug.primarySlasherMismatchReason !== 'neutral') {
+      parts.push(`slasher=${debug.primarySlasherMismatchReason}`);
+    }
+
+    return parts.length > 0 ? parts.join('; ') : '—';
+  }
+
+  function formatSimilarityAuditSharedCore(sharedCore = {}) {
+    return [
+      `canon=${formatSimilarityAuditList(sharedCore.canon)}`,
+      `lanes=${formatSimilarityAuditList(sharedCore.lanes)}`,
+      `threat_type=${formatSimilarityAuditList(sharedCore.threatType)}`,
+      `threat_behavior=${formatSimilarityAuditList(sharedCore.threatBehavior)}`,
+      `setting=${formatSimilarityAuditList(sharedCore.setting)}`,
+      `structure=${formatSimilarityAuditList(sharedCore.structure)}`
+    ].join('; ');
+  }
+
+  function formatSimilarityAuditCandidate(candidate, index) {
+    return [
+      `   ${index + 1}. ${formatSimilarityAuditMovieTitle(candidate.movie)} — score ${candidate.score}; tier: ${candidate.tier}`,
+      `      Gate: ${formatSimilarityAuditGateReasons(candidate.gateReasons || [])}`,
+      `      Core: ${formatSimilarityAuditSharedCore(candidate.sharedCore || {})}`,
+      `      Soft: modifiers=${formatSimilarityAuditList(candidate.sharedModifiers)}; formats=${formatSimilarityAuditList(candidate.sharedFormats)}; genres=${formatSimilarityAuditList(candidate.sharedGenres)}; countries=${formatSimilarityAuditList(candidate.sharedCountries)}`,
+      `      Debug: ${formatSimilarityAuditDebug(candidate.debug || {})}`
+    ].join('\n');
+  }
+
+  function formatSimilarityAuditMovieCandidates(item, index) {
+    const lines = [
+      `${index + 1}. ${formatSimilarityAuditMovieTitle(item.movie)}`,
+      `   Прошло gate: ${item.passedCount}; отсеяно: ${item.rejectedCount}; кандидатов всего: ${item.candidatesCount}`,
+      '   TOP-4 похожих:'
+    ];
+
+    if (!item.topCandidates?.length) {
+      lines.push('   —');
+    } else {
+      item.topCandidates.forEach((candidate, candidateIndex) => {
+        lines.push(formatSimilarityAuditCandidate(candidate, candidateIndex));
+      });
+    }
+
+    lines.push('   Ближайшие отсеянные:');
+
+    if (!item.rejectedCandidates?.length) {
+      lines.push('   —');
+    } else {
+      item.rejectedCandidates.forEach((candidate, candidateIndex) => {
+        lines.push(formatSimilarityAuditCandidate(candidate, candidateIndex));
+      });
+    }
+
+    return lines.join('\n');
+  }
+
   function formatSimilarityAuditPair(pair, index) {
     const lines = [
-      `${index + 1}. ${pair.movieA.title} ↔ ${pair.movieB.title}`,
-      `   Score: ${pair.score}; tier: ${pair.tier}`,
-      `   Lanes: ${pair.sharedLanes.length ? pair.sharedLanes.join(', ') : '—'}`,
-      `   Canon: ${pair.sharedCanon.length ? pair.sharedCanon.join(', ') : '—'}`,
-      `   Modifiers: ${pair.sharedModifiers.length ? pair.sharedModifiers.join(', ') : '—'}`,
-      `   Broad families: ${pair.sharedBroadFamilies.length ? pair.sharedBroadFamilies.join(', ') : '—'}`
+      `${index + 1}. ${formatSimilarityAuditMovieTitle(pair.movieA)} ↔ ${formatSimilarityAuditMovieTitle(pair.movieB)}`,
+      `   Score: ${pair.score}; tier: ${pair.tier}; gate: ${formatSimilarityAuditGateReasons(pair.gateReasons || [])}`,
+      `   Lanes: ${formatSimilarityAuditList(pair.sharedLanes)}`,
+      `   Canon: ${formatSimilarityAuditList(pair.sharedCanon)}`,
+      `   Threat type: ${formatSimilarityAuditList(pair.debug?.sharedThreatTypeTags)}`,
+      `   Threat behavior: ${formatSimilarityAuditList(pair.debug?.sharedThreatBehaviorTags)}`,
+      `   Setting: ${formatSimilarityAuditList(pair.debug?.sharedSettingTags)}`,
+      `   Modifiers: ${formatSimilarityAuditList(pair.sharedModifiers)}`,
+      `   Broad families: ${formatSimilarityAuditList(pair.sharedBroadFamilies)}`
     ];
 
     if (pair.debug) {
       lines.push(
-        `   Debug: canonCore=${Math.round(pair.debug.canonCore || 0)}, laneMultiplier=${pair.debug.laneMultiplier || 1}`
+        `   Debug: ${formatSimilarityAuditDebug(pair.debug)}`
       );
     }
 
@@ -735,11 +844,25 @@
       `Проверено фильмов: ${audit.totalMovies}`,
       `Пар, прошедших gate: ${audit.passedPairsCount}`,
       `Фильмов без похожих: ${audit.moviesWithoutSimilar.length}`,
-      `Подозрительных пар: ${audit.suspiciousPairs.length}`,
-      '',
-      'ТОП СИЛЬНЕЙШИХ ПАР',
-      ''
+      `Подозрительных пар: ${audit.suspiciousPairs.length}`
     ];
+
+    lines.push('');
+    lines.push('ПОКАДРОВЫЙ АУДИТ ПОХОЖЕСТИ');
+    lines.push('');
+
+    if (!audit.movieCandidates?.length) {
+      lines.push('—');
+    } else {
+      audit.movieCandidates.forEach((item, index) => {
+        lines.push(formatSimilarityAuditMovieCandidates(item, index));
+        lines.push('');
+      });
+    }
+
+    lines.push('');
+    lines.push('ТОП СИЛЬНЕЙШИХ ПАР');
+    lines.push('');
 
     if (audit.topPairs.length === 0) {
       lines.push('—');
@@ -830,7 +953,9 @@
       const audit = getSimilarityAuditReport(similarityMovies, {
         topPairsLimit: 20,
         suspiciousPairsLimit: 20,
-        canonTagsLimit: 25
+        canonTagsLimit: 25,
+        movieCandidatesLimit: 4,
+        rejectedCandidatesLimit: 4
       });
       const report = formatTaxonomySimilarityAuditReport(audit);
       const datePart = new Date().toISOString().slice(0, 10);
@@ -1047,7 +1172,7 @@
       taxonomySimilarityAuditButton.id = 'taxonomySimilarityAuditButton';
       taxonomySimilarityAuditButton.className = 'auth-popover-item taxonomy-popover-item';
       taxonomySimilarityAuditButton.textContent = 'Аудит похожести';
-      taxonomySimilarityAuditButton.title = 'Скачать отчёт по сильным, слабым и подозрительным похожим фильмам';
+      taxonomySimilarityAuditButton.title = 'Скачать отчёт с top-4 похожих и ближайшими отсеянными кандидатами по каждому фильму';
 
       taxonomySimilarityAuditButton.addEventListener('click', runTaxonomySimilarityAudit);
     }
