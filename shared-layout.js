@@ -232,6 +232,18 @@
                     </div>
                   </div>
 
+                  <div class="form-row canon-coverage-row">
+                    <div id="canonCoverageLabel" class="form-row-label">Canon coverage:</div>
+                    <div class="field-hint">
+                      Закройте каждую ветку canon: тегом, статусом «не применимо» или «не определено».
+                    </div>
+                    <div
+                      id="canonCoverageControls"
+                      class="canon-coverage-controls"
+                      aria-labelledby="canonCoverageLabel"
+                    ></div>
+                  </div>
+
                   <div class="form-row">
                     <label for="movieFormats">Форматы:</label>
                     <textarea id="movieFormats" name="movieFormats" rows="2"></textarea>

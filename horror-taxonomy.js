@@ -94,6 +94,73 @@ const CANON_TAG_ROLES = {
   tone_adjacent: 'tone_adjacent'
 };
 
+const CANON_COVERAGE_VERSION = 1;
+
+const CANON_COVERAGE_STATUSES = {
+  filled: 'filled',
+  notApplicable: 'not_applicable',
+  unknown: 'unknown',
+  missing: 'missing'
+};
+
+const CANON_COVERAGE_ROLE_DEFINITIONS = [
+  {
+    key: CANON_TAG_ROLES.threat_type,
+    label: 'Тип угрозы',
+    description: 'Кто или что является основной угрозой.'
+  },
+  {
+    key: CANON_TAG_ROLES.threat_behavior,
+    label: 'Поведение угрозы',
+    description: 'Как угроза действует и давит на персонажей.'
+  },
+  {
+    key: CANON_TAG_ROLES.mechanism,
+    label: 'Механизм',
+    description: 'Правило, причина или сверхъестественная/социальная логика ужаса.'
+  },
+  {
+    key: CANON_TAG_ROLES.structure,
+    label: 'Структура',
+    description: 'Как устроено выживание, удержание, расплата или нарративная рамка.'
+  },
+  {
+    key: CANON_TAG_ROLES.setting,
+    label: 'Сеттинг / локация',
+    description: 'Среда, место или пространство, которое влияет на угрозу.'
+  },
+  {
+    key: CANON_TAG_ROLES.human_dynamics,
+    label: 'Человеческая динамика',
+    description: 'Семейные, романтические, групповые или социальные связи.'
+  },
+  {
+    key: CANON_TAG_ROLES.psychological_wound,
+    label: 'Психологическая рана',
+    description: 'Травма, вина, утрата, память или внутренний конфликт.'
+  },
+  {
+    key: CANON_TAG_ROLES.investigation_frame,
+    label: 'Рамка расследования',
+    description: 'Поиск, расследование, медиа-след или тайна прошлого.'
+  },
+  {
+    key: CANON_TAG_ROLES.temporal_mechanism,
+    label: 'Временной механизм',
+    description: 'Обратный отсчёт, петля, аномалия или временное давление.'
+  },
+  {
+    key: CANON_TAG_ROLES.format_bridge,
+    label: 'Форматный мост',
+    description: 'Форма подачи, медиа-формат или способ контакта со зрителем.'
+  },
+  {
+    key: CANON_TAG_ROLES.tone_adjacent,
+    label: 'Тональная ветка',
+    description: 'Тональные признаки, если они являются частью horror-механики.'
+  }
+];
+
 function createCanonTagMeta({
   tier = 'standard',
   confidence = 'stable',
@@ -144,6 +211,124 @@ function getCanonTagMetaArray(tag, fieldName) {
   return values
     .map(value => String(value || '').trim())
     .filter(Boolean);
+}
+
+function getCanonCoverageRoleDefinitions() {
+  return CANON_COVERAGE_ROLE_DEFINITIONS.map(role => ({ ...role }));
+}
+
+function normalizeCanonCoverageStatus(value) {
+  const normalizedValue = String(value || '').trim();
+
+  if (
+    normalizedValue === CANON_COVERAGE_STATUSES.filled ||
+    normalizedValue === CANON_COVERAGE_STATUSES.notApplicable ||
+    normalizedValue === CANON_COVERAGE_STATUSES.unknown
+  ) {
+    return normalizedValue;
+  }
+
+  return '';
+}
+
+function getCanonCoverageInput(movieOrCoverage = {}) {
+  if (!movieOrCoverage || typeof movieOrCoverage !== 'object') {
+    return {};
+  }
+
+  if (movieOrCoverage.canon_coverage && typeof movieOrCoverage.canon_coverage === 'object') {
+    return movieOrCoverage.canon_coverage;
+  }
+
+  if (movieOrCoverage.canonCoverage && typeof movieOrCoverage.canonCoverage === 'object') {
+    return movieOrCoverage.canonCoverage;
+  }
+
+  return movieOrCoverage;
+}
+
+function getCanonCoverageInputRoles(movieOrCoverage = {}) {
+  const coverage = getCanonCoverageInput(movieOrCoverage);
+
+  if (!coverage || typeof coverage !== 'object') {
+    return {};
+  }
+
+  if (coverage.roles && typeof coverage.roles === 'object') {
+    return coverage.roles;
+  }
+
+  return coverage;
+}
+
+function getCanonCoverageRoleInput(movieOrCoverage = {}, roleKey) {
+  const roles = getCanonCoverageInputRoles(movieOrCoverage);
+  const value = roles?.[roleKey];
+
+  if (!value || typeof value !== 'object') {
+    return {
+      status: normalizeCanonCoverageStatus(value)
+    };
+  }
+
+  return value;
+}
+
+function getMovieCanonValuesForCoverage(movie = {}, explicitCanonTags = null) {
+  if (Array.isArray(explicitCanonTags)) {
+    return explicitCanonTags.map(tag => String(tag || '').trim()).filter(Boolean);
+  }
+
+  return getMovieLaneValues(movie, ['canon', 'tags_canon']);
+}
+
+function getCanonTagsByRole(canonTags = [], roleKey) {
+  return (canonTags || []).filter(tag => getCanonTagMeta(tag)?.role === roleKey);
+}
+
+function normalizeCanonCoverage(movieOrCoverage = {}, explicitCanonTags = null) {
+  const canonTags = getMovieCanonValuesForCoverage(movieOrCoverage, explicitCanonTags);
+  const roles = {};
+
+  CANON_COVERAGE_ROLE_DEFINITIONS.forEach(role => {
+    const roleInput = getCanonCoverageRoleInput(movieOrCoverage, role.key);
+    const explicitStatus = normalizeCanonCoverageStatus(roleInput.status || roleInput.value);
+    const tags = getCanonTagsByRole(canonTags, role.key);
+    const status = tags.length > 0
+      ? CANON_COVERAGE_STATUSES.filled
+      : explicitStatus || CANON_COVERAGE_STATUSES.missing;
+
+    roles[role.key] = {
+      status,
+      tags,
+      explicitStatus: explicitStatus || null
+    };
+  });
+
+  return {
+    version: CANON_COVERAGE_VERSION,
+    roles
+  };
+}
+
+function getCanonCoverageRoleStatus(movie = {}, roleKey) {
+  return normalizeCanonCoverage(movie).roles?.[roleKey]?.status || CANON_COVERAGE_STATUSES.missing;
+}
+
+function getCanonCoverageWarnings(movie = {}) {
+  const coverage = normalizeCanonCoverage(movie);
+
+  return CANON_COVERAGE_ROLE_DEFINITIONS
+    .filter(role => coverage.roles?.[role.key]?.status === CANON_COVERAGE_STATUSES.missing)
+    .map(role => createTaxonomyWarning(
+      'missing_canon_coverage_role',
+      `Canon coverage: ветка "${role.label}" не закрыта тегом, "не применимо" или "не определено".`,
+      {
+        layer: 'canon_coverage',
+        role: role.key,
+        group: role.label
+      }
+    ));
 }
 
 function extractObjectLiteralBodyFromSource(source, startToken) {
@@ -3182,6 +3367,22 @@ function getCoreAnchorAdjustment(movieA = {}, movieB = {}, coreRoleAlignmentAdju
     movieB,
     SIMILARITY_CORE_ROLE_GROUPS.setting
   );
+  const movieAThreatTypeCoverageStatus = getCanonCoverageRoleStatus(
+    movieA,
+    CANON_TAG_ROLES.threat_type
+  );
+  const movieBThreatTypeCoverageStatus = getCanonCoverageRoleStatus(
+    movieB,
+    CANON_TAG_ROLES.threat_type
+  );
+  const movieASettingCoverageStatus = getCanonCoverageRoleStatus(
+    movieA,
+    CANON_TAG_ROLES.setting
+  );
+  const movieBSettingCoverageStatus = getCanonCoverageRoleStatus(
+    movieB,
+    CANON_TAG_ROLES.setting
+  );
   const sharedThreatTypeTags = coreRoleAlignmentAdjustment.sharedThreatTypeTags || [];
   const sharedThreatBehaviorTags = coreRoleAlignmentAdjustment.sharedThreatBehaviorTags || [];
   const sharedMechanismTags = coreRoleAlignmentAdjustment.sharedMechanismTags || [];
@@ -3189,18 +3390,22 @@ function getCoreAnchorAdjustment(movieA = {}, movieB = {}, coreRoleAlignmentAdju
   const sharedStructureTags = coreRoleAlignmentAdjustment.sharedStructureTags || [];
   const hasSharedThreatType = sharedThreatTypeTags.length > 0;
   const hasSharedSetting = sharedSettingTags.length > 0;
+  const hasBothFilledThreatTypeCoverage =
+    movieAThreatTypeCoverageStatus === CANON_COVERAGE_STATUSES.filled &&
+    movieBThreatTypeCoverageStatus === CANON_COVERAGE_STATUSES.filled;
+  const hasBothFilledSettingCoverage =
+    movieASettingCoverageStatus === CANON_COVERAGE_STATUSES.filled &&
+    movieBSettingCoverageStatus === CANON_COVERAGE_STATUSES.filled;
   const hasAnyThreatTypeOrSettingTags =
     movieAThreatTypeTags.length > 0 ||
     movieBThreatTypeTags.length > 0 ||
     movieASettingTags.length > 0 ||
     movieBSettingTags.length > 0;
   const hasThreatTypeMismatch =
-    movieAThreatTypeTags.length > 0 &&
-    movieBThreatTypeTags.length > 0 &&
+    hasBothFilledThreatTypeCoverage &&
     !hasSharedThreatType;
   const hasSettingMismatch =
-    movieASettingTags.length > 0 &&
-    movieBSettingTags.length > 0 &&
+    hasBothFilledSettingCoverage &&
     !hasSharedSetting;
   const hasBroadThreatTypeOnlyAnchor =
     hasSharedThreatType &&
@@ -3222,6 +3427,10 @@ function getCoreAnchorAdjustment(movieA = {}, movieB = {}, coreRoleAlignmentAdju
     movieBThreatTypeTags,
     movieASettingTags,
     movieBSettingTags,
+    movieAThreatTypeCoverageStatus,
+    movieBThreatTypeCoverageStatus,
+    movieASettingCoverageStatus,
+    movieBSettingCoverageStatus,
     hasSharedThreatType,
     hasSharedSetting,
     hasThreatTypeMismatch,
@@ -4066,6 +4275,10 @@ function calcMovieSimilarity(movieA, movieB, stats) {
       movieBThreatTypeTags: coreAnchorAdjustment.movieBThreatTypeTags,
       movieASettingTags: coreAnchorAdjustment.movieASettingTags,
       movieBSettingTags: coreAnchorAdjustment.movieBSettingTags,
+      movieAThreatTypeCoverageStatus: coreAnchorAdjustment.movieAThreatTypeCoverageStatus,
+      movieBThreatTypeCoverageStatus: coreAnchorAdjustment.movieBThreatTypeCoverageStatus,
+      movieASettingCoverageStatus: coreAnchorAdjustment.movieASettingCoverageStatus,
+      movieBSettingCoverageStatus: coreAnchorAdjustment.movieBSettingCoverageStatus,
       movieAComedyToneScore: getMovieComedyToneScore(movieA),
       movieBComedyToneScore: getMovieComedyToneScore(movieB),
       movieAAllLanes,
@@ -4772,6 +4985,10 @@ function validateMovieTags(movie = {}) {
       );
     }
   }
+
+  getCanonCoverageWarnings(movie).forEach(warning => {
+    addTaxonomyWarning(warnings, warning, seenWarnings);
+  });
 
   return {
     warnings
@@ -5679,6 +5896,10 @@ window.HORROR_TAXONOMY = {
     resolveMovieSimilarityLanes,
     getCanonTagMeta,
     getCanonTagsSimilarityLanes,
+    getCanonCoverageRoleDefinitions,
+    normalizeCanonCoverage,
+    getCanonCoverageRoleStatus,
+    getCanonCoverageWarnings,
     validateMovieTags,
     validateTaxonomyMovies,
     getCanonCoverageAuditReport,

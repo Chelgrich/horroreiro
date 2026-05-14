@@ -109,6 +109,7 @@ const movieModifiersInput = document.getElementById('movieModifiers');
 const movieBroadFamiliesInput = document.getElementById('movieBroadFamilies');
 const tagsPerceivedInput = document.getElementById('tagsPerceived');
 const tagsCanonInput = document.getElementById('tagsCanon');
+const canonCoverageControls = document.getElementById('canonCoverageControls');
 const movieTriggersInput = document.getElementById('movieTriggers');
 const movieTaxonomyPrimaryPreview = document.getElementById('movieTaxonomyPrimaryPreview');
 const movieTaxonomySecondaryPreview = document.getElementById('movieTaxonomySecondaryPreview');
@@ -224,6 +225,7 @@ let currentCatalogPage = 1;
 let currentCatalogPaginationSlots = null;
 let catalogDataVersion = 0;
 let catalogDerivedStateCache = null;
+let pendingCanonCoverageControlValues = {};
 const userRatingControlsHtmlCache = new Map();
 
 function applyBuildVersionSoftResetIfNeeded() {
@@ -279,6 +281,175 @@ function parseMultilineValues(value) {
   return Array.from(uniqueValues.values());
 }
 
+function getCanonCoverageHelpers() {
+  return window.HORROR_TAXONOMY?.helpers || {};
+}
+
+function getCanonCoverageRoleDefinitions() {
+  const helpers = getCanonCoverageHelpers();
+
+  return typeof helpers.getCanonCoverageRoleDefinitions === 'function'
+    ? helpers.getCanonCoverageRoleDefinitions()
+    : [];
+}
+
+function getCanonCoverageSelects() {
+  if (!canonCoverageControls) {
+    return [];
+  }
+
+  return Array.from(canonCoverageControls.querySelectorAll('[data-canon-coverage-role]'));
+}
+
+function ensureCanonCoverageControlsRendered() {
+  if (!canonCoverageControls) {
+    return;
+  }
+
+  const roleDefinitions = getCanonCoverageRoleDefinitions();
+
+  if (roleDefinitions.length === 0) {
+    canonCoverageControls.innerHTML = '';
+    delete canonCoverageControls.dataset.rendered;
+    return;
+  }
+
+  const renderedSignature = canonCoverageControls.dataset.rendered || '';
+  const nextSignature = roleDefinitions.map(role => role.key).join('|');
+
+  if (renderedSignature === nextSignature) {
+    return;
+  }
+
+  canonCoverageControls.innerHTML = roleDefinitions
+    .map(role => {
+      const selectId = `canonCoverage-${role.key}`;
+
+      return `
+        <div class="canon-coverage-item">
+          <div class="canon-coverage-item-main">
+            <label for="${escapeHtml(selectId)}">${escapeHtml(role.label)}</label>
+            <span class="canon-coverage-item-description">${escapeHtml(role.description || '')}</span>
+          </div>
+          <select id="${escapeHtml(selectId)}" data-canon-coverage-role="${escapeHtml(role.key)}">
+            <option value="">Авто по canon-тегам</option>
+            <option value="not_applicable">Не применимо</option>
+            <option value="unknown">Не определено</option>
+          </select>
+        </div>
+      `;
+    })
+    .join('');
+
+  canonCoverageControls.dataset.rendered = nextSignature;
+
+  getCanonCoverageSelects().forEach(select => {
+    select.addEventListener('change', updateMovieTaxonomyPreview);
+  });
+
+  applyCanonCoverageControlValues(pendingCanonCoverageControlValues);
+}
+
+function getExplicitCanonCoverageFromForm() {
+  ensureCanonCoverageControlsRendered();
+
+  const roles = {};
+
+  getCanonCoverageSelects().forEach(select => {
+    const roleKey = select.dataset.canonCoverageRole;
+    const status = select.value;
+
+    if (!roleKey || !status) {
+      return;
+    }
+
+    roles[roleKey] = { status };
+  });
+
+  return {
+    version: 1,
+    roles
+  };
+}
+
+function normalizeCanonCoverageForDraft(tagsCanon, explicitCoverage) {
+  const helpers = getCanonCoverageHelpers();
+
+  if (typeof helpers.normalizeCanonCoverage !== 'function') {
+    return explicitCoverage;
+  }
+
+  return helpers.normalizeCanonCoverage({
+    tags_canon: tagsCanon,
+    canon_coverage: explicitCoverage
+  });
+}
+
+function getCanonCoverageExplicitStatus(rawCoverage, roleKey) {
+  const roles = rawCoverage?.roles && typeof rawCoverage.roles === 'object'
+    ? rawCoverage.roles
+    : rawCoverage;
+  const roleCoverage = roles?.[roleKey];
+
+  if (!roleCoverage) {
+    return '';
+  }
+
+  const status = typeof roleCoverage === 'object'
+    ? roleCoverage.explicitStatus || roleCoverage.status
+    : roleCoverage;
+
+  return status === 'not_applicable' || status === 'unknown' ? status : '';
+}
+
+function applyCanonCoverageControlValues(rawCoverage = {}) {
+  getCanonCoverageSelects().forEach(select => {
+    select.value = getCanonCoverageExplicitStatus(rawCoverage, select.dataset.canonCoverageRole);
+  });
+}
+
+function setCanonCoverageControlValues(rawCoverage = {}) {
+  pendingCanonCoverageControlValues = rawCoverage || {};
+  ensureCanonCoverageControlsRendered();
+  applyCanonCoverageControlValues(pendingCanonCoverageControlValues);
+}
+
+function getCanonCoverageStatusLabel(status) {
+  switch (status) {
+    case 'filled':
+      return 'заполнено';
+    case 'not_applicable':
+      return 'не применимо';
+    case 'unknown':
+      return 'не определено';
+    default:
+      return 'не закрыто';
+  }
+}
+
+function getCanonCoveragePreviewHtml(canonCoverage) {
+  const roleDefinitions = getCanonCoverageRoleDefinitions();
+
+  if (!canonCoverage?.roles || roleDefinitions.length === 0) {
+    return '';
+  }
+
+  const items = roleDefinitions.map(role => {
+    const roleCoverage = canonCoverage.roles[role.key] || {};
+    const status = roleCoverage.status || 'missing';
+    const tagsCount = Array.isArray(roleCoverage.tags) ? roleCoverage.tags.length : 0;
+    const tagSuffix = tagsCount > 0 ? ` · ${tagsCount}` : '';
+
+    return `
+      <span class="canon-coverage-badge canon-coverage-badge-${escapeHtml(status)}">
+        ${escapeHtml(role.label)}: ${escapeHtml(getCanonCoverageStatusLabel(status))}${escapeHtml(tagSuffix)}
+      </span>
+    `;
+  });
+
+  return `<div class="canon-coverage-preview">${items.join('')}</div>`;
+}
+
 function buildMovieTaxonomyDraftFromForm() {
   const formats = parseMultilineValues(movieFormatsInput?.value || '');
   const modifiers = parseMultilineValues(movieModifiersInput?.value || '');
@@ -287,6 +458,8 @@ function buildMovieTaxonomyDraftFromForm() {
   const tagsCanon = parseMultilineValues(tagsCanonInput?.value || '');
   const broadFamilies = resolveTaxonomyBroadFamiliesFromCanon(tagsCanon, manualBroadFamilies);
   const triggers = parseMultilineValues(movieTriggersInput?.value || '');
+  const explicitCanonCoverage = getExplicitCanonCoverageFromForm();
+  const canonCoverage = normalizeCanonCoverageForDraft(tagsCanon, explicitCanonCoverage);
 
   const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
   const taxonomyMovieDraft = {
@@ -295,6 +468,7 @@ function buildMovieTaxonomyDraftFromForm() {
     broad_families: broadFamilies,
     tags_perceived: tagsPerceived,
     tags_canon: tagsCanon,
+    canon_coverage: canonCoverage,
     triggers
   };
 
@@ -315,6 +489,7 @@ function buildMovieTaxonomyDraftFromForm() {
     formats,
     modifiers,
     broadFamilies,
+    canonCoverage,
     tagsPerceived,
     tagsCanon,
     triggers,
@@ -570,6 +745,10 @@ function syncTriggerFiltersTriggerText() {
   triggerFiltersTriggerText.textContent = `Исключить: ${selectedTriggerKeys.length}`;
 }
 
+function isCanonCoverageWarning(warning = {}) {
+  return warning.code === 'missing_canon_coverage_role' || warning.layer === 'canon_coverage';
+}
+
 function updateMovieTaxonomyPreview() {
   if (!movieTaxonomyPrimaryPreview || !movieTaxonomySecondaryPreview || !movieTaxonomyWarningsPreview) {
     return;
@@ -586,14 +765,18 @@ function updateMovieTaxonomyPreview() {
   movieTaxonomyPrimaryPreview.textContent = primaryLabel;
   movieTaxonomySecondaryPreview.textContent = secondaryLabels;
 
-  if (!taxonomyDraft.warnings.length) {
-    movieTaxonomyWarningsPreview.innerHTML = '';
+  const visibleWarnings = taxonomyDraft.warnings.filter(warning => !isCanonCoverageWarning(warning));
+
+  if (!visibleWarnings.length) {
+    movieTaxonomyWarningsPreview.innerHTML = getCanonCoveragePreviewHtml(taxonomyDraft.canonCoverage);
     return;
   }
 
-  movieTaxonomyWarningsPreview.innerHTML = taxonomyDraft.warnings
-    .map(warning => `<div class="movie-taxonomy-preview-warning">${escapeHtml(warning.message)}</div>`)
-    .join('');
+  movieTaxonomyWarningsPreview.innerHTML = [
+    getCanonCoveragePreviewHtml(taxonomyDraft.canonCoverage),
+    ...visibleWarnings
+      .map(warning => `<div class="movie-taxonomy-preview-warning">${escapeHtml(warning.message)}</div>`)
+  ].join('');
 }
 
 function transliterateForSlug(value) {
@@ -1780,6 +1963,28 @@ function areStringArraysEqual(firstArray, secondArray) {
   }
 
   return firstArray.every((item, index) => item === secondArray[index]);
+}
+
+function normalizeObjectForComparison(value) {
+  if (Array.isArray(value)) {
+    return value.map(item => normalizeObjectForComparison(item));
+  }
+
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  return Object.keys(value)
+    .sort()
+    .reduce((result, key) => {
+      result[key] = normalizeObjectForComparison(value[key]);
+      return result;
+    }, {});
+}
+
+function areObjectsEqual(firstValue, secondValue) {
+  return JSON.stringify(normalizeObjectForComparison(firstValue)) ===
+    JSON.stringify(normalizeObjectForComparison(secondValue));
 }
 
 function normalizeAdditionalGenreNames(value) {
@@ -3122,6 +3327,7 @@ function resetFormToCreateMode() {
   cancelEditButton.classList.remove('is-visible');
   formMessage.textContent = '';
 
+  setCanonCoverageControlValues({});
   refreshCustomSelect(releaseMonthInput);
   updateMovieTaxonomyPreview();
 }
@@ -3172,6 +3378,7 @@ function fillFormForEdit(movie) {
   setInputValue(movieBroadFamiliesInput, (movie.broad_families || []).join('\n'), 'movieBroadFamiliesInput');
   setInputValue(tagsPerceivedInput, (movie.tags_perceived || []).join('\n'), 'tagsPerceivedInput');
   setInputValue(tagsCanonInput, (movie.tags_canon || []).join('\n'), 'tagsCanonInput');
+  setCanonCoverageControlValues(movie.canon_coverage || {});
   setInputValue(movieTriggersInput, (movie.triggers || []).join('\n'), 'movieTriggersInput');
 
   formTitle.textContent = `Редактирование: ${movie.title}`;
@@ -3527,6 +3734,7 @@ const MOVIE_BASE_SELECT = `
   modifiers,
   broad_families,
   mask_conflict,
+  canon_coverage,
   primary_subgenre,
   secondary_subgenres,
   tags_perceived,
@@ -4812,6 +5020,7 @@ async function addMovie(event) {
           formats: taxonomyDraft.formats,
           modifiers: taxonomyDraft.modifiers,
           broad_families: taxonomyDraft.broadFamilies,
+          canon_coverage: taxonomyDraft.canonCoverage,
           primary_subgenre: taxonomyDraft.primarySubgenre,
           secondary_subgenres: taxonomyDraft.secondarySubgenres,
           tags_perceived: taxonomyDraft.tagsPerceived,
@@ -4997,6 +5206,10 @@ async function updateMovie(event) {
 
     if (!areStringArraysEqual(taxonomyDraft.broadFamilies, existingMovie.broad_families || [])) {
       changedFields.broad_families = taxonomyDraft.broadFamilies;
+    }
+
+    if (!areObjectsEqual(taxonomyDraft.canonCoverage, existingMovie.canon_coverage || {})) {
+      changedFields.canon_coverage = taxonomyDraft.canonCoverage;
     }
 
     if ((taxonomyDraft.primarySubgenre || null) !== (existingMovie.primary_subgenre ?? null)) {
@@ -9382,6 +9595,7 @@ function getMovieSimilaritySource(movie, meta = getCatalogMovieMeta(movie)) {
     formats: Array.isArray(movie.formats) ? movie.formats : [],
     modifiers: Array.isArray(movie.modifiers) ? movie.modifiers : [],
     broadFamilies: Array.isArray(movie.broad_families) ? movie.broad_families : [],
+    canonCoverage: movie.canon_coverage || movie.canonCoverage || null,
     mask_conflict: movie.mask_conflict === true || movie.mask_conflict === 'true',
 
     extraGenres,

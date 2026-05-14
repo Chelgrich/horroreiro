@@ -46,6 +46,28 @@
     return firstArray.every((item, index) => item === secondArray[index]);
   }
 
+  function normalizeObjectForComparison(value) {
+    if (Array.isArray(value)) {
+      return value.map(item => normalizeObjectForComparison(item));
+    }
+
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+
+    return Object.keys(value)
+      .sort()
+      .reduce((result, key) => {
+        result[key] = normalizeObjectForComparison(value[key]);
+        return result;
+      }, {});
+  }
+
+  function areObjectsEqual(firstValue, secondValue) {
+    return JSON.stringify(normalizeObjectForComparison(firstValue)) ===
+      JSON.stringify(normalizeObjectForComparison(secondValue));
+  }
+
   function normalizeTaxonomyExportValues(values) {
     if (!Array.isArray(values) || values.length === 0) {
       return '—';
@@ -84,6 +106,42 @@
     }
 
     return String(value || '').trim().toLowerCase() === 'true';
+  }
+
+  function normalizeCanonCoverageForMovie(tagsCanon, rawCoverage = {}) {
+    const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
+
+    if (typeof taxonomyHelpers?.normalizeCanonCoverage !== 'function') {
+      return rawCoverage && typeof rawCoverage === 'object' ? rawCoverage : {};
+    }
+
+    return taxonomyHelpers.normalizeCanonCoverage({
+      tags_canon: tagsCanon,
+      canon_coverage: rawCoverage && typeof rawCoverage === 'object' ? rawCoverage : {}
+    });
+  }
+
+  function formatCanonCoverageExportValues(movie) {
+    const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
+    const roleDefinitions = typeof taxonomyHelpers?.getCanonCoverageRoleDefinitions === 'function'
+      ? taxonomyHelpers.getCanonCoverageRoleDefinitions()
+      : [];
+    const coverage = normalizeCanonCoverageForMovie(movie.tags_canon || [], movie.canon_coverage || {});
+
+    if (!coverage?.roles || roleDefinitions.length === 0) {
+      return '—';
+    }
+
+    return roleDefinitions
+      .map(role => {
+        const roleCoverage = coverage.roles[role.key] || {};
+        const tags = Array.isArray(roleCoverage.tags) && roleCoverage.tags.length > 0
+          ? ` (${roleCoverage.tags.join(', ')})`
+          : '';
+
+        return `${role.label}: ${roleCoverage.status || 'missing'}${tags}`;
+      })
+      .join('\n');
   }
 
   function getTaxonomyImportMovies(payload) {
@@ -142,6 +200,10 @@
     const modifiers = normalizeTaxonomyJsonArray(importMovie.tags_modifiers);
     const manualBroadFamilies = normalizeTaxonomyJsonArray(importMovie.tags_broad_families);
     const broadFamilies = resolveTaxonomyBroadFamiliesFromCanon(tagsCanon, manualBroadFamilies);
+    const canonCoverage = normalizeCanonCoverageForMovie(
+      tagsCanon,
+      importMovie.canon_coverage || existingMovie.canon_coverage || {}
+    );
     const maskConflict = normalizeTaxonomyImportBoolean(importMovie.mask_conflict);
 
     const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
@@ -172,6 +234,10 @@
 
     if (!areStringArraysEqual(broadFamilies, existingMovie.broad_families || [])) {
       changedFields.broad_families = broadFamilies;
+    }
+
+    if (!areObjectsEqual(canonCoverage, existingMovie.canon_coverage || {})) {
+      changedFields.canon_coverage = canonCoverage;
     }
 
     if ((resolvedSubgenres.primary_subgenre || null) !== (existingMovie.primary_subgenre ?? null)) {
@@ -421,6 +487,9 @@
       'Canon:',
       normalizeTaxonomyExportValues(movie.tags_canon),
       '',
+      'Canon coverage:',
+      formatCanonCoverageExportValues(movie),
+      '',
       'Formats:',
       normalizeTaxonomyExportValues(movie.formats),
       '',
@@ -452,6 +521,7 @@
       letterboxd_url: movie.letterboxd_url || '',
       tags_perceived: normalizeTaxonomyJsonArray(movie.tags_perceived),
       tags_canon: tagsCanon,
+      canon_coverage: normalizeCanonCoverageForMovie(tagsCanon, movie.canon_coverage || {}),
       tags_formats: normalizeTaxonomyJsonArray(movie.formats),
       tags_modifiers: normalizeTaxonomyJsonArray(movie.modifiers),
       tags_broad_families: resolveTaxonomyBroadFamiliesFromCanon(tagsCanon, movie.broad_families),
@@ -792,6 +862,7 @@
       `lanes=${formatSimilarityAuditList(sharedCore.lanes)}`,
       `threat_type=${formatSimilarityAuditList(sharedCore.threatType)}`,
       `threat_behavior=${formatSimilarityAuditList(sharedCore.threatBehavior)}`,
+      `mechanism=${formatSimilarityAuditList(sharedCore.mechanism)}`,
       `setting=${formatSimilarityAuditList(sharedCore.setting)}`,
       `structure=${formatSimilarityAuditList(sharedCore.structure)}`
     ].join('; ');
@@ -845,6 +916,7 @@
       `   Canon: ${formatSimilarityAuditList(pair.sharedCanon)}`,
       `   Threat type: ${formatSimilarityAuditList(pair.debug?.sharedThreatTypeTags)}`,
       `   Threat behavior: ${formatSimilarityAuditList(pair.debug?.sharedThreatBehaviorTags)}`,
+      `   Mechanism: ${formatSimilarityAuditList(pair.debug?.sharedMechanismTags)}`,
       `   Setting: ${formatSimilarityAuditList(pair.debug?.sharedSettingTags)}`,
       `   Modifiers: ${formatSimilarityAuditList(pair.sharedModifiers)}`,
       `   Broad families: ${formatSimilarityAuditList(pair.sharedBroadFamilies)}`
