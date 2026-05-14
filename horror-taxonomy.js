@@ -2981,6 +2981,9 @@ const SIMILARITY_CORE_ROLE_GROUPS = {
   threatBehavior: [
     CANON_TAG_ROLES.threat_behavior
   ],
+  mechanism: [
+    CANON_TAG_ROLES.mechanism
+  ],
   setting: [
     CANON_TAG_ROLES.setting
   ],
@@ -3032,6 +3035,10 @@ function getCoreRoleAlignmentAdjustment(sharedCanon = []) {
     sharedCanon,
     SIMILARITY_CORE_ROLE_GROUPS.threatBehavior
   );
+  const sharedMechanismTags = getSharedCanonTagsByRoleGroup(
+    sharedCanon,
+    SIMILARITY_CORE_ROLE_GROUPS.mechanism
+  );
   const sharedSettingTags = getSharedCanonTagsByRoleGroup(
     sharedCanon,
     SIMILARITY_CORE_ROLE_GROUPS.setting
@@ -3047,6 +3054,7 @@ function getCoreRoleAlignmentAdjustment(sharedCanon = []) {
 
   const hasThreatTypeMatch = sharedThreatTypeTags.length > 0;
   const hasThreatBehaviorMatch = sharedThreatBehaviorTags.length > 0;
+  const hasMechanismMatch = sharedMechanismTags.length > 0;
   const hasSettingMatch = sharedSettingTags.length > 0;
   const hasStructureMatch = sharedStructureTags.length > 0;
 
@@ -3057,6 +3065,7 @@ function getCoreRoleAlignmentAdjustment(sharedCanon = []) {
       sharedThreatTags,
       sharedThreatTypeTags,
       sharedThreatBehaviorTags,
+      sharedMechanismTags,
       sharedSettingTags,
       sharedStructureTags
     };
@@ -3069,6 +3078,7 @@ function getCoreRoleAlignmentAdjustment(sharedCanon = []) {
       sharedThreatTags,
       sharedThreatTypeTags,
       sharedThreatBehaviorTags,
+      sharedMechanismTags,
       sharedSettingTags,
       sharedStructureTags
     };
@@ -3081,6 +3091,24 @@ function getCoreRoleAlignmentAdjustment(sharedCanon = []) {
       sharedThreatTags,
       sharedThreatTypeTags,
       sharedThreatBehaviorTags,
+      sharedMechanismTags,
+      sharedSettingTags,
+      sharedStructureTags
+    };
+  }
+
+  if (
+    hasMechanismMatch &&
+    hasThreatBehaviorMatch &&
+    sharedStructureTags.length >= 2
+  ) {
+    return {
+      multiplier: 1.02,
+      reason: 'shared_mechanism_behavior_structure',
+      sharedThreatTags,
+      sharedThreatTypeTags,
+      sharedThreatBehaviorTags,
+      sharedMechanismTags,
       sharedSettingTags,
       sharedStructureTags
     };
@@ -3093,6 +3121,7 @@ function getCoreRoleAlignmentAdjustment(sharedCanon = []) {
       sharedThreatTags,
       sharedThreatTypeTags,
       sharedThreatBehaviorTags,
+      sharedMechanismTags,
       sharedSettingTags,
       sharedStructureTags
     };
@@ -3105,6 +3134,7 @@ function getCoreRoleAlignmentAdjustment(sharedCanon = []) {
       sharedThreatTags,
       sharedThreatTypeTags,
       sharedThreatBehaviorTags,
+      sharedMechanismTags,
       sharedSettingTags,
       sharedStructureTags
     };
@@ -3117,6 +3147,7 @@ function getCoreRoleAlignmentAdjustment(sharedCanon = []) {
       sharedThreatTags,
       sharedThreatTypeTags,
       sharedThreatBehaviorTags,
+      sharedMechanismTags,
       sharedSettingTags,
       sharedStructureTags
     };
@@ -3128,6 +3159,7 @@ function getCoreRoleAlignmentAdjustment(sharedCanon = []) {
     sharedThreatTags,
     sharedThreatTypeTags,
     sharedThreatBehaviorTags,
+    sharedMechanismTags,
     sharedSettingTags,
     sharedStructureTags
   };
@@ -3151,9 +3183,17 @@ function getCoreAnchorAdjustment(movieA = {}, movieB = {}, coreRoleAlignmentAdju
     SIMILARITY_CORE_ROLE_GROUPS.setting
   );
   const sharedThreatTypeTags = coreRoleAlignmentAdjustment.sharedThreatTypeTags || [];
+  const sharedThreatBehaviorTags = coreRoleAlignmentAdjustment.sharedThreatBehaviorTags || [];
+  const sharedMechanismTags = coreRoleAlignmentAdjustment.sharedMechanismTags || [];
   const sharedSettingTags = coreRoleAlignmentAdjustment.sharedSettingTags || [];
+  const sharedStructureTags = coreRoleAlignmentAdjustment.sharedStructureTags || [];
   const hasSharedThreatType = sharedThreatTypeTags.length > 0;
   const hasSharedSetting = sharedSettingTags.length > 0;
+  const hasAnyThreatTypeOrSettingTags =
+    movieAThreatTypeTags.length > 0 ||
+    movieBThreatTypeTags.length > 0 ||
+    movieASettingTags.length > 0 ||
+    movieBSettingTags.length > 0;
   const hasThreatTypeMismatch =
     movieAThreatTypeTags.length > 0 &&
     movieBThreatTypeTags.length > 0 &&
@@ -3166,6 +3206,16 @@ function getCoreAnchorAdjustment(movieA = {}, movieB = {}, coreRoleAlignmentAdju
     hasSharedThreatType &&
     !hasSharedSetting &&
     hasOnlyBroadThreatTypeAnchor(sharedThreatTypeTags);
+  const sharedNonSpatialCoreTagsCount =
+    sharedThreatBehaviorTags.length +
+    sharedMechanismTags.length +
+    sharedStructureTags.length;
+  const hasMechanismBehaviorStructureAnchor =
+    !hasAnyThreatTypeOrSettingTags &&
+    sharedMechanismTags.length > 0 &&
+    sharedThreatBehaviorTags.length > 0 &&
+    sharedStructureTags.length >= 2 &&
+    sharedNonSpatialCoreTagsCount >= 4;
 
   const baseResult = {
     movieAThreatTypeTags,
@@ -3176,7 +3226,8 @@ function getCoreAnchorAdjustment(movieA = {}, movieB = {}, coreRoleAlignmentAdju
     hasSharedSetting,
     hasThreatTypeMismatch,
     hasSettingMismatch,
-    hasBroadThreatTypeOnlyAnchor
+    hasBroadThreatTypeOnlyAnchor,
+    hasMechanismBehaviorStructureAnchor
   };
 
   if (hasThreatTypeMismatch && hasSettingMismatch) {
@@ -3246,6 +3297,16 @@ function getCoreAnchorAdjustment(movieA = {}, movieB = {}, coreRoleAlignmentAdju
       maxScore: 86,
       passesGate: true,
       reason: 'shared_setting_anchor'
+    };
+  }
+
+  if (hasMechanismBehaviorStructureAnchor) {
+    return {
+      ...baseResult,
+      multiplier: 1.08,
+      maxScore: 92,
+      passesGate: true,
+      reason: 'shared_mechanism_behavior_structure_anchor'
     };
   }
 
@@ -3938,7 +3999,10 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     passesAnchorGate;
   const isSoftSuccess =
     passesGate &&
-    !(coreAnchorAdjustment.hasSharedThreatType && coreAnchorAdjustment.hasSharedSetting);
+    !(
+      (coreAnchorAdjustment.hasSharedThreatType && coreAnchorAdjustment.hasSharedSetting) ||
+      coreAnchorAdjustment.hasMechanismBehaviorStructureAnchor
+    );
   const isNearMiss =
     !passesGate &&
     finalScore >=
@@ -3995,6 +4059,7 @@ function calcMovieSimilarity(movieA, movieB, stats) {
       sharedThreatTags: coreRoleAlignmentAdjustment.sharedThreatTags,
       sharedThreatTypeTags: coreRoleAlignmentAdjustment.sharedThreatTypeTags,
       sharedThreatBehaviorTags: coreRoleAlignmentAdjustment.sharedThreatBehaviorTags,
+      sharedMechanismTags: coreRoleAlignmentAdjustment.sharedMechanismTags,
       sharedSettingTags: coreRoleAlignmentAdjustment.sharedSettingTags,
       sharedStructureTags: coreRoleAlignmentAdjustment.sharedStructureTags,
       movieAThreatTypeTags: coreAnchorAdjustment.movieAThreatTypeTags,
@@ -4195,7 +4260,8 @@ function getSimilarityGateReasons(similarity = {}) {
     debug.coreAnchorReason &&
     debug.coreAnchorReason !== 'shared_threat_type_and_setting_anchor' &&
     debug.coreAnchorReason !== 'shared_threat_type_anchor' &&
-    debug.coreAnchorReason !== 'shared_setting_anchor'
+    debug.coreAnchorReason !== 'shared_setting_anchor' &&
+    debug.coreAnchorReason !== 'shared_mechanism_behavior_structure_anchor'
   ) {
     reasons.push(debug.coreAnchorReason);
   }
@@ -4273,6 +4339,7 @@ function getSimilarityCandidateAuditItem(targetMovie, candidateMovie, similarity
       lanes: pairItem.sharedLanes,
       threatType: pairItem.debug.sharedThreatTypeTags || [],
       threatBehavior: pairItem.debug.sharedThreatBehaviorTags || [],
+      mechanism: pairItem.debug.sharedMechanismTags || [],
       setting: pairItem.debug.sharedSettingTags || [],
       structure: pairItem.debug.sharedStructureTags || []
     },
