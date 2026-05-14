@@ -713,10 +713,20 @@
     passed: 'прошёл',
     core_gate_failed: 'не прошло ядро',
     lane_gate_failed: 'не совпал lane',
+    core_anchor_gate_failed: 'не совпал тип угрозы/сеттинг',
     final_score_below_threshold: 'низкий итоговый score',
     comedy_tone_mismatch: 'конфликт комедийного тона',
     primary_slasher_mismatch: 'конфликт primary slasher',
-    no_shared_core: 'нет общего ядра'
+    no_shared_core: 'нет общего ядра',
+    threat_type_and_setting_mismatch: 'конфликт типа угрозы и сеттинга',
+    threat_type_mismatch: 'конфликт типа угрозы',
+    setting_mismatch: 'конфликт сеттинга',
+    no_shared_threat_type_or_setting: 'нет общего типа угрозы/сеттинга'
+  };
+
+  const SIMILARITY_AUDIT_FLAG_LABELS = {
+    soft_success: 'мягкий успех',
+    near_miss: 'почти прошло'
   };
 
   function formatSimilarityAuditMovieTitle(movie = {}) {
@@ -733,6 +743,12 @@
   function formatSimilarityAuditGateReasons(reasons = []) {
     return formatSimilarityAuditList(
       reasons.map(reason => SIMILARITY_AUDIT_GATE_REASON_LABELS[reason] || reason)
+    );
+  }
+
+  function formatSimilarityAuditFlags(flags = []) {
+    return formatSimilarityAuditList(
+      flags.map(flag => SIMILARITY_AUDIT_FLAG_LABELS[flag] || flag)
     );
   }
 
@@ -753,6 +769,10 @@
 
     if (debug.coreRoleAlignmentReason) {
       parts.push(`role=${debug.coreRoleAlignmentReason}`);
+    }
+
+    if (debug.coreAnchorReason) {
+      parts.push(`anchor=${debug.coreAnchorReason}`);
     }
 
     if (debug.comedyToneReason && debug.comedyToneReason !== 'neutral') {
@@ -781,6 +801,7 @@
     return [
       `   ${index + 1}. ${formatSimilarityAuditMovieTitle(candidate.movie)} — score ${candidate.score}; tier: ${candidate.tier}`,
       `      Gate: ${formatSimilarityAuditGateReasons(candidate.gateReasons || [])}`,
+      `      Flags: ${formatSimilarityAuditFlags(candidate.auditFlags || [])}`,
       `      Core: ${formatSimilarityAuditSharedCore(candidate.sharedCore || {})}`,
       `      Soft: modifiers=${formatSimilarityAuditList(candidate.sharedModifiers)}; formats=${formatSimilarityAuditList(candidate.sharedFormats)}; genres=${formatSimilarityAuditList(candidate.sharedGenres)}; countries=${formatSimilarityAuditList(candidate.sharedCountries)}`,
       `      Debug: ${formatSimilarityAuditDebug(candidate.debug || {})}`
@@ -819,6 +840,7 @@
     const lines = [
       `${index + 1}. ${formatSimilarityAuditMovieTitle(pair.movieA)} ↔ ${formatSimilarityAuditMovieTitle(pair.movieB)}`,
       `   Score: ${pair.score}; tier: ${pair.tier}; gate: ${formatSimilarityAuditGateReasons(pair.gateReasons || [])}`,
+      `   Flags: ${formatSimilarityAuditFlags(pair.auditFlags || [])}`,
       `   Lanes: ${formatSimilarityAuditList(pair.sharedLanes)}`,
       `   Canon: ${formatSimilarityAuditList(pair.sharedCanon)}`,
       `   Threat type: ${formatSimilarityAuditList(pair.debug?.sharedThreatTypeTags)}`,

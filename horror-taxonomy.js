@@ -20,7 +20,8 @@ const SIMILARITY_MODEL = {
     minScoreForWeakMatch: 34,
     minCoreForContextualLayers: 20,
     minCanonOrModifierForFormats: 12,
-    minModifierScoreForFormats: 4
+    minModifierScoreForFormats: 4,
+    nearMissScoreWindow: 4
   },
 
   CONFIDENCE_MULTIPLIERS: {
@@ -2998,6 +2999,16 @@ function getSharedCanonTagsByRoleGroup(sharedCanon = [], roleGroup = []) {
   });
 }
 
+function getMovieCanonTagsByRoleGroup(movie = {}, roleGroup = []) {
+  const canon = getMovieLaneValues(movie, ['canon', 'tags_canon']);
+
+  return canon.filter(tag => {
+    const role = getCanonTagMeta(tag)?.role;
+
+    return roleGroup.includes(role);
+  });
+}
+
 function getCoreRoleAlignmentAdjustment(sharedCanon = []) {
   const sharedThreatTypeTags = getSharedCanonTagsByRoleGroup(
     sharedCanon,
@@ -3105,6 +3116,116 @@ function getCoreRoleAlignmentAdjustment(sharedCanon = []) {
     sharedThreatBehaviorTags,
     sharedSettingTags,
     sharedStructureTags
+  };
+}
+
+function getCoreAnchorAdjustment(movieA = {}, movieB = {}, coreRoleAlignmentAdjustment = {}) {
+  const movieAThreatTypeTags = getMovieCanonTagsByRoleGroup(
+    movieA,
+    SIMILARITY_CORE_ROLE_GROUPS.threatType
+  );
+  const movieBThreatTypeTags = getMovieCanonTagsByRoleGroup(
+    movieB,
+    SIMILARITY_CORE_ROLE_GROUPS.threatType
+  );
+  const movieASettingTags = getMovieCanonTagsByRoleGroup(
+    movieA,
+    SIMILARITY_CORE_ROLE_GROUPS.setting
+  );
+  const movieBSettingTags = getMovieCanonTagsByRoleGroup(
+    movieB,
+    SIMILARITY_CORE_ROLE_GROUPS.setting
+  );
+  const sharedThreatTypeTags = coreRoleAlignmentAdjustment.sharedThreatTypeTags || [];
+  const sharedSettingTags = coreRoleAlignmentAdjustment.sharedSettingTags || [];
+  const hasSharedThreatType = sharedThreatTypeTags.length > 0;
+  const hasSharedSetting = sharedSettingTags.length > 0;
+  const hasThreatTypeMismatch =
+    movieAThreatTypeTags.length > 0 &&
+    movieBThreatTypeTags.length > 0 &&
+    !hasSharedThreatType;
+  const hasSettingMismatch =
+    movieASettingTags.length > 0 &&
+    movieBSettingTags.length > 0 &&
+    !hasSharedSetting;
+
+  const baseResult = {
+    movieAThreatTypeTags,
+    movieBThreatTypeTags,
+    movieASettingTags,
+    movieBSettingTags,
+    hasSharedThreatType,
+    hasSharedSetting,
+    hasThreatTypeMismatch,
+    hasSettingMismatch
+  };
+
+  if (hasThreatTypeMismatch && hasSettingMismatch) {
+    return {
+      ...baseResult,
+      multiplier: 0.45,
+      maxScore: SIMILARITY_MODEL.GATES.minFinalScore - 0.1,
+      passesGate: false,
+      reason: 'threat_type_and_setting_mismatch'
+    };
+  }
+
+  if (hasThreatTypeMismatch) {
+    return {
+      ...baseResult,
+      multiplier: 0.55,
+      maxScore: SIMILARITY_MODEL.GATES.minFinalScore - 0.1,
+      passesGate: false,
+      reason: 'threat_type_mismatch'
+    };
+  }
+
+  if (hasSettingMismatch) {
+    return {
+      ...baseResult,
+      multiplier: 0.68,
+      maxScore: SIMILARITY_MODEL.GATES.minFinalScore - 0.1,
+      passesGate: false,
+      reason: 'setting_mismatch'
+    };
+  }
+
+  if (hasSharedThreatType && hasSharedSetting) {
+    return {
+      ...baseResult,
+      multiplier: 1.22,
+      maxScore: 100,
+      passesGate: true,
+      reason: 'shared_threat_type_and_setting_anchor'
+    };
+  }
+
+  if (hasSharedThreatType) {
+    return {
+      ...baseResult,
+      multiplier: 1.06,
+      maxScore: 100,
+      passesGate: true,
+      reason: 'shared_threat_type_anchor'
+    };
+  }
+
+  if (hasSharedSetting) {
+    return {
+      ...baseResult,
+      multiplier: 1.03,
+      maxScore: 86,
+      passesGate: true,
+      reason: 'shared_setting_anchor'
+    };
+  }
+
+  return {
+    ...baseResult,
+    multiplier: 0.68,
+    maxScore: SIMILARITY_MODEL.GATES.minFinalScore - 0.1,
+    passesGate: false,
+    reason: 'no_shared_threat_type_or_setting'
   };
 }
 
@@ -3722,6 +3843,11 @@ function calcMovieSimilarity(movieA, movieB, stats) {
   const sharedLanes = getSharedItems(movieALanes, movieBLanes);
   const sharedSecondaryPerceivedLanes = getSharedSecondaryPerceivedLanes(movieA, movieB);
   const coreRoleAlignmentAdjustment = getCoreRoleAlignmentAdjustment(sharedCanon);
+  const coreAnchorAdjustment = getCoreAnchorAdjustment(
+    movieA,
+    movieB,
+    coreRoleAlignmentAdjustment
+  );
   const laneMultiplier = getSimilarityLaneMultiplier({
     sharedLanes,
     canonCore,
@@ -3754,12 +3880,14 @@ function calcMovieSimilarity(movieA, movieB, stats) {
     100,
     comedyToneAdjustment.maxScore,
     primarySlasherMismatchAdjustment.maxScore,
+    coreAnchorAdjustment.maxScore,
     rawFinalScore *
       laneMultiplier *
       secondaryPerceivedLaneMultiplier *
       comedyToneAdjustment.multiplier *
       primarySlasherMismatchAdjustment.multiplier *
-      coreRoleAlignmentAdjustment.multiplier
+      coreRoleAlignmentAdjustment.multiplier *
+      coreAnchorAdjustment.multiplier
   );
 
   const passesCoreGate =
@@ -3773,10 +3901,24 @@ function calcMovieSimilarity(movieA, movieB, stats) {
 
   const passesFinalGate =
     finalScore >= SIMILARITY_MODEL.GATES.minFinalScore;
+  const passesAnchorGate = coreAnchorAdjustment.passesGate;
+  const passesGate =
+    passesCoreGate &&
+    passesLaneGate &&
+    passesFinalGate &&
+    passesAnchorGate;
+  const isSoftSuccess =
+    passesGate &&
+    !(coreAnchorAdjustment.hasSharedThreatType && coreAnchorAdjustment.hasSharedSetting);
+  const isNearMiss =
+    !passesGate &&
+    finalScore >=
+      SIMILARITY_MODEL.GATES.minFinalScore -
+        SIMILARITY_MODEL.GATES.nearMissScoreWindow;
 
   return {
     finalScore,
-    passesGate: passesCoreGate && passesLaneGate && passesFinalGate,
+    passesGate,
     tier:
       finalScore >= SIMILARITY_MODEL.GATES.minScoreForStrongMatch
         ? "strong"
@@ -3800,6 +3942,7 @@ function calcMovieSimilarity(movieA, movieB, stats) {
       passesCoreGate,
       passesLaneGate,
       passesFinalGate,
+      passesAnchorGate,
       canonCore,
       targetCoverageNorm,
       targetCoverageReliability,
@@ -3815,11 +3958,20 @@ function calcMovieSimilarity(movieA, movieB, stats) {
       primarySlasherMismatchReason: primarySlasherMismatchAdjustment.reason,
       coreRoleAlignmentMultiplier: coreRoleAlignmentAdjustment.multiplier,
       coreRoleAlignmentReason: coreRoleAlignmentAdjustment.reason,
+      coreAnchorMultiplier: coreAnchorAdjustment.multiplier,
+      coreAnchorMaxScore: coreAnchorAdjustment.maxScore,
+      coreAnchorReason: coreAnchorAdjustment.reason,
+      isSoftSuccess,
+      isNearMiss,
       sharedThreatTags: coreRoleAlignmentAdjustment.sharedThreatTags,
       sharedThreatTypeTags: coreRoleAlignmentAdjustment.sharedThreatTypeTags,
       sharedThreatBehaviorTags: coreRoleAlignmentAdjustment.sharedThreatBehaviorTags,
       sharedSettingTags: coreRoleAlignmentAdjustment.sharedSettingTags,
       sharedStructureTags: coreRoleAlignmentAdjustment.sharedStructureTags,
+      movieAThreatTypeTags: coreAnchorAdjustment.movieAThreatTypeTags,
+      movieBThreatTypeTags: coreAnchorAdjustment.movieBThreatTypeTags,
+      movieASettingTags: coreAnchorAdjustment.movieASettingTags,
+      movieBSettingTags: coreAnchorAdjustment.movieBSettingTags,
       movieAComedyToneScore: getMovieComedyToneScore(movieA),
       movieBComedyToneScore: getMovieComedyToneScore(movieB),
       movieAAllLanes,
@@ -3986,6 +4138,10 @@ function getSimilarityGateReasons(similarity = {}) {
     reasons.push('lane_gate_failed');
   }
 
+  if (!debug.passesAnchorGate) {
+    reasons.push('core_anchor_gate_failed');
+  }
+
   if (!debug.passesFinalGate) {
     reasons.push('final_score_below_threshold');
   }
@@ -4006,7 +4162,31 @@ function getSimilarityGateReasons(similarity = {}) {
     reasons.push('no_shared_core');
   }
 
+  if (
+    debug.coreAnchorReason &&
+    debug.coreAnchorReason !== 'shared_threat_type_and_setting_anchor' &&
+    debug.coreAnchorReason !== 'shared_threat_type_anchor' &&
+    debug.coreAnchorReason !== 'shared_setting_anchor'
+  ) {
+    reasons.push(debug.coreAnchorReason);
+  }
+
   return Array.from(new Set(reasons));
+}
+
+function getSimilarityAuditFlags(similarity = {}) {
+  const debug = similarity.debug || {};
+  const flags = [];
+
+  if (debug.isSoftSuccess) {
+    flags.push('soft_success');
+  }
+
+  if (debug.isNearMiss) {
+    flags.push('near_miss');
+  }
+
+  return flags;
 }
 
 function roundSimilarityDebug(debug = {}) {
@@ -4017,7 +4197,8 @@ function roundSimilarityDebug(debug = {}) {
     targetCoverageReliability: roundSimilarityNumber(debug.targetCoverageReliability),
     coreBeforeContext: roundSimilarityNumber(debug.coreBeforeContext),
     rawFinalScore: roundSimilarityNumber(debug.rawFinalScore),
-    laneMultiplier: roundSimilarityNumber(debug.laneMultiplier || 1)
+    laneMultiplier: roundSimilarityNumber(debug.laneMultiplier || 1),
+    coreAnchorMultiplier: roundSimilarityNumber(debug.coreAnchorMultiplier || 1)
   };
 }
 
@@ -4029,6 +4210,7 @@ function getSimilarityAuditPairItem(movieA, movieB, similarity, explanation) {
     tier: similarity.tier,
     passesGate: similarity.passesGate,
     gateReasons: getSimilarityGateReasons(similarity),
+    auditFlags: getSimilarityAuditFlags(similarity),
     sharedLanes: explanation.sharedLanes || [],
     sharedSecondaryPerceivedLanes: explanation.sharedSecondaryPerceivedLanes || [],
     sharedCanon: explanation.sharedCanon || [],
@@ -4056,6 +4238,7 @@ function getSimilarityCandidateAuditItem(targetMovie, candidateMovie, similarity
     tier: pairItem.tier,
     passesGate: pairItem.passesGate,
     gateReasons: pairItem.gateReasons,
+    auditFlags: pairItem.auditFlags,
     sharedCore: {
       canon: pairItem.sharedCanon,
       lanes: pairItem.sharedLanes,
