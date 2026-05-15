@@ -153,11 +153,6 @@ const CANON_COVERAGE_ROLE_DEFINITIONS = [
     key: CANON_TAG_ROLES.format_bridge,
     label: 'Форматный мост',
     description: 'Форма подачи, медиа-формат или способ контакта со зрителем.'
-  },
-  {
-    key: CANON_TAG_ROLES.tone_adjacent,
-    label: 'Тональная ветка',
-    description: 'Тональные признаки, если они являются частью horror-механики.'
   }
 ];
 
