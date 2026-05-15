@@ -428,6 +428,10 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   display: block;
 }
 
+.auth-popover-file-input {
+  display: none;
+}
+
 .auth-popover-item {
   width: 100%;
   min-height: 40px;

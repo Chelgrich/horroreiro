@@ -49,6 +49,20 @@
                   <div id="authPopoverMenu" class="auth-popover-menu" role="menu" aria-label="Меню аккаунта">
                     <button
                       type="button"
+                      class="auth-popover-item"
+                      id="importLetterboxdRatingsButton"
+                      role="menuitem"
+                    >
+                      Импорт оценок Letterboxd
+                    </button>
+                    <input
+                      type="file"
+                      class="auth-popover-file-input"
+                      id="letterboxdRatingsFileInput"
+                      accept=".csv,text/csv"
+                    >
+                    <button
+                      type="button"
                       class="auth-popover-item auth-popover-item-danger"
                       id="logoutMenuButton"
                       role="menuitem"

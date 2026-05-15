@@ -21,6 +21,8 @@ const displayNameMessage = document.getElementById('displayNameMessage');
 
 const openAuthModalButton = document.getElementById('openAuthModalButton');
 const authPopoverMenu = document.getElementById('authPopoverMenu');
+const importLetterboxdRatingsButton = document.getElementById('importLetterboxdRatingsButton');
+const letterboxdRatingsFileInput = document.getElementById('letterboxdRatingsFileInput');
 const logoutMenuButton = document.getElementById('logoutMenuButton');
 const authModal = document.getElementById('authModal');
 const authModalBackdrop = document.getElementById('authModalBackdrop');
@@ -197,6 +199,7 @@ let moviesLoadedSuccessfully = false;
 let authMessageTimer = null;
 let isAuthSubmitting = false;
 let isMovieFormSubmitting = false;
+let isLetterboxdRatingsImporting = false;
 let ratingRequestInFlight = new Set();
 let feedbackAnimationTimers = new Map();
 let watchlistRequestInFlight = new Set();
@@ -2772,6 +2775,696 @@ function updateLocalMovieRatingStats(movieId, nextRating, previousRating = null)
     average: Number((nextSum / nextCount).toFixed(1))
   });
   markCatalogDataChanged();
+}
+
+const LETTERBOXD_IMPORT_FIELD_ALIASES = {
+  name: ['name', 'title'],
+  year: ['year', 'releaseyear', 'releasedate'],
+  rating: ['rating', 'yourrating', 'stars'],
+  uri: ['letterboxduri', 'letterboxdurl', 'letterboxdlink', 'url', 'uri']
+};
+
+const LETTERBOXD_IMPORT_PREVIEW_LIMIT = 8;
+const LETTERBOXD_IMPORT_QUERY_CHUNK_SIZE = 200;
+
+function parseCsvRows(csvText) {
+  const text = String(csvText || '').replace(/^\uFEFF/, '');
+  const rows = [];
+  let row = [];
+  let field = '';
+  let isInsideQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+
+    if (char === '"') {
+      if (isInsideQuotes && text[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else {
+        isInsideQuotes = !isInsideQuotes;
+      }
+
+      continue;
+    }
+
+    if (char === ',' && !isInsideQuotes) {
+      row.push(field);
+      field = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !isInsideQuotes) {
+      if (char === '\r' && text[index + 1] === '\n') {
+        index += 1;
+      }
+
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
+      continue;
+    }
+
+    field += char;
+  }
+
+  row.push(field);
+
+  if (row.some(cell => String(cell || '').trim())) {
+    rows.push(row);
+  }
+
+  return rows.filter(csvRow => csvRow.some(cell => String(cell || '').trim()));
+}
+
+function normalizeCsvHeader(value) {
+  return String(value || '')
+    .replace(/^\uFEFF/, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9а-яё]+/gi, '');
+}
+
+function parseCsvObjects(csvText) {
+  const rows = parseCsvRows(csvText);
+  const [headerRow = [], ...dataRows] = rows;
+  const headers = headerRow.map(normalizeCsvHeader);
+
+  return {
+    headers,
+    rows: dataRows.map((cells, index) => {
+      const fields = {};
+
+      headers.forEach((header, headerIndex) => {
+        if (header) {
+          fields[header] = cells[headerIndex] ?? '';
+        }
+      });
+
+      return {
+        rowNumber: index + 2,
+        fields
+      };
+    })
+  };
+}
+
+function getCsvField(row, aliases) {
+  const fields = row?.fields || {};
+
+  for (const alias of aliases) {
+    const normalizedAlias = normalizeCsvHeader(alias);
+
+    if (Object.prototype.hasOwnProperty.call(fields, normalizedAlias)) {
+      return String(fields[normalizedAlias] || '').trim();
+    }
+  }
+
+  return '';
+}
+
+function hasCsvColumn(parsedCsv, aliases) {
+  const headerSet = new Set(parsedCsv.headers || []);
+
+  return aliases.some(alias => headerSet.has(normalizeCsvHeader(alias)));
+}
+
+function normalizeImportedRatingScore(score) {
+  const numericScore = Number(score);
+
+  if (!Number.isFinite(numericScore) || numericScore <= 0) {
+    return null;
+  }
+
+  return Math.min(10, Math.max(1, Math.round(numericScore)));
+}
+
+function parseLetterboxdRatingValue(value) {
+  const rawValue = String(value || '').trim();
+
+  if (!rawValue) {
+    return null;
+  }
+
+  const starCount = (rawValue.match(/★/g) || []).length;
+  const hasHalfStar = rawValue.includes('½') || /(^|\D)1\/2($|\D)/.test(rawValue);
+
+  if (starCount > 0 || hasHalfStar) {
+    return normalizeImportedRatingScore((starCount * 2) + (hasHalfStar ? 1 : 0));
+  }
+
+  const normalizedValue = rawValue.replace(',', '.');
+  const fractionMatch = normalizedValue.match(/(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)/);
+
+  if (fractionMatch) {
+    const numerator = Number(fractionMatch[1]);
+    const denominator = Number(fractionMatch[2]);
+
+    if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
+      return null;
+    }
+
+    return normalizeImportedRatingScore((numerator / denominator) * 10);
+  }
+
+  const numericMatch = normalizedValue.match(/-?\d+(?:\.\d+)?/);
+
+  if (!numericMatch) {
+    return null;
+  }
+
+  const numericRating = Number(numericMatch[0]);
+  const ratingScore = numericRating <= 5
+    ? numericRating * 2
+    : numericRating;
+
+  return normalizeImportedRatingScore(ratingScore);
+}
+
+function normalizeLetterboxdImportUri(value) {
+  const rawValue = String(value || '').trim();
+
+  if (!rawValue) {
+    return '';
+  }
+
+  try {
+    const url = new URL(/^https?:\/\//i.test(rawValue) ? rawValue : `https://${rawValue}`);
+    const host = url.hostname.replace(/^www\./i, '').toLowerCase();
+    const path = url.pathname.replace(/\/+$/g, '').toLowerCase();
+
+    return `${host}${path}`;
+  } catch (error) {
+    return rawValue
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .replace(/[?#].*$/, '')
+      .replace(/\/+$/g, '');
+  }
+}
+
+function normalizeLetterboxdImportTitle(value) {
+  const withoutDiacritics = String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  return normalizeSearchText(withoutDiacritics)
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9а-яё\s]+/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getLetterboxdImportTitleVariants(value) {
+  const normalizedTitle = normalizeLetterboxdImportTitle(value);
+  const variants = new Set();
+
+  if (normalizedTitle) {
+    variants.add(normalizedTitle);
+
+    const articlelessTitle = normalizedTitle.replace(/^(the|a|an)\s+/, '');
+
+    if (articlelessTitle) {
+      variants.add(articlelessTitle);
+    }
+  }
+
+  return Array.from(variants);
+}
+
+function parseLetterboxdImportYear(value) {
+  const year = Number.parseInt(String(value || '').trim(), 10);
+
+  return Number.isInteger(year) && year > 1800
+    ? year
+    : null;
+}
+
+function getMovieImportYear(movie) {
+  return parseLetterboxdImportYear(movie?.year ?? movie?.release_year);
+}
+
+function getMovieLetterboxdImportTitles(movie) {
+  const titles = [
+    movie?.title,
+    movie?.original_title,
+    ...(Array.isArray(movie?.search_aliases) ? movie.search_aliases : [])
+  ];
+
+  return titles.filter(Boolean);
+}
+
+function addMovieToLetterboxdImportIndex(indexMap, key, movie) {
+  if (!key || !movie?.id) {
+    return;
+  }
+
+  const bucket = indexMap.get(key) || [];
+
+  if (!bucket.some(item => String(item.id) === String(movie.id))) {
+    bucket.push(movie);
+  }
+
+  indexMap.set(key, bucket);
+}
+
+function buildLetterboxdImportMovieIndex(movies) {
+  const index = {
+    uri: new Map(),
+    titleYear: new Map(),
+    title: new Map()
+  };
+
+  (Array.isArray(movies) ? movies : []).forEach(movie => {
+    const normalizedUri = normalizeLetterboxdImportUri(movie?.letterboxd_url);
+    const movieYear = getMovieImportYear(movie);
+
+    addMovieToLetterboxdImportIndex(index.uri, normalizedUri, movie);
+
+    getMovieLetterboxdImportTitles(movie).forEach(title => {
+      getLetterboxdImportTitleVariants(title).forEach(titleVariant => {
+        addMovieToLetterboxdImportIndex(index.title, titleVariant, movie);
+
+        if (movieYear) {
+          addMovieToLetterboxdImportIndex(index.titleYear, `${titleVariant}::${movieYear}`, movie);
+        }
+      });
+    });
+  });
+
+  return index;
+}
+
+function getUniqueLetterboxdImportIndexMatch(indexMap, key) {
+  const matches = indexMap.get(key) || [];
+
+  return matches.length === 1
+    ? matches[0]
+    : null;
+}
+
+function matchLetterboxdImportRowToMovie(row, movieIndex) {
+  const uri = normalizeLetterboxdImportUri(getCsvField(row, LETTERBOXD_IMPORT_FIELD_ALIASES.uri));
+  const uriMatch = getUniqueLetterboxdImportIndexMatch(movieIndex.uri, uri);
+
+  if (uriMatch) {
+    return {
+      movie: uriMatch,
+      matchType: 'letterboxd_uri'
+    };
+  }
+
+  const title = getCsvField(row, LETTERBOXD_IMPORT_FIELD_ALIASES.name);
+  const year = parseLetterboxdImportYear(getCsvField(row, LETTERBOXD_IMPORT_FIELD_ALIASES.year));
+  const titleVariants = getLetterboxdImportTitleVariants(title);
+
+  if (!titleVariants.length) {
+    return null;
+  }
+
+  if (year) {
+    for (const titleVariant of titleVariants) {
+      const titleYearMatch = getUniqueLetterboxdImportIndexMatch(
+        movieIndex.titleYear,
+        `${titleVariant}::${year}`
+      );
+
+      if (titleYearMatch) {
+        return {
+          movie: titleYearMatch,
+          matchType: 'title_year'
+        };
+      }
+    }
+
+    return null;
+  }
+
+  for (const titleVariant of titleVariants) {
+    const titleMatch = getUniqueLetterboxdImportIndexMatch(movieIndex.title, titleVariant);
+
+    if (titleMatch) {
+      return {
+        movie: titleMatch,
+        matchType: 'title'
+      };
+    }
+  }
+
+  return null;
+}
+
+async function fetchCurrentUserRatingsForMovieIds(movieIds, userId) {
+  if (!movieIds.length || !userId) {
+    return [];
+  }
+
+  const rows = [];
+
+  for (let index = 0; index < movieIds.length; index += LETTERBOXD_IMPORT_QUERY_CHUNK_SIZE) {
+    const chunk = movieIds.slice(index, index + LETTERBOXD_IMPORT_QUERY_CHUNK_SIZE);
+    const { data, error } = await supabaseClient
+      .from('movie_ratings')
+      .select('movie_id, user_id, rating')
+      .eq('user_id', userId)
+      .in('movie_id', chunk);
+
+    throwIfSupabaseError(error);
+    rows.push(...(data || []));
+  }
+
+  return rows;
+}
+
+function getLetterboxdImportMovieLabel(movie) {
+  const title = movie?.title || movie?.original_title || 'Фильм без названия';
+  const year = getMovieImportYear(movie);
+
+  return year
+    ? `${title} (${year})`
+    : title;
+}
+
+function applyLetterboxdRatingsImportLocally(insertedRows) {
+  const normalizedRows = (Array.isArray(insertedRows) ? insertedRows : [])
+    .filter(row => row?.movie_id && row?.user_id)
+    .map(row => ({
+      movie_id: row.movie_id,
+      user_id: row.user_id,
+      rating: Number(row.rating)
+    }));
+
+  if (!normalizedRows.length) {
+    return;
+  }
+
+  upsertKnownMovieRatingRows(normalizedRows);
+
+  normalizedRows.forEach(row => {
+    updateLocalMovieRatingStats(row.movie_id, row.rating, null);
+    syncCatalogSessionSnapshotMovieState(row.movie_id);
+  });
+}
+
+function syncUiAfterLetterboxdRatingsImport(movieIds) {
+  const importedMovieIds = (Array.isArray(movieIds) ? movieIds : []).map(movieId => String(movieId));
+
+  if (!importedMovieIds.length) {
+    return;
+  }
+
+  if (
+    isMoviePage() &&
+    currentMoviePageMovieData &&
+    importedMovieIds.includes(String(currentMoviePageMovieId))
+  ) {
+    renderMoviePage(currentMoviePageMovieData);
+    return;
+  }
+
+  if (!isCatalogPage() || !container) {
+    return;
+  }
+
+  if (shouldRenderFullCatalogAfterRatingChange()) {
+    rerenderCatalogAfterDataReload(importedMovieIds[0]);
+    return;
+  }
+
+  importedMovieIds.forEach(movieId => {
+    const existingCard = container.querySelector(`[data-movie-id="${movieId}"]`);
+
+    if (existingCard) {
+      rerenderMovieCard(movieId, {
+        preserveCardTop: false,
+        animateStateAppearance: false
+      });
+    }
+  });
+}
+
+async function importLetterboxdRatingsFromCsvText(csvText) {
+  const activeUser = ensureActiveSessionForWrite();
+  const parsedCsv = parseCsvObjects(csvText);
+
+  if (!parsedCsv.headers.length || !parsedCsv.rows.length) {
+    return {
+      status: 'empty_file',
+      totalRows: 0,
+      ratingRowsCount: 0,
+      matchedCount: 0,
+      insertedCount: 0,
+      alreadyRatedCount: 0,
+      unmatchedItems: [],
+      invalidRatingRows: [],
+      duplicateRowsCount: 0,
+      addedItems: []
+    };
+  }
+
+  if (!hasCsvColumn(parsedCsv, LETTERBOXD_IMPORT_FIELD_ALIASES.rating)) {
+    return {
+      status: 'missing_rating_column',
+      totalRows: parsedCsv.rows.length,
+      ratingRowsCount: 0,
+      matchedCount: 0,
+      insertedCount: 0,
+      alreadyRatedCount: 0,
+      unmatchedItems: [],
+      invalidRatingRows: [],
+      duplicateRowsCount: 0,
+      addedItems: []
+    };
+  }
+
+  if (!moviesLoadedSuccessfully || !allMovies.length) {
+    const moviesLoaded = await fetchMovies({ preserveExistingCatalogOnError: true });
+
+    if (!moviesLoaded) {
+      throw new Error('Не удалось загрузить каталог для сопоставления оценок.');
+    }
+  }
+
+  const movieIndex = buildLetterboxdImportMovieIndex(allMovies);
+  const matchedRowsByMovieId = new Map();
+  const unmatchedItems = [];
+  const invalidRatingRows = [];
+  let ratingRowsCount = 0;
+  let duplicateRowsCount = 0;
+
+  parsedCsv.rows.forEach(row => {
+    const rating = parseLetterboxdRatingValue(
+      getCsvField(row, LETTERBOXD_IMPORT_FIELD_ALIASES.rating)
+    );
+    const title = getCsvField(row, LETTERBOXD_IMPORT_FIELD_ALIASES.name);
+    const year = getCsvField(row, LETTERBOXD_IMPORT_FIELD_ALIASES.year);
+
+    if (rating === null) {
+      invalidRatingRows.push({
+        rowNumber: row.rowNumber,
+        title,
+        year
+      });
+      return;
+    }
+
+    ratingRowsCount += 1;
+
+    const match = matchLetterboxdImportRowToMovie(row, movieIndex);
+
+    if (!match?.movie) {
+      unmatchedItems.push({
+        rowNumber: row.rowNumber,
+        title,
+        year,
+        rating
+      });
+      return;
+    }
+
+    const movieId = String(match.movie.id);
+
+    if (matchedRowsByMovieId.has(movieId)) {
+      duplicateRowsCount += 1;
+      return;
+    }
+
+    matchedRowsByMovieId.set(movieId, {
+      movie: match.movie,
+      rating,
+      matchType: match.matchType,
+      sourceTitle: title,
+      sourceYear: year
+    });
+  });
+
+  const matchedRows = Array.from(matchedRowsByMovieId.values());
+  const matchedMovieIds = matchedRows.map(item => item.movie.id);
+  const freshCurrentUserRatings = await fetchCurrentUserRatingsForMovieIds(
+    matchedMovieIds,
+    activeUser.id
+  );
+  const alreadyRatedMovieIds = new Set([
+    ...Array.from(currentUserRatingsByMovieId.keys()),
+    ...freshCurrentUserRatings.map(row => String(row.movie_id))
+  ]);
+  const rowsToInsert = matchedRows.filter(item => !alreadyRatedMovieIds.has(String(item.movie.id)));
+  const alreadyRatedCount = matchedRows.length - rowsToInsert.length;
+
+  if (!rowsToInsert.length) {
+    return {
+      status: 'no_updates',
+      totalRows: parsedCsv.rows.length,
+      ratingRowsCount,
+      matchedCount: matchedRows.length,
+      insertedCount: 0,
+      alreadyRatedCount,
+      unmatchedItems,
+      invalidRatingRows,
+      duplicateRowsCount,
+      addedItems: []
+    };
+  }
+
+  const insertRows = rowsToInsert.map(item => ({
+    movie_id: item.movie.id,
+    user_id: activeUser.id,
+    rating: item.rating
+  }));
+  const { data, error } = await supabaseClient
+    .from('movie_ratings')
+    .upsert(insertRows, {
+      onConflict: 'movie_id,user_id',
+      ignoreDuplicates: true
+    })
+    .select('movie_id, user_id, rating');
+
+  throwIfSupabaseError(error);
+
+  const insertedRows = data || [];
+  const insertedRowsByMovieId = new Set(insertedRows.map(row => String(row.movie_id)));
+  const addedItems = rowsToInsert
+    .filter(item => insertedRowsByMovieId.has(String(item.movie.id)))
+    .map(item => ({
+      movie: item.movie,
+      rating: item.rating
+    }));
+
+  applyLetterboxdRatingsImportLocally(insertedRows);
+  syncUiAfterLetterboxdRatingsImport(insertedRows.map(row => row.movie_id));
+
+  return {
+    status: 'updated',
+    totalRows: parsedCsv.rows.length,
+    ratingRowsCount,
+    matchedCount: matchedRows.length,
+    insertedCount: insertedRows.length,
+    alreadyRatedCount,
+    unmatchedItems,
+    invalidRatingRows,
+    duplicateRowsCount,
+    addedItems
+  };
+}
+
+function formatLetterboxdRatingsImportMessage(result) {
+  if (result.status === 'empty_file') {
+    return 'CSV Letterboxd пустой или не содержит строк для импорта.';
+  }
+
+  if (result.status === 'missing_rating_column') {
+    return 'В CSV Letterboxd нет колонки Rating. Похоже, это экспорт watched/watchlist без оценок; для импорта нужен файл с оценками.';
+  }
+
+  if (result.ratingRowsCount === 0) {
+    return 'В CSV Letterboxd есть колонка Rating, но распознаваемых оценок не найдено.';
+  }
+
+  const skippedParts = [];
+
+  if (result.alreadyRatedCount > 0) {
+    skippedParts.push(`уже были оценены: ${result.alreadyRatedCount}`);
+  }
+
+  if (result.unmatchedItems.length > 0) {
+    skippedParts.push(`не найдены в каталоге: ${result.unmatchedItems.length}`);
+  }
+
+  if (result.invalidRatingRows.length > 0) {
+    skippedParts.push(`без распознаваемой оценки: ${result.invalidRatingRows.length}`);
+  }
+
+  if (result.duplicateRowsCount > 0) {
+    skippedParts.push(`дубли в файле: ${result.duplicateRowsCount}`);
+  }
+
+  const skippedText = skippedParts.length
+    ? ` Пропущено: ${skippedParts.join(', ')}.`
+    : '';
+
+  if (result.insertedCount <= 0) {
+    return `Новых оценок нет. Распознано оценок: ${result.ratingRowsCount}, найдено в каталоге: ${result.matchedCount}.${skippedText}`;
+  }
+
+  const preview = result.addedItems
+    .slice(0, LETTERBOXD_IMPORT_PREVIEW_LIMIT)
+    .map(item => `${getLetterboxdImportMovieLabel(item.movie)} — ${item.rating}/10`);
+  const moreCount = Math.max(0, result.addedItems.length - LETTERBOXD_IMPORT_PREVIEW_LIMIT);
+  const previewText = preview.length
+    ? `: ${preview.join(', ')}${moreCount > 0 ? ` и ещё ${moreCount}` : ''}`
+    : '';
+
+  return `Импорт Letterboxd: добавлено ${result.insertedCount} оценок${previewText}.${skippedText}`;
+}
+
+function setLetterboxdRatingsImportingState(isImporting) {
+  isLetterboxdRatingsImporting = isImporting;
+
+  if (!importLetterboxdRatingsButton) {
+    return;
+  }
+
+  importLetterboxdRatingsButton.disabled = isImporting;
+  importLetterboxdRatingsButton.textContent = isImporting
+    ? 'Импортирую оценки...'
+    : 'Импорт оценок Letterboxd';
+}
+
+async function handleLetterboxdRatingsFileChange(event) {
+  const file = event.target?.files?.[0] || null;
+
+  if (!file || isLetterboxdRatingsImporting) {
+    return;
+  }
+
+  closeAuthPopoverMenu();
+  setLetterboxdRatingsImportingState(true);
+  showAuthMessage('Импортирую оценки Letterboxd...', 'info');
+
+  try {
+    const importResult = await importLetterboxdRatingsFromCsvText(await file.text());
+
+    console.info('Letterboxd ratings import result:', importResult);
+    showAuthMessage(
+      formatLetterboxdRatingsImportMessage(importResult),
+      importResult.insertedCount > 0 ? 'success' : 'info',
+      false
+    );
+  } catch (error) {
+    console.error('Ошибка импорта оценок Letterboxd:', error);
+    showAuthMessage(
+      error?.message || 'Не удалось импортировать оценки Letterboxd. Проверь файл и попробуй снова.',
+      'error'
+    );
+  } finally {
+    setLetterboxdRatingsImportingState(false);
+
+    if (letterboxdRatingsFileInput) {
+      letterboxdRatingsFileInput.value = '';
+    }
+  }
 }
 
 function rebuildCurrentUserWatchlistIndex() {
@@ -8958,6 +9651,19 @@ if (logoutMenuButton) {
     closeAuthPopoverMenu();
     logout();
   });
+}
+
+if (importLetterboxdRatingsButton && letterboxdRatingsFileInput) {
+  importLetterboxdRatingsButton.addEventListener('click', () => {
+    if (isLetterboxdRatingsImporting) {
+      return;
+    }
+
+    letterboxdRatingsFileInput.value = '';
+    letterboxdRatingsFileInput.click();
+  });
+
+  letterboxdRatingsFileInput.addEventListener('change', handleLetterboxdRatingsFileChange);
 }
 
 if (displayNameButton) {
