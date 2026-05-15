@@ -161,6 +161,10 @@ const CANON_COVERAGE_ROLE_DEFINITIONS = [
   }
 ];
 
+const CANON_COVERAGE_DEFAULT_STATUS_BY_ROLE = {
+  [CANON_TAG_ROLES.format_bridge]: CANON_COVERAGE_STATUSES.notApplicable
+};
+
 function createCanonTagMeta({
   tier = 'standard',
   confidence = 'stable',
@@ -294,9 +298,11 @@ function normalizeCanonCoverage(movieOrCoverage = {}, explicitCanonTags = null) 
     const roleInput = getCanonCoverageRoleInput(movieOrCoverage, role.key);
     const explicitStatus = normalizeCanonCoverageStatus(roleInput.status || roleInput.value);
     const tags = getCanonTagsByRole(canonTags, role.key);
+    const defaultStatus =
+      CANON_COVERAGE_DEFAULT_STATUS_BY_ROLE[role.key] || CANON_COVERAGE_STATUSES.missing;
     const status = tags.length > 0
       ? CANON_COVERAGE_STATUSES.filled
-      : explicitStatus || CANON_COVERAGE_STATUSES.missing;
+      : explicitStatus || defaultStatus;
 
     roles[role.key] = {
       status,
