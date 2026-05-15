@@ -39,6 +39,8 @@ const registerButton = document.getElementById('registerButton');
 const forgotPasswordButton = document.getElementById('forgotPasswordButton');
 const authToast = document.getElementById('authToast');
 const authMessage = document.getElementById('authMessage');
+const appToast = document.getElementById('appToast');
+const appToastMessage = document.getElementById('appToastMessage');
 
 const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
@@ -198,6 +200,7 @@ let editingMovieId = null;
 let isModalOpen = false;
 let moviesLoadedSuccessfully = false;
 let authMessageTimer = null;
+let appMessageTimer = null;
 let isAuthSubmitting = false;
 let isMovieFormSubmitting = false;
 let isLetterboxdRatingsImporting = false;
@@ -2802,6 +2805,26 @@ const LETTERBOXD_IMPORT_FIELD_ALIASES = {
 const LETTERBOXD_IMPORT_PREVIEW_LIMIT = 8;
 const LETTERBOXD_IMPORT_QUERY_CHUNK_SIZE = 200;
 
+function reportLetterboxdRatingsImportProgress(options, message) {
+  if (typeof options?.onProgress === 'function') {
+    options.onProgress(message);
+  }
+}
+
+function formatImportFileSize(bytes) {
+  const fileSize = Number(bytes || 0);
+
+  if (!Number.isFinite(fileSize) || fileSize <= 0) {
+    return '';
+  }
+
+  if (fileSize < 1024) {
+    return `${fileSize} Б`;
+  }
+
+  return `${Math.round(fileSize / 1024)} КБ`;
+}
+
 function parseCsvRows(csvText) {
   const text = String(csvText || '').replace(/^\uFEFF/, '');
   const rows = [];
@@ -3228,7 +3251,7 @@ function syncUiAfterLetterboxdRatingsImport(movieIds) {
   });
 }
 
-async function importLetterboxdRatingsFromCsvText(csvText) {
+async function importLetterboxdRatingsFromCsvText(csvText, options = {}) {
   const activeUser = ensureActiveSessionForWrite();
   const parsedCsv = parseCsvObjects(csvText);
 
@@ -3247,6 +3270,11 @@ async function importLetterboxdRatingsFromCsvText(csvText) {
     };
   }
 
+  reportLetterboxdRatingsImportProgress(
+    options,
+    `CSV распознан: строк ${parsedCsv.rows.length}. Проверяю колонку Rating...`
+  );
+
   if (!hasCsvColumn(parsedCsv, LETTERBOXD_IMPORT_FIELD_ALIASES.rating)) {
     return {
       status: 'missing_rating_column',
@@ -3263,6 +3291,11 @@ async function importLetterboxdRatingsFromCsvText(csvText) {
   }
 
   if (!moviesLoadedSuccessfully || !allMovies.length) {
+    reportLetterboxdRatingsImportProgress(
+      options,
+      'Загружаю каталог для сопоставления оценок...'
+    );
+
     const moviesLoaded = await fetchMovies({ preserveExistingCatalogOnError: true });
 
     if (!moviesLoaded) {
@@ -3325,6 +3358,12 @@ async function importLetterboxdRatingsFromCsvText(csvText) {
 
   const matchedRows = Array.from(matchedRowsByMovieId.values());
   const matchedMovieIds = matchedRows.map(item => item.movie.id);
+
+  reportLetterboxdRatingsImportProgress(
+    options,
+    `Распознано оценок: ${ratingRowsCount}. Найдено в каталоге: ${matchedRows.length}. Проверяю уже выставленные оценки...`
+  );
+
   const freshCurrentUserRatings = await fetchCurrentUserRatingsForMovieIds(
     matchedMovieIds,
     activeUser.id
@@ -3356,6 +3395,12 @@ async function importLetterboxdRatingsFromCsvText(csvText) {
     user_id: activeUser.id,
     rating: item.rating
   }));
+
+  reportLetterboxdRatingsImportProgress(
+    options,
+    `Записываю новые оценки: ${insertRows.length}...`
+  );
+
   const { data, error } = await supabaseClient
     .from('movie_ratings')
     .upsert(insertRows, {
@@ -3428,7 +3473,7 @@ function formatLetterboxdRatingsImportMessage(result) {
     : '';
 
   if (result.insertedCount <= 0) {
-    return `Новых оценок нет. Распознано оценок: ${result.ratingRowsCount}, найдено в каталоге: ${result.matchedCount}.${skippedText}`;
+    return `Импорт Letterboxd завершён: новых оценок нет. Распознано оценок: ${result.ratingRowsCount}, найдено в каталоге: ${result.matchedCount}.${skippedText}`;
   }
 
   const preview = result.addedItems
@@ -3439,7 +3484,7 @@ function formatLetterboxdRatingsImportMessage(result) {
     ? `: ${preview.join(', ')}${moreCount > 0 ? ` и ещё ${moreCount}` : ''}`
     : '';
 
-  return `Импорт Letterboxd: добавлено ${result.insertedCount} оценок${previewText}.${skippedText}`;
+  return `Импорт Letterboxd завершён: добавлено ${result.insertedCount} из ${result.ratingRowsCount} распознанных оценок; найдено в каталоге: ${result.matchedCount}${previewText}.${skippedText}`;
 }
 
 function setLetterboxdRatingsImportingState(isImporting) {
@@ -3464,20 +3509,29 @@ async function handleLetterboxdRatingsFileChange(event) {
 
   closeAuthPopoverMenu();
   setLetterboxdRatingsImportingState(true);
-  showAuthMessage('Импортирую оценки Letterboxd...', 'info');
+  const fileSizeText = formatImportFileSize(file.size);
+  const fileLabel = [file.name, fileSizeText].filter(Boolean).join(', ');
+
+  showAppMessage(`Файл выбран: ${fileLabel}. Читаю CSV...`, 'info');
 
   try {
-    const importResult = await importLetterboxdRatingsFromCsvText(await file.text());
+    const csvText = await file.text();
+
+    showAppMessage(`Файл прочитан: ${file.name}. Проверяю структуру...`, 'info');
+
+    const importResult = await importLetterboxdRatingsFromCsvText(csvText, {
+      onProgress: message => showAppMessage(message, 'info')
+    });
 
     console.info('Letterboxd ratings import result:', importResult);
-    showAuthMessage(
+    showAppMessage(
       formatLetterboxdRatingsImportMessage(importResult),
       importResult.insertedCount > 0 ? 'success' : 'info',
       false
     );
   } catch (error) {
     console.error('Ошибка импорта оценок Letterboxd:', error);
-    showAuthMessage(
+    showAppMessage(
       error?.message || 'Не удалось импортировать оценки Letterboxd. Проверь файл и попробуй снова.',
       'error'
     );
@@ -3937,62 +3991,92 @@ function movieMatchesSearch(movie, searchQuery, queryWords = null) {
 JS-БЛОК 6. РАБОТА С СООБЩЕНИЯМИ АВТОРИЗАЦИИ
 Показывает, очищает и автоматически скрывает статусы auth-блока.
 ========================================================== */
-function showAuthMessage(text, type = 'info', autoHide = false) {
-  if (!authMessage || !authToast) {
-    return;
+function showToastMessage(toastElement, messageElement, timerState, text, type = 'info', autoHide = false) {
+  if (!messageElement || !toastElement) {
+    return null;
   }
 
-  if (authMessageTimer) {
-    clearTimeout(authMessageTimer);
-    authMessageTimer = null;
+  if (timerState.value) {
+    clearTimeout(timerState.value);
+    timerState.value = null;
   }
 
-  authMessage.textContent = text;
-  authToast.classList.remove('is-hidden', 'is-error', 'is-success', 'is-visible');
-  authMessage.classList.remove('is-error', 'is-success');
+  messageElement.textContent = text;
+  toastElement.classList.remove('is-hidden', 'is-error', 'is-success', 'is-visible');
+  messageElement.classList.remove('is-error', 'is-success');
 
   if (type === 'error') {
-    authToast.classList.add('is-error');
-    authMessage.classList.add('is-error');
+    toastElement.classList.add('is-error');
+    messageElement.classList.add('is-error');
   }
 
   if (type === 'success') {
-    authToast.classList.add('is-success');
-    authMessage.classList.add('is-success');
+    toastElement.classList.add('is-success');
+    messageElement.classList.add('is-success');
   }
 
   requestAnimationFrame(() => {
-    authToast.classList.add('is-visible');
+    toastElement.classList.add('is-visible');
   });
 
   if (autoHide) {
-    authMessageTimer = setTimeout(() => {
-      authToast.classList.remove('is-visible');
+    timerState.value = setTimeout(() => {
+      toastElement.classList.remove('is-visible');
 
       setTimeout(() => {
-        authToast.classList.add('is-hidden');
-        authToast.classList.remove('is-error', 'is-success');
-        authMessage.classList.remove('is-error', 'is-success');
-        authMessage.textContent = '';
+        toastElement.classList.add('is-hidden');
+        toastElement.classList.remove('is-error', 'is-success');
+        messageElement.classList.remove('is-error', 'is-success');
+        messageElement.textContent = '';
       }, 250);
     }, 2600);
   }
+
+  return timerState.value;
 }
 
-function clearAuthMessage() {
-  if (!authMessage || !authToast) {
+function showAuthMessage(text, type = 'info', autoHide = false) {
+  authMessageTimer = showToastMessage(
+    authToast,
+    authMessage,
+    { value: authMessageTimer },
+    text,
+    type,
+    autoHide
+  );
+}
+
+function showAppMessage(text, type = 'info', autoHide = false) {
+  appMessageTimer = showToastMessage(
+    appToast,
+    appToastMessage,
+    { value: appMessageTimer },
+    text,
+    type,
+    autoHide
+  );
+}
+
+function clearToastMessage(toastElement, messageElement, timerState) {
+  if (!messageElement || !toastElement) {
     return;
   }
 
-  if (authMessageTimer) {
-    clearTimeout(authMessageTimer);
-    authMessageTimer = null;
+  if (timerState.value) {
+    clearTimeout(timerState.value);
+    timerState.value = null;
   }
 
-  authToast.classList.remove('is-visible', 'is-error', 'is-success');
-  authToast.classList.add('is-hidden');
-  authMessage.classList.remove('is-error', 'is-success');
-  authMessage.textContent = '';
+  toastElement.classList.remove('is-visible', 'is-error', 'is-success');
+  toastElement.classList.add('is-hidden');
+  messageElement.classList.remove('is-error', 'is-success');
+  messageElement.textContent = '';
+}
+
+function clearAuthMessage() {
+  const timerState = { value: authMessageTimer };
+  clearToastMessage(authToast, authMessage, timerState);
+  authMessageTimer = timerState.value;
 }
 
 function resetAuthFormState() {
@@ -9692,6 +9776,7 @@ if (importLetterboxdRatingsButton && letterboxdRatingsFileInput) {
     }
 
     letterboxdRatingsFileInput.value = '';
+    showAppMessage('Выбери ratings.csv из экспорта Letterboxd.', 'info', true);
     letterboxdRatingsFileInput.click();
   });
 

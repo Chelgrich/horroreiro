@@ -652,6 +652,14 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
     inset 3px 0 0 rgba(86, 211, 100, 0.72);
 }
 
+.app-toast {
+  position: fixed;
+  top: 76px;
+  right: 24px;
+  z-index: 1100;
+  max-width: min(560px, calc(100vw - 48px));
+}
+
 .auth-message {
   min-height: 26px;
   margin: 0;
@@ -4919,6 +4927,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     position: fixed;
     left: 50%;
     right: auto;
+    top: auto;
     bottom: 16px;
     z-index: 1100;
     width: fit-content;

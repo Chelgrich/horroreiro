@@ -139,6 +139,10 @@
             </div>
           </div>
         </div>
+
+        <div id="appToast" class="auth-toast app-toast is-hidden" aria-live="polite" aria-atomic="true">
+          <p id="appToastMessage" class="auth-message"></p>
+        </div>
       `;
     }
   
