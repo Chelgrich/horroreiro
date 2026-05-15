@@ -4043,7 +4043,7 @@ function showToastMessage(
   }
 
   const actionButtonElement = options.actionButtonElement || null;
-  const showAction = Boolean(options.showAction && actionButtonElement);
+  const showAction = Boolean(options.showAction && actionButtonElement && !autoHide);
 
   if (timerState.value) {
     clearTimeout(timerState.value);
@@ -4076,6 +4076,7 @@ function showToastMessage(
       setTimeout(() => {
         toastElement.classList.add('is-hidden');
         toastElement.classList.remove('is-error', 'is-success');
+        setToastActionState(toastElement, actionButtonElement, false);
         messageElement.classList.remove('is-error', 'is-success');
         messageElement.textContent = '';
       }, 250);

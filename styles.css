@@ -673,6 +673,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 }
 
 .app-toast-accept-button {
+  display: none;
   flex: 0 0 auto;
   align-self: center;
   min-height: 32px;
@@ -686,6 +687,12 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   line-height: 1;
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.app-toast.has-action .app-toast-accept-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .app-toast-accept-button:hover {
