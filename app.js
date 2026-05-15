@@ -3562,8 +3562,7 @@ async function handleLetterboxdRatingsFileChange(event) {
     showAppMessage(
       error?.message || 'Не удалось импортировать оценки Letterboxd. Проверь файл и попробуй снова.',
       'error',
-      false,
-      { showAction: true }
+      true
     );
   } finally {
     setLetterboxdRatingsImportingState(false);
