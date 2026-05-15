@@ -101,6 +101,7 @@ const posterFileName = document.getElementById('posterFileName');
 const kinopoiskUrlInput = document.getElementById('kinopoiskUrl');
 const imdbUrlInput = document.getElementById('imdbUrl');
 const letterboxdUrlInput = document.getElementById('letterboxdUrl');
+const letterboxdShortUrlInput = document.getElementById('letterboxdShortUrl');
 const rottentomatoesUrlInput = document.getElementById('rottentomatoesUrl');
 const genresInput = document.getElementById('genresInput');
 const countriesInput = document.getElementById('countriesInput');
@@ -2320,6 +2321,20 @@ function normalizeOptionalUrl(value) {
   return trimmedValue;
 }
 
+function normalizeLetterboxdShortUrl(value) {
+  const normalizedUrl = normalizeOptionalUrl(value);
+
+  if (!normalizedUrl) {
+    return '';
+  }
+
+  const shortUrlMatch = normalizedUrl.match(/^https?:\/\/(?:www\.)?boxd\.it\/([A-Za-z0-9]+)/i);
+
+  return shortUrlMatch
+    ? `https://boxd.it/${shortUrlMatch[1]}`
+    : normalizedUrl;
+}
+
 function areStringArraysEqual(firstArray, secondArray) {
   if (firstArray.length !== secondArray.length) {
     return false;
@@ -3030,6 +3045,13 @@ function addMovieToLetterboxdImportIndex(indexMap, key, movie) {
   indexMap.set(key, bucket);
 }
 
+function getMovieLetterboxdImportUris(movie) {
+  return [
+    movie?.letterboxd_short_url,
+    movie?.letterboxd_url
+  ].filter(Boolean);
+}
+
 function buildLetterboxdImportMovieIndex(movies) {
   const index = {
     uri: new Map(),
@@ -3038,10 +3060,11 @@ function buildLetterboxdImportMovieIndex(movies) {
   };
 
   (Array.isArray(movies) ? movies : []).forEach(movie => {
-    const normalizedUri = normalizeLetterboxdImportUri(movie?.letterboxd_url);
     const movieYear = getMovieImportYear(movie);
 
-    addMovieToLetterboxdImportIndex(index.uri, normalizedUri, movie);
+    getMovieLetterboxdImportUris(movie).forEach(uri => {
+      addMovieToLetterboxdImportIndex(index.uri, normalizeLetterboxdImportUri(uri), movie);
+    });
 
     getMovieLetterboxdImportTitles(movie).forEach(title => {
       getLetterboxdImportTitleVariants(title).forEach(titleVariant => {
@@ -4408,6 +4431,7 @@ function fillFormForEdit(movie) {
   setInputValue(kinopoiskUrlInput, movie.kinopoisk_url, 'kinopoiskUrlInput');
   setInputValue(imdbUrlInput, movie.imdb_url, 'imdbUrlInput');
   setInputValue(letterboxdUrlInput, movie.letterboxd_url, 'letterboxdUrlInput');
+  setInputValue(letterboxdShortUrlInput, movie.letterboxd_short_url, 'letterboxdShortUrlInput');
   setInputValue(rottentomatoesUrlInput, movie.rottentomatoes_url, 'rottentomatoesUrlInput');
 
   if (posterFileInput) {
@@ -4799,6 +4823,7 @@ const MOVIE_BASE_SELECT = `
   kinopoisk_url,
   imdb_url,
   letterboxd_url,
+  letterboxd_short_url,
   rottentomatoes_url,
   release_year,
   release_month,
@@ -6023,6 +6048,7 @@ async function addMovie(event) {
   const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
   const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value);
   const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value);
+  const letterboxdShortUrl = normalizeLetterboxdShortUrl(letterboxdShortUrlInput.value);
   const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value);
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
@@ -6085,6 +6111,7 @@ async function addMovie(event) {
           kinopoisk_url: kinopoiskUrl || null,
           imdb_url: imdbUrl || null,
           letterboxd_url: letterboxdUrl || null,
+          letterboxd_short_url: letterboxdShortUrl || null,
           rottentomatoes_url: rottentomatoesUrl || null,
           release_month: releaseMonth ? Number(releaseMonth) : null,
           release_year: releaseYear ? Number(releaseYear) : null,
@@ -6156,6 +6183,7 @@ async function updateMovie(event) {
   const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
   const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value);
   const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value);
+  const letterboxdShortUrl = normalizeLetterboxdShortUrl(letterboxdShortUrlInput.value);
   const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value);
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
@@ -6318,6 +6346,10 @@ async function updateMovie(event) {
 
     if ((letterboxdUrl || null) !== (existingMovie.letterboxd_url ?? null)) {
       changedFields.letterboxd_url = letterboxdUrl || null;
+    }
+
+    if ((letterboxdShortUrl || null) !== (existingMovie.letterboxd_short_url ?? null)) {
+      changedFields.letterboxd_short_url = letterboxdShortUrl || null;
     }
 
     if ((rottentomatoesUrl || null) !== (existingMovie.rottentomatoes_url ?? null)) {

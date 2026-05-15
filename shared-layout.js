@@ -409,6 +409,18 @@
                   </div>
 
                   <div class="form-row">
+                    <label for="letterboxdShortUrl">Boxd.it:</label>
+                    <input
+                      type="text"
+                      id="letterboxdShortUrl"
+                      name="letterboxdShortUrl"
+                      inputmode="url"
+                      autocomplete="off"
+                      spellcheck="false"
+                    >
+                  </div>
+
+                  <div class="form-row">
                     <label for="rottentomatoesUrl">Ссылка на RT:</label>
                     <input
                       type="text"
