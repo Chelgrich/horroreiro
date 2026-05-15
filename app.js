@@ -204,6 +204,7 @@ let appMessageTimer = null;
 let isAuthSubmitting = false;
 let isMovieFormSubmitting = false;
 let isLetterboxdRatingsImporting = false;
+let lastLetterboxdRatingsImportFileToken = '';
 let ratingRequestInFlight = new Set();
 let feedbackAnimationTimers = new Map();
 let watchlistRequestInFlight = new Set();
@@ -2825,6 +2826,18 @@ function formatImportFileSize(bytes) {
   return `${Math.round(fileSize / 1024)} КБ`;
 }
 
+function getFileImportToken(file) {
+  if (!file) {
+    return '';
+  }
+
+  return [
+    file.name || '',
+    file.size || 0,
+    file.lastModified || 0
+  ].join(':');
+}
+
 function parseCsvRows(csvText) {
   const text = String(csvText || '').replace(/^\uFEFF/, '');
   const rows = [];
@@ -3503,9 +3516,22 @@ function setLetterboxdRatingsImportingState(isImporting) {
 async function handleLetterboxdRatingsFileChange(event) {
   const file = event.target?.files?.[0] || null;
 
-  if (!file || isLetterboxdRatingsImporting) {
+  if (isLetterboxdRatingsImporting) {
     return;
   }
+
+  if (!file) {
+    showAppMessage('Файл не выбран. Попробуй выбрать ratings.csv ещё раз.', 'info', true);
+    return;
+  }
+
+  const fileToken = getFileImportToken(file);
+
+  if (fileToken && fileToken === lastLetterboxdRatingsImportFileToken) {
+    return;
+  }
+
+  lastLetterboxdRatingsImportFileToken = fileToken;
 
   closeAuthPopoverMenu();
   setLetterboxdRatingsImportingState(true);
@@ -9776,11 +9802,19 @@ if (importLetterboxdRatingsButton && letterboxdRatingsFileInput) {
     }
 
     letterboxdRatingsFileInput.value = '';
+    lastLetterboxdRatingsImportFileToken = '';
     showAppMessage('Выбери ratings.csv из экспорта Letterboxd.', 'info', true);
     letterboxdRatingsFileInput.click();
   });
 
+  letterboxdRatingsFileInput.addEventListener('input', handleLetterboxdRatingsFileChange);
   letterboxdRatingsFileInput.addEventListener('change', handleLetterboxdRatingsFileChange);
+
+  letterboxdRatingsFileInput.addEventListener('cancel', () => {
+    if (!isLetterboxdRatingsImporting) {
+      showAppMessage('Файл не выбран. Импорт Letterboxd не запускался.', 'info', true);
+    }
+  });
 }
 
 if (displayNameButton) {
