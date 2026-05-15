@@ -630,6 +630,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   opacity: 1;
   transform: translateY(0);
   visibility: visible;
+  pointer-events: auto;
   box-shadow:
     0 16px 34px rgba(0, 0, 0, 0.28),
     0 0 0 1px rgba(255, 255, 255, 0.03);
@@ -660,9 +661,44 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
 .app-toast {
   position: fixed;
   top: 76px;
-  right: 24px;
+  right: var(--app-toast-right-offset, max(24px, calc((100vw - var(--page-max-width)) / 2 + 24px)));
   z-index: 1100;
   max-width: min(560px, calc(100vw - 48px));
+  gap: 12px;
+}
+
+.app-toast .auth-message {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.app-toast-accept-button {
+  flex: 0 0 auto;
+  align-self: center;
+  min-height: 32px;
+  padding: 0 12px;
+  color: var(--accent-soft-text);
+  background: var(--accent-soft-bg);
+  border: 1px solid var(--accent-soft-border);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.app-toast-accept-button:hover {
+  color: var(--color-text-primary);
+  background: var(--accent-soft-bg-hover);
+  border-color: var(--accent-soft-border-hover);
+}
+
+.app-toast-accept-button:focus,
+.app-toast-accept-button:focus-visible {
+  outline: none;
+  border-color: var(--control-focus-border);
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
 }
 
 .auth-message {

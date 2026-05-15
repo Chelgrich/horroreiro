@@ -41,6 +41,7 @@ const authToast = document.getElementById('authToast');
 const authMessage = document.getElementById('authMessage');
 const appToast = document.getElementById('appToast');
 const appToastMessage = document.getElementById('appToastMessage');
+const appToastAcceptButton = document.getElementById('appToastAcceptButton');
 
 const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
@@ -3553,13 +3554,16 @@ async function handleLetterboxdRatingsFileChange(event) {
     showAppMessage(
       formatLetterboxdRatingsImportMessage(importResult),
       importResult.insertedCount > 0 ? 'success' : 'info',
-      false
+      false,
+      { showAction: true }
     );
   } catch (error) {
     console.error('Ошибка импорта оценок Letterboxd:', error);
     showAppMessage(
       error?.message || 'Не удалось импортировать оценки Letterboxd. Проверь файл и попробуй снова.',
-      'error'
+      'error',
+      false,
+      { showAction: true }
     );
   } finally {
     setLetterboxdRatingsImportingState(false);
@@ -4017,16 +4021,37 @@ function movieMatchesSearch(movie, searchQuery, queryWords = null) {
 JS-БЛОК 6. РАБОТА С СООБЩЕНИЯМИ АВТОРИЗАЦИИ
 Показывает, очищает и автоматически скрывает статусы auth-блока.
 ========================================================== */
-function showToastMessage(toastElement, messageElement, timerState, text, type = 'info', autoHide = false) {
+function setToastActionState(toastElement, actionButtonElement, isVisible) {
+  if (!toastElement || !actionButtonElement) {
+    return;
+  }
+
+  actionButtonElement.hidden = !isVisible;
+  toastElement.classList.toggle('has-action', isVisible);
+}
+
+function showToastMessage(
+  toastElement,
+  messageElement,
+  timerState,
+  text,
+  type = 'info',
+  autoHide = false,
+  options = {}
+) {
   if (!messageElement || !toastElement) {
     return null;
   }
+
+  const actionButtonElement = options.actionButtonElement || null;
+  const showAction = Boolean(options.showAction && actionButtonElement);
 
   if (timerState.value) {
     clearTimeout(timerState.value);
     timerState.value = null;
   }
 
+  setToastActionState(toastElement, actionButtonElement, showAction);
   messageElement.textContent = text;
   toastElement.classList.remove('is-hidden', 'is-error', 'is-success', 'is-visible');
   messageElement.classList.remove('is-error', 'is-success');
@@ -4061,6 +4086,23 @@ function showToastMessage(toastElement, messageElement, timerState, text, type =
   return timerState.value;
 }
 
+function syncAppToastPosition() {
+  if (!appToast) {
+    return;
+  }
+
+  const anchorElement = document.querySelector('.section') || document.querySelector('.page');
+  const anchorRect = anchorElement?.getBoundingClientRect();
+
+  if (!anchorRect || anchorRect.width <= 0) {
+    return;
+  }
+
+  const rightOffset = Math.max(16, Math.round(window.innerWidth - anchorRect.right));
+
+  document.documentElement.style.setProperty('--app-toast-right-offset', `${rightOffset}px`);
+}
+
 function showAuthMessage(text, type = 'info', autoHide = false) {
   authMessageTimer = showToastMessage(
     authToast,
@@ -4072,18 +4114,24 @@ function showAuthMessage(text, type = 'info', autoHide = false) {
   );
 }
 
-function showAppMessage(text, type = 'info', autoHide = false) {
+function showAppMessage(text, type = 'info', autoHide = false, options = {}) {
+  syncAppToastPosition();
+
   appMessageTimer = showToastMessage(
     appToast,
     appToastMessage,
     { value: appMessageTimer },
     text,
     type,
-    autoHide
+    autoHide,
+    {
+      actionButtonElement: appToastAcceptButton,
+      showAction: Boolean(options.showAction)
+    }
   );
 }
 
-function clearToastMessage(toastElement, messageElement, timerState) {
+function clearToastMessage(toastElement, messageElement, timerState, actionButtonElement = null) {
   if (!messageElement || !toastElement) {
     return;
   }
@@ -4095,6 +4143,7 @@ function clearToastMessage(toastElement, messageElement, timerState) {
 
   toastElement.classList.remove('is-visible', 'is-error', 'is-success');
   toastElement.classList.add('is-hidden');
+  setToastActionState(toastElement, actionButtonElement, false);
   messageElement.classList.remove('is-error', 'is-success');
   messageElement.textContent = '';
 }
@@ -4103,6 +4152,12 @@ function clearAuthMessage() {
   const timerState = { value: authMessageTimer };
   clearToastMessage(authToast, authMessage, timerState);
   authMessageTimer = timerState.value;
+}
+
+function clearAppMessage() {
+  const timerState = { value: appMessageTimer };
+  clearToastMessage(appToast, appToastMessage, timerState, appToastAcceptButton);
+  appMessageTimer = timerState.value;
 }
 
 function resetAuthFormState() {
@@ -9782,6 +9837,10 @@ if (loginPasswordConfirm) {
   loginPasswordConfirm.addEventListener('input', clearAuthMessage);
 }
 
+if (appToastAcceptButton) {
+  appToastAcceptButton.addEventListener('click', clearAppMessage);
+}
+
 if (registerButton) {
   registerButton.addEventListener('click', () => {
     setAuthRegisterMode(!isAuthRegisterMode);
@@ -10162,6 +10221,7 @@ document.addEventListener('click', event => {
 window.addEventListener('resize', () => {
   syncOpenExternalLinksLayouts();
   syncCatalogPaginationSlotCount();
+  syncAppToastPosition();
 });
 
 window.addEventListener('pagehide', event => {
