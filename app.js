@@ -226,6 +226,7 @@ let currentCatalogPaginationSlots = null;
 let catalogDataVersion = 0;
 let catalogDerivedStateCache = null;
 let pendingCanonCoverageControlValues = {};
+let canonCoverageTagOptionsByRoleCache = null;
 const userRatingControlsHtmlCache = new Map();
 
 function applyBuildVersionSoftResetIfNeeded() {
@@ -301,12 +302,89 @@ function getCanonCoverageSelects() {
   return Array.from(canonCoverageControls.querySelectorAll('[data-canon-coverage-role]'));
 }
 
+function getCanonCoverageTagOptionsByRoleMap() {
+  if (canonCoverageTagOptionsByRoleCache) {
+    return canonCoverageTagOptionsByRoleCache;
+  }
+
+  const helpers = getCanonCoverageHelpers();
+  const exportData = typeof helpers.getTaxonomyTagExportData === 'function'
+    ? helpers.getTaxonomyTagExportData()
+    : null;
+  const canonSection = exportData?.sections?.find(section => section.key === 'canon');
+
+  if (!canonSection?.groups) {
+    return new Map();
+  }
+
+  const optionsByRole = new Map();
+  const seenByRole = new Map();
+
+  canonSection.groups.forEach(group => {
+    (group.tags || []).forEach(tagItem => {
+      const value = String(tagItem?.value || '').trim();
+      const role = String(tagItem?.role || '').trim();
+
+      if (!value || !role) {
+        return;
+      }
+
+      if (!optionsByRole.has(role)) {
+        optionsByRole.set(role, []);
+        seenByRole.set(role, new Set());
+      }
+
+      const seen = seenByRole.get(role);
+
+      if (seen.has(value)) {
+        return;
+      }
+
+      seen.add(value);
+      optionsByRole.get(role).push(value);
+    });
+  });
+
+  optionsByRole.forEach(values => {
+    values.sort((firstValue, secondValue) => firstValue.localeCompare(secondValue, 'ru'));
+  });
+
+  canonCoverageTagOptionsByRoleCache = optionsByRole;
+
+  return canonCoverageTagOptionsByRoleCache;
+}
+
+function getCanonCoverageTagOptionsForRole(roleKey) {
+  return getCanonCoverageTagOptionsByRoleMap().get(roleKey) || [];
+}
+
+function hasCanonTagsForCoverageRole(tagsCanon = [], roleKey) {
+  const helpers = getCanonCoverageHelpers();
+
+  if (typeof helpers.getCanonTagMeta !== 'function') {
+    return false;
+  }
+
+  return (tagsCanon || []).some(tag => helpers.getCanonTagMeta(tag)?.role === roleKey);
+}
+
+function getCanonCoverageTagSelectValue(tag) {
+  return `tag:${tag}`;
+}
+
+function getCanonCoverageSelectedTag(value) {
+  const normalizedValue = String(value || '');
+
+  return normalizedValue.startsWith('tag:') ? normalizedValue.slice(4) : '';
+}
+
 function ensureCanonCoverageControlsRendered() {
   if (!canonCoverageControls) {
     return;
   }
 
   const roleDefinitions = getCanonCoverageRoleDefinitions();
+  const tagOptionsByRole = getCanonCoverageTagOptionsByRoleMap();
 
   if (roleDefinitions.length === 0) {
     canonCoverageControls.innerHTML = '';
@@ -315,7 +393,9 @@ function ensureCanonCoverageControlsRendered() {
   }
 
   const renderedSignature = canonCoverageControls.dataset.rendered || '';
-  const nextSignature = roleDefinitions.map(role => role.key).join('|');
+  const nextSignature = roleDefinitions
+    .map(role => `${role.key}:${(tagOptionsByRole.get(role.key) || []).length}`)
+    .join('|');
 
   if (renderedSignature === nextSignature) {
     return;
@@ -324,6 +404,16 @@ function ensureCanonCoverageControlsRendered() {
   canonCoverageControls.innerHTML = roleDefinitions
     .map(role => {
       const selectId = `canonCoverage-${role.key}`;
+      const tagOptions = getCanonCoverageTagOptionsForRole(role.key);
+      const tagOptionsHtml = tagOptions.length > 0
+        ? `
+          <optgroup label="Добавить canon-тег">
+            ${tagOptions
+              .map(tag => `<option value="${escapeHtml(getCanonCoverageTagSelectValue(tag))}">${escapeHtml(tag)}</option>`)
+              .join('')}
+          </optgroup>
+        `
+        : '';
 
       return `
         <div class="canon-coverage-item">
@@ -335,6 +425,7 @@ function ensureCanonCoverageControlsRendered() {
             <option value="">Авто по canon-тегам</option>
             <option value="not_applicable">Не применимо</option>
             <option value="unknown">Не определено</option>
+            ${tagOptionsHtml}
           </select>
         </div>
       `;
@@ -344,13 +435,13 @@ function ensureCanonCoverageControlsRendered() {
   canonCoverageControls.dataset.rendered = nextSignature;
 
   getCanonCoverageSelects().forEach(select => {
-    select.addEventListener('change', updateMovieTaxonomyPreview);
+    select.addEventListener('change', handleCanonCoverageSelectChange);
   });
 
   applyCanonCoverageControlValues(pendingCanonCoverageControlValues);
 }
 
-function getExplicitCanonCoverageFromForm() {
+function getExplicitCanonCoverageFromForm(tagsCanon = []) {
   ensureCanonCoverageControlsRendered();
 
   const roles = {};
@@ -359,7 +450,7 @@ function getExplicitCanonCoverageFromForm() {
     const roleKey = select.dataset.canonCoverageRole;
     const status = select.value;
 
-    if (!roleKey || !status) {
+    if (!roleKey || !status || hasCanonTagsForCoverageRole(tagsCanon, roleKey)) {
       return;
     }
 
@@ -395,11 +486,57 @@ function getCanonCoverageExplicitStatus(rawCoverage, roleKey) {
     return '';
   }
 
-  const status = typeof roleCoverage === 'object'
-    ? roleCoverage.explicitStatus || roleCoverage.status
-    : roleCoverage;
+  if (typeof roleCoverage === 'object') {
+    if (roleCoverage.status === 'filled' || (Array.isArray(roleCoverage.tags) && roleCoverage.tags.length > 0)) {
+      return '';
+    }
+
+    const status = roleCoverage.explicitStatus || roleCoverage.status;
+
+    return status === 'not_applicable' || status === 'unknown' ? status : '';
+  }
+
+  const status = roleCoverage;
 
   return status === 'not_applicable' || status === 'unknown' ? status : '';
+}
+
+function addCanonTagFromCoverageSelect(tag) {
+  if (!tagsCanonInput || !tag) {
+    return;
+  }
+
+  const currentTags = parseMultilineValues(tagsCanonInput.value || '');
+
+  if (currentTags.includes(tag)) {
+    return;
+  }
+
+  tagsCanonInput.value = [...currentTags, tag].join('\n');
+}
+
+function handleCanonCoverageSelectChange(event) {
+  const select = event.currentTarget;
+  const selectedTag = getCanonCoverageSelectedTag(select.value);
+
+  if (selectedTag) {
+    addCanonTagFromCoverageSelect(selectedTag);
+    select.value = '';
+    updateMovieTaxonomyPreview();
+    return;
+  }
+
+  if (
+    select.value &&
+    hasCanonTagsForCoverageRole(
+      parseMultilineValues(tagsCanonInput?.value || ''),
+      select.dataset.canonCoverageRole
+    )
+  ) {
+    select.value = '';
+  }
+
+  updateMovieTaxonomyPreview();
 }
 
 function applyCanonCoverageControlValues(rawCoverage = {}) {
@@ -458,7 +595,7 @@ function buildMovieTaxonomyDraftFromForm() {
   const tagsCanon = parseMultilineValues(tagsCanonInput?.value || '');
   const broadFamilies = resolveTaxonomyBroadFamiliesFromCanon(tagsCanon, manualBroadFamilies);
   const triggers = parseMultilineValues(movieTriggersInput?.value || '');
-  const explicitCanonCoverage = getExplicitCanonCoverageFromForm();
+  const explicitCanonCoverage = getExplicitCanonCoverageFromForm(tagsCanon);
   const canonCoverage = normalizeCanonCoverageForDraft(tagsCanon, explicitCanonCoverage);
 
   const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
