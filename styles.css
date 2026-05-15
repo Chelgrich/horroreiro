@@ -4661,6 +4661,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     align-items: start;
   }
 
+  .movie-form-inline-group-links .form-row label {
+    min-height: 2.4em;
+  }
+
   .catalog-toolbar-actions {
     gap: 12px;
   }
