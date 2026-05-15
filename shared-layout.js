@@ -292,6 +292,7 @@
                     </div>
 
                     <div id="movieTaxonomyWarningsPreview" class="movie-taxonomy-preview-warnings"></div>
+                    <div id="movieTaxonomySimilarityPreview" class="movie-taxonomy-similarity-preview"></div>
                   </div>
                 </div>
 

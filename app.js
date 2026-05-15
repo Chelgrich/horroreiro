@@ -114,6 +114,7 @@ const movieTriggersInput = document.getElementById('movieTriggers');
 const movieTaxonomyPrimaryPreview = document.getElementById('movieTaxonomyPrimaryPreview');
 const movieTaxonomySecondaryPreview = document.getElementById('movieTaxonomySecondaryPreview');
 const movieTaxonomyWarningsPreview = document.getElementById('movieTaxonomyWarningsPreview');
+const movieTaxonomySimilarityPreview = document.getElementById('movieTaxonomySimilarityPreview');
 
 /* =========================================================
 JS-БЛОК 2. ПОДКЛЮЧЕНИЕ К SUPABASE
@@ -282,6 +283,16 @@ function parseMultilineValues(value) {
   return Array.from(uniqueValues.values());
 }
 
+function truncateText(value, maxLength = 90) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+}
+
 function getCanonCoverageHelpers() {
   return window.HORROR_TAXONOMY?.helpers || {};
 }
@@ -378,6 +389,66 @@ function getCanonCoverageSelectedTag(value) {
   return normalizedValue.startsWith('tag:') ? normalizedValue.slice(4) : '';
 }
 
+function getCanonCoverageRoleLabel(roleKey) {
+  return getCanonCoverageRoleDefinitions()
+    .find(role => role.key === roleKey)?.label || roleKey;
+}
+
+function getCanonTagTierLabel(tier) {
+  switch (tier) {
+    case 'anchor':
+      return 'якорь';
+    case 'strong':
+      return 'сильный';
+    case 'support':
+      return 'поддержка';
+    case 'context':
+      return 'контекст';
+    default:
+      return String(tier || 'standard');
+  }
+}
+
+function getCanonTagMetaForForm(tag) {
+  const helpers = getCanonCoverageHelpers();
+
+  return typeof helpers.getCanonTagMeta === 'function'
+    ? helpers.getCanonTagMeta(tag)
+    : null;
+}
+
+function getCanonCoverageTagOptionLabel(tag) {
+  const meta = getCanonTagMetaForForm(tag);
+  const hint = meta?.useWhen || '';
+  const tierLabel = getCanonTagTierLabel(meta?.tier);
+
+  return hint
+    ? `${tag} · ${tierLabel} · ${truncateText(hint, 82)}`
+    : `${tag} · ${tierLabel}`;
+}
+
+function getCanonCoverageTagOptionTitle(tag) {
+  const meta = getCanonTagMetaForForm(tag);
+
+  if (!meta) {
+    return tag;
+  }
+
+  return [
+    tag,
+    `Роль: ${getCanonCoverageRoleLabel(meta.role)}`,
+    `Тип: ${getCanonTagTierLabel(meta.tier)}`,
+    meta.useWhen ? `Когда использовать: ${meta.useWhen}` : '',
+    meta.avoidWhen ? `Когда не использовать: ${meta.avoidWhen}` : '',
+    Array.isArray(meta.examples) && meta.examples.length > 0
+      ? `Примеры: ${meta.examples.join(', ')}`
+      : '',
+    Array.isArray(meta.counterExamples) && meta.counterExamples.length > 0
+      ? `Антипримеры: ${meta.counterExamples.join(', ')}`
+      : ''
+  ].filter(Boolean).join('\n');
+}
+
 function ensureCanonCoverageControlsRendered() {
   if (!canonCoverageControls) {
     return;
@@ -409,7 +480,7 @@ function ensureCanonCoverageControlsRendered() {
         ? `
           <optgroup label="Добавить canon-тег">
             ${tagOptions
-              .map(tag => `<option value="${escapeHtml(getCanonCoverageTagSelectValue(tag))}">${escapeHtml(tag)}</option>`)
+              .map(tag => `<option value="${escapeHtml(getCanonCoverageTagSelectValue(tag))}" title="${escapeHtml(getCanonCoverageTagOptionTitle(tag))}">${escapeHtml(getCanonCoverageTagOptionLabel(tag))}</option>`)
               .join('')}
           </optgroup>
         `
@@ -585,6 +656,155 @@ function getCanonCoveragePreviewHtml(canonCoverage) {
   });
 
   return `<div class="canon-coverage-preview">${items.join('')}</div>`;
+}
+
+function hasMeaningfulSimilarityDraft(taxonomyDraft) {
+  return Boolean(
+    taxonomyDraft.tagsCanon.length ||
+    taxonomyDraft.tagsPerceived.length ||
+    taxonomyDraft.modifiers.length ||
+    taxonomyDraft.formats.length
+  );
+}
+
+function buildMovieFormSimilarityDraft(taxonomyDraft) {
+  const genreNames = parseCommaSeparated(genresInput?.value || '')
+    .filter(name => normalizeSearchText(name) !== 'ужасы');
+
+  return {
+    id: editingMovieId ? String(editingMovieId) : '__movie_form_draft__',
+    title: titleInput?.value?.trim() || originalTitleInput?.value?.trim() || 'Черновик карточки',
+    year: Number(yearInput?.value || releaseYearInput?.value || 0),
+    perceived: taxonomyDraft.tagsPerceived,
+    canon: taxonomyDraft.tagsCanon,
+    formats: taxonomyDraft.formats,
+    modifiers: taxonomyDraft.modifiers,
+    broadFamilies: taxonomyDraft.broadFamilies,
+    canonCoverage: taxonomyDraft.canonCoverage,
+    mask_conflict: false,
+    extraGenres: genreNames,
+    countries: parseCommaSeparated(countriesInput?.value || '')
+  };
+}
+
+function getMovieFormSimilarityCandidates(taxonomyDraft, limit = 4) {
+  const helpers = getCanonCoverageHelpers();
+  const getSimilarMoviesHelper = helpers.getSimilarMovies;
+
+  if (
+    typeof getSimilarMoviesHelper !== 'function' ||
+    !Array.isArray(catalogMovieSimilaritySources) ||
+    catalogMovieSimilaritySources.length === 0 ||
+    !hasMeaningfulSimilarityDraft(taxonomyDraft)
+  ) {
+    return [];
+  }
+
+  return getSimilarMoviesHelper(
+    buildMovieFormSimilarityDraft(taxonomyDraft),
+    catalogMovieSimilaritySources,
+    { limit }
+  );
+}
+
+function getSimilarityAnchorReasonLabel(reason) {
+  switch (reason) {
+    case 'shared_threat_type_and_setting_anchor':
+      return 'угроза + сеттинг';
+    case 'shared_threat_type_anchor':
+      return 'тип угрозы';
+    case 'shared_setting_anchor':
+      return 'сеттинг';
+    case 'shared_mechanism_behavior_structure_anchor':
+      return 'механизм + структура';
+    default:
+      return '';
+  }
+}
+
+function getUniqueSimilarityReasonValues(values = []) {
+  return Array.from(new Set((values || []).filter(Boolean)));
+}
+
+function getMovieFormSimilarityReasonParts(item) {
+  const debug = item?.similarity?.debug || {};
+  const explanation = item?.explanation || {};
+  const coreTags = getUniqueSimilarityReasonValues([
+    ...(debug.sharedThreatTypeTags || []),
+    ...(debug.sharedSettingTags || []),
+    ...(debug.sharedMechanismTags || []),
+    ...(debug.sharedThreatBehaviorTags || []),
+    ...(debug.sharedStructureTags || [])
+  ]);
+  const sharedCanon = coreTags.length > 0
+    ? coreTags
+    : getUniqueSimilarityReasonValues(explanation.sharedCanon || []);
+  const sharedModifiers = getUniqueSimilarityReasonValues(explanation.sharedModifiers || []);
+  const sharedFormats = getUniqueSimilarityReasonValues(explanation.sharedFormats || []);
+  const anchorReason = getSimilarityAnchorReasonLabel(debug.coreAnchorReason);
+
+  return [
+    anchorReason,
+    ...sharedCanon.slice(0, 4),
+    ...sharedModifiers.slice(0, 2),
+    ...sharedFormats.slice(0, 1)
+  ].filter(Boolean).slice(0, 6);
+}
+
+function getMovieFormSimilarityPreviewHtml(taxonomyDraft) {
+  if (!movieTaxonomySimilarityPreview) {
+    return '';
+  }
+
+  if (!hasMeaningfulSimilarityDraft(taxonomyDraft)) {
+    return `
+      <div class="movie-taxonomy-similarity-title">Похожие по черновику</div>
+      <div class="movie-taxonomy-similarity-empty">Добавьте canon-теги, чтобы увидеть предварительные похожие фильмы.</div>
+    `;
+  }
+
+  const candidates = getMovieFormSimilarityCandidates(taxonomyDraft, 4);
+
+  if (!candidates.length) {
+    return `
+      <div class="movie-taxonomy-similarity-title">Похожие по черновику</div>
+      <div class="movie-taxonomy-similarity-empty">Пока нет достаточно сильных совпадений по текущим тегам.</div>
+    `;
+  }
+
+  const itemsHtml = candidates.map(item => {
+    const movie = getCatalogMovieById(item.movie?.id) || item.movie || {};
+    const score = Math.round(Number(item.similarity?.finalScore || 0) * 10) / 10;
+    const reasonParts = getMovieFormSimilarityReasonParts(item);
+    const reasonHtml = reasonParts.length > 0
+      ? `<div class="movie-taxonomy-similarity-reasons">${reasonParts
+          .map(part => `<span>${escapeHtml(part)}</span>`)
+          .join('')}</div>`
+      : '';
+
+    return `
+      <div class="movie-taxonomy-similarity-item">
+        <div class="movie-taxonomy-similarity-main">
+          <strong>${escapeHtml(movie.title || item.movie?.title || 'Без названия')}</strong>
+          <span>${escapeHtml(movie.year ?? item.movie?.year ?? '-')} · ${score}</span>
+        </div>
+        ${reasonHtml}
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="movie-taxonomy-similarity-title">Похожие по черновику</div>
+    <div class="movie-taxonomy-similarity-list">${itemsHtml}</div>
+  `;
+}
+
+function updateMovieTaxonomySimilarityPreview(taxonomyDraft) {
+  if (!movieTaxonomySimilarityPreview) {
+    return;
+  }
+
+  movieTaxonomySimilarityPreview.innerHTML = getMovieFormSimilarityPreviewHtml(taxonomyDraft);
 }
 
 function buildMovieTaxonomyDraftFromForm() {
@@ -906,6 +1126,7 @@ function updateMovieTaxonomyPreview() {
 
   if (!visibleWarnings.length) {
     movieTaxonomyWarningsPreview.innerHTML = getCanonCoveragePreviewHtml(taxonomyDraft.canonCoverage);
+    updateMovieTaxonomySimilarityPreview(taxonomyDraft);
     return;
   }
 
@@ -914,6 +1135,8 @@ function updateMovieTaxonomyPreview() {
     ...visibleWarnings
       .map(warning => `<div class="movie-taxonomy-preview-warning">${escapeHtml(warning.message)}</div>`)
   ].join('');
+
+  updateMovieTaxonomySimilarityPreview(taxonomyDraft);
 }
 
 function transliterateForSlug(value) {
@@ -8987,6 +9210,8 @@ if (posterFileInput) {
 }
 
 [
+  genresInput,
+  countriesInput,
   movieFormatsInput,
   movieModifiersInput,
   movieBroadFamiliesInput,
