@@ -158,6 +158,7 @@ const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
 const CATALOG_PAGE_SIZE = 40;
 const CATALOG_PAGINATION_PAGE_SLOTS = 6;
 const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
+const BASE_HORROR_GENRE_NORMALIZED = '\u0443\u0436\u0430\u0441\u044b';
 const APP_ASSET_BASE_PATH = window.location.protocol === 'file:' ? '' : '/';
 const HORROR_TAXONOMY_SCRIPT_SRC = `${APP_ASSET_BASE_PATH}horror-taxonomy.js`;
 const TAXONOMY_ADMIN_SCRIPT_SRC = `${APP_ASSET_BASE_PATH}taxonomy-admin.js`;
@@ -182,6 +183,10 @@ let isPasswordRecoveryEntryPage = false;
 let allMovies = [];
 let catalogMoviesById = new Map();
 let catalogMovieMetaById = new Map();
+let catalogSortedMoviesByMode = {
+  default: [],
+  oldest: []
+};
 let catalogMovieSimilaritySources = [];
 let catalogMovieSimilaritySourceById = new Map();
 let allMovieRatings = [];
@@ -219,6 +224,7 @@ let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
 let allGenreNames = [];
 let allCountryNames = [];
+let allMovieYears = [];
 let lastCatalogAnchorMovieId = null;
 let currentMoviePageMovieId = null;
 let currentMoviePageMovieData = null;
@@ -3873,9 +3879,13 @@ function buildCatalogMovieMeta(movie) {
   ].filter(Boolean);
   const genresText = genreNames.join(', ');
   const countriesText = countryNames.join(', ');
+  const filterableGenreNames = genreNames.filter(genreName =>
+    normalizeSearchText(genreName) !== BASE_HORROR_GENRE_NORMALIZED
+  );
 
   return {
     genreNames: new Set(genreNames),
+    filterableGenreNames: new Set(filterableGenreNames),
     countryNames: new Set(countryNames),
     genresText,
     countriesText,
@@ -3963,9 +3973,14 @@ function rebuildCatalogMovieMeta() {
   const movies = Array.isArray(allMovies) ? allMovies : [];
   const catalogGenreNames = new Set();
   const catalogCountryNames = new Set();
+  const catalogYearValues = new Set();
 
   catalogMoviesById = new Map();
   catalogMovieMetaById = new Map();
+  catalogSortedMoviesByMode = {
+    default: [],
+    oldest: []
+  };
   catalogMovieSimilaritySources = [];
   catalogMovieSimilaritySourceById = new Map();
 
@@ -3979,23 +3994,30 @@ function rebuildCatalogMovieMeta() {
     catalogMovieSimilaritySourceById.set(movieId, similaritySource);
     catalogMovieSimilaritySources.push(similaritySource);
 
-    meta.genreNames.forEach(genreName => {
-      if (normalizeSearchText(genreName) !== 'ужасы') {
-        catalogGenreNames.add(genreName);
-      }
+    meta.filterableGenreNames.forEach(genreName => {
+      catalogGenreNames.add(genreName);
     });
 
     meta.countryNames.forEach(countryName => {
       catalogCountryNames.add(countryName);
     });
+
+    if (movie.year) {
+      catalogYearValues.add(Number(movie.year));
+    }
   });
 
+  catalogSortedMoviesByMode = {
+    default: getSortedMoviesCopy(movies, 'default'),
+    oldest: getSortedMoviesCopy(movies, 'oldest')
+  };
   allGenreNames = Array.from(catalogGenreNames).sort((firstName, secondName) =>
     firstName.localeCompare(secondName, 'ru')
   );
   allCountryNames = Array.from(catalogCountryNames).sort((firstName, secondName) =>
     firstName.localeCompare(secondName, 'ru')
   );
+  allMovieYears = Array.from(catalogYearValues).sort((a, b) => b - a);
 }
 
 function getMatchedSearchAlias(movie, searchQuery, queryWords = null) {
@@ -4969,14 +4991,7 @@ function loadYearFilterOptions(yearCounts = new Map()) {
   }
 
   const selectedYear = yearFilter.value || '';
-
-  const years = [
-    ...new Set(
-      allMovies
-        .map(movie => movie.year)
-        .filter(Boolean)
-    )
-  ].sort((a, b) => b - a);
+  const years = allMovieYears;
 
   yearFilter.innerHTML = '<option value="">Все годы</option>';
 
@@ -8250,6 +8265,29 @@ function sortMovies(movies, selectedSortMode) {
   });
 }
 
+function getSortedMoviesCopy(movies, selectedSortMode) {
+  const sortedMovies = [...(Array.isArray(movies) ? movies : [])];
+
+  sortMovies(sortedMovies, selectedSortMode);
+
+  return sortedMovies;
+}
+
+function getCatalogSortModeKey(selectedSortMode) {
+  return selectedSortMode === 'oldest' ? 'oldest' : 'default';
+}
+
+function getCatalogSortedMoviesSource(selectedSortMode) {
+  const modeKey = getCatalogSortModeKey(selectedSortMode);
+  const sortedMovies = catalogSortedMoviesByMode[modeKey];
+
+  if (!Array.isArray(sortedMovies) || sortedMovies.length !== allMovies.length) {
+    return null;
+  }
+
+  return sortedMovies;
+}
+
 function getUserRatingControlsHtml(currentUserRating, isRatingBusy = false) {
   if (!currentUser) {
     return '';
@@ -9280,8 +9318,11 @@ function hasCatalogFilterStateOverrides(options = {}) {
 
 function filterCatalogMovies(filterState, { skipSorting = false, selectedSortMode = sortMode?.value || 'default' } = {}) {
   const filteredMovies = [];
+  const sourceMovies = skipSorting
+    ? allMovies
+    : (getCatalogSortedMoviesSource(selectedSortMode) || allMovies);
 
-  allMovies.forEach(movie => {
+  sourceMovies.forEach(movie => {
     const meta = getCatalogMovieMeta(movie);
 
     if (doesMovieMatchCatalogFilters(movie, filterState, meta)) {
@@ -9289,7 +9330,7 @@ function filterCatalogMovies(filterState, { skipSorting = false, selectedSortMod
     }
   });
 
-  if (!skipSorting) {
+  if (!skipSorting && sourceMovies === allMovies) {
     sortMovies(filteredMovies, selectedSortMode);
   }
 
@@ -9565,10 +9606,8 @@ function getDynamicFilterOptionCounts() {
     const matches = getCatalogFilterMatches(movie, filterState, meta);
 
     if (matchesCatalogFilterCountScope(matches, 'genre')) {
-      meta.genreNames.forEach(genreName => {
-        if (normalizeSearchText(genreName) !== 'ужасы') {
-          addCount(counts.genreCounts, genreName);
-        }
+      meta.filterableGenreNames.forEach(genreName => {
+        addCount(counts.genreCounts, genreName);
       });
     }
 
@@ -10888,7 +10927,7 @@ function getMovieSimilarityExtraGenres(movie) {
   return (Array.isArray(movie?.movie_genres) ? movie.movie_genres : [])
     .map(item => item?.genres?.name)
     .filter(Boolean)
-    .filter(name => normalizeSearchText(name) !== 'ужасы');
+    .filter(name => normalizeSearchText(name) !== BASE_HORROR_GENRE_NORMALIZED);
 }
 
 function getMovieSimilarityCountries(movie) {
@@ -10899,7 +10938,7 @@ function getMovieSimilarityCountries(movie) {
 
 function getMovieSimilaritySource(movie, meta = getCatalogMovieMeta(movie)) {
   const extraGenres = meta
-    ? Array.from(meta.genreNames).filter(name => normalizeSearchText(name) !== 'ужасы')
+    ? Array.from(meta.filterableGenreNames)
     : getMovieSimilarityExtraGenres(movie);
   const countries = meta
     ? Array.from(meta.countryNames)
