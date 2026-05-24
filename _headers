@@ -1,0 +1,29 @@
+/app.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/custom-select.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/horror-taxonomy.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/shared-layout.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/taxonomy-admin.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/styles.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/icons/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/favicon.ico
+  Cache-Control: public, max-age=31536000, immutable
+
+/insidious.webp
+  Cache-Control: public, max-age=31536000, immutable
+
+/og-preview.jpg
+  Cache-Control: public, max-age=31536000, immutable

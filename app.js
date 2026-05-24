@@ -158,6 +158,7 @@ const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
 const CATALOG_PAGE_SIZE = 40;
 const CATALOG_PAGINATION_PAGE_SLOTS = 6;
 const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
+const CATALOG_PRIORITY_POSTER_COUNT = 8;
 const BASE_HORROR_GENRE_NORMALIZED = '\u0443\u0436\u0430\u0441\u044b';
 const APP_ASSET_BASE_PATH = window.location.protocol === 'file:' ? '' : '/';
 const HORROR_TAXONOMY_SCRIPT_SRC = `${APP_ASSET_BASE_PATH}horror-taxonomy.js`;
@@ -8825,10 +8826,12 @@ function getPosterHtml(
   matchedSearchAlias = null,
   renderContext = createMovieCardRenderContext(),
   isWatchlistBusy = false,
-  cardRenderMeta = getCatalogMovieMeta(movie).cardRender
+  cardRenderMeta = getCatalogMovieMeta(movie).cardRender,
+  renderOptions = {}
 ) {
   const posterUrl = cardRenderMeta.posterUrl;
   const isPosterLoaded = posterUrl && loadedPosterUrls.has(posterUrl);
+  const isPriorityPoster = Boolean(renderOptions.isPriorityPoster);
   const matchedSearchAliasHtml = matchedSearchAlias
     ? getHighlightedCatalogText(matchedSearchAlias, renderContext)
     : '';
@@ -8845,8 +8848,9 @@ function getPosterHtml(
                   class="movie-poster ${isPosterLoaded ? 'is-loaded' : ''}"
                   src="${posterUrl}"
                   alt="${cardRenderMeta.escapedPosterAlt}"
-                  loading="lazy"
+                  loading="${isPriorityPoster ? 'eager' : 'lazy'}"
                   decoding="async"
+                  ${isPriorityPoster ? 'fetchpriority="high"' : ''}
                 >
               `
               : `<div class="movie-poster-placeholder">Нет постера</div>`
@@ -9370,7 +9374,11 @@ function createMovieCardRenderContext(searchQuery = searchInput.value) {
   };
 }
 
-function createMovieCard(movie, renderContext = createMovieCardRenderContext()) {
+function createMovieCard(
+  movie,
+  renderContext = createMovieCardRenderContext(),
+  renderOptions = {}
+) {
   const card = document.createElement('article');
   const movieId = movie.id;
   const currentUserRating = getCurrentUserRating(movieId);
@@ -9424,7 +9432,8 @@ function createMovieCard(movie, renderContext = createMovieCardRenderContext()) 
     matchedSearchAlias,
     renderContext,
     isWatchlistBusy,
-    cardRenderMeta
+    cardRenderMeta,
+    renderOptions
   );
   const detailsHtml = getMovieCardDetailsHtml(movie, renderContext, cardRenderMeta);
 
@@ -9949,7 +9958,8 @@ function createMonthSection(
   month,
   movies,
   initialReleaseDirection = 'desc',
-  renderContext = createMovieCardRenderContext()
+  renderContext = createMovieCardRenderContext(),
+  getCardRenderOptions = () => ({})
 ) {
   const monthSection = document.createElement('section');
   const monthHeader = document.createElement('div');
@@ -10020,7 +10030,7 @@ function createMonthSection(
     monthCards.innerHTML = '';
 
     sortedMonthMovies.forEach(movie => {
-      monthCards.appendChild(createMovieCard(movie, renderContext));
+      monthCards.appendChild(createMovieCard(movie, renderContext, getCardRenderOptions(movie)));
     });
 
     syncSortButtonsUi();
@@ -10092,11 +10102,22 @@ function renderMovies() {
   updateCatalogStructuredData(pageMovies, paginationState);
   renderCatalogPagination(paginationState);
 
+  let priorityPosterSlotsRemaining = CATALOG_PRIORITY_POSTER_COUNT;
+  const getPriorityPosterOptions = movie => {
+    const isPriorityPoster = priorityPosterSlotsRemaining > 0 && Boolean(movie?.poster_url);
+
+    if (isPriorityPoster) {
+      priorityPosterSlotsRemaining = Math.max(0, priorityPosterSlotsRemaining - 1);
+    }
+
+    return { isPriorityPoster };
+  };
+
   if (viewMode.value === 'list') {
     const moviesFragment = document.createDocumentFragment();
 
     pageMovies.forEach(movie => {
-      moviesFragment.appendChild(createMovieCard(movie, cardRenderContext));
+      moviesFragment.appendChild(createMovieCard(movie, cardRenderContext, getPriorityPosterOptions(movie)));
     });
 
     container.replaceChildren(moviesFragment);
@@ -10117,7 +10138,8 @@ function renderMovies() {
           currentMonth,
           currentMonthMovies,
           defaultMonthReleaseDirection,
-          cardRenderContext
+          cardRenderContext,
+          getPriorityPosterOptions
         )
       );
       currentMonth = null;
