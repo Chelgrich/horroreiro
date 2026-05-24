@@ -2,9 +2,9 @@
 JS-БЛОК 1. ПОЛУЧЕНИЕ ЭЛЕМЕНТОВ СО СТРАНИЦЫ
 Сохраняет ссылки на DOM-элементы, с которыми работает приложение.
 ========================================================== */
-const movieModal = document.getElementById('movieModal');
-const movieModalBackdrop = document.getElementById('movieModalBackdrop');
-const closeMovieModalButton = document.getElementById('closeMovieModalButton');
+let movieModal = document.getElementById('movieModal');
+let movieModalBackdrop = document.getElementById('movieModalBackdrop');
+let closeMovieModalButton = document.getElementById('closeMovieModalButton');
 
 const authControls = document.getElementById('authControls');
 const displayNameWrap = document.getElementById('displayNameWrap');
@@ -86,41 +86,41 @@ const catalogPaginationBottom = document.getElementById('catalogPaginationBottom
 let catalogViewToggleButton = null;
 let astralPresetToastTimerId = null;
 
-const movieForm = document.getElementById('movieForm');
-const formTitle = document.getElementById('formTitle');
-const formMessage = document.getElementById('formMessage');
-const submitButton = document.getElementById('submitButton');
-const cancelEditButton = document.getElementById('cancelEditButton');
+let movieForm = document.getElementById('movieForm');
+let formTitle = document.getElementById('formTitle');
+let formMessage = document.getElementById('formMessage');
+let submitButton = document.getElementById('submitButton');
+let cancelEditButton = document.getElementById('cancelEditButton');
 
-const titleInput = document.getElementById('title');
-const originalTitleInput = document.getElementById('originalTitle');
-const yearInput = document.getElementById('year');
-const releaseMonthInput = document.getElementById('releaseMonth');
-const releaseYearInput = document.getElementById('releaseYear');
-const sortOrderInput = document.getElementById('sortOrder');
-const directorInput = document.getElementById('director');
-const posterFileInput = document.getElementById('posterFile');
-const posterFileName = document.getElementById('posterFileName');
-const kinopoiskUrlInput = document.getElementById('kinopoiskUrl');
-const imdbUrlInput = document.getElementById('imdbUrl');
-const letterboxdUrlInput = document.getElementById('letterboxdUrl');
-const letterboxdShortUrlInput = document.getElementById('letterboxdShortUrl');
-const rottentomatoesUrlInput = document.getElementById('rottentomatoesUrl');
-const genresInput = document.getElementById('genresInput');
-const countriesInput = document.getElementById('countriesInput');
-const searchAliasesInput = document.getElementById('searchAliases');
-const synopsisInput = document.getElementById('synopsis');
-const movieFormatsInput = document.getElementById('movieFormats');
-const movieModifiersInput = document.getElementById('movieModifiers');
-const movieBroadFamiliesInput = document.getElementById('movieBroadFamilies');
-const tagsPerceivedInput = document.getElementById('tagsPerceived');
-const tagsCanonInput = document.getElementById('tagsCanon');
-const canonCoverageControls = document.getElementById('canonCoverageControls');
-const movieTriggersInput = document.getElementById('movieTriggers');
-const movieTaxonomyPrimaryPreview = document.getElementById('movieTaxonomyPrimaryPreview');
-const movieTaxonomySecondaryPreview = document.getElementById('movieTaxonomySecondaryPreview');
-const movieTaxonomyWarningsPreview = document.getElementById('movieTaxonomyWarningsPreview');
-const movieTaxonomySimilarityPreview = document.getElementById('movieTaxonomySimilarityPreview');
+let titleInput = document.getElementById('title');
+let originalTitleInput = document.getElementById('originalTitle');
+let yearInput = document.getElementById('year');
+let releaseMonthInput = document.getElementById('releaseMonth');
+let releaseYearInput = document.getElementById('releaseYear');
+let sortOrderInput = document.getElementById('sortOrder');
+let directorInput = document.getElementById('director');
+let posterFileInput = document.getElementById('posterFile');
+let posterFileName = document.getElementById('posterFileName');
+let kinopoiskUrlInput = document.getElementById('kinopoiskUrl');
+let imdbUrlInput = document.getElementById('imdbUrl');
+let letterboxdUrlInput = document.getElementById('letterboxdUrl');
+let letterboxdShortUrlInput = document.getElementById('letterboxdShortUrl');
+let rottentomatoesUrlInput = document.getElementById('rottentomatoesUrl');
+let genresInput = document.getElementById('genresInput');
+let countriesInput = document.getElementById('countriesInput');
+let searchAliasesInput = document.getElementById('searchAliases');
+let synopsisInput = document.getElementById('synopsis');
+let movieFormatsInput = document.getElementById('movieFormats');
+let movieModifiersInput = document.getElementById('movieModifiers');
+let movieBroadFamiliesInput = document.getElementById('movieBroadFamilies');
+let tagsPerceivedInput = document.getElementById('tagsPerceived');
+let tagsCanonInput = document.getElementById('tagsCanon');
+let canonCoverageControls = document.getElementById('canonCoverageControls');
+let movieTriggersInput = document.getElementById('movieTriggers');
+let movieTaxonomyPrimaryPreview = document.getElementById('movieTaxonomyPrimaryPreview');
+let movieTaxonomySecondaryPreview = document.getElementById('movieTaxonomySecondaryPreview');
+let movieTaxonomyWarningsPreview = document.getElementById('movieTaxonomyWarningsPreview');
+let movieTaxonomySimilarityPreview = document.getElementById('movieTaxonomySimilarityPreview');
 
 /* =========================================================
 JS-БЛОК 2. ПОДКЛЮЧЕНИЕ К SUPABASE
@@ -180,6 +180,7 @@ let isDisplayNameSubmitting = false;
 let isAuthRegisterMode = false;
 let isPasswordRecoveryMode = false;
 let isPasswordRecoveryEntryPage = false;
+let isMovieModalEventsBound = false;
 let allMovies = [];
 let catalogMoviesById = new Map();
 let catalogMovieMetaById = new Map();
@@ -233,6 +234,7 @@ let currentMoviePageSimilarMovies = [];
 let moviePageSimilarRequestId = 0;
 let horrorTaxonomyLoadPromise = null;
 let taxonomyAdminLoadPromise = null;
+let catalogSimilarityDataLoadPromise = null;
 let shouldFadeCatalogAfterSkeleton = false;
 let catalogFadeCleanupTimerId = null;
 let catalogDomSnapshotSchedule = null;
@@ -685,7 +687,7 @@ function hasMeaningfulSimilarityDraft(taxonomyDraft) {
 
 function buildMovieFormSimilarityDraft(taxonomyDraft) {
   const genreNames = parseCommaSeparated(genresInput?.value || '')
-    .filter(name => normalizeSearchText(name) !== 'ужасы');
+    .filter(name => normalizeSearchText(name) !== BASE_HORROR_GENRE_NORMALIZED);
 
   return {
     id: editingMovieId ? String(editingMovieId) : '__movie_form_draft__',
@@ -964,7 +966,10 @@ function createTaxonomyAdminDependencies() {
     shouldUseAuthenticatedUi,
     ensureHorrorTaxonomyLoaded,
     ensureActiveSessionForWrite,
-    fetchMovies,
+    fetchMovies: (options = {}) => fetchMovies({
+      ...options,
+      purpose: options.purpose || 'similarity'
+    }),
     reloadCatalogData,
     reloadMoviePageData,
     isCatalogPage,
@@ -1035,7 +1040,9 @@ function initTaxonomyExportButton() {
     return;
   }
 
-  ensureTaxonomyAdminToolsLoaded();
+  ensureCatalogSimilarityDataLoaded().then(() => {
+    ensureTaxonomyAdminToolsLoaded();
+  });
 }
 
 function syncTaxonomyPopoverControlsVisibility() {
@@ -4556,23 +4563,129 @@ function updateAuthModalMode() {
   }
 }
 
+function refreshMovieModalElements() {
+  movieModal = document.getElementById('movieModal');
+  movieModalBackdrop = document.getElementById('movieModalBackdrop');
+  closeMovieModalButton = document.getElementById('closeMovieModalButton');
+  movieForm = document.getElementById('movieForm');
+  formTitle = document.getElementById('formTitle');
+  formMessage = document.getElementById('formMessage');
+  submitButton = document.getElementById('submitButton');
+  cancelEditButton = document.getElementById('cancelEditButton');
+  titleInput = document.getElementById('title');
+  originalTitleInput = document.getElementById('originalTitle');
+  yearInput = document.getElementById('year');
+  releaseMonthInput = document.getElementById('releaseMonth');
+  releaseYearInput = document.getElementById('releaseYear');
+  sortOrderInput = document.getElementById('sortOrder');
+  directorInput = document.getElementById('director');
+  posterFileInput = document.getElementById('posterFile');
+  posterFileName = document.getElementById('posterFileName');
+  kinopoiskUrlInput = document.getElementById('kinopoiskUrl');
+  imdbUrlInput = document.getElementById('imdbUrl');
+  letterboxdUrlInput = document.getElementById('letterboxdUrl');
+  letterboxdShortUrlInput = document.getElementById('letterboxdShortUrl');
+  rottentomatoesUrlInput = document.getElementById('rottentomatoesUrl');
+  genresInput = document.getElementById('genresInput');
+  countriesInput = document.getElementById('countriesInput');
+  searchAliasesInput = document.getElementById('searchAliases');
+  synopsisInput = document.getElementById('synopsis');
+  movieFormatsInput = document.getElementById('movieFormats');
+  movieModifiersInput = document.getElementById('movieModifiers');
+  movieBroadFamiliesInput = document.getElementById('movieBroadFamilies');
+  tagsPerceivedInput = document.getElementById('tagsPerceived');
+  tagsCanonInput = document.getElementById('tagsCanon');
+  canonCoverageControls = document.getElementById('canonCoverageControls');
+  movieTriggersInput = document.getElementById('movieTriggers');
+  movieTaxonomyPrimaryPreview = document.getElementById('movieTaxonomyPrimaryPreview');
+  movieTaxonomySecondaryPreview = document.getElementById('movieTaxonomySecondaryPreview');
+  movieTaxonomyWarningsPreview = document.getElementById('movieTaxonomyWarningsPreview');
+  movieTaxonomySimilarityPreview = document.getElementById('movieTaxonomySimilarityPreview');
+}
+
+function bindMovieModalEvents() {
+  if (isMovieModalEventsBound || !movieForm) {
+    return;
+  }
+
+  closeMovieModalButton?.addEventListener('click', () => {
+    closeMovieModal();
+  });
+
+  movieModalBackdrop?.addEventListener('click', () => {
+    closeMovieModal();
+  });
+
+  posterFileInput?.addEventListener('change', updatePosterFileUi);
+
+  [
+    genresInput,
+    countriesInput,
+    movieFormatsInput,
+    movieModifiersInput,
+    movieBroadFamiliesInput,
+    tagsPerceivedInput,
+    tagsCanonInput,
+    movieTriggersInput
+  ].forEach(inputElement => {
+    inputElement?.addEventListener('input', () => {
+      updateMovieTaxonomyPreview();
+    });
+  });
+
+  movieForm.addEventListener('submit', saveMovie);
+
+  cancelEditButton?.addEventListener('click', () => {
+    resetFormToCreateMode();
+    closeMovieModal();
+  });
+
+  isMovieModalEventsBound = true;
+}
+
+function ensureMovieModalMounted() {
+  if (!movieModal) {
+    window.SharedLayout?.mountSharedMovieModal();
+    refreshMovieModalElements();
+  }
+
+  bindMovieModalEvents();
+
+  if (releaseMonthInput) {
+    refreshCustomSelect(releaseMonthInput);
+  }
+
+  return Boolean(movieModal && movieForm);
+}
+
 function openMovieModal() {
+  if (!ensureMovieModalMounted()) {
+    return;
+  }
+
   movieModal.classList.add('is-open');
   isModalOpen = true;
   syncBodyScrollLock();
 
-  ensureHorrorTaxonomyLoaded().then(isTaxonomyLoaded => {
+  Promise.all([
+    ensureHorrorTaxonomyLoaded(),
+    ensureCatalogSimilarityDataLoaded()
+  ]).then(([isTaxonomyLoaded]) => {
     if (isTaxonomyLoaded && isModalOpen) {
       updateMovieTaxonomyPreview();
     }
   });
 
   requestAnimationFrame(() => {
-    titleInput.focus();
+    titleInput?.focus();
   });
 }
 
 function closeMovieModal() {
+  if (!movieModal) {
+    return;
+  }
+
   movieModal.classList.remove('is-open');
   isModalOpen = false;
   syncBodyScrollLock();
@@ -4599,9 +4712,17 @@ function closeFiltersModal() {
 function setMovieFormSubmittingState(isSubmitting) {
   isMovieFormSubmitting = isSubmitting;
 
-  submitButton.disabled = isSubmitting;
-  cancelEditButton.disabled = isSubmitting;
-  closeMovieModalButton.disabled = isSubmitting;
+  if (submitButton) {
+    submitButton.disabled = isSubmitting;
+  }
+
+  if (cancelEditButton) {
+    cancelEditButton.disabled = isSubmitting;
+  }
+
+  if (closeMovieModalButton) {
+    closeMovieModalButton.disabled = isSubmitting;
+  }
 
   if (openAddMovieButton) {
     openAddMovieButton.disabled = isSubmitting;
@@ -4609,13 +4730,21 @@ function setMovieFormSubmittingState(isSubmitting) {
 }
 
 function setMovieFormStatus(message) {
-  formMessage.textContent = message;
+  if (formMessage) {
+    formMessage.textContent = message;
+  }
 }
 
 function resetFormToCreateMode() {
+  if (!ensureMovieModalMounted()) {
+    return;
+  }
+
   editingMovieId = null;
   movieForm.reset();
-  posterFileInput.value = '';
+  if (posterFileInput) {
+    posterFileInput.value = '';
+  }
   updatePosterFileUi(); // после сброса снова показываем "Файл не выбран"
   formTitle.textContent = 'Добавить фильм';
   submitButton.textContent = 'Добавить фильм';
@@ -4628,6 +4757,10 @@ function resetFormToCreateMode() {
 }
 
 function fillFormForEdit(movie) {
+  if (!ensureMovieModalMounted()) {
+    return;
+  }
+
   editingMovieId = movie.id;
 
   // Безопасно заполняем поля и сразу видим в консоли, какого элемента не хватает
@@ -4661,7 +4794,7 @@ function fillFormForEdit(movie) {
 
   const genres = movie.movie_genres
     .map(item => item.genres.name)
-    .filter(name => normalizeSearchText(name) !== 'ужасы')
+    .filter(name => normalizeSearchText(name) !== BASE_HORROR_GENRE_NORMALIZED)
     .join(', ');
   const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
 
@@ -4758,7 +4891,7 @@ function updateAuthUI() {
     saveCatalogState();
   }
 
-  if (!isAdmin) {
+  if (!isAdmin && movieModal) {
     resetFormToCreateMode();
     closeMovieModal();
   }
@@ -5049,10 +5182,102 @@ const MOVIE_BASE_SELECT = `
   )
 `;
 
-async function fetchMovies({ preserveExistingCatalogOnError = false } = {}) {
+const MOVIE_CATALOG_SELECT = `
+  id,
+  slug,
+  title,
+  original_title,
+  year,
+  director,
+  formats,
+  primary_subgenre,
+  secondary_subgenres,
+  triggers,
+  search_aliases,
+  poster_url,
+  kinopoisk_url,
+  imdb_url,
+  letterboxd_url,
+  letterboxd_short_url,
+  rottentomatoes_url,
+  release_year,
+  release_month,
+  sort_order,
+  movie_genres (
+    position,
+    genres (name)
+  ),
+  movie_countries (
+    countries (name)
+  )
+`;
+
+const MOVIE_SIMILARITY_SELECT = `
+  id,
+  slug,
+  title,
+  original_title,
+  year,
+  director,
+  formats,
+  modifiers,
+  broad_families,
+  mask_conflict,
+  canon_coverage,
+  primary_subgenre,
+  secondary_subgenres,
+  tags_perceived,
+  tags_canon,
+  triggers,
+  search_aliases,
+  poster_url,
+  kinopoisk_url,
+  imdb_url,
+  letterboxd_url,
+  letterboxd_short_url,
+  rottentomatoes_url,
+  release_year,
+  release_month,
+  sort_order,
+  movie_genres (
+    position,
+    genres (name)
+  ),
+  movie_countries (
+    countries (name)
+  )
+`;
+
+function getMovieSelectByPurpose(purpose = 'catalog') {
+  if (purpose === 'detail') {
+    return MOVIE_BASE_SELECT;
+  }
+
+  if (purpose === 'similarity') {
+    return MOVIE_SIMILARITY_SELECT;
+  }
+
+  return MOVIE_CATALOG_SELECT;
+}
+
+function hasMovieDetailPayload(movie) {
+  return Boolean(
+    movie &&
+    Object.prototype.hasOwnProperty.call(movie, 'synopsis') &&
+    Object.prototype.hasOwnProperty.call(movie, 'tags_canon')
+  );
+}
+
+function hasMovieSimilarityPayload() {
+  return Array.isArray(allMovies) && allMovies.some(movie =>
+    Object.prototype.hasOwnProperty.call(movie || {}, 'tags_canon')
+  );
+}
+
+async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = 'catalog' } = {}) {
   const { data, error } = await supabaseClient
     .from('movies')
-    .select(MOVIE_BASE_SELECT)
+    .select(getMovieSelectByPurpose(purpose))
     .order('title', { ascending: true })
     .order('position', { foreignTable: 'movie_genres', ascending: true });
 
@@ -5075,6 +5300,25 @@ async function fetchMovies({ preserveExistingCatalogOnError = false } = {}) {
   moviesLoadedSuccessfully = true;
   markCatalogDataChanged();
   return true;
+}
+
+function ensureCatalogSimilarityDataLoaded() {
+  if (hasMovieSimilarityPayload()) {
+    return Promise.resolve(true);
+  }
+
+  if (catalogSimilarityDataLoadPromise) {
+    return catalogSimilarityDataLoadPromise;
+  }
+
+  catalogSimilarityDataLoadPromise = fetchMovies({
+    preserveExistingCatalogOnError: true,
+    purpose: 'similarity'
+  }).finally(() => {
+    catalogSimilarityDataLoadPromise = null;
+  });
+
+  return catalogSimilarityDataLoadPromise;
 }
 
 async function fetchMovieRatings() {
@@ -9023,7 +9267,7 @@ function handleCatalogCardAuxClick(event) {
   }
 }
 
-function handleCatalogCardClick(event) {
+async function handleCatalogCardClick(event) {
   const target = event.target;
 
   if (!container || !container.contains(target)) {
@@ -9097,7 +9341,11 @@ function handleCatalogCardClick(event) {
 
   if (editBtn) {
     if (isAdmin && movie) {
-      fillFormForEdit(movie);
+      const movieForEdit = await getMovieForAdminEdit(movieId, movie);
+
+      if (movieForEdit) {
+        fillFormForEdit(movieForEdit);
+      }
     }
 
     return;
@@ -10030,21 +10278,9 @@ if (openFiltersButton) {
   });
 }
 
-if (closeMovieModalButton) {
-  closeMovieModalButton.addEventListener('click', () => {
-    closeMovieModal();
-  });
-}
-
 if (closeFiltersModalButton) {
   closeFiltersModalButton.addEventListener('click', () => {
     closeFiltersModal();
-  });
-}
-
-if (movieModalBackdrop) {
-  movieModalBackdrop.addEventListener('click', () => {
-    closeMovieModal();
   });
 }
 
@@ -10205,47 +10441,13 @@ if (triggerFiltersGroup) {
   });
 }
 
-if (posterFileInput) {
-  posterFileInput.addEventListener('change', updatePosterFileUi);
-}
-
-[
-  genresInput,
-  countriesInput,
-  movieFormatsInput,
-  movieModifiersInput,
-  movieBroadFamiliesInput,
-  tagsPerceivedInput,
-  tagsCanonInput,
-  movieTriggersInput
-].forEach(inputElement => {
-  if (!inputElement) {
-    return;
-  }
-
-  inputElement.addEventListener('input', () => {
-    updateMovieTaxonomyPreview();
-  });
-});
-
-if (movieForm) {
-  movieForm.addEventListener('submit', saveMovie);
-}
-
-if (cancelEditButton) {
-  cancelEditButton.addEventListener('click', () => {
-    resetFormToCreateMode();
-    closeMovieModal();
-  });
-}
-
 if (moviePageEditButton) {
   moviePageEditButton.addEventListener('click', async () => {
     if (!isAdmin || !currentMoviePageMovieId) {
       return;
     }
 
-    const movieForEdit = currentMoviePageMovieData || await fetchMovieById(currentMoviePageMovieId);
+    const movieForEdit = await getMovieForAdminEdit(currentMoviePageMovieId, currentMoviePageMovieData);
 
     if (!movieForEdit) {
       return;
@@ -10585,6 +10787,16 @@ async function fetchMovieById(movieId) {
   }
 
   return data || null;
+}
+
+async function getMovieForAdminEdit(movieId, fallbackMovie = null) {
+  const candidateMovie = fallbackMovie || getCatalogMovieById(movieId);
+
+  if (hasMovieDetailPayload(candidateMovie)) {
+    return candidateMovie;
+  }
+
+  return fetchMovieById(movieId);
 }
 
 async function fetchMovieByRouteParams(routeParams) {
@@ -11020,11 +11232,15 @@ async function loadMoviePageSimilarMovies(movie, limit = 4) {
   renderMoviePageSimilarSection(movieId);
 
   try {
-    const shouldFetchMovies = !Array.isArray(allMovies) || allMovies.length === 0;
+    const shouldFetchMovies = (
+      !Array.isArray(allMovies) ||
+      allMovies.length === 0 ||
+      !hasMovieSimilarityPayload()
+    );
     const loadingTasks = [ensureHorrorTaxonomyLoaded()];
 
     if (shouldFetchMovies) {
-      loadingTasks.push(fetchMovies());
+      loadingTasks.push(ensureCatalogSimilarityDataLoaded());
     }
 
     const [isTaxonomyReady] = await Promise.all(loadingTasks);
