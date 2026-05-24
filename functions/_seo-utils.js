@@ -1,5 +1,7 @@
 const SITE_ORIGIN = 'https://horroreiro.ru';
 const DEFAULT_SOCIAL_IMAGE = `${SITE_ORIGIN}/og-preview.jpg`;
+const POSTER_STORAGE_PUBLIC_PATH = '/storage/v1/object/public/posters/';
+const POSTER_STORAGE_RENDER_PATH = '/storage/v1/render/image/public/posters/';
 
 const MOVIE_SELECT = `
   id,
@@ -135,6 +137,50 @@ function getMovieCanonicalUrl(movie) {
 
 function getMovieSocialImage(movie) {
   return movie?.poster_url || DEFAULT_SOCIAL_IMAGE;
+}
+
+function getPosterStoragePath(publicUrl) {
+  if (!publicUrl) {
+    return null;
+  }
+
+  let parsedUrl = null;
+
+  try {
+    parsedUrl = new URL(publicUrl);
+  } catch (error) {
+    return null;
+  }
+
+  const pathname = parsedUrl.pathname;
+  const marker = pathname.includes(POSTER_STORAGE_PUBLIC_PATH)
+    ? POSTER_STORAGE_PUBLIC_PATH
+    : POSTER_STORAGE_RENDER_PATH;
+
+  if (!pathname.includes(marker)) {
+    return null;
+  }
+
+  return pathname.split(marker)[1] || null;
+}
+
+function getPosterTransformUrl(publicUrl, { width = 640, quality = 76 } = {}) {
+  const storagePath = getPosterStoragePath(publicUrl);
+
+  if (!storagePath) {
+    return publicUrl;
+  }
+
+  const parsedUrl = new URL(publicUrl);
+  const transformedUrl = new URL(`${parsedUrl.origin}${POSTER_STORAGE_RENDER_PATH}${storagePath}`);
+  const normalizedWidth = Math.max(1, Math.min(2500, Number(width) || 640));
+
+  transformedUrl.searchParams.set('width', String(normalizedWidth));
+  transformedUrl.searchParams.set('height', String(Math.round(normalizedWidth * 1.5)));
+  transformedUrl.searchParams.set('resize', 'cover');
+  transformedUrl.searchParams.set('quality', String(quality));
+
+  return transformedUrl.toString();
 }
 
 function getMovieSeoTitle(movie) {
@@ -296,10 +342,13 @@ function injectMovieFallback(html, fallbackHtml) {
 function renderMovieFallbackHtml(movie) {
   const genres = getMovieGenreNames(movie).join(', ');
   const countries = getMovieCountryNames(movie).join(', ');
+  const posterUrl = movie?.poster_url
+    ? getPosterTransformUrl(movie.poster_url, { width: 640, quality: 76 })
+    : '';
   const posterHtml = movie?.poster_url
     ? `
           <div class="movie-page-poster-wrapper">
-            <img class="movie-page-poster" src="${escapeHtml(movie.poster_url)}" alt="Постер фильма ${escapeHtml(movie.title)}" loading="eager">
+            <img class="movie-page-poster" src="${escapeHtml(posterUrl)}" alt="Постер фильма ${escapeHtml(movie.title)}" loading="eager" fetchpriority="high">
           </div>`
     : '<div class="movie-poster-placeholder">Нет постера</div>';
 

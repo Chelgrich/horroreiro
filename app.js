@@ -159,6 +159,25 @@ const CATALOG_PAGE_SIZE = 40;
 const CATALOG_PAGINATION_PAGE_SLOTS = 6;
 const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
 const CATALOG_PRIORITY_POSTER_COUNT = 8;
+const POSTER_STORAGE_PUBLIC_PATH = '/storage/v1/object/public/posters/';
+const POSTER_STORAGE_RENDER_PATH = '/storage/v1/render/image/public/posters/';
+const POSTER_IMAGE_PRESETS = {
+  catalog: {
+    widths: [240, 360, 480, 640],
+    quality: 70,
+    sizes: '(max-width: 360px) calc(100vw - 72px), (max-width: 680px) calc((100vw - 92px) / 2), (max-width: 1024px) calc((100vw - 88px) / 2), (max-width: 1200px) calc((100vw - 112px) / 3), 320px'
+  },
+  similar: {
+    widths: [180, 240, 320, 480],
+    quality: 68,
+    sizes: '(max-width: 360px) calc(100vw - 72px), (max-width: 680px) calc((100vw - 92px) / 2), 220px'
+  },
+  detail: {
+    widths: [320, 480, 640, 800],
+    quality: 76,
+    sizes: '(max-width: 680px) calc(100vw - 64px), (max-width: 900px) 232px, 320px'
+  }
+};
 const BASE_HORROR_GENRE_NORMALIZED = '\u0443\u0436\u0430\u0441\u044b';
 const APP_ASSET_BASE_PATH = window.location.protocol === 'file:' ? '' : '/';
 const HORROR_TAXONOMY_SCRIPT_SRC = `${APP_ASSET_BASE_PATH}horror-taxonomy.js`;
@@ -6324,15 +6343,136 @@ function extractPosterStoragePath(publicUrl) {
     return null;
   }
 
-  const marker = '/storage/v1/object/public/posters/';
+  let parsedUrl = null;
 
-  if (!publicUrl.includes(marker)) {
+  try {
+    parsedUrl = new URL(publicUrl);
+  } catch (error) {
     return null;
   }
 
-  const path = publicUrl.split(marker)[1];
+  const pathname = parsedUrl.pathname;
+  const marker = pathname.includes(POSTER_STORAGE_PUBLIC_PATH)
+    ? POSTER_STORAGE_PUBLIC_PATH
+    : POSTER_STORAGE_RENDER_PATH;
+
+  if (!pathname.includes(marker)) {
+    return null;
+  }
+
+  const path = pathname.split(marker)[1];
 
   return path || null;
+}
+
+function getPosterTransformUrl(publicUrl, { width, quality, resize = 'cover' } = {}) {
+  const storagePath = extractPosterStoragePath(publicUrl);
+
+  if (!storagePath || !width) {
+    return null;
+  }
+
+  let parsedUrl = null;
+
+  try {
+    parsedUrl = new URL(publicUrl);
+  } catch (error) {
+    return null;
+  }
+
+  const transformedUrl = new URL(`${parsedUrl.origin}${POSTER_STORAGE_RENDER_PATH}${storagePath}`);
+  const normalizedWidth = Math.max(1, Math.min(2500, Number(width) || 0));
+  const normalizedHeight = Math.round(normalizedWidth * 1.5);
+
+  transformedUrl.searchParams.set('width', String(normalizedWidth));
+  transformedUrl.searchParams.set('height', String(normalizedHeight));
+  transformedUrl.searchParams.set('resize', resize);
+
+  if (quality) {
+    transformedUrl.searchParams.set('quality', String(quality));
+  }
+
+  return transformedUrl.toString();
+}
+
+function getPosterImageData(publicUrl, presetName = 'catalog') {
+  const originalUrl = String(publicUrl || '').trim();
+  const preset = POSTER_IMAGE_PRESETS[presetName] || POSTER_IMAGE_PRESETS.catalog;
+
+  if (!originalUrl) {
+    return {
+      src: '',
+      srcset: '',
+      sizes: '',
+      fallbackSrc: '',
+      originalSrc: ''
+    };
+  }
+
+  const transformedUrls = preset.widths
+    .map(width => ({
+      width,
+      url: getPosterTransformUrl(originalUrl, {
+        width,
+        quality: preset.quality
+      })
+    }))
+    .filter(item => item.url);
+
+  if (transformedUrls.length === 0) {
+    return {
+      src: originalUrl,
+      srcset: '',
+      sizes: '',
+      fallbackSrc: '',
+      originalSrc: originalUrl
+    };
+  }
+
+  return {
+    src: transformedUrls[0].url,
+    srcset: transformedUrls.map(item => `${item.url} ${item.width}w`).join(', '),
+    sizes: preset.sizes,
+    fallbackSrc: originalUrl,
+    originalSrc: originalUrl
+  };
+}
+
+function getPosterImageAttributeHtml(publicUrl, presetName = 'catalog') {
+  const imageData = getPosterImageData(publicUrl, presetName);
+
+  if (!imageData.src) {
+    return '';
+  }
+
+  return [
+    `src="${escapeHtml(imageData.src)}"`,
+    imageData.srcset ? `srcset="${escapeHtml(imageData.srcset)}"` : '',
+    imageData.sizes ? `sizes="${escapeHtml(imageData.sizes)}"` : '',
+    imageData.fallbackSrc ? `data-poster-fallback-src="${escapeHtml(imageData.fallbackSrc)}"` : '',
+    imageData.originalSrc ? `data-original-poster-src="${escapeHtml(imageData.originalSrc)}"` : ''
+  ].filter(Boolean).join('\n                  ');
+}
+
+function restorePosterFallbackSource(posterImage) {
+  if (!posterImage?.dataset?.posterFallbackSrc || posterImage.dataset.posterFallbackApplied === 'true') {
+    return false;
+  }
+
+  posterImage.dataset.posterFallbackApplied = 'true';
+  posterImage.removeAttribute('srcset');
+  posterImage.removeAttribute('sizes');
+  posterImage.src = posterImage.dataset.posterFallbackSrc;
+
+  return true;
+}
+
+function bindPosterFallbackImages(root = document) {
+  root.querySelectorAll?.('img[data-poster-fallback-src]').forEach(posterImage => {
+    posterImage.addEventListener('error', () => {
+      restorePosterFallbackSource(posterImage);
+    });
+  });
 }
 
 async function uploadPosterFile(file) {
@@ -8846,7 +8986,7 @@ function getPosterHtml(
                 <div class="movie-poster-skeleton ${isPosterLoaded ? 'is-hidden' : ''}" aria-hidden="true"></div>
                 <img
                   class="movie-poster ${isPosterLoaded ? 'is-loaded' : ''}"
-                  src="${posterUrl}"
+                  ${getPosterImageAttributeHtml(posterUrl, 'catalog')}
                   alt="${cardRenderMeta.escapedPosterAlt}"
                   loading="${isPriorityPoster ? 'eager' : 'lazy'}"
                   decoding="async"
@@ -9035,7 +9175,7 @@ function bindPosterLoadState(posterImage, posterSkeleton) {
   }
 
   const handlePosterReady = () => {
-    const loadedPosterUrl = posterImage.currentSrc || posterImage.src;
+    const loadedPosterUrl = posterImage.dataset.originalPosterSrc || posterImage.currentSrc || posterImage.src;
 
     if (loadedPosterUrl) {
       loadedPosterUrls.add(loadedPosterUrl);
@@ -9050,10 +9190,16 @@ function bindPosterLoadState(posterImage, posterSkeleton) {
     return;
   }
 
-  posterImage.addEventListener('load', handlePosterReady, { once: true });
-  posterImage.addEventListener('error', () => {
+  const handlePosterError = () => {
+    if (restorePosterFallbackSource(posterImage)) {
+      return;
+    }
+
     posterSkeleton.classList.add('is-hidden');
-  }, { once: true });
+  };
+
+  posterImage.addEventListener('load', handlePosterReady, { once: true });
+  posterImage.addEventListener('error', handlePosterError);
 }
 
 function getCatalogRatingStarContext(target) {
@@ -11239,6 +11385,7 @@ function renderMoviePageSimilarSection(movieId) {
     : [];
 
   mount.innerHTML = getMoviePageSimilarSectionHtml(similarMovies);
+  bindPosterFallbackImages(mount);
 }
 
 async function loadMoviePageSimilarMovies(movie, limit = 4) {
@@ -11305,7 +11452,7 @@ function getMoviePageSimilarCardHtml(movie) {
               ? `
                 <img
                   class="movie-page-similar-poster"
-                  src="${movie.poster_url}"
+                  ${getPosterImageAttributeHtml(movie.poster_url, 'similar')}
                   alt="Постер фильма ${escapeHtml(movie.title)}"
                   loading="lazy"
                   decoding="async"
@@ -11835,10 +11982,11 @@ function getMoviePagePosterColumnHtml(movie, viewModel) {
             ? `
               <img
                 class="movie-page-poster"
-                src="${movie.poster_url}"
+                ${getPosterImageAttributeHtml(movie.poster_url, 'detail')}
                 alt="Постер фильма ${escapeHtml(movie.title)}"
                 loading="eager"
                 decoding="async"
+                fetchpriority="high"
               >
             `
             : `<div class="movie-poster-placeholder">Нет постера</div>`
@@ -12026,6 +12174,7 @@ function renderMoviePage(movie, options = {}) {
     });
   }
 
+  bindPosterFallbackImages(moviePage);
   bindMoviePageReviewEvents(movie);
 }
 
