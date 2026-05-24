@@ -49,8 +49,10 @@ function createCustomSelectManager(config) {
       }
   
       const { select, dropdown, label, root } = instance;
+      const optionsFragment = document.createDocumentFragment();
   
       dropdown.innerHTML = '';
+      instance.optionButtons = [];
   
       Array.from(select.options).forEach(option => {
         const optionButton = document.createElement('button');
@@ -74,29 +76,46 @@ function createCustomSelectManager(config) {
           optionButton.classList.add('is-disabled');
           optionButton.setAttribute('aria-disabled', 'true');
         }
-  
-        optionButton.addEventListener('click', () => {
-          if (option.disabled) {
-            return;
-          }
 
-          select.value = option.value;
-          updateCustomSelectLabel(select, label, root);
-
-          dropdown.querySelectorAll('.custom-select-option').forEach(button => {
-            const isSelected = button.dataset.value === select.value;
-            button.classList.toggle('is-selected', isSelected);
-            button.setAttribute('aria-selected', String(isSelected));
-          });
-
-          select.dispatchEvent(new Event('change', { bubbles: true }));
-          closeCustomSelect(instance);
-        });
-  
-        dropdown.appendChild(optionButton);
+        instance.optionButtons.push(optionButton);
+        optionsFragment.appendChild(optionButton);
       });
+
+      dropdown.appendChild(optionsFragment);
   
       updateCustomSelectLabel(select, label, root);
+    }
+
+    function getInstanceOptions(instance) {
+      return instance?.optionButtons || [];
+    }
+
+    function syncSelectedOptionState(instance) {
+      if (!instance) {
+        return;
+      }
+
+      const { select } = instance;
+
+      getInstanceOptions(instance).forEach(button => {
+        const isSelected = button.dataset.value === select.value;
+        button.classList.toggle('is-selected', isSelected);
+        button.setAttribute('aria-selected', String(isSelected));
+      });
+    }
+
+    function selectCustomOption(instance, optionButton) {
+      if (!instance || !optionButton || optionButton.disabled) {
+        return;
+      }
+
+      const { select, label, root } = instance;
+
+      select.value = optionButton.dataset.value || '';
+      updateCustomSelectLabel(select, label, root);
+      syncSelectedOptionState(instance);
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      closeCustomSelect(instance);
     }
   
     function updateCustomSelectDirection(instance) {
@@ -125,12 +144,7 @@ function createCustomSelectManager(config) {
   
       selectElement.addEventListener('change', () => {
         updateCustomSelectLabel(selectElement, instance.label, instance.root);
-  
-        instance.dropdown.querySelectorAll('.custom-select-option').forEach(button => {
-          const isSelected = button.dataset.value === selectElement.value;
-          button.classList.toggle('is-selected', isSelected);
-          button.setAttribute('aria-selected', String(isSelected));
-        });
+        syncSelectedOptionState(instance);
       });
   
       selectElement.dataset.customSelectBound = 'true';
@@ -177,7 +191,8 @@ function createCustomSelectManager(config) {
         root,
         trigger,
         label,
-        dropdown
+        dropdown,
+        optionButtons: []
       };
   
       let focusedIndex = -1;
@@ -185,7 +200,7 @@ function createCustomSelectManager(config) {
       let typeaheadTimer = null;
   
       function getOptions() {
-        return Array.from(dropdown.querySelectorAll('.custom-select-option'));
+        return getInstanceOptions(instance);
       }
   
       function getSearchableOptions() {
@@ -337,6 +352,16 @@ function createCustomSelectManager(config) {
       dropdown.addEventListener('mouseleave', () => {
         clearHoveredOptions();
       });
+
+      dropdown.addEventListener('click', event => {
+        const optionButton = event.target.closest('.custom-select-option');
+
+        if (!optionButton || !dropdown.contains(optionButton)) {
+          return;
+        }
+
+        selectCustomOption(instance, optionButton);
+      });
   
       trigger.addEventListener('blur', () => {
         resetTypeaheadBuffer();
@@ -457,6 +482,19 @@ function createCustomSelectManager(config) {
     }
   
     function bindGlobalEvents() {
+      let directionUpdateFrameId = null;
+
+      function scheduleOpenCustomSelectsDirectionUpdate() {
+        if (directionUpdateFrameId !== null) {
+          return;
+        }
+
+        directionUpdateFrameId = requestAnimationFrame(() => {
+          directionUpdateFrameId = null;
+          updateOpenCustomSelectsDirection();
+        });
+      }
+
       document.addEventListener('click', event => {
         const clickedInsideCustomSelect = event.target.closest('.custom-select');
   
@@ -465,13 +503,9 @@ function createCustomSelectManager(config) {
         }
       });
   
-      window.addEventListener('resize', () => {
-        updateOpenCustomSelectsDirection();
-      });
+      window.addEventListener('resize', scheduleOpenCustomSelectsDirectionUpdate);
   
-      window.addEventListener('scroll', () => {
-        updateOpenCustomSelectsDirection();
-      }, true);
+      window.addEventListener('scroll', scheduleOpenCustomSelectsDirectionUpdate, true);
     }
   
     return {

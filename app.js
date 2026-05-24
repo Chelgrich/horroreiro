@@ -238,6 +238,7 @@ let catalogDerivedStateCache = null;
 let pendingCanonCoverageControlValues = {};
 let canonCoverageTagOptionsByRoleCache = null;
 const userRatingControlsHtmlCache = new Map();
+const catalogSessionSnapshotDataHashCache = new WeakMap();
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -1590,8 +1591,33 @@ function getStableStringHash(value) {
   return (hash >>> 0).toString(36);
 }
 
-function getCatalogDataSignatureHash(snapshot) {
-  return getStableStringHash(getCatalogSessionSnapshotSignature(snapshot));
+function getCatalogDataSignatureHash(snapshot, { forceRefresh = false } = {}) {
+  if (!snapshot) {
+    return '';
+  }
+
+  if (!forceRefresh && typeof snapshot.dataSignatureHash === 'string' && snapshot.dataSignatureHash) {
+    return snapshot.dataSignatureHash;
+  }
+
+  if (!forceRefresh) {
+    const cachedHash = catalogSessionSnapshotDataHashCache.get(snapshot);
+
+    if (cachedHash) {
+      return cachedHash;
+    }
+  }
+
+  const signature = getCatalogSessionSnapshotSignature(snapshot);
+  const nextHash = `${signature.length}:${getStableStringHash(signature)}`;
+
+  catalogSessionSnapshotDataHashCache.set(snapshot, nextHash);
+
+  if (typeof snapshot === 'object') {
+    snapshot.dataSignatureHash = nextHash;
+  }
+
+  return nextHash;
 }
 
 function getCatalogRenderStateSignature() {
@@ -1641,10 +1667,15 @@ function writeCatalogSessionSnapshot(snapshot) {
       return;
     }
 
+    const dataSignatureHash = getCatalogDataSignatureHash(snapshot, {
+      forceRefresh: true
+    });
+
     sessionStorage.setItem(
       CATALOG_SESSION_SNAPSHOT_KEY,
       JSON.stringify({
         ...snapshot,
+        dataSignatureHash,
         savedAt: Date.now()
       })
     );
@@ -2107,6 +2138,7 @@ function debounce(callback, delay = 200) {
 }
 
 let catalogRenderFrameId = null;
+let appResizeSyncFrameId = null;
 
 function invalidateCatalogDerivedState({ bumpDataVersion = false } = {}) {
   if (bumpDataVersion) {
@@ -8003,6 +8035,19 @@ function syncCatalogPaginationSlotCount() {
   renderCatalogPagination(paginationState);
 }
 
+function scheduleAppResizeSync() {
+  if (appResizeSyncFrameId !== null) {
+    return;
+  }
+
+  appResizeSyncFrameId = requestAnimationFrame(() => {
+    appResizeSyncFrameId = null;
+    syncOpenExternalLinksLayouts();
+    syncCatalogPaginationSlotCount();
+    syncAppToastPosition();
+  });
+}
+
 function renderMoviesSkeleton(cardsCount = 12) {
   const skeletonMovies = getCatalogSkeletonMovies(cardsCount);
 
@@ -10218,11 +10263,7 @@ document.addEventListener('click', event => {
   closeCatalogExternalLinksCard(openedCard);
 });
 
-window.addEventListener('resize', () => {
-  syncOpenExternalLinksLayouts();
-  syncCatalogPaginationSlotCount();
-  syncAppToastPosition();
-});
+window.addEventListener('resize', scheduleAppResizeSync);
 
 window.addEventListener('pagehide', event => {
   if (event.persisted) {
@@ -10391,7 +10432,7 @@ function hydrateCatalogPageFromSnapshot(hydratedSnapshot, { shouldRestoreScroll 
     restoreCatalogScrollPosition();
   }
 
-  hydratedCatalogSignature = getCatalogSessionSnapshotSignature(createCatalogSessionSnapshotPayload());
+  hydratedCatalogSignature = getCatalogDataSignatureHash(createCatalogSessionSnapshotPayload());
 
   return {
     didHydrateCatalogFromSnapshot,
@@ -10440,7 +10481,7 @@ async function initCatalogPage() {
   applySavedCatalogState();
   refreshDynamicFilterOptions();
 
-  const refreshedCatalogSignature = getCatalogSessionSnapshotSignature(createCatalogSessionSnapshotPayload());
+  const refreshedCatalogSignature = getCatalogDataSignatureHash(createCatalogSessionSnapshotPayload());
   const canReuseHydratedCatalog = (
     hydrationState.didHydrateCatalogFromSnapshot &&
     hydrationState.hydratedCatalogSignature &&
