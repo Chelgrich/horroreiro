@@ -111,16 +111,7 @@ let countriesInput = document.getElementById('countriesInput');
 let searchAliasesInput = document.getElementById('searchAliases');
 let synopsisInput = document.getElementById('synopsis');
 let movieFormatsInput = document.getElementById('movieFormats');
-let movieModifiersInput = document.getElementById('movieModifiers');
-let movieBroadFamiliesInput = document.getElementById('movieBroadFamilies');
 let tagsPerceivedInput = document.getElementById('tagsPerceived');
-let tagsCanonInput = document.getElementById('tagsCanon');
-let canonCoverageControls = document.getElementById('canonCoverageControls');
-let movieTriggersInput = document.getElementById('movieTriggers');
-let movieTaxonomyPrimaryPreview = document.getElementById('movieTaxonomyPrimaryPreview');
-let movieTaxonomySecondaryPreview = document.getElementById('movieTaxonomySecondaryPreview');
-let movieTaxonomyWarningsPreview = document.getElementById('movieTaxonomyWarningsPreview');
-let movieTaxonomySimilarityPreview = document.getElementById('movieTaxonomySimilarityPreview');
 let manualSimilarMovieSelect = document.getElementById('manualSimilarMovieSelect');
 let addManualSimilarMovieButton = document.getElementById('addManualSimilarMovieButton');
 let manualSimilarMoviesList = document.getElementById('manualSimilarMoviesList');
@@ -182,10 +173,6 @@ const POSTER_IMAGE_PRESETS = {
   }
 };
 const BASE_HORROR_GENRE_NORMALIZED = '\u0443\u0436\u0430\u0441\u044b';
-const APP_ASSET_BASE_PATH = window.location.protocol === 'file:' ? '' : '/';
-const HORROR_TAXONOMY_SCRIPT_SRC = `${APP_ASSET_BASE_PATH}horror-taxonomy.js`;
-const TAXONOMY_ADMIN_SCRIPT_SRC = `${APP_ASSET_BASE_PATH}taxonomy-admin.js`;
-const TAXONOMY_FEATURES_ENABLED = false;
 const MANUAL_SIMILAR_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const SITE_ORIGIN = 'https://horroreiro.ru';
 const DEFAULT_SOCIAL_IMAGE_URL = `${SITE_ORIGIN}/og-preview.jpg`;
@@ -206,6 +193,9 @@ let isAuthRegisterMode = false;
 let isPasswordRecoveryMode = false;
 let isPasswordRecoveryEntryPage = false;
 let isMovieModalEventsBound = false;
+let areSharedUiEventsBound = false;
+let areCatalogPageEventsBound = false;
+let areMoviePageEventsBound = false;
 let allMovies = [];
 let catalogMoviesById = new Map();
 let catalogMovieMetaById = new Map();
@@ -213,8 +203,6 @@ let catalogSortedMoviesByMode = {
   default: [],
   oldest: []
 };
-let catalogMovieSimilaritySources = [];
-let catalogMovieSimilaritySourceById = new Map();
 let allManualSimilarRows = [];
 let manualSimilarMovieIdsByMovieId = new Map();
 let manualSimilarMovieIdsDraft = [];
@@ -266,9 +254,6 @@ let currentMoviePageMovieData = null;
 let currentMoviePageSimilarMovieId = null;
 let currentMoviePageSimilarMovies = [];
 let moviePageSimilarRequestId = 0;
-let horrorTaxonomyLoadPromise = null;
-let taxonomyAdminLoadPromise = null;
-let catalogSimilarityDataLoadPromise = null;
 let shouldFadeCatalogAfterSkeleton = false;
 let catalogFadeCleanupTimerId = null;
 let catalogDomSnapshotSchedule = null;
@@ -277,8 +262,6 @@ let currentCatalogPage = 1;
 let currentCatalogPaginationSlots = null;
 let catalogDataVersion = 0;
 let catalogDerivedStateCache = null;
-let pendingCanonCoverageControlValues = {};
-let canonCoverageTagOptionsByRoleCache = null;
 const userRatingControlsHtmlCache = new Map();
 const catalogSessionSnapshotDataHashCache = new WeakMap();
 
@@ -335,545 +318,13 @@ function parseMultilineValues(value) {
   return Array.from(uniqueValues.values());
 }
 
-function truncateText(value, maxLength = 90) {
-  const text = String(value || '').replace(/\s+/g, ' ').trim();
-
-  if (text.length <= maxLength) {
-    return text;
-  }
-
-  return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
-}
-
-function getCanonCoverageHelpers() {
-  return window.HORROR_TAXONOMY?.helpers || {};
-}
-
-function getCanonCoverageRoleDefinitions() {
-  const helpers = getCanonCoverageHelpers();
-
-  return typeof helpers.getCanonCoverageRoleDefinitions === 'function'
-    ? helpers.getCanonCoverageRoleDefinitions()
-    : [];
-}
-
-function getCanonCoverageSelects() {
-  if (!canonCoverageControls) {
-    return [];
-  }
-
-  return Array.from(canonCoverageControls.querySelectorAll('[data-canon-coverage-role]'));
-}
-
-function getCanonCoverageTagOptionsByRoleMap() {
-  if (canonCoverageTagOptionsByRoleCache) {
-    return canonCoverageTagOptionsByRoleCache;
-  }
-
-  const helpers = getCanonCoverageHelpers();
-  const exportData = typeof helpers.getTaxonomyTagExportData === 'function'
-    ? helpers.getTaxonomyTagExportData()
-    : null;
-  const canonSection = exportData?.sections?.find(section => section.key === 'canon');
-
-  if (!canonSection?.groups) {
-    return new Map();
-  }
-
-  const optionsByRole = new Map();
-  const seenByRole = new Map();
-
-  canonSection.groups.forEach(group => {
-    (group.tags || []).forEach(tagItem => {
-      const value = String(tagItem?.value || '').trim();
-      const role = String(tagItem?.role || '').trim();
-
-      if (!value || !role) {
-        return;
-      }
-
-      if (!optionsByRole.has(role)) {
-        optionsByRole.set(role, []);
-        seenByRole.set(role, new Set());
-      }
-
-      const seen = seenByRole.get(role);
-
-      if (seen.has(value)) {
-        return;
-      }
-
-      seen.add(value);
-      optionsByRole.get(role).push(value);
-    });
-  });
-
-  optionsByRole.forEach(values => {
-    values.sort((firstValue, secondValue) => firstValue.localeCompare(secondValue, 'ru'));
-  });
-
-  canonCoverageTagOptionsByRoleCache = optionsByRole;
-
-  return canonCoverageTagOptionsByRoleCache;
-}
-
-function getCanonCoverageTagOptionsForRole(roleKey) {
-  return getCanonCoverageTagOptionsByRoleMap().get(roleKey) || [];
-}
-
-function hasCanonTagsForCoverageRole(tagsCanon = [], roleKey) {
-  const helpers = getCanonCoverageHelpers();
-
-  if (typeof helpers.getCanonTagMeta !== 'function') {
-    return false;
-  }
-
-  return (tagsCanon || []).some(tag => helpers.getCanonTagMeta(tag)?.role === roleKey);
-}
-
-function getCanonCoverageTagSelectValue(tag) {
-  return `tag:${tag}`;
-}
-
-function getCanonCoverageSelectedTag(value) {
-  const normalizedValue = String(value || '');
-
-  return normalizedValue.startsWith('tag:') ? normalizedValue.slice(4) : '';
-}
-
-function getCanonCoverageRoleLabel(roleKey) {
-  return getCanonCoverageRoleDefinitions()
-    .find(role => role.key === roleKey)?.label || roleKey;
-}
-
-function getCanonTagTierLabel(tier) {
-  switch (tier) {
-    case 'anchor':
-      return 'якорь';
-    case 'strong':
-      return 'сильный';
-    case 'support':
-      return 'поддержка';
-    case 'context':
-      return 'контекст';
-    default:
-      return String(tier || 'standard');
-  }
-}
-
-function getCanonTagMetaForForm(tag) {
-  const helpers = getCanonCoverageHelpers();
-
-  return typeof helpers.getCanonTagMeta === 'function'
-    ? helpers.getCanonTagMeta(tag)
-    : null;
-}
-
-function getCanonCoverageTagOptionLabel(tag) {
-  const meta = getCanonTagMetaForForm(tag);
-  const hint = meta?.useWhen || '';
-  const tierLabel = getCanonTagTierLabel(meta?.tier);
-
-  return hint
-    ? `${tag} · ${tierLabel} · ${truncateText(hint, 82)}`
-    : `${tag} · ${tierLabel}`;
-}
-
-function getCanonCoverageTagOptionTitle(tag) {
-  const meta = getCanonTagMetaForForm(tag);
-
-  if (!meta) {
-    return tag;
-  }
-
-  return [
-    tag,
-    `Роль: ${getCanonCoverageRoleLabel(meta.role)}`,
-    `Тип: ${getCanonTagTierLabel(meta.tier)}`,
-    meta.useWhen ? `Когда использовать: ${meta.useWhen}` : '',
-    meta.avoidWhen ? `Когда не использовать: ${meta.avoidWhen}` : '',
-    Array.isArray(meta.examples) && meta.examples.length > 0
-      ? `Примеры: ${meta.examples.join(', ')}`
-      : '',
-    Array.isArray(meta.counterExamples) && meta.counterExamples.length > 0
-      ? `Антипримеры: ${meta.counterExamples.join(', ')}`
-      : ''
-  ].filter(Boolean).join('\n');
-}
-
-function ensureCanonCoverageControlsRendered() {
-  if (!canonCoverageControls) {
-    return;
-  }
-
-  const roleDefinitions = getCanonCoverageRoleDefinitions();
-  const tagOptionsByRole = getCanonCoverageTagOptionsByRoleMap();
-
-  if (roleDefinitions.length === 0) {
-    canonCoverageControls.innerHTML = '';
-    delete canonCoverageControls.dataset.rendered;
-    return;
-  }
-
-  const renderedSignature = canonCoverageControls.dataset.rendered || '';
-  const nextSignature = roleDefinitions
-    .map(role => `${role.key}:${(tagOptionsByRole.get(role.key) || []).length}`)
-    .join('|');
-
-  if (renderedSignature === nextSignature) {
-    return;
-  }
-
-  canonCoverageControls.innerHTML = roleDefinitions
-    .map(role => {
-      const selectId = `canonCoverage-${role.key}`;
-      const tagOptions = getCanonCoverageTagOptionsForRole(role.key);
-      const tagOptionsHtml = tagOptions.length > 0
-        ? `
-          <optgroup label="Добавить canon-тег">
-            ${tagOptions
-              .map(tag => `<option value="${escapeHtml(getCanonCoverageTagSelectValue(tag))}" title="${escapeHtml(getCanonCoverageTagOptionTitle(tag))}">${escapeHtml(getCanonCoverageTagOptionLabel(tag))}</option>`)
-              .join('')}
-          </optgroup>
-        `
-        : '';
-
-      return `
-        <div class="canon-coverage-item">
-          <div class="canon-coverage-item-main">
-            <label for="${escapeHtml(selectId)}">${escapeHtml(role.label)}</label>
-            <span class="canon-coverage-item-description">${escapeHtml(role.description || '')}</span>
-          </div>
-          <select id="${escapeHtml(selectId)}" data-canon-coverage-role="${escapeHtml(role.key)}">
-            <option value="">Авто по canon-тегам</option>
-            <option value="not_applicable">Не применимо</option>
-            <option value="unknown">Не определено</option>
-            ${tagOptionsHtml}
-          </select>
-        </div>
-      `;
-    })
-    .join('');
-
-  canonCoverageControls.dataset.rendered = nextSignature;
-
-  getCanonCoverageSelects().forEach(select => {
-    select.addEventListener('change', handleCanonCoverageSelectChange);
-  });
-
-  applyCanonCoverageControlValues(pendingCanonCoverageControlValues);
-}
-
-function getExplicitCanonCoverageFromForm(tagsCanon = []) {
-  ensureCanonCoverageControlsRendered();
-
-  const roles = {};
-
-  getCanonCoverageSelects().forEach(select => {
-    const roleKey = select.dataset.canonCoverageRole;
-    const status = select.value;
-
-    if (!roleKey || !status || hasCanonTagsForCoverageRole(tagsCanon, roleKey)) {
-      return;
-    }
-
-    roles[roleKey] = { status };
-  });
-
-  return {
-    version: 1,
-    roles
-  };
-}
-
-function normalizeCanonCoverageForDraft(tagsCanon, explicitCoverage) {
-  const helpers = getCanonCoverageHelpers();
-
-  if (typeof helpers.normalizeCanonCoverage !== 'function') {
-    return explicitCoverage;
-  }
-
-  return helpers.normalizeCanonCoverage({
-    tags_canon: tagsCanon,
-    canon_coverage: explicitCoverage
-  });
-}
-
-function getCanonCoverageExplicitStatus(rawCoverage, roleKey) {
-  const roles = rawCoverage?.roles && typeof rawCoverage.roles === 'object'
-    ? rawCoverage.roles
-    : rawCoverage;
-  const roleCoverage = roles?.[roleKey];
-
-  if (!roleCoverage) {
-    return '';
-  }
-
-  if (typeof roleCoverage === 'object') {
-    if (roleCoverage.status === 'filled' || (Array.isArray(roleCoverage.tags) && roleCoverage.tags.length > 0)) {
-      return '';
-    }
-
-    const status = roleCoverage.explicitStatus || roleCoverage.status;
-
-    return status === 'not_applicable' || status === 'unknown' ? status : '';
-  }
-
-  const status = roleCoverage;
-
-  return status === 'not_applicable' || status === 'unknown' ? status : '';
-}
-
-function addCanonTagFromCoverageSelect(tag) {
-  if (!tagsCanonInput || !tag) {
-    return;
-  }
-
-  const currentTags = parseMultilineValues(tagsCanonInput.value || '');
-
-  if (currentTags.includes(tag)) {
-    return;
-  }
-
-  tagsCanonInput.value = [...currentTags, tag].join('\n');
-}
-
-function handleCanonCoverageSelectChange(event) {
-  const select = event.currentTarget;
-  const selectedTag = getCanonCoverageSelectedTag(select.value);
-
-  if (selectedTag) {
-    addCanonTagFromCoverageSelect(selectedTag);
-    select.value = '';
-    updateMovieTaxonomyPreview();
-    return;
-  }
-
-  if (
-    select.value &&
-    hasCanonTagsForCoverageRole(
-      parseMultilineValues(tagsCanonInput?.value || ''),
-      select.dataset.canonCoverageRole
-    )
-  ) {
-    select.value = '';
-  }
-
-  updateMovieTaxonomyPreview();
-}
-
-function applyCanonCoverageControlValues(rawCoverage = {}) {
-  getCanonCoverageSelects().forEach(select => {
-    select.value = getCanonCoverageExplicitStatus(rawCoverage, select.dataset.canonCoverageRole);
-  });
-}
-
-function setCanonCoverageControlValues(rawCoverage = {}) {
-  pendingCanonCoverageControlValues = rawCoverage || {};
-  ensureCanonCoverageControlsRendered();
-  applyCanonCoverageControlValues(pendingCanonCoverageControlValues);
-}
-
-function getCanonCoverageStatusLabel(status) {
-  switch (status) {
-    case 'filled':
-      return 'заполнено';
-    case 'not_applicable':
-      return 'не применимо';
-    case 'unknown':
-      return 'не определено';
-    default:
-      return 'не закрыто';
-  }
-}
-
-function getCanonCoveragePreviewHtml(canonCoverage) {
-  const roleDefinitions = getCanonCoverageRoleDefinitions();
-
-  if (!canonCoverage?.roles || roleDefinitions.length === 0) {
-    return '';
-  }
-
-  const items = roleDefinitions.map(role => {
-    const roleCoverage = canonCoverage.roles[role.key] || {};
-    const status = roleCoverage.status || 'missing';
-    const tagsCount = Array.isArray(roleCoverage.tags) ? roleCoverage.tags.length : 0;
-    const tagSuffix = tagsCount > 0 ? ` · ${tagsCount}` : '';
-
-    return `
-      <span class="canon-coverage-badge canon-coverage-badge-${escapeHtml(status)}">
-        ${escapeHtml(role.label)}: ${escapeHtml(getCanonCoverageStatusLabel(status))}${escapeHtml(tagSuffix)}
-      </span>
-    `;
-  });
-
-  return `<div class="canon-coverage-preview">${items.join('')}</div>`;
-}
-
-function hasMeaningfulSimilarityDraft(taxonomyDraft) {
-  return Boolean(
-    taxonomyDraft.tagsCanon.length ||
-    taxonomyDraft.tagsPerceived.length ||
-    taxonomyDraft.modifiers.length ||
-    taxonomyDraft.formats.length
-  );
-}
-
-function buildMovieFormSimilarityDraft(taxonomyDraft) {
-  const genreNames = parseCommaSeparated(genresInput?.value || '')
-    .filter(name => normalizeSearchText(name) !== BASE_HORROR_GENRE_NORMALIZED);
-
-  return {
-    id: editingMovieId ? String(editingMovieId) : '__movie_form_draft__',
-    title: titleInput?.value?.trim() || originalTitleInput?.value?.trim() || 'Черновик карточки',
-    year: Number(yearInput?.value || releaseYearInput?.value || 0),
-    perceived: taxonomyDraft.tagsPerceived,
-    canon: taxonomyDraft.tagsCanon,
-    formats: taxonomyDraft.formats,
-    modifiers: taxonomyDraft.modifiers,
-    broadFamilies: taxonomyDraft.broadFamilies,
-    canonCoverage: taxonomyDraft.canonCoverage,
-    mask_conflict: false,
-    extraGenres: genreNames,
-    countries: parseCommaSeparated(countriesInput?.value || '')
-  };
-}
-
-function getMovieFormSimilarityCandidates(taxonomyDraft, limit = 4) {
-  const helpers = getCanonCoverageHelpers();
-  const getSimilarMoviesHelper = helpers.getSimilarMovies;
-
-  if (
-    typeof getSimilarMoviesHelper !== 'function' ||
-    !Array.isArray(catalogMovieSimilaritySources) ||
-    catalogMovieSimilaritySources.length === 0 ||
-    !hasMeaningfulSimilarityDraft(taxonomyDraft)
-  ) {
-    return [];
-  }
-
-  return getSimilarMoviesHelper(
-    buildMovieFormSimilarityDraft(taxonomyDraft),
-    catalogMovieSimilaritySources,
-    { limit }
-  );
-}
-
-function getSimilarityAnchorReasonLabel(reason) {
-  switch (reason) {
-    case 'shared_threat_type_and_setting_anchor':
-      return 'угроза + сеттинг';
-    case 'shared_threat_type_anchor':
-      return 'тип угрозы';
-    case 'shared_setting_anchor':
-      return 'сеттинг';
-    case 'shared_mechanism_behavior_structure_anchor':
-      return 'механизм + структура';
-    default:
-      return '';
-  }
-}
-
-function getUniqueSimilarityReasonValues(values = []) {
-  return Array.from(new Set((values || []).filter(Boolean)));
-}
-
-function getMovieFormSimilarityReasonParts(item) {
-  const debug = item?.similarity?.debug || {};
-  const explanation = item?.explanation || {};
-  const coreTags = getUniqueSimilarityReasonValues([
-    ...(debug.sharedThreatTypeTags || []),
-    ...(debug.sharedSettingTags || []),
-    ...(debug.sharedMechanismTags || []),
-    ...(debug.sharedThreatBehaviorTags || []),
-    ...(debug.sharedStructureTags || [])
-  ]);
-  const sharedCanon = coreTags.length > 0
-    ? coreTags
-    : getUniqueSimilarityReasonValues(explanation.sharedCanon || []);
-  const sharedModifiers = getUniqueSimilarityReasonValues(explanation.sharedModifiers || []);
-  const sharedFormats = getUniqueSimilarityReasonValues(explanation.sharedFormats || []);
-  const anchorReason = getSimilarityAnchorReasonLabel(debug.coreAnchorReason);
-
-  return [
-    anchorReason,
-    ...sharedCanon.slice(0, 4),
-    ...sharedModifiers.slice(0, 2),
-    ...sharedFormats.slice(0, 1)
-  ].filter(Boolean).slice(0, 6);
-}
-
-function getMovieFormSimilarityPreviewHtml(taxonomyDraft) {
-  if (!movieTaxonomySimilarityPreview) {
-    return '';
-  }
-
-  if (!hasMeaningfulSimilarityDraft(taxonomyDraft)) {
-    return `
-      <div class="movie-taxonomy-similarity-title">Похожие по черновику</div>
-      <div class="movie-taxonomy-similarity-empty">Добавьте canon-теги, чтобы увидеть предварительные похожие фильмы.</div>
-    `;
-  }
-
-  const candidates = getMovieFormSimilarityCandidates(taxonomyDraft, 4);
-
-  if (!candidates.length) {
-    return `
-      <div class="movie-taxonomy-similarity-title">Похожие по черновику</div>
-      <div class="movie-taxonomy-similarity-empty">Пока нет достаточно сильных совпадений по текущим тегам.</div>
-    `;
-  }
-
-  const itemsHtml = candidates.map(item => {
-    const movie = getCatalogMovieById(item.movie?.id) || item.movie || {};
-    const score = Math.round(Number(item.similarity?.finalScore || 0) * 10) / 10;
-    const reasonParts = getMovieFormSimilarityReasonParts(item);
-    const reasonHtml = reasonParts.length > 0
-      ? `<div class="movie-taxonomy-similarity-reasons">${reasonParts
-          .map(part => `<span>${escapeHtml(part)}</span>`)
-          .join('')}</div>`
-      : '';
-
-    return `
-      <div class="movie-taxonomy-similarity-item">
-        <div class="movie-taxonomy-similarity-main">
-          <strong>${escapeHtml(movie.title || item.movie?.title || 'Без названия')}</strong>
-          <span>${escapeHtml(movie.year ?? item.movie?.year ?? '-')} · ${score}</span>
-        </div>
-        ${reasonHtml}
-      </div>
-    `;
-  }).join('');
-
-  return `
-    <div class="movie-taxonomy-similarity-title">Похожие по черновику</div>
-    <div class="movie-taxonomy-similarity-list">${itemsHtml}</div>
-  `;
-}
-
-function updateMovieTaxonomySimilarityPreview(taxonomyDraft) {
-  if (!movieTaxonomySimilarityPreview) {
-    return;
-  }
-
-  movieTaxonomySimilarityPreview.innerHTML = getMovieFormSimilarityPreviewHtml(taxonomyDraft);
-}
-
-function buildMovieTaxonomyDraftFromForm() {
+function buildMovieClassificationDraftFromForm() {
   const formats = parseMultilineValues(movieFormatsInput?.value || '');
   const tagsPerceived = parseMultilineValues(tagsPerceivedInput?.value || '');
 
   return {
     formats,
-    modifiers: [],
-    broadFamilies: [],
-    canonCoverage: null,
-    tagsPerceived,
-    tagsCanon: [],
-    triggers: [],
-    primarySubgenre: null,
-    secondarySubgenres: [],
-    warnings: []
+    tagsPerceived
   };
 }
 
@@ -883,209 +334,6 @@ function normalizeSearchText(value) {
     .replaceAll('ё', 'е')
     .trim()
     .replace(/\s+/g, ' ');
-}
-
-function isHorrorTaxonomyReady() {
-  if (!TAXONOMY_FEATURES_ENABLED) {
-    return false;
-  }
-
-  return Boolean(window.HORROR_TAXONOMY?.helpers);
-}
-
-function ensureHorrorTaxonomyLoaded() {
-  if (!TAXONOMY_FEATURES_ENABLED) {
-    return Promise.resolve(false);
-  }
-
-  if (isHorrorTaxonomyReady()) {
-    return Promise.resolve(true);
-  }
-
-  if (horrorTaxonomyLoadPromise) {
-    return horrorTaxonomyLoadPromise;
-  }
-
-  horrorTaxonomyLoadPromise = new Promise(resolve => {
-    const script = document.createElement('script');
-    const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
-
-    script.src = `${HORROR_TAXONOMY_SCRIPT_SRC}?v=${encodeURIComponent(buildVersion)}`;
-    script.async = true;
-    script.dataset.lazyScript = HORROR_TAXONOMY_SCRIPT_SRC;
-    script.onload = () => resolve(isHorrorTaxonomyReady());
-    script.onerror = () => {
-      console.error('Ошибка загрузки horror-taxonomy.js');
-      resolve(false);
-    };
-
-    document.body.appendChild(script);
-  });
-
-  return horrorTaxonomyLoadPromise;
-}
-
-function normalizeTaxonomyJsonArray(values) {
-  if (!Array.isArray(values)) {
-    return [];
-  }
-
-  const uniqueValues = new Map();
-
-  values
-    .map(value => String(value || '').trim())
-    .filter(Boolean)
-    .forEach(value => {
-      const normalizedValue = normalizeSearchText(value);
-
-      if (!uniqueValues.has(normalizedValue)) {
-        uniqueValues.set(normalizedValue, value);
-      }
-    });
-
-  return Array.from(uniqueValues.values());
-}
-
-function resolveTaxonomyBroadFamiliesFromCanon(tagsCanon, fallbackFamilies = []) {
-  const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
-  const derivedBroadFamilies = taxonomyHelpers?.deriveBroadFamiliesFromCanon
-    ? taxonomyHelpers.deriveBroadFamiliesFromCanon(tagsCanon)
-    : [];
-
-  if (Array.isArray(derivedBroadFamilies) && derivedBroadFamilies.length > 0) {
-    return normalizeTaxonomyJsonArray(derivedBroadFamilies);
-  }
-
-  return normalizeTaxonomyJsonArray(fallbackFamilies);
-}
-
-function getTaxonomyAdminTools() {
-  return window.HORROREIRO_TAXONOMY_ADMIN || null;
-}
-
-function createTaxonomyAdminDependencies() {
-  return {
-    authPopoverMenu,
-    logoutMenuButton,
-    getAllMovies: () => allMovies,
-    getIsAdmin: () => isAdmin,
-    getCurrentMoviePageMovieId: () => currentMoviePageMovieId,
-    shouldUseAuthenticatedUi,
-    ensureHorrorTaxonomyLoaded,
-    ensureActiveSessionForWrite,
-    fetchMovies: (options = {}) => fetchMovies({
-      ...options,
-      purpose: options.purpose || 'similarity'
-    }),
-    reloadCatalogData,
-    reloadMoviePageData,
-    isCatalogPage,
-    isMoviePage,
-    rerenderCatalogAfterDataReload,
-    renderMoviePage,
-    loadMoviePageSimilarMovies,
-    fullCatalogRerenderPresets: FULL_CATALOG_RERENDER_PRESETS,
-    showAuthMessage,
-    getCatalogMovieById,
-    getCatalogMovieSimilaritySource,
-    normalizeSearchText,
-    resolveTaxonomyBroadFamiliesFromCanon,
-    areStringArraysEqual,
-    supabaseClient,
-    throwIfSupabaseError
-  };
-}
-
-function initLoadedTaxonomyAdminTools() {
-  const taxonomyAdminTools = getTaxonomyAdminTools();
-
-  if (typeof taxonomyAdminTools?.init !== 'function') {
-    return false;
-  }
-
-  taxonomyAdminTools.init(createTaxonomyAdminDependencies());
-  syncTaxonomyPopoverControlsVisibility();
-  return true;
-}
-
-function ensureTaxonomyAdminToolsLoaded() {
-  if (!TAXONOMY_FEATURES_ENABLED) {
-    syncTaxonomyPopoverControlsVisibility();
-    return Promise.resolve(false);
-  }
-
-  if (!authPopoverMenu || !shouldUseAuthenticatedUi() || !isAdmin) {
-    syncTaxonomyPopoverControlsVisibility();
-    return Promise.resolve(false);
-  }
-
-  if (initLoadedTaxonomyAdminTools()) {
-    return Promise.resolve(true);
-  }
-
-  if (taxonomyAdminLoadPromise) {
-    return taxonomyAdminLoadPromise;
-  }
-
-  taxonomyAdminLoadPromise = new Promise(resolve => {
-    const script = document.createElement('script');
-    const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
-
-    script.src = `${TAXONOMY_ADMIN_SCRIPT_SRC}?v=${encodeURIComponent(buildVersion)}`;
-    script.async = true;
-    script.dataset.lazyScript = TAXONOMY_ADMIN_SCRIPT_SRC;
-    script.onload = () => resolve(initLoadedTaxonomyAdminTools());
-    script.onerror = () => {
-      console.error('Ошибка загрузки taxonomy-admin.js');
-      resolve(false);
-    };
-
-    document.body.appendChild(script);
-  });
-
-  return taxonomyAdminLoadPromise;
-}
-
-function initTaxonomyExportButton() {
-  if (!TAXONOMY_FEATURES_ENABLED) {
-    syncTaxonomyPopoverControlsVisibility();
-    return;
-  }
-
-  if (!shouldUseAuthenticatedUi() || !isAdmin) {
-    syncTaxonomyPopoverControlsVisibility();
-    return;
-  }
-
-  ensureCatalogSimilarityDataLoaded().then(() => {
-    ensureTaxonomyAdminToolsLoaded();
-  });
-}
-
-function syncTaxonomyPopoverControlsVisibility() {
-  const taxonomyAdminTools = getTaxonomyAdminTools();
-
-  if (typeof taxonomyAdminTools?.syncVisibility !== 'function') {
-    return;
-  }
-
-  taxonomyAdminTools.syncVisibility({
-    shouldShow: TAXONOMY_FEATURES_ENABLED && shouldUseAuthenticatedUi() && isAdmin
-  });
-}
-
-function getSelectedTriggerFilters() {
-  if (!TAXONOMY_FEATURES_ENABLED) {
-    return [];
-  }
-
-  if (!triggerFiltersGroup) {
-    return [];
-  }
-
-  return Array.from(
-    triggerFiltersGroup.querySelectorAll('input[type="checkbox"][data-trigger-filter]:checked')
-  ).map(input => input.value);
 }
 
 function closeTriggerFiltersDropdown() {
@@ -1126,24 +374,11 @@ function syncTriggerFiltersTriggerText() {
     return;
   }
 
-  const selectedTriggerKeys = getSelectedTriggerFilters();
-  const hasSelectedTriggers = selectedTriggerKeys.length > 0;
-
   if (triggerFiltersSelect) {
-    triggerFiltersSelect.classList.toggle('has-value', hasSelectedTriggers);
+    triggerFiltersSelect.classList.remove('has-value');
   }
 
-  if (!hasSelectedTriggers) {
-    triggerFiltersTriggerText.textContent = 'Скрыть по триггерам';
-    return;
-  }
-
-  if (selectedTriggerKeys.length === 1) {
-    triggerFiltersTriggerText.textContent = `Исключить: ${selectedTriggerKeys[0]}`;
-    return;
-  }
-
-  triggerFiltersTriggerText.textContent = `Исключить: ${selectedTriggerKeys.length}`;
+  triggerFiltersTriggerText.textContent = 'Скрыть по триггерам';
 }
 
 function isManualSimilarTableUnavailableError(error) {
@@ -1568,43 +803,6 @@ async function replaceManualSimilarMovies(movieId, similarMovieIds = []) {
 
   await fetchManualSimilarMovies();
   return true;
-}
-
-function isCanonCoverageWarning(warning = {}) {
-  return warning.code === 'missing_canon_coverage_role' || warning.layer === 'canon_coverage';
-}
-
-function updateMovieTaxonomyPreview() {
-  if (!movieTaxonomyPrimaryPreview || !movieTaxonomySecondaryPreview || !movieTaxonomyWarningsPreview) {
-    return;
-  }
-
-  const taxonomyDraft = buildMovieTaxonomyDraftFromForm();
-  const primaryLabel = taxonomyDraft.primarySubgenre
-    ? taxonomyDraft.primarySubgenre
-    : '—';
-  const secondaryLabels = taxonomyDraft.secondarySubgenres.length > 0
-    ? taxonomyDraft.secondarySubgenres.join(', ')
-    : '—';
-
-  movieTaxonomyPrimaryPreview.textContent = primaryLabel;
-  movieTaxonomySecondaryPreview.textContent = secondaryLabels;
-
-  const visibleWarnings = taxonomyDraft.warnings.filter(warning => !isCanonCoverageWarning(warning));
-
-  if (!visibleWarnings.length) {
-    movieTaxonomyWarningsPreview.innerHTML = getCanonCoveragePreviewHtml(taxonomyDraft.canonCoverage);
-    updateMovieTaxonomySimilarityPreview(taxonomyDraft);
-    return;
-  }
-
-  movieTaxonomyWarningsPreview.innerHTML = [
-    getCanonCoveragePreviewHtml(taxonomyDraft.canonCoverage),
-    ...visibleWarnings
-      .map(warning => `<div class="movie-taxonomy-preview-warning">${escapeHtml(warning.message)}</div>`)
-  ].join('');
-
-  updateMovieTaxonomySimilarityPreview(taxonomyDraft);
 }
 
 function transliterateForSlug(value) {
@@ -2673,7 +1871,6 @@ function saveCatalogState() {
         country: countryFilter.value,
         rating: ratingFilter.value,
         year: yearFilter.value,
-        triggerExcludes: getSelectedTriggerFilters(),
         withReviews: reviewedOnlyFilter,
         watchlist: currentUser ? watchlistFilter.value : '',
         watched: currentUser ? watchedFilter.value : '',
@@ -2705,17 +1902,6 @@ function applySavedCatalogState() {
       watchlistFilter.value = currentUser ? (catalogState.watchlist || '') : '';
       watchedFilter.value = currentUser ? (catalogState.watched || '') : '';
 
-      const savedTriggerExcludes = Array.isArray(catalogState.triggerExcludes)
-        ? catalogState.triggerExcludes
-        : [];
-
-      if (triggerFiltersGroup) {
-        triggerFiltersGroup
-          .querySelectorAll('input[type="checkbox"][data-trigger-filter]')
-          .forEach(input => {
-            input.checked = savedTriggerExcludes.includes(input.value);
-          });
-      }
       viewMode.value = catalogState.viewMode || 'list';
       sortMode.value = catalogState.sortMode || 'default';
       currentCatalogPage = Math.max(1, Number(catalogState.page) || 1);
@@ -2895,7 +2081,6 @@ function hasNonDefaultFilterValues() {
     genreFilter.value ||
     subgenreFilter.value ||
     formatFilter.value ||
-    getSelectedTriggerFilters().length > 0 ||
     countryFilter.value ||
     ratingFilter.value !== '' ||
     yearFilter.value ||
@@ -4299,16 +3484,6 @@ function getCatalogMovieById(movieId) {
   return catalogMoviesById.get(String(movieId)) || null;
 }
 
-function getCatalogMovieSimilaritySource(movie) {
-  if (!movie) {
-    return null;
-  }
-
-  const movieId = String(movie?.id ?? '');
-
-  return catalogMovieSimilaritySourceById.get(movieId) || getMovieSimilaritySource(movie);
-}
-
 function buildCatalogMovieMeta(movie) {
   const movieGenres = Array.isArray(movie?.movie_genres) ? movie.movie_genres : [];
   const movieCountries = Array.isArray(movie?.movie_countries) ? movie.movie_countries : [];
@@ -4325,10 +3500,9 @@ function buildCatalogMovieMeta(movie) {
     alias,
     normalizedAlias: normalizeSearchText(alias)
   }));
-  const subgenreKeys = [
-    movie?.primary_subgenre,
-    ...(Array.isArray(movie?.secondary_subgenres) ? movie.secondary_subgenres : [])
-  ].filter(Boolean);
+  const subgenreKeys = Array.isArray(movie?.tags_perceived)
+    ? movie.tags_perceived.filter(Boolean)
+    : [];
   const genresText = genreNames.join(', ');
   const countriesText = countryNames.join(', ');
   const filterableGenreNames = genreNames.filter(genreName =>
@@ -4343,7 +3517,6 @@ function buildCatalogMovieMeta(movie) {
     countriesText,
     subgenreKeys: new Set(subgenreKeys),
     formatKeys: new Set(Array.isArray(movie?.formats) ? movie.formats.filter(Boolean) : []),
-    triggerKeys: new Set(Array.isArray(movie?.triggers) ? movie.triggers.filter(Boolean) : []),
     searchAliasEntries,
     visibleSearchTexts: [
       movie?.title,
@@ -4433,8 +3606,6 @@ function rebuildCatalogMovieMeta() {
     default: [],
     oldest: []
   };
-  catalogMovieSimilaritySources = [];
-  catalogMovieSimilaritySourceById = new Map();
 
   movies.forEach(movie => {
     const movieId = String(movie.id);
@@ -4442,13 +3613,6 @@ function rebuildCatalogMovieMeta() {
 
     catalogMoviesById.set(movieId, movie);
     catalogMovieMetaById.set(movieId, meta);
-
-    if (TAXONOMY_FEATURES_ENABLED) {
-      const similaritySource = getMovieSimilaritySource(movie, meta);
-
-      catalogMovieSimilaritySourceById.set(movieId, similaritySource);
-      catalogMovieSimilaritySources.push(similaritySource);
-    }
 
     meta.filterableGenreNames.forEach(genreName => {
       catalogGenreNames.add(genreName);
@@ -4818,7 +3982,6 @@ function openAuthPopoverMenu() {
   authPopoverMenu.classList.add('is-open');
   isAuthPopoverOpen = true;
   openAuthModalButton.setAttribute('aria-expanded', 'true');
-  initTaxonomyExportButton();
 }
 
 function toggleAuthPopoverMenu() {
@@ -5040,16 +4203,7 @@ function refreshMovieModalElements() {
   searchAliasesInput = document.getElementById('searchAliases');
   synopsisInput = document.getElementById('synopsis');
   movieFormatsInput = document.getElementById('movieFormats');
-  movieModifiersInput = document.getElementById('movieModifiers');
-  movieBroadFamiliesInput = document.getElementById('movieBroadFamilies');
   tagsPerceivedInput = document.getElementById('tagsPerceived');
-  tagsCanonInput = document.getElementById('tagsCanon');
-  canonCoverageControls = document.getElementById('canonCoverageControls');
-  movieTriggersInput = document.getElementById('movieTriggers');
-  movieTaxonomyPrimaryPreview = document.getElementById('movieTaxonomyPrimaryPreview');
-  movieTaxonomySecondaryPreview = document.getElementById('movieTaxonomySecondaryPreview');
-  movieTaxonomyWarningsPreview = document.getElementById('movieTaxonomyWarningsPreview');
-  movieTaxonomySimilarityPreview = document.getElementById('movieTaxonomySimilarityPreview');
   manualSimilarMovieSelect = document.getElementById('manualSimilarMovieSelect');
   addManualSimilarMovieButton = document.getElementById('addManualSimilarMovieButton');
   manualSimilarMoviesList = document.getElementById('manualSimilarMoviesList');
@@ -5069,15 +4223,6 @@ function bindMovieModalEvents() {
   });
 
   posterFileInput?.addEventListener('change', updatePosterFileUi);
-
-  [
-    movieFormatsInput,
-    tagsPerceivedInput
-  ].forEach(inputElement => {
-    inputElement?.addEventListener('input', () => {
-      updateMovieTaxonomyPreview();
-    });
-  });
 
   manualSimilarMovieSelect?.addEventListener('change', () => {
     if (addManualSimilarMovieButton) {
@@ -5214,7 +4359,6 @@ function resetFormToCreateMode() {
 
   setManualSimilarDraft([]);
   refreshCustomSelect(releaseMonthInput);
-  updateMovieTaxonomyPreview();
 }
 
 function fillFormForEdit(movie) {
@@ -5276,7 +4420,6 @@ function fillFormForEdit(movie) {
   formMessage.textContent = '';
 
   refreshCustomSelect(releaseMonthInput);
-  updateMovieTaxonomyPreview();
 
   openMovieModal();
 }
@@ -5299,12 +4442,6 @@ function updateAuthUI() {
 
   if (loginForm) {
     loginForm.classList.toggle('is-visible', !shouldShowAuthenticatedUi);
-  }
-
-  if (shouldShowAuthenticatedUi && isAdmin && isAuthPopoverOpen) {
-    initTaxonomyExportButton();
-  } else {
-    syncTaxonomyPopoverControlsVisibility();
   }
 
   if (adminPanel) {
@@ -5440,9 +4577,7 @@ function loadSubgenreFilterOptions(subgenreCounts = new Map()) {
   }
 
   const selectedSubgenre = subgenreFilter.value || '';
-  const taxonomySubgenreKeys = TAXONOMY_FEATURES_ENABLED ? (window.HORROR_TAXONOMY?.subgenres || []) : [];
-  const actualSubgenreKeys = Array.from(subgenreCounts.keys());
-  const subgenreKeys = [...new Set([...taxonomySubgenreKeys, ...actualSubgenreKeys])];
+  const subgenreKeys = Array.from(subgenreCounts.keys());
 
   subgenreFilter.innerHTML = '<option value="">Все</option>';
 
@@ -5477,9 +4612,7 @@ function loadFormatFilterOptions(formatCounts = new Map()) {
   }
 
   const selectedFormat = formatFilter.value || '';
-  const taxonomyFormatKeys = TAXONOMY_FEATURES_ENABLED ? (window.HORROR_TAXONOMY?.formats || []) : [];
-  const actualFormatKeys = Array.from(formatCounts.keys());
-  const formatKeys = [...new Set([...taxonomyFormatKeys, ...actualFormatKeys])];
+  const formatKeys = Array.from(formatCounts.keys());
 
   formatFilter.innerHTML = '<option value="">Все</option>';
 
@@ -5508,55 +4641,10 @@ function loadFormatFilterOptions(formatCounts = new Map()) {
   refreshCustomSelect(formatFilter);
 }
 
-function loadTriggerFilterOptions(triggerCounts = new Map()) {
-  if (!TAXONOMY_FEATURES_ENABLED) {
-    if (triggerFiltersGroup) {
-      triggerFiltersGroup.innerHTML = '';
-    }
-
-    syncTriggerFiltersTriggerText();
-    return;
+function loadTriggerFilterOptions() {
+  if (triggerFiltersGroup) {
+    triggerFiltersGroup.innerHTML = '';
   }
-
-  if (!triggerFiltersGroup) {
-    return;
-  }
-
-  const selectedTriggerKeys = getSelectedTriggerFilters();
-  const taxonomyTriggerKeys = window.HORROR_TAXONOMY?.triggers || [];
-  const actualTriggerKeys = Array.from(triggerCounts.keys());
-  const triggerKeys = [...new Set([...taxonomyTriggerKeys, ...actualTriggerKeys])];
-
-  triggerFiltersGroup.innerHTML = triggerKeys
-    .map(triggerKey => ({
-      key: triggerKey,
-      count: triggerCounts.get(triggerKey) || 0,
-      label: triggerKey,
-      isSelected: selectedTriggerKeys.includes(triggerKey)
-    }))
-    .filter(item => item.count > 0 || item.isSelected)
-    .sort((firstItem, secondItem) => {
-      if (secondItem.count !== firstItem.count) {
-        return secondItem.count - firstItem.count;
-      }
-
-      return firstItem.label.localeCompare(secondItem.label, 'ru');
-    })
-    .map(item => `
-      <label class="trigger-filter-option">
-        <input
-          type="checkbox"
-          value="${escapeHtml(item.key)}"
-          data-trigger-filter="true"
-          ${item.isSelected ? 'checked' : ''}
-        >
-        <span class="trigger-filter-option-label">
-          <span class="trigger-filter-option-text">${escapeHtml(item.label)}</span>
-          <span class="trigger-filter-option-count">(${item.count})</span>
-        </span>
-      </label>
-    `)
-    .join('');
 
   syncTriggerFiltersTriggerText();
 }
@@ -5622,15 +4710,7 @@ const MOVIE_BASE_SELECT = `
   director,
   synopsis,
   formats,
-  modifiers,
-  broad_families,
-  mask_conflict,
-  canon_coverage,
-  primary_subgenre,
-  secondary_subgenres,
   tags_perceived,
-  tags_canon,
-  triggers,
   search_aliases,
   rating,
   poster_url,
@@ -5659,44 +4739,7 @@ const MOVIE_CATALOG_SELECT = `
   year,
   director,
   formats,
-  primary_subgenre,
-  secondary_subgenres,
-  search_aliases,
-  poster_url,
-  kinopoisk_url,
-  imdb_url,
-  letterboxd_url,
-  letterboxd_short_url,
-  rottentomatoes_url,
-  release_year,
-  release_month,
-  sort_order,
-  movie_genres (
-    position,
-    genres (name)
-  ),
-  movie_countries (
-    countries (name)
-  )
-`;
-
-const MOVIE_SIMILARITY_SELECT = `
-  id,
-  slug,
-  title,
-  original_title,
-  year,
-  director,
-  formats,
-  modifiers,
-  broad_families,
-  mask_conflict,
-  canon_coverage,
-  primary_subgenre,
-  secondary_subgenres,
   tags_perceived,
-  tags_canon,
-  triggers,
   search_aliases,
   poster_url,
   kinopoisk_url,
@@ -5721,10 +4764,6 @@ function getMovieSelectByPurpose(purpose = 'catalog') {
     return MOVIE_BASE_SELECT;
   }
 
-  if (purpose === 'similarity') {
-    return MOVIE_SIMILARITY_SELECT;
-  }
-
   return MOVIE_CATALOG_SELECT;
 }
 
@@ -5732,13 +4771,7 @@ function hasMovieDetailPayload(movie) {
   return Boolean(
     movie &&
     Object.prototype.hasOwnProperty.call(movie, 'synopsis') &&
-    Object.prototype.hasOwnProperty.call(movie, 'tags_canon')
-  );
-}
-
-function hasMovieSimilarityPayload() {
-  return Array.isArray(allMovies) && allMovies.some(movie =>
-    Object.prototype.hasOwnProperty.call(movie || {}, 'tags_canon')
+    Object.prototype.hasOwnProperty.call(movie, 'tags_perceived')
   );
 }
 
@@ -5768,29 +4801,6 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
   moviesLoadedSuccessfully = true;
   markCatalogDataChanged();
   return true;
-}
-
-function ensureCatalogSimilarityDataLoaded() {
-  if (!TAXONOMY_FEATURES_ENABLED) {
-    return Promise.resolve(false);
-  }
-
-  if (hasMovieSimilarityPayload()) {
-    return Promise.resolve(true);
-  }
-
-  if (catalogSimilarityDataLoadPromise) {
-    return catalogSimilarityDataLoadPromise;
-  }
-
-  catalogSimilarityDataLoadPromise = fetchMovies({
-    preserveExistingCatalogOnError: true,
-    purpose: 'similarity'
-  }).finally(() => {
-    catalogSimilarityDataLoadPromise = null;
-  });
-
-  return catalogSimilarityDataLoadPromise;
 }
 
 async function fetchMovieRatings() {
@@ -6392,7 +5402,6 @@ function getActiveQuickPresetKey() {
   const hasGenreFilter = Boolean(genreFilter.value);
   const hasSubgenreFilter = Boolean(subgenreFilter.value);
   const hasFormatFilter = Boolean(formatFilter.value);
-  const hasTriggerFilters = getSelectedTriggerFilters().length > 0;
   const hasCountryFilter = Boolean(countryFilter.value);
   const hasYearFilter = Boolean(yearFilter.value);
 
@@ -6402,7 +5411,6 @@ function getActiveQuickPresetKey() {
     !hasGenreFilter &&
     !hasSubgenreFilter &&
     !hasFormatFilter &&
-    !hasTriggerFilters &&
     !hasCountryFilter &&
     !hasYearFilter &&
     ratingFilter.value === '' &&
@@ -6411,7 +5419,7 @@ function getActiveQuickPresetKey() {
     return 'astrals';
   }
 
-  if (hasSearchQuery || hasGenreFilter || hasSubgenreFilter || hasFormatFilter || hasTriggerFilters || hasCountryFilter || hasYearFilter) {
+  if (hasSearchQuery || hasGenreFilter || hasSubgenreFilter || hasFormatFilter || hasCountryFilter || hasYearFilter) {
     return null;
   }
 
@@ -6613,13 +5621,6 @@ function getActiveFilterChips() {
       key: 'format'
     });
   }
-
-  getSelectedTriggerFilters().forEach(triggerKey => {
-    chips.push({
-      label: `Исключить: ${triggerKey}`,
-      key: `trigger:${triggerKey}`
-    });
-  });
 
   if (yearFilter.value) {
     chips.push({ label: `Год: ${yearFilter.value}`, key: 'year' });
@@ -7113,7 +6114,7 @@ async function addMovie(event) {
   try {
     ensureActiveSessionForWrite();
 
-    const taxonomyDraft = buildMovieTaxonomyDraftFromForm();
+    const classificationDraft = buildMovieClassificationDraftFromForm();
     const manualSimilarMovieIds = normalizeManualSimilarMovieIds(manualSimilarMovieIdsDraft);
 
     let finalPosterUrl = null;
@@ -7139,15 +6140,8 @@ async function addMovie(event) {
           year: year ? Number(year) : null,
           director: director || null,
           synopsis: synopsis || null,
-          formats: taxonomyDraft.formats,
-          modifiers: [],
-          broad_families: [],
-          canon_coverage: null,
-          primary_subgenre: null,
-          secondary_subgenres: [],
-          tags_perceived: taxonomyDraft.tagsPerceived,
-          tags_canon: [],
-          triggers: [],
+          formats: classificationDraft.formats,
+          tags_perceived: classificationDraft.tagsPerceived,
           search_aliases: searchAliases,
           rating: 0,
           poster_url: finalPosterUrl,
@@ -7284,7 +6278,7 @@ async function updateMovie(event) {
     ensureActiveSessionForWrite();
     await ensureManualSimilarDataLoaded();
 
-    const taxonomyDraft = buildMovieTaxonomyDraftFromForm();
+    const classificationDraft = buildMovieClassificationDraftFromForm();
     const manualSimilarMovieIds = normalizeManualSimilarMovieIds(manualSimilarMovieIdsDraft, editingMovieId);
     const manualSimilarChanged = !areStringArraysEqual(
       manualSimilarMovieIds,
@@ -7328,12 +6322,12 @@ async function updateMovie(event) {
       changedFields.synopsis = synopsis || null;
     }
 
-    if (!areStringArraysEqual(taxonomyDraft.formats, existingMovie.formats || [])) {
-      changedFields.formats = taxonomyDraft.formats;
+    if (!areStringArraysEqual(classificationDraft.formats, existingMovie.formats || [])) {
+      changedFields.formats = classificationDraft.formats;
     }
 
-    if (!areStringArraysEqual(taxonomyDraft.tagsPerceived, existingMovie.tags_perceived || [])) {
-      changedFields.tags_perceived = taxonomyDraft.tagsPerceived;
+    if (!areStringArraysEqual(classificationDraft.tagsPerceived, existingMovie.tags_perceived || [])) {
+      changedFields.tags_perceived = classificationDraft.tagsPerceived;
     }
 
     const currentYearValue = year ? Number(year) : null;
@@ -10139,8 +9133,7 @@ function hasCatalogFilterStateOverrides(options = {}) {
     ignoreSubgenre = false,
     ignoreFormat = false,
     ignoreCountry = false,
-    ignoreYear = false,
-    ignoreTriggerExcludes = false
+    ignoreYear = false
   } = options;
 
   return Boolean(
@@ -10229,16 +9222,10 @@ function getCatalogFilterStateSnapshot(options = {}) {
   const selectedWatched = watchedFilter.value;
   const searchQuery = searchInput.value;
   const searchQueryWords = getSearchQueryWords(searchQuery);
-  const selectedTriggerExcludes = ignoreTriggerExcludes
-    ? []
-    : getSelectedTriggerFilters();
-
   return {
     selectedGenre: ignoreGenre ? '' : genreFilter.value,
     selectedSubgenre: ignoreSubgenre ? '' : subgenreFilter.value,
     selectedFormat: ignoreFormat ? '' : formatFilter.value,
-    selectedTriggerExcludes,
-    hasTriggerExcludes: selectedTriggerExcludes.length > 0,
     selectedCountry: ignoreCountry ? '' : countryFilter.value,
     minRating,
     minimumRating: Number(minRating),
@@ -10274,13 +9261,6 @@ function doesMovieMatchCatalogFilters(movie, filterState, meta = getCatalogMovie
   }
 
   if (filterState.selectedFormat && !meta.formatKeys.has(filterState.selectedFormat)) {
-    return false;
-  }
-
-  if (
-    filterState.hasTriggerExcludes &&
-    filterState.selectedTriggerExcludes.some(triggerKey => meta.triggerKeys.has(triggerKey))
-  ) {
     return false;
   }
 
@@ -10352,8 +9332,6 @@ function getCatalogFilterMatches(movie, filterState, meta = getCatalogMovieMeta(
   const averageRating = filterState.minRating !== ''
     ? getMovieAverageRating(movie.id)
     : 0;
-  const hasTriggerExcludes = filterState.hasTriggerExcludes ?? filterState.selectedTriggerExcludes.length > 0;
-
   return {
     search: (
       !filterState.hasSearchQuery ||
@@ -10362,10 +9340,6 @@ function getCatalogFilterMatches(movie, filterState, meta = getCatalogMovieMeta(
     genre: !filterState.selectedGenre || meta.genreNames.has(filterState.selectedGenre),
     subgenre: !filterState.selectedSubgenre || meta.subgenreKeys.has(filterState.selectedSubgenre),
     format: !filterState.selectedFormat || meta.formatKeys.has(filterState.selectedFormat),
-    triggerExcludes: (
-      !hasTriggerExcludes ||
-      !filterState.selectedTriggerExcludes.some(triggerKey => meta.triggerKeys.has(triggerKey))
-    ),
     country: !filterState.selectedCountry || meta.countryNames.has(filterState.selectedCountry),
     rating: (
       filterState.minRating === '' ||
@@ -10410,7 +9384,6 @@ function matchesCatalogFilterCountScope(matches, ignoredFilterKey) {
     (ignoredFilterKey === 'genre' || matches.genre) &&
     (ignoredFilterKey === 'subgenre' || matches.subgenre) &&
     (ignoredFilterKey === 'format' || matches.format) &&
-    (ignoredFilterKey === 'triggerExcludes' || matches.triggerExcludes) &&
     (ignoredFilterKey === 'country' || matches.country) &&
     (ignoredFilterKey === 'year' || matches.year) &&
     matches.rating &&
@@ -10433,7 +9406,6 @@ function getDynamicFilterOptionCounts() {
     genreCounts: new Map(),
     subgenreCounts: new Map(),
     formatCounts: new Map(),
-    triggerCounts: new Map(),
     countryCounts: new Map(),
     yearCounts: new Map()
   };
@@ -10461,12 +9433,6 @@ function getDynamicFilterOptionCounts() {
       });
     }
 
-    if (TAXONOMY_FEATURES_ENABLED && matchesCatalogFilterCountScope(matches, 'triggerExcludes')) {
-      meta.triggerKeys.forEach(triggerKey => {
-        addCount(counts.triggerCounts, triggerKey);
-      });
-    }
-
     if (matchesCatalogFilterCountScope(matches, 'country')) {
       meta.countryNames.forEach(countryName => {
         addCount(counts.countryCounts, countryName);
@@ -10489,7 +9455,7 @@ function refreshDynamicFilterOptions() {
   loadFormatFilterOptions(filterOptionCounts.formatCounts);
   refreshCountryFilterOptions(filterOptionCounts.countryCounts);
   loadYearFilterOptions(filterOptionCounts.yearCounts);
-  loadTriggerFilterOptions(filterOptionCounts.triggerCounts);
+  loadTriggerFilterOptions();
 }
 
 function sortMoviesWithinMonth(movies, monthSortMode, monthSortDirection = 'desc') {
@@ -10756,91 +9722,84 @@ function renderMovies() {
 JS-БЛОК 22. ОБРАБОТЧИКИ СОБЫТИЙ ИНТЕРФЕЙСА
 Навешивает события на форму, фильтры, auth и модальное окно.
 ========================================================== */
-if (loginForm) {
-  loginForm.addEventListener('submit', login);
+const debouncedRenderMovies = createDebouncedCatalogRender(200);
+
+let lastSearchQuery = '';
+
+const debouncedRenderMoviesForFilters = createDebouncedCatalogRender(120);
+
+function saveCatalogStateAndRenderFilters() {
+  prepareCatalogStateForDeferredRender({ resetPage: true });
+  debouncedRenderMoviesForFilters();
 }
 
-if (loginEmail) {
-  loginEmail.addEventListener('input', clearAuthMessage);
-}
+const handleFiltersChange = () => {
+  trackFiltersUsageIfNeeded();
+  refreshDynamicFilterOptions();
+  saveCatalogStateAndRenderFilters();
+};
 
-if (loginPassword) {
-  loginPassword.addEventListener('input', clearAuthMessage);
-}
+function bindSharedUiEvents() {
+  if (areSharedUiEventsBound) {
+    return;
+  }
 
-if (loginPasswordConfirm) {
-  loginPasswordConfirm.addEventListener('input', clearAuthMessage);
-}
+  loginForm?.addEventListener('submit', login);
+  loginEmail?.addEventListener('input', clearAuthMessage);
+  loginPassword?.addEventListener('input', clearAuthMessage);
+  loginPasswordConfirm?.addEventListener('input', clearAuthMessage);
+  appToastAcceptButton?.addEventListener('click', clearAppMessage);
 
-if (appToastAcceptButton) {
-  appToastAcceptButton.addEventListener('click', clearAppMessage);
-}
-
-if (registerButton) {
-  registerButton.addEventListener('click', () => {
+  registerButton?.addEventListener('click', () => {
     setAuthRegisterMode(!isAuthRegisterMode);
   });
-}
 
-if (logoutMenuButton) {
-  logoutMenuButton.addEventListener('click', () => {
+  logoutMenuButton?.addEventListener('click', () => {
     closeAuthPopoverMenu();
     logout();
   });
-}
 
-if (importLetterboxdRatingsButton && letterboxdRatingsFileInput) {
-  importLetterboxdRatingsButton.addEventListener('click', () => {
-    if (isLetterboxdRatingsImporting) {
-      return;
-    }
+  if (importLetterboxdRatingsButton && letterboxdRatingsFileInput) {
+    importLetterboxdRatingsButton.addEventListener('click', () => {
+      if (isLetterboxdRatingsImporting) {
+        return;
+      }
 
-    letterboxdRatingsFileInput.value = '';
-    lastLetterboxdRatingsImportFileToken = '';
-    showAppMessage('Выбери ratings.csv из экспорта Letterboxd.', 'info', true);
-    letterboxdRatingsFileInput.click();
-  });
+      letterboxdRatingsFileInput.value = '';
+      lastLetterboxdRatingsImportFileToken = '';
+      showAppMessage('Выбери ratings.csv из экспорта Letterboxd.', 'info', true);
+      letterboxdRatingsFileInput.click();
+    });
 
-  letterboxdRatingsFileInput.addEventListener('input', handleLetterboxdRatingsFileChange);
-  letterboxdRatingsFileInput.addEventListener('change', handleLetterboxdRatingsFileChange);
+    letterboxdRatingsFileInput.addEventListener('input', handleLetterboxdRatingsFileChange);
+    letterboxdRatingsFileInput.addEventListener('change', handleLetterboxdRatingsFileChange);
 
-  letterboxdRatingsFileInput.addEventListener('cancel', () => {
-    if (!isLetterboxdRatingsImporting) {
-      showAppMessage('Файл не выбран. Импорт Letterboxd не запускался.', 'info', true);
-    }
-  });
-}
+    letterboxdRatingsFileInput.addEventListener('cancel', () => {
+      if (!isLetterboxdRatingsImporting) {
+        showAppMessage('Файл не выбран. Импорт Letterboxd не запускался.', 'info', true);
+      }
+    });
+  }
 
-if (displayNameButton) {
-  displayNameButton.addEventListener('click', () => {
+  displayNameButton?.addEventListener('click', () => {
     toggleDisplayNameModal();
   });
-}
 
-if (displayNameForm) {
-  displayNameForm.addEventListener('submit', saveDisplayName);
-}
+  displayNameForm?.addEventListener('submit', saveDisplayName);
 
-if (cancelDisplayNameButton) {
-  cancelDisplayNameButton.addEventListener('click', () => {
+  cancelDisplayNameButton?.addEventListener('click', () => {
     closeDisplayNameModal();
   });
-}
 
-if (closeDisplayNameModalButton) {
-  closeDisplayNameModalButton.addEventListener('click', () => {
+  closeDisplayNameModalButton?.addEventListener('click', () => {
     closeDisplayNameModal();
   });
-}
 
-if (displayNameModalBackdrop) {
-  displayNameModalBackdrop.addEventListener('click', () => {
+  displayNameModalBackdrop?.addEventListener('click', () => {
     closeDisplayNameModal();
   });
-}
 
-if (openAuthModalButton) {
-  openAuthModalButton.addEventListener('click', () => {
+  openAuthModalButton?.addEventListener('click', () => {
     if (shouldUseAuthenticatedUi()) {
       toggleAuthPopoverMenu();
       return;
@@ -10848,57 +9807,101 @@ if (openAuthModalButton) {
 
     openAuthModal();
   });
-}
 
-if (closeAuthModalButton) {
-  closeAuthModalButton.addEventListener('click', () => {
+  closeAuthModalButton?.addEventListener('click', () => {
     closeAuthModal();
   });
-}
 
-if (authModalBackdrop) {
-  authModalBackdrop.addEventListener('click', () => {
+  authModalBackdrop?.addEventListener('click', () => {
     closeAuthModal();
   });
-}
 
-if (forgotPasswordButton) {
-  forgotPasswordButton.addEventListener('click', () => {
+  forgotPasswordButton?.addEventListener('click', () => {
     sendPasswordResetEmail();
   });
+
+  document.addEventListener('click', event => {
+    const clickedInsideAuthMenu = event.target.closest('.auth-menu-wrap');
+
+    if (!clickedInsideAuthMenu) {
+      closeAuthPopoverMenu();
+    }
+
+    if (triggerFiltersSelect && !event.target.closest('#triggerFiltersSelect')) {
+      closeTriggerFiltersDropdown();
+    }
+
+    if (!container) {
+      return;
+    }
+
+    if (event.target.closest('[data-external-links-toggle="true"]') || event.target.closest('[data-external-links-collapsible]')) {
+      return;
+    }
+
+    const openedCard = container.querySelector('.movie-card.has-open-external-links');
+
+    if (!openedCard) {
+      return;
+    }
+
+    closeCatalogExternalLinksCard(openedCard);
+  });
+
+  window.addEventListener('resize', scheduleAppResizeSync);
+
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') {
+      return;
+    }
+
+    closeMobileRatingModal();
+    closeAllCustomSelects();
+    closeAuthPopoverMenu();
+    closeDisplayNameModal();
+    closeTriggerFiltersDropdown();
+
+    if (isModalOpen) {
+      closeMovieModal();
+      return;
+    }
+
+    if (isAuthModalOpen) {
+      closeAuthModal();
+      return;
+    }
+
+    if (filtersModal && filtersModal.classList.contains('is-open')) {
+      closeFiltersModal();
+    }
+  });
+
+  areSharedUiEventsBound = true;
 }
 
-if (openAddMovieButton) {
-  openAddMovieButton.addEventListener('click', () => {
+function bindCatalogPageEvents() {
+  if (areCatalogPageEventsBound) {
+    return;
+  }
+
+  openAddMovieButton?.addEventListener('click', () => {
     resetFormToCreateMode();
     openMovieModal();
   });
-}
 
-if (openFiltersButton) {
-  openFiltersButton.addEventListener('click', () => {
+  openFiltersButton?.addEventListener('click', () => {
     openFiltersModal();
   });
-}
 
-if (closeFiltersModalButton) {
-  closeFiltersModalButton.addEventListener('click', () => {
+  closeFiltersModalButton?.addEventListener('click', () => {
     closeFiltersModal();
   });
-}
 
-if (filtersModalBackdrop) {
-  filtersModalBackdrop.addEventListener('click', () => {
+  filtersModalBackdrop?.addEventListener('click', () => {
     closeFiltersModal();
   });
-}
 
-const debouncedRenderMovies = createDebouncedCatalogRender(200);
-
-let lastSearchQuery = '';
-
-if (searchInput) {
-  searchInput.addEventListener('input', () => {
+  searchInput?.addEventListener('input', () => {
     const query = searchInput.value.trim();
 
     if (searchClearBtn) {
@@ -10918,7 +9921,7 @@ if (searchInput) {
     debouncedRenderMovies();
   });
 
-  searchInput.addEventListener('keydown', event => {
+  searchInput?.addEventListener('keydown', event => {
     if (event.key !== 'Escape' || !searchInput.value) {
       return;
     }
@@ -10926,89 +9929,51 @@ if (searchInput) {
     event.preventDefault();
     clearSearchAndRerenderPreservingPosition();
   });
-}
 
-if (searchClearBtn && searchInput) {
-  searchClearBtn.addEventListener('click', () => {
-    searchInput.value = '';
-    searchClearBtn.classList.remove('is-visible');
-    clearSearchAndRerenderPreservingPosition();
+  if (searchClearBtn && searchInput) {
+    searchClearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      searchClearBtn.classList.remove('is-visible');
+      clearSearchAndRerenderPreservingPosition();
+    });
+  }
+
+  [
+    genreFilter,
+    subgenreFilter,
+    formatFilter,
+    countryFilter,
+    ratingFilter,
+    yearFilter,
+    watchlistFilter,
+    watchedFilter
+  ].forEach(filterElement => {
+    filterElement?.addEventListener('change', handleFiltersChange);
   });
-}
 
-const debouncedRenderMoviesForFilters = createDebouncedCatalogRender(120);
-
-function saveCatalogStateAndRenderFilters() {
-  prepareCatalogStateForDeferredRender({ resetPage: true });
-  debouncedRenderMoviesForFilters();
-}
-
-const handleFiltersChange = () => {
-  trackFiltersUsageIfNeeded();
-  refreshDynamicFilterOptions();
-  saveCatalogStateAndRenderFilters();
-};
-
-if (genreFilter) {
-  genreFilter.addEventListener('change', handleFiltersChange);
-}
-
-if (subgenreFilter) {
-  subgenreFilter.addEventListener('change', handleFiltersChange);
-}
-
-if (formatFilter) {
-  formatFilter.addEventListener('change', handleFiltersChange);
-}
-
-if (countryFilter) {
-  countryFilter.addEventListener('change', handleFiltersChange);
-}
-
-if (ratingFilter) {
-  ratingFilter.addEventListener('change', handleFiltersChange);
-}
-
-if (yearFilter) {
-  yearFilter.addEventListener('change', handleFiltersChange);
-}
-
-if (watchlistFilter) {
-  watchlistFilter.addEventListener('change', handleFiltersChange);
-}
-
-if (watchedFilter) {
-  watchedFilter.addEventListener('change', handleFiltersChange);
-}
-
-if (viewMode) {
-  viewMode.addEventListener('change', () => {
+  viewMode?.addEventListener('change', () => {
     applyCatalogViewModeChange();
   });
-}
 
-if (sortMode) {
-  sortMode.addEventListener('change', () => {
+  sortMode?.addEventListener('change', () => {
     trackSortUsageIfNeeded();
     resetCatalogPaginationPage();
     rerenderCatalogPreservingPosition();
   });
-}
 
-getCatalogPaginationContainers().forEach(paginationContainer => {
-  paginationContainer.addEventListener('click', event => {
-    const pageButton = event.target.closest('[data-catalog-page]');
+  getCatalogPaginationContainers().forEach(paginationContainer => {
+    paginationContainer.addEventListener('click', event => {
+      const pageButton = event.target.closest('[data-catalog-page]');
 
-    if (!pageButton || pageButton.disabled) {
-      return;
-    }
+      if (!pageButton || pageButton.disabled) {
+        return;
+      }
 
-    goToCatalogPage(pageButton.dataset.catalogPage);
+      goToCatalogPage(pageButton.dataset.catalogPage);
+    });
   });
-});
 
-if (quickPresetsBar) {
-  quickPresetsBar.addEventListener('click', event => {
+  quickPresetsBar?.addEventListener('click', event => {
     const quickPresetButton = event.target.closest('[data-quick-preset]');
 
     if (!quickPresetButton) {
@@ -11017,22 +9982,16 @@ if (quickPresetsBar) {
 
     applyQuickPreset(quickPresetButton.dataset.quickPreset);
   });
-}
 
-if (resetFiltersTopButton) {
-  resetFiltersTopButton.addEventListener('click', () => {
+  resetFiltersTopButton?.addEventListener('click', () => {
     resetCatalogFiltersAndRerender();
   });
-}
 
-if (triggerFiltersToggle) {
-  triggerFiltersToggle.addEventListener('click', () => {
+  triggerFiltersToggle?.addEventListener('click', () => {
     toggleTriggerFiltersDropdown();
   });
-}
 
-if (triggerFiltersGroup) {
-  triggerFiltersGroup.addEventListener('change', event => {
+  triggerFiltersGroup?.addEventListener('change', event => {
     const changedInput = event.target.closest('input[type="checkbox"][data-trigger-filter]');
 
     if (!changedInput) {
@@ -11042,10 +10001,35 @@ if (triggerFiltersGroup) {
     syncTriggerFiltersTriggerText();
     handleFiltersChange();
   });
+
+  if (container) {
+    container.addEventListener('click', handleCatalogCardClick);
+    container.addEventListener('auxclick', handleCatalogCardAuxClick);
+    container.addEventListener('mouseover', handleCatalogRatingStarMouseOver);
+    container.addEventListener('mouseout', handleCatalogRatingStarMouseOut);
+  }
+
+  window.addEventListener('pagehide', event => {
+    if (event.persisted || !container) {
+      return;
+    }
+
+    saveCatalogScrollPosition();
+    saveCatalogAnchorMovieId();
+    persistCatalogSessionSnapshot({
+      persistDomSnapshotImmediately: true
+    });
+  });
+
+  areCatalogPageEventsBound = true;
 }
 
-if (moviePageEditButton) {
-  moviePageEditButton.addEventListener('click', async () => {
+function bindMoviePageEvents() {
+  if (areMoviePageEventsBound) {
+    return;
+  }
+
+  moviePageEditButton?.addEventListener('click', async () => {
     if (!isAdmin || !currentMoviePageMovieId) {
       return;
     }
@@ -11058,10 +10042,8 @@ if (moviePageEditButton) {
 
     fillFormForEdit(movieForEdit);
   });
-}
 
-if (moviePageDeleteButton) {
-  moviePageDeleteButton.addEventListener('click', () => {
+  moviePageDeleteButton?.addEventListener('click', () => {
     if (!isAdmin || !currentMoviePageMovieId || !currentMoviePageMovieData) {
       return;
     }
@@ -11070,86 +10052,9 @@ if (moviePageDeleteButton) {
       deleteMovieFromMoviePage(currentMoviePageMovieId, currentMoviePageMovieData.title);
     });
   });
+
+  areMoviePageEventsBound = true;
 }
-
-if (container) {
-  container.addEventListener('click', handleCatalogCardClick);
-  container.addEventListener('auxclick', handleCatalogCardAuxClick);
-  container.addEventListener('mouseover', handleCatalogRatingStarMouseOver);
-  container.addEventListener('mouseout', handleCatalogRatingStarMouseOut);
-}
-
-document.addEventListener('click', event => {
-  const clickedInsideAuthMenu = event.target.closest('.auth-menu-wrap');
-
-  if (!clickedInsideAuthMenu) {
-    closeAuthPopoverMenu();
-  }
-
-  if (triggerFiltersSelect && !event.target.closest('#triggerFiltersSelect')) {
-    closeTriggerFiltersDropdown();
-  }
-
-  if (!container) {
-    return;
-  }
-
-  if (event.target.closest('[data-external-links-toggle="true"]') || event.target.closest('[data-external-links-collapsible]')) {
-    return;
-  }
-
-  const openedCard = container.querySelector('.movie-card.has-open-external-links');
-
-  if (!openedCard) {
-    return;
-  }
-
-  closeCatalogExternalLinksCard(openedCard);
-});
-
-window.addEventListener('resize', scheduleAppResizeSync);
-
-window.addEventListener('pagehide', event => {
-  if (event.persisted) {
-    return;
-  }
-
-  if (!container) {
-    return;
-  }
-
-  saveCatalogScrollPosition();
-  saveCatalogAnchorMovieId();
-  persistCatalogSessionSnapshot({
-    persistDomSnapshotImmediately: true
-  });
-});
-
-document.addEventListener('keydown', event => {
-  if (event.key !== 'Escape') {
-    return;
-  }
-
-  closeMobileRatingModal();
-  closeAllCustomSelects();
-  closeAuthPopoverMenu();
-  closeDisplayNameModal();
-  closeTriggerFiltersDropdown();
-
-  if (isModalOpen) {
-    closeMovieModal();
-    return;
-  }
-
-  if (isAuthModalOpen) {
-    closeAuthModal();
-    return;
-  }
-
-  if (filtersModal && filtersModal.classList.contains('is-open')) {
-    closeFiltersModal();
-  }
-});
 
 /* =========================================================
 JS-БЛОК 23. ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
@@ -11736,45 +10641,6 @@ function renderMoviePageNotFound() {
       </div>
     </div>
   `;
-}
-
-function getMovieSimilarityExtraGenres(movie) {
-  return (Array.isArray(movie?.movie_genres) ? movie.movie_genres : [])
-    .map(item => item?.genres?.name)
-    .filter(Boolean)
-    .filter(name => normalizeSearchText(name) !== BASE_HORROR_GENRE_NORMALIZED);
-}
-
-function getMovieSimilarityCountries(movie) {
-  return (Array.isArray(movie?.movie_countries) ? movie.movie_countries : [])
-    .map(item => item?.countries?.name)
-    .filter(Boolean);
-}
-
-function getMovieSimilaritySource(movie, meta = getCatalogMovieMeta(movie)) {
-  const extraGenres = meta
-    ? Array.from(meta.filterableGenreNames)
-    : getMovieSimilarityExtraGenres(movie);
-  const countries = meta
-    ? Array.from(meta.countryNames)
-    : getMovieSimilarityCountries(movie);
-
-  return {
-    id: String(movie.id),
-    title: String(movie.title || ''),
-    year: Number(movie.year || 0),
-
-    perceived: Array.isArray(movie.tags_perceived) ? movie.tags_perceived : [],
-    canon: Array.isArray(movie.tags_canon) ? movie.tags_canon : [],
-    formats: Array.isArray(movie.formats) ? movie.formats : [],
-    modifiers: Array.isArray(movie.modifiers) ? movie.modifiers : [],
-    broadFamilies: Array.isArray(movie.broad_families) ? movie.broad_families : [],
-    canonCoverage: movie.canon_coverage || movie.canonCoverage || null,
-    mask_conflict: movie.mask_conflict === true || movie.mask_conflict === 'true',
-
-    extraGenres,
-    countries
-  };
 }
 
 function resetMoviePageSimilarState() {
@@ -12726,14 +11592,17 @@ async function init() {
 
   bindCustomSelectGlobalEvents();
   initCustomSelects();
+  bindSharedUiEvents();
   handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect);
 
   if (isCatalogPage()) {
+    bindCatalogPageEvents();
     await initCatalogPage();
     return;
   }
 
   if (isMoviePage()) {
+    bindMoviePageEvents();
     await initMoviePage();
   }
 }
@@ -12742,5 +11611,4 @@ async function init() {
 JS-БЛОК 24. ЗАПУСК ПРИЛОЖЕНИЯ
 Точка входа.
 ========================================================== */
-updateMovieTaxonomyPreview();
 init();
