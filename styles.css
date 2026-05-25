@@ -1202,6 +1202,80 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
   margin-bottom: 0;
 }
 
+.manual-similar-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.manual-similar-picker select {
+  width: 100%;
+  min-width: 0;
+}
+
+.manual-similar-add-button {
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.manual-similar-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.manual-similar-empty {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.manual-similar-item {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 4px 6px 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(146, 158, 171, 0.2);
+  border-radius: var(--radius-sm);
+}
+
+.manual-similar-item-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.manual-similar-remove-button {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+
+.manual-similar-remove-button:hover,
+.manual-similar-remove-button:focus-visible {
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .movie-form select {
   height: 36px;
 }
@@ -5119,6 +5193,14 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .movie-taxonomy-similarity-list {
     grid-template-columns: 1fr;
+  }
+
+  .manual-similar-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .manual-similar-add-button {
+    width: 100%;
   }
 
   .page {

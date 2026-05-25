@@ -246,26 +246,6 @@
                   </div>
 
                   <div class="form-row">
-                    <label for="tagsCanon">Теги canon:</label>
-                    <textarea id="tagsCanon" name="tagsCanon" rows="4"></textarea>
-                    <div class="field-hint">
-                      Реальная внутренняя логика фильма. По одному тегу с новой строки.
-                    </div>
-                  </div>
-
-                  <div class="form-row canon-coverage-row">
-                    <div id="canonCoverageLabel" class="form-row-label">Canon coverage:</div>
-                    <div class="field-hint">
-                      Закройте каждую ветку canon: тегом, статусом «не применимо» или «не определено».
-                    </div>
-                    <div
-                      id="canonCoverageControls"
-                      class="canon-coverage-controls"
-                      aria-labelledby="canonCoverageLabel"
-                    ></div>
-                  </div>
-
-                  <div class="form-row">
                     <label for="movieFormats">Форматы:</label>
                     <textarea id="movieFormats" name="movieFormats" rows="2"></textarea>
                     <div class="field-hint">
@@ -273,47 +253,28 @@
                     </div>
                   </div>
 
-                  <div class="form-row">
-                    <label for="movieModifiers">Модификаторы:</label>
-                    <textarea id="movieModifiers" name="movieModifiers" rows="3"></textarea>
+                  <div class="form-row manual-similar-row">
+                    <label for="manualSimilarMovieSelect">Похожие фильмы:</label>
+                    <div class="manual-similar-picker">
+                      <select id="manualSimilarMovieSelect" name="manualSimilarMovieSelect">
+                        <option value="">Выбрать фильм</option>
+                      </select>
+                      <button
+                        type="button"
+                        id="addManualSimilarMovieButton"
+                        class="secondary-button secondary-button-compact manual-similar-add-button"
+                      >
+                        Добавить
+                      </button>
+                    </div>
+                    <div
+                      id="manualSimilarMoviesList"
+                      class="manual-similar-list"
+                      aria-live="polite"
+                    ></div>
                     <div class="field-hint">
-                      Настроенческие и стилистические признаки. По одному значению с новой строки.
+                      Порядок в списке сохранится на странице фильма.
                     </div>
-                  </div>
-
-                  <div class="form-row">
-                    <label for="movieBroadFamilies">Семейства механик:</label>
-                    <textarea id="movieBroadFamilies" name="movieBroadFamilies" rows="3"></textarea>
-                    <div class="field-hint">
-                      Верхнеуровневые семейства механик. По одному значению с новой строки.
-                    </div>
-                  </div>
-
-                  <div class="form-row">
-                    <label for="movieTriggers">Триггеры:</label>
-                    <textarea id="movieTriggers" name="movieTriggers" rows="3"></textarea>
-                    <div class="field-hint">
-                      По одному значению с новой строки.
-                    </div>
-                  </div>
-                </div>
-
-                <div class="form-row movie-taxonomy-preview-row">
-                  <div class="form-row-label">Результат классификации:</div>
-
-                  <div id="movieTaxonomyPreview" class="movie-taxonomy-preview">
-                    <div class="movie-taxonomy-preview-line">
-                      <span>Поджанр:</span>
-                      <strong id="movieTaxonomyPrimaryPreview">—</strong>
-                    </div>
-
-                    <div class="movie-taxonomy-preview-line">
-                      <span>Доп. поджанры:</span>
-                      <strong id="movieTaxonomySecondaryPreview">—</strong>
-                    </div>
-
-                    <div id="movieTaxonomyWarningsPreview" class="movie-taxonomy-preview-warnings"></div>
-                    <div id="movieTaxonomySimilarityPreview" class="movie-taxonomy-similarity-preview"></div>
                   </div>
                 </div>
 

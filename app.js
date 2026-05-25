@@ -121,6 +121,9 @@ let movieTaxonomyPrimaryPreview = document.getElementById('movieTaxonomyPrimaryP
 let movieTaxonomySecondaryPreview = document.getElementById('movieTaxonomySecondaryPreview');
 let movieTaxonomyWarningsPreview = document.getElementById('movieTaxonomyWarningsPreview');
 let movieTaxonomySimilarityPreview = document.getElementById('movieTaxonomySimilarityPreview');
+let manualSimilarMovieSelect = document.getElementById('manualSimilarMovieSelect');
+let addManualSimilarMovieButton = document.getElementById('addManualSimilarMovieButton');
+let manualSimilarMoviesList = document.getElementById('manualSimilarMoviesList');
 
 /* =========================================================
 JS-БЛОК 2. ПОДКЛЮЧЕНИЕ К SUPABASE
@@ -182,6 +185,8 @@ const BASE_HORROR_GENRE_NORMALIZED = '\u0443\u0436\u0430\u0441\u044b';
 const APP_ASSET_BASE_PATH = window.location.protocol === 'file:' ? '' : '/';
 const HORROR_TAXONOMY_SCRIPT_SRC = `${APP_ASSET_BASE_PATH}horror-taxonomy.js`;
 const TAXONOMY_ADMIN_SCRIPT_SRC = `${APP_ASSET_BASE_PATH}taxonomy-admin.js`;
+const TAXONOMY_FEATURES_ENABLED = false;
+const MANUAL_SIMILAR_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const SITE_ORIGIN = 'https://horroreiro.ru';
 const DEFAULT_SOCIAL_IMAGE_URL = `${SITE_ORIGIN}/og-preview.jpg`;
 const MOVIE_STRUCTURED_DATA_SCRIPT_ID = 'movieStructuredData';
@@ -210,6 +215,12 @@ let catalogSortedMoviesByMode = {
 };
 let catalogMovieSimilaritySources = [];
 let catalogMovieSimilaritySourceById = new Map();
+let allManualSimilarRows = [];
+let manualSimilarMovieIdsByMovieId = new Map();
+let manualSimilarMovieIdsDraft = [];
+let manualSimilarTableAvailable = true;
+let manualSimilarRowsLoaded = false;
+let manualSimilarDraftDirty = false;
 let allMovieRatings = [];
 let allMovieWatchlist = [];
 let allMovieReviews = [];
@@ -847,54 +858,19 @@ function updateMovieTaxonomySimilarityPreview(taxonomyDraft) {
 
 function buildMovieTaxonomyDraftFromForm() {
   const formats = parseMultilineValues(movieFormatsInput?.value || '');
-  const modifiers = parseMultilineValues(movieModifiersInput?.value || '');
-  const manualBroadFamilies = parseMultilineValues(movieBroadFamiliesInput?.value || '');
   const tagsPerceived = parseMultilineValues(tagsPerceivedInput?.value || '');
-  const tagsCanon = parseMultilineValues(tagsCanonInput?.value || '');
-  const broadFamilies = resolveTaxonomyBroadFamiliesFromCanon(tagsCanon, manualBroadFamilies);
-  const triggers = parseMultilineValues(movieTriggersInput?.value || '');
-  const explicitCanonCoverage = getExplicitCanonCoverageFromForm(tagsCanon);
-  const canonCoverage = normalizeCanonCoverageForDraft(tagsCanon, explicitCanonCoverage);
-
-  const taxonomyHelpers = window.HORROR_TAXONOMY?.helpers;
-  const taxonomyMovieDraft = {
-    formats,
-    modifiers,
-    broad_families: broadFamilies,
-    tags_perceived: tagsPerceived,
-    tags_canon: tagsCanon,
-    canon_coverage: canonCoverage,
-    triggers
-  };
-
-  const resolvedSubgenres = taxonomyHelpers?.resolveMovieSubgenres
-    ? taxonomyHelpers.resolveMovieSubgenres(taxonomyMovieDraft)
-    : {
-        primary_subgenre: null,
-        secondary_subgenres: []
-      };
-
-  const validationResult = taxonomyHelpers?.validateMovieTags
-    ? taxonomyHelpers.validateMovieTags(taxonomyMovieDraft)
-    : {
-        warnings: []
-      };
 
   return {
     formats,
-    modifiers,
-    broadFamilies,
-    canonCoverage,
+    modifiers: [],
+    broadFamilies: [],
+    canonCoverage: null,
     tagsPerceived,
-    tagsCanon,
-    triggers,
-    primarySubgenre: resolvedSubgenres.primary_subgenre || null,
-    secondarySubgenres: Array.isArray(resolvedSubgenres.secondary_subgenres)
-      ? resolvedSubgenres.secondary_subgenres
-      : [],
-    warnings: Array.isArray(validationResult.warnings)
-      ? validationResult.warnings
-      : []
+    tagsCanon: [],
+    triggers: [],
+    primarySubgenre: null,
+    secondarySubgenres: [],
+    warnings: []
   };
 }
 
@@ -907,10 +883,18 @@ function normalizeSearchText(value) {
 }
 
 function isHorrorTaxonomyReady() {
+  if (!TAXONOMY_FEATURES_ENABLED) {
+    return false;
+  }
+
   return Boolean(window.HORROR_TAXONOMY?.helpers);
 }
 
 function ensureHorrorTaxonomyLoaded() {
+  if (!TAXONOMY_FEATURES_ENABLED) {
+    return Promise.resolve(false);
+  }
+
   if (isHorrorTaxonomyReady()) {
     return Promise.resolve(true);
   }
@@ -1022,6 +1006,11 @@ function initLoadedTaxonomyAdminTools() {
 }
 
 function ensureTaxonomyAdminToolsLoaded() {
+  if (!TAXONOMY_FEATURES_ENABLED) {
+    syncTaxonomyPopoverControlsVisibility();
+    return Promise.resolve(false);
+  }
+
   if (!authPopoverMenu || !shouldUseAuthenticatedUi() || !isAdmin) {
     syncTaxonomyPopoverControlsVisibility();
     return Promise.resolve(false);
@@ -1055,6 +1044,11 @@ function ensureTaxonomyAdminToolsLoaded() {
 }
 
 function initTaxonomyExportButton() {
+  if (!TAXONOMY_FEATURES_ENABLED) {
+    syncTaxonomyPopoverControlsVisibility();
+    return;
+  }
+
   if (!shouldUseAuthenticatedUi() || !isAdmin) {
     syncTaxonomyPopoverControlsVisibility();
     return;
@@ -1073,11 +1067,15 @@ function syncTaxonomyPopoverControlsVisibility() {
   }
 
   taxonomyAdminTools.syncVisibility({
-    shouldShow: shouldUseAuthenticatedUi() && isAdmin
+    shouldShow: TAXONOMY_FEATURES_ENABLED && shouldUseAuthenticatedUi() && isAdmin
   });
 }
 
 function getSelectedTriggerFilters() {
+  if (!TAXONOMY_FEATURES_ENABLED) {
+    return [];
+  }
+
   if (!triggerFiltersGroup) {
     return [];
   }
@@ -1143,6 +1141,323 @@ function syncTriggerFiltersTriggerText() {
   }
 
   triggerFiltersTriggerText.textContent = `Исключить: ${selectedTriggerKeys.length}`;
+}
+
+function isManualSimilarTableUnavailableError(error) {
+  const errorCode = String(error?.code || '');
+  const errorMessage = String(error?.message || '').toLowerCase();
+
+  return MANUAL_SIMILAR_UNAVAILABLE_CODES.has(errorCode) ||
+    errorMessage.includes('movie_manual_similar');
+}
+
+function normalizeManualSimilarMovieIds(movieIds = [], ownerMovieId = null) {
+  const ownerId = ownerMovieId ? String(ownerMovieId) : '';
+  const uniqueMovieIds = new Set();
+  const normalizedMovieIds = [];
+
+  (movieIds || []).forEach(movieId => {
+    const normalizedMovieId = String(movieId || '').trim();
+
+    if (
+      !normalizedMovieId ||
+      normalizedMovieId === ownerId ||
+      uniqueMovieIds.has(normalizedMovieId)
+    ) {
+      return;
+    }
+
+    uniqueMovieIds.add(normalizedMovieId);
+    normalizedMovieIds.push(normalizedMovieId);
+  });
+
+  return normalizedMovieIds;
+}
+
+function rebuildManualSimilarMovieMap(rows = allManualSimilarRows) {
+  const nextMap = new Map();
+
+  (Array.isArray(rows) ? rows : [])
+    .slice()
+    .sort((firstRow, secondRow) => {
+      const firstPosition = Number(firstRow?.position ?? 0);
+      const secondPosition = Number(secondRow?.position ?? 0);
+
+      if (firstPosition !== secondPosition) {
+        return firstPosition - secondPosition;
+      }
+
+      return String(firstRow?.similar_movie_id || '')
+        .localeCompare(String(secondRow?.similar_movie_id || ''));
+    })
+    .forEach(row => {
+      const movieId = String(row?.movie_id || '').trim();
+      const similarMovieId = String(row?.similar_movie_id || '').trim();
+
+      if (!movieId || !similarMovieId || movieId === similarMovieId) {
+        return;
+      }
+
+      if (!nextMap.has(movieId)) {
+        nextMap.set(movieId, []);
+      }
+
+      nextMap.get(movieId).push(similarMovieId);
+    });
+
+  manualSimilarMovieIdsByMovieId = nextMap;
+}
+
+function getManualSimilarMovieIds(movieId) {
+  if (!movieId) {
+    return [];
+  }
+
+  return normalizeManualSimilarMovieIds(
+    manualSimilarMovieIdsByMovieId.get(String(movieId)) || [],
+    movieId
+  );
+}
+
+function getManualSimilarMoviesForMovie(movieId, limit = 4) {
+  return getManualSimilarMovieIds(movieId)
+    .map(similarMovieId => getCatalogMovieById(similarMovieId))
+    .filter(Boolean)
+    .slice(0, limit);
+}
+
+function getManualSimilarMovieLabel(movie) {
+  if (!movie) {
+    return '';
+  }
+
+  const title = String(movie.title || movie.original_title || '').trim() || 'Без названия';
+  const year = movie.year ? ` (${movie.year})` : '';
+
+  return `${title}${year}`;
+}
+
+function getManualSimilarSelectableMovies() {
+  const excludedMovieIds = new Set([
+    editingMovieId ? String(editingMovieId) : '',
+    ...manualSimilarMovieIdsDraft.map(movieId => String(movieId))
+  ].filter(Boolean));
+
+  return (Array.isArray(allMovies) ? allMovies : [])
+    .filter(movie => movie?.id && !excludedMovieIds.has(String(movie.id)))
+    .slice()
+    .sort((firstMovie, secondMovie) =>
+      getManualSimilarMovieLabel(firstMovie).localeCompare(
+        getManualSimilarMovieLabel(secondMovie),
+        'ru'
+      )
+    );
+}
+
+function renderManualSimilarMovieOptions() {
+  if (!manualSimilarMovieSelect) {
+    return;
+  }
+
+  const selectableMovies = getManualSimilarSelectableMovies();
+
+  manualSimilarMovieSelect.innerHTML = [
+    '<option value="">Выбрать фильм</option>',
+    ...selectableMovies.map(movie => (
+      `<option value="${escapeHtml(movie.id)}">${escapeHtml(getManualSimilarMovieLabel(movie))}</option>`
+    ))
+  ].join('');
+  manualSimilarMovieSelect.value = '';
+
+  if (addManualSimilarMovieButton) {
+    addManualSimilarMovieButton.disabled = true;
+  }
+}
+
+function renderManualSimilarMoviesList() {
+  if (!manualSimilarMoviesList) {
+    renderManualSimilarMovieOptions();
+    return;
+  }
+
+  const selectedMovies = manualSimilarMovieIdsDraft
+    .map(movieId => getCatalogMovieById(movieId))
+    .filter(Boolean);
+
+  if (selectedMovies.length === 0) {
+    manualSimilarMoviesList.innerHTML = '<div class="manual-similar-empty">Похожие фильмы не выбраны.</div>';
+    renderManualSimilarMovieOptions();
+    return;
+  }
+
+  manualSimilarMoviesList.innerHTML = selectedMovies.map(movie => `
+    <div class="manual-similar-item" data-manual-similar-movie-id="${escapeHtml(movie.id)}">
+      <span class="manual-similar-item-title">${escapeHtml(getManualSimilarMovieLabel(movie))}</span>
+      <button
+        type="button"
+        class="manual-similar-remove-button"
+        data-remove-manual-similar="${escapeHtml(movie.id)}"
+        aria-label="Убрать фильм ${escapeHtml(getManualSimilarMovieLabel(movie))} из похожих"
+        title="Убрать"
+      >
+        ×
+      </button>
+    </div>
+  `).join('');
+
+  renderManualSimilarMovieOptions();
+}
+
+function setManualSimilarDraft(movieIds = [], { markDirty = false } = {}) {
+  manualSimilarMovieIdsDraft = normalizeManualSimilarMovieIds(movieIds, editingMovieId);
+  manualSimilarDraftDirty = Boolean(markDirty);
+  renderManualSimilarMoviesList();
+}
+
+function addManualSimilarMovieFromSelect() {
+  if (!manualSimilarMovieSelect?.value) {
+    return;
+  }
+
+  setManualSimilarDraft(
+    [...manualSimilarMovieIdsDraft, manualSimilarMovieSelect.value],
+    { markDirty: true }
+  );
+}
+
+function removeManualSimilarMovieFromDraft(movieId) {
+  setManualSimilarDraft(
+    manualSimilarMovieIdsDraft.filter(similarMovieId => String(similarMovieId) !== String(movieId)),
+    { markDirty: true }
+  );
+}
+
+async function fetchManualSimilarMovies() {
+  if (!manualSimilarTableAvailable) {
+    manualSimilarRowsLoaded = true;
+    return false;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_manual_similar')
+    .select('movie_id, similar_movie_id, position')
+    .order('position', { ascending: true });
+
+  if (error) {
+    if (isManualSimilarTableUnavailableError(error)) {
+      manualSimilarTableAvailable = false;
+      manualSimilarRowsLoaded = true;
+      allManualSimilarRows = [];
+      rebuildManualSimilarMovieMap();
+      return false;
+    }
+
+    throw error;
+  }
+
+  manualSimilarTableAvailable = true;
+  manualSimilarRowsLoaded = true;
+  allManualSimilarRows = data || [];
+  rebuildManualSimilarMovieMap();
+  return true;
+}
+
+async function ensureManualSimilarDataLoaded({ ensureMovies = false } = {}) {
+  const loadingTasks = [];
+
+  if (ensureMovies && (!Array.isArray(allMovies) || allMovies.length === 0)) {
+    loadingTasks.push(fetchMovies({ preserveExistingCatalogOnError: true }));
+  }
+
+  if (!manualSimilarRowsLoaded && manualSimilarTableAvailable) {
+    loadingTasks.push(fetchManualSimilarMovies());
+  }
+
+  if (loadingTasks.length === 0) {
+    return true;
+  }
+
+  await Promise.all(loadingTasks);
+  return manualSimilarTableAvailable;
+}
+
+function ensureManualSimilarEditorDataLoaded(movieId) {
+  return ensureManualSimilarDataLoaded({ ensureMovies: true }).then(() => {
+    if (movieId && String(editingMovieId) === String(movieId) && !manualSimilarDraftDirty) {
+      setManualSimilarDraft(getManualSimilarMovieIds(movieId));
+      return;
+    }
+
+    renderManualSimilarMoviesList();
+  });
+}
+
+async function replaceManualSimilarMovies(movieId, similarMovieIds = []) {
+  const ownerMovieId = String(movieId || '').trim();
+  const normalizedSimilarMovieIds = normalizeManualSimilarMovieIds(similarMovieIds, ownerMovieId);
+
+  if (!ownerMovieId) {
+    return false;
+  }
+
+  if (!manualSimilarTableAvailable) {
+    if (normalizedSimilarMovieIds.length === 0) {
+      return false;
+    }
+
+    throw new Error('Таблица ручных похожих фильмов пока недоступна. Примените SQL-миграцию и повторите сохранение.');
+  }
+
+  const { error: deleteError } = await supabaseClient
+    .from('movie_manual_similar')
+    .delete()
+    .or(`movie_id.eq.${ownerMovieId},similar_movie_id.eq.${ownerMovieId}`);
+
+  if (deleteError) {
+    if (isManualSimilarTableUnavailableError(deleteError)) {
+      manualSimilarTableAvailable = false;
+    }
+
+    throwIfSupabaseError(deleteError);
+  }
+
+  if (normalizedSimilarMovieIds.length > 0) {
+    const rows = normalizedSimilarMovieIds.flatMap((similarMovieId, index) => {
+      const reciprocalPosition = getManualSimilarMovieIds(similarMovieId)
+        .filter(existingMovieId => String(existingMovieId) !== ownerMovieId)
+        .length;
+
+      return [
+        {
+          movie_id: ownerMovieId,
+          similar_movie_id: similarMovieId,
+          position: index,
+          created_by: currentUser?.id || null
+        },
+        {
+          movie_id: similarMovieId,
+          similar_movie_id: ownerMovieId,
+          position: reciprocalPosition,
+          created_by: currentUser?.id || null
+        }
+      ];
+    });
+
+    const { error: insertError } = await supabaseClient
+      .from('movie_manual_similar')
+      .insert(rows);
+
+    if (insertError) {
+      if (isManualSimilarTableUnavailableError(insertError)) {
+        manualSimilarTableAvailable = false;
+      }
+
+      throwIfSupabaseError(insertError);
+    }
+  }
+
+  await fetchManualSimilarMovies();
+  return true;
 }
 
 function isCanonCoverageWarning(warning = {}) {
@@ -4014,12 +4329,16 @@ function rebuildCatalogMovieMeta() {
   movies.forEach(movie => {
     const movieId = String(movie.id);
     const meta = buildCatalogMovieMeta(movie);
-    const similaritySource = getMovieSimilaritySource(movie, meta);
 
     catalogMoviesById.set(movieId, movie);
     catalogMovieMetaById.set(movieId, meta);
-    catalogMovieSimilaritySourceById.set(movieId, similaritySource);
-    catalogMovieSimilaritySources.push(similaritySource);
+
+    if (TAXONOMY_FEATURES_ENABLED) {
+      const similaritySource = getMovieSimilaritySource(movie, meta);
+
+      catalogMovieSimilaritySourceById.set(movieId, similaritySource);
+      catalogMovieSimilaritySources.push(similaritySource);
+    }
 
     meta.filterableGenreNames.forEach(genreName => {
       catalogGenreNames.add(genreName);
@@ -4621,6 +4940,9 @@ function refreshMovieModalElements() {
   movieTaxonomySecondaryPreview = document.getElementById('movieTaxonomySecondaryPreview');
   movieTaxonomyWarningsPreview = document.getElementById('movieTaxonomyWarningsPreview');
   movieTaxonomySimilarityPreview = document.getElementById('movieTaxonomySimilarityPreview');
+  manualSimilarMovieSelect = document.getElementById('manualSimilarMovieSelect');
+  addManualSimilarMovieButton = document.getElementById('addManualSimilarMovieButton');
+  manualSimilarMoviesList = document.getElementById('manualSimilarMoviesList');
 }
 
 function bindMovieModalEvents() {
@@ -4639,18 +4961,32 @@ function bindMovieModalEvents() {
   posterFileInput?.addEventListener('change', updatePosterFileUi);
 
   [
-    genresInput,
-    countriesInput,
     movieFormatsInput,
-    movieModifiersInput,
-    movieBroadFamiliesInput,
-    tagsPerceivedInput,
-    tagsCanonInput,
-    movieTriggersInput
+    tagsPerceivedInput
   ].forEach(inputElement => {
     inputElement?.addEventListener('input', () => {
       updateMovieTaxonomyPreview();
     });
+  });
+
+  manualSimilarMovieSelect?.addEventListener('change', () => {
+    if (addManualSimilarMovieButton) {
+      addManualSimilarMovieButton.disabled = !manualSimilarMovieSelect.value;
+    }
+  });
+
+  addManualSimilarMovieButton?.addEventListener('click', () => {
+    addManualSimilarMovieFromSelect();
+  });
+
+  manualSimilarMoviesList?.addEventListener('click', event => {
+    const removeButton = event.target.closest('[data-remove-manual-similar]');
+
+    if (!removeButton) {
+      return;
+    }
+
+    removeManualSimilarMovieFromDraft(removeButton.dataset.removeManualSimilar);
   });
 
   movieForm.addEventListener('submit', saveMovie);
@@ -4686,14 +5022,9 @@ function openMovieModal() {
   movieModal.classList.add('is-open');
   isModalOpen = true;
   syncBodyScrollLock();
-
-  Promise.all([
-    ensureHorrorTaxonomyLoaded(),
-    ensureCatalogSimilarityDataLoaded()
-  ]).then(([isTaxonomyLoaded]) => {
-    if (isTaxonomyLoaded && isModalOpen) {
-      updateMovieTaxonomyPreview();
-    }
+  renderManualSimilarMoviesList();
+  ensureManualSimilarEditorDataLoaded(editingMovieId).catch(error => {
+    console.warn('Не удалось подготовить список ручных похожих фильмов:', error);
   });
 
   requestAnimationFrame(() => {
@@ -4771,7 +5102,7 @@ function resetFormToCreateMode() {
   cancelEditButton.classList.remove('is-visible');
   formMessage.textContent = '';
 
-  setCanonCoverageControlValues({});
+  setManualSimilarDraft([]);
   refreshCustomSelect(releaseMonthInput);
   updateMovieTaxonomyPreview();
 }
@@ -4823,12 +5154,11 @@ function fillFormForEdit(movie) {
   setInputValue(searchAliasesInput, (movie.search_aliases || []).join('\n'), 'searchAliasesInput');
   setInputValue(synopsisInput, movie.synopsis, 'synopsisInput');
   setInputValue(movieFormatsInput, (movie.formats || []).join('\n'), 'movieFormatsInput');
-  setInputValue(movieModifiersInput, (movie.modifiers || []).join('\n'), 'movieModifiersInput');
-  setInputValue(movieBroadFamiliesInput, (movie.broad_families || []).join('\n'), 'movieBroadFamiliesInput');
   setInputValue(tagsPerceivedInput, (movie.tags_perceived || []).join('\n'), 'tagsPerceivedInput');
-  setInputValue(tagsCanonInput, (movie.tags_canon || []).join('\n'), 'tagsCanonInput');
-  setCanonCoverageControlValues(movie.canon_coverage || {});
-  setInputValue(movieTriggersInput, (movie.triggers || []).join('\n'), 'movieTriggersInput');
+  setManualSimilarDraft(getManualSimilarMovieIds(movie.id));
+  ensureManualSimilarEditorDataLoaded(movie.id).catch(error => {
+    console.warn('Не удалось загрузить ручные похожие фильмы для формы:', error);
+  });
 
   formTitle.textContent = `Редактирование: ${movie.title}`;
   submitButton.textContent = 'Сохранить изменения';
@@ -5000,7 +5330,7 @@ function loadSubgenreFilterOptions(subgenreCounts = new Map()) {
   }
 
   const selectedSubgenre = subgenreFilter.value || '';
-  const taxonomySubgenreKeys = window.HORROR_TAXONOMY?.subgenres || [];
+  const taxonomySubgenreKeys = TAXONOMY_FEATURES_ENABLED ? (window.HORROR_TAXONOMY?.subgenres || []) : [];
   const actualSubgenreKeys = Array.from(subgenreCounts.keys());
   const subgenreKeys = [...new Set([...taxonomySubgenreKeys, ...actualSubgenreKeys])];
 
@@ -5037,7 +5367,7 @@ function loadFormatFilterOptions(formatCounts = new Map()) {
   }
 
   const selectedFormat = formatFilter.value || '';
-  const taxonomyFormatKeys = window.HORROR_TAXONOMY?.formats || [];
+  const taxonomyFormatKeys = TAXONOMY_FEATURES_ENABLED ? (window.HORROR_TAXONOMY?.formats || []) : [];
   const actualFormatKeys = Array.from(formatCounts.keys());
   const formatKeys = [...new Set([...taxonomyFormatKeys, ...actualFormatKeys])];
 
@@ -5069,6 +5399,15 @@ function loadFormatFilterOptions(formatCounts = new Map()) {
 }
 
 function loadTriggerFilterOptions(triggerCounts = new Map()) {
+  if (!TAXONOMY_FEATURES_ENABLED) {
+    if (triggerFiltersGroup) {
+      triggerFiltersGroup.innerHTML = '';
+    }
+
+    syncTriggerFiltersTriggerText();
+    return;
+  }
+
   if (!triggerFiltersGroup) {
     return;
   }
@@ -5212,7 +5551,6 @@ const MOVIE_CATALOG_SELECT = `
   formats,
   primary_subgenre,
   secondary_subgenres,
-  triggers,
   search_aliases,
   poster_url,
   kinopoisk_url,
@@ -5323,6 +5661,10 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
 }
 
 function ensureCatalogSimilarityDataLoaded() {
+  if (!TAXONOMY_FEATURES_ENABLED) {
+    return Promise.resolve(false);
+  }
+
   if (hasMovieSimilarityPayload()) {
     return Promise.resolve(true);
   }
@@ -5539,6 +5881,7 @@ async function reloadMoviePageData(movieId) {
   }
 
   await Promise.all([
+    fetchManualSimilarMovies(),
     fetchMovieRatings(),
     fetchMovieWatchlist()
   ]);
@@ -5635,6 +5978,7 @@ async function reloadCatalogData({ showSkeleton = false, refreshFilters = true }
     fetchMovies({
       preserveExistingCatalogOnError: shouldPreserveExistingCatalogOnMovieLoadError
     }),
+    fetchManualSimilarMovies(),
     fetchMovieRatings(),
     fetchMovieWatchlist(),
     fetchCatalogReviewSummary()
@@ -6661,14 +7005,8 @@ async function addMovie(event) {
   try {
     ensureActiveSessionForWrite();
 
-    const isTaxonomyLoaded = await ensureHorrorTaxonomyLoaded();
-
-    if (!isTaxonomyLoaded) {
-      setMovieFormStatus('Не удалось загрузить таксономию для сохранения фильма.');
-      return;
-    }
-
     const taxonomyDraft = buildMovieTaxonomyDraftFromForm();
+    const manualSimilarMovieIds = normalizeManualSimilarMovieIds(manualSimilarMovieIdsDraft);
 
     let finalPosterUrl = null;
 
@@ -6694,14 +7032,14 @@ async function addMovie(event) {
           director: director || null,
           synopsis: synopsis || null,
           formats: taxonomyDraft.formats,
-          modifiers: taxonomyDraft.modifiers,
-          broad_families: taxonomyDraft.broadFamilies,
-          canon_coverage: taxonomyDraft.canonCoverage,
-          primary_subgenre: taxonomyDraft.primarySubgenre,
-          secondary_subgenres: taxonomyDraft.secondarySubgenres,
+          modifiers: [],
+          broad_families: [],
+          canon_coverage: null,
+          primary_subgenre: null,
+          secondary_subgenres: [],
           tags_perceived: taxonomyDraft.tagsPerceived,
-          tags_canon: taxonomyDraft.tagsCanon,
-          triggers: taxonomyDraft.triggers,
+          tags_canon: [],
+          triggers: [],
           search_aliases: searchAliases,
           rating: 0,
           poster_url: finalPosterUrl,
@@ -6728,6 +7066,15 @@ async function addMovie(event) {
       15000,
       'Превышено время ожидания сохранения жанров и стран.'
     );
+
+    if (manualSimilarMovieIds.length > 0) {
+      setMovieFormStatus('Сохраняю похожие фильмы...');
+      await withPendingRequestTimeout(
+        replaceManualSimilarMovies(insertedMovie.id, manualSimilarMovieIds),
+        15000,
+        'Превышено время ожидания сохранения похожих фильмов.'
+      );
+    }
 
     if (isCatalogPage()) {
       setMovieFormStatus('Обновляю каталог...');
@@ -6827,15 +7174,14 @@ async function updateMovie(event) {
 
   try {
     ensureActiveSessionForWrite();
-
-    const isTaxonomyLoaded = await ensureHorrorTaxonomyLoaded();
-
-    if (!isTaxonomyLoaded) {
-      setMovieFormStatus('Не удалось загрузить таксономию для сохранения фильма.');
-      return;
-    }
+    await ensureManualSimilarDataLoaded();
 
     const taxonomyDraft = buildMovieTaxonomyDraftFromForm();
+    const manualSimilarMovieIds = normalizeManualSimilarMovieIds(manualSimilarMovieIdsDraft, editingMovieId);
+    const manualSimilarChanged = !areStringArraysEqual(
+      manualSimilarMovieIds,
+      getManualSimilarMovieIds(editingMovieId)
+    );
 
     let finalPosterUrl = existingMovie.poster_url ?? null;
     let uploadedNewPoster = false;
@@ -6878,36 +7224,8 @@ async function updateMovie(event) {
       changedFields.formats = taxonomyDraft.formats;
     }
 
-    if (!areStringArraysEqual(taxonomyDraft.modifiers, existingMovie.modifiers || [])) {
-      changedFields.modifiers = taxonomyDraft.modifiers;
-    }
-
-    if (!areStringArraysEqual(taxonomyDraft.broadFamilies, existingMovie.broad_families || [])) {
-      changedFields.broad_families = taxonomyDraft.broadFamilies;
-    }
-
-    if (!areObjectsEqual(taxonomyDraft.canonCoverage, existingMovie.canon_coverage || {})) {
-      changedFields.canon_coverage = taxonomyDraft.canonCoverage;
-    }
-
-    if ((taxonomyDraft.primarySubgenre || null) !== (existingMovie.primary_subgenre ?? null)) {
-      changedFields.primary_subgenre = taxonomyDraft.primarySubgenre;
-    }
-
-    if (!areStringArraysEqual(taxonomyDraft.secondarySubgenres, existingMovie.secondary_subgenres || [])) {
-      changedFields.secondary_subgenres = taxonomyDraft.secondarySubgenres;
-    }
-
     if (!areStringArraysEqual(taxonomyDraft.tagsPerceived, existingMovie.tags_perceived || [])) {
       changedFields.tags_perceived = taxonomyDraft.tagsPerceived;
-    }
-
-    if (!areStringArraysEqual(taxonomyDraft.tagsCanon, existingMovie.tags_canon || [])) {
-      changedFields.tags_canon = taxonomyDraft.tagsCanon;
-    }
-
-    if (!areStringArraysEqual(taxonomyDraft.triggers, existingMovie.triggers || [])) {
-      changedFields.triggers = taxonomyDraft.triggers;
     }
 
     const currentYearValue = year ? Number(year) : null;
@@ -6988,6 +7306,15 @@ async function updateMovie(event) {
       );
     }
 
+    if (manualSimilarChanged) {
+      setMovieFormStatus('Сохраняю похожие фильмы...');
+      await withPendingRequestTimeout(
+        replaceManualSimilarMovies(editingMovieId, manualSimilarMovieIds),
+        15000,
+        'Превышено время ожидания сохранения похожих фильмов.'
+      );
+    }
+
     if (uploadedNewPoster && oldPosterUrl && oldPosterUrl !== finalPosterUrl) {
       try {
         await deletePosterFileByUrl(oldPosterUrl);
@@ -6996,7 +7323,7 @@ async function updateMovie(event) {
       }
     }
 
-    if (Object.keys(changedFields).length === 0 && !relationsChanged) {
+    if (Object.keys(changedFields).length === 0 && !relationsChanged && !manualSimilarChanged) {
       setMovieFormStatus('Изменений нет.');
       closeMovieModal();
       resetFormToCreateMode();
@@ -10026,7 +10353,7 @@ function getDynamicFilterOptionCounts() {
       });
     }
 
-    if (matchesCatalogFilterCountScope(matches, 'triggerExcludes')) {
+    if (TAXONOMY_FEATURES_ENABLED && matchesCatalogFilterCountScope(matches, 'triggerExcludes')) {
       meta.triggerKeys.forEach(triggerKey => {
         addCount(counts.triggerCounts, triggerKey);
       });
@@ -11343,28 +11670,11 @@ function getMovieSimilaritySource(movie, meta = getCatalogMovieMeta(movie)) {
 }
 
 function getSimilarMoviesForMoviePage(movie, limit = 4) {
-  if (!movie || !Array.isArray(allMovies) || allMovies.length === 0) {
+  if (!movie) {
     return [];
   }
 
-  const getSimilarMoviesHelper = window.HORROR_TAXONOMY?.helpers?.getSimilarMovies;
-
-  if (typeof getSimilarMoviesHelper !== 'function') {
-    return [];
-  }
-
-  const similarityMovies = catalogMovieSimilaritySources;
-  const targetMovie = getCatalogMovieSimilaritySource(movie);
-
-  if (!targetMovie) {
-    return [];
-  }
-
-  const similarItems = getSimilarMoviesHelper(targetMovie, similarityMovies, { limit });
-
-  return similarItems
-    .map(item => getCatalogMovieById(item.movie.id))
-    .filter(Boolean);
+  return getManualSimilarMoviesForMovie(movie.id, limit);
 }
 
 function resetMoviePageSimilarState() {
@@ -11401,27 +11711,12 @@ async function loadMoviePageSimilarMovies(movie, limit = 4) {
   renderMoviePageSimilarSection(movieId);
 
   try {
-    const shouldFetchMovies = (
-      !Array.isArray(allMovies) ||
-      allMovies.length === 0 ||
-      !hasMovieSimilarityPayload()
-    );
-    const loadingTasks = [ensureHorrorTaxonomyLoaded()];
-
-    if (shouldFetchMovies) {
-      loadingTasks.push(ensureCatalogSimilarityDataLoaded());
-    }
-
-    const [isTaxonomyReady] = await Promise.all(loadingTasks);
+    await ensureManualSimilarDataLoaded({ ensureMovies: true });
 
     if (
       requestId !== moviePageSimilarRequestId ||
       String(currentMoviePageMovieId) !== movieId
     ) {
-      return;
-    }
-
-    if (!isTaxonomyReady) {
       return;
     }
 
