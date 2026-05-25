@@ -220,6 +220,9 @@ let manualSimilarMovieIdsByMovieId = new Map();
 let manualSimilarMovieIdsDraft = [];
 let manualSimilarTableAvailable = true;
 let manualSimilarRowsLoaded = false;
+let manualSimilarDataLoadPromise = null;
+let manualSimilarMovieIdsLoadedByMovieId = new Set();
+let manualSimilarMovieIdsLoadPromisesByMovieId = new Map();
 let manualSimilarDraftDirty = false;
 let allMovieRatings = [];
 let allMovieWatchlist = [];
@@ -1206,6 +1209,8 @@ function rebuildManualSimilarMovieMap(rows = allManualSimilarRows) {
     });
 
   manualSimilarMovieIdsByMovieId = nextMap;
+  manualSimilarMovieIdsLoadedByMovieId = new Set();
+  manualSimilarMovieIdsLoadPromisesByMovieId.clear();
 }
 
 function getManualSimilarMovieIds(movieId) {
@@ -1219,11 +1224,41 @@ function getManualSimilarMovieIds(movieId) {
   );
 }
 
-function getManualSimilarMoviesForMovie(movieId, limit = 4) {
-  return getManualSimilarMovieIds(movieId)
-    .map(similarMovieId => getCatalogMovieById(similarMovieId))
-    .filter(Boolean)
-    .slice(0, limit);
+function cacheCatalogMovies(movies = []) {
+  (Array.isArray(movies) ? movies : []).forEach(movie => {
+    if (!movie?.id) {
+      return;
+    }
+
+    const movieId = String(movie.id);
+
+    catalogMoviesById.set(movieId, movie);
+    catalogMovieMetaById.set(movieId, buildCatalogMovieMeta(movie));
+  });
+}
+
+async function fetchCatalogMoviesByIds(movieIds = []) {
+  const normalizedMovieIds = normalizeManualSimilarMovieIds(movieIds);
+  const missingMovieIds = normalizedMovieIds.filter(movieId => !catalogMoviesById.has(String(movieId)));
+
+  if (missingMovieIds.length === 0) {
+    return normalizedMovieIds
+      .map(movieId => getCatalogMovieById(movieId))
+      .filter(Boolean);
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movies')
+    .select(MOVIE_CATALOG_SELECT)
+    .in('id', missingMovieIds)
+    .order('position', { foreignTable: 'movie_genres', ascending: true });
+
+  throwIfSupabaseError(error);
+  cacheCatalogMovies(data || []);
+
+  return normalizedMovieIds
+    .map(movieId => getCatalogMovieById(movieId))
+    .filter(Boolean);
 }
 
 function getManualSimilarMovieLabel(movie) {
@@ -1338,28 +1373,103 @@ async function fetchManualSimilarMovies() {
     return false;
   }
 
-  const { data, error } = await supabaseClient
-    .from('movie_manual_similar')
-    .select('movie_id, similar_movie_id, position')
-    .order('position', { ascending: true });
-
-  if (error) {
-    if (isManualSimilarTableUnavailableError(error)) {
-      manualSimilarTableAvailable = false;
-      manualSimilarRowsLoaded = true;
-      allManualSimilarRows = [];
-      rebuildManualSimilarMovieMap();
-      return false;
-    }
-
-    throw error;
+  if (manualSimilarDataLoadPromise) {
+    return manualSimilarDataLoadPromise;
   }
 
-  manualSimilarTableAvailable = true;
-  manualSimilarRowsLoaded = true;
-  allManualSimilarRows = data || [];
-  rebuildManualSimilarMovieMap();
-  return true;
+  manualSimilarDataLoadPromise = (async () => {
+    const { data, error } = await supabaseClient
+      .from('movie_manual_similar')
+      .select('movie_id, similar_movie_id, position')
+      .order('position', { ascending: true });
+
+    if (error) {
+      if (isManualSimilarTableUnavailableError(error)) {
+        manualSimilarTableAvailable = false;
+        manualSimilarRowsLoaded = true;
+        allManualSimilarRows = [];
+        rebuildManualSimilarMovieMap();
+        return false;
+      }
+
+      throw error;
+    }
+
+    manualSimilarTableAvailable = true;
+    manualSimilarRowsLoaded = true;
+    allManualSimilarRows = data || [];
+    rebuildManualSimilarMovieMap();
+    return true;
+  })().finally(() => {
+    manualSimilarDataLoadPromise = null;
+  });
+
+  return manualSimilarDataLoadPromise;
+}
+
+async function fetchManualSimilarMovieIdsForMovie(movieId, limit = 4) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!normalizedMovieId || !manualSimilarTableAvailable) {
+    return [];
+  }
+
+  if (manualSimilarRowsLoaded || manualSimilarMovieIdsLoadedByMovieId.has(normalizedMovieId)) {
+    return getManualSimilarMovieIds(normalizedMovieId).slice(0, limit);
+  }
+
+  if (manualSimilarMovieIdsLoadPromisesByMovieId.has(normalizedMovieId)) {
+    const cachedPromiseResult = await manualSimilarMovieIdsLoadPromisesByMovieId.get(normalizedMovieId);
+    return cachedPromiseResult.slice(0, limit);
+  }
+
+  const loadPromise = (async () => {
+    const { data, error } = await supabaseClient
+      .from('movie_manual_similar')
+      .select('similar_movie_id, position')
+      .eq('movie_id', normalizedMovieId)
+      .order('position', { ascending: true })
+      .limit(limit);
+
+    if (error) {
+      if (isManualSimilarTableUnavailableError(error)) {
+        manualSimilarTableAvailable = false;
+        manualSimilarMovieIdsByMovieId.set(normalizedMovieId, []);
+        manualSimilarMovieIdsLoadedByMovieId.add(normalizedMovieId);
+        return [];
+      }
+
+      throw error;
+    }
+
+    const similarMovieIds = normalizeManualSimilarMovieIds(
+      (data || []).map(row => row?.similar_movie_id),
+      normalizedMovieId
+    );
+
+    if (manualSimilarRowsLoaded) {
+      return getManualSimilarMovieIds(normalizedMovieId).slice(0, limit);
+    }
+
+    manualSimilarMovieIdsByMovieId.set(normalizedMovieId, similarMovieIds);
+    manualSimilarMovieIdsLoadedByMovieId.add(normalizedMovieId);
+    return similarMovieIds;
+  })().finally(() => {
+    manualSimilarMovieIdsLoadPromisesByMovieId.delete(normalizedMovieId);
+  });
+
+  manualSimilarMovieIdsLoadPromisesByMovieId.set(normalizedMovieId, loadPromise);
+  return loadPromise;
+}
+
+async function fetchManualSimilarMoviesForMovie(movieId, limit = 4) {
+  const similarMovieIds = await fetchManualSimilarMovieIdsForMovie(movieId, limit);
+
+  if (similarMovieIds.length === 0) {
+    return [];
+  }
+
+  return fetchCatalogMoviesByIds(similarMovieIds.slice(0, limit));
 }
 
 async function ensureManualSimilarDataLoaded({ ensureMovies = false } = {}) {
@@ -5881,7 +5991,6 @@ async function reloadMoviePageData(movieId) {
   }
 
   await Promise.all([
-    fetchManualSimilarMovies(),
     fetchMovieRatings(),
     fetchMovieWatchlist()
   ]);
@@ -5978,7 +6087,6 @@ async function reloadCatalogData({ showSkeleton = false, refreshFilters = true }
     fetchMovies({
       preserveExistingCatalogOnError: shouldPreserveExistingCatalogOnMovieLoadError
     }),
-    fetchManualSimilarMovies(),
     fetchMovieRatings(),
     fetchMovieWatchlist(),
     fetchCatalogReviewSummary()
@@ -11669,14 +11777,6 @@ function getMovieSimilaritySource(movie, meta = getCatalogMovieMeta(movie)) {
   };
 }
 
-function getSimilarMoviesForMoviePage(movie, limit = 4) {
-  if (!movie) {
-    return [];
-  }
-
-  return getManualSimilarMoviesForMovie(movie.id, limit);
-}
-
 function resetMoviePageSimilarState() {
   currentMoviePageSimilarMovieId = null;
   currentMoviePageSimilarMovies = [];
@@ -11711,7 +11811,7 @@ async function loadMoviePageSimilarMovies(movie, limit = 4) {
   renderMoviePageSimilarSection(movieId);
 
   try {
-    await ensureManualSimilarDataLoaded({ ensureMovies: true });
+    const similarMovies = await fetchManualSimilarMoviesForMovie(movieId, limit);
 
     if (
       requestId !== moviePageSimilarRequestId ||
@@ -11724,7 +11824,7 @@ async function loadMoviePageSimilarMovies(movie, limit = 4) {
       renderMoviePage(movie);
     }
 
-    currentMoviePageSimilarMovies = getSimilarMoviesForMoviePage(movie, limit);
+    currentMoviePageSimilarMovies = similarMovies;
     renderMoviePageSimilarSection(movieId);
   } catch (error) {
     console.error('Ошибка загрузки похожих фильмов:', error);
