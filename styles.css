@@ -1204,19 +1204,37 @@ CSS-БЛОК 7. СТРУКТУРА ФОРМ
 
 .manual-similar-picker {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
-  align-items: center;
+  align-items: start;
 }
 
 .manual-similar-picker select {
   width: 100%;
   min-width: 0;
+  height: 38px;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1.25;
 }
 
 .manual-similar-add-button {
   min-height: 36px;
+  justify-self: start;
   white-space: nowrap;
+}
+
+.manual-similar-row .custom-select-trigger {
+  min-height: 38px;
+  padding-top: 0;
+  padding-bottom: 0;
+  display: flex;
+  align-items: center;
+  line-height: 1.25;
+}
+
+.manual-similar-row .custom-select-label {
+  line-height: 1.25;
 }
 
 .manual-similar-list {
@@ -4778,6 +4796,15 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     align-items: start;
+  }
+
+  .manual-similar-row {
+    grid-column: 1 / -1;
+  }
+
+  .manual-similar-picker {
+    grid-template-columns: minmax(0, calc((100% - 12px) / 2)) auto;
+    align-items: center;
   }
 
   .canon-coverage-controls {

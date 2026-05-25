@@ -238,10 +238,10 @@
 
                 <div class="movie-form-inline-group movie-form-inline-group-taxonomy">
                   <div class="form-row">
-                    <label for="tagsPerceived">Теги perceived:</label>
+                    <label for="tagsPerceived">Поджанры:</label>
                     <textarea id="tagsPerceived" name="tagsPerceived" rows="4"></textarea>
                     <div class="field-hint">
-                      Без спойлеров. По одному тегу с новой строки.
+                      Без спойлеров. По одному поджанру с новой строки.
                     </div>
                   </div>
 
