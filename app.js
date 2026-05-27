@@ -178,7 +178,7 @@ const MOVIE_STRUCTURED_DATA_SCRIPT_ID = 'movieStructuredData';
 const CATALOG_STRUCTURED_DATA_SCRIPT_ID = 'catalogItemListStructuredData';
 const AUTH_REQUEST_TIMEOUT_MS = 20000;
 const AUTH_PROFILE_REQUEST_TIMEOUT_MS = 15000;
-const USER_PAGE_PREVIEW_LIMIT = 12;
+const USER_PAGE_PREVIEW_LIMIT = 10;
 
 let currentUser = null;
 let currentUserRole = null;
@@ -10646,28 +10646,65 @@ function sortUserPageMoviesByTitle(firstItem, secondItem) {
   );
 }
 
-function getUserPageMovieRowsHtml(items, emptyText, getMetaHtml = null) {
+function getUserPageMovieCardHtml(item, getBadgeHtml = null) {
+  const movie = item.movie;
+  const movieTitle = getManualSimilarMovieLabel(movie);
+  const originalTitle = String(movie?.original_title || '').trim();
+  const year = movie?.year ? String(movie.year) : '';
+  const badgeHtml = getBadgeHtml ? getBadgeHtml(item) : '';
+
+  return `
+    <a href="${buildMoviePageUrl(movie)}" class="user-page-movie-card" aria-label="Перейти к фильму ${escapeHtml(movieTitle)}">
+      <div class="user-page-movie-poster-wrapper">
+        ${
+          movie.poster_url
+            ? `
+              <img
+                class="user-page-movie-poster"
+                ${getPosterImageAttributeHtml(movie.poster_url, 'similar')}
+                alt="Постер фильма ${escapeHtml(movieTitle)}"
+                loading="lazy"
+                decoding="async"
+              >
+            `
+            : `<div class="movie-poster-placeholder">Нет постера</div>`
+        }
+        ${badgeHtml}
+      </div>
+
+      <div class="user-page-movie-card-body">
+        <div class="user-page-movie-card-title">${escapeHtml(movie.title || movieTitle)}</div>
+        ${originalTitle ? `<div class="user-page-movie-card-original">${escapeHtml(originalTitle)}</div>` : ''}
+        ${year ? `<div class="user-page-movie-card-meta">${escapeHtml(year)}</div>` : ''}
+      </div>
+    </a>
+  `;
+}
+
+function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null) {
   if (!items.length) {
     return `<div class="user-page-empty-state">${escapeHtml(emptyText)}</div>`;
   }
 
   const visibleItems = items.slice(0, USER_PAGE_PREVIEW_LIMIT);
   const hiddenCount = Math.max(0, items.length - visibleItems.length);
-  const rowsHtml = visibleItems.map(item => {
-    const movie = item.movie;
-
-    return `
-      <a href="${buildMoviePageUrl(movie)}" class="user-page-movie-row">
-        <span class="user-page-movie-title">${escapeHtml(getManualSimilarMovieLabel(movie))}</span>
-        ${getMetaHtml ? getMetaHtml(item) : ''}
-      </a>
-    `;
-  }).join('');
+  const cardsHtml = visibleItems
+    .map(item => getUserPageMovieCardHtml(item, getBadgeHtml))
+    .join('');
   const moreHtml = hiddenCount > 0
-    ? `<div class="user-page-more-note">И ещё ${hiddenCount}</div>`
+    ? `
+      <div class="user-page-more-card" aria-label="И ещё ${hiddenCount}">
+        <strong>И ещё ${hiddenCount}</strong>
+      </div>
+    `
     : '';
 
-  return `${rowsHtml}${moreHtml}`;
+  return `
+    <div class="user-page-movie-rail" tabindex="0">
+      ${cardsHtml}
+      ${moreHtml}
+    </div>
+  `;
 }
 
 function renderUserPageLoading() {
@@ -10815,35 +10852,35 @@ function renderUserPage(data) {
     </section>
 
     <section class="user-page-section">
-      <h2>Оценки</h2>
-      <div class="user-page-movie-list">
-        ${getUserPageMovieRowsHtml(
+      <div class="user-page-section-header">
+        <h2>Оценки и просмотры</h2>
+        <span aria-hidden="true">›</span>
+      </div>
+      ${getUserPageMovieRailHtml(
           data.ratingItems,
           'Пока нет оценённых фильмов.',
-          item => `<span class="user-page-rating">${Number(item.rating || 0)}/10 ★</span>`
+          item => `<span class="user-page-card-badge">★ ${Number(item.rating || 0)}</span>`
         )}
-      </div>
     </section>
 
     <section class="user-page-section">
-      <h2>Смотреть позже</h2>
-      <div class="user-page-movie-list">
-        ${getUserPageMovieRowsHtml(data.watchlistItems, 'Список просмотра пуст.')}
+      <div class="user-page-section-header">
+        <h2>Смотреть позже</h2>
+        <span aria-hidden="true">›</span>
       </div>
+      ${getUserPageMovieRailHtml(data.watchlistItems, 'Список просмотра пуст.')}
     </section>
 
     <section class="user-page-section">
-      <h2>Рецензии</h2>
-      <div class="user-page-movie-list">
-        ${getUserPageMovieRowsHtml(
+      <div class="user-page-section-header">
+        <h2>Рецензии</h2>
+        <span aria-hidden="true">›</span>
+      </div>
+      ${getUserPageMovieRailHtml(
           data.reviewItems,
           'Пока нет рецензий.',
-          item => {
-            const date = formatMovieReviewDate(item.updated_at || item.created_at);
-            return date ? `<span class="user-page-row-meta">${escapeHtml(date)}</span>` : '';
-          }
+          () => '<span class="user-page-card-badge user-page-card-badge-muted">Рецензия</span>'
         )}
-      </div>
     </section>
   `;
 }
