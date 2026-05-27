@@ -5339,6 +5339,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .page-logo {
+    font-size: 26px;
     letter-spacing: 1px;
   }
 
@@ -5753,6 +5754,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     --movie-card-text-line-height: 1.32;
     --movie-card-text-overflow-wrap: anywhere;
     --movie-card-text-word-break: break-word;
+  }
+
+  .page-logo {
+    font-size: 24px;
   }
 
   .movie-page-similar-grid {
