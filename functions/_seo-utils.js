@@ -21,8 +21,6 @@ const MOVIE_SELECT = `
   rottentomatoes_url,
   search_aliases,
   synopsis,
-  primary_subgenre,
-  secondary_subgenres,
   formats,
   movie_genres (
     position,

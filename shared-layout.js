@@ -236,7 +236,7 @@
                   <textarea id="synopsis" name="synopsis" rows="6"></textarea>
                 </div>
 
-                <div class="movie-form-inline-group movie-form-inline-group-taxonomy">
+                <div class="movie-form-inline-group movie-form-inline-group-classification">
                   <div class="form-row">
                     <label for="tagsPerceived">Поджанры:</label>
                     <textarea id="tagsPerceived" name="tagsPerceived" rows="4"></textarea>
