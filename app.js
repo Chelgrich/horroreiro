@@ -10760,6 +10760,38 @@ function sortUserPageMoviesByTitle(firstItem, secondItem) {
   );
 }
 
+function getUserPageItemTimestampMs(item, fields) {
+  for (const field of fields) {
+    const timestamp = new Date(item?.[field] || 0).getTime();
+
+    if (Number.isFinite(timestamp) && timestamp > 0) {
+      return timestamp;
+    }
+  }
+
+  return 0;
+}
+
+function sortUserPageItemsByNewestAdded(firstItem, secondItem) {
+  const firstTime = getUserPageItemTimestampMs(firstItem, ['created_at', 'updated_at']);
+  const secondTime = getUserPageItemTimestampMs(secondItem, ['created_at', 'updated_at']);
+
+  return (
+    secondTime - firstTime ||
+    sortUserPageMoviesByTitle(firstItem, secondItem)
+  );
+}
+
+function sortUserPageReviewsByNewestActivity(firstItem, secondItem) {
+  const firstTime = getUserPageItemTimestampMs(firstItem, ['updated_at', 'created_at']);
+  const secondTime = getUserPageItemTimestampMs(secondItem, ['updated_at', 'created_at']);
+
+  return (
+    secondTime - firstTime ||
+    sortUserPageMoviesByTitle(firstItem, secondItem)
+  );
+}
+
 function getUserPageMovieCardHtml(item, getBadgeHtml = null) {
   const movie = item.movie;
   const movieTitle = getManualSimilarMovieLabel(movie);
@@ -10970,12 +11002,14 @@ async function fetchPublicUserPageData(profile) {
   ] = await Promise.all([
     supabaseClient
       .from('movie_ratings')
-      .select('movie_id, rating')
-      .eq('user_id', userId),
+      .select('movie_id, rating, created_at, updated_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false }),
     supabaseClient
       .from('movie_watchlist')
-      .select('movie_id')
-      .eq('user_id', userId),
+      .select('movie_id, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false }),
     supabaseClient
       .from('movie_reviews')
       .select('id, movie_id, created_at, updated_at')
@@ -11007,28 +11041,21 @@ async function fetchPublicUserPageData(profile) {
       movie: moviesById.get(String(row.movie_id))
     }))
     .filter(item => item.movie)
-    .sort((firstItem, secondItem) => (
-      Number(secondItem.rating || 0) - Number(firstItem.rating || 0) ||
-      sortUserPageMoviesByTitle(firstItem, secondItem)
-    ));
+    .sort(sortUserPageItemsByNewestAdded);
   const watchlistItems = activeWatchlistRows
     .map(row => ({
       ...row,
       movie: moviesById.get(String(row.movie_id))
     }))
     .filter(item => item.movie)
-    .sort(sortUserPageMoviesByTitle);
+    .sort(sortUserPageItemsByNewestAdded);
   const reviewItems = reviewRows
     .map(row => ({
       ...row,
       movie: moviesById.get(String(row.movie_id))
     }))
     .filter(item => item.movie)
-    .sort((firstItem, secondItem) => (
-      String(secondItem.updated_at || secondItem.created_at || '').localeCompare(
-        String(firstItem.updated_at || firstItem.created_at || '')
-      )
-    ));
+    .sort(sortUserPageReviewsByNewestActivity);
 
   return {
     profile,
