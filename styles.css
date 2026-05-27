@@ -710,7 +710,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 
 .section-title {
   margin: 0 0 18px;
-  font-size: 26px;
+  font-size: 18px;
   font-weight: 700;
   line-height: 1.15;
   color: var(--color-text-primary);
@@ -3606,7 +3606,7 @@ body:has(.user-page-shell) .page {
 
 .user-page-section-header h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 18px;
   line-height: 1.2;
 }
 
@@ -4235,10 +4235,14 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-subtitle {
   margin: 0 0 14px;
-  font-size: 24px;
+  font-size: 18px;
   line-height: 1.15;
   font-weight: 700;
   color: var(--color-text-primary);
+}
+
+.movie-page-review-form-block .movie-page-subtitle {
+  font-size: 16px;
 }
 
 .movie-page-stack {
@@ -4595,7 +4599,12 @@ body:has(.movie-page-shell) .page {
   }
 
   .user-page-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .user-page-stat {
+    min-height: 0;
+    padding: 14px 8px;
   }
 
   .movie-page-layout {
@@ -4653,8 +4662,28 @@ body:has(.movie-page-shell) .page {
     font-size: 24px;
   }
 
-  .user-page-stats {
-    grid-template-columns: 1fr;
+  .user-page-main-title,
+  .movie-page-title {
+    font-size: 24px;
+  }
+
+  .user-page-display-name {
+    font-size: 20px;
+  }
+
+  .user-page-handle {
+    font-size: 13px;
+    line-height: 1.3;
+  }
+
+  .user-page-section-header h2,
+  .section-title,
+  h2.movie-page-subtitle {
+    font-size: 16px;
+  }
+
+  .movie-page-review-form-block .movie-page-subtitle {
+    font-size: 15px;
   }
 
   .user-page-movie-rail {
@@ -4704,7 +4733,6 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-subtitle {
-    font-size: 20px;
     line-height: 1.18;
     margin-bottom: 12px;
   }
@@ -5195,7 +5223,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .section-title {
-    font-size: 24px;
+    font-size: 18px;
   }
 
   .movies-section-header {
@@ -5328,7 +5356,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .section-title {
-    font-size: 20px;
+    font-size: 16px;
   }
 
   .movies-section-header,
@@ -5679,6 +5707,33 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .footer-author {
     font-size: 12px;
+  }
+
+  .user-page-main-title,
+  .movie-page-title {
+    font-size: 22px;
+  }
+
+  .user-page-display-name {
+    font-size: 18px;
+  }
+
+  .user-page-handle {
+    font-size: 12px;
+  }
+
+  .user-page-section-header h2,
+  .section-title,
+  h2.movie-page-subtitle {
+    font-size: 15px;
+  }
+
+  .movie-page-review-form-block .movie-page-subtitle {
+    font-size: 14px;
+  }
+
+  .user-page-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
