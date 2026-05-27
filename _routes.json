@@ -4,6 +4,7 @@
     "/env",
     "/movie/*",
     "/movie.html",
+    "/user/*",
     "/sitemap.xml"
   ],
   "exclude": []

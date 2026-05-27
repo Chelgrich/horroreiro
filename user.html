@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Профиль пользователя — Хоррорейро</title>
+
+  <meta name="description" content="Публичный профиль пользователя Хоррорейро: оценки, список просмотра и рецензии.">
+  <meta property="og:type" content="profile">
+  <meta property="og:title" content="Профиль пользователя — Хоррорейро">
+  <meta property="og:description" content="Публичный профиль пользователя Хоррорейро: оценки, список просмотра и рецензии.">
+  <meta property="og:url" content="https://horroreiro.ru/user/">
+  <meta property="og:image" content="https://horroreiro.ru/og-preview.jpg">
+  <meta property="og:site_name" content="Хоррорейро">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Профиль пользователя — Хоррорейро">
+  <meta name="twitter:description" content="Публичный профиль пользователя Хоррорейро: оценки, список просмотра и рецензии.">
+  <meta name="twitter:image" content="https://horroreiro.ru/og-preview.jpg">
+  <meta name="twitter:url" content="https://horroreiro.ru/user/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#111315">
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://uogzcozbnosfguyfbvhe.supabase.co" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+
+  <style>
+    html:not(.app-ready) body {
+      opacity: 0;
+    }
+
+    html.app-ready body {
+      opacity: 1;
+      transition: opacity 0.18s ease;
+    }
+  </style>
+
+  <script>
+    window.__ENV_READY__ = new Promise(resolve => {
+      const isLocalFile = window.location.protocol === 'file:';
+      const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const shouldUseLocalDevEnv = isLocalFile || isLocalHost;
+
+      const localDevEnv = {
+        SUPABASE_URL: 'https://uogzcozbnosfguyfbvhe.supabase.co',
+        SUPABASE_ANON_KEY: 'sb_publishable_trS_-TlQwFqcM59nELIdsw_ygVI6B0j',
+        APP_BUILD_VERSION: 'dev-local'
+      };
+
+      function getVersionedAssetUrl(src, buildVersion) {
+        const assetPath = window.location.protocol === 'file:' ? src : `/${src}`;
+
+        return `${assetPath}?v=${encodeURIComponent(buildVersion)}`;
+      }
+
+      function applyEnvAndLoadStyles() {
+        const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+        const stylesheet = document.createElement('link');
+
+        stylesheet.rel = 'stylesheet';
+        stylesheet.href = getVersionedAssetUrl('styles.css', buildVersion);
+        stylesheet.onload = () => {
+          document.documentElement.classList.add('app-ready');
+          resolve();
+        };
+        stylesheet.onerror = () => {
+          document.documentElement.classList.add('app-ready');
+          resolve();
+        };
+        document.head.appendChild(stylesheet);
+      }
+
+      if (shouldUseLocalDevEnv) {
+        window.__ENV__ = localDevEnv;
+        applyEnvAndLoadStyles();
+        return;
+      }
+
+      const envScript = document.createElement('script');
+      envScript.src = '/env';
+      envScript.onload = applyEnvAndLoadStyles;
+      envScript.onerror = () => {
+        window.__ENV__ = localDevEnv;
+        applyEnvAndLoadStyles();
+      };
+
+      document.head.appendChild(envScript);
+    });
+  </script>
+</head>
+
+<body>
+  <main class="page user-page-shell">
+    <div id="sharedHeaderMount"></div>
+
+    <div id="sharedAuthModalMount"></div>
+
+    <div id="sharedDisplayNameModalMount"></div>
+
+    <section class="section user-page">
+      <a href="/" class="secondary-button user-page-back-link">← Назад к каталогу</a>
+
+      <div id="userPage" class="user-page-content-shell">
+        <div class="user-page-loading-state">Загрузка профиля...</div>
+      </div>
+    </section>
+  </main>
+
+  <div id="sharedFooterMount"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    (function () {
+      const envReadyPromise = window.__ENV_READY__ || Promise.resolve();
+
+      function loadScript(src, buildVersion) {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          const assetPath = window.location.protocol === 'file:' ? src : `/${src}`;
+
+          script.src = `${assetPath}?v=${encodeURIComponent(buildVersion)}`;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+      }
+
+      envReadyPromise
+        .then(() => {
+          const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+          return loadScript('shared-layout.js', buildVersion)
+            .then(() => {
+              window.SharedLayout?.mountSharedHeader({ isMoviePage: false });
+              window.SharedLayout?.mountSharedAuthModal();
+              window.SharedLayout?.mountSharedDisplayNameModal();
+              window.SharedLayout?.mountSharedFooter();
+            })
+            .then(() => loadScript('custom-select.js', buildVersion))
+            .then(() => loadScript('app.js', buildVersion));
+        })
+        .catch(error => {
+          console.error('Ошибка загрузки versioned scripts:', error);
+        });
+    })();
+  </script>
+</body>
+
+</html>

@@ -52,8 +52,6 @@
                       class="auth-popover-item"
                       id="profileSummaryButton"
                       role="menuitem"
-                      aria-haspopup="dialog"
-                      aria-expanded="false"
                       hidden
                     >
                       Мой профиль
@@ -212,44 +210,6 @@
         }
   
         displayNameModalMount.innerHTML = getSharedDisplayNameModalHtml();
-      }
-
-      function getSharedProfileSummaryModalHtml() {
-        return `
-          <div id="profileSummaryModal" class="modal">
-            <div class="modal-backdrop" id="profileSummaryModalBackdrop"></div>
-
-            <div class="modal-dialog profile-summary-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="profileSummaryModalTitle">
-              <div class="modal-header">
-                <h2 id="profileSummaryModalTitle">Мой профиль</h2>
-                <button type="button" id="closeProfileSummaryModalButton" class="modal-close-button" aria-label="Закрыть"></button>
-              </div>
-
-              <div id="profileSummaryContent" class="profile-summary-content" aria-live="polite">
-                <div class="profile-summary-loading">Собираю данные профиля...</div>
-              </div>
-
-              <div class="profile-summary-actions">
-                <button type="button" id="profileSummaryEditNameButton" class="secondary-button secondary-button-compact">
-                  Изменить никнейм
-                </button>
-                <button type="button" id="profileSummaryCloseButton" class="secondary-button secondary-button-compact">
-                  Закрыть
-                </button>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      function mountSharedProfileSummaryModal() {
-        const profileSummaryModalMount = document.getElementById('sharedProfileSummaryModalMount');
-
-        if (!profileSummaryModalMount) {
-          return;
-        }
-
-        profileSummaryModalMount.innerHTML = getSharedProfileSummaryModalHtml();
       }
 
       function getSharedMovieModalHtml() {
@@ -517,7 +477,6 @@
         mountSharedHeader,
         mountSharedAuthModal,
         mountSharedDisplayNameModal,
-        mountSharedProfileSummaryModal,
         mountSharedMovieModal,
         mountSharedFooter
       };

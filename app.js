@@ -19,12 +19,6 @@ const saveDisplayNameButton = document.getElementById('saveDisplayNameButton');
 const cancelDisplayNameButton = document.getElementById('cancelDisplayNameButton');
 const displayNameMessage = document.getElementById('displayNameMessage');
 const profileSummaryButton = document.getElementById('profileSummaryButton');
-const profileSummaryModal = document.getElementById('profileSummaryModal');
-const profileSummaryModalBackdrop = document.getElementById('profileSummaryModalBackdrop');
-const closeProfileSummaryModalButton = document.getElementById('closeProfileSummaryModalButton');
-const profileSummaryContent = document.getElementById('profileSummaryContent');
-const profileSummaryEditNameButton = document.getElementById('profileSummaryEditNameButton');
-const profileSummaryCloseButton = document.getElementById('profileSummaryCloseButton');
 
 const openAuthModalButton = document.getElementById('openAuthModalButton');
 const authPopoverMenu = document.getElementById('authPopoverMenu');
@@ -50,6 +44,7 @@ const authMessage = document.getElementById('authMessage');
 const appToast = document.getElementById('appToast');
 const appToastMessage = document.getElementById('appToastMessage');
 const appToastAcceptButton = document.getElementById('appToastAcceptButton');
+const userPage = document.getElementById('userPage');
 
 const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
@@ -183,6 +178,7 @@ const MOVIE_STRUCTURED_DATA_SCRIPT_ID = 'movieStructuredData';
 const CATALOG_STRUCTURED_DATA_SCRIPT_ID = 'catalogItemListStructuredData';
 const AUTH_REQUEST_TIMEOUT_MS = 20000;
 const AUTH_PROFILE_REQUEST_TIMEOUT_MS = 15000;
+const USER_PAGE_PREVIEW_LIMIT = 12;
 
 let currentUser = null;
 let currentUserRole = null;
@@ -191,7 +187,6 @@ let isAdmin = false;
 let isAuthModalOpen = false;
 let isAuthPopoverOpen = false;
 let isDisplayNameModalOpen = false;
-let isProfileSummaryModalOpen = false;
 let isDisplayNameSubmitting = false;
 let isAuthRegisterMode = false;
 let isPasswordRecoveryMode = false;
@@ -1202,6 +1197,20 @@ function buildMoviePageUrl(movie) {
   return `movie.html?id=${encodeURIComponent(movie?.id || '')}`;
 }
 
+function buildUserPageUrl(handle) {
+  const normalizedHandle = String(handle || '').trim();
+
+  if (!normalizedHandle) {
+    return buildCatalogPageUrl();
+  }
+
+  const encodedHandle = encodeURIComponent(normalizedHandle);
+
+  return isLocalDevRouteHost()
+    ? `user.html?handle=${encodedHandle}`
+    : `/user/${encodedHandle}`;
+}
+
 function escapeRegExp(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -1223,6 +1232,23 @@ function getCurrentDisplayName() {
     currentUserProfile?.default_display_name ||
     ''
   ).trim();
+}
+
+function getCurrentUserPublicHandle() {
+  return String(
+    currentUserProfile?.default_display_name ||
+    currentUser?.id ||
+    ''
+  ).trim();
+}
+
+function openCurrentUserProfilePage() {
+  if (!shouldUseAuthenticatedUi()) {
+    return;
+  }
+
+  closeAuthPopoverMenu();
+  window.location.href = buildUserPageUrl(getCurrentUserPublicHandle());
 }
 
 function setDisplayNameMessage(message = '', type = '') {
@@ -1322,178 +1348,6 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
-}
-
-function getProfileSummaryLoadingHtml() {
-  return '<div class="profile-summary-loading">Собираю данные профиля...</div>';
-}
-
-function getProfileSummaryErrorHtml(error) {
-  const message = error?.message || 'Не удалось загрузить профиль. Попробуй открыть ещё раз.';
-
-  return `
-    <div class="profile-summary-state profile-summary-state-error">
-      ${escapeHtml(message)}
-    </div>
-  `;
-}
-
-function getProfileSummaryAverageRatingLabel(summary) {
-  if (!summary.ratingCount) {
-    return '—';
-  }
-
-  return summary.averageRating.toFixed(1);
-}
-
-function getProfileSummaryHtml(summary) {
-  return `
-    <div class="profile-summary-head">
-      <div class="profile-summary-name">${escapeHtml(summary.displayName || 'Профиль')}</div>
-      <div class="profile-summary-note">Личная сводка по оценкам и спискам на сайте.</div>
-    </div>
-
-    <div class="profile-summary-grid">
-      <div class="profile-summary-stat">
-        <span class="profile-summary-stat-value">${summary.ratingCount}</span>
-        <span class="profile-summary-stat-label">Оценено</span>
-      </div>
-      <div class="profile-summary-stat">
-        <span class="profile-summary-stat-value">${getProfileSummaryAverageRatingLabel(summary)}</span>
-        <span class="profile-summary-stat-label">Средняя оценка</span>
-      </div>
-      <div class="profile-summary-stat">
-        <span class="profile-summary-stat-value">${summary.watchlistCount}</span>
-        <span class="profile-summary-stat-label">Смотреть позже</span>
-      </div>
-      <div class="profile-summary-stat">
-        <span class="profile-summary-stat-value">${summary.reviewCount}</span>
-        <span class="profile-summary-stat-label">Рецензии</span>
-      </div>
-    </div>
-
-    <div class="profile-summary-note profile-summary-footnote">
-      Оценка фильма автоматически переводит его в просмотренные, но не удаляет из списка «смотреть позже».
-    </div>
-  `;
-}
-
-async function fetchCurrentUserProfileSummary() {
-  if (!currentUser) {
-    throw new Error('Профиль доступен только после входа.');
-  }
-
-  const userId = currentUser.id;
-  const [
-    ratingsResult,
-    watchlistResult,
-    reviewsResult
-  ] = await Promise.all([
-    supabaseClient
-      .from('movie_ratings')
-      .select('movie_id, rating')
-      .eq('user_id', userId),
-    supabaseClient
-      .from('movie_watchlist')
-      .select('movie_id')
-      .eq('user_id', userId),
-    supabaseClient
-      .from('movie_reviews')
-      .select('id, movie_id')
-      .eq('user_id', userId)
-  ]);
-
-  throwIfSupabaseError(ratingsResult.error);
-  throwIfSupabaseError(watchlistResult.error);
-  throwIfSupabaseError(reviewsResult.error);
-
-  const ratingRows = ratingsResult.data || [];
-  const watchlistRows = watchlistResult.data || [];
-  const reviewRows = reviewsResult.data || [];
-  const validRatingValues = ratingRows
-    .map(row => Number(row.rating))
-    .filter(rating => Number.isFinite(rating) && rating > 0);
-  const ratingSum = validRatingValues.reduce((sum, rating) => sum + rating, 0);
-  const ratedMovieIds = new Set(
-    ratingRows
-      .map(row => String(row.movie_id || ''))
-      .filter(Boolean)
-  );
-  const activeWatchlistCount = watchlistRows.filter(row => (
-    row?.movie_id && !ratedMovieIds.has(String(row.movie_id))
-  )).length;
-
-  upsertKnownMovieRatingRows(
-    ratingRows.map(row => ({
-      movie_id: row.movie_id,
-      user_id: userId,
-      rating: row.rating
-    })),
-    row => String(row?.user_id) === String(userId)
-  );
-
-  allMovieWatchlist = watchlistRows.map(row => ({
-    movie_id: row.movie_id,
-    user_id: userId
-  }));
-  rebuildCurrentUserWatchlistIndex();
-  markCatalogDataChanged();
-
-  return {
-    displayName: getCurrentDisplayName(),
-    ratingCount: validRatingValues.length,
-    averageRating: validRatingValues.length > 0 ? ratingSum / validRatingValues.length : 0,
-    watchlistCount: activeWatchlistCount,
-    reviewCount: reviewRows.length
-  };
-}
-
-function closeProfileSummaryModal() {
-  if (!profileSummaryModal) {
-    return;
-  }
-
-  profileSummaryModal.classList.remove('is-open');
-  isProfileSummaryModalOpen = false;
-
-  if (profileSummaryButton) {
-    profileSummaryButton.setAttribute('aria-expanded', 'false');
-  }
-
-  syncBodyScrollLock();
-}
-
-async function openProfileSummaryModal() {
-  if (!profileSummaryModal || !profileSummaryContent || !shouldUseAuthenticatedUi()) {
-    return;
-  }
-
-  closeAuthPopoverMenu();
-  closeDisplayNameModal();
-
-  profileSummaryContent.innerHTML = getProfileSummaryLoadingHtml();
-  profileSummaryModal.classList.add('is-open');
-  isProfileSummaryModalOpen = true;
-
-  if (profileSummaryButton) {
-    profileSummaryButton.setAttribute('aria-expanded', 'true');
-  }
-
-  syncBodyScrollLock();
-
-  try {
-    const summary = await fetchCurrentUserProfileSummary();
-
-    if (isProfileSummaryModalOpen) {
-      profileSummaryContent.innerHTML = getProfileSummaryHtml(summary);
-    }
-  } catch (error) {
-    console.error('Ошибка загрузки профиля:', error);
-
-    if (isProfileSummaryModalOpen) {
-      profileSummaryContent.innerHTML = getProfileSummaryErrorHtml(error);
-    }
-  }
 }
 
 function highlightSearchMatches(text, searchQuery) {
@@ -4421,7 +4275,6 @@ function syncBodyScrollLock() {
     isModalOpen ||
     isAuthModalOpen ||
     (displayNameModal && displayNameModal.classList.contains('is-open')) ||
-    (profileSummaryModal && profileSummaryModal.classList.contains('is-open')) ||
     (filtersModal && filtersModal.classList.contains('is-open')) ||
     (mobileRatingModal && mobileRatingModal.classList.contains('is-open'))
   );
@@ -4903,7 +4756,6 @@ function updateAuthUI() {
   if (!shouldShowAuthenticatedUi) {
     closeAuthPopoverMenu();
     closeDisplayNameModal();
-    closeProfileSummaryModal();
   }
 
   if (loginForm) {
@@ -4916,7 +4768,6 @@ function updateAuthUI() {
 
   if (profileSummaryButton) {
     profileSummaryButton.hidden = !shouldShowAuthenticatedUi;
-    profileSummaryButton.setAttribute('aria-expanded', String(isProfileSummaryModalOpen));
   }
 
   if (moviePageAdminActions) {
@@ -10202,16 +10053,7 @@ function bindSharedUiEvents() {
     logout();
   });
 
-  profileSummaryButton?.addEventListener('click', openProfileSummaryModal);
-
-  closeProfileSummaryModalButton?.addEventListener('click', closeProfileSummaryModal);
-  profileSummaryCloseButton?.addEventListener('click', closeProfileSummaryModal);
-  profileSummaryModalBackdrop?.addEventListener('click', closeProfileSummaryModal);
-
-  profileSummaryEditNameButton?.addEventListener('click', () => {
-    closeProfileSummaryModal();
-    openDisplayNameModal();
-  });
+  profileSummaryButton?.addEventListener('click', openCurrentUserProfilePage);
 
   manualSimilarAuditButton?.addEventListener('click', runManualSimilarAudit);
 
@@ -10311,7 +10153,6 @@ function bindSharedUiEvents() {
     closeAllCustomSelects();
     closeAuthPopoverMenu();
     closeDisplayNameModal();
-    closeProfileSummaryModal();
 
     if (isModalOpen) {
       closeMovieModal();
@@ -10506,6 +10347,10 @@ function isMoviePage() {
   return Boolean(moviePage);
 }
 
+function isUserPage() {
+  return Boolean(userPage);
+}
+
 function handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect) {
   if (!hasPasswordRecoveryRedirect) {
     return;
@@ -10692,6 +10537,340 @@ async function initCatalogPage() {
   if (!hydrationState.didHydrateCatalogFromSnapshot) {
     restoreCatalogScrollPosition();
   }
+}
+
+function isSafeUserProfileLookupHandle(handle) {
+  return /^[A-Za-z0-9_-]{3,80}$/.test(String(handle || '').trim());
+}
+
+function getUserPageRouteHandle() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const pathHandleMatch = window.location.pathname.match(/\/user\/([^/]+)\/?$/);
+  const pathHandle = pathHandleMatch ? decodeURIComponent(pathHandleMatch[1] || '').trim() : '';
+  const queryHandle = String(searchParams.get('handle') || '').trim();
+
+  return pathHandle || queryHandle || '';
+}
+
+function getPublicProfileDisplayName(profile) {
+  return String(
+    profile?.display_name ||
+    profile?.default_display_name ||
+    'Пользователь'
+  ).trim();
+}
+
+function getPublicProfileHandle(profile) {
+  return String(profile?.default_display_name || '').trim();
+}
+
+function buildUserCanonicalUrl(profile) {
+  return `${SITE_ORIGIN}${buildUserPageUrl(getPublicProfileHandle(profile))}`;
+}
+
+function setUserPageDocumentMeta(profile) {
+  if (!profile) {
+    document.title = 'Пользователь не найден — Хоррорейро';
+    upsertDocumentMeta({ name: 'description', content: 'Пользователь не найден в Хоррорейро.' });
+    upsertDocumentMeta({ name: 'robots', content: 'noindex, follow' });
+    upsertDocumentCanonical(window.location.href);
+    removeStructuredDataScript(MOVIE_STRUCTURED_DATA_SCRIPT_ID);
+    removeStructuredDataScript(CATALOG_STRUCTURED_DATA_SCRIPT_ID);
+    return;
+  }
+
+  const displayName = getPublicProfileDisplayName(profile);
+  const title = `${displayName} — профиль пользователя Хоррорейро`;
+  const description = `Профиль пользователя ${displayName}: оценки, список просмотра и рецензии в каталоге Хоррорейро.`;
+  const canonicalUrl = buildUserCanonicalUrl(profile);
+
+  document.title = title;
+  upsertDocumentMeta({ name: 'description', content: description });
+  upsertDocumentMeta({ name: 'robots', content: 'index, follow' });
+  upsertDocumentCanonical(canonicalUrl);
+  upsertDocumentMeta({ property: 'og:type', content: 'profile' });
+  upsertDocumentMeta({ property: 'og:title', content: title });
+  upsertDocumentMeta({ property: 'og:description', content: description });
+  upsertDocumentMeta({ property: 'og:url', content: canonicalUrl });
+  upsertDocumentMeta({ property: 'og:image', content: DEFAULT_SOCIAL_IMAGE_URL });
+  upsertDocumentMeta({ name: 'twitter:title', content: title });
+  upsertDocumentMeta({ name: 'twitter:description', content: description });
+  upsertDocumentMeta({ name: 'twitter:image', content: DEFAULT_SOCIAL_IMAGE_URL });
+  upsertDocumentMeta({ name: 'twitter:url', content: canonicalUrl });
+  removeStructuredDataScript(MOVIE_STRUCTURED_DATA_SCRIPT_ID);
+  removeStructuredDataScript(CATALOG_STRUCTURED_DATA_SCRIPT_ID);
+}
+
+async function fetchPublicUserProfileByHandle(handle) {
+  const normalizedHandle = String(handle || '').trim();
+
+  if (!normalizedHandle || !isSafeUserProfileLookupHandle(normalizedHandle)) {
+    return null;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('id, display_name, default_display_name')
+    .eq('default_display_name', normalizedHandle)
+    .maybeSingle();
+
+  throwIfSupabaseError(error);
+
+  return data || null;
+}
+
+function getUserPageMovieIds(rows = []) {
+  return [...new Set(
+    (Array.isArray(rows) ? rows : [])
+      .map(row => String(row?.movie_id || ''))
+      .filter(Boolean)
+  )];
+}
+
+function getUserPageAverageRating(ratingRows) {
+  const values = (Array.isArray(ratingRows) ? ratingRows : [])
+    .map(row => Number(row.rating))
+    .filter(rating => Number.isFinite(rating) && rating > 0);
+
+  if (!values.length) {
+    return null;
+  }
+
+  return values.reduce((sum, rating) => sum + rating, 0) / values.length;
+}
+
+function sortUserPageMoviesByTitle(firstItem, secondItem) {
+  return getManualSimilarMovieLabel(firstItem.movie).localeCompare(
+    getManualSimilarMovieLabel(secondItem.movie),
+    'ru'
+  );
+}
+
+function getUserPageMovieRowsHtml(items, emptyText, getMetaHtml = null) {
+  if (!items.length) {
+    return `<div class="user-page-empty-state">${escapeHtml(emptyText)}</div>`;
+  }
+
+  const visibleItems = items.slice(0, USER_PAGE_PREVIEW_LIMIT);
+  const hiddenCount = Math.max(0, items.length - visibleItems.length);
+  const rowsHtml = visibleItems.map(item => {
+    const movie = item.movie;
+
+    return `
+      <a href="${buildMoviePageUrl(movie)}" class="user-page-movie-row">
+        <span class="user-page-movie-title">${escapeHtml(getManualSimilarMovieLabel(movie))}</span>
+        ${getMetaHtml ? getMetaHtml(item) : ''}
+      </a>
+    `;
+  }).join('');
+  const moreHtml = hiddenCount > 0
+    ? `<div class="user-page-more-note">И ещё ${hiddenCount}</div>`
+    : '';
+
+  return `${rowsHtml}${moreHtml}`;
+}
+
+function renderUserPageLoading() {
+  if (!userPage) {
+    return;
+  }
+
+  userPage.innerHTML = '<div class="user-page-loading-state">Загрузка профиля...</div>';
+}
+
+function renderUserPageNotFound() {
+  if (!userPage) {
+    return;
+  }
+
+  setUserPageDocumentMeta(null);
+  userPage.innerHTML = `
+    <div class="user-page-empty-state user-page-empty-state-large">
+      Пользователь не найден.
+    </div>
+  `;
+}
+
+async function fetchPublicUserPageData(profile) {
+  const userId = profile?.id;
+
+  if (!userId) {
+    return null;
+  }
+
+  const [
+    ratingsResult,
+    watchlistResult,
+    reviewsResult
+  ] = await Promise.all([
+    supabaseClient
+      .from('movie_ratings')
+      .select('movie_id, rating')
+      .eq('user_id', userId),
+    supabaseClient
+      .from('movie_watchlist')
+      .select('movie_id')
+      .eq('user_id', userId),
+    supabaseClient
+      .from('movie_reviews')
+      .select('id, movie_id, created_at, updated_at')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+  ]);
+
+  throwIfSupabaseError(ratingsResult.error);
+  throwIfSupabaseError(watchlistResult.error);
+  throwIfSupabaseError(reviewsResult.error);
+
+  const ratingRows = ratingsResult.data || [];
+  const watchlistRows = watchlistResult.data || [];
+  const reviewRows = reviewsResult.data || [];
+  const ratedMovieIds = new Set(getUserPageMovieIds(ratingRows));
+  const activeWatchlistRows = watchlistRows.filter(row => (
+    row?.movie_id && !ratedMovieIds.has(String(row.movie_id))
+  ));
+  const relatedMovieIds = [...new Set([
+    ...getUserPageMovieIds(ratingRows),
+    ...getUserPageMovieIds(activeWatchlistRows),
+    ...getUserPageMovieIds(reviewRows)
+  ])];
+  const movies = await fetchCatalogMoviesByIds(relatedMovieIds);
+  const moviesById = new Map(movies.map(movie => [String(movie.id), movie]));
+  const ratingItems = ratingRows
+    .map(row => ({
+      ...row,
+      movie: moviesById.get(String(row.movie_id))
+    }))
+    .filter(item => item.movie)
+    .sort((firstItem, secondItem) => (
+      Number(secondItem.rating || 0) - Number(firstItem.rating || 0) ||
+      sortUserPageMoviesByTitle(firstItem, secondItem)
+    ));
+  const watchlistItems = activeWatchlistRows
+    .map(row => ({
+      ...row,
+      movie: moviesById.get(String(row.movie_id))
+    }))
+    .filter(item => item.movie)
+    .sort(sortUserPageMoviesByTitle);
+  const reviewItems = reviewRows
+    .map(row => ({
+      ...row,
+      movie: moviesById.get(String(row.movie_id))
+    }))
+    .filter(item => item.movie)
+    .sort((firstItem, secondItem) => (
+      String(secondItem.updated_at || secondItem.created_at || '').localeCompare(
+        String(firstItem.updated_at || firstItem.created_at || '')
+      )
+    ));
+
+  return {
+    profile,
+    ratingItems,
+    watchlistItems,
+    reviewItems,
+    averageRating: getUserPageAverageRating(ratingRows)
+  };
+}
+
+function renderUserPage(data) {
+  if (!userPage || !data?.profile) {
+    return;
+  }
+
+  const displayName = getPublicProfileDisplayName(data.profile);
+  const handle = getPublicProfileHandle(data.profile);
+  const averageRating = data.averageRating === null ? '-' : data.averageRating.toFixed(1);
+  const avatarLetter = displayName.slice(0, 1).toUpperCase() || 'H';
+
+  setUserPageDocumentMeta(data.profile);
+
+  userPage.innerHTML = `
+    <section class="user-page-hero">
+      <div class="user-page-avatar" aria-hidden="true">${escapeHtml(avatarLetter)}</div>
+      <div class="user-page-identity">
+        <h1>${escapeHtml(displayName)}</h1>
+        <div class="user-page-handle">${escapeHtml(handle)}</div>
+      </div>
+    </section>
+
+    <section class="user-page-stats" aria-label="Статистика пользователя">
+      <div class="user-page-stat">
+        <span class="user-page-stat-value">${data.ratingItems.length}</span>
+        <span class="user-page-stat-label">Оценено</span>
+      </div>
+      <div class="user-page-stat">
+        <span class="user-page-stat-value">${averageRating}</span>
+        <span class="user-page-stat-label">Средняя оценка</span>
+      </div>
+      <div class="user-page-stat">
+        <span class="user-page-stat-value">${data.watchlistItems.length}</span>
+        <span class="user-page-stat-label">Смотреть позже</span>
+      </div>
+      <div class="user-page-stat">
+        <span class="user-page-stat-value">${data.reviewItems.length}</span>
+        <span class="user-page-stat-label">Рецензии</span>
+      </div>
+    </section>
+
+    <section class="user-page-section">
+      <h2>Оценки</h2>
+      <div class="user-page-movie-list">
+        ${getUserPageMovieRowsHtml(
+          data.ratingItems,
+          'Пока нет оценённых фильмов.',
+          item => `<span class="user-page-rating">${Number(item.rating || 0)}/10 ★</span>`
+        )}
+      </div>
+    </section>
+
+    <section class="user-page-section">
+      <h2>Смотреть позже</h2>
+      <div class="user-page-movie-list">
+        ${getUserPageMovieRowsHtml(data.watchlistItems, 'Список просмотра пуст.')}
+      </div>
+    </section>
+
+    <section class="user-page-section">
+      <h2>Рецензии</h2>
+      <div class="user-page-movie-list">
+        ${getUserPageMovieRowsHtml(
+          data.reviewItems,
+          'Пока нет рецензий.',
+          item => {
+            const date = formatMovieReviewDate(item.updated_at || item.created_at);
+            return date ? `<span class="user-page-row-meta">${escapeHtml(date)}</span>` : '';
+          }
+        )}
+      </div>
+    </section>
+  `;
+}
+
+async function initUserPage() {
+  const handle = getUserPageRouteHandle();
+
+  renderUserPageLoading();
+  await restoreSession();
+  trackEmailConfirmedLoginIfNeeded();
+
+  try {
+    const profile = await fetchPublicUserProfileByHandle(handle);
+
+    if (!profile) {
+      renderUserPageNotFound();
+      return;
+    }
+
+    const data = await fetchPublicUserPageData(profile);
+    renderUserPage(data);
+  } catch (error) {
+    console.error('Ошибка загрузки страницы пользователя:', error);
+    renderUserPageNotFound();
+  }
+
+  bindSharedAuthStateListener();
 }
 
 function getMoviePageRouteParams() {
@@ -12035,6 +12214,11 @@ async function init() {
   if (isCatalogPage()) {
     bindCatalogPageEvents();
     await initCatalogPage();
+    return;
+  }
+
+  if (isUserPage()) {
+    await initUserPage();
     return;
   }
 
