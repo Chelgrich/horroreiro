@@ -105,6 +105,7 @@
 
     <section class="section user-page">
       <a href="/" class="secondary-button user-page-back-link">← Назад к каталогу</a>
+      <h1 class="user-page-main-title">Мой профиль</h1>
 
       <div id="userPage" class="user-page-content-shell">
         <div class="user-page-loading-state">Загрузка профиля...</div>
@@ -137,7 +138,7 @@
           const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
           return loadScript('shared-layout.js', buildVersion)
             .then(() => {
-              window.SharedLayout?.mountSharedHeader({ isMoviePage: false });
+              window.SharedLayout?.mountSharedHeader({ isMoviePage: false, useLogoHeading: false });
               window.SharedLayout?.mountSharedAuthModal();
               window.SharedLayout?.mountSharedDisplayNameModal();
               window.SharedLayout?.mountSharedFooter();

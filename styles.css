@@ -142,6 +142,7 @@ body {
   display: flex;
   align-items: center;
   font-family: 'Unbounded', sans-serif;
+  font-size: clamp(32px, 3.2vw, 42px);
   font-weight: 600;
   letter-spacing: 2px;
   line-height: 44px;
@@ -3405,7 +3406,7 @@ body:has(.user-page-shell) .page {
 }
 
 .user-page-back-link {
-  margin-bottom: 34px;
+  margin-bottom: 18px;
   display: inline-flex;
   color: var(--color-text-secondary);
   background: transparent;
@@ -3427,6 +3428,15 @@ body:has(.user-page-shell) .page {
 .user-page-content-shell {
   min-height: 240px;
   clear: both;
+}
+
+.user-page-main-title {
+  margin: 0 0 24px;
+  color: var(--color-text-primary);
+  font-size: clamp(30px, 4vw, 44px);
+  line-height: 1.08;
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .user-page-loading-state,
@@ -3487,12 +3497,13 @@ body:has(.user-page-shell) .page {
   gap: 10px;
 }
 
-.user-page-title-row h1 {
+.user-page-display-name {
   margin: 0;
   min-width: 0;
   color: var(--color-text-primary);
-  font-size: clamp(28px, 4vw, 44px);
-  line-height: 1.08;
+  font-size: clamp(20px, 2.7vw, 30px);
+  line-height: 1.12;
+  font-weight: 800;
   overflow-wrap: anywhere;
 }
 
@@ -3550,17 +3561,19 @@ body:has(.user-page-shell) .page {
 .user-page-stats {
   min-width: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
 .user-page-stat {
   min-height: 96px;
-  padding: 16px;
+  padding: 16px 10px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   gap: 8px;
+  text-align: center;
   background: rgba(13, 17, 23, 0.66);
   border: 1px solid var(--border-card);
   border-radius: 8px;
@@ -4640,8 +4653,12 @@ body:has(.movie-page-shell) .page {
     font-size: 24px;
   }
 
-  .user-page-identity h1 {
-    font-size: 26px;
+  .user-page-main-title {
+    font-size: 28px;
+  }
+
+  .user-page-display-name {
+    font-size: 20px;
   }
 
   .user-page-stats {

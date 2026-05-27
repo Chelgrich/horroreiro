@@ -11079,7 +11079,7 @@ function renderUserPage(data) {
         <div class="user-page-avatar" data-user-page-avatar="true" aria-hidden="true">${escapeHtml(avatarLetter)}</div>
         <div class="user-page-identity">
           <div class="user-page-title-row">
-            <h1 data-user-page-display-name="true">${escapeHtml(displayName)}</h1>
+            <div class="user-page-display-name" data-user-page-display-name="true">${escapeHtml(displayName)}</div>
             ${displayNameEditButtonHtml}
           </div>
           <div class="user-page-handle">${escapeHtml(handle)}</div>
