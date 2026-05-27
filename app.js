@@ -8168,6 +8168,7 @@ function scheduleAppResizeSync() {
     appResizeSyncFrameId = null;
     syncOpenExternalLinksLayouts();
     syncCatalogPaginationSlotCount();
+    syncUserPageRailControls();
     syncAppToastPosition();
   });
 }
@@ -10119,6 +10120,8 @@ function bindSharedUiEvents() {
   });
 
   document.addEventListener('click', event => {
+    handleUserPageRailControlClick(event);
+
     const clickedInsideAuthMenu = event.target.closest('.auth-menu-wrap');
 
     if (!clickedInsideAuthMenu) {
@@ -10681,6 +10684,87 @@ function getUserPageMovieCardHtml(item, getBadgeHtml = null) {
   `;
 }
 
+function getUserPageRailScrollStep(rail) {
+  return Math.max(rail.clientWidth * 0.82, 180);
+}
+
+function getUserPageRailState(rail) {
+  const maxScrollLeft = Math.max(0, rail.scrollWidth - rail.clientWidth);
+  const scrollLeft = Math.max(0, rail.scrollLeft);
+  const tolerance = 2;
+
+  return {
+    canScrollPrev: scrollLeft > tolerance,
+    canScrollNext: scrollLeft < maxScrollLeft - tolerance
+  };
+}
+
+function updateUserPageRailControls(shell) {
+  const rail = shell?.querySelector('[data-user-page-rail="true"]');
+  const prevButton = shell?.querySelector('[data-user-page-rail-prev="true"]');
+  const nextButton = shell?.querySelector('[data-user-page-rail-next="true"]');
+
+  if (!rail || !prevButton || !nextButton) {
+    return;
+  }
+
+  const { canScrollPrev, canScrollNext } = getUserPageRailState(rail);
+
+  prevButton.hidden = !canScrollPrev;
+  nextButton.hidden = !canScrollNext;
+}
+
+function syncUserPageRailControls() {
+  userPage
+    ?.querySelectorAll('[data-user-page-rail-shell="true"]')
+    .forEach(updateUserPageRailControls);
+}
+
+function bindUserPageRailControls() {
+  userPage
+    ?.querySelectorAll('[data-user-page-rail-shell="true"]')
+    .forEach(shell => {
+      const rail = shell.querySelector('[data-user-page-rail="true"]');
+
+      if (!rail || rail.dataset.userPageRailBound === 'true') {
+        return;
+      }
+
+      rail.dataset.userPageRailBound = 'true';
+      rail.addEventListener('scroll', () => updateUserPageRailControls(shell), { passive: true });
+    });
+
+  requestAnimationFrame(syncUserPageRailControls);
+}
+
+function scrollUserPageRail(shell, direction) {
+  const rail = shell?.querySelector('[data-user-page-rail="true"]');
+
+  if (!rail) {
+    return;
+  }
+
+  rail.scrollBy({
+    left: getUserPageRailScrollStep(rail) * direction,
+    behavior: 'smooth'
+  });
+
+  requestAnimationFrame(() => updateUserPageRailControls(shell));
+}
+
+function handleUserPageRailControlClick(event) {
+  const button = event.target.closest('[data-user-page-rail-prev="true"], [data-user-page-rail-next="true"]');
+
+  if (!button) {
+    return;
+  }
+
+  const shell = button.closest('[data-user-page-rail-shell="true"]');
+  const direction = button.matches('[data-user-page-rail-next="true"]') ? 1 : -1;
+
+  scrollUserPageRail(shell, direction);
+}
+
 function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null) {
   if (!items.length) {
     return `<div class="user-page-empty-state">${escapeHtml(emptyText)}</div>`;
@@ -10700,9 +10784,29 @@ function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null) {
     : '';
 
   return `
-    <div class="user-page-movie-rail" tabindex="0">
-      ${cardsHtml}
-      ${moreHtml}
+    <div class="user-page-movie-rail-shell" data-user-page-rail-shell="true">
+      <button
+        class="user-page-rail-button user-page-rail-button-prev"
+        type="button"
+        data-user-page-rail-prev="true"
+        aria-label="Прокрутить назад"
+        hidden
+      >
+        &lsaquo;
+      </button>
+      <div class="user-page-movie-rail" data-user-page-rail="true" tabindex="0">
+        ${cardsHtml}
+        ${moreHtml}
+      </div>
+      <button
+        class="user-page-rail-button user-page-rail-button-next"
+        type="button"
+        data-user-page-rail-next="true"
+        aria-label="Прокрутить вперёд"
+        hidden
+      >
+        &rsaquo;
+      </button>
     </div>
   `;
 }
@@ -10883,6 +10987,8 @@ function renderUserPage(data) {
         )}
     </section>
   `;
+
+  bindUserPageRailControls();
 }
 
 async function initUserPage() {
