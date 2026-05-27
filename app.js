@@ -1233,6 +1233,169 @@ function buildUserPageUrl(handle) {
     : `/user/${encodedHandle}`;
 }
 
+let currentPageLinkObserver = null;
+let currentPageLinkSyncFrameId = null;
+let isHistoryPatchedForCurrentPageLinks = false;
+
+function normalizeCurrentPageLinkPath(pathname) {
+  const normalizedPathname = String(pathname || '/')
+    .replace(/\/index\.html$/i, '/')
+    .replace(/\/{2,}/g, '/');
+
+  if (normalizedPathname.length > 1) {
+    return normalizedPathname.replace(/\/+$/g, '');
+  }
+
+  return normalizedPathname || '/';
+}
+
+function normalizeCurrentPageLinkSearch(searchParams) {
+  const entries = Array.from(searchParams.entries())
+    .sort((firstEntry, secondEntry) => (
+      firstEntry[0].localeCompare(secondEntry[0]) ||
+      firstEntry[1].localeCompare(secondEntry[1])
+    ));
+
+  return new URLSearchParams(entries).toString();
+}
+
+function getCurrentPageLinkKey(url) {
+  return [
+    url.origin,
+    normalizeCurrentPageLinkPath(url.pathname),
+    normalizeCurrentPageLinkSearch(url.searchParams),
+    url.hash || ''
+  ].join('|');
+}
+
+function isSameCurrentPageUrl(href) {
+  try {
+    const targetUrl = new URL(href, window.location.href);
+    const currentUrl = new URL(window.location.href);
+
+    if (targetUrl.origin !== currentUrl.origin) {
+      return false;
+    }
+
+    return getCurrentPageLinkKey(targetUrl) === getCurrentPageLinkKey(currentUrl);
+  } catch (error) {
+    return false;
+  }
+}
+
+function restoreCurrentPageLink(anchor) {
+  const originalHref = anchor.dataset.currentPageOriginalHref || '';
+
+  if (originalHref && !anchor.hasAttribute('href')) {
+    anchor.setAttribute('href', originalHref);
+  }
+
+  anchor.removeAttribute('aria-current');
+  anchor.removeAttribute('data-current-page-link');
+  delete anchor.dataset.currentPageOriginalHref;
+}
+
+function disableCurrentPageLink(anchor, href) {
+  if (!anchor.dataset.currentPageOriginalHref) {
+    anchor.dataset.currentPageOriginalHref = href;
+  }
+
+  anchor.removeAttribute('href');
+  anchor.setAttribute('aria-current', 'page');
+  anchor.dataset.currentPageLink = 'true';
+}
+
+function syncCurrentPageLinks() {
+  const anchors = document.querySelectorAll('a[href], a[data-current-page-original-href]');
+
+  anchors.forEach(anchor => {
+    const href = anchor.getAttribute('href') || anchor.dataset.currentPageOriginalHref || '';
+
+    if (!href || anchor.hasAttribute('download')) {
+      return;
+    }
+
+    if (isSameCurrentPageUrl(href)) {
+      disableCurrentPageLink(anchor, href);
+      return;
+    }
+
+    if (anchor.dataset.currentPageLink === 'true') {
+      restoreCurrentPageLink(anchor);
+    }
+  });
+}
+
+function scheduleCurrentPageLinkSync() {
+  if (currentPageLinkSyncFrameId !== null) {
+    return;
+  }
+
+  currentPageLinkSyncFrameId = requestAnimationFrame(() => {
+    currentPageLinkSyncFrameId = null;
+    syncCurrentPageLinks();
+  });
+}
+
+function patchHistoryForCurrentPageLinks() {
+  if (isHistoryPatchedForCurrentPageLinks) {
+    return;
+  }
+
+  ['pushState', 'replaceState'].forEach(methodName => {
+    const originalMethod = window.history[methodName];
+
+    if (typeof originalMethod !== 'function') {
+      return;
+    }
+
+    window.history[methodName] = function patchCurrentPageLinkHistoryMethod(...args) {
+      const result = originalMethod.apply(this, args);
+      scheduleCurrentPageLinkSync();
+
+      return result;
+    };
+  });
+
+  isHistoryPatchedForCurrentPageLinks = true;
+}
+
+function initCurrentPageLinkGuard() {
+  patchHistoryForCurrentPageLinks();
+  syncCurrentPageLinks();
+
+  if (currentPageLinkObserver || typeof MutationObserver === 'undefined' || !document.body) {
+    return;
+  }
+
+  currentPageLinkObserver = new MutationObserver(mutations => {
+    const shouldSync = mutations.some(mutation => (
+      mutation.type === 'attributes' ||
+      Array.from(mutation.addedNodes).some(node => (
+        node.nodeType === Node.ELEMENT_NODE &&
+        (
+          node.matches?.('a[href], a[data-current-page-original-href]') ||
+          node.querySelector?.('a[href], a[data-current-page-original-href]')
+        )
+      ))
+    ));
+
+    if (shouldSync) {
+      scheduleCurrentPageLinkSync();
+    }
+  });
+
+  currentPageLinkObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['href']
+  });
+
+  window.addEventListener('popstate', scheduleCurrentPageLinkSync);
+  window.addEventListener('hashchange', scheduleCurrentPageLinkSync);
+}
+
 function escapeRegExp(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -12529,6 +12692,7 @@ async function init() {
 
   bindCustomSelectGlobalEvents();
   initCustomSelects();
+  initCurrentPageLinkGuard();
   bindSharedUiEvents();
   handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect);
 

@@ -2514,6 +2514,11 @@ CSS-БЛОК 12. КАРТОЧКА ФИЛЬМА
   text-decoration: none;
 }
 
+a[data-current-page-link="true"] {
+  cursor: default;
+  pointer-events: none;
+}
+
 .movie-card p {
   margin: 0;
   font-size: var(--movie-card-text-font-size);
