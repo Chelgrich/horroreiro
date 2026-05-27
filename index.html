@@ -179,6 +179,8 @@
 
     <div id="sharedDisplayNameModalMount"></div>
 
+    <div id="sharedProfileSummaryModalMount"></div>
+
     <!-- =========================================================
     HTML-БЛОК 4. МОДАЛЬНОЕ ОКНО ФИЛЬМА
     Обёртка модального окна для добавления и редактирования фильма.
@@ -410,6 +412,7 @@
               window.SharedLayout?.mountSharedHeader({ isMoviePage: false });
               window.SharedLayout?.mountSharedAuthModal();
               window.SharedLayout?.mountSharedDisplayNameModal();
+              window.SharedLayout?.mountSharedProfileSummaryModal();
               window.SharedLayout?.mountSharedFooter();
             })
             .then(() => loadScript('custom-select.js', buildVersion))

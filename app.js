@@ -18,6 +18,13 @@ const displayNameInput = document.getElementById('displayNameInput');
 const saveDisplayNameButton = document.getElementById('saveDisplayNameButton');
 const cancelDisplayNameButton = document.getElementById('cancelDisplayNameButton');
 const displayNameMessage = document.getElementById('displayNameMessage');
+const profileSummaryButton = document.getElementById('profileSummaryButton');
+const profileSummaryModal = document.getElementById('profileSummaryModal');
+const profileSummaryModalBackdrop = document.getElementById('profileSummaryModalBackdrop');
+const closeProfileSummaryModalButton = document.getElementById('closeProfileSummaryModalButton');
+const profileSummaryContent = document.getElementById('profileSummaryContent');
+const profileSummaryEditNameButton = document.getElementById('profileSummaryEditNameButton');
+const profileSummaryCloseButton = document.getElementById('profileSummaryCloseButton');
 
 const openAuthModalButton = document.getElementById('openAuthModalButton');
 const authPopoverMenu = document.getElementById('authPopoverMenu');
@@ -184,6 +191,7 @@ let isAdmin = false;
 let isAuthModalOpen = false;
 let isAuthPopoverOpen = false;
 let isDisplayNameModalOpen = false;
+let isProfileSummaryModalOpen = false;
 let isDisplayNameSubmitting = false;
 let isAuthRegisterMode = false;
 let isPasswordRecoveryMode = false;
@@ -1314,6 +1322,178 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+function getProfileSummaryLoadingHtml() {
+  return '<div class="profile-summary-loading">Собираю данные профиля...</div>';
+}
+
+function getProfileSummaryErrorHtml(error) {
+  const message = error?.message || 'Не удалось загрузить профиль. Попробуй открыть ещё раз.';
+
+  return `
+    <div class="profile-summary-state profile-summary-state-error">
+      ${escapeHtml(message)}
+    </div>
+  `;
+}
+
+function getProfileSummaryAverageRatingLabel(summary) {
+  if (!summary.ratingCount) {
+    return '—';
+  }
+
+  return summary.averageRating.toFixed(1);
+}
+
+function getProfileSummaryHtml(summary) {
+  return `
+    <div class="profile-summary-head">
+      <div class="profile-summary-name">${escapeHtml(summary.displayName || 'Профиль')}</div>
+      <div class="profile-summary-note">Личная сводка по оценкам и спискам на сайте.</div>
+    </div>
+
+    <div class="profile-summary-grid">
+      <div class="profile-summary-stat">
+        <span class="profile-summary-stat-value">${summary.ratingCount}</span>
+        <span class="profile-summary-stat-label">Оценено</span>
+      </div>
+      <div class="profile-summary-stat">
+        <span class="profile-summary-stat-value">${getProfileSummaryAverageRatingLabel(summary)}</span>
+        <span class="profile-summary-stat-label">Средняя оценка</span>
+      </div>
+      <div class="profile-summary-stat">
+        <span class="profile-summary-stat-value">${summary.watchlistCount}</span>
+        <span class="profile-summary-stat-label">Смотреть позже</span>
+      </div>
+      <div class="profile-summary-stat">
+        <span class="profile-summary-stat-value">${summary.reviewCount}</span>
+        <span class="profile-summary-stat-label">Рецензии</span>
+      </div>
+    </div>
+
+    <div class="profile-summary-note profile-summary-footnote">
+      Оценка фильма автоматически переводит его в просмотренные, но не удаляет из списка «смотреть позже».
+    </div>
+  `;
+}
+
+async function fetchCurrentUserProfileSummary() {
+  if (!currentUser) {
+    throw new Error('Профиль доступен только после входа.');
+  }
+
+  const userId = currentUser.id;
+  const [
+    ratingsResult,
+    watchlistResult,
+    reviewsResult
+  ] = await Promise.all([
+    supabaseClient
+      .from('movie_ratings')
+      .select('movie_id, rating')
+      .eq('user_id', userId),
+    supabaseClient
+      .from('movie_watchlist')
+      .select('movie_id')
+      .eq('user_id', userId),
+    supabaseClient
+      .from('movie_reviews')
+      .select('id, movie_id')
+      .eq('user_id', userId)
+  ]);
+
+  throwIfSupabaseError(ratingsResult.error);
+  throwIfSupabaseError(watchlistResult.error);
+  throwIfSupabaseError(reviewsResult.error);
+
+  const ratingRows = ratingsResult.data || [];
+  const watchlistRows = watchlistResult.data || [];
+  const reviewRows = reviewsResult.data || [];
+  const validRatingValues = ratingRows
+    .map(row => Number(row.rating))
+    .filter(rating => Number.isFinite(rating) && rating > 0);
+  const ratingSum = validRatingValues.reduce((sum, rating) => sum + rating, 0);
+  const ratedMovieIds = new Set(
+    ratingRows
+      .map(row => String(row.movie_id || ''))
+      .filter(Boolean)
+  );
+  const activeWatchlistCount = watchlistRows.filter(row => (
+    row?.movie_id && !ratedMovieIds.has(String(row.movie_id))
+  )).length;
+
+  upsertKnownMovieRatingRows(
+    ratingRows.map(row => ({
+      movie_id: row.movie_id,
+      user_id: userId,
+      rating: row.rating
+    })),
+    row => String(row?.user_id) === String(userId)
+  );
+
+  allMovieWatchlist = watchlistRows.map(row => ({
+    movie_id: row.movie_id,
+    user_id: userId
+  }));
+  rebuildCurrentUserWatchlistIndex();
+  markCatalogDataChanged();
+
+  return {
+    displayName: getCurrentDisplayName(),
+    ratingCount: validRatingValues.length,
+    averageRating: validRatingValues.length > 0 ? ratingSum / validRatingValues.length : 0,
+    watchlistCount: activeWatchlistCount,
+    reviewCount: reviewRows.length
+  };
+}
+
+function closeProfileSummaryModal() {
+  if (!profileSummaryModal) {
+    return;
+  }
+
+  profileSummaryModal.classList.remove('is-open');
+  isProfileSummaryModalOpen = false;
+
+  if (profileSummaryButton) {
+    profileSummaryButton.setAttribute('aria-expanded', 'false');
+  }
+
+  syncBodyScrollLock();
+}
+
+async function openProfileSummaryModal() {
+  if (!profileSummaryModal || !profileSummaryContent || !shouldUseAuthenticatedUi()) {
+    return;
+  }
+
+  closeAuthPopoverMenu();
+  closeDisplayNameModal();
+
+  profileSummaryContent.innerHTML = getProfileSummaryLoadingHtml();
+  profileSummaryModal.classList.add('is-open');
+  isProfileSummaryModalOpen = true;
+
+  if (profileSummaryButton) {
+    profileSummaryButton.setAttribute('aria-expanded', 'true');
+  }
+
+  syncBodyScrollLock();
+
+  try {
+    const summary = await fetchCurrentUserProfileSummary();
+
+    if (isProfileSummaryModalOpen) {
+      profileSummaryContent.innerHTML = getProfileSummaryHtml(summary);
+    }
+  } catch (error) {
+    console.error('Ошибка загрузки профиля:', error);
+
+    if (isProfileSummaryModalOpen) {
+      profileSummaryContent.innerHTML = getProfileSummaryErrorHtml(error);
+    }
+  }
 }
 
 function highlightSearchMatches(text, searchQuery) {
@@ -4241,6 +4421,7 @@ function syncBodyScrollLock() {
     isModalOpen ||
     isAuthModalOpen ||
     (displayNameModal && displayNameModal.classList.contains('is-open')) ||
+    (profileSummaryModal && profileSummaryModal.classList.contains('is-open')) ||
     (filtersModal && filtersModal.classList.contains('is-open')) ||
     (mobileRatingModal && mobileRatingModal.classList.contains('is-open'))
   );
@@ -4722,6 +4903,7 @@ function updateAuthUI() {
   if (!shouldShowAuthenticatedUi) {
     closeAuthPopoverMenu();
     closeDisplayNameModal();
+    closeProfileSummaryModal();
   }
 
   if (loginForm) {
@@ -4730,6 +4912,11 @@ function updateAuthUI() {
 
   if (adminPanel) {
     adminPanel.classList.toggle('is-visible', shouldShowAuthenticatedUi && isAdmin);
+  }
+
+  if (profileSummaryButton) {
+    profileSummaryButton.hidden = !shouldShowAuthenticatedUi;
+    profileSummaryButton.setAttribute('aria-expanded', String(isProfileSummaryModalOpen));
   }
 
   if (moviePageAdminActions) {
@@ -10015,6 +10202,17 @@ function bindSharedUiEvents() {
     logout();
   });
 
+  profileSummaryButton?.addEventListener('click', openProfileSummaryModal);
+
+  closeProfileSummaryModalButton?.addEventListener('click', closeProfileSummaryModal);
+  profileSummaryCloseButton?.addEventListener('click', closeProfileSummaryModal);
+  profileSummaryModalBackdrop?.addEventListener('click', closeProfileSummaryModal);
+
+  profileSummaryEditNameButton?.addEventListener('click', () => {
+    closeProfileSummaryModal();
+    openDisplayNameModal();
+  });
+
   manualSimilarAuditButton?.addEventListener('click', runManualSimilarAudit);
 
   if (importLetterboxdRatingsButton && letterboxdRatingsFileInput) {
@@ -10113,6 +10311,7 @@ function bindSharedUiEvents() {
     closeAllCustomSelects();
     closeAuthPopoverMenu();
     closeDisplayNameModal();
+    closeProfileSummaryModal();
 
     if (isModalOpen) {
       closeMovieModal();

@@ -315,6 +315,90 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   color: #b6f0c0;
 }
 
+.profile-summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-summary-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-summary-name {
+  color: var(--color-text);
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.profile-summary-note,
+.profile-summary-state {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.profile-summary-state-error {
+  color: #ffd0cb;
+}
+
+.profile-summary-loading {
+  min-height: 128px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.profile-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profile-summary-stat {
+  min-height: 92px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  background: rgba(13, 17, 23, 0.72);
+  border: 1px solid var(--border-control);
+  border-radius: 8px;
+}
+
+.profile-summary-stat-value {
+  color: var(--color-text);
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.profile-summary-stat-label {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.profile-summary-footnote {
+  padding-top: 2px;
+}
+
+.profile-summary-actions {
+  margin-top: var(--modal-space-md);
+  display: flex;
+  gap: var(--modal-space-sm);
+}
+
+.profile-summary-actions button {
+  flex: 1 1 0;
+}
+
 .auth-menu-wrap {
   position: relative;
   display: flex;
@@ -976,6 +1060,10 @@ CSS-БЛОК 6. МОДАЛЬНОЕ ОКНО
 
 .display-name-modal-dialog {
   max-width: var(--modal-display-name-dialog-max-width);
+}
+
+.profile-summary-modal-dialog {
+  max-width: 460px;
 }
 
 .auth-modal-dialog .auth-toast {
@@ -5071,6 +5159,18 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .display-name-form-actions button {
+    width: 100%;
+  }
+
+  .profile-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-summary-actions {
+    flex-direction: column;
+  }
+
+  .profile-summary-actions button {
     width: 100%;
   }
 
