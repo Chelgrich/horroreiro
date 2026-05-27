@@ -142,7 +142,7 @@ body {
   display: flex;
   align-items: center;
   font-family: 'Unbounded', sans-serif;
-  font-size: clamp(32px, 3.2vw, 42px);
+  font-size: 32px;
   font-weight: 600;
   letter-spacing: 2px;
   line-height: 44px;
@@ -5339,7 +5339,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .page-logo {
-    font-size: 26px;
     letter-spacing: 1px;
   }
 
