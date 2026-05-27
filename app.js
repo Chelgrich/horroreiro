@@ -54,11 +54,6 @@ const formatFilter = document.getElementById('formatFilter');
 const countryFilter = document.getElementById('countryFilter');
 const ratingFilter = document.getElementById('ratingFilter');
 const yearFilter = document.getElementById('yearFilter');
-const triggerFiltersSelect = document.getElementById('triggerFiltersSelect');
-const triggerFiltersToggle = document.getElementById('triggerFiltersToggle');
-const triggerFiltersTriggerText = document.getElementById('triggerFiltersTriggerText');
-const triggerFiltersDropdown = document.getElementById('triggerFiltersDropdown');
-const triggerFiltersGroup = document.getElementById('triggerFiltersGroup');
 const watchlistFilter = document.getElementById('watchlistFilter');
 const watchlistFilterRow = document.getElementById('watchlistFilterRow');
 const watchedFilter = document.getElementById('watchedFilter');
@@ -334,51 +329,6 @@ function normalizeSearchText(value) {
     .replaceAll('ё', 'е')
     .trim()
     .replace(/\s+/g, ' ');
-}
-
-function closeTriggerFiltersDropdown() {
-  if (!triggerFiltersSelect || !triggerFiltersToggle || !triggerFiltersDropdown) {
-    return;
-  }
-
-  triggerFiltersSelect.classList.remove('is-open');
-  triggerFiltersToggle.setAttribute('aria-expanded', 'false');
-  triggerFiltersDropdown.setAttribute('aria-hidden', 'true');
-}
-
-function openTriggerFiltersDropdown() {
-  if (!triggerFiltersSelect || !triggerFiltersToggle || !triggerFiltersDropdown) {
-    return;
-  }
-
-  triggerFiltersSelect.classList.add('is-open');
-  triggerFiltersToggle.setAttribute('aria-expanded', 'true');
-  triggerFiltersDropdown.setAttribute('aria-hidden', 'false');
-}
-
-function toggleTriggerFiltersDropdown() {
-  if (!triggerFiltersSelect) {
-    return;
-  }
-
-  if (triggerFiltersSelect.classList.contains('is-open')) {
-    closeTriggerFiltersDropdown();
-    return;
-  }
-
-  openTriggerFiltersDropdown();
-}
-
-function syncTriggerFiltersTriggerText() {
-  if (!triggerFiltersTriggerText) {
-    return;
-  }
-
-  if (triggerFiltersSelect) {
-    triggerFiltersSelect.classList.remove('has-value');
-  }
-
-  triggerFiltersTriggerText.textContent = 'Скрыть по триггерам';
 }
 
 function isManualSimilarTableUnavailableError(error) {
@@ -1925,7 +1875,6 @@ function applySavedCatalogState() {
     ]);
 
     syncCatalogViewToggleButton();
-    syncTriggerFiltersTriggerText();
     updateFiltersButtonLabel();
     syncQuickPresetButtons();
   } catch (error) {
@@ -4641,14 +4590,6 @@ function loadFormatFilterOptions(formatCounts = new Map()) {
   refreshCustomSelect(formatFilter);
 }
 
-function loadTriggerFilterOptions() {
-  if (triggerFiltersGroup) {
-    triggerFiltersGroup.innerHTML = '';
-  }
-
-  syncTriggerFiltersTriggerText();
-}
-
 function refreshCountryFilterOptions(countryCounts = new Map()) {
   if (!countryFilter) {
     return;
@@ -5319,19 +5260,10 @@ function resetFilterControls({ preserveSearch = false } = {}) {
   watchlistFilter.value = '';
   watchedFilter.value = '';
 
-  if (triggerFiltersGroup) {
-    triggerFiltersGroup
-      .querySelectorAll('input[type="checkbox"][data-trigger-filter]')
-      .forEach(input => {
-        input.checked = false;
-      });
-  }
-
   refreshCustomSelectGroup(
     filterCustomSelectElements.filter(selectElement => selectElement !== sortMode)
   );
 
-  syncTriggerFiltersTriggerText();
   saveCatalogState();
 }
 
@@ -5708,20 +5640,6 @@ function clearFilterChip(filterKey) {
     reviewedOnlyFilter = false;
   }
 
-  if (filterKey.startsWith('trigger:')) {
-    const triggerKey = filterKey.slice('trigger:'.length);
-
-    if (triggerFiltersGroup) {
-      const triggerInput = triggerFiltersGroup.querySelector(
-        `input[type="checkbox"][data-trigger-filter][value="${CSS.escape(triggerKey)}"]`
-      );
-
-      if (triggerInput) {
-        triggerInput.checked = false;
-      }
-    }
-  }
-
   if (filterKey === 'year') {
     yearFilter.value = '';
     refreshCustomSelect(yearFilter);
@@ -5737,7 +5655,6 @@ function clearFilterChip(filterKey) {
     refreshCustomSelect(ratingFilter);
   }
 
-  syncTriggerFiltersTriggerText();
   saveCatalogStateAndRenderFilters();
 
   // Если модалка фильтров была открыта, после снятия фильтра закрываем её,
@@ -9455,7 +9372,6 @@ function refreshDynamicFilterOptions() {
   loadFormatFilterOptions(filterOptionCounts.formatCounts);
   refreshCountryFilterOptions(filterOptionCounts.countryCounts);
   loadYearFilterOptions(filterOptionCounts.yearCounts);
-  loadTriggerFilterOptions();
 }
 
 function sortMoviesWithinMonth(movies, monthSortMode, monthSortDirection = 'desc') {
@@ -9827,10 +9743,6 @@ function bindSharedUiEvents() {
       closeAuthPopoverMenu();
     }
 
-    if (triggerFiltersSelect && !event.target.closest('#triggerFiltersSelect')) {
-      closeTriggerFiltersDropdown();
-    }
-
     if (!container) {
       return;
     }
@@ -9859,7 +9771,6 @@ function bindSharedUiEvents() {
     closeAllCustomSelects();
     closeAuthPopoverMenu();
     closeDisplayNameModal();
-    closeTriggerFiltersDropdown();
 
     if (isModalOpen) {
       closeMovieModal();
@@ -9985,21 +9896,6 @@ function bindCatalogPageEvents() {
 
   resetFiltersTopButton?.addEventListener('click', () => {
     resetCatalogFiltersAndRerender();
-  });
-
-  triggerFiltersToggle?.addEventListener('click', () => {
-    toggleTriggerFiltersDropdown();
-  });
-
-  triggerFiltersGroup?.addEventListener('change', event => {
-    const changedInput = event.target.closest('input[type="checkbox"][data-trigger-filter]');
-
-    if (!changedInput) {
-      return;
-    }
-
-    syncTriggerFiltersTriggerText();
-    handleFiltersChange();
   });
 
   if (container) {
