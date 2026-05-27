@@ -1427,13 +1427,26 @@ function getCurrentUserPublicHandle() {
   ).trim();
 }
 
+function isCurrentUserProfilePage() {
+  const currentProfileUrl = buildUserPageUrl(getCurrentUserPublicHandle());
+
+  return Boolean(currentProfileUrl) && isSameCurrentPageUrl(currentProfileUrl);
+}
+
 function openCurrentUserProfilePage() {
   if (!shouldUseAuthenticatedUi()) {
     return;
   }
 
   closeAuthPopoverMenu();
-  window.location.href = buildUserPageUrl(getCurrentUserPublicHandle());
+
+  const currentProfileUrl = buildUserPageUrl(getCurrentUserPublicHandle());
+
+  if (!currentProfileUrl || isSameCurrentPageUrl(currentProfileUrl)) {
+    return;
+  }
+
+  window.location.href = currentProfileUrl;
 }
 
 function setDisplayNameMessage(message = '', type = '') {
@@ -5003,7 +5016,16 @@ function updateAuthUI() {
   }
 
   if (profileSummaryButton) {
+    const isOwnProfilePage = shouldShowAuthenticatedUi && isCurrentUserProfilePage();
+
     profileSummaryButton.hidden = !shouldShowAuthenticatedUi;
+    profileSummaryButton.disabled = isOwnProfilePage;
+
+    if (isOwnProfilePage) {
+      profileSummaryButton.setAttribute('aria-current', 'page');
+    } else {
+      profileSummaryButton.removeAttribute('aria-current');
+    }
   }
 
   if (moviePageAdminActions) {
