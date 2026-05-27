@@ -732,14 +732,9 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 .movies-section-heading {
   min-width: 0;
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
+  flex-wrap: wrap;
   gap: 12px;
-}
-
-.movies-section-header .section-title,
-.movies-section-heading .section-title {
-  position: relative;
-  top: -5px;
 }
 
 .movies-result-count {
@@ -748,8 +743,6 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   line-height: 1.15;
   color: var(--color-text-muted);
   white-space: nowrap;
-  position: relative;
-  top: 5px;
 }
 
 .catalog-view-toggle {
@@ -5237,20 +5230,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     align-items: flex-start;
   }
 
-  .movies-section-heading {
-    position: relative;
-    top: 4px;
-  }
-
-  .movies-section-header .section-title,
-  .movies-section-heading .section-title {
-    top: -4px;
-  }
-
-  .movies-result-count {
-    top: 4px;
-  }
-
   .catalog-view-toggle {
     height: 36px;
     padding: 0 10px;
@@ -5377,11 +5356,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     gap: 14px;
   }
 
-  .movies-section-header .section-title,
-  .movies-section-heading .section-title {
-    top: -5px;
-  }
-
   .catalog-view-toggle {
     width: 100%;
     height: 32px;
@@ -5395,7 +5369,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     width: 100%;
     font-size: 12px;
     text-align: left;
-    top: 0;
   }
 
   .catalog-pagination {
