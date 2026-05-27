@@ -55,6 +55,15 @@
                     >
                       Импорт оценок Letterboxd
                     </button>
+                    <button
+                      type="button"
+                      class="auth-popover-item"
+                      id="manualSimilarAuditButton"
+                      role="menuitem"
+                      hidden
+                    >
+                      Аудит похожих
+                    </button>
                     <input
                       type="file"
                       class="auth-popover-file-input"

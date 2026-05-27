@@ -22,6 +22,7 @@ const displayNameMessage = document.getElementById('displayNameMessage');
 const openAuthModalButton = document.getElementById('openAuthModalButton');
 const authPopoverMenu = document.getElementById('authPopoverMenu');
 const importLetterboxdRatingsButton = document.getElementById('importLetterboxdRatingsButton');
+const manualSimilarAuditButton = document.getElementById('manualSimilarAuditButton');
 const letterboxdRatingsFileInput = document.getElementById('letterboxdRatingsFileInput');
 const logoutMenuButton = document.getElementById('logoutMenuButton');
 const authModal = document.getElementById('authModal');
@@ -207,6 +208,7 @@ let manualSimilarDataLoadPromise = null;
 let manualSimilarMovieIdsLoadedByMovieId = new Set();
 let manualSimilarMovieIdsLoadPromisesByMovieId = new Map();
 let manualSimilarDraftDirty = false;
+let isManualSimilarAuditRunning = false;
 let allMovieRatings = [];
 let allMovieWatchlist = [];
 let allMovieReviews = [];
@@ -455,6 +457,339 @@ function getManualSimilarMovieLabel(movie) {
   const year = movie.year ? ` (${movie.year})` : '';
 
   return `${title}${year}`;
+}
+
+function getManualSimilarAuditMovieLabel(movie) {
+  const title = getManualSimilarMovieLabel(movie);
+  const path = movie?.id ? ` — ${buildMovieCanonicalPath(movie)}` : '';
+
+  return `${title}${path}`;
+}
+
+function compareManualSimilarAuditMovies(firstMovie, secondMovie) {
+  const firstReleaseYear = Number(firstMovie?.release_year || firstMovie?.year || 0);
+  const secondReleaseYear = Number(secondMovie?.release_year || secondMovie?.year || 0);
+
+  if (firstReleaseYear !== secondReleaseYear) {
+    return secondReleaseYear - firstReleaseYear;
+  }
+
+  const firstReleaseMonth = Number(firstMovie?.release_month || 0);
+  const secondReleaseMonth = Number(secondMovie?.release_month || 0);
+
+  if (firstReleaseMonth !== secondReleaseMonth) {
+    return secondReleaseMonth - firstReleaseMonth;
+  }
+
+  return getManualSimilarMovieLabel(firstMovie).localeCompare(
+    getManualSimilarMovieLabel(secondMovie),
+    'ru'
+  );
+}
+
+function getManualSimilarAuditDateStamp() {
+  const date = new Date();
+
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-');
+}
+
+function getManualSimilarAuditDirectedKey(movieId, similarMovieId) {
+  return `${movieId}->${similarMovieId}`;
+}
+
+function getManualSimilarAuditCountLabel(count) {
+  if (count === 0) {
+    return '0 похожих';
+  }
+
+  if (count === 1) {
+    return '1 похожий';
+  }
+
+  return `${count} похожих`;
+}
+
+function appendManualSimilarAuditSection(lines, title, items, formatItem) {
+  lines.push('', title);
+
+  if (!items.length) {
+    lines.push('  Нет.');
+    return;
+  }
+
+  items.forEach((item, index) => {
+    lines.push(`  ${index + 1}. ${formatItem(item)}`);
+  });
+}
+
+function buildManualSimilarAuditReport() {
+  const movies = Array.isArray(allMovies) ? allMovies : [];
+  const rows = Array.isArray(allManualSimilarRows) ? allManualSimilarRows : [];
+  const moviesById = new Map();
+
+  movies.forEach(movie => {
+    if (movie?.id) {
+      moviesById.set(String(movie.id), movie);
+    }
+  });
+
+  const directedRowsByKey = new Map();
+  const validDirectedKeys = new Set();
+  const invalidRows = [];
+  const duplicateLinks = [];
+  const selfLinks = [];
+
+  rows.forEach((row, index) => {
+    const movieId = String(row?.movie_id || '').trim();
+    const similarMovieId = String(row?.similar_movie_id || '').trim();
+    const rowNumber = index + 1;
+    const hasMovie = moviesById.has(movieId);
+    const hasSimilarMovie = moviesById.has(similarMovieId);
+
+    if (!movieId || !similarMovieId || !hasMovie || !hasSimilarMovie) {
+      invalidRows.push({
+        rowNumber,
+        movieId,
+        similarMovieId,
+        reason: !movieId || !similarMovieId
+          ? 'пустой movie_id или similar_movie_id'
+          : !hasMovie
+            ? 'movie_id не найден в каталоге'
+            : 'similar_movie_id не найден в каталоге'
+      });
+      return;
+    }
+
+    if (movieId === similarMovieId) {
+      selfLinks.push({ rowNumber, movieId });
+      return;
+    }
+
+    const key = getManualSimilarAuditDirectedKey(movieId, similarMovieId);
+
+    if (!directedRowsByKey.has(key)) {
+      directedRowsByKey.set(key, []);
+    }
+
+    directedRowsByKey.get(key).push({
+      rowNumber,
+      movieId,
+      similarMovieId,
+      position: Number(row?.position ?? 0)
+    });
+    validDirectedKeys.add(key);
+  });
+
+  directedRowsByKey.forEach((directedRows, key) => {
+    if (directedRows.length > 1) {
+      duplicateLinks.push({
+        key,
+        rows: directedRows
+      });
+    }
+  });
+
+  const oneWayLinks = [];
+
+  directedRowsByKey.forEach((directedRows, key) => {
+    const firstRow = directedRows[0];
+    const reverseKey = getManualSimilarAuditDirectedKey(firstRow.similarMovieId, firstRow.movieId);
+
+    if (!validDirectedKeys.has(reverseKey)) {
+      oneWayLinks.push({
+        key,
+        row: firstRow
+      });
+    }
+  });
+
+  const similarCountByMovieId = new Map();
+
+  movies.forEach(movie => {
+    const movieId = String(movie.id);
+    const validSimilarIds = getManualSimilarMovieIds(movieId)
+      .filter(similarMovieId => moviesById.has(String(similarMovieId)));
+
+    similarCountByMovieId.set(movieId, validSimilarIds.length);
+  });
+
+  const moviesWithoutSimilar = movies
+    .filter(movie => (similarCountByMovieId.get(String(movie.id)) || 0) === 0)
+    .slice()
+    .sort(compareManualSimilarAuditMovies);
+
+  const similarCountDistribution = Array.from(similarCountByMovieId.values())
+    .reduce((distribution, count) => {
+      distribution.set(count, (distribution.get(count) || 0) + 1);
+      return distribution;
+    }, new Map());
+
+  const sortedDistribution = Array.from(similarCountDistribution.entries())
+    .sort((firstEntry, secondEntry) => firstEntry[0] - secondEntry[0]);
+
+  const lines = [
+    'Аудит ручных похожих фильмов Хоррорейро',
+    `Дата: ${getManualSimilarAuditDateStamp()}`,
+    '',
+    'Сводка:',
+    `  Фильмов в каталоге: ${movies.length}`,
+    `  Строк в movie_manual_similar: ${rows.length}`,
+    `  Фильмов без валидных похожих: ${moviesWithoutSimilar.length}`,
+    `  Битых строк: ${invalidRows.length}`,
+    `  Самоссылок: ${selfLinks.length}`,
+    `  Дублей направленных связей: ${duplicateLinks.length}`,
+    `  Односторонних связей: ${oneWayLinks.length}`,
+    '',
+    'Распределение по количеству похожих:',
+    ...sortedDistribution.map(([count, moviesCount]) => (
+      `  ${getManualSimilarAuditCountLabel(count)}: ${moviesCount}`
+    ))
+  ];
+
+  appendManualSimilarAuditSection(
+    lines,
+    'Фильмы без валидных похожих:',
+    moviesWithoutSimilar,
+    movie => getManualSimilarAuditMovieLabel(movie)
+  );
+
+  appendManualSimilarAuditSection(
+    lines,
+    'Битые строки:',
+    invalidRows,
+    item => `строка ${item.rowNumber}: ${item.movieId || '—'} -> ${item.similarMovieId || '—'} (${item.reason})`
+  );
+
+  appendManualSimilarAuditSection(
+    lines,
+    'Самоссылки:',
+    selfLinks,
+    item => {
+      const movie = moviesById.get(item.movieId);
+      return `строка ${item.rowNumber}: ${getManualSimilarAuditMovieLabel(movie)}`;
+    }
+  );
+
+  appendManualSimilarAuditSection(
+    lines,
+    'Дубли направленных связей:',
+    duplicateLinks,
+    item => {
+      const firstRow = item.rows[0];
+      const movie = moviesById.get(firstRow.movieId);
+      const similarMovie = moviesById.get(firstRow.similarMovieId);
+      const rowNumbers = item.rows.map(row => row.rowNumber).join(', ');
+
+      return `${getManualSimilarAuditMovieLabel(movie)} -> ${getManualSimilarAuditMovieLabel(similarMovie)} (строки: ${rowNumbers})`;
+    }
+  );
+
+  appendManualSimilarAuditSection(
+    lines,
+    'Односторонние связи:',
+    oneWayLinks,
+    item => {
+      const movie = moviesById.get(item.row.movieId);
+      const similarMovie = moviesById.get(item.row.similarMovieId);
+
+      return `${getManualSimilarAuditMovieLabel(movie)} -> ${getManualSimilarAuditMovieLabel(similarMovie)} (нет обратной связи)`;
+    }
+  );
+
+  return {
+    text: `${lines.join('\n')}\n`,
+    summary: {
+      moviesWithoutSimilar: moviesWithoutSimilar.length,
+      invalidRows: invalidRows.length,
+      selfLinks: selfLinks.length,
+      duplicateLinks: duplicateLinks.length,
+      oneWayLinks: oneWayLinks.length
+    }
+  };
+}
+
+function downloadTextFile(filename, text) {
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 0);
+}
+
+function getManualSimilarAuditSummaryMessage(summary) {
+  const problemCount = (
+    summary.moviesWithoutSimilar +
+    summary.invalidRows +
+    summary.selfLinks +
+    summary.duplicateLinks +
+    summary.oneWayLinks
+  );
+
+  if (problemCount === 0) {
+    return 'Аудит похожих готов: проблем не найдено.';
+  }
+
+  return [
+    'Аудит похожих готов:',
+    `без похожих ${summary.moviesWithoutSimilar}`,
+    `битых строк ${summary.invalidRows}`,
+    `самоссылок ${summary.selfLinks}`,
+    `дублей ${summary.duplicateLinks}`,
+    `односторонних ${summary.oneWayLinks}`
+  ].join(' ');
+}
+
+async function runManualSimilarAudit() {
+  if (!isAdmin || isManualSimilarAuditRunning) {
+    return;
+  }
+
+  isManualSimilarAuditRunning = true;
+  if (manualSimilarAuditButton) {
+    manualSimilarAuditButton.disabled = true;
+    manualSimilarAuditButton.textContent = 'Готовлю аудит...';
+  }
+
+  closeAuthPopoverMenu();
+  showAppMessage('Готовлю аудит похожих фильмов...', 'info');
+
+  try {
+    await ensureManualSimilarDataLoaded({ ensureMovies: true });
+
+    if (!manualSimilarTableAvailable) {
+      showAppMessage('Аудит похожих недоступен: таблица movie_manual_similar не найдена.', 'error', true);
+      return;
+    }
+
+    const report = buildManualSimilarAuditReport();
+    const filename = `horroreiro-manual-similar-audit-${getManualSimilarAuditDateStamp()}.txt`;
+
+    downloadTextFile(filename, report.text);
+    console.info('Manual similar audit report:\n', report.text);
+    showAppMessage(getManualSimilarAuditSummaryMessage(report.summary), 'success', false, {
+      showAction: true
+    });
+  } catch (error) {
+    console.error('Ошибка аудита похожих фильмов:', error);
+    showAppMessage(`Ошибка аудита похожих: ${error.message || 'смотри консоль F12.'}`, 'error', true);
+  } finally {
+    isManualSimilarAuditRunning = false;
+    if (manualSimilarAuditButton) {
+      manualSimilarAuditButton.disabled = false;
+      manualSimilarAuditButton.textContent = 'Аудит похожих';
+    }
+  }
 }
 
 function getManualSimilarSelectableMovies() {
@@ -4399,6 +4734,11 @@ function updateAuthUI() {
 
   if (moviePageAdminActions) {
     moviePageAdminActions.classList.toggle('is-visible', shouldShowAuthenticatedUi && isAdmin && isMoviePage());
+  }
+
+  if (manualSimilarAuditButton) {
+    manualSimilarAuditButton.hidden = !(shouldShowAuthenticatedUi && isAdmin);
+    manualSimilarAuditButton.disabled = isManualSimilarAuditRunning;
   }
 
   if (shouldShowAuthenticatedUi) {
@@ -9674,6 +10014,8 @@ function bindSharedUiEvents() {
     closeAuthPopoverMenu();
     logout();
   });
+
+  manualSimilarAuditButton?.addEventListener('click', runManualSimilarAudit);
 
   if (importLetterboxdRatingsButton && letterboxdRatingsFileInput) {
     importLetterboxdRatingsButton.addEventListener('click', () => {
