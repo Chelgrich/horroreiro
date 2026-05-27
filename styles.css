@@ -3433,7 +3433,7 @@ body:has(.user-page-shell) .page {
 .user-page-main-title {
   margin: 0 0 24px;
   color: var(--color-text-primary);
-  font-size: clamp(30px, 4vw, 44px);
+  font-size: 28px;
   line-height: 1.08;
   font-weight: 800;
   overflow-wrap: anywhere;
@@ -3501,7 +3501,7 @@ body:has(.user-page-shell) .page {
   margin: 0;
   min-width: 0;
   color: var(--color-text-primary);
-  font-size: clamp(20px, 2.7vw, 30px);
+  font-size: 22px;
   line-height: 1.12;
   font-weight: 800;
   overflow-wrap: anywhere;
@@ -4109,7 +4109,7 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-title {
   margin: 0;
-  font-size: 34px;
+  font-size: 28px;
   line-height: 1.08;
   font-weight: 700;
   color: var(--color-text-primary);
@@ -4653,14 +4653,6 @@ body:has(.movie-page-shell) .page {
     font-size: 24px;
   }
 
-  .user-page-main-title {
-    font-size: 28px;
-  }
-
-  .user-page-display-name {
-    font-size: 20px;
-  }
-
   .user-page-stats {
     grid-template-columns: 1fr;
   }
@@ -4708,7 +4700,6 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-title {
-    font-size: 24px;
     line-height: 1.12;
   }
 
