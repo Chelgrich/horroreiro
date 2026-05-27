@@ -151,6 +151,7 @@ const CATALOG_PAGE_SIZE = 40;
 const CATALOG_PAGINATION_PAGE_SLOTS = 6;
 const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
 const CATALOG_PRIORITY_POSTER_COUNT = 8;
+const CATALOG_PRESET_QUERY_PARAM = 'preset';
 const POSTER_STORAGE_PUBLIC_PATH = '/storage/v1/object/public/posters/';
 const POSTER_STORAGE_RENDER_PATH = '/storage/v1/render/image/public/posters/';
 const POSTER_IMAGE_PRESETS = {
@@ -179,6 +180,16 @@ const CATALOG_STRUCTURED_DATA_SCRIPT_ID = 'catalogItemListStructuredData';
 const AUTH_REQUEST_TIMEOUT_MS = 20000;
 const AUTH_PROFILE_REQUEST_TIMEOUT_MS = 15000;
 const USER_PAGE_PREVIEW_LIMIT = 10;
+const CATALOG_ROUTE_PRESET_KEYS = new Set([
+  'top-rated',
+  'low-rated',
+  'watchlist',
+  'watched',
+  'unwatched',
+  'with-reviews',
+  'astrals'
+]);
+const AUTH_REQUIRED_CATALOG_PRESET_KEYS = new Set(['watchlist', 'watched', 'unwatched']);
 
 let currentUser = null;
 let currentUserRole = null;
@@ -1185,6 +1196,17 @@ function buildCatalogPageUrl() {
   return isLocalDevRouteHost() ? 'index.html' : '/';
 }
 
+function buildCatalogPresetUrl(presetKey) {
+  const normalizedPresetKey = String(presetKey || '').trim();
+  const catalogUrl = buildCatalogPageUrl();
+
+  if (!normalizedPresetKey) {
+    return catalogUrl;
+  }
+
+  return `${catalogUrl}${catalogUrl.includes('?') ? '&' : '?'}${CATALOG_PRESET_QUERY_PARAM}=${encodeURIComponent(normalizedPresetKey)}`;
+}
+
 function buildMoviePageUrl(movie) {
   if (movie?.slug && !isLocalDevRouteHost()) {
     return buildMovieCanonicalPath(movie);
@@ -1319,6 +1341,55 @@ function toggleDisplayNameModal() {
   openDisplayNameModal();
 }
 
+function syncUserPageProfileEditButton() {
+  const editButton = userPage?.querySelector('[data-user-page-display-name-edit="true"]');
+
+  if (!editButton) {
+    return;
+  }
+
+  editButton.hidden = !(
+    shouldUseAuthenticatedUi() &&
+    currentUser?.id &&
+    String(editButton.dataset.profileId || '') === String(currentUser.id)
+  );
+}
+
+function syncUserPageOwnProfileIdentity() {
+  const editButton = userPage?.querySelector('[data-user-page-display-name-edit="true"]');
+
+  if (!editButton || editButton.hidden) {
+    return;
+  }
+
+  const displayName = getCurrentDisplayName();
+  const titleElement = userPage.querySelector('[data-user-page-display-name="true"]');
+  const avatarElement = userPage.querySelector('[data-user-page-avatar="true"]');
+
+  if (titleElement && displayName) {
+    titleElement.textContent = displayName;
+  }
+
+  if (avatarElement && displayName) {
+    avatarElement.textContent = displayName.slice(0, 1).toUpperCase();
+  }
+
+  if (isUserPage()) {
+    setUserPageDocumentMeta(currentUserProfile);
+  }
+}
+
+function handleUserPageDisplayNameEditClick(event) {
+  const editButton = event.target.closest('[data-user-page-display-name-edit="true"]');
+
+  if (!editButton) {
+    return;
+  }
+
+  event.preventDefault();
+  openDisplayNameModal();
+}
+
 async function updateCurrentUserDisplayName(nextDisplayName) {
   if (!currentUser) {
     return;
@@ -1338,6 +1409,7 @@ async function updateCurrentUserDisplayName(nextDisplayName) {
   };
 
   syncDisplayNameButton();
+  syncUserPageOwnProfileIdentity();
   updateAuthUI();
 }
 
@@ -4752,6 +4824,7 @@ function updateAuthUI() {
 
   syncAuthIconButtonState();
   syncDisplayNameButton();
+  syncUserPageProfileEditButton();
 
   if (!shouldShowAuthenticatedUi) {
     closeAuthPopoverMenu();
@@ -5835,7 +5908,34 @@ function syncQuickPresetButtons() {
   });
 }
 
+function getCatalogRoutePresetKey() {
+  const presetKey = String(
+    new URLSearchParams(window.location.search).get(CATALOG_PRESET_QUERY_PARAM) || ''
+  ).trim();
+
+  return CATALOG_ROUTE_PRESET_KEYS.has(presetKey) ? presetKey : '';
+}
+
+function clearCatalogRoutePresetParam() {
+  const url = new URL(window.location.href);
+
+  if (!url.searchParams.has(CATALOG_PRESET_QUERY_PARAM)) {
+    return;
+  }
+
+  url.searchParams.delete(CATALOG_PRESET_QUERY_PARAM);
+  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
+function canApplyQuickPreset(presetKey) {
+  return !AUTH_REQUIRED_CATALOG_PRESET_KEYS.has(presetKey) || Boolean(currentUser);
+}
+
 function applyQuickPreset(presetKey) {
+  if (!canApplyQuickPreset(presetKey)) {
+    return false;
+  }
+
   const shouldShowAstralPresetToast = (
     presetKey === 'astrals' &&
     searchInput &&
@@ -5889,6 +5989,8 @@ function applyQuickPreset(presetKey) {
 
   syncCatalogViewToggleButton();
   saveCatalogStateAndRender();
+
+  return true;
 }
 
 function getActiveFilterChips() {
@@ -10080,10 +10182,6 @@ function bindSharedUiEvents() {
     });
   }
 
-  displayNameButton?.addEventListener('click', () => {
-    toggleDisplayNameModal();
-  });
-
   displayNameForm?.addEventListener('submit', saveDisplayName);
 
   cancelDisplayNameButton?.addEventListener('click', () => {
@@ -10120,6 +10218,7 @@ function bindSharedUiEvents() {
   });
 
   document.addEventListener('click', event => {
+    handleUserPageDisplayNameEditClick(event);
     handleUserPageRailControlClick(event);
 
     const clickedInsideAuthMenu = event.target.closest('.auth-menu-wrap');
@@ -10479,6 +10578,7 @@ async function initCatalogPage() {
   initCatalogViewToggleButton();
   renderMoviesSkeleton();
 
+  const routePresetKey = getCatalogRoutePresetKey();
   const restoreSessionPromise = restoreSession();
   const hydratedSnapshot = readCatalogSessionSnapshot();
   const preAuthUserId = currentUser?.id || null;
@@ -10514,6 +10614,17 @@ async function initCatalogPage() {
   });
   applySavedCatalogState();
   refreshDynamicFilterOptions();
+
+  if (routePresetKey) {
+    const didApplyRoutePreset = applyQuickPreset(routePresetKey);
+
+    clearCatalogRoutePresetParam();
+
+    if (didApplyRoutePreset) {
+      updateFiltersButtonLabel();
+      return;
+    }
+  }
 
   const refreshedCatalogSignature = getCatalogDataSignatureHash(createCatalogSessionSnapshotPayload());
   const canReuseHydratedCatalog = (
@@ -10765,7 +10876,26 @@ function handleUserPageRailControlClick(event) {
   scrollUserPageRail(shell, direction);
 }
 
-function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null) {
+function getUserPageMoreCardHtml(hiddenCount, morePresetKey = '') {
+  const contentHtml = `<strong>И ещё ${hiddenCount}</strong>`;
+  const catalogPresetUrl = morePresetKey ? buildCatalogPresetUrl(morePresetKey) : '';
+
+  if (catalogPresetUrl) {
+    return `
+      <a class="user-page-more-card" href="${catalogPresetUrl}" aria-label="Открыть остальные ${hiddenCount} в каталоге">
+        ${contentHtml}
+      </a>
+    `;
+  }
+
+  return `
+    <div class="user-page-more-card" aria-label="И ещё ${hiddenCount}">
+      ${contentHtml}
+    </div>
+  `;
+}
+
+function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, morePresetKey = '') {
   if (!items.length) {
     return `<div class="user-page-empty-state">${escapeHtml(emptyText)}</div>`;
   }
@@ -10775,13 +10905,7 @@ function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null) {
   const cardsHtml = visibleItems
     .map(item => getUserPageMovieCardHtml(item, getBadgeHtml))
     .join('');
-  const moreHtml = hiddenCount > 0
-    ? `
-      <div class="user-page-more-card" aria-label="И ещё ${hiddenCount}">
-        <strong>И ещё ${hiddenCount}</strong>
-      </div>
-    `
-    : '';
+  const moreHtml = hiddenCount > 0 ? getUserPageMoreCardHtml(hiddenCount, morePresetKey) : '';
 
   return `
     <div class="user-page-movie-rail-shell" data-user-page-rail-shell="true">
@@ -10924,71 +11048,98 @@ function renderUserPage(data) {
   const handle = getPublicProfileHandle(data.profile);
   const averageRating = data.averageRating === null ? '-' : data.averageRating.toFixed(1);
   const avatarLetter = displayName.slice(0, 1).toUpperCase() || 'H';
+  const canEditDisplayName = Boolean(
+    shouldUseAuthenticatedUi() &&
+    currentUser?.id &&
+    String(data.profile.id || '') === String(currentUser.id)
+  );
+  const displayNameEditButtonHtml = canEditDisplayName
+    ? `
+      <button
+        type="button"
+        class="user-page-display-name-edit-button"
+        data-user-page-display-name-edit="true"
+        data-profile-id="${escapeHtml(data.profile.id)}"
+        aria-label="Изменить никнейм"
+        title="Изменить никнейм"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 20h4l9.8-9.8a2.121 2.121 0 1 0-3-3L5 17v3Z"></path>
+          <path d="m13.5 6.5 3 3"></path>
+        </svg>
+      </button>
+    `
+    : '';
 
   setUserPageDocumentMeta(data.profile);
 
   userPage.innerHTML = `
-    <section class="user-page-hero">
-      <div class="user-page-avatar" aria-hidden="true">${escapeHtml(avatarLetter)}</div>
-      <div class="user-page-identity">
-        <h1>${escapeHtml(displayName)}</h1>
-        <div class="user-page-handle">${escapeHtml(handle)}</div>
-      </div>
-    </section>
+    <div class="user-page-overview">
+      <section class="user-page-hero">
+        <div class="user-page-avatar" data-user-page-avatar="true" aria-hidden="true">${escapeHtml(avatarLetter)}</div>
+        <div class="user-page-identity">
+          <div class="user-page-title-row">
+            <h1 data-user-page-display-name="true">${escapeHtml(displayName)}</h1>
+            ${displayNameEditButtonHtml}
+          </div>
+          <div class="user-page-handle">${escapeHtml(handle)}</div>
+        </div>
+      </section>
 
-    <section class="user-page-stats" aria-label="Статистика пользователя">
-      <div class="user-page-stat">
-        <span class="user-page-stat-value">${data.ratingItems.length}</span>
-        <span class="user-page-stat-label">Оценено</span>
-      </div>
-      <div class="user-page-stat">
-        <span class="user-page-stat-value">${averageRating}</span>
-        <span class="user-page-stat-label">Средняя оценка</span>
-      </div>
-      <div class="user-page-stat">
-        <span class="user-page-stat-value">${data.watchlistItems.length}</span>
-        <span class="user-page-stat-label">Смотреть позже</span>
-      </div>
-      <div class="user-page-stat">
-        <span class="user-page-stat-value">${data.reviewItems.length}</span>
-        <span class="user-page-stat-label">Рецензии</span>
-      </div>
-    </section>
+      <section class="user-page-stats" aria-label="Статистика пользователя">
+        <div class="user-page-stat">
+          <span class="user-page-stat-value">${data.ratingItems.length}</span>
+          <span class="user-page-stat-label">Оценено</span>
+        </div>
+        <div class="user-page-stat">
+          <span class="user-page-stat-value">${averageRating}</span>
+          <span class="user-page-stat-label">Средняя оценка</span>
+        </div>
+        <div class="user-page-stat">
+          <span class="user-page-stat-value">${data.watchlistItems.length}</span>
+          <span class="user-page-stat-label">Смотреть позже</span>
+        </div>
+        <div class="user-page-stat">
+          <span class="user-page-stat-value">${data.reviewItems.length}</span>
+          <span class="user-page-stat-label">Рецензии</span>
+        </div>
+      </section>
+    </div>
 
     <section class="user-page-section">
       <div class="user-page-section-header">
         <h2>Оценки и просмотры</h2>
-        <span aria-hidden="true">›</span>
       </div>
       ${getUserPageMovieRailHtml(
           data.ratingItems,
           'Пока нет оценённых фильмов.',
-          item => `<span class="user-page-card-badge">★ ${Number(item.rating || 0)}</span>`
+          item => `<span class="user-page-card-badge">★ ${Number(item.rating || 0)}</span>`,
+          'watched'
         )}
     </section>
 
     <section class="user-page-section">
       <div class="user-page-section-header">
         <h2>Смотреть позже</h2>
-        <span aria-hidden="true">›</span>
       </div>
-      ${getUserPageMovieRailHtml(data.watchlistItems, 'Список просмотра пуст.')}
+      ${getUserPageMovieRailHtml(data.watchlistItems, 'Список просмотра пуст.', null, 'watchlist')}
     </section>
 
     <section class="user-page-section">
       <div class="user-page-section-header">
         <h2>Рецензии</h2>
-        <span aria-hidden="true">›</span>
       </div>
       ${getUserPageMovieRailHtml(
           data.reviewItems,
           'Пока нет рецензий.',
-          () => '<span class="user-page-card-badge user-page-card-badge-muted">Рецензия</span>'
+          () => '<span class="user-page-card-badge user-page-card-badge-muted">Рецензия</span>',
+          'with-reviews'
         )}
     </section>
   `;
 
   bindUserPageRailControls();
+  syncUserPageProfileEditButton();
 }
 
 async function initUserPage() {

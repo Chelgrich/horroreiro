@@ -12,22 +12,13 @@
             <div id="authControls" class="auth-controls auth-controls-pending">
               <div class="auth-actions">
                 <div id="displayNameWrap" class="display-name-wrap auth-ui-block">
-                  <button
-                    type="button"
+                  <span
                     id="displayNameButton"
-                    class="display-name-button"
-                    aria-haspopup="dialog"
-                    aria-expanded="false"
+                    class="display-name-button display-name-label"
                     title=""
                   >
                     <span id="displayNameText" class="display-name-text"></span>
-                    <span class="display-name-edit-icon" aria-hidden="true">
-                      <svg viewBox="0 0 24 24">
-                        <path d="M4 20h4l9.8-9.8a2.121 2.121 0 1 0-3-3L5 17v3Z"></path>
-                        <path d="m13.5 6.5 3 3"></path>
-                      </svg>
-                    </span>
-                  </button>
+                  </span>
                 </div>
   
                 <div class="auth-menu-wrap">

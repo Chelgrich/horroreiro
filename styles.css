@@ -249,6 +249,14 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   border-color: #2f3843;
 }
 
+.display-name-label,
+.display-name-label:hover {
+  color: var(--color-text-secondary);
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+}
+
 .display-name-button:focus,
 .display-name-button:focus-visible {
   outline: none;
@@ -264,24 +272,6 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   font-size: 14px;
   line-height: 1.2;
   font-weight: 600;
-}
-
-.display-name-edit-icon {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-  opacity: 0.78;
-}
-
-.display-name-edit-icon svg {
-  width: 16px;
-  height: 16px;
-  display: block;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .display-name-form {
@@ -1672,7 +1662,8 @@ button:not(:where(
   .mobile-rating-star-btn,
   .active-filter-chip-remove,
   .catalog-pagination-button,
-  .user-page-rail-button
+  .user-page-rail-button,
+  .user-page-display-name-edit-button
 )):hover {
   opacity: 0.96;
   transform: translateY(-1px);
@@ -1690,7 +1681,8 @@ button:not(:where(
   .mobile-rating-star-btn,
   .active-filter-chip-remove,
   .catalog-pagination-button,
-  .user-page-rail-button
+  .user-page-rail-button,
+  .user-page-display-name-edit-button
 )):active {
   transform: translateY(0) scale(0.96);
 }
@@ -3451,7 +3443,15 @@ body:has(.user-page-shell) .page {
   text-align: center;
 }
 
+.user-page-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
 .user-page-hero {
+  min-width: 0;
   padding: 24px;
   display: flex;
   align-items: center;
@@ -3480,12 +3480,64 @@ body:has(.user-page-shell) .page {
   min-width: 0;
 }
 
-.user-page-identity h1 {
+.user-page-title-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-page-title-row h1 {
   margin: 0;
+  min-width: 0;
   color: var(--color-text-primary);
   font-size: clamp(28px, 4vw, 44px);
   line-height: 1.08;
   overflow-wrap: anywhere;
+}
+
+.user-page-display-name-edit-button {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  background: rgba(13, 17, 23, 0.52);
+  border: 1px solid var(--border-control-strong);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    color 0.18s ease;
+}
+
+.user-page-display-name-edit-button[hidden] {
+  display: none;
+}
+
+.user-page-display-name-edit-button svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--icon-stroke-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.user-page-display-name-edit-button:hover,
+.user-page-display-name-edit-button:focus,
+.user-page-display-name-edit-button:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--surface-control-hover);
+  border-color: var(--control-focus-border);
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
 }
 
 .user-page-handle {
@@ -3496,9 +3548,9 @@ body:has(.user-page-shell) .page {
 }
 
 .user-page-stats {
-  margin-top: 18px;
+  min-width: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -3543,12 +3595,6 @@ body:has(.user-page-shell) .page {
   margin: 0;
   font-size: 22px;
   line-height: 1.2;
-}
-
-.user-page-section-header span {
-  font-size: 28px;
-  line-height: 0.9;
-  transform: translateY(-1px);
 }
 
 .user-page-movie-rail-shell {
@@ -3759,6 +3805,19 @@ body:has(.user-page-shell) .page {
   background: rgba(13, 17, 23, 0.52);
   border: 1px dashed var(--border-control-strong);
   border-radius: 8px;
+  text-decoration: none;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.user-page-more-card:hover,
+.user-page-more-card:focus,
+.user-page-more-card:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--surface-control-hover);
+  border-color: var(--border-control-hover);
 }
 
 .user-page-more-card strong {
@@ -4518,6 +4577,10 @@ body:has(.movie-page-shell) .page {
 }
 
 @media (max-width: 900px) {
+  .user-page-overview {
+    grid-template-columns: 1fr;
+  }
+
   .user-page-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
