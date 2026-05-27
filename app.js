@@ -10792,7 +10792,7 @@ function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null) {
         aria-label="Прокрутить назад"
         hidden
       >
-        &lsaquo;
+        <span class="user-page-rail-button-icon" aria-hidden="true"></span>
       </button>
       <div class="user-page-movie-rail" data-user-page-rail="true" tabindex="0">
         ${cardsHtml}
@@ -10805,7 +10805,7 @@ function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null) {
         aria-label="Прокрутить вперёд"
         hidden
       >
-        &rsaquo;
+        <span class="user-page-rail-button-icon" aria-hidden="true"></span>
       </button>
     </div>
   `;
