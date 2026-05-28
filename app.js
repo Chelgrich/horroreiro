@@ -209,6 +209,124 @@ const CATALOG_URL_STATE_PARAMS = new Set([
   'page'
 ]);
 const CATALOG_URL_TRUE_VALUES = new Set(['1', 'true', 'yes', 'on']);
+const CATALOG_URL_VALUE_ALIASES = {
+  genre: {
+    'Боевик': 'action',
+    'Вестерн': 'western',
+    'Военный': 'war',
+    'Детектив': 'mystery',
+    'Документальный': 'documentary',
+    'Драма': 'drama',
+    'История': 'history',
+    'Комедия': 'comedy',
+    'Криминал': 'crime',
+    'Мелодрама': 'romance',
+    'Музыка': 'music',
+    'Мультфильм': 'animation',
+    'Мюзикл': 'musical',
+    'Приключения': 'adventure',
+    'Семейный': 'family',
+    'Спорт': 'sport',
+    'Телевизионный фильм': 'tv-movie',
+    'Триллер': 'thriller',
+    'Фантастика': 'sci-fi',
+    'Фэнтези': 'fantasy'
+  },
+  subgenre: {
+    'Сверхъестественный хоррор': 'supernatural-horror',
+    'Дом с привидениями': 'haunted-house',
+    'Мистери-хоррор': 'mystery-horror',
+    'Конспирологический хоррор': 'conspiracy-horror',
+    'Монстр-муви': 'monster-movie',
+    'Одержимость': 'possession',
+    'Хоррор-выживание': 'survival-horror',
+    'Религиозный хоррор': 'religious-horror',
+    'Фолк-хоррор': 'folk-horror',
+    'Психологический хоррор': 'psychological-horror',
+    'Слэшер': 'slasher',
+    'Нападение животных': 'animal-attack',
+    'Инфекционный хоррор': 'infection-horror',
+    'Боди-хоррор': 'body-horror',
+    'Каннибальский хоррор': 'cannibal-horror',
+    'Зомби-хоррор': 'zombie-horror',
+    'Вампирский хоррор': 'vampire-horror',
+    'Хоррор-катастрофа': 'disaster-horror'
+  },
+  format: {
+    'Найденная плёнка': 'found-footage',
+    'Псевдодокументальный': 'mockumentary',
+    'Гибридное повествование': 'hybrid-narrative',
+    'Антология': 'anthology',
+    'Немой фильм': 'silent-film'
+  },
+  country: {
+    'Австралия': 'australia',
+    'Австрия': 'austria',
+    'Албания': 'albania',
+    'Аргентина': 'argentina',
+    'Бельгия': 'belgium',
+    'Бразилия': 'brazil',
+    'Великобритания': 'united-kingdom',
+    'Венгрия': 'hungary',
+    'Германия': 'germany',
+    'Гонконг': 'hong-kong',
+    'Гренландия': 'greenland',
+    'Греция': 'greece',
+    'Дания': 'denmark',
+    'Индия': 'india',
+    'Индонезия': 'indonesia',
+    'Ирландия': 'ireland',
+    'Исландия': 'iceland',
+    'Испания': 'spain',
+    'Италия': 'italy',
+    'Казахстан': 'kazakhstan',
+    'Камбоджа': 'cambodia',
+    'Канада': 'canada',
+    'Кипр': 'cyprus',
+    'Китай': 'china',
+    'Колумбия': 'colombia',
+    'Кыргызстан': 'kyrgyzstan',
+    'Латвия': 'latvia',
+    'Люксембург': 'luxembourg',
+    'Малайзия': 'malaysia',
+    'Мексика': 'mexico',
+    'Нидерланды': 'netherlands',
+    'Новая Зеландия': 'new-zealand',
+    'Норвегия': 'norway',
+    'ОАЭ': 'united-arab-emirates',
+    'Польша': 'poland',
+    'Россия': 'russia',
+    'Румыния': 'romania',
+    'Саудовская Аравия': 'saudi-arabia',
+    'Сербия': 'serbia',
+    'Сингапур': 'singapore',
+    'Словения': 'slovenia',
+    'США': 'usa',
+    'Таиланд': 'thailand',
+    'Тайвань': 'taiwan',
+    'Турция': 'turkey',
+    'Уругвай': 'uruguay',
+    'Филиппины': 'philippines',
+    'Финляндия': 'finland',
+    'Франция': 'france',
+    'Чехия': 'czech-republic',
+    'Швейцария': 'switzerland',
+    'Швеция': 'sweden',
+    'Эквадор': 'ecuador',
+    'Эстония': 'estonia',
+    'ЮАР': 'south-africa',
+    'Южная Корея': 'south-korea',
+    'Япония': 'japan'
+  }
+};
+const CATALOG_URL_VALUE_ALIAS_LOOKUPS = Object.fromEntries(
+  Object.entries(CATALOG_URL_VALUE_ALIASES).map(([paramName, valueMap]) => [
+    paramName,
+    Object.fromEntries(
+      Object.entries(valueMap).map(([label, alias]) => [alias, label])
+    )
+  ])
+);
 
 let currentUser = null;
 let currentUserRole = null;
@@ -2503,6 +2621,54 @@ function getSelectOptionValue(selectElement, value, fallbackValue = '') {
     : fallbackValue;
 }
 
+function getCatalogUrlValueAlias(paramName, value) {
+  const normalizedValue = String(value || '').trim();
+
+  if (!normalizedValue) {
+    return '';
+  }
+
+  if (!CATALOG_URL_VALUE_ALIASES[paramName]) {
+    return normalizedValue;
+  }
+
+  return CATALOG_URL_VALUE_ALIASES[paramName][normalizedValue]
+    || slugifyMovieValue(normalizedValue)
+    || normalizedValue;
+}
+
+function getCatalogUrlValueByAlias(paramName, value, selectElement = null) {
+  const normalizedValue = String(value || '').trim();
+
+  if (!normalizedValue) {
+    return '';
+  }
+
+  if (
+    selectElement &&
+    Array.from(selectElement.options).some(option => option.value === normalizedValue)
+  ) {
+    return normalizedValue;
+  }
+
+  const aliasedValue = CATALOG_URL_VALUE_ALIAS_LOOKUPS[paramName]?.[normalizedValue];
+
+  if (aliasedValue) {
+    return aliasedValue;
+  }
+
+  if (selectElement) {
+    const matchingOption = Array.from(selectElement.options)
+      .find(option => getCatalogUrlValueAlias(paramName, option.value) === normalizedValue);
+
+    if (matchingOption) {
+      return matchingOption.value;
+    }
+  }
+
+  return normalizedValue;
+}
+
 function getCatalogUrlBooleanValue(value) {
   return CATALOG_URL_TRUE_VALUES.has(String(value || '').trim().toLowerCase());
 }
@@ -2523,10 +2689,10 @@ function readCatalogUrlState() {
 
   if (!hasValidPreset) {
     catalogState.searchQuery = String(searchQuery || '').trim();
-    catalogState.genre = String(searchParams.get('genre') || '').trim();
-    catalogState.subgenre = String(searchParams.get('subgenre') || '').trim();
-    catalogState.format = String(searchParams.get('format') || '').trim();
-    catalogState.country = String(searchParams.get('country') || '').trim();
+    catalogState.genre = getCatalogUrlValueByAlias('genre', searchParams.get('genre'), genreFilter);
+    catalogState.subgenre = getCatalogUrlValueByAlias('subgenre', searchParams.get('subgenre'), subgenreFilter);
+    catalogState.format = getCatalogUrlValueByAlias('format', searchParams.get('format'), formatFilter);
+    catalogState.country = getCatalogUrlValueByAlias('country', searchParams.get('country'), countryFilter);
     catalogState.rating = getSelectOptionValue(ratingFilter, searchParams.get('rating'), '');
     catalogState.year = String(searchParams.get('year') || '').trim();
     catalogState.withReviews = getCatalogUrlBooleanValue(searchParams.get('reviews'));
@@ -2595,7 +2761,7 @@ function applyCatalogStateToControls(catalogState) {
 }
 
 function setCatalogUrlParam(searchParams, paramName, value) {
-  const normalizedValue = String(value || '').trim();
+  const normalizedValue = getCatalogUrlValueAlias(paramName, value);
 
   if (normalizedValue) {
     searchParams.set(paramName, normalizedValue);
@@ -2712,6 +2878,10 @@ function applySavedCatalogState({ fallbackToStorage = true } = {}) {
     syncQuickPresetButtons();
 
     const hasPendingAuthFilter = !currentUser && Boolean(catalogState?.watchlist || catalogState?.watched);
+
+    if (catalogUrlState && !getCatalogRoutePresetKey()) {
+      syncCatalogUrlFromControls();
+    }
 
     if (!catalogUrlState && fallbackToStorage && !hasPendingAuthFilter) {
       syncCatalogUrlFromControls();
@@ -5385,7 +5555,9 @@ function loadSubgenreFilterOptions(subgenreCounts = new Map()) {
   }
 
   const selectedSubgenre = subgenreFilter.value || '';
-  const subgenreKeys = Array.from(subgenreCounts.keys());
+  const subgenreKeys = subgenreCounts.has(selectedSubgenre) || !selectedSubgenre
+    ? Array.from(subgenreCounts.keys())
+    : [...subgenreCounts.keys(), selectedSubgenre];
 
   subgenreFilter.innerHTML = '<option value="">Все</option>';
 
@@ -5420,7 +5592,9 @@ function loadFormatFilterOptions(formatCounts = new Map()) {
   }
 
   const selectedFormat = formatFilter.value || '';
-  const formatKeys = Array.from(formatCounts.keys());
+  const formatKeys = formatCounts.has(selectedFormat) || !selectedFormat
+    ? Array.from(formatCounts.keys())
+    : [...formatCounts.keys(), selectedFormat];
 
   formatFilter.innerHTML = '<option value="">Все</option>';
 
