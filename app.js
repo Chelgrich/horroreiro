@@ -191,6 +191,24 @@ const CATALOG_ROUTE_PRESET_KEYS = new Set([
   'astrals'
 ]);
 const AUTH_REQUIRED_CATALOG_PRESET_KEYS = new Set(['watchlist', 'watched', 'unwatched']);
+const CATALOG_URL_STATE_PARAMS = new Set([
+  CATALOG_PRESET_QUERY_PARAM,
+  'q',
+  'search',
+  'genre',
+  'subgenre',
+  'format',
+  'country',
+  'year',
+  'rating',
+  'reviews',
+  'watchlist',
+  'watched',
+  'sort',
+  'view',
+  'page'
+]);
+const CATALOG_URL_TRUE_VALUES = new Set(['1', 'true', 'yes', 'on']);
 
 let currentUser = null;
 let currentUserRole = null;
@@ -2397,8 +2415,8 @@ function scheduleCatalogRender(renderCallback = renderMovies) {
   });
 }
 
-function saveCatalogStateAndRender(renderCallback = renderMovies) {
-  saveCatalogState();
+function saveCatalogStateAndRender(renderCallback = renderMovies, options = {}) {
+  saveCatalogState(options);
   scheduleCatalogRender(renderCallback);
 }
 
@@ -2407,24 +2425,24 @@ function renderCatalogAndRestoreScrollPosition() {
   restoreCatalogScrollPosition();
 }
 
-function rerenderCatalogPreservingPosition() {
+function rerenderCatalogPreservingPosition(options = {}) {
   saveCatalogScrollPosition();
   saveCatalogAnchorMovieId();
-  saveCatalogStateAndRender(renderCatalogAndRestoreScrollPosition);
+  saveCatalogStateAndRender(renderCatalogAndRestoreScrollPosition, options);
 }
 
 function createDebouncedCatalogRender(delay) {
   return debounce(renderCatalogAndRestoreScrollPosition, delay);
 }
 
-function prepareCatalogStateForDeferredRender({ resetPage = false } = {}) {
+function prepareCatalogStateForDeferredRender({ resetPage = false, urlMode = 'replace' } = {}) {
   if (resetPage) {
     resetCatalogPaginationPage();
   }
 
   saveCatalogScrollPosition();
   saveCatalogAnchorMovieId();
-  saveCatalogState();
+  saveCatalogState({ urlMode });
 }
 
 function applyCatalogViewModeChange() {
@@ -2433,53 +2451,244 @@ function applyCatalogViewModeChange() {
   rerenderCatalogPreservingPosition();
 }
 
-function saveCatalogState() {
+function getDefaultCatalogState() {
+  return {
+    searchQuery: '',
+    genre: '',
+    subgenre: '',
+    format: '',
+    country: '',
+    rating: '',
+    year: '',
+    withReviews: false,
+    watchlist: '',
+    watched: '',
+    viewMode: 'list',
+    sortMode: 'default',
+    page: 1
+  };
+}
+
+function getCurrentCatalogStateForPersistence() {
+  return {
+    searchQuery: searchInput.value,
+    genre: genreFilter.value,
+    subgenre: subgenreFilter.value,
+    format: formatFilter.value,
+    country: countryFilter.value,
+    rating: ratingFilter.value,
+    year: yearFilter.value,
+    withReviews: reviewedOnlyFilter,
+    watchlist: currentUser ? watchlistFilter.value : '',
+    watched: currentUser ? watchedFilter.value : '',
+    viewMode: viewMode.value,
+    sortMode: sortMode.value,
+    page: currentCatalogPage
+  };
+}
+
+function hasCatalogUrlStateParams(searchParams = new URLSearchParams(window.location.search)) {
+  return Array.from(CATALOG_URL_STATE_PARAMS).some(paramName => searchParams.has(paramName));
+}
+
+function getSelectOptionValue(selectElement, value, fallbackValue = '') {
+  const normalizedValue = String(value || '').trim();
+
+  if (!normalizedValue || !selectElement) {
+    return fallbackValue;
+  }
+
+  return Array.from(selectElement.options).some(option => option.value === normalizedValue)
+    ? normalizedValue
+    : fallbackValue;
+}
+
+function getCatalogUrlBooleanValue(value) {
+  return CATALOG_URL_TRUE_VALUES.has(String(value || '').trim().toLowerCase());
+}
+
+function readCatalogUrlState() {
+  const searchParams = new URLSearchParams(window.location.search);
+
+  if (!hasCatalogUrlStateParams(searchParams)) {
+    return null;
+  }
+
+  const catalogState = getDefaultCatalogState();
+  const presetKey = String(searchParams.get(CATALOG_PRESET_QUERY_PARAM) || '').trim();
+  const hasValidPreset = CATALOG_ROUTE_PRESET_KEYS.has(presetKey);
+  const searchQuery = searchParams.has('q')
+    ? searchParams.get('q')
+    : searchParams.get('search');
+
+  if (!hasValidPreset) {
+    catalogState.searchQuery = String(searchQuery || '').trim();
+    catalogState.genre = String(searchParams.get('genre') || '').trim();
+    catalogState.subgenre = String(searchParams.get('subgenre') || '').trim();
+    catalogState.format = String(searchParams.get('format') || '').trim();
+    catalogState.country = String(searchParams.get('country') || '').trim();
+    catalogState.rating = getSelectOptionValue(ratingFilter, searchParams.get('rating'), '');
+    catalogState.year = String(searchParams.get('year') || '').trim();
+    catalogState.withReviews = getCatalogUrlBooleanValue(searchParams.get('reviews'));
+    catalogState.watchlist = getSelectOptionValue(watchlistFilter, searchParams.get('watchlist'), '');
+    catalogState.watched = getSelectOptionValue(watchedFilter, searchParams.get('watched'), '');
+  }
+
+  catalogState.viewMode = getSelectOptionValue(viewMode, searchParams.get('view'), 'list');
+  catalogState.sortMode = getSelectOptionValue(sortMode, searchParams.get('sort'), 'default');
+  catalogState.page = Math.max(1, Number(searchParams.get('page')) || 1);
+
+  return catalogState;
+}
+
+function readStoredCatalogState() {
+  const rawCatalogState = localStorage.getItem(CATALOG_STATE_STORAGE_KEY);
+
+  if (!rawCatalogState) {
+    return null;
+  }
+
+  return {
+    ...getDefaultCatalogState(),
+    ...JSON.parse(rawCatalogState)
+  };
+}
+
+function setSelectValue(selectElement, value) {
+  if (!selectElement) {
+    return;
+  }
+
+  const normalizedValue = String(value || '').trim();
+  const hasOption = Array.from(selectElement.options).some(option => option.value === normalizedValue);
+
+  if (normalizedValue && !hasOption) {
+    const option = document.createElement('option');
+    option.value = normalizedValue;
+    option.textContent = normalizedValue;
+    selectElement.appendChild(option);
+  }
+
+  selectElement.value = normalizedValue;
+}
+
+function applyCatalogStateToControls(catalogState) {
+  const nextCatalogState = {
+    ...getDefaultCatalogState(),
+    ...(catalogState || {})
+  };
+
+  searchInput.value = nextCatalogState.searchQuery || '';
+  setSelectValue(genreFilter, nextCatalogState.genre);
+  setSelectValue(subgenreFilter, nextCatalogState.subgenre);
+  setSelectValue(formatFilter, nextCatalogState.format);
+  setSelectValue(countryFilter, nextCatalogState.country);
+  setSelectValue(ratingFilter, nextCatalogState.rating);
+  setSelectValue(yearFilter, nextCatalogState.year);
+  reviewedOnlyFilter = Boolean(nextCatalogState.withReviews);
+  setSelectValue(watchlistFilter, currentUser ? nextCatalogState.watchlist : '');
+  setSelectValue(watchedFilter, currentUser ? nextCatalogState.watched : '');
+
+  setSelectValue(viewMode, nextCatalogState.viewMode || 'list');
+  setSelectValue(sortMode, nextCatalogState.sortMode || 'default');
+  currentCatalogPage = Math.max(1, Number(nextCatalogState.page) || 1);
+}
+
+function setCatalogUrlParam(searchParams, paramName, value) {
+  const normalizedValue = String(value || '').trim();
+
+  if (normalizedValue) {
+    searchParams.set(paramName, normalizedValue);
+  }
+}
+
+function getCatalogUrlSearchParamsFromControls() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const activePresetKey = getActiveQuickPresetKey();
+
+  CATALOG_URL_STATE_PARAMS.forEach(paramName => {
+    searchParams.delete(paramName);
+  });
+
+  if (activePresetKey) {
+    searchParams.set(CATALOG_PRESET_QUERY_PARAM, activePresetKey);
+  } else {
+    setCatalogUrlParam(searchParams, 'q', searchInput.value);
+    setCatalogUrlParam(searchParams, 'genre', genreFilter.value);
+    setCatalogUrlParam(searchParams, 'subgenre', subgenreFilter.value);
+    setCatalogUrlParam(searchParams, 'format', formatFilter.value);
+    setCatalogUrlParam(searchParams, 'country', countryFilter.value);
+    setCatalogUrlParam(searchParams, 'year', yearFilter.value);
+    setCatalogUrlParam(searchParams, 'rating', ratingFilter.value);
+
+    if (reviewedOnlyFilter) {
+      searchParams.set('reviews', '1');
+    }
+
+    if (currentUser) {
+      setCatalogUrlParam(searchParams, 'watchlist', watchlistFilter.value);
+      setCatalogUrlParam(searchParams, 'watched', watchedFilter.value);
+    }
+  }
+
+  if (sortMode.value && sortMode.value !== 'default') {
+    searchParams.set('sort', sortMode.value);
+  }
+
+  if (viewMode.value && viewMode.value !== 'list') {
+    searchParams.set('view', viewMode.value);
+  }
+
+  if (currentCatalogPage > 1) {
+    searchParams.set('page', String(currentCatalogPage));
+  }
+
+  return searchParams;
+}
+
+function syncCatalogUrlFromControls({ urlMode = 'replace' } = {}) {
+  if (!isCatalogPage() || !window.history?.replaceState) {
+    return;
+  }
+
+  const searchParams = getCatalogUrlSearchParamsFromControls();
+  const nextSearch = searchParams.toString();
+  const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
+  const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+  if (nextUrl === currentUrl) {
+    return;
+  }
+
+  if (urlMode === 'push' && window.history.pushState) {
+    window.history.pushState(null, '', nextUrl);
+    return;
+  }
+
+  window.history.replaceState(null, '', nextUrl);
+}
+
+function saveCatalogState(options = {}) {
+  const catalogState = getCurrentCatalogStateForPersistence();
+
   try {
     localStorage.setItem(
       CATALOG_STATE_STORAGE_KEY,
-      JSON.stringify({
-        searchQuery: searchInput.value,
-        genre: genreFilter.value,
-        subgenre: subgenreFilter.value,
-        format: formatFilter.value,
-        country: countryFilter.value,
-        rating: ratingFilter.value,
-        year: yearFilter.value,
-        withReviews: reviewedOnlyFilter,
-        watchlist: currentUser ? watchlistFilter.value : '',
-        watched: currentUser ? watchedFilter.value : '',
-        viewMode: viewMode.value,
-        sortMode: sortMode.value,
-        page: currentCatalogPage
-      })
+      JSON.stringify(catalogState)
     );
   } catch (error) {
     console.warn('Ошибка сохранения состояния каталога:', error);
   }
+  syncCatalogUrlFromControls(options);
 }
 
-function applySavedCatalogState() {
+function applySavedCatalogState({ fallbackToStorage = true } = {}) {
   try {
-    const rawCatalogState = localStorage.getItem(CATALOG_STATE_STORAGE_KEY);
+    const catalogUrlState = readCatalogUrlState();
+    const catalogState = catalogUrlState
+      || (fallbackToStorage ? readStoredCatalogState() : getDefaultCatalogState());
 
-    if (rawCatalogState) {
-      const catalogState = JSON.parse(rawCatalogState);
-
-      searchInput.value = catalogState.searchQuery || '';
-      genreFilter.value = catalogState.genre || '';
-      subgenreFilter.value = catalogState.subgenre || '';
-      formatFilter.value = catalogState.format || '';
-      countryFilter.value = catalogState.country || '';
-      ratingFilter.value = catalogState.rating || '';
-      yearFilter.value = catalogState.year || '';
-      reviewedOnlyFilter = Boolean(catalogState.withReviews);
-      watchlistFilter.value = currentUser ? (catalogState.watchlist || '') : '';
-      watchedFilter.value = currentUser ? (catalogState.watched || '') : '';
-
-      viewMode.value = catalogState.viewMode || 'list';
-      sortMode.value = catalogState.sortMode || 'default';
-      currentCatalogPage = Math.max(1, Number(catalogState.page) || 1);
-    }
+    applyCatalogStateToControls(catalogState);
 
     if (searchClearBtn) {
       searchClearBtn.classList.toggle('is-visible', Boolean(searchInput.value.trim()));
@@ -2501,6 +2710,12 @@ function applySavedCatalogState() {
     syncCatalogViewToggleButton();
     updateFiltersButtonLabel();
     syncQuickPresetButtons();
+
+    const hasPendingAuthFilter = !currentUser && Boolean(catalogState?.watchlist || catalogState?.watched);
+
+    if (!catalogUrlState && fallbackToStorage && !hasPendingAuthFilter) {
+      syncCatalogUrlFromControls();
+    }
   } catch (error) {
     console.warn('Ошибка восстановления состояния каталога:', error);
   }
@@ -5872,7 +6087,7 @@ function isMovieWatchedByCurrentUser(movieId) {
   return getCurrentUserMovieState(movieId).isWatched;
 }
 
-function clearSearchInput() {
+function clearSearchInput({ skipSave = false } = {}) {
   if (!searchInput.value) {
     return;
   }
@@ -5884,14 +6099,18 @@ function clearSearchInput() {
     searchClearBtn.classList.remove('is-visible');
   }
 
-  saveCatalogState();
+  if (!skipSave) {
+    saveCatalogState();
+  }
 }
 
-function resetFilterControls({ preserveSearch = false } = {}) {
-  resetCatalogPaginationPage();
+function resetFilterControls({ preserveSearch = false, preservePage = false, skipSave = false } = {}) {
+  if (!preservePage) {
+    resetCatalogPaginationPage();
+  }
 
   if (!preserveSearch) {
-    clearSearchInput();
+    clearSearchInput({ skipSave });
   }
 
   genreFilter.value = '';
@@ -5908,7 +6127,9 @@ function resetFilterControls({ preserveSearch = false } = {}) {
     filterCustomSelectElements.filter(selectElement => selectElement !== sortMode)
   );
 
-  saveCatalogState();
+  if (!skipSave) {
+    saveCatalogState();
+  }
 }
 
 function resetCatalogFiltersAndRerender({ preserveSearch = false } = {}) {
@@ -6110,22 +6331,11 @@ function getCatalogRoutePresetKey() {
   return CATALOG_ROUTE_PRESET_KEYS.has(presetKey) ? presetKey : '';
 }
 
-function clearCatalogRoutePresetParam() {
-  const url = new URL(window.location.href);
-
-  if (!url.searchParams.has(CATALOG_PRESET_QUERY_PARAM)) {
-    return;
-  }
-
-  url.searchParams.delete(CATALOG_PRESET_QUERY_PARAM);
-  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
-}
-
 function canApplyQuickPreset(presetKey) {
   return !AUTH_REQUIRED_CATALOG_PRESET_KEYS.has(presetKey) || Boolean(currentUser);
 }
 
-function applyQuickPreset(presetKey) {
+function applyQuickPreset(presetKey, { preservePage = false, urlMode = 'push' } = {}) {
   if (!canApplyQuickPreset(presetKey)) {
     return false;
   }
@@ -6136,7 +6346,7 @@ function applyQuickPreset(presetKey) {
     searchInput.value.trim() === ''
   );
 
-  resetFilterControls();
+  resetFilterControls({ preservePage, skipSave: true });
 
   if (presetKey === 'top-rated') {
     ratingFilter.value = '7';
@@ -6183,7 +6393,7 @@ function applyQuickPreset(presetKey) {
 
   syncCatalogViewToggleButton();
   refreshDynamicFilterOptions();
-  saveCatalogStateAndRender();
+  saveCatalogStateAndRender(renderMovies, { urlMode });
 
   return true;
 }
@@ -8247,13 +8457,18 @@ function getCatalogPaginationContainers() {
 function getCatalogPaginationState(totalItems) {
   const normalizedTotalItems = Math.max(0, Number(totalItems) || 0);
   const totalPages = Math.max(1, Math.ceil(normalizedTotalItems / CATALOG_PAGE_SIZE));
-  const clampedPage = Math.min(Math.max(1, Number(currentCatalogPage) || 1), totalPages);
+  const requestedPage = Math.max(1, Number(currentCatalogPage) || 1);
+  const clampedPage = Math.min(requestedPage, totalPages);
   const startIndex = normalizedTotalItems > 0
     ? (clampedPage - 1) * CATALOG_PAGE_SIZE
     : 0;
   const endIndex = Math.min(startIndex + CATALOG_PAGE_SIZE, normalizedTotalItems);
 
   currentCatalogPage = clampedPage;
+
+  if (clampedPage !== requestedPage) {
+    saveCatalogState();
+  }
 
   return {
     totalItems: normalizedTotalItems,
@@ -10222,12 +10437,17 @@ function renderMovies() {
   renderActiveFilterChips();
   syncQuickPresetButtons();
 
+  const requestedCatalogPage = currentCatalogPage;
   const {
     filteredTotal,
     paginationState,
     pageMovies
   } = getCatalogDerivedState();
   const cardRenderContext = createMovieCardRenderContext(searchInput.value);
+
+  if (paginationState.currentPage !== requestedCatalogPage) {
+    saveCatalogState();
+  }
 
   if (moviesResultCount) {
     moviesResultCount.textContent = getMoviesResultCountText(filteredTotal, paginationState);
@@ -10333,6 +10553,31 @@ const handleFiltersChange = () => {
   trackFiltersUsageIfNeeded();
   saveCatalogStateAndRenderFilters();
 };
+
+function handleCatalogHistoryNavigation() {
+  if (!isCatalogPage()) {
+    return;
+  }
+
+  const routePresetKey = getCatalogRoutePresetKey();
+
+  applySavedCatalogState({ fallbackToStorage: false });
+  refreshDynamicFilterOptions();
+
+  if (routePresetKey) {
+    const didApplyRoutePreset = applyQuickPreset(routePresetKey, {
+      preservePage: true,
+      urlMode: 'replace'
+    });
+
+    if (didApplyRoutePreset) {
+      updateFiltersButtonLabel();
+      return;
+    }
+  }
+
+  rerenderCatalogPreservingPosition();
+}
 
 function bindSharedUiEvents() {
   if (areSharedUiEventsBound) {
@@ -10476,6 +10721,8 @@ function bindCatalogPageEvents() {
   if (areCatalogPageEventsBound) {
     return;
   }
+
+  window.addEventListener('popstate', handleCatalogHistoryNavigation);
 
   openAddMovieButton?.addEventListener('click', () => {
     resetFormToCreateMode();
@@ -10815,9 +11062,10 @@ async function initCatalogPage() {
   refreshDynamicFilterOptions();
 
   if (routePresetKey) {
-    const didApplyRoutePreset = applyQuickPreset(routePresetKey);
-
-    clearCatalogRoutePresetParam();
+    const didApplyRoutePreset = applyQuickPreset(routePresetKey, {
+      preservePage: true,
+      urlMode: 'replace'
+    });
 
     if (didApplyRoutePreset) {
       updateFiltersButtonLabel();
