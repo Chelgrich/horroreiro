@@ -4875,6 +4875,7 @@ function openFiltersModal() {
     return;
   }
 
+  refreshDynamicFilterOptions();
   filtersModal.classList.add('is-open');
   syncBodyScrollLock();
 }
@@ -5918,6 +5919,7 @@ function resetCatalogFiltersAndRerender({ preserveSearch = false } = {}) {
 function clearSearchAndRerenderPreservingPosition() {
   clearSearchInput();
   resetCatalogPaginationPage();
+  refreshDynamicFilterOptions();
   rerenderCatalogPreservingPosition();
 }
 
@@ -6180,6 +6182,7 @@ function applyQuickPreset(presetKey) {
   ]);
 
   syncCatalogViewToggleButton();
+  refreshDynamicFilterOptions();
   saveCatalogStateAndRender();
 
   return true;
@@ -10322,12 +10325,12 @@ const debouncedRenderMoviesForFilters = createDebouncedCatalogRender(120);
 
 function saveCatalogStateAndRenderFilters() {
   prepareCatalogStateForDeferredRender({ resetPage: true });
+  refreshDynamicFilterOptions();
   debouncedRenderMoviesForFilters();
 }
 
 const handleFiltersChange = () => {
   trackFiltersUsageIfNeeded();
-  refreshDynamicFilterOptions();
   saveCatalogStateAndRenderFilters();
 };
 
@@ -10508,6 +10511,7 @@ function bindCatalogPageEvents() {
     }
 
     prepareCatalogStateForDeferredRender({ resetPage: true });
+    refreshDynamicFilterOptions();
     debouncedRenderMovies();
   });
 
