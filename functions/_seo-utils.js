@@ -2,6 +2,7 @@ const SITE_ORIGIN = 'https://horroreiro.ru';
 const DEFAULT_SOCIAL_IMAGE = `${SITE_ORIGIN}/og-preview.jpg`;
 const POSTER_STORAGE_PUBLIC_PATH = '/storage/v1/object/public/posters/';
 const POSTER_STORAGE_RENDER_PATH = '/storage/v1/render/image/public/posters/';
+const POSTER_IMAGE_MIN_QUALITY = 90;
 
 const MOVIE_SELECT = `
   id,
@@ -162,7 +163,7 @@ function getPosterStoragePath(publicUrl) {
   return pathname.split(marker)[1] || null;
 }
 
-function getPosterTransformUrl(publicUrl, { width = 640, quality = 76 } = {}) {
+function getPosterTransformUrl(publicUrl, { width = 640, quality = POSTER_IMAGE_MIN_QUALITY } = {}) {
   const storagePath = getPosterStoragePath(publicUrl);
 
   if (!storagePath) {
@@ -172,11 +173,14 @@ function getPosterTransformUrl(publicUrl, { width = 640, quality = 76 } = {}) {
   const parsedUrl = new URL(publicUrl);
   const transformedUrl = new URL(`${parsedUrl.origin}${POSTER_STORAGE_RENDER_PATH}${storagePath}`);
   const normalizedWidth = Math.max(1, Math.min(2500, Number(width) || 640));
+  const normalizedQuality = Math.round(
+    Math.max(POSTER_IMAGE_MIN_QUALITY, Math.min(100, Number(quality) || POSTER_IMAGE_MIN_QUALITY))
+  );
 
   transformedUrl.searchParams.set('width', String(normalizedWidth));
   transformedUrl.searchParams.set('height', String(Math.round(normalizedWidth * 1.5)));
   transformedUrl.searchParams.set('resize', 'cover');
-  transformedUrl.searchParams.set('quality', String(quality));
+  transformedUrl.searchParams.set('quality', String(normalizedQuality));
 
   return transformedUrl.toString();
 }
@@ -341,7 +345,7 @@ function renderMovieFallbackHtml(movie) {
   const genres = getMovieGenreNames(movie).join(', ');
   const countries = getMovieCountryNames(movie).join(', ');
   const posterUrl = movie?.poster_url
-    ? getPosterTransformUrl(movie.poster_url, { width: 640, quality: 76 })
+    ? getPosterTransformUrl(movie.poster_url, { width: 640, quality: POSTER_IMAGE_MIN_QUALITY })
     : '';
   const posterHtml = movie?.poster_url
     ? `

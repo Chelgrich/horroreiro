@@ -154,20 +154,21 @@ const CATALOG_PRIORITY_POSTER_COUNT = 8;
 const CATALOG_PRESET_QUERY_PARAM = 'preset';
 const POSTER_STORAGE_PUBLIC_PATH = '/storage/v1/object/public/posters/';
 const POSTER_STORAGE_RENDER_PATH = '/storage/v1/render/image/public/posters/';
+const POSTER_IMAGE_MIN_QUALITY = 90;
 const POSTER_IMAGE_PRESETS = {
   catalog: {
     widths: [240, 360, 480, 640],
-    quality: 70,
+    quality: POSTER_IMAGE_MIN_QUALITY,
     sizes: '(max-width: 360px) calc(100vw - 72px), (max-width: 680px) calc((100vw - 92px) / 2), (max-width: 1024px) calc((100vw - 88px) / 2), (max-width: 1200px) calc((100vw - 112px) / 3), 320px'
   },
   similar: {
     widths: [180, 240, 320, 480],
-    quality: 68,
+    quality: POSTER_IMAGE_MIN_QUALITY,
     sizes: '(max-width: 360px) calc(100vw - 72px), (max-width: 680px) calc((100vw - 92px) / 2), 220px'
   },
   detail: {
     widths: [320, 480, 640, 800],
-    quality: 76,
+    quality: POSTER_IMAGE_MIN_QUALITY,
     sizes: '(max-width: 680px) calc(100vw - 64px), (max-width: 900px) 232px, 320px'
   }
 };
@@ -6429,8 +6430,11 @@ function getPosterTransformUrl(publicUrl, { width, quality, resize = 'cover' } =
   transformedUrl.searchParams.set('height', String(normalizedHeight));
   transformedUrl.searchParams.set('resize', resize);
 
-  if (quality) {
-    transformedUrl.searchParams.set('quality', String(quality));
+  if (quality !== undefined && quality !== null && quality !== '') {
+    const normalizedQuality = Math.round(
+      Math.max(POSTER_IMAGE_MIN_QUALITY, Math.min(100, Number(quality) || POSTER_IMAGE_MIN_QUALITY))
+    );
+    transformedUrl.searchParams.set('quality', String(normalizedQuality));
   }
 
   return transformedUrl.toString();
