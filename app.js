@@ -263,8 +263,14 @@ let lastCatalogAnchorMovieId = null;
 let currentMoviePageMovieId = null;
 let currentMoviePageMovieData = null;
 let currentMoviePageSimilarMovieId = null;
+let currentMoviePageSimilarMovieIds = [];
 let currentMoviePageSimilarMovies = [];
 let moviePageSimilarRequestId = 0;
+let isMoviePageSimilarEditorSaving = false;
+let moviePageSimilarEditorSearchQuery = '';
+let moviePageSimilarEditorStatus = '';
+let moviePageSimilarEditorStatusType = '';
+let moviePageSimilarEditorDraggedMovieId = null;
 let shouldFadeCatalogAfterSkeleton = false;
 let catalogFadeCleanupTimerId = null;
 let catalogDomSnapshotSchedule = null;
@@ -11767,8 +11773,261 @@ function renderMoviePageNotFound() {
 
 function resetMoviePageSimilarState() {
   currentMoviePageSimilarMovieId = null;
+  currentMoviePageSimilarMovieIds = [];
   currentMoviePageSimilarMovies = [];
   moviePageSimilarRequestId += 1;
+  isMoviePageSimilarEditorSaving = false;
+  moviePageSimilarEditorSearchQuery = '';
+  moviePageSimilarEditorStatus = '';
+  moviePageSimilarEditorStatusType = '';
+  moviePageSimilarEditorDraggedMovieId = null;
+}
+
+function setMoviePageSimilarEditorStatus(message = '', type = '') {
+  moviePageSimilarEditorStatus = message;
+  moviePageSimilarEditorStatusType = type;
+}
+
+function getMoviePageSimilarSelectedMovies() {
+  return currentMoviePageSimilarMovieIds
+    .map(movieId => getCatalogMovieById(movieId))
+    .filter(Boolean);
+}
+
+function doesMovieMatchManualSimilarSearch(movie, normalizedQuery) {
+  if (!normalizedQuery) {
+    return false;
+  }
+
+  const searchValues = [
+    getManualSimilarMovieLabel(movie),
+    movie?.original_title,
+    movie?.director,
+    movie?.year,
+    ...(Array.isArray(movie?.search_aliases) ? movie.search_aliases : [])
+  ];
+
+  return searchValues.some(value => normalizeSearchText(value).includes(normalizedQuery));
+}
+
+function getMoviePageSimilarSearchSuggestions(movie, limit = 8) {
+  const normalizedQuery = normalizeSearchText(moviePageSimilarEditorSearchQuery);
+
+  if (!normalizedQuery || !Array.isArray(allMovies) || allMovies.length === 0) {
+    return [];
+  }
+
+  const excludedMovieIds = new Set([
+    String(movie?.id || ''),
+    ...currentMoviePageSimilarMovieIds.map(movieId => String(movieId))
+  ].filter(Boolean));
+
+  return allMovies
+    .filter(item => (
+      item?.id &&
+      !excludedMovieIds.has(String(item.id)) &&
+      doesMovieMatchManualSimilarSearch(item, normalizedQuery)
+    ))
+    .slice()
+    .sort((firstMovie, secondMovie) => (
+      getManualSimilarMovieLabel(firstMovie).localeCompare(
+        getManualSimilarMovieLabel(secondMovie),
+        'ru'
+      )
+    ))
+    .slice(0, limit);
+}
+
+function getMoviePageSimilarEditorStatusHtml() {
+  if (!moviePageSimilarEditorStatus) {
+    return '';
+  }
+
+  const statusClassName = moviePageSimilarEditorStatusType
+    ? ` is-${moviePageSimilarEditorStatusType}`
+    : '';
+
+  return `
+    <div class="movie-page-similar-editor-status${statusClassName}" aria-live="polite">
+      ${escapeHtml(moviePageSimilarEditorStatus)}
+    </div>
+  `;
+}
+
+function getMoviePageSimilarEditorSuggestionsHtml(movie) {
+  const query = moviePageSimilarEditorSearchQuery.trim();
+
+  if (!query) {
+    return `
+      <div class="movie-page-similar-editor-hint">
+        Начни вводить название, оригинальное название или режиссёра.
+      </div>
+    `;
+  }
+
+  if (!Array.isArray(allMovies) || allMovies.length === 0) {
+    return `
+      <div class="movie-page-similar-editor-hint">
+        Загружаю каталог для поиска...
+      </div>
+    `;
+  }
+
+  const suggestions = getMoviePageSimilarSearchSuggestions(movie);
+
+  if (suggestions.length === 0) {
+    return `
+      <div class="movie-page-similar-editor-hint">
+        Ничего не найдено.
+      </div>
+    `;
+  }
+
+  return `
+    <div class="movie-page-similar-editor-suggestions" role="listbox" aria-label="Найденные фильмы">
+      ${suggestions.map(suggestion => `
+        <button
+          type="button"
+          class="movie-page-similar-suggestion"
+          data-movie-page-similar-add="${escapeHtml(suggestion.id)}"
+          role="option"
+          ${isMoviePageSimilarEditorSaving ? 'disabled' : ''}
+        >
+          ${escapeHtml(getManualSimilarMovieLabel(suggestion))}
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function getMoviePageSimilarEditorListHtml() {
+  const selectedMovies = getMoviePageSimilarSelectedMovies();
+
+  if (selectedMovies.length === 0) {
+    return `
+      <div class="movie-page-similar-editor-empty">
+        Похожие фильмы пока не выбраны.
+      </div>
+    `;
+  }
+
+  return `
+    <div class="movie-page-similar-editor-list" data-movie-page-similar-editor-list="true">
+      ${selectedMovies.map((movie, index) => {
+        const movieId = String(movie.id);
+        const isFirst = index === 0;
+        const isLast = index === selectedMovies.length - 1;
+        const isDragging = moviePageSimilarEditorDraggedMovieId === movieId;
+
+        return `
+          <div
+            class="movie-page-similar-editor-item${isDragging ? ' is-dragging' : ''}"
+            data-movie-page-similar-editor-item="${escapeHtml(movieId)}"
+            draggable="${isMoviePageSimilarEditorSaving ? 'false' : 'true'}"
+          >
+            <button
+              type="button"
+              class="movie-page-similar-drag-handle"
+              aria-label="Перетащить ${escapeHtml(getManualSimilarMovieLabel(movie))}"
+              title="Перетащить"
+              ${isMoviePageSimilarEditorSaving ? 'disabled' : ''}
+            >
+              ≡
+            </button>
+
+            <div class="movie-page-similar-editor-item-main">
+              <div class="movie-page-similar-editor-item-title">
+                ${escapeHtml(movie.title || getManualSimilarMovieLabel(movie))}
+              </div>
+              <div class="movie-page-similar-editor-item-meta">
+                ${escapeHtml([movie.original_title, movie.year].filter(Boolean).join(' · '))}
+              </div>
+            </div>
+
+            <div class="movie-page-similar-editor-item-actions">
+              <button
+                type="button"
+                class="movie-page-similar-editor-icon-button"
+                data-movie-page-similar-move="${escapeHtml(movieId)}"
+                data-movie-page-similar-direction="-1"
+                aria-label="Поднять выше"
+                title="Поднять выше"
+                ${isFirst || isMoviePageSimilarEditorSaving ? 'disabled' : ''}
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                class="movie-page-similar-editor-icon-button"
+                data-movie-page-similar-move="${escapeHtml(movieId)}"
+                data-movie-page-similar-direction="1"
+                aria-label="Опустить ниже"
+                title="Опустить ниже"
+                ${isLast || isMoviePageSimilarEditorSaving ? 'disabled' : ''}
+              >
+                ↓
+              </button>
+              <button
+                type="button"
+                class="movie-page-similar-editor-icon-button movie-page-similar-editor-remove-button"
+                data-movie-page-similar-remove="${escapeHtml(movieId)}"
+                aria-label="Убрать из похожих"
+                title="Убрать"
+                ${isMoviePageSimilarEditorSaving ? 'disabled' : ''}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function getMoviePageSimilarEditorHtml(movie) {
+  if (!isAdmin || !movie?.id) {
+    return '';
+  }
+
+  if (!manualSimilarTableAvailable) {
+    return `
+      <div class="movie-page-similar-editor">
+        <div class="movie-page-similar-editor-hint">
+          Таблица ручных похожих недоступна.
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="movie-page-similar-editor" data-movie-page-similar-editor="true">
+      <div class="movie-page-similar-editor-search">
+        <label class="movie-page-similar-editor-label" for="moviePageSimilarSearch">
+          Быстро добавить
+        </label>
+        <input
+          id="moviePageSimilarSearch"
+          type="search"
+          class="movie-page-similar-editor-input"
+          placeholder="Название, оригинальное название, режиссёр"
+          value="${escapeHtml(moviePageSimilarEditorSearchQuery)}"
+          autocomplete="off"
+          spellcheck="false"
+          data-movie-page-similar-search="true"
+          ${isMoviePageSimilarEditorSaving ? 'disabled' : ''}
+        >
+        ${getMoviePageSimilarEditorSuggestionsHtml(movie)}
+      </div>
+
+      <div class="movie-page-similar-editor-selected">
+        <div class="movie-page-similar-editor-label">Порядок похожих</div>
+        ${getMoviePageSimilarEditorListHtml()}
+      </div>
+
+      ${getMoviePageSimilarEditorStatusHtml()}
+    </div>
+  `;
 }
 
 function renderMoviePageSimilarSection(movieId) {
@@ -11778,12 +12037,14 @@ function renderMoviePageSimilarSection(movieId) {
     return;
   }
 
+  const movie = currentMoviePageMovieData;
   const similarMovies = String(currentMoviePageSimilarMovieId) === String(movieId)
     ? currentMoviePageSimilarMovies
     : [];
 
-  mount.innerHTML = getMoviePageSimilarSectionHtml(similarMovies);
+  mount.innerHTML = getMoviePageSimilarSectionHtml(similarMovies, movie);
   bindPosterFallbackImages(mount);
+  bindMoviePageSimilarEditorEvents(movie);
 }
 
 async function loadMoviePageSimilarMovies(movie, limit = 4) {
@@ -11794,12 +12055,30 @@ async function loadMoviePageSimilarMovies(movie, limit = 4) {
   const requestId = ++moviePageSimilarRequestId;
   const movieId = String(movie.id);
 
+  if (String(currentMoviePageSimilarMovieId || '') !== movieId) {
+    moviePageSimilarEditorSearchQuery = '';
+    setMoviePageSimilarEditorStatus();
+  }
+
   currentMoviePageSimilarMovieId = movieId;
+  currentMoviePageSimilarMovieIds = [];
   currentMoviePageSimilarMovies = [];
   renderMoviePageSimilarSection(movieId);
 
   try {
-    const similarMovies = await fetchManualSimilarMoviesForMovie(movieId, limit);
+    let similarMovieIds = [];
+
+    if (isAdmin) {
+      await ensureManualSimilarDataLoaded({ ensureMovies: true });
+      similarMovieIds = getManualSimilarMovieIds(movieId);
+    } else {
+      similarMovieIds = await fetchManualSimilarMovieIdsForMovie(movieId, limit);
+    }
+
+    const displayMovieIds = isAdmin
+      ? similarMovieIds
+      : similarMovieIds.slice(0, limit);
+    const similarMovies = await fetchCatalogMoviesByIds(displayMovieIds);
 
     if (
       requestId !== moviePageSimilarRequestId ||
@@ -11812,6 +12091,7 @@ async function loadMoviePageSimilarMovies(movie, limit = 4) {
       renderMoviePage(movie);
     }
 
+    currentMoviePageSimilarMovieIds = similarMovieIds;
     currentMoviePageSimilarMovies = similarMovies;
     renderMoviePageSimilarSection(movieId);
   } catch (error) {
@@ -12150,19 +12430,254 @@ function getMoviePageReviewsSectionHtml(movie, { isLoading = false } = {}) {
   `;
 }
 
-function getMoviePageSimilarSectionHtml(similarMovies) {
-  if (!Array.isArray(similarMovies) || similarMovies.length === 0) {
+function getMoviePageSimilarSectionHtml(similarMovies, movie = currentMoviePageMovieData) {
+  const hasSimilarMovies = Array.isArray(similarMovies) && similarMovies.length > 0;
+  const editorHtml = getMoviePageSimilarEditorHtml(movie);
+
+  if (!hasSimilarMovies && !editorHtml) {
     return '';
   }
 
   return `
   <section class="movie-page-similar-block" aria-labelledby="moviePageSimilarTitle">
   <h2 id="moviePageSimilarTitle" class="movie-page-subtitle">Похожие фильмы</h2>
-  <div class="movie-page-similar-grid">
-        ${similarMovies.map(similarMovie => getMoviePageSimilarCardHtml(similarMovie)).join('')}
-      </div>
+  ${editorHtml}
+  ${
+    hasSimilarMovies
+      ? `
+        <div class="movie-page-similar-grid">
+          ${similarMovies.map(similarMovie => getMoviePageSimilarCardHtml(similarMovie)).join('')}
+        </div>
+      `
+      : `
+        <div class="movie-page-similar-empty-state">
+          Похожие фильмы пока не выбраны.
+        </div>
+      `
+  }
     </section>
   `;
+}
+
+function getMoviePageSimilarIdsAfterMove(movieId, direction) {
+  const normalizedMovieId = String(movieId || '');
+  const currentIndex = currentMoviePageSimilarMovieIds.indexOf(normalizedMovieId);
+  const nextIndex = currentIndex + Number(direction || 0);
+
+  if (
+    currentIndex < 0 ||
+    nextIndex < 0 ||
+    nextIndex >= currentMoviePageSimilarMovieIds.length
+  ) {
+    return currentMoviePageSimilarMovieIds;
+  }
+
+  const nextMovieIds = currentMoviePageSimilarMovieIds.slice();
+  const [movedMovieId] = nextMovieIds.splice(currentIndex, 1);
+
+  nextMovieIds.splice(nextIndex, 0, movedMovieId);
+  return nextMovieIds;
+}
+
+function getMoviePageSimilarIdsAfterDrop(sourceMovieId, targetMovieId, shouldPlaceAfter = false) {
+  const sourceId = String(sourceMovieId || '');
+  const targetId = String(targetMovieId || '');
+
+  if (!sourceId || !targetId || sourceId === targetId) {
+    return currentMoviePageSimilarMovieIds;
+  }
+
+  const nextMovieIds = currentMoviePageSimilarMovieIds.filter(movieId => String(movieId) !== sourceId);
+  const targetIndex = nextMovieIds.indexOf(targetId);
+
+  if (targetIndex < 0) {
+    return currentMoviePageSimilarMovieIds;
+  }
+
+  nextMovieIds.splice(targetIndex + (shouldPlaceAfter ? 1 : 0), 0, sourceId);
+  return nextMovieIds;
+}
+
+function focusMoviePageSimilarSearch(selectionStart = null) {
+  requestAnimationFrame(() => {
+    const searchInputElement = moviePage?.querySelector('[data-movie-page-similar-search="true"]');
+
+    if (!searchInputElement) {
+      return;
+    }
+
+    searchInputElement.focus();
+
+    if (
+      Number.isFinite(selectionStart) &&
+      typeof searchInputElement.setSelectionRange === 'function'
+    ) {
+      searchInputElement.setSelectionRange(selectionStart, selectionStart);
+    }
+  });
+}
+
+async function saveMoviePageSimilarEditorIds(nextMovieIds, successMessage = 'Похожие фильмы сохранены.') {
+  const movie = currentMoviePageMovieData;
+  const movieId = String(movie?.id || '');
+
+  if (!isAdmin || !movieId || isMoviePageSimilarEditorSaving) {
+    return;
+  }
+
+  const normalizedMovieIds = normalizeManualSimilarMovieIds(nextMovieIds, movieId);
+  const previousMovieIds = currentMoviePageSimilarMovieIds.slice();
+  const previousMovies = currentMoviePageSimilarMovies.slice();
+
+  currentMoviePageSimilarMovieIds = normalizedMovieIds;
+  currentMoviePageSimilarMovies = normalizedMovieIds
+    .map(similarMovieId => getCatalogMovieById(similarMovieId))
+    .filter(Boolean);
+  isMoviePageSimilarEditorSaving = true;
+  setMoviePageSimilarEditorStatus('Сохраняю похожие фильмы...');
+  renderMoviePageSimilarSection(movieId);
+
+  try {
+    await replaceManualSimilarMovies(movieId, normalizedMovieIds);
+
+    currentMoviePageSimilarMovieIds = getManualSimilarMovieIds(movieId);
+    currentMoviePageSimilarMovies = await fetchCatalogMoviesByIds(currentMoviePageSimilarMovieIds);
+    moviePageSimilarEditorSearchQuery = '';
+    setMoviePageSimilarEditorStatus(successMessage, 'success');
+  } catch (error) {
+    console.error('Ошибка сохранения похожих на деталке:', error);
+    currentMoviePageSimilarMovieIds = previousMovieIds;
+    currentMoviePageSimilarMovies = previousMovies;
+    setMoviePageSimilarEditorStatus(
+      error?.message || 'Не удалось сохранить похожие фильмы.',
+      'error'
+    );
+  } finally {
+    isMoviePageSimilarEditorSaving = false;
+    moviePageSimilarEditorDraggedMovieId = null;
+    renderMoviePageSimilarSection(movieId);
+  }
+}
+
+function handleMoviePageSimilarSearchInput(event, movie) {
+  const searchInputElement = event.currentTarget;
+  const selectionStart = searchInputElement.selectionStart;
+
+  moviePageSimilarEditorSearchQuery = searchInputElement.value;
+  setMoviePageSimilarEditorStatus();
+  renderMoviePageSimilarSection(movie.id);
+  focusMoviePageSimilarSearch(selectionStart);
+}
+
+function handleMoviePageSimilarEditorClick(event) {
+  const addButton = event.target.closest('[data-movie-page-similar-add]');
+  const removeButton = event.target.closest('[data-movie-page-similar-remove]');
+  const moveButton = event.target.closest('[data-movie-page-similar-move]');
+
+  if (addButton) {
+    saveMoviePageSimilarEditorIds(
+      [...currentMoviePageSimilarMovieIds, addButton.dataset.moviePageSimilarAdd],
+      'Похожий фильм добавлен.'
+    );
+    return;
+  }
+
+  if (removeButton) {
+    const movieId = removeButton.dataset.moviePageSimilarRemove;
+
+    saveMoviePageSimilarEditorIds(
+      currentMoviePageSimilarMovieIds.filter(similarMovieId => String(similarMovieId) !== String(movieId)),
+      'Похожий фильм убран.'
+    );
+    return;
+  }
+
+  if (moveButton) {
+    saveMoviePageSimilarEditorIds(
+      getMoviePageSimilarIdsAfterMove(
+        moveButton.dataset.moviePageSimilarMove,
+        Number(moveButton.dataset.moviePageSimilarDirection || 0)
+      ),
+      'Порядок похожих обновлён.'
+    );
+  }
+}
+
+function handleMoviePageSimilarDragStart(event) {
+  const item = event.target.closest('[data-movie-page-similar-editor-item]');
+
+  if (!item || isMoviePageSimilarEditorSaving) {
+    event.preventDefault();
+    return;
+  }
+
+  moviePageSimilarEditorDraggedMovieId = item.dataset.moviePageSimilarEditorItem;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', moviePageSimilarEditorDraggedMovieId);
+  item.classList.add('is-dragging');
+}
+
+function handleMoviePageSimilarDragEnd(event) {
+  event.target
+    .closest('[data-movie-page-similar-editor-item]')
+    ?.classList.remove('is-dragging');
+  moviePageSimilarEditorDraggedMovieId = null;
+}
+
+function handleMoviePageSimilarDragOver(event) {
+  if (!moviePageSimilarEditorDraggedMovieId) {
+    return;
+  }
+
+  const item = event.target.closest('[data-movie-page-similar-editor-item]');
+
+  if (!item) {
+    return;
+  }
+
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+}
+
+function handleMoviePageSimilarDrop(event) {
+  const targetItem = event.target.closest('[data-movie-page-similar-editor-item]');
+  const sourceMovieId = moviePageSimilarEditorDraggedMovieId ||
+    event.dataTransfer.getData('text/plain');
+  const targetMovieId = targetItem?.dataset.moviePageSimilarEditorItem;
+
+  if (!sourceMovieId || !targetMovieId || sourceMovieId === targetMovieId) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const targetRect = targetItem.getBoundingClientRect();
+  const shouldPlaceAfter = event.clientY > targetRect.top + (targetRect.height / 2);
+
+  saveMoviePageSimilarEditorIds(
+    getMoviePageSimilarIdsAfterDrop(sourceMovieId, targetMovieId, shouldPlaceAfter),
+    'Порядок похожих обновлён.'
+  );
+}
+
+function bindMoviePageSimilarEditorEvents(movie) {
+  const editor = moviePage?.querySelector('[data-movie-page-similar-editor="true"]');
+
+  if (!editor || !movie?.id) {
+    return;
+  }
+
+  editor
+    .querySelector('[data-movie-page-similar-search="true"]')
+    ?.addEventListener('input', event => {
+      handleMoviePageSimilarSearchInput(event, movie);
+    });
+
+  editor.addEventListener('click', handleMoviePageSimilarEditorClick);
+  editor.addEventListener('dragstart', handleMoviePageSimilarDragStart);
+  editor.addEventListener('dragend', handleMoviePageSimilarDragEnd);
+  editor.addEventListener('dragover', handleMoviePageSimilarDragOver);
+  editor.addEventListener('drop', handleMoviePageSimilarDrop);
 }
 
 async function handleMovieReviewFormSubmit(movie, formElement) {
@@ -12535,7 +13050,7 @@ function renderMoviePage(movie, options = {}) {
       <div data-movie-page-similar-mount="true">
         ${
           String(currentMoviePageSimilarMovieId) === String(movie.id)
-            ? getMoviePageSimilarSectionHtml(currentMoviePageSimilarMovies)
+            ? getMoviePageSimilarSectionHtml(currentMoviePageSimilarMovies, movie)
             : ''
         }
       </div>
@@ -12559,6 +13074,7 @@ function renderMoviePage(movie, options = {}) {
 
   bindPosterFallbackImages(moviePage);
   bindMoviePageReviewEvents(movie);
+  bindMoviePageSimilarEditorEvents(movie);
 }
 
 function renderMoviePageReviewsSection(movie) {
