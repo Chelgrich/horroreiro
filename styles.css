@@ -3567,11 +3567,11 @@ body:has(.user-page-shell) .page {
 .user-page-stat {
   min-height: 96px;
   padding: 16px 10px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
+  display: grid;
+  grid-template-rows: 32px 18px 22px;
+  align-content: center;
+  justify-items: center;
+  gap: 6px;
   text-align: center;
   background: rgba(13, 17, 23, 0.66);
   border: 1px solid var(--border-card);
@@ -3617,6 +3617,7 @@ body:has(.user-page-shell) .page {
   padding: 14px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 6px;
   background: rgba(13, 17, 23, 0.58);
   border: 1px solid var(--border-card);
@@ -4763,8 +4764,8 @@ body:has(.movie-page-shell) .page {
   height: 100%;
   align-self: stretch;
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 12px;
   padding: 14px 14px 16px;
   background: var(--surface-card);
@@ -6044,6 +6045,8 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .user-page-stat {
     padding: 12px 6px;
+    grid-template-rows: 24px 15px 18px;
+    gap: 4px;
   }
 
   .user-page-stat-value {
