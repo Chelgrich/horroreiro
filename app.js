@@ -181,6 +181,7 @@ const CATALOG_STRUCTURED_DATA_SCRIPT_ID = 'catalogItemListStructuredData';
 const AUTH_REQUEST_TIMEOUT_MS = 20000;
 const AUTH_PROFILE_REQUEST_TIMEOUT_MS = 15000;
 const USER_PAGE_PREVIEW_LIMIT = 10;
+const USER_PAGE_ACTIVITY_AGGREGATE_LIMIT = 10000;
 const CATALOG_ROUTE_PRESET_KEYS = new Set([
   'top-rated',
   'low-rated',
@@ -11374,6 +11375,268 @@ function getUserPageAverageRating(ratingRows) {
   return values.reduce((sum, rating) => sum + rating, 0) / values.length;
 }
 
+function getUserPageTopCountItem(counts, options = {}) {
+  const items = Array.from(counts.entries())
+    .filter(([value, count]) => value && Number(count) > 0);
+
+  if (!items.length) {
+    return null;
+  }
+
+  items.sort(([firstValue, firstCount], [secondValue, secondCount]) => {
+    if (firstCount !== secondCount) {
+      return secondCount - firstCount;
+    }
+
+    if (options.numeric) {
+      return Number(secondValue) - Number(firstValue);
+    }
+
+    return String(firstValue).localeCompare(String(secondValue), 'ru');
+  });
+
+  const [label, count] = items[0];
+
+  return {
+    label: String(label),
+    count
+  };
+}
+
+function getUserPageTasteStats(items = []) {
+  const genreCounts = new Map();
+  const subgenreCounts = new Map();
+  const countryCounts = new Map();
+  const yearCounts = new Map();
+
+  (Array.isArray(items) ? items : []).forEach(item => {
+    const movie = item?.movie;
+
+    if (!movie) {
+      return;
+    }
+
+    const meta = getCatalogMovieMeta(movie);
+
+    meta.filterableGenreNames.forEach(genreName => addCount(genreCounts, genreName));
+    meta.subgenreKeys.forEach(subgenreKey => addCount(subgenreCounts, subgenreKey));
+    meta.countryNames.forEach(countryName => addCount(countryCounts, countryName));
+
+    if (movie.year) {
+      addCount(yearCounts, Number(movie.year));
+    }
+  });
+
+  return {
+    extraGenre: getUserPageTopCountItem(genreCounts),
+    subgenre: getUserPageTopCountItem(subgenreCounts),
+    country: getUserPageTopCountItem(countryCounts),
+    year: getUserPageTopCountItem(yearCounts, { numeric: true })
+  };
+}
+
+function getOptionalUserPageAggregateRows(result, label) {
+  if (result?.error) {
+    console.warn(`Не удалось загрузить агрегаты профиля (${label}):`, result.error);
+    return [];
+  }
+
+  return Array.isArray(result?.data) ? result.data : [];
+}
+
+async function fetchUserPageActivityAggregateRows() {
+  try {
+    const [
+      profilesResult,
+      ratingsResult,
+      watchlistResult,
+      reviewsResult
+    ] = await Promise.all([
+      supabaseClient
+        .from('profiles')
+        .select('id')
+        .limit(USER_PAGE_ACTIVITY_AGGREGATE_LIMIT),
+      supabaseClient
+        .from('movie_ratings')
+        .select('user_id, movie_id')
+        .limit(USER_PAGE_ACTIVITY_AGGREGATE_LIMIT),
+      supabaseClient
+        .from('movie_watchlist')
+        .select('user_id, movie_id')
+        .limit(USER_PAGE_ACTIVITY_AGGREGATE_LIMIT),
+      supabaseClient
+        .from('movie_reviews')
+        .select('user_id')
+        .limit(USER_PAGE_ACTIVITY_AGGREGATE_LIMIT)
+    ]);
+
+    return {
+      profileRows: getOptionalUserPageAggregateRows(profilesResult, 'profiles'),
+      ratingRows: getOptionalUserPageAggregateRows(ratingsResult, 'movie_ratings'),
+      watchlistRows: getOptionalUserPageAggregateRows(watchlistResult, 'movie_watchlist'),
+      reviewRows: getOptionalUserPageAggregateRows(reviewsResult, 'movie_reviews'),
+      hasProfileRows: !profilesResult.error,
+      hasRatingRows: !ratingsResult.error,
+      hasWatchlistRows: !watchlistResult.error,
+      hasReviewRows: !reviewsResult.error
+    };
+  } catch (error) {
+    console.warn('Не удалось загрузить агрегаты профиля:', error);
+    return {
+      profileRows: [],
+      ratingRows: [],
+      watchlistRows: [],
+      reviewRows: [],
+      hasProfileRows: false,
+      hasRatingRows: false,
+      hasWatchlistRows: false,
+      hasReviewRows: false
+    };
+  }
+}
+
+function normalizeUserPageUserId(userId) {
+  return String(userId || '').trim();
+}
+
+function getUserPageUserMoviePairKey(row) {
+  const userId = normalizeUserPageUserId(row?.user_id);
+  const movieId = String(row?.movie_id || '').trim();
+
+  return userId && movieId ? `${userId}:${movieId}` : '';
+}
+
+function getUserPageUserCountMap(rows = []) {
+  const counts = new Map();
+
+  (Array.isArray(rows) ? rows : []).forEach(row => {
+    addCount(counts, normalizeUserPageUserId(row?.user_id));
+  });
+
+  return counts;
+}
+
+function getUserPageActiveWatchlistCountMap(watchlistRows = [], ratingRows = []) {
+  const ratedMovieUserPairs = new Set(
+    (Array.isArray(ratingRows) ? ratingRows : [])
+      .map(getUserPageUserMoviePairKey)
+      .filter(Boolean)
+  );
+  const counts = new Map();
+
+  (Array.isArray(watchlistRows) ? watchlistRows : []).forEach(row => {
+    const pairKey = getUserPageUserMoviePairKey(row);
+
+    if (!pairKey || ratedMovieUserPairs.has(pairKey)) {
+      return;
+    }
+
+    addCount(counts, normalizeUserPageUserId(row.user_id));
+  });
+
+  return counts;
+}
+
+function getUserPageActivityPopulationIds(aggregateRows, currentUserId, countMaps = []) {
+  const userIds = new Set();
+  const normalizedCurrentUserId = normalizeUserPageUserId(currentUserId);
+
+  (Array.isArray(aggregateRows?.profileRows) ? aggregateRows.profileRows : [])
+    .forEach(row => {
+      const userId = normalizeUserPageUserId(row?.id);
+
+      if (userId) {
+        userIds.add(userId);
+      }
+    });
+
+  countMaps.forEach(counts => {
+    counts.forEach((_, userId) => {
+      if (userId) {
+        userIds.add(userId);
+      }
+    });
+  });
+
+  if (normalizedCurrentUserId) {
+    userIds.add(normalizedCurrentUserId);
+  }
+
+  return userIds;
+}
+
+function getUserPageBetterThanPercent(count, countsByUser, populationUserIds, currentUserId) {
+  const ownCount = Number(count) || 0;
+  const normalizedCurrentUserId = normalizeUserPageUserId(currentUserId);
+
+  if (!ownCount || !normalizedCurrentUserId) {
+    return null;
+  }
+
+  const peerUserIds = Array.from(populationUserIds)
+    .filter(userId => userId && userId !== normalizedCurrentUserId);
+
+  if (!peerUserIds.length) {
+    return null;
+  }
+
+  const lowerCount = peerUserIds.reduce((total, userId) => (
+    total + ((countsByUser.get(userId) || 0) < ownCount ? 1 : 0)
+  ), 0);
+
+  if (!lowerCount) {
+    return null;
+  }
+
+  return Math.min(99, Math.max(1, Math.round((lowerCount / peerUserIds.length) * 100)));
+}
+
+function hasUserPageComparableActivityCount(countsByUser, currentUserId, ownCount) {
+  const normalizedCurrentUserId = normalizeUserPageUserId(currentUserId);
+  const expectedCount = Number(ownCount) || 0;
+
+  if (!expectedCount) {
+    return true;
+  }
+
+  return (countsByUser.get(normalizedCurrentUserId) || 0) === expectedCount;
+}
+
+function getUserPageActivityRanks(userId, aggregateRows = {}, ownCounts = {}) {
+  const ratingCounts = aggregateRows.hasRatingRows
+    ? getUserPageUserCountMap(aggregateRows.ratingRows)
+    : new Map();
+  const watchlistCounts = aggregateRows.hasWatchlistRows && aggregateRows.hasRatingRows
+    ? getUserPageActiveWatchlistCountMap(aggregateRows.watchlistRows, aggregateRows.ratingRows)
+    : new Map();
+  const reviewCounts = aggregateRows.hasReviewRows
+    ? getUserPageUserCountMap(aggregateRows.reviewRows)
+    : new Map();
+  const populationUserIds = getUserPageActivityPopulationIds(
+    aggregateRows,
+    userId,
+    [ratingCounts, watchlistCounts, reviewCounts]
+  );
+  const hasComparableRatings = aggregateRows.hasRatingRows &&
+    hasUserPageComparableActivityCount(ratingCounts, userId, ownCounts.ratings);
+  const hasComparableWatchlist = aggregateRows.hasWatchlistRows && aggregateRows.hasRatingRows &&
+    hasUserPageComparableActivityCount(watchlistCounts, userId, ownCounts.watchlist);
+  const hasComparableReviews = aggregateRows.hasReviewRows &&
+    hasUserPageComparableActivityCount(reviewCounts, userId, ownCounts.reviews);
+
+  return {
+    ratings: hasComparableRatings
+      ? getUserPageBetterThanPercent(ownCounts.ratings, ratingCounts, populationUserIds, userId)
+      : null,
+    watchlist: hasComparableWatchlist
+      ? getUserPageBetterThanPercent(ownCounts.watchlist, watchlistCounts, populationUserIds, userId)
+      : null,
+    reviews: hasComparableReviews
+      ? getUserPageBetterThanPercent(ownCounts.reviews, reviewCounts, populationUserIds, userId)
+      : null
+  };
+}
+
 function sortUserPageMoviesByTitle(firstItem, secondItem) {
   return getManualSimilarMovieLabel(firstItem.movie).localeCompare(
     getManualSimilarMovieLabel(secondItem.movie),
@@ -11588,6 +11851,54 @@ function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, morePre
   `;
 }
 
+function getUserPageStatRankHtml(percent) {
+  if (!Number.isFinite(percent) || percent <= 0) {
+    return '';
+  }
+
+  const label = `Больше чем у ${percent}% пользователей`;
+
+  return `<span class="user-page-stat-rank" title="${escapeHtml(label)}">Больше чем у ${percent}%</span>`;
+}
+
+function getUserPageStatCardHtml(value, label, rankPercent = null) {
+  return `
+    <div class="user-page-stat">
+      <span class="user-page-stat-value">${escapeHtml(String(value))}</span>
+      <span class="user-page-stat-label">${escapeHtml(label)}</span>
+      ${getUserPageStatRankHtml(rankPercent)}
+    </div>
+  `;
+}
+
+function getUserPageTasteValueHtml(item) {
+  if (!item) {
+    return '<span class="user-page-taste-empty">—</span>';
+  }
+
+  return `${escapeHtml(item.label)} <span class="user-page-taste-count">(${item.count})</span>`;
+}
+
+function getUserPageTasteCardHtml(label, item) {
+  return `
+    <div class="user-page-taste-card">
+      <span class="user-page-taste-label">${escapeHtml(label)}</span>
+      <span class="user-page-taste-value">${getUserPageTasteValueHtml(item)}</span>
+    </div>
+  `;
+}
+
+function getUserPageTasteStatsHtml(tasteStats = {}) {
+  return `
+    <section class="user-page-taste-stats" aria-label="Вкусовая статистика">
+      ${getUserPageTasteCardHtml('Любимый доп. жанр', tasteStats.extraGenre)}
+      ${getUserPageTasteCardHtml('Любимый поджанр', tasteStats.subgenre)}
+      ${getUserPageTasteCardHtml('Любимая страна', tasteStats.country)}
+      ${getUserPageTasteCardHtml('Любимый год', tasteStats.year)}
+    </section>
+  `;
+}
+
 function renderUserPageLoading() {
   if (!userPage) {
     return;
@@ -11619,7 +11930,8 @@ async function fetchPublicUserPageData(profile) {
   const [
     ratingsResult,
     watchlistResult,
-    reviewsResult
+    reviewsResult,
+    activityAggregateRows
   ] = await Promise.all([
     supabaseClient
       .from('movie_ratings')
@@ -11635,7 +11947,8 @@ async function fetchPublicUserPageData(profile) {
       .from('movie_reviews')
       .select('id, movie_id, created_at, updated_at')
       .eq('user_id', userId)
-      .order('updated_at', { ascending: false })
+      .order('updated_at', { ascending: false }),
+    fetchUserPageActivityAggregateRows()
   ]);
 
   throwIfSupabaseError(ratingsResult.error);
@@ -11683,7 +11996,13 @@ async function fetchPublicUserPageData(profile) {
     ratingItems,
     watchlistItems,
     reviewItems,
-    averageRating: getUserPageAverageRating(ratingRows)
+    averageRating: getUserPageAverageRating(ratingRows),
+    tasteStats: getUserPageTasteStats(ratingItems),
+    activityRanks: getUserPageActivityRanks(userId, activityAggregateRows, {
+      ratings: ratingItems.length,
+      watchlist: watchlistItems.length,
+      reviews: reviewItems.length
+    })
   };
 }
 
@@ -11735,24 +12054,14 @@ function renderUserPage(data) {
       </section>
 
       <section class="user-page-stats" aria-label="Статистика пользователя">
-        <div class="user-page-stat">
-          <span class="user-page-stat-value">${data.ratingItems.length}</span>
-          <span class="user-page-stat-label">Оценено</span>
-        </div>
-        <div class="user-page-stat">
-          <span class="user-page-stat-value">${averageRating}</span>
-          <span class="user-page-stat-label">Средняя оценка</span>
-        </div>
-        <div class="user-page-stat">
-          <span class="user-page-stat-value">${data.watchlistItems.length}</span>
-          <span class="user-page-stat-label">Смотреть позже</span>
-        </div>
-        <div class="user-page-stat">
-          <span class="user-page-stat-value">${data.reviewItems.length}</span>
-          <span class="user-page-stat-label">Рецензии</span>
-        </div>
+        ${getUserPageStatCardHtml(data.ratingItems.length, 'Оценено', data.activityRanks?.ratings)}
+        ${getUserPageStatCardHtml(averageRating, 'Средняя оценка')}
+        ${getUserPageStatCardHtml(data.watchlistItems.length, 'Смотреть позже', data.activityRanks?.watchlist)}
+        ${getUserPageStatCardHtml(data.reviewItems.length, 'Рецензии', data.activityRanks?.reviews)}
       </section>
     </div>
+
+    ${getUserPageTasteStatsHtml(data.tasteStats)}
 
     <section class="user-page-section">
       <div class="user-page-section-header">
