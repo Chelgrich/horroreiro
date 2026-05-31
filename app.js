@@ -11591,6 +11591,41 @@ function getUserPageBetterThanPercent(count, countsByUser, populationUserIds, cu
   return Math.min(99, Math.max(1, Math.round((lowerCount / peerUserIds.length) * 100)));
 }
 
+function getUserPageActivityPlace(count, countsByUser, populationUserIds, currentUserId) {
+  const ownCount = Number(count) || 0;
+  const normalizedCurrentUserId = normalizeUserPageUserId(currentUserId);
+
+  if (!ownCount || !normalizedCurrentUserId) {
+    return null;
+  }
+
+  const peerUserIds = Array.from(populationUserIds)
+    .filter(userId => userId && userId !== normalizedCurrentUserId);
+
+  if (!peerUserIds.length) {
+    return null;
+  }
+
+  const higherCount = peerUserIds.reduce((total, userId) => (
+    total + ((countsByUser.get(userId) || 0) > ownCount ? 1 : 0)
+  ), 0);
+
+  return higherCount + 1;
+}
+
+function getUserPageActivityRank(count, countsByUser, populationUserIds, currentUserId) {
+  const place = getUserPageActivityPlace(count, countsByUser, populationUserIds, currentUserId);
+
+  if (!place) {
+    return null;
+  }
+
+  return {
+    place,
+    percent: getUserPageBetterThanPercent(count, countsByUser, populationUserIds, currentUserId)
+  };
+}
+
 function hasUserPageComparableActivityCount(countsByUser, currentUserId, ownCount) {
   const normalizedCurrentUserId = normalizeUserPageUserId(currentUserId);
   const expectedCount = Number(ownCount) || 0;
@@ -11626,13 +11661,13 @@ function getUserPageActivityRanks(userId, aggregateRows = {}, ownCounts = {}) {
 
   return {
     ratings: hasComparableRatings
-      ? getUserPageBetterThanPercent(ownCounts.ratings, ratingCounts, populationUserIds, userId)
+      ? getUserPageActivityRank(ownCounts.ratings, ratingCounts, populationUserIds, userId)
       : null,
     watchlist: hasComparableWatchlist
-      ? getUserPageBetterThanPercent(ownCounts.watchlist, watchlistCounts, populationUserIds, userId)
+      ? getUserPageActivityRank(ownCounts.watchlist, watchlistCounts, populationUserIds, userId)
       : null,
     reviews: hasComparableReviews
-      ? getUserPageBetterThanPercent(ownCounts.reviews, reviewCounts, populationUserIds, userId)
+      ? getUserPageActivityRank(ownCounts.reviews, reviewCounts, populationUserIds, userId)
       : null
   };
 }
@@ -11851,22 +11886,31 @@ function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, morePre
   `;
 }
 
-function getUserPageStatRankHtml(percent) {
-  if (!Number.isFinite(percent) || percent <= 0) {
+function getUserPageStatRankHtml(rank) {
+  const place = Number(rank?.place);
+
+  if (!Number.isFinite(place) || place <= 0) {
     return '';
   }
 
-  const label = `Больше чем у ${percent}% пользователей`;
+  const percent = Number(rank?.percent);
+  const title = Number.isFinite(percent) && percent > 0
+    ? `Место ${place}. Больше чем у ${percent}% пользователей`
+    : `Место ${place} в рейтинге`;
 
-  return `<span class="user-page-stat-rank" title="${escapeHtml(label)}">Больше чем у ${percent}%</span>`;
+  return `
+    <span class="user-page-stat-rank" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">
+      ${escapeHtml(String(place))}
+    </span>
+  `;
 }
 
-function getUserPageStatCardHtml(value, label, rankPercent = null) {
+function getUserPageStatCardHtml(value, label, rank = null) {
   return `
     <div class="user-page-stat">
       <span class="user-page-stat-value">${escapeHtml(String(value))}</span>
       <span class="user-page-stat-label">${escapeHtml(label)}</span>
-      ${getUserPageStatRankHtml(rankPercent)}
+      ${getUserPageStatRankHtml(rank)}
     </div>
   `;
 }
@@ -11876,7 +11920,10 @@ function getUserPageTasteValueHtml(item) {
     return '<span class="user-page-taste-empty">—</span>';
   }
 
-  return `${escapeHtml(item.label)} <span class="user-page-taste-count">(${item.count})</span>`;
+  return `
+    <span class="user-page-taste-name" title="${escapeHtml(item.label)}">${escapeHtml(item.label)}</span>
+    <span class="user-page-taste-count">(${escapeHtml(String(item.count))})</span>
+  `;
 }
 
 function getUserPageTasteCardHtml(label, item) {

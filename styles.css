@@ -3565,13 +3565,14 @@ body:has(.user-page-shell) .page {
 }
 
 .user-page-stat {
+  position: relative;
   min-height: 96px;
   padding: 16px 10px;
-  display: grid;
-  grid-template-rows: 32px 18px 22px;
-  align-content: center;
-  justify-items: center;
-  gap: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
   text-align: center;
   background: rgba(13, 17, 23, 0.66);
   border: 1px solid var(--border-card);
@@ -3592,17 +3593,22 @@ body:has(.user-page-shell) .page {
 }
 
 .user-page-stat-rank {
-  max-width: 100%;
-  padding: 3px 7px;
-  color: var(--color-watchlist);
-  background: rgba(var(--color-watchlist-base), 0.12);
-  border: 1px solid rgba(var(--color-watchlist-base), 0.28);
-  border-radius: 999px;
-  font-size: 11px;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-primary);
+  background: #202025;
+  border: 1px solid var(--color-danger-border-soft);
+  border-radius: 50%;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 700;
 }
 
 .user-page-taste-stats {
@@ -3631,15 +3637,28 @@ body:has(.user-page-shell) .page {
 }
 
 .user-page-taste-value {
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
   color: var(--color-text-primary);
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.25;
   font-weight: 800;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+}
+
+.user-page-taste-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-page-taste-count,
 .user-page-taste-empty {
+  flex: 0 0 auto;
   color: var(--color-text-secondary);
   font-weight: 700;
 }
@@ -5973,7 +5992,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .user-page-taste-value {
-    font-size: 15px;
+    font-size: 14px;
   }
 }
 
@@ -6045,8 +6064,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .user-page-stat {
     padding: 12px 6px;
-    grid-template-rows: 24px 15px 18px;
-    gap: 4px;
+    gap: 6px;
   }
 
   .user-page-stat-value {
@@ -6058,8 +6076,11 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .user-page-stat-rank {
-    padding: 3px 5px;
-    font-size: 10px;
+    top: -8px;
+    right: -6px;
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
   }
 
   .user-page-taste-stats {
