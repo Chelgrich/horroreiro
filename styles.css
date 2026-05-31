@@ -6326,6 +6326,13 @@ button:not(.custom-select-trigger),
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
 }
 
+.movie-poster-wrapper,
+.movie-page-poster-wrapper,
+.movie-page-similar-poster-wrapper,
+.user-page-movie-poster-wrapper {
+  border: 0 !important;
+}
+
 .movie-card-rated {
   box-shadow: 0 0 10px rgba(var(--color-success-base), 0.12);
 }
