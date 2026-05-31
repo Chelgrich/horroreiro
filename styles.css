@@ -6207,3 +6207,106 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     line-height: 1.2;
   }
 }
+
+/* =========================================================
+CSS-БЛОК 17. BORDERLESS UI
+Убирает видимые рамки с карточек, кнопок и контентных
+контейнеров. Рамки остаются у полей ввода, select/dropdown
+и у разделителей через border-top/bottom.
+========================================================== */
+:root {
+  --modal-dialog-border: 1px solid transparent;
+}
+
+button:not(.custom-select-trigger),
+.file-input-button,
+.display-name-button,
+.auth-icon-button,
+.auth-popover-menu,
+.auth-toast,
+.app-toast-accept-button,
+.modal-dialog,
+.section,
+.admin-panel,
+.floating-add-movie-button,
+.catalog-view-toggle,
+.catalog-pagination-button,
+.quick-preset-button,
+.active-filter-chip,
+.month-sort-btn,
+.empty-state,
+.empty-state-icon,
+.manual-similar-item,
+.movie-card,
+.movie-card:hover,
+.movie-card:focus-within,
+.movie-card-rated,
+.movie-card-rated:hover,
+.movie-card-rated:focus-within,
+.movie-card-watchlist,
+.movie-card-watchlist:hover,
+.movie-card-watchlist:focus-within,
+.movie-poster-wrapper,
+.movie-page-poster-wrapper,
+.movie-page-similar-poster-wrapper,
+.movie-search-alias-hint,
+.movie-page-watchlist-icon,
+.movie-page-watched-icon,
+.mobile-rating-modal-dialog,
+.user-page-hero,
+.user-page-avatar,
+.user-page-display-name-edit-button,
+.user-page-stat,
+.user-page-stat-rank,
+.user-page-taste-card,
+.user-page-rail-button,
+.user-page-movie-poster-wrapper,
+.user-page-more-card,
+.user-page-movie-row,
+.movie-page-admin-icon-button,
+.movie-page-review-icon-button,
+.movie-page-review-gate,
+.movie-page-review-card,
+.movie-page-review-spoiler-cover,
+.movie-page-review-empty-state,
+.movie-page-similar-empty-state,
+.movie-page-similar-editor,
+.movie-page-similar-suggestion,
+.movie-page-similar-editor-item,
+.movie-page-similar-drag-handle,
+.movie-page-similar-editor-icon-button,
+.movie-page-similar-card,
+.movie-page-similar-card:hover {
+  border-color: transparent !important;
+}
+
+.movie-card:hover,
+.movie-card:focus-within,
+.movie-page-similar-card:hover,
+.user-page-movie-card:hover .user-page-movie-poster-wrapper,
+.user-page-movie-card:focus .user-page-movie-poster-wrapper,
+.user-page-movie-card:focus-visible .user-page-movie-poster-wrapper {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+}
+
+.movie-card-rated {
+  box-shadow: 0 0 10px rgba(var(--color-success-base), 0.12);
+}
+
+.movie-card-rated:hover,
+.movie-card-rated:focus-within {
+  box-shadow:
+    0 0 12px rgba(var(--color-success-base), 0.16),
+    0 14px 30px rgba(0, 0, 0, 0.24);
+}
+
+.movie-card-watchlist {
+  box-shadow: 0 0 10px rgba(var(--color-watchlist-base), 0.12);
+}
+
+.movie-card-watchlist:hover,
+.movie-card-watchlist:focus-within {
+  box-shadow:
+    0 0 12px rgba(var(--color-watchlist-base), 0.16),
+    0 14px 30px rgba(0, 0, 0, 0.24);
+}
