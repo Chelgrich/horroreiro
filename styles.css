@@ -6216,6 +6216,11 @@ CSS-БЛОК 17. BORDERLESS UI
 ========================================================== */
 :root {
   --modal-dialog-border: 1px solid transparent;
+  --borderless-action-bg: linear-gradient(180deg, rgba(91, 140, 255, 0.08), rgba(91, 140, 255, 0.035)), #18202a;
+  --borderless-action-bg-hover: linear-gradient(180deg, rgba(91, 140, 255, 0.13), rgba(91, 140, 255, 0.055)), #1d2732;
+  --borderless-action-bg-muted: rgba(24, 32, 42, 0.52);
+  --borderless-action-color: #edf2f7;
+  --borderless-action-muted-color: #c6d0dc;
 }
 
 button:not(.custom-select-trigger),
@@ -6278,6 +6283,38 @@ button:not(.custom-select-trigger),
 .movie-page-similar-card,
 .movie-page-similar-card:hover {
   border-color: transparent !important;
+}
+
+.catalog-toolbar-actions > button:not(.is-active),
+.catalog-view-toggle,
+.catalog-pagination-button:not(.is-active):not(:disabled),
+.quick-preset-button:not(.is-active),
+.month-sort-btn:not(.is-active) {
+  color: var(--borderless-action-color);
+  background: var(--borderless-action-bg);
+}
+
+.catalog-toolbar-actions > button:not(.is-active):hover,
+.catalog-toolbar-actions > button:not(.is-active):focus-visible,
+.catalog-view-toggle:hover,
+.catalog-view-toggle:focus-visible,
+.catalog-pagination-button:not(.is-active):not(:disabled):hover,
+.catalog-pagination-button:not(.is-active):not(:disabled):focus-visible,
+.quick-preset-button:not(.is-active):hover,
+.quick-preset-button:not(.is-active):focus-visible,
+.month-sort-btn:not(.is-active):hover,
+.month-sort-btn:not(.is-active):focus-visible {
+  color: var(--color-text-primary);
+  background: var(--borderless-action-bg-hover);
+}
+
+.catalog-pagination-button:disabled {
+  color: rgba(198, 208, 220, 0.52);
+  background: var(--borderless-action-bg-muted);
+}
+
+.catalog-pagination-button.is-active {
+  background: rgba(91, 140, 255, 0.24);
 }
 
 .movie-card:hover,
