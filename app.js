@@ -8344,8 +8344,6 @@ async function removeUserMovieRating(movieId) {
       ));
       rebuildMovieRatingIndexes();
       updateLocalMovieRatingStats(movieId, null, previousRating);
-
-      updateLocalWatchlistState(movieId, true);
     },
     rerender: () => {
       MOVIE_MUTATION_RERENDER_PRESETS.ratingChange(movieId);
