@@ -6384,3 +6384,33 @@ select:focus,
     0 0 12px rgba(var(--color-watchlist-base), 0.16),
     0 14px 30px rgba(0, 0, 0, 0.24);
 }
+
+.movie-card,
+.movie-page-similar-card,
+.user-page-movie-card {
+  border: 1px solid var(--borderless-field-border) !important;
+}
+
+.user-page-movie-card {
+  box-sizing: border-box;
+  padding: 8px;
+  border-radius: var(--radius-lg);
+  transition:
+    color 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.movie-card:hover,
+.movie-page-similar-card:hover,
+.user-page-movie-card:hover {
+  border-color: var(--borderless-field-border-hover) !important;
+}
+
+.movie-card:focus-within,
+.movie-page-similar-card:focus-within,
+.user-page-movie-card:focus,
+.user-page-movie-card:focus-visible {
+  border-color: var(--borderless-field-border-focus) !important;
+}
