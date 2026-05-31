@@ -11893,12 +11893,14 @@ function getUserPageStatRankHtml(rank) {
 
   const percent = Number(rank?.percent);
   const title = Number.isFinite(percent) && percent > 0
-    ? `Место ${place}. Больше чем у ${percent}% пользователей`
-    : `Место ${place} в рейтинге`;
+    ? `Больше, чем у ${percent}% пользователей`
+    : '';
+  const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+  const ariaLabel = title || `#${place} в рейтинге`;
 
   return `
-    <span class="user-page-stat-rank" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">
-      ${escapeHtml(String(place))}
+    <span class="user-page-stat-rank"${titleAttr} aria-label="${escapeHtml(ariaLabel)}">
+      ${escapeHtml(`#${place}`)}
     </span>
   `;
 }

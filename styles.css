@@ -6221,10 +6221,10 @@ CSS-БЛОК 17. BORDERLESS UI
   --borderless-action-bg-muted: rgba(24, 32, 42, 0.52);
   --borderless-action-color: #edf2f7;
   --borderless-action-muted-color: #c6d0dc;
-  --borderless-field-border: rgba(145, 158, 174, 0.18);
-  --borderless-field-border-hover: rgba(145, 158, 174, 0.28);
-  --borderless-field-border-focus: rgba(91, 140, 255, 0.38);
-  --borderless-field-focus-ring: rgba(91, 140, 255, 0.12);
+  --borderless-field-border: rgba(145, 158, 174, 0.11);
+  --borderless-field-border-hover: rgba(145, 158, 174, 0.18);
+  --borderless-field-border-focus: rgba(91, 140, 255, 0.3);
+  --borderless-field-focus-ring: rgba(91, 140, 255, 0.09);
 }
 
 button:not(.custom-select-trigger),
