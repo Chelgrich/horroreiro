@@ -3461,6 +3461,7 @@ body:has(.user-page-shell) .page {
 
 .user-page-back-link {
   margin-bottom: 18px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -4097,6 +4098,7 @@ body:has(.movie-page-shell) .page {
 .movie-page-back-link {
   min-width: 0;
   flex: 0 0 auto;
+  padding: 0;
   align-items: center;
   gap: 6px;
   line-height: 1;
