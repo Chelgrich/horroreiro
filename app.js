@@ -3072,14 +3072,14 @@ function syncCatalogViewToggleButton() {
   const isListMode = viewMode.value === 'list';
 
   catalogViewToggleButton.textContent = isListMode
-    ? 'С разбивкой по месяцам'
+    ? 'По месяцам'
     : 'Общим списком';
 
   catalogViewToggleButton.setAttribute(
     'aria-label',
     isListMode
-      ? 'Переключить отображение на режим с разбивкой по месяцам'
-      : 'Переключить отображение на общий список'
+      ? 'Переключить отображение по месяцам'
+      : 'Переключить отображение общим списком'
   );
 }
 

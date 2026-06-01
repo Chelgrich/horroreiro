@@ -775,8 +775,8 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
-  color: var(--accent-soft-text);
-  background: var(--accent-soft-bg);
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
   border-color: transparent;
 }
 
@@ -789,7 +789,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 .catalog-view-toggle:hover,
 .catalog-view-toggle:focus-visible {
   color: var(--color-text-primary);
-  background: var(--accent-soft-bg-hover);
+  background: var(--ui-action-bg-hover);
   border-color: transparent;
 }
 
