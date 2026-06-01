@@ -105,8 +105,8 @@ html::-webkit-scrollbar-corner {
 
   --accent-primary: #5b8cff;
   --accent-soft-text: #dbe7ff;
-  --accent-soft-bg: rgba(91, 140, 255, 0.16);
-  --accent-soft-bg-hover: rgba(91, 140, 255, 0.2);
+  --accent-soft-bg: linear-gradient(180deg, rgba(91, 140, 255, 0.24), rgba(91, 140, 255, 0.14)), #20304d;
+  --accent-soft-bg-hover: linear-gradient(180deg, rgba(91, 140, 255, 0.3), rgba(91, 140, 255, 0.18)), #243858;
   --accent-soft-border: rgba(91, 140, 255, 0.42);
   --accent-soft-border-hover: rgba(91, 140, 255, 0.5);
   --accent-soft-shadow: rgba(91, 140, 255, 0.16);
@@ -854,7 +854,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 
 .catalog-pagination-button.is-active {
   color: var(--accent-soft-text);
-  background: rgba(91, 140, 255, 0.24);
+  background: var(--accent-soft-bg);
   border-color: transparent;
 }
 
