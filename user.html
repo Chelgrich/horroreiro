@@ -133,6 +133,33 @@
         });
       }
 
+      function normalizeRankBadgeText() {
+        document.querySelectorAll('.user-page-stat-rank-number').forEach(badge => {
+          const normalizedText = badge.textContent.trim().replace(/^#+\s*/, '');
+
+          if (badge.textContent !== normalizedText) {
+            badge.textContent = normalizedText;
+          }
+        });
+      }
+
+      function watchRankBadgeText() {
+        const userPage = document.getElementById('userPage');
+
+        normalizeRankBadgeText();
+
+        if (!userPage || !window.MutationObserver) {
+          return;
+        }
+
+        const observer = new MutationObserver(normalizeRankBadgeText);
+        observer.observe(userPage, {
+          childList: true,
+          subtree: true,
+          characterData: true
+        });
+      }
+
       envReadyPromise
         .then(() => {
           const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
@@ -144,7 +171,8 @@
               window.SharedLayout?.mountSharedFooter();
             })
             .then(() => loadScript('custom-select.js', buildVersion))
-            .then(() => loadScript('app.js', buildVersion));
+            .then(() => loadScript('app.js', buildVersion))
+            .then(watchRankBadgeText);
         })
         .catch(error => {
           console.error('Ошибка загрузки versioned scripts:', error);
