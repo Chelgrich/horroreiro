@@ -11913,11 +11913,11 @@ function getUserPageStatRankHtml(rank) {
     ? `Больше, чем у ${percent}% пользователей`
     : '';
   const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
-  const ariaLabel = title || `#${place} в рейтинге`;
+  const ariaLabel = title || `${place} место в рейтинге`;
 
   return `
     <span class="user-page-stat-rank ${rankClass}"${titleAttr} aria-label="${escapeHtml(ariaLabel)}">
-      <span class="user-page-stat-rank-number">${escapeHtml(`#${place}`)}</span>
+      <span class="user-page-stat-rank-number">${escapeHtml(String(place))}</span>
     </span>
   `;
 }
