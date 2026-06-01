@@ -253,7 +253,7 @@ CSS-БЛОК 4. БЛОК АВТОРИЗАЦИИ И УПРАВЛЕНИЯ
   max-width: 100%;
   min-width: 0;
   min-height: 36px;
-  padding: 0 12px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -2918,6 +2918,24 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
   letter-spacing: 0.1px;
 }
 
+.movie-card .secondary-button {
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+  border-color: transparent;
+}
+
+.movie-card .secondary-button:hover,
+.movie-card .secondary-button:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--ui-action-bg-hover);
+  border-color: transparent;
+}
+
+.movie-card .secondary-button:disabled {
+  color: var(--ui-action-muted-color);
+  background: var(--ui-action-bg-muted);
+}
+
 .movie-external-links-collapsible {
   display: block;
 }
@@ -3444,11 +3462,24 @@ body:has(.user-page-shell) .page {
 .user-page-back-link {
   margin-bottom: 18px;
   display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
   color: var(--color-text-secondary);
   background: transparent;
   border-color: transparent;
   box-shadow: none;
   text-decoration: none;
+}
+
+.back-link-arrow {
+  width: 1em;
+  height: 1em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transform: translateY(-0.04em);
 }
 
 .user-page-back-link:hover,
@@ -4037,6 +4068,9 @@ body:has(.movie-page-shell) .page {
 .movie-page-back-link {
   min-width: 0;
   flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
   color: var(--color-text-secondary);
   background: transparent;
   border-color: transparent;
@@ -5343,7 +5377,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .display-name-button {
-    padding: 0 10px;
     flex: 0 1 auto;
   }
 
@@ -5637,10 +5670,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .page-header-top {
     gap: 6px;
-  }
-
-  .display-name-button {
-    padding: 0 8px;
   }
 
   .display-name-text {
@@ -5946,10 +5975,6 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
 
   .auth-actions {
     gap: 6px;
-  }
-
-  .display-name-button {
-    padding: 0 6px;
   }
 
   .auth-icon-button {
