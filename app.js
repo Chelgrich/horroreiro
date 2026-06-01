@@ -11884,6 +11884,22 @@ function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, morePre
   `;
 }
 
+function getUserPageStatRankClass(place) {
+  if (place === 1) {
+    return 'user-page-stat-rank-gold';
+  }
+
+  if (place === 2) {
+    return 'user-page-stat-rank-silver';
+  }
+
+  if (place === 3) {
+    return 'user-page-stat-rank-bronze';
+  }
+
+  return 'user-page-stat-rank-regular';
+}
+
 function getUserPageStatRankHtml(rank) {
   const place = Number(rank?.place);
 
@@ -11891,6 +11907,7 @@ function getUserPageStatRankHtml(rank) {
     return '';
   }
 
+  const rankClass = getUserPageStatRankClass(place);
   const percent = Number(rank?.percent);
   const title = Number.isFinite(percent) && percent > 0
     ? `Больше, чем у ${percent}% пользователей`
@@ -11899,8 +11916,8 @@ function getUserPageStatRankHtml(rank) {
   const ariaLabel = title || `#${place} в рейтинге`;
 
   return `
-    <span class="user-page-stat-rank"${titleAttr} aria-label="${escapeHtml(ariaLabel)}">
-      ${escapeHtml(`#${place}`)}
+    <span class="user-page-stat-rank ${rankClass}"${titleAttr} aria-label="${escapeHtml(ariaLabel)}">
+      <span class="user-page-stat-rank-number">${escapeHtml(`#${place}`)}</span>
     </span>
   `;
 }
