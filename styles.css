@@ -6143,6 +6143,10 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     font-size: 22px;
   }
 
+  .user-page-overview {
+    gap: 10px;
+  }
+
   .user-page-section-header h2 {
     font-size: 15px;
   }
@@ -6152,14 +6156,44 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .user-page-stats {
+    gap: 10px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .user-page-stat {
+    min-height: 82px;
+    padding: 13px 10px;
+    gap: 6px;
+  }
+
+  .user-page-stat-value {
+    font-size: 27px;
+  }
+
+  .user-page-stat-label {
+    font-size: 12px;
+  }
+
+  .user-page-taste-stats {
+    margin-top: 10px;
+    gap: 10px;
+  }
+
   .user-page-taste-card {
+    min-height: 70px;
     padding: 12px;
+    align-items: center;
+    gap: 5px;
+    text-align: center;
+  }
+
+  .user-page-taste-label {
+    font-size: 12px;
   }
 
   .user-page-taste-value {
+    align-self: stretch;
+    justify-content: center;
     font-size: 14px;
   }
 }
@@ -6230,8 +6264,9 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .user-page-stat {
-    padding: 12px 6px;
-    gap: 6px;
+    min-height: 78px;
+    padding: 12px 8px;
+    gap: 5px;
   }
 
   .user-page-stat-value {
@@ -6239,7 +6274,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .user-page-stat-label {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .user-page-stat-rank {
@@ -6271,11 +6306,13 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .user-page-taste-stats {
+    margin-top: 8px;
     gap: 8px;
   }
 
   .user-page-taste-card {
-    padding: 10px;
+    min-height: 64px;
+    padding: 10px 8px;
     gap: 5px;
   }
 
