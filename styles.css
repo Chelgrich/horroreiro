@@ -3697,7 +3697,7 @@ body:has(.user-page-shell) .page {
   --rank-ribbon-bg: #1f2b3d;
   --rank-text: #eff5ff;
   position: absolute;
-  top: -16px;
+  top: -10px;
   right: -10px;
   box-sizing: border-box;
   width: 52px;
@@ -6243,7 +6243,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .user-page-stat-rank {
-    top: -12px;
+    top: -10px;
     right: -7px;
     width: 42px;
     height: 48px;
