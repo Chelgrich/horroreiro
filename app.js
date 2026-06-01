@@ -10834,6 +10834,10 @@ function bindSharedUiEvents() {
   });
 
   document.addEventListener('click', event => {
+    if (handleUserPageRankTooltipClick(event)) {
+      return;
+    }
+
     handleUserPageDisplayNameEditClick(event);
     handleUserPageRailControlClick(event);
 
@@ -10859,14 +10863,28 @@ function bindSharedUiEvents() {
 
     closeCatalogExternalLinksCard(openedCard);
   });
+  document.addEventListener('focusin', event => {
+    if (userPageRankTooltipTarget && !event.target?.closest?.('[data-user-page-rank-title]')) {
+      hideUserPageRankTooltip();
+    }
+  });
 
-  window.addEventListener('resize', scheduleAppResizeSync);
+  window.addEventListener('resize', () => {
+    hideUserPageRankTooltip();
+    scheduleAppResizeSync();
+  });
+  window.addEventListener('scroll', hideUserPageRankTooltip, { passive: true });
 
   document.addEventListener('keydown', event => {
+    if (handleUserPageRankTooltipKeydown(event)) {
+      return;
+    }
+
     if (event.key !== 'Escape') {
       return;
     }
 
+    hideUserPageRankTooltip();
     closeMobileRatingModal();
     closeAllCustomSelects();
     closeAuthPopoverMenu();
@@ -11825,6 +11843,131 @@ function handleUserPageRailControlClick(event) {
   scrollUserPageRail(shell, direction);
 }
 
+let userPageRankTooltipElement = null;
+let userPageRankTooltipTarget = null;
+
+function getUserPageRankTooltipElement() {
+  if (userPageRankTooltipElement) {
+    return userPageRankTooltipElement;
+  }
+
+  const tooltip = document.createElement('div');
+  tooltip.id = 'userPageRankTooltip';
+  tooltip.className = 'user-page-rank-tooltip';
+  tooltip.setAttribute('role', 'tooltip');
+  tooltip.hidden = true;
+  document.body.appendChild(tooltip);
+  userPageRankTooltipElement = tooltip;
+
+  return tooltip;
+}
+
+function positionUserPageRankTooltip(target, tooltip) {
+  const targetRect = target.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const viewportPadding = 12;
+  const gap = 8;
+  const left = Math.min(
+    Math.max(
+      targetRect.left + (targetRect.width - tooltipRect.width) / 2,
+      viewportPadding
+    ),
+    window.innerWidth - tooltipRect.width - viewportPadding
+  );
+  const preferredTop = targetRect.bottom + gap;
+  const fallbackTop = targetRect.top - tooltipRect.height - gap;
+  const top = preferredTop + tooltipRect.height + viewportPadding <= window.innerHeight
+    ? preferredTop
+    : Math.max(viewportPadding, fallbackTop);
+
+  tooltip.style.left = `${Math.round(left)}px`;
+  tooltip.style.top = `${Math.round(top)}px`;
+}
+
+function hideUserPageRankTooltip() {
+  if (userPageRankTooltipTarget) {
+    userPageRankTooltipTarget.removeAttribute('aria-describedby');
+    userPageRankTooltipTarget.setAttribute('aria-expanded', 'false');
+  }
+
+  if (userPageRankTooltipElement) {
+    userPageRankTooltipElement.classList.remove('is-visible');
+    userPageRankTooltipElement.hidden = true;
+    userPageRankTooltipElement.textContent = '';
+  }
+
+  userPageRankTooltipTarget = null;
+}
+
+function showUserPageRankTooltip(target) {
+  const title = target?.dataset?.userPageRankTitle || '';
+
+  if (!title) {
+    hideUserPageRankTooltip();
+    return;
+  }
+
+  const tooltip = getUserPageRankTooltipElement();
+
+  if (userPageRankTooltipTarget && userPageRankTooltipTarget !== target) {
+    userPageRankTooltipTarget.removeAttribute('aria-describedby');
+    userPageRankTooltipTarget.setAttribute('aria-expanded', 'false');
+  }
+
+  userPageRankTooltipTarget = target;
+  tooltip.textContent = title;
+  tooltip.hidden = false;
+  tooltip.classList.add('is-visible');
+  target.setAttribute('aria-describedby', tooltip.id);
+  target.setAttribute('aria-expanded', 'true');
+  positionUserPageRankTooltip(target, tooltip);
+}
+
+function toggleUserPageRankTooltip(target) {
+  if (userPageRankTooltipTarget === target && userPageRankTooltipElement?.classList.contains('is-visible')) {
+    hideUserPageRankTooltip();
+    return;
+  }
+
+  showUserPageRankTooltip(target);
+}
+
+function getUserPageRankTooltipTarget(eventTarget) {
+  return eventTarget?.closest?.('[data-user-page-rank-title]');
+}
+
+function handleUserPageRankTooltipClick(event) {
+  const target = getUserPageRankTooltipTarget(event.target);
+
+  if (target) {
+    event.preventDefault();
+    toggleUserPageRankTooltip(target);
+    return true;
+  }
+
+  if (userPageRankTooltipTarget && !event.target?.closest?.('.user-page-rank-tooltip')) {
+    hideUserPageRankTooltip();
+  }
+
+  return false;
+}
+
+function handleUserPageRankTooltipKeydown(event) {
+  const target = getUserPageRankTooltipTarget(event.target);
+
+  if (target && (event.key === 'Enter' || event.key === ' ')) {
+    event.preventDefault();
+    toggleUserPageRankTooltip(target);
+    return true;
+  }
+
+  if (event.key === 'Escape' && userPageRankTooltipTarget) {
+    hideUserPageRankTooltip();
+  }
+
+  return false;
+}
+
 function getUserPageMoreCardHtml(hiddenCount, morePresetKey = '') {
   const contentHtml = `<strong>И ещё ${hiddenCount}</strong>`;
   const catalogPresetUrl = morePresetKey ? buildCatalogPresetUrl(morePresetKey) : '';
@@ -11913,10 +12056,13 @@ function getUserPageStatRankHtml(rank) {
     ? `Больше, чем у ${percent}% пользователей`
     : '';
   const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+  const tooltipAttrs = title
+    ? ` data-user-page-rank-title="${escapeHtml(title)}" aria-expanded="false" role="button" tabindex="0"`
+    : '';
   const ariaLabel = title || `${place} место в рейтинге`;
 
   return `
-    <span class="user-page-stat-rank ${rankClass}"${titleAttr} aria-label="${escapeHtml(ariaLabel)}">
+    <span class="user-page-stat-rank ${rankClass}"${titleAttr}${tooltipAttrs} aria-label="${escapeHtml(ariaLabel)}">
       <span class="user-page-stat-rank-number">${escapeHtml(String(place))}</span>
     </span>
   `;
@@ -11968,6 +12114,7 @@ function renderUserPageLoading() {
     return;
   }
 
+  hideUserPageRankTooltip();
   userPage.innerHTML = '<div class="user-page-loading-state">Загрузка профиля...</div>';
 }
 
@@ -11976,6 +12123,7 @@ function renderUserPageNotFound() {
     return;
   }
 
+  hideUserPageRankTooltip();
   setUserPageDocumentMeta(null);
   userPage.innerHTML = `
     <div class="user-page-empty-state user-page-empty-state-large">
@@ -12075,6 +12223,7 @@ function renderUserPage(data) {
     return;
   }
 
+  hideUserPageRankTooltip();
   const displayName = getPublicProfileDisplayName(data.profile);
   const handle = getPublicProfileHandle(data.profile);
   const averageRating = data.averageRating === null ? '-' : data.averageRating.toFixed(1);

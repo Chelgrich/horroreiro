@@ -3763,6 +3763,36 @@ body:has(.user-page-shell) .page {
   font-variant-numeric: tabular-nums;
 }
 
+.user-page-stat-rank[data-user-page-rank-title] {
+  cursor: help;
+}
+
+.user-page-stat-rank[data-user-page-rank-title]:focus-visible .user-page-stat-rank-number {
+  outline: 2px solid var(--control-focus-border);
+  outline-offset: 2px;
+}
+
+.user-page-rank-tooltip {
+  position: fixed;
+  z-index: 1200;
+  box-sizing: border-box;
+  max-width: min(260px, calc(100vw - 24px));
+  padding: 8px 10px;
+  color: var(--color-text-primary);
+  background: #1a2028;
+  border: 1px solid var(--ui-soft-border-hover);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: center;
+  pointer-events: none;
+}
+
+.user-page-rank-tooltip[hidden] {
+  display: none;
+}
+
 .user-page-stat-rank-gold {
   --rank-medal-bg: #f3bd35;
   --rank-medal-border: rgba(255, 228, 128, 0.56);
