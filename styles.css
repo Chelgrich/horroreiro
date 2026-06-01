@@ -3692,11 +3692,9 @@ body:has(.user-page-shell) .page {
 }
 
 .user-page-stat-rank {
-  --rank-medal-bg:
-    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.5), transparent 28%),
-    linear-gradient(145deg, #324053, #1b2635);
+  --rank-medal-bg: #273548;
   --rank-medal-border: rgba(124, 154, 198, 0.24);
-  --rank-ribbon-bg: linear-gradient(135deg, #263548, #172233);
+  --rank-ribbon-bg: #1f2b3d;
   --rank-text: #eff5ff;
   position: absolute;
   top: -16px;
@@ -3735,8 +3733,6 @@ body:has(.user-page-shell) .page {
   border: 1px solid var(--rank-medal-border);
   border-radius: 50%;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.34),
-    inset 0 -8px 14px rgba(0, 0, 0, 0.16),
     0 8px 18px rgba(0, 0, 0, 0.28);
 }
 
@@ -3744,9 +3740,15 @@ body:has(.user-page-shell) .page {
   content: "";
   top: 30px;
   z-index: 0;
-  width: 31px;
+  width: 34px;
   height: 24px;
-  background: var(--rank-ribbon-bg);
+  background:
+    linear-gradient(
+      90deg,
+      var(--rank-ribbon-bg) 0 42%,
+      transparent 42% 58%,
+      var(--rank-ribbon-bg) 58% 100%
+    );
   border-radius: 3px 3px 2px 2px;
   clip-path: polygon(0 0, 39% 0, 50% 72%, 61% 0, 100% 0, 86% 100%, 50% 76%, 14% 100%);
   opacity: 0.96;
@@ -3761,42 +3763,33 @@ body:has(.user-page-shell) .page {
   display: grid;
   place-items: center;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .user-page-stat-rank-gold {
-  --rank-medal-bg:
-    radial-gradient(circle at 34% 23%, rgba(255, 248, 198, 0.92), transparent 27%),
-    linear-gradient(145deg, #ffe078 0%, #f2b724 48%, #b97611 100%);
+  --rank-medal-bg: #f3bd35;
   --rank-medal-border: rgba(255, 228, 128, 0.56);
-  --rank-ribbon-bg: linear-gradient(135deg, #d8931d, #f5c847 54%, #ad6d10);
+  --rank-ribbon-bg: #c98518;
   --rank-text: #231804;
 }
 
 .user-page-stat-rank-silver {
-  --rank-medal-bg:
-    radial-gradient(circle at 34% 23%, rgba(255, 255, 255, 0.9), transparent 28%),
-    linear-gradient(145deg, #f1f5f9 0%, #bcc7d4 50%, #7f8c9b 100%);
+  --rank-medal-bg: #c8d1dc;
   --rank-medal-border: rgba(236, 242, 248, 0.48);
-  --rank-ribbon-bg: linear-gradient(135deg, #aeb9c6, #d9e0e8 54%, #7b8796);
+  --rank-ribbon-bg: #8f9aaa;
   --rank-text: #121820;
 }
 
 .user-page-stat-rank-bronze {
-  --rank-medal-bg:
-    radial-gradient(circle at 34% 23%, rgba(255, 213, 173, 0.76), transparent 28%),
-    linear-gradient(145deg, #e99458 0%, #bc6237 52%, #7a361f 100%);
+  --rank-medal-bg: #c46b3f;
   --rank-medal-border: rgba(239, 153, 98, 0.42);
-  --rank-ribbon-bg: linear-gradient(135deg, #a84e2f, #d97948 54%, #74321f);
+  --rank-ribbon-bg: #914629;
   --rank-text: #fff7ef;
 }
 
 .user-page-stat-rank-regular {
-  --rank-medal-bg:
-    radial-gradient(circle at 34% 23%, rgba(210, 226, 255, 0.22), transparent 28%),
-    linear-gradient(145deg, rgba(58, 78, 108, 0.96), rgba(24, 35, 52, 0.98));
+  --rank-medal-bg: #273548;
   --rank-medal-border: rgba(91, 140, 255, 0.22);
-  --rank-ribbon-bg: linear-gradient(135deg, rgba(43, 61, 88, 0.96), rgba(20, 30, 46, 0.98));
+  --rank-ribbon-bg: #1b283c;
   --rank-text: #dce7f7;
 }
 
