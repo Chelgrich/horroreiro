@@ -3473,13 +3473,42 @@ body:has(.user-page-shell) .page {
 }
 
 .back-link-arrow {
-  width: 1em;
-  height: 1em;
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;
-  transform: translateY(-0.04em);
+  font-size: 0;
+  line-height: 0;
+}
+
+.back-link-arrow::before,
+.back-link-arrow::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  display: block;
+}
+
+.back-link-arrow::before {
+  left: 4px;
+  width: 9px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
+
+.back-link-arrow::after {
+  left: 4px;
+  width: 6px;
+  height: 6px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  background: transparent;
+  transform: translateY(-50%) rotate(45deg);
 }
 
 .user-page-back-link:hover,
