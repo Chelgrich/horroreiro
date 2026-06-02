@@ -60,6 +60,8 @@ html::-webkit-scrollbar-corner {
   --ui-action-bg: linear-gradient(180deg, rgba(91, 140, 255, 0.08), rgba(91, 140, 255, 0.035)), #18202a;
   --ui-action-bg-hover: linear-gradient(180deg, rgba(91, 140, 255, 0.13), rgba(91, 140, 255, 0.055)), #1d2732;
   --ui-action-bg-muted: rgba(24, 32, 42, 0.52);
+  --ui-danger-action-bg: linear-gradient(180deg, rgba(255, 123, 114, 0.1), rgba(255, 123, 114, 0.045)), #241b1f;
+  --ui-danger-action-bg-hover: linear-gradient(180deg, rgba(255, 123, 114, 0.16), rgba(255, 123, 114, 0.075)), #2c1f24;
   --ui-action-color: #edf2f7;
   --ui-action-muted-color: rgba(198, 208, 220, 0.52);
   --ui-soft-border: rgba(145, 158, 174, 0.11);
@@ -4284,12 +4286,13 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-admin-icon-button-danger {
   color: var(--color-danger-text);
-  background: var(--ui-action-bg);
+  background: var(--ui-danger-action-bg);
   border-color: transparent;
 }
 
-.movie-page-admin-icon-button-danger:hover {
-  background: rgba(255, 123, 114, 0.08);
+.movie-page-admin-icon-button-danger:hover,
+.movie-page-admin-icon-button-danger:focus-visible {
+  background: var(--ui-danger-action-bg-hover);
   border-color: transparent;
 }
 
@@ -4768,12 +4771,13 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-review-icon-button-danger {
   color: var(--color-danger-text);
-  background: var(--ui-action-bg);
+  background: var(--ui-danger-action-bg);
   border-color: transparent;
 }
 
-.movie-page-review-icon-button-danger:hover {
-  background: rgba(255, 123, 114, 0.08);
+.movie-page-review-icon-button-danger:hover,
+.movie-page-review-icon-button-danger:focus-visible {
+  background: var(--ui-danger-action-bg-hover);
   border-color: transparent;
 }
 
@@ -4985,8 +4989,13 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-similar-editor-remove-button {
   color: var(--color-danger-text);
-  background: var(--ui-action-bg);
+  background: var(--ui-danger-action-bg);
   border-color: transparent;
+}
+
+.movie-page-similar-editor-remove-button:hover:not(:disabled),
+.movie-page-similar-editor-remove-button:focus-visible {
+  background: var(--ui-danger-action-bg-hover);
 }
 
 .movie-page-similar-editor-item-main {
