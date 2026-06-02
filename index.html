@@ -343,7 +343,7 @@
       <div class="movies-section-header">
         <div class="movies-section-heading">
           <h2 class="section-title">Фильмы ужасов</h2>
-          <div id="moviesResultCount" class="movies-result-count" aria-live="polite">Найдено: 0</div>
+          <div id="moviesResultCount" class="movies-result-count" aria-live="polite" hidden></div>
         </div>
       </div>
       <nav
@@ -352,7 +352,9 @@
         aria-label="Пагинация каталога перед списком фильмов"
         hidden
       ></nav>
-      <div id="movies" class="movies-list">Загрузка...</div>
+      <div id="movies" class="movies-list" aria-busy="true">
+        <div class="movies-loading-state">Загружаем фильмы...</div>
+      </div>
       <nav
         id="catalogPaginationBottom"
         class="catalog-pagination catalog-pagination-bottom"

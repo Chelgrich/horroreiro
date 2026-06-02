@@ -2456,16 +2456,15 @@ function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
 
   const { paginationState, pageMovies } = getCatalogDerivedState();
 
-  if (moviesResultCount) {
-    moviesResultCount.textContent = domSnapshot.moviesResultCountText || getMoviesResultCountText(
-      paginationState.totalItems,
-      paginationState
-    );
-  }
+  showMoviesResultCount(domSnapshot.moviesResultCountText || getMoviesResultCountText(
+    paginationState.totalItems,
+    paginationState
+  ));
 
   updateCatalogStructuredData(pageMovies, paginationState);
   renderCatalogPagination(paginationState);
   container.classList.remove('is-catalog-fading', 'is-catalog-visible');
+  setCatalogBusyState(false);
   container.innerHTML = domSnapshot.containerHtml;
   bindRestoredCatalogDomState();
 
@@ -5757,19 +5756,21 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
     .order('title', { ascending: true })
     .order('position', { foreignTable: 'movie_genres', ascending: true });
 
-    if (error) {
-      if (!preserveExistingCatalogOnError) {
-        moviesLoadedSuccessfully = false;
-      }
-
-      console.error('Ошибка загрузки фильмов:', error);
-  
-      if (container && !preserveExistingCatalogOnError) {
-        container.innerHTML = 'Ошибка загрузки фильмов. Открой консоль F12.';
-      }
-  
-      return false;
+  if (error) {
+    if (!preserveExistingCatalogOnError) {
+      moviesLoadedSuccessfully = false;
     }
+
+    console.error('Ошибка загрузки фильмов:', error);
+  
+    if (container && !preserveExistingCatalogOnError) {
+      hideMoviesResultCount();
+      setCatalogBusyState(false);
+      container.innerHTML = 'Ошибка загрузки фильмов. Открой консоль F12.';
+    }
+
+    return false;
+  }
 
   allMovies = data || [];
   rebuildCatalogMovieMeta();
@@ -8793,6 +8794,36 @@ function getMoviesResultCountText(totalItems, paginationState) {
   return `Найдено: ${totalItems} · показано ${paginationState.startItemNumber}–${paginationState.endItemNumber}`;
 }
 
+function hideMoviesResultCount() {
+  if (!moviesResultCount) {
+    return;
+  }
+
+  moviesResultCount.textContent = '';
+  moviesResultCount.hidden = true;
+}
+
+function showMoviesResultCount(text) {
+  if (!moviesResultCount) {
+    return;
+  }
+
+  moviesResultCount.textContent = text;
+  moviesResultCount.hidden = false;
+}
+
+function setCatalogBusyState(isBusy) {
+  if (!container) {
+    return;
+  }
+
+  if (isBusy) {
+    container.setAttribute('aria-busy', 'true');
+  } else {
+    container.removeAttribute('aria-busy');
+  }
+}
+
 function scrollCatalogToPageStart() {
   const moviesSection = moviesSectionTitle?.closest('.movies-section') || container;
 
@@ -8861,9 +8892,11 @@ function scheduleAppResizeSync() {
   });
 }
 
-function renderMoviesSkeleton(cardsCount = 12) {
+function renderMoviesSkeleton(cardsCount = CATALOG_PAGE_SIZE) {
   const skeletonMovies = getCatalogSkeletonMovies(cardsCount);
 
+  hideMoviesResultCount();
+  setCatalogBusyState(true);
   clearCatalogPagination();
 
   container.innerHTML = skeletonMovies
@@ -8985,7 +9018,7 @@ function hasMovieExternalLinks(movie) {
 
 function getCatalogSkeletonCardsCount() {
   if (!container) {
-    return 12;
+    return CATALOG_PAGE_SIZE;
   }
 
   const renderedCardsCount = container.querySelectorAll('.movie-card').length;
@@ -8998,10 +9031,10 @@ function getCatalogSkeletonCardsCount() {
   const estimatedCardsCount = Number(filteredTotal || 0);
 
   if (estimatedCardsCount > 0) {
-    return Math.min(estimatedCardsCount, 12);
+    return Math.min(estimatedCardsCount, CATALOG_PAGE_SIZE);
   }
 
-  return 12;
+  return CATALOG_PAGE_SIZE;
 }
 
 function getVotesLabel(votesCount) {
@@ -10622,9 +10655,8 @@ function renderMovies() {
     saveCatalogState();
   }
 
-  if (moviesResultCount) {
-    moviesResultCount.textContent = getMoviesResultCountText(filteredTotal, paginationState);
-  }
+  showMoviesResultCount(getMoviesResultCountText(filteredTotal, paginationState));
+  setCatalogBusyState(false);
 
   if (filteredTotal === 0) {
     updateCatalogStructuredData([], paginationState);

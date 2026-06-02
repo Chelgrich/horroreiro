@@ -2132,6 +2132,17 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   margin-top: 16px;
 }
 
+.movies-loading-state {
+  grid-column: 1 / -1;
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  font-size: 15px;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .movies-list.is-catalog-fading {
   opacity: 0.72;
   transition: opacity 0.22s ease;
