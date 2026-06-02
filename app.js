@@ -1,7 +1,3 @@
-/* =========================================================
-JS-БЛОК 1. ПОЛУЧЕНИЕ ЭЛЕМЕНТОВ СО СТРАНИЦЫ
-Сохраняет ссылки на DOM-элементы, с которыми работает приложение.
-========================================================== */
 let movieModal = document.getElementById('movieModal');
 let movieModalBackdrop = document.getElementById('movieModalBackdrop');
 let closeMovieModalButton = document.getElementById('closeMovieModalButton');
@@ -114,10 +110,6 @@ let manualSimilarMovieSelect = document.getElementById('manualSimilarMovieSelect
 let addManualSimilarMovieButton = document.getElementById('addManualSimilarMovieButton');
 let manualSimilarMoviesList = document.getElementById('manualSimilarMoviesList');
 
-/* =========================================================
-JS-БЛОК 2. ПОДКЛЮЧЕНИЕ К SUPABASE
-Создаёт клиент Supabase для работы с базой, auth и storage.
-========================================================== */
 const SUPABASE_URL = window.__ENV__?.SUPABASE_URL;
 const SUPABASE_ANON_KEY = window.__ENV__?.SUPABASE_ANON_KEY;
 const APP_BUILD_VERSION = window.__ENV__?.APP_BUILD_VERSION || 'dev';
@@ -131,10 +123,6 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_ANON_KEY
 );
 
-/* =========================================================
-JS-БЛОК 3. ГЛОБАЛЬНОЕ СОСТОЯНИЕ ПРИЛОЖЕНИЯ
-Хранит данные каталога, пользователя и состояние интерфейса.
-========================================================== */
 const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
 const CATALOG_STATE_STORAGE_KEY = 'horroreiro_catalog_state';
 const EMAIL_CONFIRMATION_PENDING_KEY = 'horroreiro_email_confirmation_pending';
@@ -444,10 +432,6 @@ function applyBuildVersionSoftResetIfNeeded() {
   return true;
 }
 
-/* =========================================================
-JS-БЛОК 4. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ОБЩЕГО НАЗНАЧЕНИЯ
-Мелкие утилиты, используемые в разных частях приложения.
-========================================================== */
 function parseCommaSeparated(value) {
   return value
     .split(',')
@@ -4411,10 +4395,6 @@ function sortMovieReviewsForDisplay(reviews) {
   });
 }
 
-/* =========================================================
-JS-БЛОК 5. ПОИСК ПО КАТАЛОГУ
-Проверяет, соответствует ли фильм текущему текстовому запросу.
-========================================================== */
 function textMatchesSearchQuery(text, searchQuery) {
   const normalizedQuery = normalizeSearchText(searchQuery);
 
@@ -4648,10 +4628,6 @@ function movieMatchesSearch(movie, searchQuery, queryWords = null) {
   return words.every(word => meta.searchableText.includes(word));
 }
 
-/* =========================================================
-JS-БЛОК 6. РАБОТА С СООБЩЕНИЯМИ АВТОРИЗАЦИИ
-Показывает, очищает и автоматически скрывает статусы auth-блока.
-========================================================== */
 function setToastActionState(toastElement, actionButtonElement, isVisible) {
   if (!toastElement || !actionButtonElement) {
     return;
@@ -4905,11 +4881,6 @@ function setAuthSubmittingState(isSubmitting) {
   }
 }
 
-/* =========================================================
-JS-БЛОК 7. УПРАВЛЕНИЕ МОДАЛЬНЫМ ОКНОМ И ФОРМОЙ
-Открывает/закрывает модалку и переключает форму между режимами
-создания и редактирования фильма.
-========================================================== */
 function syncBodyScrollLock() {
   const shouldLockScroll = (
     isModalOpen ||
@@ -5383,11 +5354,6 @@ function fillFormForEdit(movie) {
   openMovieModal();
 }
 
-/* =========================================================
-JS-БЛОК 8. УПРАВЛЕНИЕ AUTH-ИНТЕРФЕЙСОМ
-Показывает или скрывает форму входа и админские элементы
-в зависимости от статуса пользователя.
-========================================================== */
 function updateAuthUI() {
   const shouldShowAuthenticatedUi = shouldUseAuthenticatedUi();
 
@@ -5474,11 +5440,6 @@ function updateAuthUI() {
   syncQuickPresetButtons();
 }
 
-/* =========================================================
-JS-БЛОК 8A. ПОДКЛЮЧЕНИЕ МОДУЛЯ КАСТОМНЫХ SELECT
-Собирает все select-элементы в одном месте и передаёт их
-во внешний менеджер кастомных select.
-========================================================== */
 const filterCustomSelectElements = [
   genreFilter,
   subgenreFilter,
@@ -5519,10 +5480,6 @@ function refreshCustomSelectGroup(selectElements) {
   });
 }
 
-/* =========================================================
-JS-БЛОК 9. СПРАВОЧНИКИ ФИЛЬТРОВ
-Заполняет select-поля по уже загруженному каталогу.
-========================================================== */
 function refreshGenreFilterOptions(genreCounts = new Map()) {
   if (!genreFilter) {
     return;
@@ -5671,10 +5628,6 @@ function loadYearFilterOptions(yearCounts = new Map()) {
   refreshCustomSelect(yearFilter);
 }
 
-/* =========================================================
-JS-БЛОК 10. ЗАГРУЗКА ДАННЫХ КАТАЛОГА
-Получает фильмы и пользовательские оценки из Supabase.
-========================================================== */
 const MOVIE_BASE_SELECT = `
   id,
   slug,
@@ -6228,11 +6181,6 @@ function shouldRenderFullCatalogAfterRatingChange() {
   );
 }
 
-/* =========================================================
-JS-БЛОК 11. РАСЧЁТ И ЧТЕНИЕ ОЦЕНОК
-Собирает оценки фильма, считает средний рейтинг и находит
-оценку текущего пользователя.
-========================================================== */
 function getMovieVotesCount(movieId) {
   return movieRatingStatsByMovieId.get(String(movieId))?.count || 0;
 }
@@ -6764,11 +6712,6 @@ function renderActiveFilterChips() {
   });
 }
 
-/* =========================================================
-JS-БЛОК 12. РАБОТА С POSTER STORAGE
-Загружает новый постер, определяет storage-путь и удаляет
-старый файл при замене.
-========================================================== */
 function extractPosterStoragePath(publicUrl) {
   if (!publicUrl) {
     return null;
@@ -6949,11 +6892,6 @@ async function deletePosterFileByUrl(publicUrl) {
   throwIfSupabaseError(error);
 }
 
-/* =========================================================
-JS-БЛОК 13. ПОДГОТОВКА ЖАНРОВ И СТРАН
-Гарантирует наличие жанров и стран в справочниках перед
-созданием связей many-to-many.
-========================================================== */
 async function ensureGenres(names) {
   if (names.length === 0) {
     return [];
@@ -7000,11 +6938,6 @@ async function ensureCountries(names) {
   return data;
 }
 
-/* =========================================================
-JS-БЛОК 14. ОБНОВЛЕНИЕ СВЯЗЕЙ ФИЛЬМА
-Удаляет старые связи фильма и создаёт новые связи
-с жанрами и странами.
-========================================================== */
 async function replaceMovieRelations(movieId, genreNames, countryNames) {
   const genreRows = await ensureGenres(genreNames);
   const countryRows = await ensureCountries(countryNames);
@@ -7051,10 +6984,6 @@ async function replaceMovieRelations(movieId, genreNames, countryNames) {
   }
 }
 
-/* =========================================================
-JS-БЛОК 15. ДОБАВЛЕНИЕ ФИЛЬМА
-Создаёт новый фильм и привязывает к нему жанры и страны.
-========================================================== */
 async function addMovie(event) {
   event.preventDefault();
 
@@ -7182,10 +7111,6 @@ async function addMovie(event) {
   }
 }
 
-/* =========================================================
-JS-БЛОК 16. РЕДАКТИРОВАНИЕ ФИЛЬМА
-Обновляет фильм и пересобирает его связи и постер.
-========================================================== */
 async function updateMovie(event) {
   event.preventDefault();
 
@@ -7456,11 +7381,6 @@ async function updateMovie(event) {
   }
 }
 
-/* =========================================================
-JS-БЛОК 17. ЕДИНАЯ ТОЧКА СОХРАНЕНИЯ ФОРМЫ
-Выбирает между добавлением нового фильма и редактированием
-существующего.
-========================================================== */
 async function saveMovie(event) {
   if (editingMovieId) {
     await updateMovie(event);
@@ -7469,10 +7389,6 @@ async function saveMovie(event) {
   }
 }
 
-/* =========================================================
-JS-БЛОК 18. УДАЛЕНИЕ ФИЛЬМА
-Удаляет фильм из базы и обновляет каталог.
-========================================================== */
 async function deleteMovieRecord(movieId) {
   const { error } = await supabaseClient
     .from('movies')
@@ -7502,10 +7418,6 @@ async function deleteMovie(movieId, movieTitle) {
   }
 }
 
-/* =========================================================
-JS-БЛОК 19. АВТОРИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ
-Восстанавливает сессию, выполняет вход, регистрацию и выход.
-========================================================== */
 async function restoreSession() {
   let data = null;
   let error = null;
@@ -8051,11 +7963,6 @@ async function logout() {
   }
 }
 
-/* =========================================================
-JS-БЛОК 20. ПОЛЬЗОВАТЕЛЬСКИЕ ОЦЕНКИ
-Позволяет авторизованному пользователю поставить или обновить
-свою оценку фильму.
-========================================================== */
 function triggerTemporaryFeedbackAnimation(element, baseKey, type = 'success', duration = 360) {
   if (!element) {
     return;
@@ -8620,10 +8527,6 @@ async function saveUserMovieRating(movieId, ratingValue) {
   });
 }
 
-/* =========================================================
-JS-БЛОК 21. ОТРИСОВКА КАТАЛОГА ФИЛЬМОВ
-Применяет поиск, фильтры и сортировку, затем выводит карточки.
-========================================================== */
 function getCatalogPaginationContainers() {
   return [catalogPaginationTop, catalogPaginationBottom].filter(Boolean);
 }
@@ -10738,10 +10641,6 @@ function renderMovies() {
   persistCatalogDomSnapshot();
 }
 
-/* =========================================================
-JS-БЛОК 22. ОБРАБОТЧИКИ СОБЫТИЙ ИНТЕРФЕЙСА
-Навешивает события на форму, фильтры, auth и модальное окно.
-========================================================== */
 const debouncedRenderMovies = createDebouncedCatalogRender(200);
 
 let lastSearchQuery = '';
@@ -11105,11 +11004,6 @@ function bindMoviePageEvents() {
   areMoviePageEventsBound = true;
 }
 
-/* =========================================================
-JS-БЛОК 23. ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
-Восстанавливает сессию, подписывается на auth-изменения,
-загружает данные и запускает первую отрисовку.
-========================================================== */
 function isCatalogPage() {
   return Boolean(container);
 }
@@ -14235,8 +14129,4 @@ async function init() {
   }
 }
 
-/* =========================================================
-JS-БЛОК 24. ЗАПУСК ПРИЛОЖЕНИЯ
-Точка входа.
-========================================================== */
 init();
