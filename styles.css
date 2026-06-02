@@ -65,6 +65,9 @@ html::-webkit-scrollbar-corner {
   --ui-danger-action-confirm-bg: rgba(255, 123, 114, 0.22);
   --ui-danger-action-confirm-bg-hover: rgba(255, 123, 114, 0.28);
   --ui-danger-action-confirm-shadow: rgba(255, 123, 114, 0.18);
+  --ui-neutral-action-bg: rgba(255, 255, 255, 0.035);
+  --ui-neutral-action-bg-hover: rgba(255, 255, 255, 0.065);
+  --ui-neutral-action-bg-muted: rgba(255, 255, 255, 0.025);
   --ui-action-color: #edf2f7;
   --ui-action-muted-color: rgba(198, 208, 220, 0.52);
   --ui-soft-border: rgba(145, 158, 174, 0.11);
@@ -759,9 +762,9 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 }
 
 .secondary-button.catalog-view-toggle {
-  min-width: 148px;
+  min-width: 118px;
   height: 30px;
-  padding: 0 14px;
+  padding: 0 12px;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -770,8 +773,8 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
-  color: var(--ui-action-color);
-  background: var(--ui-action-bg);
+  color: var(--color-text-tertiary);
+  background: var(--ui-neutral-action-bg);
   border-color: transparent;
 }
 
@@ -784,7 +787,7 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
 .secondary-button.catalog-view-toggle:hover,
 .secondary-button.catalog-view-toggle:focus-visible {
   color: var(--color-text-primary);
-  background: var(--ui-action-bg-hover);
+  background: var(--ui-neutral-action-bg-hover);
   border-color: transparent;
 }
 
@@ -831,8 +834,8 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   justify-content: center;
   font-size: 12px;
   font-weight: 600;
-  color: var(--ui-action-color);
-  background: var(--ui-action-bg);
+  color: var(--color-text-tertiary);
+  background: var(--ui-neutral-action-bg);
   border-color: transparent;
   white-space: nowrap;
 }
@@ -857,13 +860,13 @@ CSS-БЛОК 5. БАЗОВЫЕ СЕКЦИИ
   opacity: 0.46;
   cursor: default;
   color: var(--ui-action-muted-color);
-  background: var(--ui-action-bg-muted);
+  background: var(--ui-neutral-action-bg-muted);
 }
 
 .catalog-pagination-button:not(.is-active):not(:disabled):hover,
 .catalog-pagination-button:not(.is-active):not(:disabled):focus-visible {
   color: var(--color-text-primary);
-  background: var(--ui-action-bg-hover);
+  background: var(--ui-neutral-action-bg-hover);
 }
 
 .catalog-pagination-ellipsis {
@@ -1979,8 +1982,8 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
   padding: 0 14px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--ui-action-color);
-  background: var(--ui-action-bg);
+  color: var(--color-text-tertiary);
+  background: var(--ui-neutral-action-bg);
   border-color: transparent;
 }
 
@@ -1991,7 +1994,7 @@ DESKTOP-ПОЛИРОВКА TOOLBAR
 .quick-preset-button:hover,
 .quick-preset-button:not(.is-active):focus-visible {
   color: var(--color-text-primary);
-  background: var(--ui-action-bg-hover);
+  background: var(--ui-neutral-action-bg-hover);
   border-color: transparent;
 }
 
@@ -2229,8 +2232,8 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
   padding: 0 12px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--ui-action-color);
-  background: var(--ui-action-bg);
+  color: var(--color-text-tertiary);
+  background: var(--ui-neutral-action-bg);
   border: 1px solid transparent;
   border-radius: 999px;
   white-space: nowrap;
@@ -2245,7 +2248,7 @@ CSS-БЛОК 11. СЕТКА СПИСКА ФИЛЬМОВ
 .month-sort-btn:not(.is-active):hover,
 .month-sort-btn:not(.is-active):focus-visible {
   color: var(--color-text-primary);
-  background: var(--ui-action-bg-hover);
+  background: var(--ui-neutral-action-bg-hover);
 }
 
 .movies-month-cards {
@@ -5640,19 +5643,19 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   .catalog-toolbar {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 10px;
   }
 
   .catalog-toolbar-actions {
-    gap: 12px;
+    gap: 8px;
     flex-wrap: wrap;
   }
 
   .catalog-toolbar-actions > button,
   .catalog-toolbar-actions .filter-sort {
-    width: calc(50% - 6px);
+    width: calc(50% - 4px);
     min-width: 0;
-    flex: 0 1 calc(50% - 6px);
+    flex: 0 1 calc(50% - 4px);
   }
 
   .active-filters-bar {
@@ -5660,6 +5663,7 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .quick-presets-bar {
+    margin-top: 10px;
     gap: 6px;
   }
 
@@ -5853,6 +5857,58 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
     font-size: 14px;
   }
 
+  .catalog-search-row,
+  .catalog-toolbar-actions .filter-sort {
+    gap: 0;
+  }
+
+  .catalog-search-row label,
+  .catalog-toolbar-actions .filter-sort label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .catalog-toolbar-actions > button,
+  .catalog-toolbar-actions .filter-sort select,
+  .catalog-toolbar-actions .filter-sort .custom-select-trigger {
+    min-height: 38px;
+    height: 38px;
+  }
+
+  .catalog-toolbar-actions > button {
+    font-size: 14px;
+  }
+
+  .quick-presets-bar {
+    margin-right: -16px;
+    margin-left: -16px;
+    padding: 0 16px 2px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    scroll-padding-inline: 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .quick-presets-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quick-preset-button {
+    height: 30px;
+    padding: 0 12px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
   .movies-section-header,
   .movies-section-heading {
     flex-direction: column;
@@ -5861,17 +5917,25 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .movies-section-header {
+    flex-direction: row;
+    align-items: flex-start;
     margin-bottom: 8px;
     gap: 14px;
   }
 
+  .movies-section-heading {
+    flex: 1 1 180px;
+  }
+
   .catalog-view-toggle {
-    width: 100%;
+    width: auto;
+    min-width: 104px;
     height: 32px;
     min-height: 32px;
-    padding: 0 14px;
+    padding: 0 10px;
+    align-self: flex-start;
     font-size: 12px;
-    margin-top: 10px;
+    margin-top: 0;
   }
 
   .movies-result-count {
@@ -6407,13 +6471,48 @@ CSS-БЛОК 16. АДАПТИВНОСТЬ
   }
 
   .catalog-toolbar-actions {
-    flex-direction: column;
+    flex-direction: row;
   }
 
   .catalog-toolbar-actions > button,
   .catalog-toolbar-actions .filter-sort {
-    width: 100%;
-    flex-basis: auto;
+    width: calc(50% - 4px);
+    flex-basis: calc(50% - 4px);
+  }
+
+  .catalog-toolbar-actions > button {
+    width: calc(39% - 4px);
+    flex-basis: calc(39% - 4px);
+    padding: 0 10px;
+    gap: 6px;
+    font-size: 0;
+  }
+
+  .catalog-toolbar-actions > button::after {
+    content: "Фильтр";
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  .catalog-toolbar-actions > button::before {
+    width: 12px;
+    height: 12px;
+    background-size: 12px 12px;
+  }
+
+  .catalog-toolbar-actions .filter-sort {
+    width: calc(61% - 4px);
+    flex-basis: calc(61% - 4px);
+  }
+
+  .catalog-toolbar-actions .filter-sort .custom-select-trigger {
+    padding-right: 28px;
+    padding-left: 10px;
+    font-size: 12px;
+  }
+
+  .catalog-toolbar-actions .filter-sort .custom-select-trigger::after {
+    right: 9px;
   }
 
   .movie-card {
