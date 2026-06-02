@@ -79,7 +79,6 @@ html::-webkit-scrollbar-corner {
   --border-control-strong: transparent;
   --border-control-hover: transparent;
   --border-divider: #1f242b;
-  --border-media: transparent;
   --control-hover-border: var(--ui-soft-border-hover);
   --control-focus-border: var(--ui-soft-border-focus);
   --control-focus-ring: var(--ui-focus-ring);
@@ -90,18 +89,10 @@ html::-webkit-scrollbar-corner {
   --color-text-muted: #9aa3ad;
   --color-text-dim: #8f99a5;
   --color-danger-text: #ffd9d4;
-  --color-danger-bg: rgba(120, 34, 34, 0.28);
-  --color-danger-border: rgba(255, 123, 114, 0.5);
-  --color-danger-border-soft: rgba(255, 123, 114, 0.38);
-  --color-danger-shadow: rgba(255, 123, 114, 0.14);
   --color-success-base: 34, 168, 97;
-  --color-success-border: rgba(34, 168, 97, 0.5);
   --color-success-bg-soft: rgba(34, 168, 97, 0.06);
-  --color-success-shadow: rgba(34, 168, 97, 0.18);
   --color-watchlist-base: 91, 140, 255;
-  --color-watchlist-border: rgba(91, 140, 255, 0.45);
   --color-watchlist-bg-soft: rgba(91, 140, 255, 0.06);
-  --color-watchlist-shadow: rgba(91, 140, 255, 0.16);
   --color-rating-text: #f5c518;
   --color-rating-mark-text: #111315;
   --color-rating-mark-bg: rgba(245, 197, 24, 0.92);
@@ -112,8 +103,6 @@ html::-webkit-scrollbar-corner {
   --accent-soft-text: #dbe7ff;
   --accent-soft-bg: linear-gradient(180deg, rgba(91, 140, 255, 0.24), rgba(91, 140, 255, 0.14)), #20304d;
   --accent-soft-bg-hover: linear-gradient(180deg, rgba(91, 140, 255, 0.3), rgba(91, 140, 255, 0.18)), #243858;
-  --accent-soft-border: rgba(91, 140, 255, 0.42);
-  --accent-soft-border-hover: rgba(91, 140, 255, 0.5);
   --accent-soft-shadow: rgba(91, 140, 255, 0.16);
 
   --modal-page-padding-top: 84px;
@@ -1675,7 +1664,31 @@ button {
   border-color: transparent;
 }
 
-.secondary-button.is-delete-confirm {
+.movie-card .delete-movie-btn.secondary-button,
+.movie-page-admin-icon-button.movie-page-admin-icon-button-danger,
+.movie-page-review-icon-button.movie-page-review-icon-button-danger,
+.movie-page-similar-editor-icon-button.movie-page-similar-editor-remove-button {
+  color: var(--color-danger-text);
+  background: var(--ui-danger-action-bg);
+  border-color: transparent;
+}
+
+.movie-card .delete-movie-btn.secondary-button:hover,
+.movie-card .delete-movie-btn.secondary-button:focus-visible,
+.movie-page-admin-icon-button.movie-page-admin-icon-button-danger:hover,
+.movie-page-admin-icon-button.movie-page-admin-icon-button-danger:focus-visible,
+.movie-page-review-icon-button.movie-page-review-icon-button-danger:hover,
+.movie-page-review-icon-button.movie-page-review-icon-button-danger:focus-visible,
+.movie-page-similar-editor-icon-button.movie-page-similar-editor-remove-button:hover:not(:disabled),
+.movie-page-similar-editor-icon-button.movie-page-similar-editor-remove-button:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--ui-danger-action-bg-hover);
+  border-color: transparent;
+}
+
+.secondary-button.is-delete-confirm,
+.movie-card .delete-movie-btn.secondary-button.is-delete-confirm,
+.movie-page-admin-icon-button.movie-page-admin-icon-button-danger.is-delete-confirm {
   color: var(--color-text-primary);
   background: var(--ui-danger-action-confirm-bg);
   border-color: transparent;
@@ -1685,8 +1698,13 @@ button {
 }
 
 .secondary-button.is-delete-confirm:hover,
-.secondary-button.is-delete-confirm:focus-visible {
+.secondary-button.is-delete-confirm:focus-visible,
+.movie-card .delete-movie-btn.secondary-button.is-delete-confirm:hover,
+.movie-card .delete-movie-btn.secondary-button.is-delete-confirm:focus-visible,
+.movie-page-admin-icon-button.movie-page-admin-icon-button-danger.is-delete-confirm:hover,
+.movie-page-admin-icon-button.movie-page-admin-icon-button-danger.is-delete-confirm:focus-visible {
   background: var(--ui-danger-action-confirm-bg-hover);
+  border-color: transparent;
 }
 
 .secondary-button-compact {
@@ -2952,34 +2970,6 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 .movie-card .secondary-button:focus-visible {
   color: var(--color-text-primary);
   background: var(--ui-action-bg-hover);
-  border-color: transparent;
-}
-
-.movie-card .delete-movie-btn {
-  color: var(--color-danger-text);
-  background: var(--ui-danger-action-bg);
-  border-color: transparent;
-}
-
-.movie-card .delete-movie-btn:hover,
-.movie-card .delete-movie-btn:focus-visible {
-  color: var(--color-text-primary);
-  background: var(--ui-danger-action-bg-hover);
-  border-color: transparent;
-}
-
-.movie-card .delete-movie-btn.is-delete-confirm {
-  color: var(--color-text-primary);
-  background: var(--ui-danger-action-confirm-bg);
-  border-color: transparent;
-  box-shadow:
-    0 0 0 1px var(--ui-danger-action-confirm-shadow),
-    0 0 18px var(--ui-danger-action-confirm-shadow);
-}
-
-.movie-card .delete-movie-btn.is-delete-confirm:hover,
-.movie-card .delete-movie-btn.is-delete-confirm:focus-visible {
-  background: var(--ui-danger-action-confirm-bg-hover);
   border-color: transparent;
 }
 
@@ -4322,32 +4312,6 @@ body:has(.movie-page-shell) .page {
   box-shadow: 0 0 0 3px var(--control-focus-ring);
 }
 
-.movie-page-admin-icon-button-danger {
-  color: var(--color-danger-text);
-  background: var(--ui-danger-action-bg);
-  border-color: transparent;
-}
-
-.movie-page-admin-icon-button-danger:hover,
-.movie-page-admin-icon-button-danger:focus-visible {
-  background: var(--ui-danger-action-bg-hover);
-  border-color: transparent;
-}
-
-.movie-page-admin-icon-button-danger.is-delete-confirm {
-  color: var(--color-text-primary);
-  background: var(--ui-danger-action-confirm-bg);
-  border-color: transparent;
-  box-shadow:
-    0 0 0 1px var(--ui-danger-action-confirm-shadow),
-    0 0 18px var(--ui-danger-action-confirm-shadow);
-}
-
-.movie-page-admin-icon-button-danger.is-delete-confirm:hover {
-  background: var(--ui-danger-action-confirm-bg-hover);
-  border-color: transparent;
-}
-
 .movie-page-content-shell {
   min-height: 240px;
 }
@@ -4807,18 +4771,6 @@ body:has(.movie-page-shell) .page {
   box-shadow: 0 0 0 3px var(--control-focus-ring);
 }
 
-.movie-page-review-icon-button-danger {
-  color: var(--color-danger-text);
-  background: var(--ui-danger-action-bg);
-  border-color: transparent;
-}
-
-.movie-page-review-icon-button-danger:hover,
-.movie-page-review-icon-button-danger:focus-visible {
-  background: var(--ui-danger-action-bg-hover);
-  border-color: transparent;
-}
-
 .movie-page-review-spoiler-cover {
   margin-top: var(--movie-review-space, 14px);
   padding: 14px 16px;
@@ -5023,17 +4975,6 @@ body:has(.movie-page-shell) .page {
   opacity: 0.45;
   background: var(--ui-action-bg-muted);
   cursor: default;
-}
-
-.movie-page-similar-editor-remove-button {
-  color: var(--color-danger-text);
-  background: var(--ui-danger-action-bg);
-  border-color: transparent;
-}
-
-.movie-page-similar-editor-remove-button:hover:not(:disabled),
-.movie-page-similar-editor-remove-button:focus-visible {
-  background: var(--ui-danger-action-bg-hover);
 }
 
 .movie-page-similar-editor-item-main {
