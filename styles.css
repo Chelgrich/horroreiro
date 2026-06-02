@@ -5796,14 +5796,12 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .quick-presets-bar {
-    margin-right: -16px;
-    margin-left: -16px;
-    padding: 0 16px 2px;
+    padding-bottom: 2px;
     flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
-    scroll-padding-inline: 16px;
+    scroll-padding-inline: 0;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -5829,19 +5827,20 @@ body:has(.user-page-shell) .page-footer {
     flex-direction: row;
     align-items: flex-start;
     margin-bottom: 8px;
-    gap: 14px;
+    gap: 8px;
   }
 
   .movies-section-heading {
-    flex: 1 1 180px;
+    min-width: 0;
+    flex: 1 1 auto;
   }
 
   .catalog-view-toggle {
     width: auto;
-    min-width: 104px;
+    min-width: 96px;
     height: 32px;
     min-height: 32px;
-    padding: 0 10px;
+    padding: 0 8px;
     align-self: flex-start;
     font-size: 12px;
     margin-top: 0;
@@ -5850,7 +5849,9 @@ body:has(.user-page-shell) .page-footer {
   .movies-result-count {
     width: 100%;
     font-size: 12px;
+    line-height: 1.25;
     text-align: left;
+    white-space: normal;
   }
 
   .catalog-pagination {
