@@ -4260,6 +4260,16 @@ body:has(.movie-page-shell) .page {
   width: 40px;
   height: 40px;
   min-width: 40px;
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+  border-color: transparent;
+}
+
+.movie-page-admin-icon-button:hover,
+.movie-page-admin-icon-button:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--ui-action-bg-hover);
+  border-color: transparent;
 }
 
 .movie-page-admin-icon-button svg {
@@ -4274,6 +4284,7 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-admin-icon-button-danger {
   color: var(--color-danger-text);
+  background: var(--ui-action-bg);
   border-color: transparent;
 }
 
@@ -4397,7 +4408,17 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-rate-trigger {
   min-width: 0;
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+  border-color: transparent;
   white-space: nowrap;
+}
+
+.movie-page-rate-trigger:hover,
+.movie-page-rate-trigger:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--ui-action-bg-hover);
+  border-color: transparent;
 }
 
 .movie-page-rate-trigger-star {
@@ -4723,6 +4744,16 @@ body:has(.movie-page-shell) .page {
   width: 32px;
   height: 32px;
   min-width: 32px;
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+  border-color: transparent;
+}
+
+.movie-page-review-icon-button:hover,
+.movie-page-review-icon-button:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--ui-action-bg-hover);
+  border-color: transparent;
 }
 
 .movie-page-review-icon-button svg {
@@ -4737,6 +4768,7 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-review-icon-button-danger {
   color: var(--color-danger-text);
+  background: var(--ui-action-bg);
   border-color: transparent;
 }
 
@@ -4874,9 +4906,9 @@ body:has(.movie-page-shell) .page {
   min-height: 30px;
   padding: 6px 10px;
   justify-content: flex-start;
-  color: var(--color-text-secondary);
-  background: var(--surface-control-alt);
-  border-color: var(--border-control);
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+  border-color: transparent;
   border-radius: var(--radius-sm);
   font-size: 12px;
   line-height: 1.25;
@@ -4886,8 +4918,8 @@ body:has(.movie-page-shell) .page {
 .movie-page-similar-suggestion:hover,
 .movie-page-similar-suggestion:focus-visible {
   color: var(--color-text-primary);
-  background: var(--surface-control-hover);
-  border-color: var(--border-control-hover);
+  background: var(--ui-action-bg-hover);
+  border-color: transparent;
 }
 
 .movie-page-similar-editor-list {
@@ -4921,9 +4953,9 @@ body:has(.movie-page-shell) .page {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-secondary);
-  background: transparent;
-  border: 1px solid var(--border-control);
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
 }
 
@@ -4940,18 +4972,20 @@ body:has(.movie-page-shell) .page {
 .movie-page-similar-editor-icon-button:hover:not(:disabled),
 .movie-page-similar-editor-icon-button:focus-visible {
   color: var(--color-text-primary);
-  background: rgba(255, 255, 255, 0.07);
-  border-color: var(--border-control-hover);
+  background: var(--ui-action-bg-hover);
+  border-color: transparent;
 }
 
 .movie-page-similar-editor-icon-button:disabled,
 .movie-page-similar-drag-handle:disabled {
   opacity: 0.45;
+  background: var(--ui-action-bg-muted);
   cursor: default;
 }
 
 .movie-page-similar-editor-remove-button {
   color: var(--color-danger-text);
+  background: var(--ui-action-bg);
   border-color: transparent;
 }
 
