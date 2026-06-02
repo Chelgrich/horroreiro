@@ -62,6 +62,9 @@ html::-webkit-scrollbar-corner {
   --ui-action-bg-muted: rgba(24, 32, 42, 0.52);
   --ui-danger-action-bg: linear-gradient(180deg, rgba(255, 123, 114, 0.1), rgba(255, 123, 114, 0.045)), #241b1f;
   --ui-danger-action-bg-hover: linear-gradient(180deg, rgba(255, 123, 114, 0.16), rgba(255, 123, 114, 0.075)), #2c1f24;
+  --ui-danger-action-confirm-bg: rgba(255, 123, 114, 0.22);
+  --ui-danger-action-confirm-bg-hover: rgba(255, 123, 114, 0.28);
+  --ui-danger-action-confirm-shadow: rgba(255, 123, 114, 0.18);
   --ui-action-color: #edf2f7;
   --ui-action-muted-color: rgba(198, 208, 220, 0.52);
   --ui-soft-border: rgba(145, 158, 174, 0.11);
@@ -1673,10 +1676,17 @@ button {
 }
 
 .secondary-button.is-delete-confirm {
-  color: var(--color-danger-text);
-  background: var(--color-danger-bg);
+  color: var(--color-text-primary);
+  background: var(--ui-danger-action-confirm-bg);
   border-color: transparent;
-  box-shadow: 0 0 0 1px var(--color-danger-shadow);
+  box-shadow:
+    0 0 0 1px var(--ui-danger-action-confirm-shadow),
+    0 0 18px var(--ui-danger-action-confirm-shadow);
+}
+
+.secondary-button.is-delete-confirm:hover,
+.secondary-button.is-delete-confirm:focus-visible {
+  background: var(--ui-danger-action-confirm-bg-hover);
 }
 
 .secondary-button-compact {
@@ -2942,6 +2952,34 @@ CSS-БЛОК 14. РЕЙТИНГ И ГОЛОСОВАНИЕ
 .movie-card .secondary-button:focus-visible {
   color: var(--color-text-primary);
   background: var(--ui-action-bg-hover);
+  border-color: transparent;
+}
+
+.movie-card .delete-movie-btn {
+  color: var(--color-danger-text);
+  background: var(--ui-danger-action-bg);
+  border-color: transparent;
+}
+
+.movie-card .delete-movie-btn:hover,
+.movie-card .delete-movie-btn:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--ui-danger-action-bg-hover);
+  border-color: transparent;
+}
+
+.movie-card .delete-movie-btn.is-delete-confirm {
+  color: var(--color-text-primary);
+  background: var(--ui-danger-action-confirm-bg);
+  border-color: transparent;
+  box-shadow:
+    0 0 0 1px var(--ui-danger-action-confirm-shadow),
+    0 0 18px var(--ui-danger-action-confirm-shadow);
+}
+
+.movie-card .delete-movie-btn.is-delete-confirm:hover,
+.movie-card .delete-movie-btn.is-delete-confirm:focus-visible {
+  background: var(--ui-danger-action-confirm-bg-hover);
   border-color: transparent;
 }
 
@@ -4298,15 +4336,15 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-admin-icon-button-danger.is-delete-confirm {
   color: var(--color-text-primary);
-  background: rgba(255, 123, 114, 0.22);
+  background: var(--ui-danger-action-confirm-bg);
   border-color: transparent;
   box-shadow:
-    0 0 0 1px rgba(255, 123, 114, 0.18),
-    0 0 18px rgba(255, 123, 114, 0.18);
+    0 0 0 1px var(--ui-danger-action-confirm-shadow),
+    0 0 18px var(--ui-danger-action-confirm-shadow);
 }
 
 .movie-page-admin-icon-button-danger.is-delete-confirm:hover {
-  background: rgba(255, 123, 114, 0.28);
+  background: var(--ui-danger-action-confirm-bg-hover);
   border-color: transparent;
 }
 
