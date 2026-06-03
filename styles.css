@@ -709,8 +709,9 @@ h3 {
 
 .horizontal-scroll-fade-shell {
   --horizontal-scroll-fade-size: 28px;
+  --horizontal-scroll-fade-overscan: 2px;
   --horizontal-scroll-fade-bg: var(--surface-page);
-  --horizontal-scroll-fade-bg-soft: rgba(17, 19, 21, 0.18);
+  --horizontal-scroll-fade-bg-soft: rgba(17, 19, 21, 0.58);
   --horizontal-scroll-fade-bg-transparent: var(--surface-page-transparent);
 
   position: relative;
@@ -724,12 +725,12 @@ h3 {
   top: 0;
   bottom: 0;
   z-index: 2;
-  width: var(--horizontal-scroll-fade-size);
+  width: calc(var(--horizontal-scroll-fade-size) + var(--horizontal-scroll-fade-overscan));
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.22s ease;
-  -webkit-backdrop-filter: blur(7px);
-  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-size: 100% 100%;
@@ -737,25 +738,27 @@ h3 {
 }
 
 .horizontal-scroll-fade-shell::before {
-  left: 0;
+  left: calc(-1 * var(--horizontal-scroll-fade-overscan));
   background: linear-gradient(
     90deg,
-    var(--horizontal-scroll-fade-bg-soft) 0%,
+    var(--horizontal-scroll-fade-bg) 0%,
+    var(--horizontal-scroll-fade-bg-soft) 46%,
     var(--horizontal-scroll-fade-bg-transparent) 100%
   );
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.72) 38%, transparent 100%);
-  mask-image: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.72) 38%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 18%, rgba(0, 0, 0, 0.8) 48%, transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 18%, rgba(0, 0, 0, 0.8) 48%, transparent 100%);
 }
 
 .horizontal-scroll-fade-shell::after {
-  right: 0;
+  right: calc(-1 * var(--horizontal-scroll-fade-overscan));
   background: linear-gradient(
     90deg,
     var(--horizontal-scroll-fade-bg-transparent) 0%,
-    var(--horizontal-scroll-fade-bg-soft) 100%
+    var(--horizontal-scroll-fade-bg-soft) 54%,
+    var(--horizontal-scroll-fade-bg) 100%
   );
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.72) 62%, #000 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.72) 62%, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.8) 52%, #000 82%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.8) 52%, #000 82%, #000 100%);
 }
 
 .horizontal-scroll-fade-shell.has-scroll-left::before,
@@ -1974,7 +1977,7 @@ button:not(:where(
 .quick-presets-scroll-shell {
   margin-top: 14px;
   --horizontal-scroll-fade-bg: var(--surface-panel);
-  --horizontal-scroll-fade-bg-soft: rgba(26, 29, 33, 0.18);
+  --horizontal-scroll-fade-bg-soft: rgba(26, 29, 33, 0.58);
   --horizontal-scroll-fade-bg-transparent: var(--surface-panel-transparent);
 }
 
