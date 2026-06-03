@@ -79,9 +79,13 @@ const catalogPaginationTop = document.getElementById('catalogPaginationTop');
 const catalogPaginationBottom = document.getElementById('catalogPaginationBottom');
 let catalogViewToggleButton = null;
 let astralPresetToastTimerId = null;
-const HORIZONTAL_SCROLL_FADE_SELECTOR = '[data-horizontal-scroll-fade="true"]';
-const HORIZONTAL_SCROLL_FADE_TOLERANCE = 2;
-const horizontalScrollFadeElements = new Set();
+const QUICK_PRESETS_SCROLL_HINT_MEDIA_QUERY = '(max-width: 680px)';
+const QUICK_PRESETS_SCROLL_HINT_DELAY_MS = 650;
+const QUICK_PRESETS_SCROLL_HINT_DISTANCE = 72;
+const QUICK_PRESETS_SCROLL_HINT_DURATION_MS = 420;
+let didPlayQuickPresetsScrollHint = false;
+let quickPresetsScrollHintTimerId = null;
+let quickPresetsScrollHintFrameId = null;
 
 let movieForm = document.getElementById('movieForm');
 let formTitle = document.getElementById('formTitle');
@@ -6449,7 +6453,7 @@ function syncQuickPresetButtons() {
     button.classList.toggle('is-active', !shouldHide && presetKey === activePresetKey);
   });
 
-  requestAnimationFrame(() => updateHorizontalScrollFade(quickPresetsBar));
+  scheduleQuickPresetsScrollHint();
 }
 
 function getCatalogRoutePresetKey() {
@@ -8786,60 +8790,120 @@ function syncCatalogPaginationSlotCount() {
   renderCatalogPagination(paginationState);
 }
 
-function getHorizontalScrollFadeShell(scrollElement) {
-  return scrollElement?.closest?.('[data-horizontal-scroll-fade-shell="true"]') || scrollElement;
-}
-
-function updateHorizontalScrollFade(scrollElement) {
-  if (!scrollElement || !scrollElement.isConnected) {
+function isQuickPresetsScrollHintAllowed() {
+  if (typeof window.matchMedia !== 'function') {
     return false;
   }
 
-  const shell = getHorizontalScrollFadeShell(scrollElement);
+  const isMobileLayout = window.matchMedia(QUICK_PRESETS_SCROLL_HINT_MEDIA_QUERY).matches;
+  const shouldReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  if (!shell) {
-    return false;
-  }
-
-  const maxScrollLeft = Math.max(0, scrollElement.scrollWidth - scrollElement.clientWidth);
-  const scrollLeft = Math.max(0, Math.min(maxScrollLeft, scrollElement.scrollLeft));
-  const hasOverflow = maxScrollLeft > HORIZONTAL_SCROLL_FADE_TOLERANCE;
-  const hasScrollLeft = hasOverflow && scrollLeft > HORIZONTAL_SCROLL_FADE_TOLERANCE;
-  const hasScrollRight = hasOverflow && scrollLeft < maxScrollLeft - HORIZONTAL_SCROLL_FADE_TOLERANCE;
-
-  shell.classList.toggle('has-horizontal-scroll-overflow', hasOverflow);
-  shell.classList.toggle('has-scroll-left', hasScrollLeft);
-  shell.classList.toggle('has-scroll-right', hasScrollRight);
-
-  return true;
+  return Boolean(isMobileLayout && !shouldReduceMotion);
 }
 
-function syncHorizontalScrollFades() {
-  horizontalScrollFadeElements.forEach(scrollElement => {
-    if (!updateHorizontalScrollFade(scrollElement)) {
-      horizontalScrollFadeElements.delete(scrollElement);
+function getQuickPresetsMaxScrollLeft() {
+  if (!quickPresetsBar) {
+    return 0;
+  }
+
+  return Math.max(0, quickPresetsBar.scrollWidth - quickPresetsBar.clientWidth);
+}
+
+function easeQuickPresetsScrollHint(progress) {
+  return progress < 0.5
+    ? 4 * progress * progress * progress
+    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+}
+
+function cancelQuickPresetsScrollHint({ markHandled = false } = {}) {
+  if (quickPresetsScrollHintTimerId !== null) {
+    clearTimeout(quickPresetsScrollHintTimerId);
+    quickPresetsScrollHintTimerId = null;
+  }
+
+  if (quickPresetsScrollHintFrameId !== null) {
+    cancelAnimationFrame(quickPresetsScrollHintFrameId);
+    quickPresetsScrollHintFrameId = null;
+  }
+
+  if (markHandled) {
+    didPlayQuickPresetsScrollHint = true;
+  }
+}
+
+function markQuickPresetsScrollHintHandled() {
+  cancelQuickPresetsScrollHint({ markHandled: true });
+}
+
+function animateQuickPresetsScrollHint(fromScrollLeft, toScrollLeft, onComplete = null) {
+  const startedAt = performance.now();
+
+  const step = currentTime => {
+    if (!quickPresetsBar) {
+      quickPresetsScrollHintFrameId = null;
+      return;
     }
-  });
+
+    const progress = Math.min(1, (currentTime - startedAt) / QUICK_PRESETS_SCROLL_HINT_DURATION_MS);
+    const easedProgress = easeQuickPresetsScrollHint(progress);
+
+    quickPresetsBar.scrollLeft = fromScrollLeft + (toScrollLeft - fromScrollLeft) * easedProgress;
+
+    if (progress < 1) {
+      quickPresetsScrollHintFrameId = requestAnimationFrame(step);
+      return;
+    }
+
+    quickPresetsScrollHintFrameId = null;
+    onComplete?.();
+  };
+
+  quickPresetsScrollHintFrameId = requestAnimationFrame(step);
 }
 
-function bindHorizontalScrollFade(scrollElement) {
-  if (!scrollElement || scrollElement.dataset.horizontalScrollFadeBound === 'true') {
+function playQuickPresetsScrollHint() {
+  quickPresetsScrollHintTimerId = null;
+
+  if (
+    didPlayQuickPresetsScrollHint ||
+    !quickPresetsBar ||
+    !isQuickPresetsScrollHintAllowed() ||
+    quickPresetsBar.scrollLeft > 1
+  ) {
     return;
   }
 
-  scrollElement.dataset.horizontalScrollFadeBound = 'true';
-  horizontalScrollFadeElements.add(scrollElement);
-  scrollElement.addEventListener('scroll', () => updateHorizontalScrollFade(scrollElement), { passive: true });
-  updateHorizontalScrollFade(scrollElement);
-  requestAnimationFrame(() => updateHorizontalScrollFade(scrollElement));
+  const maxScrollLeft = getQuickPresetsMaxScrollLeft();
+
+  if (maxScrollLeft < 24) {
+    return;
+  }
+
+  didPlayQuickPresetsScrollHint = true;
+  const startScrollLeft = quickPresetsBar.scrollLeft;
+  const hintScrollLeft = Math.min(maxScrollLeft, startScrollLeft + QUICK_PRESETS_SCROLL_HINT_DISTANCE);
+
+  animateQuickPresetsScrollHint(startScrollLeft, hintScrollLeft, () => {
+    quickPresetsScrollHintTimerId = setTimeout(() => {
+      quickPresetsScrollHintTimerId = null;
+      animateQuickPresetsScrollHint(quickPresetsBar.scrollLeft, startScrollLeft);
+    }, 120);
+  });
 }
 
-function bindHorizontalScrollFades(root = document) {
-  root
-    ?.querySelectorAll?.(HORIZONTAL_SCROLL_FADE_SELECTOR)
-    .forEach(bindHorizontalScrollFade);
+function scheduleQuickPresetsScrollHint() {
+  if (
+    didPlayQuickPresetsScrollHint ||
+    quickPresetsScrollHintTimerId !== null ||
+    !quickPresetsBar ||
+    !isQuickPresetsScrollHintAllowed()
+  ) {
+    return;
+  }
 
-  syncHorizontalScrollFades();
+  quickPresetsScrollHintTimerId = setTimeout(() => {
+    requestAnimationFrame(playQuickPresetsScrollHint);
+  }, QUICK_PRESETS_SCROLL_HINT_DELAY_MS);
 }
 
 function scheduleAppResizeSync() {
@@ -8852,7 +8916,6 @@ function scheduleAppResizeSync() {
     syncOpenExternalLinksLayouts();
     syncCatalogPaginationSlotCount();
     syncUserPageRailControls();
-    syncHorizontalScrollFades();
     syncAppToastPosition();
   });
 }
@@ -11007,6 +11070,8 @@ function bindCatalogPageEvents() {
 
     applyQuickPreset(quickPresetButton.dataset.quickPreset);
   });
+  quickPresetsBar?.addEventListener('pointerdown', markQuickPresetsScrollHintHandled, { passive: true });
+  quickPresetsBar?.addEventListener('wheel', markQuickPresetsScrollHintHandled, { passive: true });
 
   resetFiltersTopButton?.addEventListener('click', () => {
     resetCatalogFiltersAndRerender();
@@ -11988,7 +12053,7 @@ function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, morePre
   const moreHtml = hiddenCount > 0 ? getUserPageMoreCardHtml(hiddenCount, morePresetKey) : '';
 
   return `
-    <div class="user-page-movie-rail-shell horizontal-scroll-fade-shell" data-user-page-rail-shell="true" data-horizontal-scroll-fade-shell="true">
+    <div class="user-page-movie-rail-shell" data-user-page-rail-shell="true">
       <button
         class="user-page-rail-button user-page-rail-button-prev"
         type="button"
@@ -11998,7 +12063,7 @@ function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, morePre
       >
         <span class="user-page-rail-button-icon" aria-hidden="true"></span>
       </button>
-      <div class="user-page-movie-rail" data-user-page-rail="true" data-horizontal-scroll-fade="true" tabindex="0">
+      <div class="user-page-movie-rail" data-user-page-rail="true" tabindex="0">
         ${cardsHtml}
         ${moreHtml}
       </div>
@@ -12297,7 +12362,6 @@ function renderUserPage(data) {
   `;
 
   bindUserPageRailControls();
-  bindHorizontalScrollFades(userPage);
   syncUserPageProfileEditButton();
 }
 
@@ -14173,7 +14237,6 @@ async function init() {
   initCustomSelects();
   initCurrentPageLinkGuard();
   bindSharedUiEvents();
-  bindHorizontalScrollFades();
   handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect);
 
   if (isCatalogPage()) {
