@@ -48,10 +48,13 @@ html::-webkit-scrollbar-corner {
   --surface-control-alt: #1a1f26;
   --surface-control: #121519;
   --surface-control-hover: #1b2128;
+  --surface-page: #111315;
   --surface-panel: #1a1d21;
   --surface-card: #15191d;
   --surface-card-hover: #171c20;
   --surface-media: #0f1114;
+  --surface-page-transparent: rgba(17, 19, 21, 0);
+  --surface-panel-transparent: rgba(26, 29, 33, 0);
 
   --ui-action-bg: linear-gradient(180deg, rgba(91, 140, 255, 0.08), rgba(91, 140, 255, 0.035)), #18202a;
   --ui-action-bg-hover: linear-gradient(180deg, rgba(91, 140, 255, 0.13), rgba(91, 140, 255, 0.055)), #1d2732;
@@ -136,7 +139,7 @@ body {
   letter-spacing: 0.2px;
   line-height: 1.5;
   color: #f2f2f2;
-  background: #111315;
+  background: var(--surface-page);
   color-scheme: dark;
 }
 
@@ -702,6 +705,56 @@ h3 {
   background: var(--surface-panel);
   border: 1px solid var(--border-panel);
   border-radius: var(--radius-lg);
+}
+
+.horizontal-scroll-fade-shell {
+  --horizontal-scroll-fade-size: 28px;
+  --horizontal-scroll-fade-bg: var(--surface-page);
+  --horizontal-scroll-fade-bg-soft: rgba(17, 19, 21, 0.78);
+  --horizontal-scroll-fade-bg-transparent: var(--surface-page-transparent);
+
+  position: relative;
+  min-width: 0;
+}
+
+.horizontal-scroll-fade-shell::before,
+.horizontal-scroll-fade-shell::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  width: var(--horizontal-scroll-fade-size);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.horizontal-scroll-fade-shell::before {
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    var(--horizontal-scroll-fade-bg) 0%,
+    var(--horizontal-scroll-fade-bg-soft) 44%,
+    var(--horizontal-scroll-fade-bg-transparent) 100%
+  );
+}
+
+.horizontal-scroll-fade-shell::after {
+  right: 0;
+  background: linear-gradient(
+    270deg,
+    var(--horizontal-scroll-fade-bg) 0%,
+    var(--horizontal-scroll-fade-bg-soft) 44%,
+    var(--horizontal-scroll-fade-bg-transparent) 100%
+  );
+}
+
+.horizontal-scroll-fade-shell.has-scroll-left::before,
+.horizontal-scroll-fade-shell.has-scroll-right::after {
+  opacity: 1;
 }
 
 .section-title {
@@ -1912,8 +1965,14 @@ button:not(:where(
   display: flex;
 }
 
-.quick-presets-bar {
+.quick-presets-scroll-shell {
   margin-top: 14px;
+  --horizontal-scroll-fade-bg: var(--surface-panel);
+  --horizontal-scroll-fade-bg-soft: rgba(26, 29, 33, 0.78);
+  --horizontal-scroll-fade-bg-transparent: var(--surface-panel-transparent);
+}
+
+.quick-presets-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -3857,6 +3916,7 @@ body:has(.user-page-shell) .page {
 .user-page-movie-rail-shell {
   position: relative;
   min-width: 0;
+  --horizontal-scroll-fade-size: 34px;
 }
 
 .user-page-movie-rail {
@@ -5571,8 +5631,11 @@ body:has(.user-page-shell) .page-footer {
     gap: 6px;
   }
 
-  .quick-presets-bar {
+  .quick-presets-scroll-shell {
     margin-top: 10px;
+  }
+
+  .quick-presets-bar {
     gap: 6px;
   }
 
@@ -5793,6 +5856,10 @@ body:has(.user-page-shell) .page-footer {
 
   .catalog-toolbar-actions > button {
     font-size: 14px;
+  }
+
+  .quick-presets-scroll-shell {
+    --horizontal-scroll-fade-size: 24px;
   }
 
   .quick-presets-bar {

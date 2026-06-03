@@ -79,6 +79,9 @@ const catalogPaginationTop = document.getElementById('catalogPaginationTop');
 const catalogPaginationBottom = document.getElementById('catalogPaginationBottom');
 let catalogViewToggleButton = null;
 let astralPresetToastTimerId = null;
+const HORIZONTAL_SCROLL_FADE_SELECTOR = '[data-horizontal-scroll-fade="true"]';
+const HORIZONTAL_SCROLL_FADE_TOLERANCE = 2;
+const horizontalScrollFadeElements = new Set();
 
 let movieForm = document.getElementById('movieForm');
 let formTitle = document.getElementById('formTitle');
@@ -6445,6 +6448,8 @@ function syncQuickPresetButtons() {
     button.classList.toggle('is-hidden-by-auth', shouldHide);
     button.classList.toggle('is-active', !shouldHide && presetKey === activePresetKey);
   });
+
+  requestAnimationFrame(() => updateHorizontalScrollFade(quickPresetsBar));
 }
 
 function getCatalogRoutePresetKey() {
@@ -8781,6 +8786,62 @@ function syncCatalogPaginationSlotCount() {
   renderCatalogPagination(paginationState);
 }
 
+function getHorizontalScrollFadeShell(scrollElement) {
+  return scrollElement?.closest?.('[data-horizontal-scroll-fade-shell="true"]') || scrollElement;
+}
+
+function updateHorizontalScrollFade(scrollElement) {
+  if (!scrollElement || !scrollElement.isConnected) {
+    return false;
+  }
+
+  const shell = getHorizontalScrollFadeShell(scrollElement);
+
+  if (!shell) {
+    return false;
+  }
+
+  const maxScrollLeft = Math.max(0, scrollElement.scrollWidth - scrollElement.clientWidth);
+  const scrollLeft = Math.max(0, Math.min(maxScrollLeft, scrollElement.scrollLeft));
+  const hasOverflow = maxScrollLeft > HORIZONTAL_SCROLL_FADE_TOLERANCE;
+  const hasScrollLeft = hasOverflow && scrollLeft > HORIZONTAL_SCROLL_FADE_TOLERANCE;
+  const hasScrollRight = hasOverflow && scrollLeft < maxScrollLeft - HORIZONTAL_SCROLL_FADE_TOLERANCE;
+
+  shell.classList.toggle('has-horizontal-scroll-overflow', hasOverflow);
+  shell.classList.toggle('has-scroll-left', hasScrollLeft);
+  shell.classList.toggle('has-scroll-right', hasScrollRight);
+
+  return true;
+}
+
+function syncHorizontalScrollFades() {
+  horizontalScrollFadeElements.forEach(scrollElement => {
+    if (!updateHorizontalScrollFade(scrollElement)) {
+      horizontalScrollFadeElements.delete(scrollElement);
+    }
+  });
+}
+
+function bindHorizontalScrollFade(scrollElement) {
+  if (!scrollElement || scrollElement.dataset.horizontalScrollFadeBound === 'true') {
+    return;
+  }
+
+  scrollElement.dataset.horizontalScrollFadeBound = 'true';
+  horizontalScrollFadeElements.add(scrollElement);
+  scrollElement.addEventListener('scroll', () => updateHorizontalScrollFade(scrollElement), { passive: true });
+  updateHorizontalScrollFade(scrollElement);
+  requestAnimationFrame(() => updateHorizontalScrollFade(scrollElement));
+}
+
+function bindHorizontalScrollFades(root = document) {
+  root
+    ?.querySelectorAll?.(HORIZONTAL_SCROLL_FADE_SELECTOR)
+    .forEach(bindHorizontalScrollFade);
+
+  syncHorizontalScrollFades();
+}
+
 function scheduleAppResizeSync() {
   if (appResizeSyncFrameId !== null) {
     return;
@@ -8791,6 +8852,7 @@ function scheduleAppResizeSync() {
     syncOpenExternalLinksLayouts();
     syncCatalogPaginationSlotCount();
     syncUserPageRailControls();
+    syncHorizontalScrollFades();
     syncAppToastPosition();
   });
 }
@@ -11926,7 +11988,7 @@ function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, morePre
   const moreHtml = hiddenCount > 0 ? getUserPageMoreCardHtml(hiddenCount, morePresetKey) : '';
 
   return `
-    <div class="user-page-movie-rail-shell" data-user-page-rail-shell="true">
+    <div class="user-page-movie-rail-shell horizontal-scroll-fade-shell" data-user-page-rail-shell="true" data-horizontal-scroll-fade-shell="true">
       <button
         class="user-page-rail-button user-page-rail-button-prev"
         type="button"
@@ -11936,7 +11998,7 @@ function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, morePre
       >
         <span class="user-page-rail-button-icon" aria-hidden="true"></span>
       </button>
-      <div class="user-page-movie-rail" data-user-page-rail="true" tabindex="0">
+      <div class="user-page-movie-rail" data-user-page-rail="true" data-horizontal-scroll-fade="true" tabindex="0">
         ${cardsHtml}
         ${moreHtml}
       </div>
@@ -12235,6 +12297,7 @@ function renderUserPage(data) {
   `;
 
   bindUserPageRailControls();
+  bindHorizontalScrollFades(userPage);
   syncUserPageProfileEditButton();
 }
 
@@ -14110,6 +14173,7 @@ async function init() {
   initCustomSelects();
   initCurrentPageLinkGuard();
   bindSharedUiEvents();
+  bindHorizontalScrollFades();
   handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect);
 
   if (isCatalogPage()) {
