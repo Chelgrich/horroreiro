@@ -5741,8 +5741,12 @@ body:has(.user-page-shell) .page-footer {
     --movie-card-title-padding-bottom: 7px;
     --movie-card-title-font-size: 16px;
     --movie-card-title-line-height: 1.16;
+    --movie-card-title-overflow-wrap: anywhere;
+    --movie-card-title-word-break: break-word;
     --movie-card-text-font-size: 12px;
     --movie-card-text-line-height: 1.28;
+    --movie-card-text-overflow-wrap: anywhere;
+    --movie-card-text-word-break: break-word;
   }
 
   .page-header-top {
