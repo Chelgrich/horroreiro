@@ -972,6 +972,7 @@ function renderManualSimilarMovieOptions() {
     ))
   ].join('');
   manualSimilarMovieSelect.value = '';
+  refreshCustomSelect(manualSimilarMovieSelect);
 
   if (addManualSimilarMovieButton) {
     addManualSimilarMovieButton.disabled = true;
@@ -5200,6 +5201,10 @@ function ensureMovieModalMounted() {
 
   if (releaseMonthInput) {
     refreshCustomSelect(releaseMonthInput);
+  }
+
+  if (manualSimilarMovieSelect) {
+    refreshCustomSelect(manualSimilarMovieSelect);
   }
 
   return Boolean(movieModal && movieForm);
@@ -11706,6 +11711,16 @@ function hasUserPageComparableActivityCount(countsByUser, currentUserId, ownCoun
   return (countsByUser.get(normalizedCurrentUserId) || 0) === expectedCount;
 }
 
+function syncUserPageOwnActivityCount(countsByUser, currentUserId, ownCount) {
+  const normalizedCurrentUserId = normalizeUserPageUserId(currentUserId);
+
+  if (!normalizedCurrentUserId) {
+    return;
+  }
+
+  countsByUser.set(normalizedCurrentUserId, Number(ownCount) || 0);
+}
+
 function getUserPageActivityRanks(userId, aggregateRows = {}, ownCounts = {}) {
   const ratingCounts = aggregateRows.hasRatingRows
     ? getUserPageUserCountMap(aggregateRows.ratingRows)
@@ -11716,6 +11731,11 @@ function getUserPageActivityRanks(userId, aggregateRows = {}, ownCounts = {}) {
   const reviewCounts = aggregateRows.hasReviewRows
     ? getUserPageUserCountMap(aggregateRows.reviewRows)
     : new Map();
+
+  syncUserPageOwnActivityCount(ratingCounts, userId, ownCounts.ratings);
+  syncUserPageOwnActivityCount(watchlistCounts, userId, ownCounts.watchlist);
+  syncUserPageOwnActivityCount(reviewCounts, userId, ownCounts.reviews);
+
   const populationUserIds = getUserPageActivityPopulationIds(
     aggregateRows,
     userId,

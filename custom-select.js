@@ -178,7 +178,7 @@ function createCustomSelectManager(config) {
   
       root.appendChild(trigger);
       root.appendChild(dropdown);
-      formRow.appendChild(root);
+      selectElement.insertAdjacentElement('afterend', root);
   
       const instance = {
         select: selectElement,

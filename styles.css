@@ -1157,9 +1157,13 @@ h3 {
   align-items: start;
 }
 
-.manual-similar-picker select {
+.manual-similar-picker select,
+.manual-similar-picker .custom-select {
   width: 100%;
   min-width: 0;
+}
+
+.manual-similar-picker select {
   height: 38px;
   padding-top: 0;
   padding-bottom: 0;
@@ -1170,19 +1174,6 @@ h3 {
   min-height: 36px;
   justify-self: start;
   white-space: nowrap;
-}
-
-.manual-similar-row .custom-select-trigger {
-  min-height: 38px;
-  padding-top: 0;
-  padding-bottom: 0;
-  display: flex;
-  align-items: center;
-  line-height: 1.25;
-}
-
-.manual-similar-row .custom-select-label {
-  line-height: 1.25;
 }
 
 .manual-similar-list {
