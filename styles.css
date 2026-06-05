@@ -4046,6 +4046,37 @@ body:has(.user-page-shell) .page {
   line-height: 1.2;
 }
 
+.user-page-section-title-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.user-page-section-title-link:hover,
+.user-page-section-title-link:focus-visible {
+  color: var(--color-accent-primary);
+}
+
+.user-page-section-title-link:focus,
+.user-page-section-title-link:focus-visible {
+  outline: none;
+  box-shadow: 0 2px 0 var(--color-accent-primary);
+}
+
+.user-page-section-title-arrow {
+  font-size: 1.12em;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  transform: translateY(-1px);
+}
+
+.user-page-section-title-link:hover .user-page-section-title-arrow,
+.user-page-section-title-link:focus-visible .user-page-section-title-arrow {
+  color: currentColor;
+}
+
 .user-page-movie-rail-shell {
   position: relative;
   min-width: 0;

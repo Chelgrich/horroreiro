@@ -13399,6 +13399,32 @@ function getUserPageTasteStatsHtml(tasteStats = {}) {
   `;
 }
 
+function getUserPageSectionHeaderHtml(title, url) {
+  const normalizedTitle = String(title || '').trim();
+  const normalizedUrl = String(url || '').trim();
+
+  if (!normalizedTitle) {
+    return '';
+  }
+
+  return `
+    <div class="user-page-section-header">
+      <h2>
+        ${
+          normalizedUrl
+            ? `
+              <a class="user-page-section-title-link" href="${escapeHtml(normalizedUrl)}">
+                <span>${escapeHtml(normalizedTitle)}</span>
+                <span class="user-page-section-title-arrow" aria-hidden="true">›</span>
+              </a>
+            `
+            : escapeHtml(normalizedTitle)
+        }
+      </h2>
+    </div>
+  `;
+}
+
 function renderUserPageLoading() {
   if (!userPage) {
     return;
@@ -13574,9 +13600,7 @@ function renderUserPage(data) {
     ${getUserPageTasteStatsHtml(data.tasteStats)}
 
     <section class="user-page-section">
-      <div class="user-page-section-header">
-        <h2>Оценки и просмотры</h2>
-      </div>
+      ${getUserPageSectionHeaderHtml('Оценки и просмотры', ratingsCatalogUrl)}
       ${getUserPageMovieRailHtml(
           data.ratingItems,
           'Пока нет оценённых фильмов.',
@@ -13586,16 +13610,12 @@ function renderUserPage(data) {
     </section>
 
     <section class="user-page-section">
-      <div class="user-page-section-header">
-        <h2>Смотреть позже</h2>
-      </div>
+      ${getUserPageSectionHeaderHtml('Смотреть позже', watchlistCatalogUrl)}
       ${getUserPageMovieRailHtml(data.watchlistItems, 'Список просмотра пуст.', null, watchlistCatalogUrl)}
     </section>
 
     <section class="user-page-section">
-      <div class="user-page-section-header">
-        <h2>Рецензии</h2>
-      </div>
+      ${getUserPageSectionHeaderHtml('Рецензии', reviewsCatalogUrl)}
       ${getUserPageMovieRailHtml(
           data.reviewItems,
           'Пока нет рецензий.',
