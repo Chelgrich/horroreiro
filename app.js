@@ -450,6 +450,7 @@ let catalogProfileActivityKey = '';
 let catalogProfileActivityUserId = '';
 let catalogProfileActivityDisplayName = '';
 let catalogProfileActivityMovieIds = new Set();
+let catalogProfileActivityRatingsByMovieId = new Map();
 let catalogProfileActivityLoaded = false;
 let catalogProfileActivityLoadingPromise = null;
 let catalogProfileActivityError = null;
@@ -3404,6 +3405,7 @@ function resetCatalogProfileActivityData() {
   catalogProfileActivityUserId = '';
   catalogProfileActivityDisplayName = '';
   catalogProfileActivityMovieIds = new Set();
+  catalogProfileActivityRatingsByMovieId = new Map();
   catalogProfileActivityLoaded = false;
   catalogProfileActivityLoadingPromise = null;
   catalogProfileActivityError = null;
@@ -3448,6 +3450,48 @@ function getCatalogProfileActivityMatchSet() {
   return isCatalogProfileActivityActive() && catalogProfileActivityLoaded
     ? catalogProfileActivityMovieIds
     : null;
+}
+
+function shouldShowCatalogProfileRatingContext() {
+  if (
+    !isCatalogProfileActivityActive() ||
+    !catalogProfileActivityLoaded ||
+    catalogProfileActivityKey !== 'ratings' ||
+    catalogProfileActivityRatingsByMovieId.size === 0
+  ) {
+    return false;
+  }
+
+  const currentUserId = currentUser?.id ? String(currentUser.id) : '';
+
+  return !currentUserId || String(catalogProfileActivityUserId) !== currentUserId;
+}
+
+function getCatalogProfileRating(movieId) {
+  if (!shouldShowCatalogProfileRatingContext()) {
+    return null;
+  }
+
+  const rating = Number(catalogProfileActivityRatingsByMovieId.get(String(movieId)));
+
+  return Number.isFinite(rating) ? rating : null;
+}
+
+function getCatalogProfileRatingHtml(movieId) {
+  const rating = getCatalogProfileRating(movieId);
+
+  if (rating === null) {
+    return '';
+  }
+
+  const displayName = catalogProfileActivityDisplayName || catalogProfileActivityHandle || 'зрителя';
+
+  return `
+    <div class="movie-profile-rating" title="Оценка ${escapeHtml(displayName)}">
+      <span class="movie-profile-rating-label">Оценка ${escapeHtml(displayName)}</span>
+      <span class="movie-profile-rating-value">${escapeHtml(String(rating))}/10 ★</span>
+    </div>
+  `;
 }
 
 function getCurrentCatalogStateForPersistence() {
@@ -6997,6 +7041,8 @@ function getUniqueMovieIdsFromRows(rows = []) {
 }
 
 async function fetchCatalogProfileActivityMovieIds(userId, activityKey) {
+  catalogProfileActivityRatingsByMovieId = new Map();
+
   if (!userId || !CATALOG_PROFILE_ACTIVITY_KEYS.has(activityKey)) {
     return [];
   }
@@ -7004,10 +7050,23 @@ async function fetchCatalogProfileActivityMovieIds(userId, activityKey) {
   if (activityKey === 'ratings') {
     const { data, error } = await supabaseClient
       .from('movie_ratings')
-      .select('movie_id')
+      .select('movie_id, rating')
       .eq('user_id', userId);
 
     throwIfSupabaseError(error);
+
+    catalogProfileActivityRatingsByMovieId = new Map(
+      (data || [])
+        .map(row => {
+          const movieId = String(row?.movie_id || '');
+          const rating = Number(row?.rating);
+
+          return movieId && Number.isFinite(rating)
+            ? [movieId, rating]
+            : null;
+        })
+        .filter(Boolean)
+    );
 
     return getUniqueMovieIdsFromRows(data || []);
   }
@@ -11214,6 +11273,7 @@ function createMovieCard(
   `;
 
   const userRatingControlsHtml = getUserRatingControlsHtml(currentUserRating, isRatingBusy);
+  const profileRatingHtml = getCatalogProfileRatingHtml(movieId);
   const posterHtml = getPosterHtml(
     movie,
     userMovieState,
@@ -11234,6 +11294,7 @@ function createMovieCard(
       ${cardRenderMeta.externalLinksToggleHtml}
       ${cardRenderMeta.externalLinksBlockHtml}
       ${ratingSummaryHtml}
+      ${profileRatingHtml}
       ${userRatingControlsHtml}
     </div>
 
