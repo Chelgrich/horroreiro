@@ -13415,7 +13415,12 @@ function getUserPageSectionHeaderHtml(title, url) {
             ? `
               <a class="user-page-section-title-link" href="${escapeHtml(normalizedUrl)}">
                 <span>${escapeHtml(normalizedTitle)}</span>
-                <span class="user-page-section-title-arrow" aria-hidden="true">›</span>
+                <span class="user-page-section-title-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M7 17 17 7"></path>
+                    <path d="M9 7h8v8"></path>
+                  </svg>
+                </span>
               </a>
             `
             : escapeHtml(normalizedTitle)

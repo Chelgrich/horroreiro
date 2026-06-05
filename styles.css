@@ -4049,7 +4049,7 @@ body:has(.user-page-shell) .page {
 .user-page-section-title-link {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   color: inherit;
   text-decoration: none;
 }
@@ -4065,16 +4065,36 @@ body:has(.user-page-shell) .page {
   box-shadow: 0 2px 0 var(--color-accent-primary);
 }
 
-.user-page-section-title-arrow {
-  font-size: 1.12em;
-  line-height: 1;
+.user-page-section-title-icon {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  display: grid;
+  place-items: center;
   color: var(--color-text-secondary);
-  transform: translateY(-1px);
+  background: var(--ui-action-bg);
+  border-radius: 50%;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
 }
 
-.user-page-section-title-link:hover .user-page-section-title-arrow,
-.user-page-section-title-link:focus-visible .user-page-section-title-arrow {
+.user-page-section-title-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.user-page-section-title-link:hover .user-page-section-title-icon,
+.user-page-section-title-link:focus-visible .user-page-section-title-icon {
   color: currentColor;
+  background: var(--ui-action-bg-hover);
+  transform: translate(1px, -1px);
 }
 
 .user-page-movie-rail-shell {
