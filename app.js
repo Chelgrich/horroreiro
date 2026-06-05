@@ -41,6 +41,7 @@ const authMessage = document.getElementById('authMessage');
 const appToast = document.getElementById('appToast');
 const appToastMessage = document.getElementById('appToastMessage');
 const appToastAcceptButton = document.getElementById('appToastAcceptButton');
+const userPageMainTitle = document.querySelector('.user-page-main-title');
 const userPage = document.getElementById('userPage');
 
 const adminPanel = document.getElementById('adminPanel');
@@ -12575,6 +12576,25 @@ function buildUserCanonicalUrl(profile) {
   return `${SITE_ORIGIN}${buildUserPageUrl(getPublicProfileHandle(profile))}`;
 }
 
+function isOwnUserProfile(profile) {
+  return Boolean(
+    shouldUseAuthenticatedUi() &&
+    currentUser?.id &&
+    profile?.id &&
+    String(profile.id) === String(currentUser.id)
+  );
+}
+
+function syncUserPageMainTitle(profile = null) {
+  if (!userPageMainTitle) {
+    return;
+  }
+
+  userPageMainTitle.textContent = isOwnUserProfile(profile)
+    ? 'Мой профиль'
+    : 'Профиль зрителя';
+}
+
 function setUserPageDocumentMeta(profile) {
   if (!profile) {
     document.title = 'Пользователь не найден — Хоррорейро';
@@ -13385,6 +13405,7 @@ function renderUserPageLoading() {
   }
 
   hideUserPageRankTooltip();
+  syncUserPageMainTitle();
   userPage.innerHTML = '<div class="user-page-loading-state">Загрузка профиля...</div>';
 }
 
@@ -13394,6 +13415,7 @@ function renderUserPageNotFound() {
   }
 
   hideUserPageRankTooltip();
+  syncUserPageMainTitle();
   setUserPageDocumentMeta(null);
   userPage.innerHTML = `
     <div class="user-page-empty-state user-page-empty-state-large">
@@ -13525,6 +13547,7 @@ function renderUserPage(data) {
     : '';
 
   setUserPageDocumentMeta(data.profile);
+  syncUserPageMainTitle(data.profile);
 
   userPage.innerHTML = `
     <div class="user-page-overview">
