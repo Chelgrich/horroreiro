@@ -1969,8 +1969,7 @@ function ensureAvatarCropModal() {
         <label for="avatarCropZoom">Масштаб</label>
         <input id="avatarCropZoom" type="range" min="1" max="3" step="0.01" value="1" data-avatar-crop-zoom="true">
       </div>
-      <p class="avatar-crop-hint">В профиль сохранится квадрат ${AVATAR_OUTPUT_SIZE}×${AVATAR_OUTPUT_SIZE}. Исходный файл не загружается.</p>
-      <p class="avatar-crop-status" data-avatar-crop-status="true" aria-live="polite"></p>
+      <p class="avatar-crop-status" data-avatar-crop-status="true" aria-live="polite" hidden></p>
       <div class="avatar-crop-actions">
         <button type="button" data-avatar-crop-save="true">Сохранить аватар</button>
         <button type="button" class="secondary-button secondary-button-compact" data-avatar-crop-close="true">Отмена</button>
@@ -2004,6 +2003,7 @@ function setAvatarCropStatus(message = '', type = 'info') {
   }
 
   avatarCropStatus.textContent = message;
+  avatarCropStatus.hidden = !message;
   avatarCropStatus.classList.toggle('is-error', type === 'error');
   avatarCropStatus.classList.toggle('is-success', type === 'success');
 }
@@ -2260,7 +2260,7 @@ function extractAvatarStoragePath(publicUrl) {
 }
 
 async function uploadAvatarBlob(blob) {
-  const user = ensureCurrentUser();
+  const user = ensureActiveSessionForWrite();
   const storagePath = `${user.id}/avatar-${Date.now()}.jpg`;
   const { error: uploadError } = await supabaseClient.storage
     .from(AVATAR_STORAGE_BUCKET)
@@ -2303,7 +2303,7 @@ async function saveAvatarCrop() {
   let uploadedAvatarUrl = '';
 
   try {
-    ensureCurrentUser();
+    ensureActiveSessionForWrite();
     setAvatarCropSubmitting(true);
     setUserPageAvatarSubmitting(true);
     setAvatarCropStatus('Сохраняю аватар...');

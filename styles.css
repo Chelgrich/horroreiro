@@ -1027,7 +1027,6 @@ h3 {
   box-shadow: none;
 }
 
-.avatar-crop-hint,
 .avatar-crop-status {
   margin: 12px 0 0;
   color: var(--color-text-muted);
@@ -1037,6 +1036,10 @@ h3 {
 
 .avatar-crop-status {
   min-height: 18px;
+}
+
+.avatar-crop-status[hidden] {
+  display: none;
 }
 
 .avatar-crop-status.is-error {
@@ -3690,11 +3693,13 @@ body:has(.user-page-shell) .page {
 
 .user-page-avatar-upload-input {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   opacity: 0;
-  cursor: pointer;
+  pointer-events: none;
 }
 
 .user-page-avatar-shell.is-uploading .user-page-avatar-upload-button {
