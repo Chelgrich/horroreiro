@@ -14105,9 +14105,12 @@ function getMoviePageReviewHeaderHtml(review, {
   isSpoilerReview,
   isEditing
 }) {
+  const metaLineCount = 1 + (reviewDate ? 1 : 0) + (userRatingHtml ? 1 : 0);
+  const metaSizeClass = metaLineCount >= 3 ? ' is-meta-tall' : '';
+
   return `
     <div class="movie-page-review-card-header">
-      <div class="movie-page-review-author-row">
+      <div class="movie-page-review-author-row${metaSizeClass}">
         ${getMovieReviewAuthorAvatarHtml(review)}
         <div class="movie-page-review-card-meta">
           <div class="movie-page-review-author">${escapeHtml(authorName)}</div>

@@ -4830,9 +4830,9 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-avatar {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   display: grid;
   place-items: center;
   color: var(--color-text-primary);
@@ -4842,6 +4842,13 @@ body:has(.movie-page-shell) .page {
   font-size: 14px;
   line-height: 1;
   font-weight: 700;
+}
+
+.movie-page-review-author-row.is-meta-tall .movie-page-review-avatar {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  font-size: 18px;
 }
 
 .movie-page-review-avatar-image {
@@ -5468,10 +5475,17 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-review-avatar {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
     font-size: 13px;
+  }
+
+  .movie-page-review-author-row.is-meta-tall .movie-page-review-avatar {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    font-size: 16px;
   }
 
   .movie-page-review-icon-actions {
