@@ -187,6 +187,7 @@ const POSTER_IMAGE_PRESETS = {
 };
 const BASE_HORROR_GENRE_NORMALIZED = '\u0443\u0436\u0430\u0441\u044b';
 const MANUAL_SIMILAR_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
+const MOVIE_REVIEW_LIKES_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const SITE_ORIGIN = 'https://horroreiro.ru';
 const DEFAULT_SOCIAL_IMAGE_URL = `${SITE_ORIGIN}/og-preview.jpg`;
 const MOVIE_STRUCTURED_DATA_SCRIPT_ID = 'movieStructuredData';
@@ -386,6 +387,8 @@ let currentUserWatchlistMovieIds = new Set();
 let catalogReviewedMovieIds = new Set();
 let reviewedOnlyFilter = false;
 let reviewRequestInFlight = new Set();
+let reviewLikeRequestInFlight = new Set();
+let areMovieReviewLikesAvailable = true;
 let expandedSpoilerReviewIds = new Set();
 let expandedMovieReviewTextIds = new Set();
 let editingMovieReviewId = null;
@@ -527,6 +530,14 @@ function isManualSimilarTableUnavailableError(error) {
 
   return MANUAL_SIMILAR_UNAVAILABLE_CODES.has(errorCode) ||
     errorMessage.includes('movie_manual_similar');
+}
+
+function isMovieReviewLikesTableUnavailableError(error) {
+  const errorCode = String(error?.code || '');
+  const errorMessage = String(error?.message || '').toLowerCase();
+
+  return MOVIE_REVIEW_LIKES_UNAVAILABLE_CODES.has(errorCode) ||
+    errorMessage.includes('movie_review_likes');
 }
 
 function normalizeManualSimilarMovieIds(movieIds = [], ownerMovieId = null) {
@@ -5168,12 +5179,20 @@ function getMovieReviewAuthorName(review) {
   ).trim();
 }
 
+function getMovieReviewAuthorProfileUrl(review) {
+  const handle = getPublicProfileHandle(review?.profiles);
+
+  return handle ? buildUserPageUrl(handle) : '';
+}
+
 function getMovieReviewAuthorAvatarHtml(review) {
   const authorName = getMovieReviewAuthorName(review);
   const avatarUrl = getPublicProfileAvatarUrl(review?.profiles);
+  const profileUrl = getMovieReviewAuthorProfileUrl(review);
+  let avatarHtml = '';
 
   if (avatarUrl) {
-    return `
+    avatarHtml = `
       <img
         class="movie-page-review-avatar movie-page-review-avatar-image"
         src="${escapeHtml(avatarUrl)}"
@@ -5181,13 +5200,81 @@ function getMovieReviewAuthorAvatarHtml(review) {
         aria-hidden="true"
       >
     `;
+  } else {
+    avatarHtml = `
+      <div class="movie-page-review-avatar" aria-hidden="true">
+        ${escapeHtml(getUserPageAvatarLetter(authorName))}
+      </div>
+    `;
+  }
+
+  if (!profileUrl) {
+    return avatarHtml;
   }
 
   return `
-    <div class="movie-page-review-avatar" aria-hidden="true">
-      ${escapeHtml(getUserPageAvatarLetter(authorName))}
-    </div>
+    <a
+      class="movie-page-review-avatar-link"
+      href="${escapeHtml(profileUrl)}"
+      aria-label="Открыть профиль ${escapeHtml(authorName)}"
+    >
+      ${avatarHtml}
+    </a>
   `;
+}
+
+function getMovieReviewAuthorNameHtml(review, authorName) {
+  const profileUrl = getMovieReviewAuthorProfileUrl(review);
+
+  if (!profileUrl) {
+    return `<div class="movie-page-review-author">${escapeHtml(authorName)}</div>`;
+  }
+
+  return `
+    <a class="movie-page-review-author" href="${escapeHtml(profileUrl)}">
+      ${escapeHtml(authorName)}
+    </a>
+  `;
+}
+
+function getMovieReviewLikeCount(review) {
+  return Math.max(0, Number(review?.likes_count || 0));
+}
+
+function isMovieReviewLikedByCurrentUser(review) {
+  return Boolean(currentUser?.id && review?.is_liked_by_current_user);
+}
+
+function canCurrentUserLikeMovieReview(review) {
+  return Boolean(
+    currentUser?.id &&
+    review?.user_id &&
+    String(review.user_id) !== String(currentUser.id)
+  );
+}
+
+function getMovieReviewLikeStats(likes = []) {
+  const countsByReviewId = new Map();
+  const currentUserLikedReviewIds = new Set();
+
+  (Array.isArray(likes) ? likes : []).forEach(like => {
+    const reviewId = String(like?.review_id || '');
+
+    if (!reviewId) {
+      return;
+    }
+
+    countsByReviewId.set(reviewId, (countsByReviewId.get(reviewId) || 0) + 1);
+
+    if (currentUser?.id && String(like?.user_id) === String(currentUser.id)) {
+      currentUserLikedReviewIds.add(reviewId);
+    }
+  });
+
+  return {
+    countsByReviewId,
+    currentUserLikedReviewIds
+  };
 }
 
 function getMovieReviewUserRating(movieId, userId) {
@@ -6741,6 +6828,37 @@ async function fetchMovieWatchlist() {
   markCatalogDataChanged();
 }
 
+async function fetchMovieReviewLikes(reviewIds = []) {
+  const normalizedReviewIds = [...new Set(
+    (Array.isArray(reviewIds) ? reviewIds : [])
+      .map(reviewId => String(reviewId || '').trim())
+      .filter(Boolean)
+  )];
+
+  if (!areMovieReviewLikesAvailable || normalizedReviewIds.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_review_likes')
+    .select('review_id, user_id, created_at')
+    .in('review_id', normalizedReviewIds);
+
+  if (error) {
+    if (isMovieReviewLikesTableUnavailableError(error)) {
+      areMovieReviewLikesAvailable = false;
+      console.warn('Лайки рецензий недоступны: таблица movie_review_likes не найдена или закрыта политиками.', error);
+      return [];
+    }
+
+    console.error('Ошибка загрузки лайков рецензий:', error);
+    return [];
+  }
+
+  areMovieReviewLikesAvailable = true;
+  return data || [];
+}
+
 async function fetchMovieReviews(movieId) {
   if (!movieId) {
     allMovieReviews = [];
@@ -6768,6 +6886,9 @@ async function fetchMovieReviews(movieId) {
   }
 
   const reviews = data || [];
+  const reviewIds = reviews
+    .map(review => review.id)
+    .filter(Boolean);
   const uniqueUserIds = [...new Set(
     reviews
       .map(review => review.user_id)
@@ -6776,12 +6897,17 @@ async function fetchMovieReviews(movieId) {
   const uniqueUserIdSet = new Set(uniqueUserIds.map(userId => String(userId)));
 
   let profilesMap = new Map();
+  let reviewLikes = [];
 
   if (uniqueUserIds.length > 0) {
     const [
+      reviewLikesResult,
       profilesResult,
       { data: reviewRatingsData, error: reviewRatingsError }
     ] = await Promise.all([
+      fetchMovieReviewLikes(reviewIds)
+        .then(likesData => ({ data: likesData, error: null }))
+        .catch(error => ({ data: [], error })),
       runProfileSelectWithOptionalAvatar(
         selectColumns => supabaseClient
           .from('profiles')
@@ -6798,6 +6924,12 @@ async function fetchMovieReviews(movieId) {
         .eq('movie_id', movieId)
         .in('user_id', uniqueUserIds)
     ]);
+
+    if (reviewLikesResult.error) {
+      console.error('Ошибка загрузки лайков рецензий:', reviewLikesResult.error);
+    } else {
+      reviewLikes = reviewLikesResult.data || [];
+    }
 
     if (profilesResult.error) {
       console.error('Ошибка загрузки профилей авторов рецензий:', profilesResult.error);
@@ -6825,9 +6957,13 @@ async function fetchMovieReviews(movieId) {
     ));
   }
 
+  const reviewLikeStats = getMovieReviewLikeStats(reviewLikes);
+
   allMovieReviews = reviews.map(review => ({
     ...review,
-    profiles: profilesMap.get(String(review.user_id)) || null
+    profiles: profilesMap.get(String(review.user_id)) || null,
+    likes_count: reviewLikeStats.countsByReviewId.get(String(review.id)) || 0,
+    is_liked_by_current_user: reviewLikeStats.currentUserLikedReviewIds.has(String(review.id))
   }));
 }
 
@@ -7034,6 +7170,42 @@ async function removeMovieReview(reviewId, movieId) {
 
   throwIfSupabaseError(error);
   await refreshMovieReviewsAfterMutation(movieId, reviewId);
+}
+
+async function setMovieReviewLike(review, shouldLike) {
+  const activeUser = ensureActiveSessionForWrite();
+  const reviewId = String(review?.id || '');
+
+  if (!reviewId) {
+    throw new Error('Не найдена рецензия для лайка.');
+  }
+
+  if (String(review?.user_id || '') === String(activeUser.id)) {
+    throw new Error('Нельзя лайкать собственную рецензию.');
+  }
+
+  if (shouldLike) {
+    const { error } = await supabaseClient
+      .from('movie_review_likes')
+      .insert({
+        review_id: reviewId,
+        user_id: activeUser.id
+      });
+
+    if (error?.code !== '23505') {
+      throwIfSupabaseError(error);
+    }
+
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from('movie_review_likes')
+    .delete()
+    .eq('review_id', reviewId)
+    .eq('user_id', activeUser.id);
+
+  throwIfSupabaseError(error);
 }
 
 async function reloadCatalogData({ showSkeleton = false, refreshFilters = true } = {}) {
@@ -14373,7 +14545,7 @@ function getMoviePageReviewHeaderHtml(review, {
       <div class="movie-page-review-author-row${metaSizeClass}">
         ${getMovieReviewAuthorAvatarHtml(review)}
         <div class="movie-page-review-card-meta">
-          <div class="movie-page-review-author">${escapeHtml(authorName)}</div>
+          ${getMovieReviewAuthorNameHtml(review, authorName)}
           ${
             reviewDate
               ? `<div class="movie-page-review-date">${escapeHtml(reviewDate)}</div>`
@@ -14422,6 +14594,59 @@ function getMoviePageReviewHeaderHtml(review, {
   `;
 }
 
+function getMoviePageReviewFooterHtml(review, { isEditing }) {
+  if (!areMovieReviewLikesAvailable || isEditing) {
+    return '';
+  }
+
+  const likesCount = getMovieReviewLikeCount(review);
+  const isLiked = isMovieReviewLikedByCurrentUser(review);
+  const isOwnReview = Boolean(currentUser?.id && String(review.user_id) === String(currentUser.id));
+  const isBusy = reviewLikeRequestInFlight.has(String(review.id));
+  const countLabel = `${likesCount}`;
+  const likeTitle = isOwnReview
+    ? 'Нельзя лайкать собственную рецензию'
+    : isLiked
+      ? 'Убрать лайк'
+      : 'Поставить лайк';
+
+  if (isOwnReview) {
+    return `
+      <div class="movie-page-review-footer">
+        <div
+          class="movie-page-review-like movie-page-review-like-static"
+          title="${escapeHtml(likeTitle)}"
+          aria-label="Лайков: ${escapeHtml(countLabel)}"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 1 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"></path>
+          </svg>
+          <span>${escapeHtml(countLabel)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="movie-page-review-footer">
+      <button
+        type="button"
+        class="movie-page-review-like ${isLiked ? 'is-liked' : ''} ${isBusy ? 'is-busy' : ''}"
+        data-movie-review-like="${escapeHtml(String(review.id))}"
+        aria-pressed="${isLiked ? 'true' : 'false'}"
+        aria-label="${escapeHtml(`${likeTitle}. Лайков: ${countLabel}`)}"
+        title="${escapeHtml(likeTitle)}"
+        ${isBusy ? 'disabled' : ''}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 1 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"></path>
+        </svg>
+        <span>${escapeHtml(countLabel)}</span>
+      </button>
+    </div>
+  `;
+}
+
 function getMoviePageReviewCardHtml(review) {
   const authorName = getMovieReviewAuthorName(review);
   const reviewDate = formatMovieReviewDate(review.updated_at || review.created_at);
@@ -14453,6 +14678,10 @@ function getMoviePageReviewCardHtml(review) {
         isExpandedSpoiler,
         isExpandedText,
         isLongReview
+      })}
+
+      ${getMoviePageReviewFooterHtml(review, {
+        isEditing
       })}
     </article>
   `;
@@ -14821,6 +15050,46 @@ async function handleMovieReviewDelete(movie, reviewId) {
   }
 }
 
+async function handleMovieReviewLikeToggle(movie, reviewId) {
+  const review = allMovieReviews.find(item => String(item.id) === String(reviewId));
+
+  if (!review || reviewLikeRequestInFlight.has(String(reviewId))) {
+    return;
+  }
+
+  if (!currentUser?.id) {
+    openAuthModal();
+    return;
+  }
+
+  if (!canCurrentUserLikeMovieReview(review)) {
+    showAppMessage('Нельзя лайкать собственную рецензию.', 'info', true);
+    return;
+  }
+
+  const shouldLike = !isMovieReviewLikedByCurrentUser(review);
+
+  try {
+    reviewLikeRequestInFlight.add(String(reviewId));
+    renderMoviePageReviewsSection(movie);
+
+    await setMovieReviewLike(review, shouldLike);
+    await fetchMovieReviews(movie.id);
+  } catch (error) {
+    console.error('Ошибка переключения лайка рецензии:', error);
+
+    if (isMovieReviewLikesTableUnavailableError(error)) {
+      areMovieReviewLikesAvailable = false;
+      showAppMessage('Лайки рецензий пока недоступны: нужно применить SQL для movie_review_likes.', 'error', true);
+    } else {
+      showAppMessage(error?.message || 'Не удалось обновить лайк рецензии.', 'error', true);
+    }
+  } finally {
+    reviewLikeRequestInFlight.delete(String(reviewId));
+    renderMoviePageReviewsSection(movie);
+  }
+}
+
 async function runConfirmedAction(confirmMessage, action) {
   const isConfirmed = confirm(confirmMessage);
 
@@ -14881,6 +15150,10 @@ function bindMoviePageReviewEvents(movie) {
 
     setMovieReviewTextExpandedState(reviewId, shouldExpand);
     renderMoviePage(movie);
+  });
+
+  bindMoviePageReviewClickAction('[data-movie-review-like]', button => {
+    handleMovieReviewLikeToggle(movie, button.dataset.movieReviewLike);
   });
 }
 
