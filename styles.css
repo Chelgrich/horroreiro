@@ -58,9 +58,6 @@ html::-webkit-scrollbar-corner {
   --ui-action-bg-muted: rgba(24, 32, 42, 0.52);
   --ui-danger-action-bg: linear-gradient(180deg, rgba(255, 123, 114, 0.1), rgba(255, 123, 114, 0.045)), #241b1f;
   --ui-danger-action-bg-hover: linear-gradient(180deg, rgba(255, 123, 114, 0.16), rgba(255, 123, 114, 0.075)), #2c1f24;
-  --ui-danger-action-confirm-bg: rgba(255, 123, 114, 0.22);
-  --ui-danger-action-confirm-bg-hover: rgba(255, 123, 114, 0.28);
-  --ui-danger-action-confirm-shadow: rgba(255, 123, 114, 0.18);
   --ui-neutral-action-bg: rgba(255, 255, 255, 0.035);
   --ui-neutral-action-bg-hover: rgba(255, 255, 255, 0.065);
   --ui-neutral-action-bg-muted: rgba(255, 255, 255, 0.025);
@@ -1742,27 +1739,6 @@ button {
 .movie-page-similar-editor-icon-button.movie-page-similar-editor-remove-button:focus-visible {
   color: var(--color-text-primary);
   background: var(--ui-danger-action-bg-hover);
-  border-color: transparent;
-}
-
-.secondary-button.is-delete-confirm,
-.movie-card .delete-movie-btn.secondary-button.is-delete-confirm,
-.movie-page-admin-icon-button.movie-page-admin-icon-button-danger.is-delete-confirm {
-  color: var(--color-text-primary);
-  background: var(--ui-danger-action-confirm-bg);
-  border-color: transparent;
-  box-shadow:
-    0 0 0 1px var(--ui-danger-action-confirm-shadow),
-    0 0 18px var(--ui-danger-action-confirm-shadow);
-}
-
-.secondary-button.is-delete-confirm:hover,
-.secondary-button.is-delete-confirm:focus-visible,
-.movie-card .delete-movie-btn.secondary-button.is-delete-confirm:hover,
-.movie-card .delete-movie-btn.secondary-button.is-delete-confirm:focus-visible,
-.movie-page-admin-icon-button.movie-page-admin-icon-button-danger.is-delete-confirm:hover,
-.movie-page-admin-icon-button.movie-page-admin-icon-button-danger.is-delete-confirm:focus-visible {
-  background: var(--ui-danger-action-confirm-bg-hover);
   border-color: transparent;
 }
 
@@ -3711,14 +3687,6 @@ body:has(.user-page-shell) .page {
   box-shadow: 0 0 0 3px var(--control-focus-ring), 0 8px 18px rgba(0, 0, 0, 0.28);
 }
 
-.user-page-avatar-delete-button.is-delete-confirm {
-  color: var(--color-text-primary);
-  background: var(--ui-danger-action-confirm-bg);
-  box-shadow:
-    0 0 0 1px var(--ui-danger-action-confirm-shadow),
-    0 8px 18px rgba(0, 0, 0, 0.28);
-}
-
 .user-page-avatar-upload-button svg,
 .user-page-avatar-delete-button svg {
   width: 16px;
@@ -4849,6 +4817,38 @@ body:has(.movie-page-shell) .page {
   flex: 0 0 auto;
 }
 
+.movie-page-review-author-row {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.movie-page-review-card:has(.movie-page-review-icon-actions) .movie-page-review-author-row {
+  padding-right: 76px;
+}
+
+.movie-page-review-avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-primary);
+  background: rgba(var(--color-watchlist-base), 0.16);
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.movie-page-review-avatar-image {
+  display: block;
+  object-fit: cover;
+}
+
 .movie-page-review-card-meta {
   min-width: 0;
   display: flex;
@@ -5461,6 +5461,17 @@ body:has(.movie-page-shell) .page {
   .movie-page-review-card-header-side {
     justify-content: flex-start;
     gap: 10px;
+  }
+
+  .movie-page-review-author-row {
+    gap: 8px;
+  }
+
+  .movie-page-review-avatar {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    font-size: 13px;
   }
 
   .movie-page-review-icon-actions {

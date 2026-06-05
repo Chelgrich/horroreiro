@@ -1904,12 +1904,8 @@ function syncUserPageAvatarControls(profile = currentUserProfile) {
   const hasAvatar = Boolean(getPublicProfileAvatarUrl(profile));
 
   deleteButton.hidden = !hasAvatar;
-  deleteButton.classList.remove('is-delete-confirm');
-  deleteButton.dataset.deleteArmed = 'false';
   deleteButton.setAttribute('aria-label', 'Удалить аватар');
   deleteButton.setAttribute('title', 'Удалить аватар');
-  delete deleteButton.dataset.deleteOriginalAriaLabel;
-  delete deleteButton.dataset.deleteOriginalTitle;
 }
 
 function syncUserPageAvatarMedia(profile = currentUserProfile) {
@@ -2456,7 +2452,7 @@ function handleUserPageAvatarDeleteClick(event) {
   }
 
   event.preventDefault();
-  armDeleteMovieButton(deleteButton, deleteCurrentUserAvatar);
+  armDeleteMovieButton(deleteButton, deleteCurrentUserAvatar, 'Удалить аватар?');
 
   return true;
 }
@@ -5059,6 +5055,28 @@ function getMovieReviewAuthorName(review) {
   ).trim();
 }
 
+function getMovieReviewAuthorAvatarHtml(review) {
+  const authorName = getMovieReviewAuthorName(review);
+  const avatarUrl = getPublicProfileAvatarUrl(review?.profiles);
+
+  if (avatarUrl) {
+    return `
+      <img
+        class="movie-page-review-avatar movie-page-review-avatar-image"
+        src="${escapeHtml(avatarUrl)}"
+        alt=""
+        aria-hidden="true"
+      >
+    `;
+  }
+
+  return `
+    <div class="movie-page-review-avatar" aria-hidden="true">
+      ${escapeHtml(getUserPageAvatarLetter(authorName))}
+    </div>
+  `;
+}
+
 function getMovieReviewUserRating(movieId, userId) {
   if (!movieId || !userId) {
     return 0;
@@ -6648,13 +6666,19 @@ async function fetchMovieReviews(movieId) {
 
   if (uniqueUserIds.length > 0) {
     const [
-      { data: profilesData, error: profilesError },
+      profilesResult,
       { data: reviewRatingsData, error: reviewRatingsError }
     ] = await Promise.all([
-      supabaseClient
-        .from('profiles')
-        .select('id, display_name, default_display_name')
-        .in('id', uniqueUserIds),
+      runProfileSelectWithOptionalAvatar(
+        selectColumns => supabaseClient
+          .from('profiles')
+          .select(selectColumns)
+          .in('id', uniqueUserIds),
+        'id, display_name, default_display_name, avatar_url',
+        'id, display_name, default_display_name'
+      )
+        .then(profilesData => ({ data: profilesData, error: null }))
+        .catch(error => ({ data: null, error })),
       supabaseClient
         .from('movie_ratings')
         .select('movie_id, user_id, rating')
@@ -6662,11 +6686,11 @@ async function fetchMovieReviews(movieId) {
         .in('user_id', uniqueUserIds)
     ]);
 
-    if (profilesError) {
-      console.error('Ошибка загрузки профилей авторов рецензий:', profilesError);
+    if (profilesResult.error) {
+      console.error('Ошибка загрузки профилей авторов рецензий:', profilesResult.error);
     } else {
       profilesMap = new Map(
-        (profilesData || []).map(profile => [String(profile.id), profile])
+        (profilesResult.data || []).map(profile => [String(profile.id), profile])
       );
     }
 
@@ -8192,18 +8216,16 @@ async function deleteMovieRecord(movieId) {
 
 async function deleteMovie(movieId, movieTitle) {
   try {
-    await runConfirmedAction(`Удалить фильм "${movieTitle}"?`, async () => {
-      await deleteMovieRecord(movieId);
+    await deleteMovieRecord(movieId);
 
-      if (editingMovieId === movieId) {
-        resetFormToCreateMode();
-      }
+    if (editingMovieId === movieId) {
+      resetFormToCreateMode();
+    }
 
-      await reloadCatalogData({ showSkeleton: true });
-      rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.preserveScrollOnly);
+    await reloadCatalogData({ showSkeleton: true });
+    rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.preserveScrollOnly);
 
-      setMovieFormStatus(`Фильм "${movieTitle}" удалён.`);
-    });
+    setMovieFormStatus(`Фильм "${movieTitle}" удалён.`);
   } catch (error) {
     console.error('Ошибка при удалении фильма:', error);
     setMovieFormStatus('Ошибка при удалении фильма. Смотри консоль F12.');
@@ -8817,49 +8839,12 @@ function showMovieWatchlistFeedback(movieId, type = 'success') {
   triggerTemporaryFeedbackAnimation(watchlistButton, `watchlist-btn-${movieId}`, type);
 }
 
-function armDeleteMovieButton(buttonElement, onConfirm) {
-  if (!buttonElement) {
+async function armDeleteMovieButton(buttonElement, onConfirm, confirmMessage = 'Удалить?') {
+  if (!buttonElement || typeof onConfirm !== 'function') {
     return;
   }
 
-  if (buttonElement.dataset.deleteArmed === 'true') {
-    onConfirm();
-    return;
-  }
-
-  const originalAriaLabel = buttonElement.getAttribute('aria-label') || '';
-  const originalTitle = buttonElement.getAttribute('title') || '';
-
-  buttonElement.dataset.deleteArmed = 'true';
-  buttonElement.dataset.deleteOriginalAriaLabel = originalAriaLabel;
-  buttonElement.dataset.deleteOriginalTitle = originalTitle;
-  buttonElement.classList.add('is-delete-confirm');
-  buttonElement.setAttribute('aria-label', 'Подтвердить удаление');
-  buttonElement.setAttribute('title', 'Нажмите ещё раз, чтобы удалить');
-
-  const resetDeleteButton = () => {
-    buttonElement.dataset.deleteArmed = 'false';
-    buttonElement.classList.remove('is-delete-confirm');
-
-    if (buttonElement.dataset.deleteOriginalAriaLabel !== undefined) {
-      buttonElement.setAttribute('aria-label', buttonElement.dataset.deleteOriginalAriaLabel);
-      delete buttonElement.dataset.deleteOriginalAriaLabel;
-    }
-
-    if (buttonElement.dataset.deleteOriginalTitle !== undefined) {
-      buttonElement.setAttribute('title', buttonElement.dataset.deleteOriginalTitle);
-      delete buttonElement.dataset.deleteOriginalTitle;
-    }
-
-    buttonElement.removeEventListener('blur', resetDeleteButton);
-    clearTimeout(resetTimerId);
-  };
-
-  const resetTimerId = setTimeout(() => {
-    resetDeleteButton();
-  }, 3200);
-
-  buttonElement.addEventListener('blur', resetDeleteButton, { once: true });
+  await runConfirmedAction(confirmMessage, onConfirm);
 }
 
 async function runMovieMutationWithUiSync({
@@ -10763,7 +10748,7 @@ async function handleCatalogCardClick(event) {
   if (deleteBtn && isAdmin && movie) {
     armDeleteMovieButton(deleteBtn, () => {
       deleteMovie(movieId, movie.title);
-    });
+    }, `Удалить фильм "${movie.title}"?`);
   }
 }
 
@@ -11913,7 +11898,7 @@ function bindMoviePageEvents() {
 
     armDeleteMovieButton(moviePageDeleteButton, () => {
       deleteMovieFromMoviePage(currentMoviePageMovieId, currentMoviePageMovieData.title);
-    });
+    }, `Удалить фильм "${currentMoviePageMovieData.title}"?`);
   });
 
   areMoviePageEventsBound = true;
@@ -14122,14 +14107,17 @@ function getMoviePageReviewHeaderHtml(review, {
 }) {
   return `
     <div class="movie-page-review-card-header">
-      <div class="movie-page-review-card-meta">
-        <div class="movie-page-review-author">${authorName}</div>
-        ${
-          reviewDate
-            ? `<div class="movie-page-review-date">${escapeHtml(reviewDate)}</div>`
-            : ''
-        }
-        ${userRatingHtml}
+      <div class="movie-page-review-author-row">
+        ${getMovieReviewAuthorAvatarHtml(review)}
+        <div class="movie-page-review-card-meta">
+          <div class="movie-page-review-author">${escapeHtml(authorName)}</div>
+          ${
+            reviewDate
+              ? `<div class="movie-page-review-date">${escapeHtml(reviewDate)}</div>`
+              : ''
+          }
+          ${userRatingHtml}
+        </div>
       </div>
 
       <div class="movie-page-review-card-header-side">
@@ -14172,7 +14160,7 @@ function getMoviePageReviewHeaderHtml(review, {
 }
 
 function getMoviePageReviewCardHtml(review) {
-  const authorName = escapeHtml(getMovieReviewAuthorName(review));
+  const authorName = getMovieReviewAuthorName(review);
   const reviewDate = formatMovieReviewDate(review.updated_at || review.created_at);
   const userRating = getMovieReviewUserRating(review.movie_id, review.user_id);
   const userRatingHtml = Number.isFinite(userRating) && userRating > 0
@@ -14919,11 +14907,9 @@ function renderMoviePageReviewsStatus(message) {
 
 async function deleteMovieFromMoviePage(movieId, movieTitle) {
   try {
-    await runConfirmedAction(`Удалить фильм "${movieTitle}"?`, async () => {
-      await deleteMovieRecord(movieId);
-      removeMovieFromCatalogSessionSnapshot(movieId);
-      window.location.href = buildCatalogPageUrl();
-    });
+    await deleteMovieRecord(movieId);
+    removeMovieFromCatalogSessionSnapshot(movieId);
+    window.location.href = buildCatalogPageUrl();
   } catch (error) {
     console.error('Ошибка при удалении фильма со страницы detail-page:', error);
   }
