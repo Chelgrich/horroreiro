@@ -150,6 +150,15 @@ const CATALOG_PRESET_QUERY_PARAM = 'preset';
 const POSTER_STORAGE_PUBLIC_PATH = '/storage/v1/object/public/posters/';
 const POSTER_STORAGE_RENDER_PATH = '/storage/v1/render/image/public/posters/';
 const POSTER_IMAGE_MIN_QUALITY = 90;
+const AVATAR_STORAGE_BUCKET = 'avatars';
+const AVATAR_STORAGE_PUBLIC_PATH = `/storage/v1/object/public/${AVATAR_STORAGE_BUCKET}/`;
+const AVATAR_ACCEPTED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const AVATAR_ACCEPTED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp']);
+const AVATAR_SOURCE_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+const AVATAR_OUTPUT_SIZE = 256;
+const AVATAR_OUTPUT_TYPE = 'image/jpeg';
+const AVATAR_OUTPUT_QUALITY = 0.9;
+const AVATAR_MIN_SOURCE_SIDE = 256;
 const POSTER_IMAGE_PRESETS = {
   catalog: {
     widths: [240, 360, 480, 640],
@@ -387,6 +396,17 @@ let mobileRatingModalStars = null;
 let mobileRatingModalMeta = null;
 let mobileRatingModalRemoveButton = null;
 let mobileRatingModalMovieId = null;
+let avatarCropModal = null;
+let avatarCropFrame = null;
+let avatarCropImage = null;
+let avatarCropZoomInput = null;
+let avatarCropStatus = null;
+let avatarCropSaveButton = null;
+let avatarCropSourceUrl = '';
+let avatarCropState = null;
+let isAvatarCropSubmitting = false;
+let isAvatarCropDragging = false;
+let avatarCropDragStart = null;
 let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
 let allGenreNames = [];
@@ -1676,15 +1696,12 @@ function syncUserPageOwnProfileIdentity() {
 
   const displayName = getCurrentDisplayName();
   const titleElement = userPage.querySelector('[data-user-page-display-name="true"]');
-  const avatarElement = userPage.querySelector('[data-user-page-avatar="true"]');
 
   if (titleElement && displayName) {
     titleElement.textContent = displayName;
   }
 
-  if (avatarElement && displayName) {
-    avatarElement.textContent = displayName.slice(0, 1).toUpperCase();
-  }
+  syncUserPageAvatarMedia(currentUserProfile);
 
   if (isUserPage()) {
     setUserPageDocumentMeta(currentUserProfile);
@@ -1723,6 +1740,642 @@ async function updateCurrentUserDisplayName(nextDisplayName) {
   syncDisplayNameButton();
   syncUserPageOwnProfileIdentity();
   updateAuthUI();
+}
+
+function isMissingAvatarColumnError(error) {
+  const message = String(error?.message || '').toLowerCase();
+
+  return (
+    error?.code === '42703' ||
+    error?.code === 'PGRST204' ||
+    message.includes('avatar_url') ||
+    message.includes('column') && message.includes('schema cache')
+  );
+}
+
+async function runProfileSelectWithOptionalAvatar(createQuery, selectWithAvatar, selectWithoutAvatar) {
+  const { data, error } = await createQuery(selectWithAvatar);
+
+  if (error && isMissingAvatarColumnError(error)) {
+    const fallbackResult = await createQuery(selectWithoutAvatar);
+
+    throwIfSupabaseError(fallbackResult.error);
+
+    return fallbackResult.data || null;
+  }
+
+  throwIfSupabaseError(error);
+
+  return data || null;
+}
+
+function getAvatarFriendlyErrorMessage(error) {
+  const message = String(error?.message || '');
+  const normalizedMessage = message.toLowerCase();
+
+  if (isMissingAvatarColumnError(error)) {
+    return 'Нужно добавить колонку avatar_url в profiles и повторить загрузку.';
+  }
+
+  if (normalizedMessage.includes('bucket') || normalizedMessage.includes('avatars')) {
+    return 'Нужно создать storage bucket avatars и политики доступа для аватаров.';
+  }
+
+  if (normalizedMessage.includes('row-level security') || normalizedMessage.includes('policy')) {
+    return 'Supabase отклонил загрузку. Проверь политики Storage для bucket avatars.';
+  }
+
+  return message || 'Не удалось сохранить аватар. Попробуй ещё раз.';
+}
+
+function getPublicProfileAvatarUrl(profile) {
+  const rawUrl = String(profile?.avatar_url || '').trim();
+
+  if (!rawUrl) {
+    return '';
+  }
+
+  try {
+    const parsedUrl = new URL(rawUrl);
+
+    if (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') {
+      return parsedUrl.toString();
+    }
+  } catch (error) {
+    return '';
+  }
+
+  return '';
+}
+
+function getUserPageAvatarLetter(displayName) {
+  return String(displayName || 'H').trim().slice(0, 1).toUpperCase() || 'H';
+}
+
+function getUserPageAvatarMediaHtml(profile, displayName) {
+  const avatarUrl = getPublicProfileAvatarUrl(profile);
+
+  if (avatarUrl) {
+    return `
+      <img
+        class="user-page-avatar user-page-avatar-image"
+        data-user-page-avatar="true"
+        src="${escapeHtml(avatarUrl)}"
+        alt="Аватар пользователя ${escapeHtml(displayName)}"
+      >
+    `;
+  }
+
+  return `
+    <div class="user-page-avatar" data-user-page-avatar="true" aria-hidden="true">
+      ${escapeHtml(getUserPageAvatarLetter(displayName))}
+    </div>
+  `;
+}
+
+function getUserPageAvatarUploadHtml(canEditAvatar) {
+  if (!canEditAvatar) {
+    return '';
+  }
+
+  return `
+    <label
+      class="user-page-avatar-upload-button"
+      aria-label="Загрузить аватар"
+      title="Загрузить аватар"
+    >
+      <input
+        type="file"
+        class="user-page-avatar-upload-input"
+        data-user-page-avatar-input="true"
+        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+      >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5v14"></path>
+        <path d="M5 12h14"></path>
+      </svg>
+    </label>
+  `;
+}
+
+function getUserPageAvatarHtml(profile, displayName, canEditAvatar) {
+  return `
+    <div class="user-page-avatar-shell" data-user-page-avatar-shell="true">
+      ${getUserPageAvatarMediaHtml(profile, displayName)}
+      ${getUserPageAvatarUploadHtml(canEditAvatar)}
+    </div>
+  `;
+}
+
+function syncUserPageAvatarMedia(profile = currentUserProfile) {
+  const avatarShell = userPage?.querySelector('[data-user-page-avatar-shell="true"]');
+  const avatarElement = avatarShell?.querySelector('[data-user-page-avatar="true"]');
+
+  if (!avatarShell || !avatarElement) {
+    return;
+  }
+
+  const displayName = getCurrentDisplayName();
+  const mediaWrapper = document.createElement('div');
+
+  mediaWrapper.innerHTML = getUserPageAvatarMediaHtml(profile, displayName).trim();
+  avatarElement.replaceWith(mediaWrapper.firstElementChild);
+}
+
+function setUserPageAvatarStatus(message = '', type = 'info') {
+  const statusElement = userPage?.querySelector('[data-user-page-avatar-status="true"]');
+
+  if (!statusElement) {
+    return;
+  }
+
+  statusElement.textContent = message;
+  statusElement.hidden = !message;
+  statusElement.classList.toggle('is-error', type === 'error');
+  statusElement.classList.toggle('is-success', type === 'success');
+}
+
+function setUserPageAvatarSubmitting(isSubmitting) {
+  const avatarShell = userPage?.querySelector('[data-user-page-avatar-shell="true"]');
+  const avatarInput = userPage?.querySelector('[data-user-page-avatar-input="true"]');
+
+  avatarShell?.classList.toggle('is-uploading', isSubmitting);
+
+  if (avatarInput) {
+    avatarInput.disabled = isSubmitting;
+  }
+}
+
+function getAvatarFileValidationMessage(file) {
+  if (!file) {
+    return 'Файл не выбран.';
+  }
+
+  const fileType = String(file.type || '').toLowerCase();
+  const fileExtension = String(file.name || '').split('.').pop()?.toLowerCase() || '';
+
+  if (!AVATAR_ACCEPTED_TYPES.has(fileType) && !AVATAR_ACCEPTED_EXTENSIONS.has(fileExtension)) {
+    return 'Поддерживаются только JPG, PNG и WebP.';
+  }
+
+  if (file.size > AVATAR_SOURCE_MAX_SIZE_BYTES) {
+    return 'Файл слишком большой. Максимум 10 МБ.';
+  }
+
+  return '';
+}
+
+function readAvatarSourceMetadata(file) {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      resolve({
+        objectUrl,
+        width: image.naturalWidth,
+        height: image.naturalHeight
+      });
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Не удалось прочитать изображение.'));
+    };
+
+    image.src = objectUrl;
+  });
+}
+
+function ensureAvatarCropModal() {
+  if (avatarCropModal) {
+    return;
+  }
+
+  avatarCropModal = document.createElement('div');
+  avatarCropModal.id = 'avatarCropModal';
+  avatarCropModal.className = 'modal avatar-crop-modal';
+  avatarCropModal.innerHTML = `
+    <div class="modal-backdrop" data-avatar-crop-close="true"></div>
+    <div class="modal-dialog avatar-crop-dialog" role="dialog" aria-modal="true" aria-labelledby="avatarCropTitle">
+      <div class="modal-header">
+        <h2 id="avatarCropTitle">Настроить аватар</h2>
+        <button type="button" class="modal-close-button" data-avatar-crop-close="true" aria-label="Закрыть"></button>
+      </div>
+      <div class="avatar-crop-frame" data-avatar-crop-frame="true">
+        <img class="avatar-crop-image" data-avatar-crop-image="true" alt="">
+      </div>
+      <div class="avatar-crop-controls">
+        <label for="avatarCropZoom">Масштаб</label>
+        <input id="avatarCropZoom" type="range" min="1" max="3" step="0.01" value="1" data-avatar-crop-zoom="true">
+      </div>
+      <p class="avatar-crop-hint">В профиль сохранится квадрат ${AVATAR_OUTPUT_SIZE}×${AVATAR_OUTPUT_SIZE}. Исходный файл не загружается.</p>
+      <p class="avatar-crop-status" data-avatar-crop-status="true" aria-live="polite"></p>
+      <div class="avatar-crop-actions">
+        <button type="button" data-avatar-crop-save="true">Сохранить аватар</button>
+        <button type="button" class="secondary-button secondary-button-compact" data-avatar-crop-close="true">Отмена</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(avatarCropModal);
+
+  avatarCropFrame = avatarCropModal.querySelector('[data-avatar-crop-frame="true"]');
+  avatarCropImage = avatarCropModal.querySelector('[data-avatar-crop-image="true"]');
+  avatarCropZoomInput = avatarCropModal.querySelector('[data-avatar-crop-zoom="true"]');
+  avatarCropStatus = avatarCropModal.querySelector('[data-avatar-crop-status="true"]');
+  avatarCropSaveButton = avatarCropModal.querySelector('[data-avatar-crop-save="true"]');
+
+  avatarCropModal.querySelectorAll('[data-avatar-crop-close="true"]').forEach(element => {
+    element.addEventListener('click', closeAvatarCropModal);
+  });
+
+  avatarCropSaveButton?.addEventListener('click', saveAvatarCrop);
+  avatarCropZoomInput?.addEventListener('input', handleAvatarCropZoomInput);
+  avatarCropFrame?.addEventListener('pointerdown', handleAvatarCropPointerDown);
+  avatarCropFrame?.addEventListener('pointermove', handleAvatarCropPointerMove);
+  avatarCropFrame?.addEventListener('pointerup', handleAvatarCropPointerUp);
+  avatarCropFrame?.addEventListener('pointercancel', handleAvatarCropPointerUp);
+}
+
+function setAvatarCropStatus(message = '', type = 'info') {
+  if (!avatarCropStatus) {
+    return;
+  }
+
+  avatarCropStatus.textContent = message;
+  avatarCropStatus.classList.toggle('is-error', type === 'error');
+  avatarCropStatus.classList.toggle('is-success', type === 'success');
+}
+
+function setAvatarCropSubmitting(isSubmitting) {
+  isAvatarCropSubmitting = isSubmitting;
+
+  if (avatarCropSaveButton) {
+    avatarCropSaveButton.disabled = isSubmitting;
+    avatarCropSaveButton.textContent = isSubmitting ? 'Сохраняю...' : 'Сохранить аватар';
+  }
+
+  if (avatarCropZoomInput) {
+    avatarCropZoomInput.disabled = isSubmitting;
+  }
+}
+
+function getAvatarCropFrameSize() {
+  const rect = avatarCropFrame?.getBoundingClientRect();
+
+  return Math.round(rect?.width || 280);
+}
+
+function getAvatarCropScale() {
+  return (avatarCropState?.minScale || 1) * (avatarCropState?.zoom || 1);
+}
+
+function clampAvatarCropOffset() {
+  if (!avatarCropState) {
+    return;
+  }
+
+  const scale = getAvatarCropScale();
+  const frameSize = avatarCropState.frameSize;
+  const maxOffsetX = Math.max(0, (avatarCropState.naturalWidth * scale - frameSize) / 2);
+  const maxOffsetY = Math.max(0, (avatarCropState.naturalHeight * scale - frameSize) / 2);
+
+  avatarCropState.offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, avatarCropState.offsetX));
+  avatarCropState.offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, avatarCropState.offsetY));
+}
+
+function applyAvatarCropTransform() {
+  if (!avatarCropImage || !avatarCropState) {
+    return;
+  }
+
+  clampAvatarCropOffset();
+
+  const scale = getAvatarCropScale();
+
+  avatarCropImage.style.width = `${avatarCropState.naturalWidth * scale}px`;
+  avatarCropImage.style.height = `${avatarCropState.naturalHeight * scale}px`;
+  avatarCropImage.style.transform = `translate(-50%, -50%) translate(${avatarCropState.offsetX}px, ${avatarCropState.offsetY}px)`;
+}
+
+function resetAvatarCropState() {
+  if (!avatarCropImage || !avatarCropState) {
+    return;
+  }
+
+  const frameSize = getAvatarCropFrameSize();
+
+  avatarCropState.frameSize = frameSize;
+  avatarCropState.minScale = Math.max(
+    frameSize / avatarCropState.naturalWidth,
+    frameSize / avatarCropState.naturalHeight
+  );
+  avatarCropState.zoom = 1;
+  avatarCropState.offsetX = 0;
+  avatarCropState.offsetY = 0;
+
+  if (avatarCropZoomInput) {
+    avatarCropZoomInput.value = '1';
+  }
+
+  applyAvatarCropTransform();
+}
+
+function handleAvatarCropZoomInput() {
+  if (!avatarCropState || !avatarCropZoomInput) {
+    return;
+  }
+
+  avatarCropState.zoom = Number(avatarCropZoomInput.value) || 1;
+  applyAvatarCropTransform();
+}
+
+function handleAvatarCropPointerDown(event) {
+  if (!avatarCropState || isAvatarCropSubmitting) {
+    return;
+  }
+
+  isAvatarCropDragging = true;
+  avatarCropDragStart = {
+    pointerId: event.pointerId,
+    x: event.clientX,
+    y: event.clientY,
+    offsetX: avatarCropState.offsetX,
+    offsetY: avatarCropState.offsetY
+  };
+
+  avatarCropFrame?.setPointerCapture?.(event.pointerId);
+  avatarCropFrame?.classList.add('is-dragging');
+}
+
+function handleAvatarCropPointerMove(event) {
+  if (!isAvatarCropDragging || !avatarCropState || !avatarCropDragStart) {
+    return;
+  }
+
+  avatarCropState.offsetX = avatarCropDragStart.offsetX + event.clientX - avatarCropDragStart.x;
+  avatarCropState.offsetY = avatarCropDragStart.offsetY + event.clientY - avatarCropDragStart.y;
+  applyAvatarCropTransform();
+}
+
+function handleAvatarCropPointerUp(event) {
+  if (!isAvatarCropDragging) {
+    return;
+  }
+
+  isAvatarCropDragging = false;
+  avatarCropFrame?.releasePointerCapture?.(event.pointerId);
+  avatarCropFrame?.classList.remove('is-dragging');
+  avatarCropDragStart = null;
+}
+
+function closeAvatarCropModal(options = {}) {
+  if (!avatarCropModal || (isAvatarCropSubmitting && !options.force)) {
+    return;
+  }
+
+  avatarCropModal.classList.remove('is-open');
+  setAvatarCropStatus();
+  avatarCropState = null;
+  isAvatarCropDragging = false;
+  avatarCropDragStart = null;
+
+  if (avatarCropImage) {
+    avatarCropImage.removeAttribute('src');
+    avatarCropImage.removeAttribute('style');
+  }
+
+  if (avatarCropSourceUrl) {
+    URL.revokeObjectURL(avatarCropSourceUrl);
+    avatarCropSourceUrl = '';
+  }
+
+  syncBodyScrollLock();
+}
+
+async function openAvatarCropModalFromFile(file) {
+  const validationMessage = getAvatarFileValidationMessage(file);
+
+  if (validationMessage) {
+    throw new Error(validationMessage);
+  }
+
+  const metadata = await readAvatarSourceMetadata(file);
+
+  if (metadata.width < AVATAR_MIN_SOURCE_SIDE || metadata.height < AVATAR_MIN_SOURCE_SIDE) {
+    URL.revokeObjectURL(metadata.objectUrl);
+    throw new Error('Изображение слишком маленькое. Минимум 256×256 пикселей.');
+  }
+
+  ensureAvatarCropModal();
+  closeAvatarCropModal();
+
+  avatarCropSourceUrl = metadata.objectUrl;
+  avatarCropState = {
+    naturalWidth: metadata.width,
+    naturalHeight: metadata.height,
+    frameSize: 280,
+    minScale: 1,
+    zoom: 1,
+    offsetX: 0,
+    offsetY: 0
+  };
+
+  avatarCropImage.src = avatarCropSourceUrl;
+  avatarCropModal.classList.add('is-open');
+  syncBodyScrollLock();
+  setAvatarCropStatus();
+  setAvatarCropSubmitting(false);
+
+  requestAnimationFrame(resetAvatarCropState);
+}
+
+function renderAvatarCropBlob() {
+  return new Promise((resolve, reject) => {
+    if (!avatarCropImage || !avatarCropState) {
+      reject(new Error('Изображение для аватара не найдено.'));
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+      reject(new Error('Браузер не смог подготовить изображение.'));
+      return;
+    }
+
+    const frameSize = avatarCropState.frameSize || getAvatarCropFrameSize();
+    const outputScale = AVATAR_OUTPUT_SIZE / frameSize;
+    const imageScale = getAvatarCropScale() * outputScale;
+
+    canvas.width = AVATAR_OUTPUT_SIZE;
+    canvas.height = AVATAR_OUTPUT_SIZE;
+
+    context.fillStyle = '#0d1117';
+    context.fillRect(0, 0, AVATAR_OUTPUT_SIZE, AVATAR_OUTPUT_SIZE);
+    context.translate(
+      AVATAR_OUTPUT_SIZE / 2 + avatarCropState.offsetX * outputScale,
+      AVATAR_OUTPUT_SIZE / 2 + avatarCropState.offsetY * outputScale
+    );
+    context.drawImage(
+      avatarCropImage,
+      -avatarCropState.naturalWidth * imageScale / 2,
+      -avatarCropState.naturalHeight * imageScale / 2,
+      avatarCropState.naturalWidth * imageScale,
+      avatarCropState.naturalHeight * imageScale
+    );
+
+    canvas.toBlob(blob => {
+      if (blob) {
+        resolve(blob);
+      } else {
+        reject(new Error('Не удалось подготовить файл аватара.'));
+      }
+    }, AVATAR_OUTPUT_TYPE, AVATAR_OUTPUT_QUALITY);
+  });
+}
+
+function extractAvatarStoragePath(publicUrl) {
+  if (!publicUrl) {
+    return null;
+  }
+
+  let parsedUrl = null;
+
+  try {
+    parsedUrl = new URL(publicUrl);
+  } catch (error) {
+    return null;
+  }
+
+  const path = parsedUrl.pathname;
+
+  if (!path.includes(AVATAR_STORAGE_PUBLIC_PATH)) {
+    return null;
+  }
+
+  return path.split(AVATAR_STORAGE_PUBLIC_PATH)[1] || null;
+}
+
+async function uploadAvatarBlob(blob) {
+  const user = ensureCurrentUser();
+  const storagePath = `${user.id}/avatar-${Date.now()}.jpg`;
+  const { error: uploadError } = await supabaseClient.storage
+    .from(AVATAR_STORAGE_BUCKET)
+    .upload(storagePath, blob, {
+      cacheControl: '31536000',
+      contentType: AVATAR_OUTPUT_TYPE,
+      upsert: false
+    });
+
+  throwIfSupabaseError(uploadError);
+
+  const { data } = supabaseClient.storage
+    .from(AVATAR_STORAGE_BUCKET)
+    .getPublicUrl(storagePath);
+
+  return data?.publicUrl || '';
+}
+
+async function deleteAvatarFileByUrl(publicUrl) {
+  const storagePath = extractAvatarStoragePath(publicUrl);
+
+  if (!storagePath) {
+    return;
+  }
+
+  const { error } = await supabaseClient.storage
+    .from(AVATAR_STORAGE_BUCKET)
+    .remove([storagePath]);
+
+  if (error) {
+    console.warn('Не удалось удалить старый аватар:', error);
+  }
+}
+
+async function saveAvatarCrop() {
+  if (isAvatarCropSubmitting) {
+    return;
+  }
+
+  let uploadedAvatarUrl = '';
+
+  try {
+    ensureCurrentUser();
+    setAvatarCropSubmitting(true);
+    setUserPageAvatarSubmitting(true);
+    setAvatarCropStatus('Сохраняю аватар...');
+    setUserPageAvatarStatus('Сохраняю аватар...');
+
+    const previousAvatarUrl = getPublicProfileAvatarUrl(currentUserProfile);
+    const avatarBlob = await renderAvatarCropBlob();
+    const avatarUrl = await uploadAvatarBlob(avatarBlob);
+    uploadedAvatarUrl = avatarUrl;
+
+    if (!avatarUrl) {
+      throw new Error('Supabase не вернул публичную ссылку на аватар.');
+    }
+
+    const { error } = await supabaseClient
+      .from('profiles')
+      .update({ avatar_url: avatarUrl })
+      .eq('id', currentUser.id);
+
+    throwIfSupabaseError(error);
+
+    currentUserProfile = {
+      ...(currentUserProfile || {}),
+      avatar_url: avatarUrl
+    };
+
+    syncUserPageOwnProfileIdentity();
+    closeAvatarCropModal({ force: true });
+    setUserPageAvatarStatus('Аватар обновлён.', 'success');
+
+    if (previousAvatarUrl && previousAvatarUrl !== avatarUrl) {
+      deleteAvatarFileByUrl(previousAvatarUrl);
+    }
+  } catch (error) {
+    const message = getAvatarFriendlyErrorMessage(error);
+
+    console.error('Ошибка сохранения аватара:', error);
+
+    if (uploadedAvatarUrl) {
+      deleteAvatarFileByUrl(uploadedAvatarUrl);
+    }
+
+    setAvatarCropStatus(message, 'error');
+    setUserPageAvatarStatus(message, 'error');
+  } finally {
+    setAvatarCropSubmitting(false);
+    setUserPageAvatarSubmitting(false);
+  }
+}
+
+async function handleUserPageAvatarFileChange(event) {
+  const input = event.target?.closest?.('[data-user-page-avatar-input="true"]');
+
+  if (!input) {
+    return;
+  }
+
+  const file = input.files?.[0] || null;
+
+  input.value = '';
+
+  if (!file) {
+    return;
+  }
+
+  try {
+    setUserPageAvatarStatus();
+    await openAvatarCropModalFromFile(file);
+  } catch (error) {
+    console.error('Ошибка выбора аватара:', error);
+    setUserPageAvatarStatus(error.message || 'Не удалось открыть изображение.', 'error');
+  }
 }
 
 function escapeHtml(value) {
@@ -3233,23 +3886,21 @@ async function loadCurrentUserRole() {
   }
 
   try {
-    const { data, error } = await withAuthProfileRequestTimeout(
-      supabaseClient
-        .from('profiles')
-        .select('role, display_name, default_display_name')
-        .eq('id', currentUser.id)
-        .single(),
+    const data = await withAuthProfileRequestTimeout(
+      runProfileSelectWithOptionalAvatar(
+        selectColumns => supabaseClient
+          .from('profiles')
+          .select(selectColumns)
+          .eq('id', currentUser.id)
+          .single(),
+        'role, display_name, default_display_name, avatar_url',
+        'role, display_name, default_display_name'
+      ),
       'Не удалось загрузить профиль пользователя. Проверь соединение и попробуй обновить страницу.'
     );
 
-    if (error) {
-      console.error('Ошибка загрузки профиля пользователя:', error);
-      currentUserRole = null;
-      currentUserProfile = null;
-    } else {
-      currentUserRole = data?.role || null;
-      currentUserProfile = data || null;
-    }
+    currentUserRole = data?.role || null;
+    currentUserProfile = data || null;
   } catch (error) {
     console.error('Ошибка loadCurrentUserRole:', error);
     currentUserRole = null;
@@ -4895,7 +5546,8 @@ function syncBodyScrollLock() {
     isAuthModalOpen ||
     (displayNameModal && displayNameModal.classList.contains('is-open')) ||
     (filtersModal && filtersModal.classList.contains('is-open')) ||
-    (mobileRatingModal && mobileRatingModal.classList.contains('is-open'))
+    (mobileRatingModal && mobileRatingModal.classList.contains('is-open')) ||
+    (avatarCropModal && avatarCropModal.classList.contains('is-open'))
   );
 
   document.body.style.overflow = shouldLockScroll ? 'hidden' : '';
@@ -10924,6 +11576,7 @@ function bindSharedUiEvents() {
 
     closeCatalogExternalLinksCard(openedCard);
   });
+  document.addEventListener('change', handleUserPageAvatarFileChange);
   document.addEventListener('focusin', event => {
     if (userPageRankTooltipTarget && !event.target?.closest?.('[data-user-page-rank-title]')) {
       hideUserPageRankTooltip();
@@ -11418,15 +12071,15 @@ async function fetchPublicUserProfileByHandle(handle) {
     return null;
   }
 
-  const { data, error } = await supabaseClient
-    .from('profiles')
-    .select('id, display_name, default_display_name')
-    .eq('default_display_name', normalizedHandle)
-    .maybeSingle();
-
-  throwIfSupabaseError(error);
-
-  return data || null;
+  return runProfileSelectWithOptionalAvatar(
+    selectColumns => supabaseClient
+      .from('profiles')
+      .select(selectColumns)
+      .eq('default_display_name', normalizedHandle)
+      .maybeSingle(),
+    'id, display_name, default_display_name, avatar_url',
+    'id, display_name, default_display_name'
+  );
 }
 
 function getUserPageMovieIds(rows = []) {
@@ -12300,12 +12953,12 @@ function renderUserPage(data) {
   const displayName = getPublicProfileDisplayName(data.profile);
   const handle = getPublicProfileHandle(data.profile);
   const averageRating = data.averageRating === null ? '-' : data.averageRating.toFixed(1);
-  const avatarLetter = displayName.slice(0, 1).toUpperCase() || 'H';
   const canEditDisplayName = Boolean(
     shouldUseAuthenticatedUi() &&
     currentUser?.id &&
     String(data.profile.id || '') === String(currentUser.id)
   );
+  const avatarHtml = getUserPageAvatarHtml(data.profile, displayName, canEditDisplayName);
   const displayNameEditButtonHtml = canEditDisplayName
     ? `
       <button
@@ -12329,13 +12982,14 @@ function renderUserPage(data) {
   userPage.innerHTML = `
     <div class="user-page-overview">
       <section class="user-page-hero">
-        <div class="user-page-avatar" data-user-page-avatar="true" aria-hidden="true">${escapeHtml(avatarLetter)}</div>
+        ${avatarHtml}
         <div class="user-page-identity">
           <div class="user-page-title-row">
             <div class="user-page-display-name" data-user-page-display-name="true">${escapeHtml(displayName)}</div>
             ${displayNameEditButtonHtml}
           </div>
           <div class="user-page-handle">${escapeHtml(handle)}</div>
+          <div class="user-page-avatar-status" data-user-page-avatar-status="true" aria-live="polite" hidden></div>
         </div>
       </section>
 
