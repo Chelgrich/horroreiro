@@ -148,6 +148,14 @@ const CATALOG_PAGINATION_PAGE_SLOTS = 6;
 const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
 const CATALOG_PRIORITY_POSTER_COUNT = 8;
 const CATALOG_PRESET_QUERY_PARAM = 'preset';
+const CATALOG_PROFILE_QUERY_PARAM = 'profile';
+const CATALOG_PROFILE_ACTIVITY_QUERY_PARAM = 'activity';
+const CATALOG_PROFILE_ACTIVITY_KEYS = new Set(['ratings', 'watchlist', 'reviews']);
+const CATALOG_PROFILE_ACTIVITY_LABELS = {
+  ratings: 'Оценки и просмотры',
+  watchlist: 'Смотреть позже',
+  reviews: 'Рецензии'
+};
 const POSTER_STORAGE_PUBLIC_PATH = '/storage/v1/object/public/posters/';
 const POSTER_STORAGE_RENDER_PATH = '/storage/v1/render/image/public/posters/';
 const POSTER_IMAGE_MIN_QUALITY = 90;
@@ -212,7 +220,9 @@ const CATALOG_URL_STATE_PARAMS = new Set([
   'watched',
   'sort',
   'view',
-  'page'
+  'page',
+  CATALOG_PROFILE_QUERY_PARAM,
+  CATALOG_PROFILE_ACTIVITY_QUERY_PARAM
 ]);
 const CATALOG_URL_TRUE_VALUES = new Set(['1', 'true', 'yes', 'on']);
 const CATALOG_URL_VALUE_ALIASES = {
@@ -431,6 +441,14 @@ let catalogDomSnapshotSchedule = null;
 let pendingCatalogDomSnapshotSessionSnapshot = null;
 let currentCatalogPage = 1;
 let currentCatalogPaginationSlots = null;
+let catalogProfileActivityHandle = '';
+let catalogProfileActivityKey = '';
+let catalogProfileActivityUserId = '';
+let catalogProfileActivityDisplayName = '';
+let catalogProfileActivityMovieIds = new Set();
+let catalogProfileActivityLoaded = false;
+let catalogProfileActivityLoadingPromise = null;
+let catalogProfileActivityError = null;
 let catalogDataVersion = 0;
 let catalogDerivedStateCache = null;
 const userRatingControlsHtmlCache = new Map();
@@ -1362,6 +1380,23 @@ function buildCatalogPresetUrl(presetKey) {
   }
 
   return `${catalogUrl}${catalogUrl.includes('?') ? '&' : '?'}${CATALOG_PRESET_QUERY_PARAM}=${encodeURIComponent(normalizedPresetKey)}`;
+}
+
+function buildCatalogProfileActivityUrl(handle, activityKey) {
+  const normalizedHandle = String(handle || '').trim();
+  const normalizedActivityKey = String(activityKey || '').trim();
+  const catalogUrl = buildCatalogPageUrl();
+
+  if (!normalizedHandle || !CATALOG_PROFILE_ACTIVITY_KEYS.has(normalizedActivityKey)) {
+    return catalogUrl;
+  }
+
+  const searchParams = new URLSearchParams();
+
+  searchParams.set(CATALOG_PROFILE_QUERY_PARAM, normalizedHandle);
+  searchParams.set(CATALOG_PROFILE_ACTIVITY_QUERY_PARAM, normalizedActivityKey);
+
+  return `${catalogUrl}${catalogUrl.includes('?') ? '&' : '?'}${searchParams.toString()}`;
 }
 
 function buildMoviePageUrl(movie) {
@@ -3331,8 +3366,76 @@ function getDefaultCatalogState() {
     watched: '',
     viewMode: 'list',
     sortMode: 'default',
-    page: 1
+    page: 1,
+    profileHandle: '',
+    profileActivity: ''
   };
+}
+
+function getCatalogProfileActivityLabel(activityKey = catalogProfileActivityKey) {
+  return CATALOG_PROFILE_ACTIVITY_LABELS[activityKey] || '';
+}
+
+function isCatalogProfileActivityActive() {
+  return Boolean(catalogProfileActivityHandle && catalogProfileActivityKey);
+}
+
+function normalizeCatalogProfileActivityKey(activityKey) {
+  const normalizedActivityKey = String(activityKey || '').trim();
+
+  return CATALOG_PROFILE_ACTIVITY_KEYS.has(normalizedActivityKey)
+    ? normalizedActivityKey
+    : '';
+}
+
+function resetCatalogProfileActivityData() {
+  catalogProfileActivityUserId = '';
+  catalogProfileActivityDisplayName = '';
+  catalogProfileActivityMovieIds = new Set();
+  catalogProfileActivityLoaded = false;
+  catalogProfileActivityLoadingPromise = null;
+  catalogProfileActivityError = null;
+}
+
+function setCatalogProfileActivitySelection(profileHandle, activityKey) {
+  const normalizedHandle = String(profileHandle || '').trim();
+  const normalizedActivityKey = normalizeCatalogProfileActivityKey(activityKey);
+  const shouldActivate = Boolean(normalizedHandle && normalizedActivityKey);
+  const nextHandle = shouldActivate ? normalizedHandle : '';
+  const nextActivityKey = shouldActivate ? normalizedActivityKey : '';
+
+  if (
+    catalogProfileActivityHandle === nextHandle &&
+    catalogProfileActivityKey === nextActivityKey
+  ) {
+    return;
+  }
+
+  catalogProfileActivityHandle = nextHandle;
+  catalogProfileActivityKey = nextActivityKey;
+  resetCatalogProfileActivityData();
+  invalidateCatalogDerivedState({ bumpDataVersion: true });
+}
+
+function clearCatalogProfileActivitySelection() {
+  setCatalogProfileActivitySelection('', '');
+}
+
+function getCatalogProfileActivityChipLabel() {
+  if (!isCatalogProfileActivityActive()) {
+    return '';
+  }
+
+  const activityLabel = getCatalogProfileActivityLabel();
+  const displayName = catalogProfileActivityDisplayName || catalogProfileActivityHandle;
+
+  return `${activityLabel}: ${displayName}`;
+}
+
+function getCatalogProfileActivityMatchSet() {
+  return isCatalogProfileActivityActive() && catalogProfileActivityLoaded
+    ? catalogProfileActivityMovieIds
+    : null;
 }
 
 function getCurrentCatalogStateForPersistence() {
@@ -3451,6 +3554,10 @@ function readCatalogUrlState() {
   catalogState.viewMode = getSelectOptionValue(viewMode, searchParams.get('view'), 'list');
   catalogState.sortMode = getSelectOptionValue(sortMode, searchParams.get('sort'), 'default');
   catalogState.page = Math.max(1, Number(searchParams.get('page')) || 1);
+  catalogState.profileHandle = String(searchParams.get(CATALOG_PROFILE_QUERY_PARAM) || '').trim();
+  catalogState.profileActivity = normalizeCatalogProfileActivityKey(
+    searchParams.get(CATALOG_PROFILE_ACTIVITY_QUERY_PARAM)
+  );
 
   return catalogState;
 }
@@ -3506,6 +3613,7 @@ function applyCatalogStateToControls(catalogState) {
   setSelectValue(viewMode, nextCatalogState.viewMode || 'list');
   setSelectValue(sortMode, nextCatalogState.sortMode || 'default');
   currentCatalogPage = Math.max(1, Number(nextCatalogState.page) || 1);
+  setCatalogProfileActivitySelection(nextCatalogState.profileHandle, nextCatalogState.profileActivity);
 }
 
 function setCatalogUrlParam(searchParams, paramName, value) {
@@ -3555,6 +3663,11 @@ function getCatalogUrlSearchParamsFromControls() {
 
   if (currentCatalogPage > 1) {
     searchParams.set('page', String(currentCatalogPage));
+  }
+
+  if (isCatalogProfileActivityActive()) {
+    searchParams.set(CATALOG_PROFILE_QUERY_PARAM, catalogProfileActivityHandle);
+    searchParams.set(CATALOG_PROFILE_ACTIVITY_QUERY_PARAM, catalogProfileActivityKey);
   }
 
   return searchParams;
@@ -6738,6 +6851,106 @@ async function fetchCatalogReviewSummary() {
   markCatalogDataChanged();
 }
 
+function getUniqueMovieIdsFromRows(rows = []) {
+  return [...new Set(
+    (Array.isArray(rows) ? rows : [])
+      .map(row => String(row?.movie_id || ''))
+      .filter(Boolean)
+  )];
+}
+
+async function fetchCatalogProfileActivityMovieIds(userId, activityKey) {
+  if (!userId || !CATALOG_PROFILE_ACTIVITY_KEYS.has(activityKey)) {
+    return [];
+  }
+
+  if (activityKey === 'ratings') {
+    const { data, error } = await supabaseClient
+      .from('movie_ratings')
+      .select('movie_id')
+      .eq('user_id', userId);
+
+    throwIfSupabaseError(error);
+
+    return getUniqueMovieIdsFromRows(data || []);
+  }
+
+  if (activityKey === 'reviews') {
+    const { data, error } = await supabaseClient
+      .from('movie_reviews')
+      .select('movie_id')
+      .eq('user_id', userId);
+
+    throwIfSupabaseError(error);
+
+    return getUniqueMovieIdsFromRows(data || []);
+  }
+
+  const [watchlistResult, ratingsResult] = await Promise.all([
+    supabaseClient
+      .from('movie_watchlist')
+      .select('movie_id')
+      .eq('user_id', userId),
+    supabaseClient
+      .from('movie_ratings')
+      .select('movie_id')
+      .eq('user_id', userId)
+  ]);
+
+  throwIfSupabaseError(watchlistResult.error);
+  throwIfSupabaseError(ratingsResult.error);
+
+  const ratedMovieIds = new Set(getUniqueMovieIdsFromRows(ratingsResult.data || []));
+
+  return getUniqueMovieIdsFromRows(watchlistResult.data || [])
+    .filter(movieId => !ratedMovieIds.has(String(movieId)));
+}
+
+async function ensureCatalogProfileActivityContextLoaded() {
+  if (!isCatalogProfileActivityActive()) {
+    return;
+  }
+
+  if (catalogProfileActivityLoaded) {
+    return;
+  }
+
+  if (catalogProfileActivityLoadingPromise) {
+    await catalogProfileActivityLoadingPromise;
+    return;
+  }
+
+  catalogProfileActivityLoadingPromise = (async () => {
+    try {
+      const profile = await fetchPublicUserProfileByHandle(catalogProfileActivityHandle);
+
+      catalogProfileActivityUserId = String(profile?.id || '');
+      catalogProfileActivityDisplayName = profile ? getPublicProfileDisplayName(profile) : catalogProfileActivityHandle;
+
+      if (!profile?.id) {
+        catalogProfileActivityMovieIds = new Set();
+        catalogProfileActivityError = new Error('Пользователь не найден.');
+        return;
+      }
+
+      const movieIds = await fetchCatalogProfileActivityMovieIds(profile.id, catalogProfileActivityKey);
+
+      catalogProfileActivityMovieIds = new Set(movieIds.map(movieId => String(movieId)));
+      catalogProfileActivityError = null;
+    } catch (error) {
+      console.error('Ошибка загрузки профильной выборки каталога:', error);
+      catalogProfileActivityMovieIds = new Set();
+      catalogProfileActivityError = error;
+    } finally {
+      catalogProfileActivityLoaded = true;
+      catalogProfileActivityLoadingPromise = null;
+      markCatalogDataChanged();
+    }
+  })();
+
+  await catalogProfileActivityLoadingPromise;
+}
+
 async function reloadMoviePageData(movieId) {
   if (!movieId) {
     return null;
@@ -7060,6 +7273,7 @@ function resetFilterControls({ preserveSearch = false, preservePage = false, ski
   reviewedOnlyFilter = false;
   watchlistFilter.value = '';
   watchedFilter.value = '';
+  clearCatalogProfileActivitySelection();
 
   refreshCustomSelectGroup(
     filterCustomSelectElements.filter(selectElement => selectElement !== sortMode)
@@ -7140,6 +7354,10 @@ function getActiveQuickPresetKey() {
   const hasFormatFilter = Boolean(formatFilter.value);
   const hasCountryFilter = Boolean(countryFilter.value);
   const hasYearFilter = Boolean(yearFilter.value);
+
+  if (isCatalogProfileActivityActive()) {
+    return null;
+  }
 
   if (
     normalizeSearchText(searchInput.value) === 'астрал' &&
@@ -7340,6 +7558,11 @@ function applyQuickPreset(presetKey, { preservePage = false, urlMode = 'push' } 
 
 function getActiveFilterChips() {
   const chips = [];
+  const profileActivityChipLabel = getCatalogProfileActivityChipLabel();
+
+  if (profileActivityChipLabel) {
+    chips.push({ label: profileActivityChipLabel, key: 'profile-activity' });
+  }
 
   if (reviewedOnlyFilter) {
     chips.push({ label: 'Рецензии: с рецензиями', key: 'with-reviews' });
@@ -7436,6 +7659,10 @@ function updateFiltersButtonLabel() {
 }
 
 function clearFilterChip(filterKey) {
+  if (filterKey === 'profile-activity') {
+    clearCatalogProfileActivitySelection();
+  }
+
   if (filterKey === 'watchlist') {
     watchlistFilter.value = '';
     refreshCustomSelect(watchlistFilter);
@@ -10932,6 +11159,8 @@ function getCatalogDerivedStateSignature(filterState, selectedSortMode) {
     dataVersion: catalogDataVersion,
     pageSize: CATALOG_PAGE_SIZE,
     userId: currentUser?.id || null,
+    profileActivityHandle: catalogProfileActivityHandle,
+    profileActivityKey: catalogProfileActivityKey,
     viewMode: viewMode?.value || 'list',
     sortMode: selectedSortMode,
     page: currentCatalogPage,
@@ -10946,7 +11175,8 @@ function hasCatalogFilterStateOverrides(options = {}) {
     ignoreSubgenre = false,
     ignoreFormat = false,
     ignoreCountry = false,
-    ignoreYear = false
+    ignoreYear = false,
+    ignoreTriggerExcludes = false
   } = options;
 
   return Boolean(
@@ -11052,6 +11282,8 @@ function getCatalogFilterStateSnapshot(options = {}) {
     searchQueryWords,
     hasSearchQuery: searchQueryWords.length > 0,
     hasCurrentUser: Boolean(currentUser),
+    hasProfileActivityFilter: isCatalogProfileActivityActive(),
+    profileActivityMovieIds: getCatalogProfileActivityMatchSet(),
     isLowRatedPresetActive: getActiveQuickPresetKey() === 'low-rated',
     reviewedOnly: reviewedOnlyFilter
   };
@@ -11061,6 +11293,13 @@ function doesMovieMatchCatalogFilters(movie, filterState, meta = getCatalogMovie
   if (
     filterState.hasSearchQuery &&
     !movieMatchesSearch(movie, filterState.searchQuery, filterState.searchQueryWords)
+  ) {
+    return false;
+  }
+
+  if (
+    filterState.hasProfileActivityFilter &&
+    !filterState.profileActivityMovieIds?.has(String(movie.id))
   ) {
     return false;
   }
@@ -11146,6 +11385,10 @@ function getCatalogFilterMatches(movie, filterState, meta = getCatalogMovieMeta(
     ? getMovieAverageRating(movie.id)
     : 0;
   return {
+    profileActivity: (
+      !filterState.hasProfileActivityFilter ||
+      filterState.profileActivityMovieIds?.has(String(movie.id))
+    ),
     search: (
       !filterState.hasSearchQuery ||
       movieMatchesSearch(movie, filterState.searchQuery, filterState.searchQueryWords)
@@ -11194,6 +11437,7 @@ function getCatalogFilterMatches(movie, filterState, meta = getCatalogMovieMeta(
 function matchesCatalogFilterCountScope(matches, ignoredFilterKey) {
   return (
     matches.search &&
+    matches.profileActivity &&
     (ignoredFilterKey === 'genre' || matches.genre) &&
     (ignoredFilterKey === 'subgenre' || matches.subgenre) &&
     (ignoredFilterKey === 'format' || matches.format) &&
@@ -11551,7 +11795,14 @@ const handleFiltersChange = () => {
   saveCatalogStateAndRenderFilters();
 };
 
-function handleCatalogHistoryNavigation() {
+async function syncCatalogProfileActivityContextBeforeRender() {
+  await ensureCatalogProfileActivityContextLoaded();
+  refreshDynamicFilterOptions();
+  updateFiltersButtonLabel();
+  syncQuickPresetButtons();
+}
+
+async function handleCatalogHistoryNavigation() {
   if (!isCatalogPage()) {
     return;
   }
@@ -11559,7 +11810,7 @@ function handleCatalogHistoryNavigation() {
   const routePresetKey = getCatalogRoutePresetKey();
 
   applySavedCatalogState({ fallbackToStorage: false });
-  refreshDynamicFilterOptions();
+  await syncCatalogProfileActivityContextBeforeRender();
 
   if (routePresetKey) {
     const didApplyRoutePreset = applyQuickPreset(routePresetKey, {
@@ -11992,7 +12243,7 @@ function bindSharedAuthStateListener({ onAfterAuthSync } = {}) {
         }
 
         if (typeof onAfterAuthSync === 'function') {
-          onAfterAuthSync();
+          await onAfterAuthSync();
         }
       } catch (error) {
         console.error('Ошибка синхронизации auth-состояния:', error);
@@ -12043,7 +12294,12 @@ async function initCatalogPage() {
 
   const routePresetKey = getCatalogRoutePresetKey();
   const restoreSessionPromise = restoreSession();
-  const hydratedSnapshot = readCatalogSessionSnapshot();
+  const initialCatalogUrlState = readCatalogUrlState();
+  const shouldSkipSnapshotForProfileActivity = Boolean(
+    initialCatalogUrlState?.profileHandle &&
+    initialCatalogUrlState?.profileActivity
+  );
+  const hydratedSnapshot = shouldSkipSnapshotForProfileActivity ? null : readCatalogSessionSnapshot();
   const preAuthUserId = currentUser?.id || null;
   let hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot);
 
@@ -12065,8 +12321,9 @@ async function initCatalogPage() {
   }
 
   bindSharedAuthStateListener({
-    onAfterAuthSync: () => {
+    onAfterAuthSync: async () => {
       applySavedCatalogState();
+      await syncCatalogProfileActivityContextBeforeRender();
       syncCatalogAfterAuthChange();
     }
   });
@@ -12076,7 +12333,7 @@ async function initCatalogPage() {
     refreshFilters: false
   });
   applySavedCatalogState();
-  refreshDynamicFilterOptions();
+  await syncCatalogProfileActivityContextBeforeRender();
 
   if (routePresetKey) {
     const didApplyRoutePreset = applyQuickPreset(routePresetKey, {
@@ -12809,13 +13066,13 @@ function handleUserPageRankTooltipKeydown(event) {
   return false;
 }
 
-function getUserPageMoreCardHtml(hiddenCount, morePresetKey = '') {
+function getUserPageMoreCardHtml(hiddenCount, moreUrl = '') {
   const contentHtml = `<strong>И ещё ${hiddenCount}</strong>`;
-  const catalogPresetUrl = morePresetKey ? buildCatalogPresetUrl(morePresetKey) : '';
+  const catalogUrl = String(moreUrl || '').trim();
 
-  if (catalogPresetUrl) {
+  if (catalogUrl) {
     return `
-      <a class="user-page-more-card" href="${catalogPresetUrl}" aria-label="Открыть остальные ${hiddenCount} в каталоге">
+      <a class="user-page-more-card" href="${escapeHtml(catalogUrl)}" aria-label="Открыть остальные ${hiddenCount} в каталоге">
         ${contentHtml}
       </a>
     `;
@@ -12828,7 +13085,7 @@ function getUserPageMoreCardHtml(hiddenCount, morePresetKey = '') {
   `;
 }
 
-function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, morePresetKey = '') {
+function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, moreUrl = '') {
   if (!items.length) {
     return `<div class="user-page-empty-state">${escapeHtml(emptyText)}</div>`;
   }
@@ -12838,7 +13095,7 @@ function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, morePre
   const cardsHtml = visibleItems
     .map(item => getUserPageMovieCardHtml(item, getBadgeHtml))
     .join('');
-  const moreHtml = hiddenCount > 0 ? getUserPageMoreCardHtml(hiddenCount, morePresetKey) : '';
+  const moreHtml = hiddenCount > 0 ? getUserPageMoreCardHtml(hiddenCount, moreUrl) : '';
 
   return `
     <div class="user-page-movie-rail-shell" data-user-page-rail-shell="true">
@@ -13068,6 +13325,9 @@ function renderUserPage(data) {
   const displayName = getPublicProfileDisplayName(data.profile);
   const handle = getPublicProfileHandle(data.profile);
   const averageRating = data.averageRating === null ? '-' : data.averageRating.toFixed(1);
+  const ratingsCatalogUrl = buildCatalogProfileActivityUrl(handle, 'ratings');
+  const watchlistCatalogUrl = buildCatalogProfileActivityUrl(handle, 'watchlist');
+  const reviewsCatalogUrl = buildCatalogProfileActivityUrl(handle, 'reviews');
   const canEditDisplayName = Boolean(
     shouldUseAuthenticatedUi() &&
     currentUser?.id &&
@@ -13126,7 +13386,7 @@ function renderUserPage(data) {
           data.ratingItems,
           'Пока нет оценённых фильмов.',
           item => `<span class="user-page-card-badge">★ ${Number(item.rating || 0)}</span>`,
-          'watched'
+          ratingsCatalogUrl
         )}
     </section>
 
@@ -13134,7 +13394,7 @@ function renderUserPage(data) {
       <div class="user-page-section-header">
         <h2>Смотреть позже</h2>
       </div>
-      ${getUserPageMovieRailHtml(data.watchlistItems, 'Список просмотра пуст.', null, 'watchlist')}
+      ${getUserPageMovieRailHtml(data.watchlistItems, 'Список просмотра пуст.', null, watchlistCatalogUrl)}
     </section>
 
     <section class="user-page-section">
@@ -13145,7 +13405,7 @@ function renderUserPage(data) {
           data.reviewItems,
           'Пока нет рецензий.',
           () => '<span class="user-page-card-badge user-page-card-badge-muted">Рецензия</span>',
-          'with-reviews'
+          reviewsCatalogUrl
         )}
     </section>
   `;
