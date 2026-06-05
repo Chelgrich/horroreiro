@@ -17,6 +17,7 @@ const displayNameMessage = document.getElementById('displayNameMessage');
 const profileSummaryButton = document.getElementById('profileSummaryButton');
 
 const openAuthModalButton = document.getElementById('openAuthModalButton');
+const authIconButtonDefaultHtml = openAuthModalButton?.innerHTML || '';
 const authPopoverMenu = document.getElementById('authPopoverMenu');
 const importLetterboxdRatingsButton = document.getElementById('importLetterboxdRatingsButton');
 const manualSimilarAuditButton = document.getElementById('manualSimilarAuditButton');
@@ -1702,6 +1703,7 @@ function syncUserPageOwnProfileIdentity() {
   }
 
   syncUserPageAvatarMedia(currentUserProfile);
+  syncAuthIconButtonState();
 
   if (isUserPage()) {
     setUserPageDocumentMeta(currentUserProfile);
@@ -1858,13 +1860,56 @@ function getUserPageAvatarUploadHtml(canEditAvatar) {
   `;
 }
 
+function getUserPageAvatarDeleteHtml(canEditAvatar, profile) {
+  if (!canEditAvatar) {
+    return '';
+  }
+
+  const hasAvatar = Boolean(getPublicProfileAvatarUrl(profile));
+
+  return `
+    <button
+      type="button"
+      class="user-page-avatar-delete-button"
+      data-user-page-avatar-delete="true"
+      aria-label="Удалить аватар"
+      title="Удалить аватар"
+      ${hasAvatar ? '' : 'hidden'}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18 6 6 18"></path>
+        <path d="m6 6 12 12"></path>
+      </svg>
+    </button>
+  `;
+}
+
 function getUserPageAvatarHtml(profile, displayName, canEditAvatar) {
   return `
     <div class="user-page-avatar-shell" data-user-page-avatar-shell="true">
       ${getUserPageAvatarMediaHtml(profile, displayName)}
       ${getUserPageAvatarUploadHtml(canEditAvatar)}
+      ${getUserPageAvatarDeleteHtml(canEditAvatar, profile)}
     </div>
   `;
+}
+
+function syncUserPageAvatarControls(profile = currentUserProfile) {
+  const deleteButton = userPage?.querySelector('[data-user-page-avatar-delete="true"]');
+
+  if (!deleteButton) {
+    return;
+  }
+
+  const hasAvatar = Boolean(getPublicProfileAvatarUrl(profile));
+
+  deleteButton.hidden = !hasAvatar;
+  deleteButton.classList.remove('is-delete-confirm');
+  deleteButton.dataset.deleteArmed = 'false';
+  deleteButton.setAttribute('aria-label', 'Удалить аватар');
+  deleteButton.setAttribute('title', 'Удалить аватар');
+  delete deleteButton.dataset.deleteOriginalAriaLabel;
+  delete deleteButton.dataset.deleteOriginalTitle;
 }
 
 function syncUserPageAvatarMedia(profile = currentUserProfile) {
@@ -1880,6 +1925,7 @@ function syncUserPageAvatarMedia(profile = currentUserProfile) {
 
   mediaWrapper.innerHTML = getUserPageAvatarMediaHtml(profile, displayName).trim();
   avatarElement.replaceWith(mediaWrapper.firstElementChild);
+  syncUserPageAvatarControls(profile);
 }
 
 function setUserPageAvatarStatus(message = '', type = 'info') {
@@ -1898,11 +1944,16 @@ function setUserPageAvatarStatus(message = '', type = 'info') {
 function setUserPageAvatarSubmitting(isSubmitting) {
   const avatarShell = userPage?.querySelector('[data-user-page-avatar-shell="true"]');
   const avatarInput = userPage?.querySelector('[data-user-page-avatar-input="true"]');
+  const avatarDeleteButton = userPage?.querySelector('[data-user-page-avatar-delete="true"]');
 
   avatarShell?.classList.toggle('is-uploading', isSubmitting);
 
   if (avatarInput) {
     avatarInput.disabled = isSubmitting;
+  }
+
+  if (avatarDeleteButton) {
+    avatarDeleteButton.disabled = isSubmitting;
   }
 }
 
@@ -2295,6 +2346,49 @@ async function deleteAvatarFileByUrl(publicUrl) {
   }
 }
 
+async function deleteCurrentUserAvatar() {
+  if (isAvatarCropSubmitting) {
+    return;
+  }
+
+  const previousAvatarUrl = getPublicProfileAvatarUrl(currentUserProfile);
+
+  if (!previousAvatarUrl) {
+    setUserPageAvatarStatus('Аватар уже удалён.', 'info');
+    syncUserPageAvatarControls(currentUserProfile);
+    return;
+  }
+
+  try {
+    ensureActiveSessionForWrite();
+    setUserPageAvatarSubmitting(true);
+    setUserPageAvatarStatus('Удаляю аватар...');
+
+    const { error } = await supabaseClient
+      .from('profiles')
+      .update({ avatar_url: null })
+      .eq('id', currentUser.id);
+
+    throwIfSupabaseError(error);
+
+    currentUserProfile = {
+      ...(currentUserProfile || {}),
+      avatar_url: null
+    };
+
+    syncUserPageOwnProfileIdentity();
+    setUserPageAvatarStatus('Аватар удалён.', 'success');
+    deleteAvatarFileByUrl(previousAvatarUrl);
+  } catch (error) {
+    const message = getAvatarFriendlyErrorMessage(error);
+
+    console.error('Ошибка удаления аватара:', error);
+    setUserPageAvatarStatus(message, 'error');
+  } finally {
+    setUserPageAvatarSubmitting(false);
+  }
+}
+
 async function saveAvatarCrop() {
   if (isAvatarCropSubmitting) {
     return;
@@ -2352,6 +2446,19 @@ async function saveAvatarCrop() {
     setAvatarCropSubmitting(false);
     setUserPageAvatarSubmitting(false);
   }
+}
+
+function handleUserPageAvatarDeleteClick(event) {
+  const deleteButton = event.target?.closest?.('[data-user-page-avatar-delete="true"]');
+
+  if (!deleteButton || deleteButton.hidden) {
+    return false;
+  }
+
+  event.preventDefault();
+  armDeleteMovieButton(deleteButton, deleteCurrentUserAvatar);
+
+  return true;
 }
 
 async function handleUserPageAvatarFileChange(event) {
@@ -5494,8 +5601,10 @@ function syncAuthIconButtonState() {
   }
 
   const isAuthenticated = shouldUseAuthenticatedUi();
+  const avatarUrl = isAuthenticated ? getPublicProfileAvatarUrl(currentUserProfile) : '';
 
   openAuthModalButton.classList.toggle('is-authenticated', isAuthenticated);
+  openAuthModalButton.classList.toggle('has-avatar', Boolean(avatarUrl));
   openAuthModalButton.setAttribute(
     'aria-label',
     isAuthenticated ? 'Меню аккаунта' : 'Вход или регистрация'
@@ -5504,6 +5613,23 @@ function syncAuthIconButtonState() {
     'title',
     isAuthenticated ? 'Меню аккаунта' : 'Вход или регистрация'
   );
+
+  if (avatarUrl) {
+    if (openAuthModalButton.dataset.avatarUrl !== avatarUrl) {
+      openAuthModalButton.innerHTML = `
+        <img
+          class="auth-icon-avatar"
+          src="${escapeHtml(avatarUrl)}"
+          alt=""
+          aria-hidden="true"
+        >
+      `;
+      openAuthModalButton.dataset.avatarUrl = avatarUrl;
+    }
+  } else if (openAuthModalButton.dataset.avatarUrl || openAuthModalButton.classList.contains('has-avatar')) {
+    openAuthModalButton.innerHTML = authIconButtonDefaultHtml;
+    delete openAuthModalButton.dataset.avatarUrl;
+  }
 
   if (!isAuthenticated) {
     closeAuthPopoverMenu();
@@ -11548,6 +11674,10 @@ function bindSharedUiEvents() {
 
   document.addEventListener('click', event => {
     if (handleUserPageRankTooltipClick(event)) {
+      return;
+    }
+
+    if (handleUserPageAvatarDeleteClick(event)) {
       return;
     }
 

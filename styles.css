@@ -399,6 +399,19 @@ h3 {
   border-color: transparent;
 }
 
+.auth-icon-button.has-avatar {
+  padding: 2px;
+  overflow: hidden;
+}
+
+.auth-icon-avatar {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
 .auth-popover-menu {
   position: absolute;
   top: calc(100% + 10px);
@@ -3650,9 +3663,9 @@ body:has(.user-page-shell) .page {
   object-fit: cover;
 }
 
-.user-page-avatar-upload-button {
+.user-page-avatar-upload-button,
+.user-page-avatar-delete-button {
   position: absolute;
-  right: -4px;
   bottom: -4px;
   width: 30px;
   height: 30px;
@@ -3673,6 +3686,16 @@ body:has(.user-page-shell) .page {
     opacity 0.18s ease;
 }
 
+.user-page-avatar-upload-button {
+  right: -4px;
+}
+
+.user-page-avatar-delete-button {
+  left: -4px;
+  color: var(--color-danger-text);
+  background: var(--ui-danger-action-bg);
+}
+
 .user-page-avatar-upload-button:hover,
 .user-page-avatar-upload-button:focus-within {
   background: var(--ui-action-bg-hover);
@@ -3680,7 +3703,24 @@ body:has(.user-page-shell) .page {
   box-shadow: 0 0 0 3px var(--control-focus-ring), 0 8px 18px rgba(0, 0, 0, 0.28);
 }
 
-.user-page-avatar-upload-button svg {
+.user-page-avatar-delete-button:hover,
+.user-page-avatar-delete-button:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--ui-danger-action-bg-hover);
+  border-color: var(--ui-soft-border-hover);
+  box-shadow: 0 0 0 3px var(--control-focus-ring), 0 8px 18px rgba(0, 0, 0, 0.28);
+}
+
+.user-page-avatar-delete-button.is-delete-confirm {
+  color: var(--color-text-primary);
+  background: var(--ui-danger-action-confirm-bg);
+  box-shadow:
+    0 0 0 1px var(--ui-danger-action-confirm-shadow),
+    0 8px 18px rgba(0, 0, 0, 0.28);
+}
+
+.user-page-avatar-upload-button svg,
+.user-page-avatar-delete-button svg {
   width: 16px;
   height: 16px;
   display: block;
@@ -3689,6 +3729,10 @@ body:has(.user-page-shell) .page {
   stroke-width: var(--icon-stroke-width);
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.user-page-avatar-delete-button[hidden] {
+  display: none;
 }
 
 .user-page-avatar-upload-input {
@@ -3702,7 +3746,8 @@ body:has(.user-page-shell) .page {
   pointer-events: none;
 }
 
-.user-page-avatar-shell.is-uploading .user-page-avatar-upload-button {
+.user-page-avatar-shell.is-uploading .user-page-avatar-upload-button,
+.user-page-avatar-shell.is-uploading .user-page-avatar-delete-button {
   opacity: 0.62;
   pointer-events: none;
 }
@@ -5290,7 +5335,8 @@ body:has(.movie-page-shell) .page {
     font-size: 24px;
   }
 
-  .user-page-avatar-upload-button {
+  .user-page-avatar-upload-button,
+  .user-page-avatar-delete-button {
     width: 28px;
     height: 28px;
   }
@@ -6470,14 +6516,23 @@ body:has(.user-page-shell) .page-footer {
     font-size: 18px;
   }
 
-  .user-page-avatar-upload-button {
-    right: -5px;
+  .user-page-avatar-upload-button,
+  .user-page-avatar-delete-button {
     bottom: -5px;
     width: 24px;
     height: 24px;
   }
 
-  .user-page-avatar-upload-button svg {
+  .user-page-avatar-upload-button {
+    right: -5px;
+  }
+
+  .user-page-avatar-delete-button {
+    left: -5px;
+  }
+
+  .user-page-avatar-upload-button svg,
+  .user-page-avatar-delete-button svg {
     width: 13px;
     height: 13px;
   }
