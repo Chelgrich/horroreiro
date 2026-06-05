@@ -4992,16 +4992,23 @@ body:has(.movie-page-shell) .page {
   overflow: hidden;
 }
 
-.movie-page-review-more {
-  margin-top: 12px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
 .movie-page-review-footer {
   margin-top: var(--movie-review-space, 14px);
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.movie-page-review-footer-start,
+.movie-page-review-footer-end {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.movie-page-review-footer-end {
+  margin-left: auto;
   justify-content: flex-end;
 }
 

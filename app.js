@@ -14510,22 +14510,6 @@ function getMoviePageReviewBodyHtml(review, {
     <div class="movie-page-review-text ${isLongReview && !isExpandedText ? 'is-collapsed' : ''}">
       ${escapeHtml(review.review_text)}
     </div>
-
-    ${
-      isLongReview
-        ? `
-          <div class="movie-page-review-more">
-            <button
-              type="button"
-              class="secondary-button secondary-button-compact"
-              data-movie-review-toggle-text="${review.id}"
-            >
-              ${isExpandedText ? 'Свернуть' : 'Читать дальше'}
-            </button>
-          </div>
-        `
-        : ''
-    }
   `;
 }
 
@@ -14594,9 +14578,43 @@ function getMoviePageReviewHeaderHtml(review, {
   `;
 }
 
-function getMoviePageReviewFooterHtml(review, { isEditing }) {
-  if (!areMovieReviewLikesAvailable || isEditing) {
+function getMoviePageReviewFooterHtml(review, {
+  isEditing,
+  isSpoilerReview,
+  isExpandedSpoiler,
+  isExpandedText,
+  isLongReview
+}) {
+  if (isEditing) {
     return '';
+  }
+
+  const shouldShowTextToggle = isLongReview && (!isSpoilerReview || isExpandedSpoiler);
+  const textToggleHtml = shouldShowTextToggle
+    ? `
+      <button
+        type="button"
+        class="secondary-button secondary-button-compact"
+        data-movie-review-toggle-text="${review.id}"
+      >
+        ${isExpandedText ? 'Свернуть' : 'Читать дальше'}
+      </button>
+    `
+    : '';
+  let likeHtml = '';
+
+  if (!areMovieReviewLikesAvailable && !textToggleHtml) {
+    return '';
+  }
+
+  if (!areMovieReviewLikesAvailable) {
+    return `
+      <div class="movie-page-review-footer">
+        <div class="movie-page-review-footer-start">
+          ${textToggleHtml}
+        </div>
+      </div>
+    `;
   }
 
   const likesCount = getMovieReviewLikeCount(review);
@@ -14611,8 +14629,7 @@ function getMoviePageReviewFooterHtml(review, { isEditing }) {
       : 'Поставить лайк';
 
   if (isOwnReview) {
-    return `
-      <div class="movie-page-review-footer">
+    likeHtml = `
         <div
           class="movie-page-review-like movie-page-review-like-static"
           title="${escapeHtml(likeTitle)}"
@@ -14623,12 +14640,9 @@ function getMoviePageReviewFooterHtml(review, { isEditing }) {
           </svg>
           <span>${escapeHtml(countLabel)}</span>
         </div>
-      </div>
     `;
-  }
-
-  return `
-    <div class="movie-page-review-footer">
+  } else {
+    likeHtml = `
       <button
         type="button"
         class="movie-page-review-like ${isLiked ? 'is-liked' : ''} ${isBusy ? 'is-busy' : ''}"
@@ -14643,6 +14657,19 @@ function getMoviePageReviewFooterHtml(review, { isEditing }) {
         </svg>
         <span>${escapeHtml(countLabel)}</span>
       </button>
+    `;
+  }
+
+  return `
+    <div class="movie-page-review-footer">
+      ${
+        textToggleHtml
+          ? `<div class="movie-page-review-footer-start">${textToggleHtml}</div>`
+          : ''
+      }
+      <div class="movie-page-review-footer-end">
+        ${likeHtml}
+      </div>
     </div>
   `;
 }
@@ -14681,7 +14708,11 @@ function getMoviePageReviewCardHtml(review) {
       })}
 
       ${getMoviePageReviewFooterHtml(review, {
-        isEditing
+        isEditing,
+        isSpoilerReview,
+        isExpandedSpoiler,
+        isExpandedText,
+        isLongReview
       })}
     </article>
   `;
