@@ -349,6 +349,8 @@ const CATALOG_URL_VALUE_ALIAS_LOOKUPS = Object.fromEntries(
 let currentUser = null;
 let currentUserRole = null;
 let currentUserProfile = null;
+let currentUserFollowedProfileIds = new Set();
+let userPageFollowRequestProfileIds = new Set();
 let isAdmin = false;
 let isAuthModalOpen = false;
 let isAuthPopoverOpen = false;
@@ -8775,6 +8777,7 @@ async function applyCurrentSessionUser(user) {
   rebuildMovieRatingIndexes();
   rebuildCurrentUserWatchlistIndex();
   await loadCurrentUserRole();
+  await fetchCurrentUserProfileFollows();
   updateAuthUI();
 }
 
@@ -12190,6 +12193,10 @@ function bindSharedUiEvents() {
       return;
     }
 
+    if (handleUserPageFollowClick(event)) {
+      return;
+    }
+
     handleUserPageDisplayNameEditClick(event);
     handleUserPageRailControlClick(event);
 
@@ -12683,6 +12690,168 @@ function isOwnUserProfile(profile) {
     profile?.id &&
     String(profile.id) === String(currentUser.id)
   );
+}
+
+function isCurrentUserFollowingProfile(profileId) {
+  const normalizedProfileId = String(profileId || '').trim();
+
+  return Boolean(normalizedProfileId && currentUserFollowedProfileIds.has(normalizedProfileId));
+}
+
+async function fetchCurrentUserProfileFollows() {
+  if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
+    currentUserFollowedProfileIds = new Set();
+    userPageFollowRequestProfileIds = new Set();
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('user_profile_follows')
+    .select('following_id')
+    .eq('follower_id', currentUser.id);
+
+  if (error) {
+    console.warn('Ошибка загрузки отслеживаемых профилей:', error);
+    currentUserFollowedProfileIds = new Set();
+    return;
+  }
+
+  currentUserFollowedProfileIds = new Set(
+    (data || [])
+      .map(row => String(row?.following_id || '').trim())
+      .filter(Boolean)
+  );
+}
+
+function getUserPageFollowButtonHtml(profile) {
+  const profileId = String(profile?.id || '').trim();
+
+  if (!profileId || isOwnUserProfile(profile)) {
+    return '';
+  }
+
+  const isAuthenticated = Boolean(shouldUseAuthenticatedUi() && currentUser?.id);
+  const isFollowing = isAuthenticated && isCurrentUserFollowingProfile(profileId);
+  const isBusy = userPageFollowRequestProfileIds.has(profileId);
+  const buttonLabel = isFollowing ? 'Отслеживается' : 'Отслеживать';
+  const buttonTitle = isAuthenticated
+    ? (isFollowing ? 'Больше не отслеживать профиль' : 'Отслеживать профиль')
+    : 'Войти, чтобы отслеживать профиль';
+
+  return `
+    <div class="user-page-follow-actions">
+      <button
+        type="button"
+        class="secondary-button secondary-button-compact user-page-follow-button${isFollowing ? ' is-following' : ''}"
+        data-user-page-follow-profile-id="${escapeHtml(profileId)}"
+        aria-pressed="${isFollowing ? 'true' : 'false'}"
+        title="${escapeHtml(buttonTitle)}"
+        ${isBusy ? 'disabled' : ''}
+      >
+        ${escapeHtml(buttonLabel)}
+      </button>
+    </div>
+  `;
+}
+
+function syncUserPageFollowButtonState(profileId) {
+  const normalizedProfileId = String(profileId || '').trim();
+
+  if (!normalizedProfileId || !userPage) {
+    return;
+  }
+
+  const button = userPage.querySelector(`[data-user-page-follow-profile-id="${CSS.escape(normalizedProfileId)}"]`);
+
+  if (!button) {
+    return;
+  }
+
+  const isAuthenticated = Boolean(shouldUseAuthenticatedUi() && currentUser?.id);
+  const isFollowing = isAuthenticated && isCurrentUserFollowingProfile(normalizedProfileId);
+  const isBusy = userPageFollowRequestProfileIds.has(normalizedProfileId);
+
+  button.disabled = isBusy;
+  button.classList.toggle('is-following', isFollowing);
+  button.setAttribute('aria-pressed', isFollowing ? 'true' : 'false');
+  button.title = isAuthenticated
+    ? (isFollowing ? 'Больше не отслеживать профиль' : 'Отслеживать профиль')
+    : 'Войти, чтобы отслеживать профиль';
+  button.textContent = isFollowing ? 'Отслеживается' : 'Отслеживать';
+}
+
+function handleUserPageFollowClick(event) {
+  const button = event.target?.closest?.('[data-user-page-follow-profile-id]');
+
+  if (!button) {
+    return false;
+  }
+
+  event.preventDefault();
+  toggleUserPageProfileFollow(button.dataset.userPageFollowProfileId);
+
+  return true;
+}
+
+async function toggleUserPageProfileFollow(profileId) {
+  const normalizedProfileId = String(profileId || '').trim();
+
+  if (!normalizedProfileId) {
+    return;
+  }
+
+  if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
+    openAuthModal();
+    showAuthMessage('Войди, чтобы отслеживать профили.', 'info', true);
+    return;
+  }
+
+  if (normalizedProfileId === String(currentUser.id) || userPageFollowRequestProfileIds.has(normalizedProfileId)) {
+    return;
+  }
+
+  const wasFollowing = isCurrentUserFollowingProfile(normalizedProfileId);
+
+  userPageFollowRequestProfileIds.add(normalizedProfileId);
+  syncUserPageFollowButtonState(normalizedProfileId);
+
+  try {
+    if (wasFollowing) {
+      const { error } = await supabaseClient
+        .from('user_profile_follows')
+        .delete()
+        .eq('follower_id', currentUser.id)
+        .eq('following_id', normalizedProfileId);
+
+      throwIfSupabaseError(error);
+      currentUserFollowedProfileIds.delete(normalizedProfileId);
+    } else {
+      const { error } = await supabaseClient
+        .from('user_profile_follows')
+        .insert({
+          follower_id: currentUser.id,
+          following_id: normalizedProfileId
+        });
+
+      if (error && error.code !== '23505') {
+        throw error;
+      }
+
+      currentUserFollowedProfileIds.add(normalizedProfileId);
+    }
+
+    showAppMessage(
+      wasFollowing ? 'Профиль больше не отслеживается.' : 'Профиль отслеживается.',
+      'success',
+      true
+    );
+  } catch (error) {
+    console.error('Ошибка обновления отслеживания профиля:', error);
+    showAppMessage('Не удалось обновить отслеживание профиля.', 'error', true);
+  } finally {
+    userPageFollowRequestProfileIds.delete(normalizedProfileId);
+    syncUserPageFollowButtonState(normalizedProfileId);
+  }
 }
 
 function syncUserPageMainTitle(profile = null) {
@@ -13659,6 +13828,7 @@ function renderUserPage(data) {
     String(data.profile.id || '') === String(currentUser.id)
   );
   const avatarHtml = getUserPageAvatarHtml(data.profile, displayName, canEditDisplayName);
+  const followButtonHtml = getUserPageFollowButtonHtml(data.profile);
   const displayNameEditButtonHtml = canEditDisplayName
     ? `
       <button
@@ -13690,6 +13860,7 @@ function renderUserPage(data) {
             ${displayNameEditButtonHtml}
           </div>
           <div class="user-page-handle">${escapeHtml(handle)}</div>
+          ${followButtonHtml}
           <div class="user-page-avatar-status" data-user-page-avatar-status="true" aria-live="polite" hidden></div>
         </div>
       </section>
@@ -13756,7 +13927,23 @@ async function initUserPage() {
     renderUserPageNotFound();
   }
 
-  bindSharedAuthStateListener();
+  bindSharedAuthStateListener({
+    onAfterAuthSync: async () => {
+      try {
+        const profile = await fetchPublicUserProfileByHandle(handle);
+
+        if (!profile) {
+          renderUserPageNotFound();
+          return;
+        }
+
+        const data = await fetchPublicUserPageData(profile);
+        renderUserPage(data);
+      } catch (error) {
+        console.error('Ошибка обновления страницы пользователя после смены auth-состояния:', error);
+      }
+    }
+  });
 }
 
 function getMoviePageRouteParams() {

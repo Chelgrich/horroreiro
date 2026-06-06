@@ -3856,6 +3856,43 @@ body:has(.user-page-shell) .page {
   display: none;
 }
 
+.user-page-follow-actions {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.user-page-follow-button {
+  width: fit-content;
+  max-width: 100%;
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+  border-color: transparent;
+  white-space: nowrap;
+}
+
+.user-page-follow-button:hover,
+.user-page-follow-button:focus-visible {
+  background: var(--ui-action-bg-hover);
+}
+
+.user-page-follow-button.is-following {
+  color: var(--accent-soft-text);
+  background: var(--accent-soft-bg);
+}
+
+.user-page-follow-button.is-following:hover,
+.user-page-follow-button.is-following:focus-visible {
+  background: var(--accent-soft-bg-hover);
+}
+
+.user-page-follow-button:disabled,
+.user-page-follow-button:disabled:hover {
+  cursor: default;
+  opacity: 0.68;
+  transform: none;
+}
+
 .user-page-stats {
   min-width: 0;
   display: grid;
