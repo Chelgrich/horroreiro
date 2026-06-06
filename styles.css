@@ -3760,7 +3760,6 @@ body:has(.user-page-shell) .page {
 
 .following-page-activity-list {
   display: grid;
-  grid-template-columns: repeat(var(--catalog-columns), minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -6992,10 +6991,6 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .following-page-profile-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .following-page-activity-list {
     grid-template-columns: 1fr;
   }
 
