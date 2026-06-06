@@ -2,6 +2,8 @@
   "version": 1,
   "include": [
     "/env",
+    "/following",
+    "/following.html",
     "/movie/*",
     "/movie.html",
     "/user/*",

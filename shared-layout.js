@@ -50,6 +50,15 @@
                     <button
                       type="button"
                       class="auth-popover-item"
+                      id="followingSummaryButton"
+                      role="menuitem"
+                      hidden
+                    >
+                      Отслеживаемые
+                    </button>
+                    <button
+                      type="button"
+                      class="auth-popover-item"
                       id="importLetterboxdRatingsButton"
                       role="menuitem"
                     >

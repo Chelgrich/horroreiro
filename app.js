@@ -15,6 +15,7 @@ const saveDisplayNameButton = document.getElementById('saveDisplayNameButton');
 const cancelDisplayNameButton = document.getElementById('cancelDisplayNameButton');
 const displayNameMessage = document.getElementById('displayNameMessage');
 const profileSummaryButton = document.getElementById('profileSummaryButton');
+const followingSummaryButton = document.getElementById('followingSummaryButton');
 
 const openAuthModalButton = document.getElementById('openAuthModalButton');
 const authIconButtonDefaultHtml = openAuthModalButton?.innerHTML || '';
@@ -43,6 +44,7 @@ const appToastMessage = document.getElementById('appToastMessage');
 const appToastAcceptButton = document.getElementById('appToastAcceptButton');
 const userPageMainTitle = document.querySelector('.user-page-main-title');
 const userPage = document.getElementById('userPage');
+const followingPage = document.getElementById('followingPage');
 
 const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
@@ -85,6 +87,8 @@ const QUICK_PRESETS_SCROLL_HINT_MEDIA_QUERY = '(max-width: 680px)';
 const QUICK_PRESETS_SCROLL_HINT_DELAY_MS = 650;
 const QUICK_PRESETS_SCROLL_HINT_DISTANCE = 72;
 const QUICK_PRESETS_SCROLL_HINT_DURATION_MS = 420;
+const FOLLOWING_PAGE_ACTIVITY_SOURCE_LIMIT = 80;
+const FOLLOWING_PAGE_ACTIVITY_DISPLAY_LIMIT = 60;
 let didPlayQuickPresetsScrollHint = false;
 let quickPresetsScrollHintTimerId = null;
 let quickPresetsScrollHintFrameId = null;
@@ -1386,6 +1390,10 @@ function buildCatalogPageUrl() {
   return isLocalDevRouteHost() ? 'index.html' : '/';
 }
 
+function buildFollowingPageUrl() {
+  return isLocalDevRouteHost() ? 'following.html' : '/following';
+}
+
 function buildCatalogPresetUrl(presetKey) {
   const normalizedPresetKey = String(presetKey || '').trim();
   const catalogUrl = buildCatalogPageUrl();
@@ -1640,6 +1648,10 @@ function isCurrentUserProfilePage() {
   return Boolean(currentProfileUrl) && isSameCurrentPageUrl(currentProfileUrl);
 }
 
+function isCurrentFollowingPage() {
+  return isSameCurrentPageUrl(buildFollowingPageUrl());
+}
+
 function openCurrentUserProfilePage() {
   if (!shouldUseAuthenticatedUi()) {
     return;
@@ -1654,6 +1666,22 @@ function openCurrentUserProfilePage() {
   }
 
   window.location.href = currentProfileUrl;
+}
+
+function openFollowingPage() {
+  if (!shouldUseAuthenticatedUi()) {
+    return;
+  }
+
+  closeAuthPopoverMenu();
+
+  const followingPageUrl = buildFollowingPageUrl();
+
+  if (!followingPageUrl || isSameCurrentPageUrl(followingPageUrl)) {
+    return;
+  }
+
+  window.location.href = followingPageUrl;
 }
 
 function setDisplayNameMessage(message = '', type = '') {
@@ -6439,6 +6467,19 @@ function updateAuthUI() {
       profileSummaryButton.setAttribute('aria-current', 'page');
     } else {
       profileSummaryButton.removeAttribute('aria-current');
+    }
+  }
+
+  if (followingSummaryButton) {
+    const isFollowingPageActive = shouldShowAuthenticatedUi && isCurrentFollowingPage();
+
+    followingSummaryButton.hidden = !shouldShowAuthenticatedUi;
+    followingSummaryButton.disabled = isFollowingPageActive;
+
+    if (isFollowingPageActive) {
+      followingSummaryButton.setAttribute('aria-current', 'page');
+    } else {
+      followingSummaryButton.removeAttribute('aria-current');
     }
   }
 
@@ -12124,6 +12165,7 @@ function bindSharedUiEvents() {
   });
 
   profileSummaryButton?.addEventListener('click', openCurrentUserProfilePage);
+  followingSummaryButton?.addEventListener('click', openFollowingPage);
 
   manualSimilarAuditButton?.addEventListener('click', runManualSimilarAudit);
 
@@ -12194,6 +12236,10 @@ function bindSharedUiEvents() {
     }
 
     if (handleUserPageFollowClick(event)) {
+      return;
+    }
+
+    if (handleFollowingPageLoginClick(event)) {
       return;
     }
 
@@ -12445,6 +12491,10 @@ function isMoviePage() {
 
 function isUserPage() {
   return Boolean(userPage);
+}
+
+function isFollowingPage() {
+  return Boolean(followingPage);
 }
 
 function handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect) {
@@ -12910,6 +12960,27 @@ async function fetchPublicUserProfileByHandle(handle) {
       .select(selectColumns)
       .eq('default_display_name', normalizedHandle)
       .maybeSingle(),
+    'id, display_name, default_display_name, avatar_url',
+    'id, display_name, default_display_name'
+  );
+}
+
+async function fetchPublicProfilesByIds(profileIds = []) {
+  const normalizedProfileIds = [...new Set(
+    (Array.isArray(profileIds) ? profileIds : [])
+      .map(profileId => String(profileId || '').trim())
+      .filter(Boolean)
+  )];
+
+  if (!normalizedProfileIds.length) {
+    return [];
+  }
+
+  return runProfileSelectWithOptionalAvatar(
+    selectColumns => supabaseClient
+      .from('profiles')
+      .select(selectColumns)
+      .in('id', normalizedProfileIds),
     'id, display_name, default_display_name, avatar_url',
     'id, display_name, default_display_name'
   );
@@ -13699,6 +13770,392 @@ function getUserPageSectionHeaderHtml(title, url) {
   `;
 }
 
+function renderFollowingPageLoading() {
+  if (!followingPage) {
+    return;
+  }
+
+  followingPage.innerHTML = '<div class="following-page-loading-state">Загрузка отслеживаемых...</div>';
+}
+
+function renderFollowingPageAuthGate() {
+  if (!followingPage) {
+    return;
+  }
+
+  document.title = 'Отслеживаемые — Хоррорейро';
+  followingPage.innerHTML = `
+    <div class="following-page-empty-state following-page-empty-state-large">
+      <p>Войди, чтобы видеть отслеживаемые профили и их активность.</p>
+      <button type="button" class="secondary-button following-page-login-button" data-following-page-login="true">
+        Войти
+      </button>
+    </div>
+  `;
+}
+
+function renderFollowingPageError() {
+  if (!followingPage) {
+    return;
+  }
+
+  followingPage.innerHTML = `
+    <div class="following-page-empty-state following-page-empty-state-large">
+      Не удалось загрузить отслеживаемые профили. Попробуй обновить страницу.
+    </div>
+  `;
+}
+
+async function fetchFollowingPageFollowRows() {
+  if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('user_profile_follows')
+    .select('following_id, created_at')
+    .eq('follower_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  throwIfSupabaseError(error);
+
+  const rows = data || [];
+
+  currentUserFollowedProfileIds = new Set(
+    rows
+      .map(row => String(row?.following_id || '').trim())
+      .filter(Boolean)
+  );
+
+  return rows;
+}
+
+async function fetchFollowingPageActivityRows(profileIds = []) {
+  const normalizedProfileIds = [...new Set(
+    (Array.isArray(profileIds) ? profileIds : [])
+      .map(profileId => String(profileId || '').trim())
+      .filter(Boolean)
+  )];
+
+  if (!normalizedProfileIds.length) {
+    return {
+      ratingRows: [],
+      watchlistRows: [],
+      reviewRows: []
+    };
+  }
+
+  const [
+    ratingsResult,
+    watchlistResult,
+    reviewsResult
+  ] = await Promise.all([
+    supabaseClient
+      .from('movie_ratings')
+      .select('user_id, movie_id, rating, created_at, updated_at')
+      .in('user_id', normalizedProfileIds)
+      .order('updated_at', { ascending: false })
+      .limit(FOLLOWING_PAGE_ACTIVITY_SOURCE_LIMIT),
+    supabaseClient
+      .from('movie_watchlist')
+      .select('user_id, movie_id, created_at')
+      .in('user_id', normalizedProfileIds)
+      .order('created_at', { ascending: false })
+      .limit(FOLLOWING_PAGE_ACTIVITY_SOURCE_LIMIT),
+    supabaseClient
+      .from('movie_reviews')
+      .select('id, user_id, movie_id, created_at, updated_at')
+      .in('user_id', normalizedProfileIds)
+      .order('updated_at', { ascending: false })
+      .limit(FOLLOWING_PAGE_ACTIVITY_SOURCE_LIMIT)
+  ]);
+
+  throwIfSupabaseError(ratingsResult.error);
+  throwIfSupabaseError(watchlistResult.error);
+  throwIfSupabaseError(reviewsResult.error);
+
+  return {
+    ratingRows: ratingsResult.data || [],
+    watchlistRows: watchlistResult.data || [],
+    reviewRows: reviewsResult.data || []
+  };
+}
+
+function getFollowingPageTimestampMs(row, fields = ['updated_at', 'created_at']) {
+  for (const field of fields) {
+    const timestamp = new Date(row?.[field] || 0).getTime();
+
+    if (Number.isFinite(timestamp) && timestamp > 0) {
+      return timestamp;
+    }
+  }
+
+  return 0;
+}
+
+function getFollowingPageActivityDateLabel(timestampMs) {
+  if (!timestampMs) {
+    return '';
+  }
+
+  return new Date(timestampMs).toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+}
+
+function getFollowingPageActivityItems(activityRows, profilesById, moviesById) {
+  const ratingItems = (activityRows.ratingRows || []).map(row => ({
+    type: 'rating',
+    profile: profilesById.get(String(row.user_id)),
+    movie: moviesById.get(String(row.movie_id)),
+    rating: Number(row.rating || 0),
+    timestampMs: getFollowingPageTimestampMs(row, ['updated_at', 'created_at'])
+  }));
+  const watchlistItems = (activityRows.watchlistRows || []).map(row => ({
+    type: 'watchlist',
+    profile: profilesById.get(String(row.user_id)),
+    movie: moviesById.get(String(row.movie_id)),
+    timestampMs: getFollowingPageTimestampMs(row, ['created_at'])
+  }));
+  const reviewItems = (activityRows.reviewRows || []).map(row => ({
+    type: 'review',
+    profile: profilesById.get(String(row.user_id)),
+    movie: moviesById.get(String(row.movie_id)),
+    reviewId: String(row.id || ''),
+    timestampMs: getFollowingPageTimestampMs(row, ['updated_at', 'created_at'])
+  }));
+
+  return [
+    ...ratingItems,
+    ...watchlistItems,
+    ...reviewItems
+  ]
+    .filter(item => item.profile && item.movie && item.timestampMs)
+    .sort((firstItem, secondItem) => secondItem.timestampMs - firstItem.timestampMs)
+    .slice(0, FOLLOWING_PAGE_ACTIVITY_DISPLAY_LIMIT);
+}
+
+async function fetchFollowingPageData() {
+  if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
+    return null;
+  }
+
+  const followRows = await fetchFollowingPageFollowRows();
+  const followedProfileIds = followRows
+    .map(row => String(row?.following_id || '').trim())
+    .filter(Boolean);
+
+  if (!followedProfileIds.length) {
+    return {
+      followRows,
+      profiles: [],
+      activityItems: []
+    };
+  }
+
+  const [profiles, activityRows] = await Promise.all([
+    fetchPublicProfilesByIds(followedProfileIds),
+    fetchFollowingPageActivityRows(followedProfileIds)
+  ]);
+  const profilesById = new Map((profiles || []).map(profile => [String(profile.id), profile]));
+  const movieIds = [...new Set([
+    ...(activityRows.ratingRows || []).map(row => row.movie_id),
+    ...(activityRows.watchlistRows || []).map(row => row.movie_id),
+    ...(activityRows.reviewRows || []).map(row => row.movie_id)
+  ]
+    .map(movieId => String(movieId || '').trim())
+    .filter(Boolean))];
+  const movies = await fetchCatalogMoviesByIds(movieIds);
+  const moviesById = new Map(movies.map(movie => [String(movie.id), movie]));
+  const activityItems = getFollowingPageActivityItems(activityRows, profilesById, moviesById);
+  const orderedProfiles = followRows
+    .map(row => profilesById.get(String(row.following_id)))
+    .filter(Boolean);
+
+  return {
+    followRows,
+    profiles: orderedProfiles,
+    activityItems
+  };
+}
+
+function getFollowingPageAvatarHtml(profile, className, size = 'small') {
+  const displayName = getPublicProfileDisplayName(profile);
+  const avatarUrl = getPublicProfileAvatarUrl(profile);
+  const modifierClass = size ? ` ${className}-${size}` : '';
+
+  if (avatarUrl) {
+    return `
+      <img
+        class="${className}${modifierClass}"
+        src="${escapeHtml(avatarUrl)}"
+        alt="Аватар пользователя ${escapeHtml(displayName)}"
+        loading="lazy"
+        decoding="async"
+      >
+    `;
+  }
+
+  return `
+    <span class="${className}${modifierClass}" aria-hidden="true">
+      ${escapeHtml(getUserPageAvatarLetter(displayName))}
+    </span>
+  `;
+}
+
+function getFollowingPageProfileCardHtml(profile) {
+  const displayName = getPublicProfileDisplayName(profile);
+  const handle = getPublicProfileHandle(profile);
+
+  return `
+    <a href="${buildUserPageUrl(handle)}" class="following-page-profile-card">
+      ${getFollowingPageAvatarHtml(profile, 'following-page-profile-avatar')}
+      <span class="following-page-profile-name">${escapeHtml(displayName)}</span>
+      <span class="following-page-profile-handle">${escapeHtml(handle)}</span>
+    </a>
+  `;
+}
+
+function getFollowingPageActivityLabelHtml(item) {
+  if (item.type === 'rating') {
+    return `<span class="following-page-activity-badge">Оценка <strong>${escapeHtml(item.rating)}</strong><span>★</span></span>`;
+  }
+
+  if (item.type === 'review') {
+    return '<span class="following-page-activity-badge following-page-activity-badge-review">Рецензия</span>';
+  }
+
+  return '<span class="following-page-activity-badge following-page-activity-badge-watchlist">Смотреть позже</span>';
+}
+
+function getFollowingPageActivityCardHtml(item) {
+  const profile = item.profile;
+  const movie = item.movie;
+  const displayName = getPublicProfileDisplayName(profile);
+  const handle = getPublicProfileHandle(profile);
+  const movieTitle = getManualSimilarMovieLabel(movie);
+  const originalTitle = String(movie.original_title || '').trim();
+  const year = movie.year ? String(movie.year) : '';
+  const dateLabel = getFollowingPageActivityDateLabel(item.timestampMs);
+
+  return `
+    <article class="following-page-activity-card">
+      <a href="${buildMoviePageUrl(movie)}" class="following-page-activity-poster-link" aria-label="Перейти к фильму ${escapeHtml(movieTitle)}">
+        ${
+          movie.poster_url
+            ? `
+              <img
+                class="following-page-activity-poster"
+                ${getPosterImageAttributeHtml(movie.poster_url, 'similar')}
+                alt="Постер фильма ${escapeHtml(movieTitle)}"
+                loading="lazy"
+                decoding="async"
+              >
+            `
+            : '<div class="movie-poster-placeholder">Нет постера</div>'
+        }
+      </a>
+
+      <div class="following-page-activity-body">
+        <div class="following-page-activity-topline">
+          <a href="${buildUserPageUrl(handle)}" class="following-page-activity-profile">
+            ${getFollowingPageAvatarHtml(profile, 'following-page-activity-avatar')}
+            <span>${escapeHtml(displayName)}</span>
+          </a>
+          ${dateLabel ? `<time class="following-page-activity-date" datetime="${new Date(item.timestampMs).toISOString()}">${escapeHtml(dateLabel)}</time>` : ''}
+        </div>
+
+        <div class="following-page-activity-main">
+          ${getFollowingPageActivityLabelHtml(item)}
+          <a href="${buildMoviePageUrl(movie)}" class="following-page-activity-movie">${escapeHtml(movie.title || movieTitle)}</a>
+        </div>
+
+        ${originalTitle ? `<div class="following-page-activity-original">${escapeHtml(originalTitle)}</div>` : ''}
+        ${year ? `<div class="following-page-activity-meta">${escapeHtml(year)}</div>` : ''}
+      </div>
+    </article>
+  `;
+}
+
+function renderFollowingPage(data) {
+  if (!followingPage) {
+    return;
+  }
+
+  document.title = 'Отслеживаемые — Хоррорейро';
+
+  if (!data?.profiles?.length) {
+    followingPage.innerHTML = `
+      <div class="following-page-empty-state following-page-empty-state-large">
+        Ты пока никого не отслеживаешь. Открой чужой профиль и нажми «Отслеживать».
+      </div>
+    `;
+    return;
+  }
+
+  followingPage.innerHTML = `
+    <section class="following-page-block">
+      <div class="following-page-section-header">
+        <h2>Профили</h2>
+        <span>${data.profiles.length}</span>
+      </div>
+      <div class="following-page-profile-grid">
+        ${data.profiles.map(getFollowingPageProfileCardHtml).join('')}
+      </div>
+    </section>
+
+    <section class="following-page-block">
+      <div class="following-page-section-header">
+        <h2>Лента активности</h2>
+      </div>
+      ${
+        data.activityItems.length
+          ? `
+            <div class="following-page-activity-list">
+              ${data.activityItems.map(getFollowingPageActivityCardHtml).join('')}
+            </div>
+          `
+          : '<div class="following-page-empty-state">У отслеживаемых профилей пока нет активности.</div>'
+      }
+    </section>
+  `;
+}
+
+function handleFollowingPageLoginClick(event) {
+  const button = event.target?.closest?.('[data-following-page-login="true"]');
+
+  if (!button) {
+    return false;
+  }
+
+  event.preventDefault();
+  openAuthModal();
+  return true;
+}
+
+async function loadFollowingPage() {
+  if (!followingPage) {
+    return;
+  }
+
+  if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
+    renderFollowingPageAuthGate();
+    return;
+  }
+
+  renderFollowingPageLoading();
+
+  try {
+    const data = await fetchFollowingPageData();
+    renderFollowingPage(data);
+  } catch (error) {
+    console.error('Ошибка загрузки страницы отслеживаемых профилей:', error);
+    renderFollowingPageError();
+  }
+}
+
 function renderUserPageLoading() {
   if (!userPage) {
     return;
@@ -13943,6 +14400,17 @@ async function initUserPage() {
         console.error('Ошибка обновления страницы пользователя после смены auth-состояния:', error);
       }
     }
+  });
+}
+
+async function initFollowingPage() {
+  renderFollowingPageLoading();
+  await restoreSession();
+  trackEmailConfirmedLoginIfNeeded();
+  await loadFollowingPage();
+
+  bindSharedAuthStateListener({
+    onAfterAuthSync: loadFollowingPage
   });
 }
 
@@ -15939,6 +16407,11 @@ async function init() {
 
   if (isUserPage()) {
     await initUserPage();
+    return;
+  }
+
+  if (isFollowingPage()) {
+    await initFollowingPage();
     return;
   }
 
