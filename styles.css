@@ -3861,7 +3861,9 @@ body:has(.user-page-shell) .page {
 }
 
 .following-page-activity-main {
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
 }
 
 .following-page-activity-badge {
