@@ -4635,12 +4635,13 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-rate-trigger-star {
-  margin-left: 6px;
+  margin-left: 4px;
   color: var(--color-rating-text);
 }
 
 .movie-page-rate-trigger .movie-page-rate-value {
   margin-left: 6px;
+  color: var(--color-rating-text);
 }
 
 .movie-page-title {
