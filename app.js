@@ -3487,9 +3487,9 @@ function getCatalogProfileRatingHtml(movieId) {
   const displayName = catalogProfileActivityDisplayName || catalogProfileActivityHandle || 'зрителя';
 
   return `
-    <div class="movie-profile-rating" title="Оценка ${escapeHtml(displayName)}">
+    <div class="movie-profile-rating" title="Оценка ${escapeHtml(displayName)}: ${escapeHtml(String(rating))} из 10" aria-label="Оценка ${escapeHtml(displayName)}: ${escapeHtml(String(rating))} из 10">
       <span class="movie-profile-rating-label">Оценка ${escapeHtml(displayName)}</span>
-      <span class="movie-profile-rating-value">${escapeHtml(String(rating))}/10 ★</span>
+      <span class="movie-profile-rating-value">${escapeHtml(String(rating))} ★</span>
     </div>
   `;
 }
