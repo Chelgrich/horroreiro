@@ -3443,7 +3443,7 @@ function getCatalogProfileActivityChipLabel() {
   const activityLabel = getCatalogProfileActivityLabel();
   const displayName = catalogProfileActivityDisplayName || catalogProfileActivityHandle;
 
-  return `Срез профиля: ${activityLabel} · ${displayName}`;
+  return `${activityLabel} · ${displayName}`;
 }
 
 function getCatalogProfileActivityMatchSet() {
