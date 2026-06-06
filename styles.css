@@ -2083,6 +2083,13 @@ button:not(:where(
   line-height: 1.2;
 }
 
+.active-filter-chip.is-profile-context {
+  color: var(--accent-soft-text);
+  background: var(--accent-soft-bg);
+  border-color: transparent;
+  box-shadow: 0 0 0 1px var(--accent-soft-shadow);
+}
+
 .active-filter-chip-remove {
   width: 18px;
   height: 18px;

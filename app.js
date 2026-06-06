@@ -3443,7 +3443,7 @@ function getCatalogProfileActivityChipLabel() {
   const activityLabel = getCatalogProfileActivityLabel();
   const displayName = catalogProfileActivityDisplayName || catalogProfileActivityHandle;
 
-  return `${activityLabel}: ${displayName}`;
+  return `Срез профиля: ${activityLabel} · ${displayName}`;
 }
 
 function getCatalogProfileActivityMatchSet() {
@@ -7487,7 +7487,12 @@ function clearSearchInput({ skipSave = false } = {}) {
   }
 }
 
-function resetFilterControls({ preserveSearch = false, preservePage = false, skipSave = false } = {}) {
+function resetFilterControls({
+  preserveSearch = false,
+  preservePage = false,
+  preserveProfileActivity = false,
+  skipSave = false
+} = {}) {
   if (!preservePage) {
     resetCatalogPaginationPage();
   }
@@ -7505,7 +7510,10 @@ function resetFilterControls({ preserveSearch = false, preservePage = false, ski
   reviewedOnlyFilter = false;
   watchlistFilter.value = '';
   watchedFilter.value = '';
-  clearCatalogProfileActivitySelection();
+
+  if (!preserveProfileActivity) {
+    clearCatalogProfileActivitySelection();
+  }
 
   refreshCustomSelectGroup(
     filterCustomSelectElements.filter(selectElement => selectElement !== sortMode)
@@ -7516,8 +7524,8 @@ function resetFilterControls({ preserveSearch = false, preservePage = false, ski
   }
 }
 
-function resetCatalogFiltersAndRerender({ preserveSearch = false } = {}) {
-  resetFilterControls({ preserveSearch });
+function resetCatalogFiltersAndRerender({ preserveSearch = false, preserveProfileActivity = false } = {}) {
+  resetFilterControls({ preserveSearch, preserveProfileActivity });
   saveCatalogStateAndRenderFilters();
 }
 
@@ -7586,10 +7594,6 @@ function getActiveQuickPresetKey() {
   const hasFormatFilter = Boolean(formatFilter.value);
   const hasCountryFilter = Boolean(countryFilter.value);
   const hasYearFilter = Boolean(yearFilter.value);
-
-  if (isCatalogProfileActivityActive()) {
-    return null;
-  }
 
   if (
     normalizeSearchText(searchInput.value) === 'астрал' &&
@@ -7736,7 +7740,11 @@ function applyQuickPreset(presetKey, { preservePage = false, urlMode = 'push' } 
     searchInput.value.trim() === ''
   );
 
-  resetFilterControls({ preservePage, skipSave: true });
+  resetFilterControls({
+    preservePage,
+    preserveProfileActivity: isCatalogProfileActivityActive(),
+    skipSave: true
+  });
 
   if (presetKey === 'top-rated') {
     ratingFilter.value = '7';
@@ -7793,7 +7801,11 @@ function getActiveFilterChips() {
   const profileActivityChipLabel = getCatalogProfileActivityChipLabel();
 
   if (profileActivityChipLabel) {
-    chips.push({ label: profileActivityChipLabel, key: 'profile-activity' });
+    chips.push({
+      label: profileActivityChipLabel,
+      key: 'profile-activity',
+      variant: 'profile-context'
+    });
   }
 
   if (reviewedOnlyFilter) {
@@ -7856,12 +7868,16 @@ function getActiveFilterChips() {
   return chips;
 }
 
+function getFilterModalActiveChips() {
+  return getActiveFilterChips().filter(chip => chip.key !== 'profile-activity');
+}
+
 function updateFiltersModalStatus() {
   if (!filtersModalStatus || !resetFiltersTopButton) {
     return;
   }
 
-  const activeFiltersCount = getActiveFilterChips().length;
+  const activeFiltersCount = getFilterModalActiveChips().length;
   const hasActiveFilters = activeFiltersCount > 0;
 
   filtersModalStatus.textContent = hasActiveFilters
@@ -7879,7 +7895,7 @@ function updateFiltersButtonLabel() {
     return;
   }
 
-  const activeFiltersCount = getActiveFilterChips().length;
+  const activeFiltersCount = getFilterModalActiveChips().length;
   const hasActiveFilters = activeFiltersCount > 0;
 
   openFiltersButton.textContent = hasActiveFilters
@@ -7965,20 +7981,26 @@ function renderActiveFilterChips() {
   }
 
   activeFiltersBar.classList.add('is-visible');
-  activeFiltersBar.innerHTML = chips.map(chip => `
-    <div class="active-filter-chip">
-      <span>${chip.label}</span>
+  activeFiltersBar.innerHTML = chips.map(chip => {
+    const removeLabel = chip.key === 'profile-activity'
+      ? 'Убрать профильный срез'
+      : 'Убрать фильтр';
+
+    return `
+    <div class="active-filter-chip ${chip.variant === 'profile-context' ? 'is-profile-context' : ''}">
+      <span>${escapeHtml(chip.label)}</span>
       <button
         type="button"
         class="active-filter-chip-remove"
-        data-filter-key="${chip.key}"
-        aria-label="Убрать фильтр"
-        title="Убрать фильтр"
+        data-filter-key="${escapeHtml(chip.key)}"
+        aria-label="${escapeHtml(removeLabel)}"
+        title="${escapeHtml(removeLabel)}"
       >
         ×
       </button>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   activeFiltersBar.querySelectorAll('.active-filter-chip-remove').forEach(button => {
     button.addEventListener('click', () => {
@@ -12332,7 +12354,7 @@ function bindCatalogPageEvents() {
   quickPresetsBar?.addEventListener('wheel', markQuickPresetsScrollHintHandled, { passive: true });
 
   resetFiltersTopButton?.addEventListener('click', () => {
-    resetCatalogFiltersAndRerender();
+    resetCatalogFiltersAndRerender({ preserveProfileActivity: true });
   });
 
   if (container) {
