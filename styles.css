@@ -3767,7 +3767,7 @@ body:has(.user-page-shell) .page {
   min-width: 0;
   padding: 10px;
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 88px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
   color: var(--color-text-secondary);
@@ -3777,7 +3777,7 @@ body:has(.user-page-shell) .page {
 }
 
 .following-page-activity-poster-link {
-  width: 72px;
+  width: 88px;
   aspect-ratio: 2 / 3;
   display: block;
   overflow: hidden;
@@ -6995,12 +6995,12 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .following-page-activity-card {
-    grid-template-columns: 60px minmax(0, 1fr);
+    grid-template-columns: 76px minmax(0, 1fr);
     gap: 10px;
   }
 
   .following-page-activity-poster-link {
-    width: 60px;
+    width: 76px;
   }
 
   .following-page-activity-topline {
