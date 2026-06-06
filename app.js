@@ -92,7 +92,6 @@ const FOLLOWING_PAGE_ACTIVITY_DISPLAY_LIMIT = 60;
 let didPlayQuickPresetsScrollHint = false;
 let quickPresetsScrollHintTimerId = null;
 let quickPresetsScrollHintFrameId = null;
-let followingPagePosterSyncFrameId = null;
 
 let movieForm = document.getElementById('movieForm');
 let formTitle = document.getElementById('formTitle');
@@ -12278,7 +12277,6 @@ function bindSharedUiEvents() {
 
   window.addEventListener('resize', () => {
     hideUserPageRankTooltip();
-    scheduleFollowingPageActivityPosterSync();
     scheduleAppResizeSync();
   });
   window.addEventListener('scroll', hideUserPageRankTooltip, { passive: true });
@@ -14081,53 +14079,6 @@ function getFollowingPageActivityCardHtml(item) {
   `;
 }
 
-function syncFollowingPageActivityPosterSizes() {
-  if (!followingPage) {
-    return;
-  }
-
-  const posterEntries = Array.from(followingPage.querySelectorAll('.following-page-activity-card'))
-    .map(card => ({
-      card,
-      posterLink: card.querySelector('.following-page-activity-poster-link')
-    }))
-    .filter(entry => entry.posterLink);
-
-  posterEntries.forEach(({ posterLink }) => {
-    posterLink.style.height = '';
-    posterLink.style.width = '';
-  });
-
-  posterEntries.forEach(({ card, posterLink }) => {
-    const cardStyles = window.getComputedStyle(card);
-    const paddingY = parseFloat(cardStyles.paddingTop || '0') + parseFloat(cardStyles.paddingBottom || '0');
-    const innerHeight = Math.max(0, Math.round(card.clientHeight - paddingY));
-
-    if (!innerHeight) {
-      return;
-    }
-
-    posterLink.style.height = `${innerHeight}px`;
-    posterLink.style.width = `${Math.round(innerHeight * 2 / 3)}px`;
-  });
-}
-
-function scheduleFollowingPageActivityPosterSync() {
-  if (!followingPage) {
-    return;
-  }
-
-  if (followingPagePosterSyncFrameId) {
-    cancelAnimationFrame(followingPagePosterSyncFrameId);
-  }
-
-  followingPagePosterSyncFrameId = requestAnimationFrame(() => {
-    followingPagePosterSyncFrameId = null;
-    syncFollowingPageActivityPosterSizes();
-    requestAnimationFrame(syncFollowingPageActivityPosterSizes);
-  });
-}
-
 function renderFollowingPage(data) {
   if (!followingPage) {
     return;
@@ -14170,8 +14121,6 @@ function renderFollowingPage(data) {
       }
     </section>
   `;
-
-  scheduleFollowingPageActivityPosterSync();
 }
 
 function handleFollowingPageLoginClick(event) {
