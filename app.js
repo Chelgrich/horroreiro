@@ -7734,6 +7734,23 @@ function applyQuickPreset(presetKey, { preservePage = false, urlMode = 'push' } 
     return false;
   }
 
+  const preserveProfileActivity = isCatalogProfileActivityActive();
+  const shouldRemoveActivePreset = getActiveQuickPresetKey() === presetKey;
+
+  if (shouldRemoveActivePreset) {
+    resetFilterControls({
+      preservePage,
+      preserveProfileActivity,
+      skipSave: true
+    });
+
+    syncCatalogViewToggleButton();
+    refreshDynamicFilterOptions();
+    saveCatalogStateAndRender(renderMovies, { urlMode });
+
+    return true;
+  }
+
   const shouldShowAstralPresetToast = (
     presetKey === 'astrals' &&
     searchInput &&
@@ -7742,7 +7759,7 @@ function applyQuickPreset(presetKey, { preservePage = false, urlMode = 'push' } 
 
   resetFilterControls({
     preservePage,
-    preserveProfileActivity: isCatalogProfileActivityActive(),
+    preserveProfileActivity,
     skipSave: true
   });
 
