@@ -5012,6 +5012,34 @@ body:has(.movie-page-shell) .page {
   object-fit: cover;
 }
 
+.movie-page-poster {
+  transform-origin: center;
+}
+
+.movie-page-poster.is-switching {
+  animation: movie-page-poster-switch 280ms ease-out both;
+}
+
+@keyframes movie-page-poster-switch {
+  0% {
+    opacity: 0.32;
+    filter: brightness(0.78);
+    transform: translateX(8px) scale(1.018);
+  }
+
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+    transform: translateX(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .movie-page-poster.is-switching {
+    animation: none;
+  }
+}
+
 .movie-page-poster-gallery-button {
   top: 50%;
 }

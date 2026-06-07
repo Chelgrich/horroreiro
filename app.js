@@ -16768,6 +16768,22 @@ function applyPosterImageDataToElement(posterImage, publicUrl, presetName = 'det
   }
 }
 
+function restartMoviePagePosterSwitchAnimation(posterImage) {
+  if (
+    !posterImage ||
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  ) {
+    return;
+  }
+
+  posterImage.classList.remove('is-switching');
+  void posterImage.offsetWidth;
+  posterImage.classList.add('is-switching');
+  posterImage.addEventListener('animationend', () => {
+    posterImage.classList.remove('is-switching');
+  }, { once: true });
+}
+
 function updateMoviePagePosterGallery(wrapper, movie, nextIndex) {
   if (!wrapper || !movie?.id) {
     return;
@@ -16785,6 +16801,8 @@ function updateMoviePagePosterGallery(wrapper, movie, nextIndex) {
   const counter = wrapper.querySelector('[data-movie-page-poster-counter="true"]');
   const prevButton = wrapper.querySelector('[data-movie-page-poster-gallery-step="-1"]');
   const nextButton = wrapper.querySelector('[data-movie-page-poster-gallery-step="1"]');
+  const previousIndex = Number(wrapper.dataset.moviePagePosterIndex || 0);
+  const shouldAnimatePoster = normalizedIndex !== previousIndex;
 
   currentMoviePagePosterIndexByMovieId.set(String(movie.id), normalizedIndex);
   wrapper.dataset.moviePagePosterIndex = String(normalizedIndex);
@@ -16792,6 +16810,10 @@ function updateMoviePagePosterGallery(wrapper, movie, nextIndex) {
   if (posterImage) {
     applyPosterImageDataToElement(posterImage, currentImage.imageUrl, 'detail');
     posterImage.alt = `${currentImage.label} фильма ${movie.title || ''}`.trim();
+
+    if (shouldAnimatePoster) {
+      restartMoviePagePosterSwitchAnimation(posterImage);
+    }
   }
 
   if (counter) {
