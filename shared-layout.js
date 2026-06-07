@@ -357,6 +357,29 @@
                   </div>
                 </div>
 
+                <div class="form-row">
+                  <label for="posterGalleryFiles">Дополнительные изображения:</label>
+
+                  <div class="file-input-wrapper">
+                    <input type="file" id="posterGalleryFiles" name="posterGalleryFiles" accept="image/*" multiple>
+
+                    <label for="posterGalleryFiles" class="file-input-ui">
+                      <span class="file-input-button">Выберите файлы</span>
+                      <span class="file-input-name" id="posterGalleryFilesName">Файлы не выбраны</span>
+                    </label>
+                  </div>
+
+                  <div
+                    id="moviePosterImagesList"
+                    class="movie-poster-images-list"
+                    aria-live="polite"
+                  ></div>
+
+                  <div class="field-hint">
+                    Основной постер показывается первым. Дополнительные изображения можно переставлять и удалять по одному.
+                  </div>
+                </div>
+
                 <div class="movie-form-inline-group movie-form-inline-group-links">
                   <div class="form-row">
                     <label for="kinopoiskUrl">Ссылка на Кинопоиск:</label>
