@@ -16784,6 +16784,50 @@ function restartMoviePagePosterSwitchAnimation(posterImage) {
   }, { once: true });
 }
 
+function prepareMoviePagePosterSwitch(wrapper, posterImage, shouldAnimatePoster) {
+  if (!wrapper || !posterImage || !shouldAnimatePoster) {
+    return () => {};
+  }
+
+  const loadToken = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
+  wrapper.dataset.moviePagePosterLoadToken = loadToken;
+  wrapper.classList.add('is-loading');
+  posterImage.classList.remove('is-switching');
+
+  const finishLoading = () => {
+    if (wrapper.dataset.moviePagePosterLoadToken !== loadToken) {
+      return;
+    }
+
+    wrapper.classList.remove('is-loading');
+    delete wrapper.dataset.moviePagePosterLoadToken;
+    restartMoviePagePosterSwitchAnimation(posterImage);
+  };
+
+  const handleLoadError = () => {
+    if (wrapper.dataset.moviePagePosterLoadToken !== loadToken) {
+      return;
+    }
+
+    if (posterImage.dataset.posterFallbackApplied === 'true') {
+      posterImage.addEventListener('error', finishLoading, { once: true });
+      return;
+    }
+
+    finishLoading();
+  };
+
+  posterImage.addEventListener('load', finishLoading, { once: true });
+  posterImage.addEventListener('error', handleLoadError, { once: true });
+
+  return () => {
+    if (posterImage.complete && posterImage.naturalWidth > 0) {
+      finishLoading();
+    }
+  };
+}
+
 function updateMoviePagePosterGallery(wrapper, movie, nextIndex) {
   if (!wrapper || !movie?.id) {
     return;
@@ -16808,12 +16852,15 @@ function updateMoviePagePosterGallery(wrapper, movie, nextIndex) {
   wrapper.dataset.moviePagePosterIndex = String(normalizedIndex);
 
   if (posterImage) {
+    const finishPosterSwitchIfLoaded = prepareMoviePagePosterSwitch(
+      wrapper,
+      posterImage,
+      shouldAnimatePoster
+    );
+
     applyPosterImageDataToElement(posterImage, currentImage.imageUrl, 'detail');
     posterImage.alt = `${currentImage.label} фильма ${movie.title || ''}`.trim();
-
-    if (shouldAnimatePoster) {
-      restartMoviePagePosterSwitchAnimation(posterImage);
-    }
+    finishPosterSwitchIfLoaded();
   }
 
   if (counter) {

@@ -5020,6 +5020,38 @@ body:has(.movie-page-shell) .page {
   animation: movie-page-poster-switch 280ms ease-out both;
 }
 
+.movie-page-poster-wrapper::after {
+  content: "Загружается...";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  box-sizing: border-box;
+  color: var(--color-text-secondary);
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.045), transparent 58%),
+    var(--surface-card);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease;
+}
+
+.movie-page-poster-wrapper.is-loading::after {
+  opacity: 1;
+}
+
+.movie-page-poster-wrapper.is-loading .movie-page-poster {
+  opacity: 0;
+  animation: none;
+}
+
 @keyframes movie-page-poster-switch {
   0% {
     opacity: 0.32;
