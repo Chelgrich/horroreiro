@@ -108,8 +108,6 @@ let sortOrderInput = document.getElementById('sortOrder');
 let directorInput = document.getElementById('director');
 let posterFileInput = document.getElementById('posterFile');
 let posterFileName = document.getElementById('posterFileName');
-let posterGalleryFilesInput = document.getElementById('posterGalleryFiles');
-let posterGalleryFilesName = document.getElementById('posterGalleryFilesName');
 let moviePosterImagesList = document.getElementById('moviePosterImagesList');
 let kinopoiskUrlInput = document.getElementById('kinopoiskUrl');
 let imdbUrlInput = document.getElementById('imdbUrl');
@@ -1430,7 +1428,23 @@ function createMoviePosterImageDraftEntryFromRow(row) {
     type: 'existing',
     id: normalizedRow.id,
     imageUrl: normalizedRow.image_url,
-    label: 'Дополнительное изображение'
+    label: 'Сохранённое изображение'
+  };
+}
+
+function createMoviePosterImageDraftEntryFromPrimaryUrl(imageUrl) {
+  const normalizedImageUrl = String(imageUrl || '').trim();
+
+  if (!normalizedImageUrl) {
+    return null;
+  }
+
+  return {
+    entryId: `primary:${normalizedImageUrl}`,
+    type: 'existing-primary',
+    id: '',
+    imageUrl: normalizedImageUrl,
+    label: 'Сохранённое изображение'
   };
 }
 
@@ -1464,33 +1478,38 @@ function resetMoviePosterImagesDraft() {
   moviePosterImagesDraft = [];
   moviePosterImagesDraftDirty = false;
   moviePosterImagesDraftDraggedEntryId = null;
-  updatePosterGalleryFilesUi();
+  updatePosterFileUi();
   renderMoviePosterImagesDraftList();
 }
 
-function setMoviePosterImagesDraftFromRows(rows = [], { markDirty = false } = {}) {
-  moviePosterImagesDraft.forEach(revokeMoviePosterImageDraftObjectUrl);
-  moviePosterImagesDraft = normalizeMoviePosterImageRows(rows)
-    .map(createMoviePosterImageDraftEntryFromRow)
-    .filter(Boolean);
-  moviePosterImagesDraftDirty = Boolean(markDirty);
-  moviePosterImagesDraftDraggedEntryId = null;
-  updatePosterGalleryFilesUi();
-  renderMoviePosterImagesDraftList();
-}
+function setMoviePosterImagesDraftFromMovie(movie, rows = [], { markDirty = false } = {}) {
+  const usedImageUrls = new Set();
+  const draftEntries = [];
+  const primaryEntry = createMoviePosterImageDraftEntryFromPrimaryUrl(movie?.poster_url);
 
-function updatePosterGalleryFilesUi() {
-  if (!posterGalleryFilesName) {
-    return;
+  if (primaryEntry) {
+    usedImageUrls.add(primaryEntry.imageUrl);
+    draftEntries.push(primaryEntry);
   }
 
-  const pendingFilesCount = moviePosterImagesDraft
-    .filter(entry => entry.type === 'pending')
-    .length;
+  normalizeMoviePosterImageRows(rows)
+    .map(createMoviePosterImageDraftEntryFromRow)
+    .filter(Boolean)
+    .forEach(entry => {
+      if (usedImageUrls.has(entry.imageUrl)) {
+        return;
+      }
 
-  posterGalleryFilesName.textContent = pendingFilesCount > 0
-    ? `Выбрано файлов: ${pendingFilesCount}`
-    : 'Файлы не выбраны';
+      usedImageUrls.add(entry.imageUrl);
+      draftEntries.push(entry);
+    });
+
+  moviePosterImagesDraft.forEach(revokeMoviePosterImageDraftObjectUrl);
+  moviePosterImagesDraft = draftEntries;
+  moviePosterImagesDraftDirty = Boolean(markDirty);
+  moviePosterImagesDraftDraggedEntryId = null;
+  updatePosterFileUi();
+  renderMoviePosterImagesDraftList();
 }
 
 function renderMoviePosterImagesDraftList() {
@@ -1510,7 +1529,7 @@ function renderMoviePosterImagesDraftList() {
   if (moviePosterImagesDraft.length === 0) {
     moviePosterImagesList.innerHTML = `
       <div class="movie-poster-images-empty">
-        Дополнительные изображения не выбраны.
+        Постеры не выбраны.
       </div>
     `;
     return;
@@ -1522,6 +1541,9 @@ function renderMoviePosterImagesDraftList() {
     const isLast = index === moviePosterImagesDraft.length - 1;
     const isDragging = moviePosterImagesDraftDraggedEntryId === entry.entryId;
     const title = entry.label || `Изображение ${index + 1}`;
+    const roleLabel = index === 0
+      ? 'Основной постер'
+      : `Дополнительный постер #${index + 1}`;
     const status = entry.type === 'pending'
       ? 'Будет загружено после сохранения'
       : 'Сохранено';
@@ -1555,7 +1577,7 @@ function renderMoviePosterImagesDraftList() {
             ${escapeHtml(title)}
           </div>
           <div class="movie-poster-images-meta">
-            #${index + 2} в галерее · ${escapeHtml(status)}
+            ${escapeHtml(roleLabel)} · ${escapeHtml(status)}
           </div>
         </div>
 
@@ -1604,13 +1626,13 @@ function addMoviePosterImageDraftFiles(files = []) {
     .filter(Boolean);
 
   if (entries.length === 0) {
-    updatePosterGalleryFilesUi();
+    updatePosterFileUi();
     return;
   }
 
   moviePosterImagesDraft.push(...entries);
   moviePosterImagesDraftDirty = true;
-  updatePosterGalleryFilesUi();
+  updatePosterFileUi();
   renderMoviePosterImagesDraftList();
 }
 
@@ -1644,7 +1666,7 @@ function removeMoviePosterImageDraftEntry(entryId) {
   revokeMoviePosterImageDraftObjectUrl(entry);
   moviePosterImagesDraft = moviePosterImagesDraft.filter(item => item.entryId !== normalizedEntryId);
   moviePosterImagesDraftDirty = true;
-  updatePosterGalleryFilesUi();
+  updatePosterFileUi();
   renderMoviePosterImagesDraftList();
 }
 
@@ -1746,17 +1768,59 @@ function handleMoviePosterImagesDraftDrop(event) {
   renderMoviePosterImagesDraftList();
 }
 
-function getMoviePosterImagesDraftEntriesForSave({ excludeEntryId = '' } = {}) {
+function getMoviePosterImagesDraftEntriesForSave() {
   return moviePosterImagesDraft
-    .filter(entry => entry.entryId !== excludeEntryId)
     .map(entry => ({ ...entry }));
 }
 
-function getPrimaryPosterGalleryDraftEntryForAdd() {
-  return moviePosterImagesDraft.find(entry => entry.type === 'pending' && entry.file) || null;
+async function resolveMoviePosterImageDraftEntries(draftEntries = []) {
+  const resolvedEntries = [];
+  const usedImageUrls = new Set();
+  const uploadedUrls = [];
+
+  for (const entry of draftEntries) {
+    let imageUrl = String(entry?.imageUrl || '').trim();
+
+    if (entry?.type === 'pending' && entry.file) {
+      imageUrl = await uploadPosterFile(entry.file);
+      uploadedUrls.push(imageUrl);
+    }
+
+    if (!imageUrl || usedImageUrls.has(imageUrl)) {
+      continue;
+    }
+
+    usedImageUrls.add(imageUrl);
+    resolvedEntries.push({
+      ...entry,
+      type: 'resolved',
+      imageUrl
+    });
+  }
+
+  return {
+    resolvedEntries,
+    uploadedUrls
+  };
 }
 
-async function replaceMoviePosterImages(movieId, draftEntries = []) {
+function splitMoviePosterImageEntriesForSave(resolvedEntries = []) {
+  const primaryUrl = String(resolvedEntries[0]?.imageUrl || '').trim() || null;
+  const additionalEntries = resolvedEntries.slice(1);
+  const allUrls = new Set(
+    resolvedEntries
+      .map(entry => String(entry?.imageUrl || '').trim())
+      .filter(Boolean)
+  );
+
+  return {
+    primaryUrl,
+    additionalEntries,
+    allUrls
+  };
+}
+
+async function replaceMoviePosterImages(movieId, draftEntries = [], { preservedUrls = [] } = {}) {
   const ownerMovieId = String(movieId || '').trim();
 
   if (!ownerMovieId) {
@@ -1777,6 +1841,11 @@ async function replaceMoviePosterImages(movieId, draftEntries = []) {
 
   const previousRows = getMoviePosterImages(ownerMovieId);
   const previousUrls = new Set(previousRows.map(row => row.image_url).filter(Boolean));
+  const preservedUrlSet = new Set(
+    (Array.isArray(preservedUrls) ? preservedUrls : [])
+      .map(url => String(url || '').trim())
+      .filter(Boolean)
+  );
   const finalRows = [];
   const finalUrls = new Set();
   const uploadedUrls = [];
@@ -1832,7 +1901,10 @@ async function replaceMoviePosterImages(movieId, draftEntries = []) {
 
     await fetchMoviePosterImagesForMovie(ownerMovieId, { force: true });
 
-    const removedUrls = [...previousUrls].filter(url => !finalUrls.has(url));
+    const removedUrls = [...previousUrls].filter(url => (
+      !finalUrls.has(url) &&
+      !preservedUrlSet.has(url)
+    ));
 
     for (const removedUrl of removedUrls) {
       try {
@@ -1856,10 +1928,12 @@ async function replaceMoviePosterImages(movieId, draftEntries = []) {
   }
 }
 
-function ensureMoviePosterImagesEditorDataLoaded(movieId) {
+function ensureMoviePosterImagesEditorDataLoaded(movie) {
+  const movieId = movie?.id;
+
   return fetchMoviePosterImagesForMovie(movieId).then(rows => {
     if (movieId && String(editingMovieId) === String(movieId) && !moviePosterImagesDraftDirty) {
-      setMoviePosterImagesDraftFromRows(rows);
+      setMoviePosterImagesDraftFromMovie(movie, rows);
       return;
     }
 
@@ -4409,17 +4483,17 @@ function applySavedCatalogState({ fallbackToStorage = true } = {}) {
 }
 
 function updatePosterFileUi() {
-  if (!posterFileInput || !posterFileName) {
+  if (!posterFileName) {
     return;
   }
 
-  const selectedFile = posterFileInput.files && posterFileInput.files[0]
-    ? posterFileInput.files[0]
-    : null;
+  const pendingFilesCount = moviePosterImagesDraft
+    .filter(entry => entry.type === 'pending')
+    .length;
 
-  posterFileName.textContent = selectedFile
-    ? selectedFile.name
-    : 'Файл не выбран';
+  posterFileName.textContent = pendingFilesCount > 0
+    ? `Добавлено файлов: ${pendingFilesCount}`
+    : 'Файлы не выбраны';
 }
 
 function ensureActiveSessionForWrite() {
@@ -6771,8 +6845,6 @@ function refreshMovieModalElements() {
   directorInput = document.getElementById('director');
   posterFileInput = document.getElementById('posterFile');
   posterFileName = document.getElementById('posterFileName');
-  posterGalleryFilesInput = document.getElementById('posterGalleryFiles');
-  posterGalleryFilesName = document.getElementById('posterGalleryFilesName');
   moviePosterImagesList = document.getElementById('moviePosterImagesList');
   kinopoiskUrlInput = document.getElementById('kinopoiskUrl');
   imdbUrlInput = document.getElementById('imdbUrl');
@@ -6803,12 +6875,10 @@ function bindMovieModalEvents() {
     closeMovieModal();
   });
 
-  posterFileInput?.addEventListener('change', updatePosterFileUi);
-
-  posterGalleryFilesInput?.addEventListener('change', () => {
-    addMoviePosterImageDraftFiles(posterGalleryFilesInput.files);
-    posterGalleryFilesInput.value = '';
-    updatePosterGalleryFilesUi();
+  posterFileInput?.addEventListener('change', () => {
+    addMoviePosterImageDraftFiles(posterFileInput.files);
+    posterFileInput.value = '';
+    updatePosterFileUi();
   });
 
   manualSimilarMovieSelect?.addEventListener('change', () => {
@@ -6928,8 +6998,8 @@ function setMovieFormSubmittingState(isSubmitting) {
     closeMovieModalButton.disabled = isSubmitting;
   }
 
-  if (posterGalleryFilesInput) {
-    posterGalleryFilesInput.disabled = isSubmitting;
+  if (posterFileInput) {
+    posterFileInput.disabled = isSubmitting;
   }
 
   moviePosterImagesList?.querySelectorAll('button').forEach(button => {
@@ -6958,10 +7028,6 @@ function resetFormToCreateMode() {
   movieForm.reset();
   if (posterFileInput) {
     posterFileInput.value = '';
-  }
-  updatePosterFileUi(); // после сброса снова показываем "Файл не выбран"
-  if (posterGalleryFilesInput) {
-    posterGalleryFilesInput.value = '';
   }
   resetMoviePosterImagesDraft();
   formTitle.textContent = 'Добавить фильм';
@@ -7007,12 +7073,8 @@ function fillFormForEdit(movie) {
     posterFileInput.value = '';
   }
 
-  updatePosterFileUi();
-  if (posterGalleryFilesInput) {
-    posterGalleryFilesInput.value = '';
-  }
-  setMoviePosterImagesDraftFromRows(getMoviePosterImages(movie.id));
-  ensureMoviePosterImagesEditorDataLoaded(movie.id).catch(error => {
+  setMoviePosterImagesDraftFromMovie(movie, getMoviePosterImages(movie.id));
+  ensureMoviePosterImagesEditorDataLoaded(movie).catch(error => {
     console.warn('Не удалось загрузить галерею постеров для формы:', error);
   });
 
@@ -8966,9 +9028,6 @@ async function addMovie(event) {
   const sortOrder = sortOrderInput.value.trim();
   const director = directorInput.value.trim();
   const synopsis = synopsisInput.value.trim();
-  const posterFile = posterFileInput.files && posterFileInput.files[0]
-    ? posterFileInput.files[0]
-    : null;
   const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
   const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value);
   const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value);
@@ -8990,22 +9049,21 @@ async function addMovie(event) {
 
     const classificationDraft = buildMovieClassificationDraftFromForm();
     const manualSimilarMovieIds = normalizeManualSimilarMovieIds(manualSimilarMovieIdsDraft);
-    const primaryPosterGalleryEntry = posterFile ? null : getPrimaryPosterGalleryDraftEntryForAdd();
-    const primaryPosterFile = posterFile || primaryPosterGalleryEntry?.file || null;
-    const posterGalleryEntriesForSave = getMoviePosterImagesDraftEntriesForSave({
-      excludeEntryId: primaryPosterGalleryEntry?.entryId || ''
-    });
+    const posterDraftEntries = getMoviePosterImagesDraftEntriesForSave();
 
-    let finalPosterUrl = null;
-
-    if (primaryPosterFile) {
-      setMovieFormStatus('Загружаю постер...');
-      finalPosterUrl = await withPendingRequestTimeout(
-        uploadPosterFile(primaryPosterFile),
-        20000,
-        'Превышено время ожидания загрузки постера.'
-      );
+    if (posterDraftEntries.some(entry => entry.type === 'pending')) {
+      setMovieFormStatus('Загружаю постеры...');
     }
+
+    const resolvedPosterImages = await withPendingRequestTimeout(
+      resolveMoviePosterImageDraftEntries(posterDraftEntries),
+      30000,
+      'Превышено время ожидания загрузки постеров.'
+    );
+    const {
+      primaryUrl: finalPosterUrl,
+      additionalEntries: additionalPosterEntriesForSave
+    } = splitMoviePosterImageEntriesForSave(resolvedPosterImages.resolvedEntries);
 
     setMovieFormStatus('Сохраняю...');
 
@@ -9057,10 +9115,10 @@ async function addMovie(event) {
       );
     }
 
-    if (posterGalleryEntriesForSave.length > 0) {
+    if (additionalPosterEntriesForSave.length > 0) {
       setMovieFormStatus('Сохраняю галерею...');
       await withPendingRequestTimeout(
-        replaceMoviePosterImages(insertedMovie.id, posterGalleryEntriesForSave),
+        replaceMoviePosterImages(insertedMovie.id, additionalPosterEntriesForSave),
         30000,
         'Превышено время ожидания сохранения галереи.'
       );
@@ -9107,9 +9165,6 @@ async function updateMovie(event) {
   const sortOrder = sortOrderInput.value.trim();
   const director = directorInput.value.trim();
   const synopsis = synopsisInput.value.trim();
-  const posterFile = posterFileInput.files && posterFileInput.files[0]
-    ? posterFileInput.files[0]
-    : null;
   const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
   const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value);
   const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value);
@@ -9168,26 +9223,28 @@ async function updateMovie(event) {
       manualSimilarMovieIds,
       getManualSimilarMovieIds(editingMovieId)
     );
-    const primaryPosterGalleryEntry = existingMovie.poster_url || posterFile
-      ? null
-      : getPrimaryPosterGalleryDraftEntryForAdd();
-    const posterGalleryEntriesForSave = getMoviePosterImagesDraftEntriesForSave({
-      excludeEntryId: primaryPosterGalleryEntry?.entryId || ''
-    });
     const posterImagesChanged = moviePosterImagesDraftDirty;
-
+    let additionalPosterEntriesForSave = [];
     let finalPosterUrl = existingMovie.poster_url ?? null;
-    let uploadedNewPoster = false;
-    const primaryPosterFile = posterFile || primaryPosterGalleryEntry?.file || null;
+    let finalPosterUrls = new Set([finalPosterUrl].filter(Boolean));
 
-    if (primaryPosterFile) {
-      setMovieFormStatus('Загружаю постер...');
-      finalPosterUrl = await withPendingRequestTimeout(
-        uploadPosterFile(primaryPosterFile),
-        20000,
-        'Превышено время ожидания загрузки постера.'
+    if (posterImagesChanged) {
+      const posterDraftEntries = getMoviePosterImagesDraftEntriesForSave();
+
+      if (posterDraftEntries.some(entry => entry.type === 'pending')) {
+        setMovieFormStatus('Загружаю постеры...');
+      }
+
+      const resolvedPosterImages = await withPendingRequestTimeout(
+        resolveMoviePosterImageDraftEntries(posterDraftEntries),
+        30000,
+        'Превышено время ожидания загрузки постеров.'
       );
-      uploadedNewPoster = true;
+      const posterImagesForSave = splitMoviePosterImageEntriesForSave(resolvedPosterImages.resolvedEntries);
+
+      finalPosterUrl = posterImagesForSave.primaryUrl;
+      additionalPosterEntriesForSave = posterImagesForSave.additionalEntries;
+      finalPosterUrls = posterImagesForSave.allUrls;
     }
 
     const changedFields = {};
@@ -9312,13 +9369,15 @@ async function updateMovie(event) {
     if (posterImagesChanged) {
       setMovieFormStatus('Сохраняю галерею...');
       await withPendingRequestTimeout(
-        replaceMoviePosterImages(editingMovieId, posterGalleryEntriesForSave),
+        replaceMoviePosterImages(editingMovieId, additionalPosterEntriesForSave, {
+          preservedUrls: [finalPosterUrl]
+        }),
         30000,
         'Превышено время ожидания сохранения галереи.'
       );
     }
 
-    if (uploadedNewPoster && oldPosterUrl && oldPosterUrl !== finalPosterUrl) {
+    if (posterImagesChanged && oldPosterUrl && !finalPosterUrls.has(oldPosterUrl)) {
       try {
         await deletePosterFileByUrl(oldPosterUrl);
       } catch (deletePosterError) {

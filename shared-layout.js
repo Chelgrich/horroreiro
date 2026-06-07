@@ -345,27 +345,14 @@
                 </div>
 
                 <div class="form-row">
-                  <label for="posterFile">Постер (файл):</label>
+                  <label for="posterFile">Постеры:</label>
 
                   <div class="file-input-wrapper">
-                    <input type="file" id="posterFile" name="posterFile" accept="image/*">
+                    <input type="file" id="posterFile" name="posterFile" accept="image/*" multiple>
 
                     <label for="posterFile" class="file-input-ui">
-                      <span class="file-input-button">Выберите файл</span>
-                      <span class="file-input-name" id="posterFileName">Файл не выбран</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <label for="posterGalleryFiles">Дополнительные изображения:</label>
-
-                  <div class="file-input-wrapper">
-                    <input type="file" id="posterGalleryFiles" name="posterGalleryFiles" accept="image/*" multiple>
-
-                    <label for="posterGalleryFiles" class="file-input-ui">
                       <span class="file-input-button">Выберите файлы</span>
-                      <span class="file-input-name" id="posterGalleryFilesName">Файлы не выбраны</span>
+                      <span class="file-input-name" id="posterFileName">Файлы не выбраны</span>
                     </label>
                   </div>
 
@@ -376,7 +363,7 @@
                   ></div>
 
                   <div class="field-hint">
-                    Основной постер показывается первым. Дополнительные изображения можно переставлять и удалять по одному.
+                    Первый постер в списке станет основным. Порядок можно менять, лишние изображения удаляются из списка.
                   </div>
                 </div>
 
