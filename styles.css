@@ -4359,6 +4359,19 @@ body:has(.user-page-shell) .page {
   stroke-linejoin: round;
 }
 
+.user-page-settings-button svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  stroke: none;
+  stroke-width: 0;
+}
+
+.user-page-settings-button .settings-gear-fill {
+  fill: currentColor;
+  stroke: none;
+}
+
 .user-page-display-name-edit-button:hover,
 .user-page-display-name-edit-button:focus,
 .user-page-display-name-edit-button:focus-visible {
@@ -7519,6 +7532,11 @@ body:has(.user-page-shell) .page-footer {
   .user-page-display-name-edit-button svg {
     width: 13px;
     height: 13px;
+  }
+
+  .user-page-settings-button svg {
+    width: 15px;
+    height: 15px;
   }
 
   .user-page-handle {
