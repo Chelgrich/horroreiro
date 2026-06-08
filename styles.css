@@ -121,6 +121,7 @@ html::-webkit-scrollbar-corner {
   --modal-dialog-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
   --modal-auth-dialog-max-width: 520px;
   --modal-display-name-dialog-max-width: 380px;
+  --modal-profile-settings-dialog-max-width: 560px;
   --modal-space-sm: 12px;
   --modal-space-md: 16px;
 }
@@ -276,6 +277,123 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: var(--modal-space-sm);
+}
+
+.profile-settings-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.profile-settings-section {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  background: rgba(13, 17, 23, 0.48);
+  border-radius: 8px;
+}
+
+.profile-settings-section-title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.profile-settings-form {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-settings-form label {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.profile-settings-inline-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.profile-settings-form-actions {
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.profile-settings-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.profile-settings-avatar-preview {
+  width: 72px;
+  height: 72px;
+  min-width: 72px;
+}
+
+.profile-settings-avatar-preview .user-page-avatar {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+
+.profile-settings-avatar-actions {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.profile-settings-avatar-upload-button,
+.profile-settings-avatar-delete-button {
+  min-height: var(--control-height-md);
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  background: var(--ui-action-bg);
+  border: 0;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.profile-settings-avatar-upload-button:hover,
+.profile-settings-avatar-upload-button:focus-within {
+  color: var(--color-text-primary);
+  background: var(--ui-action-bg-hover);
+}
+
+.profile-settings-avatar-delete-button {
+  color: var(--color-danger-text);
+  background: var(--ui-danger-action-bg);
+}
+
+.profile-settings-avatar-delete-button:hover,
+.profile-settings-avatar-delete-button:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--ui-danger-action-bg-hover);
+}
+
+.profile-settings-avatar-delete-button[hidden] {
+  display: none;
+}
+
+.profile-settings-message {
+  margin-top: 0;
 }
 
 .display-name-form-actions {
@@ -974,6 +1092,10 @@ h3 {
   max-width: var(--modal-display-name-dialog-max-width);
 }
 
+.profile-settings-modal-dialog {
+  max-width: var(--modal-profile-settings-dialog-max-width);
+}
+
 .avatar-crop-dialog {
   max-width: 420px;
 }
@@ -1226,6 +1348,7 @@ h3 {
 
 .form-actions button,
 .display-name-form-actions button,
+.profile-settings-form-actions button,
 .login-form-modal button {
   min-height: var(--control-height-md);
   justify-content: center;
@@ -1612,6 +1735,7 @@ textarea:focus {
 
 .login-form-modal input,
 .display-name-form input,
+.profile-settings-form input,
 .movie-form input,
 .movie-form select,
 .movie-form textarea,
@@ -7105,6 +7229,34 @@ body:has(.user-page-shell) .page-footer {
     padding: 5px 7px;
     line-height: 1.3;
     -webkit-line-clamp: 3;
+  }
+}
+
+@media (max-width: 520px) {
+  .profile-settings-section {
+    padding: 14px;
+  }
+
+  .profile-settings-inline-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-settings-inline-actions button,
+  .profile-settings-form-actions button {
+    width: 100%;
+  }
+
+  .profile-settings-avatar-row {
+    align-items: flex-start;
+  }
+
+  .profile-settings-avatar-actions {
+    flex: 1 1 auto;
+  }
+
+  .profile-settings-avatar-upload-button,
+  .profile-settings-avatar-delete-button {
+    flex: 1 1 140px;
   }
 }
 

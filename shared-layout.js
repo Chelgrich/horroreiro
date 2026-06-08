@@ -179,24 +179,73 @@
   
       function getSharedDisplayNameModalHtml() {
         return `
-          <div id="displayNameModal" class="modal">
+          <div id="displayNameModal" class="modal profile-settings-modal">
             <div class="modal-backdrop" id="displayNameModalBackdrop"></div>
   
-            <div class="modal-dialog display-name-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="displayNameModalTitle">
+            <div class="modal-dialog profile-settings-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="profileSettingsModalTitle">
               <div class="modal-header">
-                <h2 id="displayNameModalTitle">Изменение никнейма</h2>
+                <h2 id="profileSettingsModalTitle">Настройки профиля</h2>
                 <button type="button" id="closeDisplayNameModalButton" class="modal-close-button" aria-label="Закрыть"></button>
               </div>
-  
-              <form id="displayNameForm" class="display-name-form">
-                <input type="text" id="displayNameInput" maxlength="24" autocomplete="off" spellcheck="false">
-                <div class="display-name-form-actions">
-                  <button type="submit" id="saveDisplayNameButton">Сохранить</button>
-                  <button type="button" id="cancelDisplayNameButton" class="secondary-button secondary-button-compact">Отмена</button>
-                </div>
-              </form>
-  
-              <p id="displayNameMessage" class="display-name-message"></p>
+
+              <div class="profile-settings-stack">
+                <section class="profile-settings-section" aria-labelledby="profileSettingsNameTitle">
+                  <h3 id="profileSettingsNameTitle" class="profile-settings-section-title">Никнейм</h3>
+                  <form id="displayNameForm" class="profile-settings-form display-name-form">
+                    <label for="displayNameInput">Имя в профиле</label>
+                    <div class="profile-settings-inline-actions">
+                      <input type="text" id="displayNameInput" maxlength="24" autocomplete="off" spellcheck="false">
+                      <button type="submit" id="saveDisplayNameButton">Сохранить</button>
+                    </div>
+                  </form>
+                  <p id="displayNameMessage" class="display-name-message profile-settings-message"></p>
+                </section>
+
+                <section class="profile-settings-section" aria-labelledby="profileSettingsAvatarTitle">
+                  <h3 id="profileSettingsAvatarTitle" class="profile-settings-section-title">Аватар</h3>
+                  <div class="profile-settings-avatar-row">
+                    <div class="profile-settings-avatar-preview" data-profile-avatar-media-slot="true"></div>
+                    <div class="profile-settings-avatar-actions">
+                      <label class="profile-settings-avatar-upload-button" aria-label="Загрузить аватар" title="Загрузить аватар">
+                        <input
+                          type="file"
+                          class="user-page-avatar-upload-input"
+                          data-user-page-avatar-input="true"
+                          accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                        >
+                        Заменить аватар
+                      </label>
+                      <button
+                        type="button"
+                        class="profile-settings-avatar-delete-button"
+                        data-user-page-avatar-delete="true"
+                        aria-label="Удалить аватар"
+                        title="Удалить аватар"
+                        hidden
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                  <p class="user-page-avatar-status profile-settings-message" data-user-page-avatar-status="true" aria-live="polite" hidden></p>
+                </section>
+
+                <section class="profile-settings-section" aria-labelledby="profileSettingsPasswordTitle">
+                  <h3 id="profileSettingsPasswordTitle" class="profile-settings-section-title">Пароль</h3>
+                  <form id="profilePasswordForm" class="profile-settings-form profile-settings-password-form">
+                    <label for="profilePasswordCurrent">Старый пароль</label>
+                    <input type="password" id="profilePasswordCurrent" autocomplete="current-password">
+                    <label for="profilePasswordNew">Новый пароль</label>
+                    <input type="password" id="profilePasswordNew" autocomplete="new-password">
+                    <label for="profilePasswordConfirm">Повторите пароль</label>
+                    <input type="password" id="profilePasswordConfirm" autocomplete="new-password">
+                    <div class="profile-settings-form-actions">
+                      <button type="submit" id="saveProfilePasswordButton">Обновить пароль</button>
+                    </div>
+                  </form>
+                  <p id="profilePasswordMessage" class="display-name-message profile-settings-message"></p>
+                </section>
+              </div>
             </div>
           </div>
         `;

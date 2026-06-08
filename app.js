@@ -14,6 +14,12 @@ const displayNameInput = document.getElementById('displayNameInput');
 const saveDisplayNameButton = document.getElementById('saveDisplayNameButton');
 const cancelDisplayNameButton = document.getElementById('cancelDisplayNameButton');
 const displayNameMessage = document.getElementById('displayNameMessage');
+const profilePasswordForm = document.getElementById('profilePasswordForm');
+const profilePasswordCurrentInput = document.getElementById('profilePasswordCurrent');
+const profilePasswordNewInput = document.getElementById('profilePasswordNew');
+const profilePasswordConfirmInput = document.getElementById('profilePasswordConfirm');
+const saveProfilePasswordButton = document.getElementById('saveProfilePasswordButton');
+const profilePasswordMessage = document.getElementById('profilePasswordMessage');
 const profileSummaryButton = document.getElementById('profileSummaryButton');
 const followingSummaryButton = document.getElementById('followingSummaryButton');
 
@@ -415,6 +421,7 @@ let authMessageTimer = null;
 let appMessageTimer = null;
 let isAuthSubmitting = false;
 let isMovieFormSubmitting = false;
+let isProfilePasswordSubmitting = false;
 let isLetterboxdRatingsImporting = false;
 let lastLetterboxdRatingsImportFileToken = '';
 let ratingRequestInFlight = new Set();
@@ -2340,6 +2347,50 @@ function setDisplayNameMessage(message = '', type = '') {
   }
 }
 
+function setProfilePasswordMessage(message = '', type = '') {
+  if (!profilePasswordMessage) {
+    return;
+  }
+
+  profilePasswordMessage.textContent = message;
+  profilePasswordMessage.classList.remove('is-error', 'is-success');
+
+  if (type) {
+    profilePasswordMessage.classList.add(`is-${type}`);
+  }
+}
+
+function clearProfileSettingsPasswordFields() {
+  [
+    profilePasswordCurrentInput,
+    profilePasswordNewInput,
+    profilePasswordConfirmInput
+  ].forEach(input => {
+    if (input) {
+      input.value = '';
+    }
+  });
+}
+
+function setProfilePasswordSubmitting(isSubmitting) {
+  isProfilePasswordSubmitting = isSubmitting;
+
+  [
+    profilePasswordCurrentInput,
+    profilePasswordNewInput,
+    profilePasswordConfirmInput,
+    saveProfilePasswordButton
+  ].forEach(element => {
+    if (element) {
+      element.disabled = isSubmitting;
+    }
+  });
+
+  if (saveProfilePasswordButton) {
+    saveProfilePasswordButton.textContent = isSubmitting ? 'Обновляю...' : 'Обновить пароль';
+  }
+}
+
 function syncDisplayNameButton() {
   if (!displayNameWrap || !displayNameButton || !displayNameText) {
     return;
@@ -2355,29 +2406,35 @@ function syncDisplayNameButton() {
 }
 
 function closeDisplayNameModal() {
-  if (!displayNameModal || !displayNameButton) {
+  if (!displayNameModal) {
     return;
   }
 
   displayNameModal.classList.remove('is-open');
   isDisplayNameModalOpen = false;
-  displayNameButton.setAttribute('aria-expanded', 'false');
+  displayNameButton?.setAttribute('aria-expanded', 'false');
   setDisplayNameMessage();
+  setProfilePasswordMessage();
+  clearProfileSettingsPasswordFields();
   syncBodyScrollLock();
 }
 
 function openDisplayNameModal() {
-  if (!displayNameModal || !displayNameButton || !displayNameInput || !shouldUseAuthenticatedUi()) {
+  if (!displayNameModal || !displayNameInput || !shouldUseAuthenticatedUi()) {
     return;
   }
 
   closeAuthPopoverMenu();
 
   displayNameInput.value = getCurrentDisplayName();
+  syncProfileSettingsAvatarPreview(currentUserProfile);
+  syncUserPageAvatarControls(currentUserProfile);
+  setDisplayNameMessage();
+  setProfilePasswordMessage();
+  clearProfileSettingsPasswordFields();
   displayNameModal.classList.add('is-open');
   isDisplayNameModalOpen = true;
-  displayNameButton.setAttribute('aria-expanded', 'true');
-  setDisplayNameMessage();
+  displayNameButton?.setAttribute('aria-expanded', 'true');
   syncBodyScrollLock();
 
   requestAnimationFrame(() => {
@@ -2395,24 +2452,22 @@ function toggleDisplayNameModal() {
   openDisplayNameModal();
 }
 
-function syncUserPageProfileEditButton() {
-  const editButton = userPage?.querySelector('[data-user-page-display-name-edit="true"]');
+function syncUserPageProfileSettingsButton() {
+  const settingsButton = userPage?.querySelector('[data-user-page-profile-settings="true"]');
 
-  if (!editButton) {
+  if (!settingsButton) {
     return;
   }
 
-  editButton.hidden = !(
+  settingsButton.hidden = !(
     shouldUseAuthenticatedUi() &&
     currentUser?.id &&
-    String(editButton.dataset.profileId || '') === String(currentUser.id)
+    String(settingsButton.dataset.profileId || '') === String(currentUser.id)
   );
 }
 
 function syncUserPageOwnProfileIdentity() {
-  const editButton = userPage?.querySelector('[data-user-page-display-name-edit="true"]');
-
-  if (!editButton || editButton.hidden) {
+  if (!userPage || !currentUser?.id) {
     return;
   }
 
@@ -2424,6 +2479,7 @@ function syncUserPageOwnProfileIdentity() {
   }
 
   syncUserPageAvatarMedia(currentUserProfile);
+  syncProfileSettingsAvatarPreview(currentUserProfile);
   syncAuthIconButtonState();
 
   if (isUserPage()) {
@@ -2431,10 +2487,10 @@ function syncUserPageOwnProfileIdentity() {
   }
 }
 
-function handleUserPageDisplayNameEditClick(event) {
-  const editButton = event.target.closest('[data-user-page-display-name-edit="true"]');
+function handleUserPageProfileSettingsClick(event) {
+  const settingsButton = event.target.closest('[data-user-page-profile-settings="true"]');
 
-  if (!editButton) {
+  if (!settingsButton) {
     return;
   }
 
@@ -2607,71 +2663,60 @@ function getUserPageAvatarDeleteHtml(canEditAvatar, profile) {
 
 function getUserPageAvatarHtml(profile, displayName, canEditAvatar) {
   return `
-    <div class="user-page-avatar-shell" data-user-page-avatar-shell="true">
+    <div class="user-page-avatar-shell" data-user-page-avatar-shell="true" data-profile-avatar-media-slot="true">
       ${getUserPageAvatarMediaHtml(profile, displayName)}
-      ${getUserPageAvatarUploadHtml(canEditAvatar)}
-      ${getUserPageAvatarDeleteHtml(canEditAvatar, profile)}
     </div>
   `;
 }
 
 function syncUserPageAvatarControls(profile = currentUserProfile) {
-  const deleteButton = userPage?.querySelector('[data-user-page-avatar-delete="true"]');
-
-  if (!deleteButton) {
-    return;
-  }
+  const deleteButtons = document.querySelectorAll('[data-user-page-avatar-delete="true"]');
 
   const hasAvatar = Boolean(getPublicProfileAvatarUrl(profile));
 
-  deleteButton.hidden = !hasAvatar;
-  deleteButton.setAttribute('aria-label', 'Удалить аватар');
-  deleteButton.setAttribute('title', 'Удалить аватар');
+  deleteButtons.forEach(deleteButton => {
+    deleteButton.hidden = !hasAvatar;
+    deleteButton.setAttribute('aria-label', 'Удалить аватар');
+    deleteButton.setAttribute('title', 'Удалить аватар');
+  });
 }
 
 function syncUserPageAvatarMedia(profile = currentUserProfile) {
-  const avatarShell = userPage?.querySelector('[data-user-page-avatar-shell="true"]');
-  const avatarElement = avatarShell?.querySelector('[data-user-page-avatar="true"]');
-
-  if (!avatarShell || !avatarElement) {
-    return;
-  }
-
   const displayName = getCurrentDisplayName();
-  const mediaWrapper = document.createElement('div');
+  const mediaHtml = getUserPageAvatarMediaHtml(profile, displayName).trim();
 
-  mediaWrapper.innerHTML = getUserPageAvatarMediaHtml(profile, displayName).trim();
-  avatarElement.replaceWith(mediaWrapper.firstElementChild);
+  document.querySelectorAll('[data-profile-avatar-media-slot="true"]').forEach(slot => {
+    slot.innerHTML = mediaHtml;
+  });
+
   syncUserPageAvatarControls(profile);
 }
 
+function syncProfileSettingsAvatarPreview(profile = currentUserProfile) {
+  syncUserPageAvatarMedia(profile);
+}
+
 function setUserPageAvatarStatus(message = '', type = 'info') {
-  const statusElement = userPage?.querySelector('[data-user-page-avatar-status="true"]');
-
-  if (!statusElement) {
-    return;
-  }
-
-  statusElement.textContent = message;
-  statusElement.hidden = !message;
-  statusElement.classList.toggle('is-error', type === 'error');
-  statusElement.classList.toggle('is-success', type === 'success');
+  document.querySelectorAll('[data-user-page-avatar-status="true"]').forEach(statusElement => {
+    statusElement.textContent = message;
+    statusElement.hidden = !message;
+    statusElement.classList.toggle('is-error', type === 'error');
+    statusElement.classList.toggle('is-success', type === 'success');
+  });
 }
 
 function setUserPageAvatarSubmitting(isSubmitting) {
-  const avatarShell = userPage?.querySelector('[data-user-page-avatar-shell="true"]');
-  const avatarInput = userPage?.querySelector('[data-user-page-avatar-input="true"]');
-  const avatarDeleteButton = userPage?.querySelector('[data-user-page-avatar-delete="true"]');
+  document.querySelectorAll('[data-profile-avatar-media-slot="true"]').forEach(avatarShell => {
+    avatarShell.classList.toggle('is-uploading', isSubmitting);
+  });
 
-  avatarShell?.classList.toggle('is-uploading', isSubmitting);
-
-  if (avatarInput) {
+  document.querySelectorAll('[data-user-page-avatar-input="true"]').forEach(avatarInput => {
     avatarInput.disabled = isSubmitting;
-  }
+  });
 
-  if (avatarDeleteButton) {
+  document.querySelectorAll('[data-user-page-avatar-delete="true"]').forEach(avatarDeleteButton => {
     avatarDeleteButton.disabled = isSubmitting;
-  }
+  });
 }
 
 function getAvatarFileValidationMessage(file) {
@@ -7110,7 +7155,7 @@ function updateAuthUI() {
 
   syncAuthIconButtonState();
   syncDisplayNameButton();
-  syncUserPageProfileEditButton();
+  syncUserPageProfileSettingsButton();
 
   if (!shouldShowAuthenticatedUi) {
     closeAuthPopoverMenu();
@@ -9628,7 +9673,7 @@ async function saveDisplayName(event) {
   }
 
   if (normalizedNextDisplayName === normalizedCurrentDisplayName) {
-    closeDisplayNameModal();
+    setDisplayNameMessage('Никнейм уже актуален.', 'success');
     return;
   }
 
@@ -9689,10 +9734,6 @@ async function saveDisplayName(event) {
 
     await updateCurrentUserDisplayName(nextDisplayName);
     setDisplayNameMessage('Никнейм обновлён.', 'success');
-
-    setTimeout(() => {
-      closeDisplayNameModal();
-    }, 500);
   } catch (error) {
     console.error('Ошибка сохранения никнейма:', error);
     setDisplayNameMessage(error?.message || 'Не удалось сохранить никнейм. Попробуйте ещё раз.', 'error');
@@ -9762,6 +9803,124 @@ async function sendPasswordResetEmail() {
     );
   } finally {
     setAuthSubmittingState(false);
+  }
+}
+
+function getProfilePasswordErrorMessage(error, fallbackMessage) {
+  const errorText = String(error?.message || '').toLowerCase();
+
+  if (
+    errorText.includes('invalid login credentials') ||
+    errorText.includes('invalid credentials')
+  ) {
+    return 'Старый пароль не подошёл.';
+  }
+
+  return getReadableAuthErrorMessage(error, fallbackMessage);
+}
+
+async function saveProfilePassword(event) {
+  event?.preventDefault();
+
+  if (
+    !currentUser ||
+    isProfilePasswordSubmitting ||
+    !profilePasswordCurrentInput ||
+    !profilePasswordNewInput ||
+    !profilePasswordConfirmInput
+  ) {
+    return;
+  }
+
+  const email = String(currentUser.email || '').trim();
+  const currentPassword = profilePasswordCurrentInput.value;
+  const nextPassword = profilePasswordNewInput.value;
+  const confirmedPassword = profilePasswordConfirmInput.value;
+
+  if (!email) {
+    setProfilePasswordMessage('У аккаунта не найден e-mail для проверки пароля.', 'error');
+    return;
+  }
+
+  if (!currentPassword) {
+    setProfilePasswordMessage('Введите старый пароль.', 'error');
+    profilePasswordCurrentInput.focus();
+    return;
+  }
+
+  if (!nextPassword) {
+    setProfilePasswordMessage('Введите новый пароль.', 'error');
+    profilePasswordNewInput.focus();
+    return;
+  }
+
+  if (!confirmedPassword) {
+    setProfilePasswordMessage('Повторите новый пароль.', 'error');
+    profilePasswordConfirmInput.focus();
+    return;
+  }
+
+  if (nextPassword !== confirmedPassword) {
+    setProfilePasswordMessage('Новые пароли не совпадают.', 'error');
+    profilePasswordConfirmInput.focus();
+    profilePasswordConfirmInput.select();
+    return;
+  }
+
+  if (currentPassword === nextPassword) {
+    setProfilePasswordMessage('Новый пароль должен отличаться от старого.', 'error');
+    profilePasswordNewInput.focus();
+    profilePasswordNewInput.select();
+    return;
+  }
+
+  setProfilePasswordSubmitting(true);
+  setProfilePasswordMessage('Проверяю старый пароль...');
+
+  try {
+    const { error: signInError } = await withAuthRequestTimeout(
+      supabaseClient.auth.signInWithPassword({
+        email,
+        password: currentPassword
+      }),
+      'Не удалось проверить старый пароль. Проверь соединение и попробуй снова.'
+    );
+
+    if (signInError) {
+      setProfilePasswordMessage(
+        getProfilePasswordErrorMessage(signInError, 'Не удалось проверить старый пароль.'),
+        'error'
+      );
+      return;
+    }
+
+    setProfilePasswordMessage('Сохраняю новый пароль...');
+
+    const { error: updateError } = await withAuthRequestTimeout(
+      supabaseClient.auth.updateUser({
+        password: nextPassword
+      }),
+      'Не удалось обновить пароль. Проверь соединение и попробуй снова.'
+    );
+
+    if (updateError) {
+      setProfilePasswordMessage(
+        getProfilePasswordErrorMessage(updateError, 'Не удалось обновить пароль. Попробуй ещё раз.'),
+        'error'
+      );
+      return;
+    }
+
+    clearProfileSettingsPasswordFields();
+    setProfilePasswordMessage('Пароль обновлён.', 'success');
+  } catch (error) {
+    console.error('Ошибка смены пароля:', error);
+    setProfilePasswordMessage(
+      getProfilePasswordErrorMessage(error, 'Не удалось обновить пароль. Попробуй ещё раз.'),
+      'error'
+    );
+  } finally {
+    setProfilePasswordSubmitting(false);
   }
 }
 
@@ -12850,6 +13009,14 @@ function bindSharedUiEvents() {
   loginEmail?.addEventListener('input', clearAuthMessage);
   loginPassword?.addEventListener('input', clearAuthMessage);
   loginPasswordConfirm?.addEventListener('input', clearAuthMessage);
+  displayNameInput?.addEventListener('input', () => setDisplayNameMessage());
+  [
+    profilePasswordCurrentInput,
+    profilePasswordNewInput,
+    profilePasswordConfirmInput
+  ].forEach(input => {
+    input?.addEventListener('input', () => setProfilePasswordMessage());
+  });
   appToastAcceptButton?.addEventListener('click', clearAppMessage);
 
   registerButton?.addEventListener('click', () => {
@@ -12889,6 +13056,7 @@ function bindSharedUiEvents() {
   }
 
   displayNameForm?.addEventListener('submit', saveDisplayName);
+  profilePasswordForm?.addEventListener('submit', saveProfilePassword);
 
   cancelDisplayNameButton?.addEventListener('click', () => {
     closeDisplayNameModal();
@@ -12940,7 +13108,7 @@ function bindSharedUiEvents() {
       return;
     }
 
-    handleUserPageDisplayNameEditClick(event);
+    handleUserPageProfileSettingsClick(event);
     handleUserPageRailControlClick(event);
 
     const clickedInsideAuthMenu = event.target.closest('.auth-menu-wrap');
@@ -14983,19 +15151,19 @@ function renderUserPage(data) {
   );
   const avatarHtml = getUserPageAvatarHtml(data.profile, displayName, canEditDisplayName);
   const followButtonHtml = getUserPageFollowButtonHtml(data.profile);
-  const displayNameEditButtonHtml = canEditDisplayName
+  const profileSettingsButtonHtml = canEditDisplayName
     ? `
       <button
         type="button"
-        class="user-page-display-name-edit-button"
-        data-user-page-display-name-edit="true"
+        class="user-page-display-name-edit-button user-page-settings-button"
+        data-user-page-profile-settings="true"
         data-profile-id="${escapeHtml(data.profile.id)}"
-        aria-label="Изменить никнейм"
-        title="Изменить никнейм"
+        aria-label="Настройки профиля"
+        title="Настройки профиля"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 20h4l9.8-9.8a2.121 2.121 0 1 0-3-3L5 17v3Z"></path>
-          <path d="m13.5 6.5 3 3"></path>
+          <path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"></path>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15.08 19a1.65 1.65 0 0 0-1 .6 1.65 1.65 0 0 0-.33 1.05V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 8.68 19a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.05-1H3.5a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8.92 5a1.65 1.65 0 0 0 1-.6 1.65 1.65 0 0 0 .33-1.05V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 15.32 5a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.15.43.49.76 1 1h.1a2 2 0 1 1 0 4h-.09c-.46.14-.81.49-1.01 1Z"></path>
         </svg>
       </button>
     `
@@ -15011,11 +15179,10 @@ function renderUserPage(data) {
         <div class="user-page-identity">
           <div class="user-page-title-row">
             <div class="user-page-display-name" data-user-page-display-name="true">${escapeHtml(displayName)}</div>
-            ${displayNameEditButtonHtml}
+            ${profileSettingsButtonHtml}
           </div>
           <div class="user-page-handle">${escapeHtml(handle)}</div>
           ${followButtonHtml}
-          <div class="user-page-avatar-status" data-user-page-avatar-status="true" aria-live="polite" hidden></div>
         </div>
       </section>
 
@@ -15056,7 +15223,7 @@ function renderUserPage(data) {
   `;
 
   bindUserPageRailControls();
-  syncUserPageProfileEditButton();
+  syncUserPageProfileSettingsButton();
 }
 
 async function initUserPage() {
