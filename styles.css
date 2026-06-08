@@ -4348,6 +4348,11 @@ body:has(.user-page-shell) .page {
   display: none;
 }
 
+.user-page-settings-button {
+  color: var(--accent-soft-text);
+  background: rgba(var(--color-watchlist-base), 0.12);
+}
+
 .user-page-display-name-edit-button svg {
   width: 16px;
   height: 16px;
@@ -4370,6 +4375,13 @@ body:has(.user-page-shell) .page {
 .user-page-settings-button .settings-gear-fill {
   fill: currentColor;
   stroke: none;
+}
+
+.user-page-display-name-edit-button.user-page-settings-button:hover,
+.user-page-display-name-edit-button.user-page-settings-button:focus,
+.user-page-display-name-edit-button.user-page-settings-button:focus-visible {
+  color: var(--color-text-primary);
+  background: rgba(var(--color-watchlist-base), 0.18);
 }
 
 .user-page-display-name-edit-button:hover,
