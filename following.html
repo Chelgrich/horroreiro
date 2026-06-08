@@ -132,7 +132,6 @@
               window.SharedLayout?.mountSharedDisplayNameModal();
               window.SharedLayout?.mountSharedFooter();
             })
-            .then(() => loadScript('custom-select.js', buildVersion))
             .then(() => loadScript('app.js', buildVersion));
         })
         .catch(error => {

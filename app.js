@@ -682,6 +682,28 @@ async function fetchCatalogMoviesByIds(movieIds = []) {
     .filter(Boolean);
 }
 
+async function fetchMoviesByIdsWithSelect(movieIds = [], selectQuery = MOVIE_CATALOG_SELECT) {
+  const normalizedMovieIds = normalizeManualSimilarMovieIds(movieIds);
+
+  if (!normalizedMovieIds.length) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movies')
+    .select(selectQuery)
+    .in('id', normalizedMovieIds)
+    .order('position', { foreignTable: 'movie_genres', ascending: true });
+
+  throwIfSupabaseError(error);
+
+  const moviesById = new Map((data || []).map(movie => [String(movie.id), movie]));
+
+  return normalizedMovieIds
+    .map(movieId => moviesById.get(String(movieId)))
+    .filter(Boolean);
+}
+
 function getManualSimilarMovieLabel(movie) {
   if (!movie) {
     return '';
@@ -5003,6 +5025,33 @@ function applyMovieRatingStatsRows(rows) {
   markCatalogDataChanged();
 }
 
+function upsertMovieRatingStatsRows(rows, movieIdsToClear = []) {
+  (Array.isArray(movieIdsToClear) ? movieIdsToClear : [])
+    .map(movieId => String(movieId || ''))
+    .filter(Boolean)
+    .forEach(movieId => movieRatingStatsByMovieId.delete(movieId));
+
+  (Array.isArray(rows) ? rows : []).forEach(row => {
+    const movieId = String(row.movie_id ?? '');
+    const count = Number(row.votes_count ?? row.count ?? 0);
+
+    if (!movieId || count <= 0) {
+      return;
+    }
+
+    const average = Number(row.average_rating ?? row.avg_rating ?? 0);
+    const sum = Number(row.rating_sum ?? average * count);
+
+    movieRatingStatsByMovieId.set(movieId, {
+      count,
+      sum,
+      average: Number(average.toFixed(1))
+    });
+  });
+
+  markCatalogDataChanged();
+}
+
 function applyMovieRatingStatsFromRows(rows) {
   const statsByMovieId = new Map();
 
@@ -5027,6 +5076,34 @@ function applyMovieRatingStatsFromRows(rows) {
 
   movieRatingStatsByMovieId = statsByMovieId;
   markCatalogDataChanged();
+}
+
+function getMovieRatingStatsRowsFromRatingRows(rows) {
+  const statsByMovieId = new Map();
+
+  (Array.isArray(rows) ? rows : []).forEach(row => {
+    const movieId = String(row.movie_id ?? '');
+
+    if (!movieId) {
+      return;
+    }
+
+    const stats = statsByMovieId.get(movieId) || {
+      movie_id: movieId,
+      votes_count: 0,
+      rating_sum: 0,
+      average_rating: 0
+    };
+
+    stats.votes_count += 1;
+    stats.rating_sum += Number(row.rating || 0);
+    stats.average_rating = stats.votes_count > 0
+      ? Number((stats.rating_sum / stats.votes_count).toFixed(1))
+      : 0;
+    statsByMovieId.set(movieId, stats);
+  });
+
+  return Array.from(statsByMovieId.values());
 }
 
 function updateLocalMovieRatingStats(movieId, nextRating, previousRating = null) {
@@ -7295,7 +7372,16 @@ const customSelectElements = [
   ...modalCustomSelectElements
 ];
 
-const customSelectManager = createCustomSelectManager({
+const createCustomSelectManagerSafe = typeof createCustomSelectManager === 'function'
+  ? createCustomSelectManager
+  : () => ({
+      initCustomSelects: () => {},
+      refreshCustomSelect: () => {},
+      closeAllCustomSelects: () => {},
+      bindGlobalEvents: () => {}
+    });
+
+const customSelectManager = createCustomSelectManagerSafe({
   selectElements: customSelectElements,
   normalizeSearchText
 });
@@ -7519,6 +7605,28 @@ const MOVIE_CATALOG_SELECT = `
   )
 `;
 
+const MOVIE_USER_PAGE_CARD_SELECT = `
+  id,
+  slug,
+  title,
+  original_title,
+  year,
+  poster_url
+`;
+
+const MOVIE_USER_PAGE_TASTE_SELECT = `
+  id,
+  year,
+  tags_perceived,
+  movie_genres (
+    position,
+    genres (name)
+  ),
+  movie_countries (
+    countries (name)
+  )
+`;
+
 function getMovieSelectByPurpose(purpose = 'catalog') {
   if (purpose === 'detail') {
     return MOVIE_BASE_SELECT;
@@ -7575,6 +7683,79 @@ async function fetchMovieRatings() {
   await fetchCurrentUserRatings();
 }
 
+function hasUserScopedCatalogControlsActive() {
+  return Boolean(
+    shouldUseAuthenticatedUi() &&
+    (
+      watchlistFilter?.value ||
+      watchedFilter?.value
+    )
+  );
+}
+
+function hasUserScopedCatalogState(catalogState) {
+  return Boolean(
+    catalogState &&
+    (
+      catalogState.watchlist ||
+      catalogState.watched
+    )
+  );
+}
+
+function shouldAwaitUserStateForCatalogLoad({
+  forceAwaitUserState = false
+} = {}) {
+  if (!shouldUseAuthenticatedUi()) {
+    return false;
+  }
+
+  return Boolean(
+    forceAwaitUserState ||
+    hasUserScopedCatalogControlsActive()
+  );
+}
+
+async function fetchCatalogUserState({
+  skipCurrentUserRatings = false
+} = {}) {
+  if (!shouldUseAuthenticatedUi()) {
+    await fetchMovieWatchlist();
+    return;
+  }
+
+  await Promise.all([
+    skipCurrentUserRatings ? Promise.resolve() : fetchCurrentUserRatings(),
+    fetchMovieWatchlist()
+  ]);
+}
+
+function loadDeferredCatalogUserState({
+  userIdAtLoadStart = currentUser?.id || null,
+  skipCurrentUserRatings = false
+} = {}) {
+  if (!shouldUseAuthenticatedUi()) {
+    return;
+  }
+
+  fetchCatalogUserState({ skipCurrentUserRatings })
+    .then(() => {
+      if (
+        !isCatalogPage() ||
+        userIdAtLoadStart !== (currentUser?.id || null) ||
+        hasUserScopedCatalogControlsActive()
+      ) {
+        return;
+      }
+
+      persistCatalogSessionSnapshot();
+      rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.preserveScrollOnly);
+    })
+    .catch(error => {
+      console.error('Ошибка фоновой загрузки пользовательского слоя каталога:', error);
+    });
+}
+
 async function fetchMovieRatingStats() {
   const { data, error } = await supabaseClient
     .from('movie_rating_stats')
@@ -7587,6 +7768,28 @@ async function fetchMovieRatingStats() {
 
   applyMovieRatingStatsRows(data || []);
   return false;
+}
+
+async function fetchMovieRatingStatsForMovie(movieId) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!normalizedMovieId) {
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_rating_stats')
+    .select('movie_id, average_rating, votes_count, rating_sum')
+    .eq('movie_id', normalizedMovieId)
+    .limit(1);
+
+  if (error) {
+    console.warn('Не удалось загрузить агрегат оценки фильма, используем fallback:', error);
+    await fetchFullMovieRatingsForMovieFallback(normalizedMovieId);
+    return;
+  }
+
+  upsertMovieRatingStatsRows(data || [], [normalizedMovieId]);
 }
 
 async function fetchFullMovieRatingsFallback() {
@@ -7603,6 +7806,37 @@ async function fetchFullMovieRatingsFallback() {
 
   setKnownMovieRatingRows(data || []);
   applyMovieRatingStatsFromRows(data || []);
+  return true;
+}
+
+async function fetchFullMovieRatingsForMovieFallback(movieId) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!normalizedMovieId) {
+    return false;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_ratings')
+    .select('movie_id, user_id, rating')
+    .eq('movie_id', normalizedMovieId);
+
+  if (error) {
+    console.error('Ошибка загрузки оценок фильма:', error);
+    removeKnownMovieRatingRows(row => String(row.movie_id) === normalizedMovieId);
+    upsertMovieRatingStatsRows([], [normalizedMovieId]);
+    return false;
+  }
+
+  upsertKnownMovieRatingRows(
+    data || [],
+    row => String(row.movie_id) === normalizedMovieId
+  );
+  const existingRows = allMovieRatings.filter(row => String(row.movie_id) === normalizedMovieId);
+  upsertMovieRatingStatsRows(
+    getMovieRatingStatsRowsFromRatingRows(existingRows),
+    [normalizedMovieId]
+  );
   return true;
 }
 
@@ -7627,6 +7861,39 @@ async function fetchCurrentUserRatings() {
   setKnownMovieRatingRows(data || []);
 }
 
+async function fetchCurrentUserRatingForMovie(movieId) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!normalizedMovieId || !currentUser) {
+    return;
+  }
+
+  const activeUserId = currentUser.id;
+  const { data, error } = await supabaseClient
+    .from('movie_ratings')
+    .select('movie_id, user_id, rating')
+    .eq('movie_id', normalizedMovieId)
+    .eq('user_id', activeUserId)
+    .limit(1);
+
+  if (error) {
+    console.error('Ошибка загрузки оценки текущего пользователя для фильма:', error);
+    removeKnownMovieRatingRows(row => (
+      String(row.movie_id) === normalizedMovieId &&
+      String(row.user_id) === String(activeUserId)
+    ));
+    return;
+  }
+
+  upsertKnownMovieRatingRows(
+    data || [],
+    row => (
+      String(row.movie_id) === normalizedMovieId &&
+      String(row.user_id) === String(activeUserId)
+    )
+  );
+}
+
 async function fetchMovieWatchlist() {
   if (!shouldUseAuthenticatedUi()) {
     allMovieWatchlist = [];
@@ -7649,6 +7916,40 @@ async function fetchMovieWatchlist() {
   }
 
   allMovieWatchlist = data || [];
+  rebuildCurrentUserWatchlistIndex();
+  markCatalogDataChanged();
+}
+
+async function fetchMovieWatchlistForCurrentUser(movieId) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!normalizedMovieId || !shouldUseAuthenticatedUi()) {
+    return;
+  }
+
+  const activeUserId = currentUser.id;
+  const { data, error } = await supabaseClient
+    .from('movie_watchlist')
+    .select('movie_id, user_id')
+    .eq('movie_id', normalizedMovieId)
+    .eq('user_id', activeUserId)
+    .limit(1);
+
+  if (error) {
+    console.error('Ошибка загрузки watchlist для фильма:', error);
+    updateLocalWatchlistState(normalizedMovieId, false);
+    return;
+  }
+
+  allMovieWatchlist = allMovieWatchlist.filter(item => !(
+    String(item.movie_id) === normalizedMovieId &&
+    String(item.user_id) === String(activeUserId)
+  ));
+
+  if (data?.[0]) {
+    allMovieWatchlist.push(data[0]);
+  }
+
   rebuildCurrentUserWatchlistIndex();
   markCatalogDataChanged();
 }
@@ -7933,8 +8234,9 @@ async function reloadMoviePageData(movieId) {
   }
 
   await Promise.all([
-    fetchMovieRatings(),
-    fetchMovieWatchlist()
+    fetchMovieRatingStatsForMovie(movieId),
+    fetchCurrentUserRatingForMovie(movieId),
+    fetchMovieWatchlistForCurrentUser(movieId)
   ]);
 
   await fetchMovieReviews(movieId);
@@ -8043,12 +8345,19 @@ async function setMovieReviewLike(review, shouldLike) {
   throwIfSupabaseError(error);
 }
 
-async function reloadCatalogData({ showSkeleton = false, refreshFilters = true } = {}) {
+async function reloadCatalogData({
+  showSkeleton = false,
+  refreshFilters = true,
+  awaitUserState = false,
+  loadDeferredUserState = true
+} = {}) {
   const shouldShowCatalogSkeleton = showSkeleton && Boolean(container);
   const shouldPreserveExistingCatalogOnMovieLoadError = (
     !shouldShowCatalogSkeleton &&
     moviesLoadedSuccessfully
   );
+  const userIdAtLoadStart = currentUser?.id || null;
+  let hasFullRatingRows = false;
 
   shouldFadeCatalogAfterSkeleton = shouldShowCatalogSkeleton;
 
@@ -8060,16 +8369,46 @@ async function reloadCatalogData({ showSkeleton = false, refreshFilters = true }
     fetchMovies({
       preserveExistingCatalogOnError: shouldPreserveExistingCatalogOnMovieLoadError
     }),
-    fetchMovieRatings(),
-    fetchMovieWatchlist(),
+    fetchMovieRatingStats().then(result => {
+      hasFullRatingRows = Boolean(result);
+    }),
     fetchCatalogReviewSummary()
   ]);
+
+  const shouldAwaitCatalogUserState = shouldAwaitUserStateForCatalogLoad({
+    forceAwaitUserState: awaitUserState
+  });
+
+  if (shouldAwaitCatalogUserState || !shouldUseAuthenticatedUi()) {
+    await fetchCatalogUserState({
+      skipCurrentUserRatings: hasFullRatingRows
+    });
+  }
 
   if (refreshFilters) {
     refreshDynamicFilterOptions();
   }
 
   persistCatalogSessionSnapshot();
+
+  if (shouldAwaitCatalogUserState || !shouldUseAuthenticatedUi()) {
+    return {
+      hasFullRatingRows,
+      didAwaitUserState: true
+    };
+  }
+
+  if (loadDeferredUserState) {
+    loadDeferredCatalogUserState({
+      userIdAtLoadStart,
+      skipCurrentUserRatings: hasFullRatingRows
+    });
+  }
+
+  return {
+    hasFullRatingRows,
+    didAwaitUserState: false
+  };
 }
 
 function preserveWindowScrollPosition(callback) {
@@ -13533,6 +13872,26 @@ async function initCatalogPage() {
     });
   }
 
+  let storedCatalogStateForInitialLoad = null;
+
+  if (!initialCatalogUrlState) {
+    try {
+      storedCatalogStateForInitialLoad = readStoredCatalogState();
+    } catch (error) {
+      console.warn('Ошибка чтения сохранённого состояния каталога для первичной загрузки:', error);
+    }
+  }
+
+  const shouldAwaitInitialUserCatalogState = Boolean(
+    shouldUseAuthenticatedUi() &&
+    (
+      AUTH_REQUIRED_CATALOG_PRESET_KEYS.has(routePresetKey) ||
+      hasUserScopedCatalogState(initialCatalogUrlState) ||
+      hasUserScopedCatalogState(storedCatalogStateForInitialLoad) ||
+      hasUserScopedCatalogControlsActive()
+    )
+  );
+
   bindSharedAuthStateListener({
     onAfterAuthSync: async () => {
       applySavedCatalogState();
@@ -13541,10 +13900,24 @@ async function initCatalogPage() {
     }
   });
 
-  await reloadCatalogData({
+  const catalogLoadState = await reloadCatalogData({
     showSkeleton: !hydrationState.didHydrateCatalogFromSnapshot,
-    refreshFilters: false
+    refreshFilters: false,
+    awaitUserState: shouldAwaitInitialUserCatalogState,
+    loadDeferredUserState: false
   });
+
+  const loadDeferredInitialUserState = () => {
+    if (catalogLoadState?.didAwaitUserState || !shouldUseAuthenticatedUi()) {
+      return;
+    }
+
+    loadDeferredCatalogUserState({
+      userIdAtLoadStart: activeUserId,
+      skipCurrentUserRatings: Boolean(catalogLoadState?.hasFullRatingRows)
+    });
+  };
+
   applySavedCatalogState();
   await syncCatalogProfileActivityContextBeforeRender();
 
@@ -13556,6 +13929,7 @@ async function initCatalogPage() {
 
     if (didApplyRoutePreset) {
       updateFiltersButtonLabel();
+      loadDeferredInitialUserState();
       return;
     }
   }
@@ -13569,6 +13943,7 @@ async function initCatalogPage() {
 
   if (canReuseHydratedCatalog) {
     updateFiltersButtonLabel();
+    loadDeferredInitialUserState();
     return;
   }
 
@@ -13585,6 +13960,8 @@ async function initCatalogPage() {
   if (!hydrationState.didHydrateCatalogFromSnapshot) {
     restoreCatalogScrollPosition();
   }
+
+  loadDeferredInitialUserState();
 }
 
 function isSafeUserProfileLookupHandle(handle) {
@@ -14500,13 +14877,13 @@ function getUserPageMoreCardHtml(hiddenCount, moreUrl = '') {
   `;
 }
 
-function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, moreUrl = '') {
+function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, moreUrl = '', totalItems = items.length) {
   if (!items.length) {
     return `<div class="user-page-empty-state">${escapeHtml(emptyText)}</div>`;
   }
 
   const visibleItems = items.slice(0, USER_PAGE_PREVIEW_LIMIT);
-  const hiddenCount = Math.max(0, items.length - visibleItems.length);
+  const hiddenCount = Math.max(0, Number(totalItems || 0) - visibleItems.length);
   const cardsHtml = visibleItems
     .map(item => getUserPageMovieCardHtml(item, getBadgeHtml))
     .join('');
@@ -14850,7 +15227,7 @@ async function fetchFollowingPageData() {
   ]
     .map(movieId => String(movieId || '').trim())
     .filter(Boolean))];
-  const movies = await fetchCatalogMoviesByIds(movieIds);
+  const movies = await fetchMoviesByIdsWithSelect(movieIds, MOVIE_USER_PAGE_CARD_SELECT);
   const moviesById = new Map(movies.map(movie => [String(movie.id), movie]));
   const activityItems = getFollowingPageActivityItems(activityRows, profilesById, moviesById);
   const orderedProfiles = followRows
@@ -15106,46 +15483,65 @@ async function fetchPublicUserPageData(profile) {
   const activeWatchlistRows = watchlistRows.filter(row => (
     row?.movie_id && !ratedMovieIds.has(String(row.movie_id))
   ));
-  const relatedMovieIds = [...new Set([
-    ...getUserPageMovieIds(ratingRows),
-    ...getUserPageMovieIds(activeWatchlistRows),
-    ...getUserPageMovieIds(reviewRows)
+
+  const previewRatingRows = ratingRows.slice(0, USER_PAGE_PREVIEW_LIMIT);
+  const previewWatchlistRows = activeWatchlistRows.slice(0, USER_PAGE_PREVIEW_LIMIT);
+  const previewReviewRows = reviewRows.slice(0, USER_PAGE_PREVIEW_LIMIT);
+  const previewMovieIds = [...new Set([
+    ...getUserPageMovieIds(previewRatingRows),
+    ...getUserPageMovieIds(previewWatchlistRows),
+    ...getUserPageMovieIds(previewReviewRows)
   ])];
-  const movies = await fetchCatalogMoviesByIds(relatedMovieIds);
-  const moviesById = new Map(movies.map(movie => [String(movie.id), movie]));
-  const ratingItems = ratingRows
+  const tasteMovieIds = getUserPageMovieIds(ratingRows);
+
+  const [previewMovies, tasteMovies] = await Promise.all([
+    fetchMoviesByIdsWithSelect(previewMovieIds, MOVIE_USER_PAGE_CARD_SELECT),
+    fetchMoviesByIdsWithSelect(tasteMovieIds, MOVIE_USER_PAGE_TASTE_SELECT)
+  ]);
+  const previewMoviesById = new Map(previewMovies.map(movie => [String(movie.id), movie]));
+  const tasteMoviesById = new Map(tasteMovies.map(movie => [String(movie.id), movie]));
+  const ratingItems = previewRatingRows
     .map(row => ({
       ...row,
-      movie: moviesById.get(String(row.movie_id))
+      movie: previewMoviesById.get(String(row.movie_id))
     }))
     .filter(item => item.movie)
     .sort(sortUserPageItemsByNewestAdded);
-  const watchlistItems = activeWatchlistRows
+  const watchlistItems = previewWatchlistRows
     .map(row => ({
       ...row,
-      movie: moviesById.get(String(row.movie_id))
+      movie: previewMoviesById.get(String(row.movie_id))
     }))
     .filter(item => item.movie)
     .sort(sortUserPageItemsByNewestAdded);
-  const reviewItems = reviewRows
+  const reviewItems = previewReviewRows
     .map(row => ({
       ...row,
-      movie: moviesById.get(String(row.movie_id))
+      movie: previewMoviesById.get(String(row.movie_id))
     }))
     .filter(item => item.movie)
     .sort(sortUserPageReviewsByNewestActivity);
+  const tasteItems = ratingRows
+    .map(row => ({
+      ...row,
+      movie: tasteMoviesById.get(String(row.movie_id))
+    }))
+    .filter(item => item.movie);
 
   return {
     profile,
     ratingItems,
     watchlistItems,
     reviewItems,
+    ratingCount: ratingRows.length,
+    watchlistCount: activeWatchlistRows.length,
+    reviewCount: reviewRows.length,
     averageRating: getUserPageAverageRating(ratingRows),
-    tasteStats: getUserPageTasteStats(ratingItems),
+    tasteStats: getUserPageTasteStats(tasteItems),
     activityRanks: getUserPageActivityRanks(userId, activityAggregateRows, {
-      ratings: ratingItems.length,
-      watchlist: watchlistItems.length,
-      reviews: reviewItems.length
+      ratings: ratingRows.length,
+      watchlist: activeWatchlistRows.length,
+      reviews: reviewRows.length
     })
   };
 }
@@ -15159,6 +15555,9 @@ function renderUserPage(data) {
   const displayName = getPublicProfileDisplayName(data.profile);
   const handle = getPublicProfileHandle(data.profile);
   const averageRating = data.averageRating === null ? '-' : data.averageRating.toFixed(1);
+  const ratingCount = Number(data.ratingCount ?? data.ratingItems.length) || 0;
+  const watchlistCount = Number(data.watchlistCount ?? data.watchlistItems.length) || 0;
+  const reviewCount = Number(data.reviewCount ?? data.reviewItems.length) || 0;
   const ratingsCatalogUrl = buildCatalogProfileActivityUrl(handle, 'ratings');
   const watchlistCatalogUrl = buildCatalogProfileActivityUrl(handle, 'watchlist');
   const reviewsCatalogUrl = buildCatalogProfileActivityUrl(handle, 'reviews');
@@ -15204,10 +15603,10 @@ function renderUserPage(data) {
       </section>
 
       <section class="user-page-stats" aria-label="Статистика пользователя">
-        ${getUserPageStatCardHtml(data.ratingItems.length, 'Оценено', data.activityRanks?.ratings)}
+        ${getUserPageStatCardHtml(ratingCount, 'Оценено', data.activityRanks?.ratings)}
         ${getUserPageStatCardHtml(averageRating, 'Средняя оценка')}
-        ${getUserPageStatCardHtml(data.watchlistItems.length, 'Смотреть позже', data.activityRanks?.watchlist)}
-        ${getUserPageStatCardHtml(data.reviewItems.length, 'Рецензии', data.activityRanks?.reviews)}
+        ${getUserPageStatCardHtml(watchlistCount, 'Смотреть позже', data.activityRanks?.watchlist)}
+        ${getUserPageStatCardHtml(reviewCount, 'Рецензии', data.activityRanks?.reviews)}
       </section>
     </div>
 
@@ -15219,13 +15618,14 @@ function renderUserPage(data) {
           data.ratingItems,
           'Пока нет оценённых фильмов.',
           item => `<span class="user-page-card-badge">★ ${Number(item.rating || 0)}</span>`,
-          ratingsCatalogUrl
+          ratingsCatalogUrl,
+          ratingCount
         )}
     </section>
 
     <section class="user-page-section">
       ${getUserPageSectionHeaderHtml('Смотреть позже', watchlistCatalogUrl)}
-      ${getUserPageMovieRailHtml(data.watchlistItems, 'Список просмотра пуст.', null, watchlistCatalogUrl)}
+      ${getUserPageMovieRailHtml(data.watchlistItems, 'Список просмотра пуст.', null, watchlistCatalogUrl, watchlistCount)}
     </section>
 
     <section class="user-page-section">
@@ -15234,7 +15634,8 @@ function renderUserPage(data) {
           data.reviewItems,
           'Пока нет рецензий.',
           () => '<span class="user-page-card-badge user-page-card-badge-muted">Рецензия</span>',
-          reviewsCatalogUrl
+          reviewsCatalogUrl,
+          reviewCount
         )}
     </section>
   `;
@@ -17491,13 +17892,7 @@ async function loadMoviePageByRouteParams(routeParams, {
   warmTopSignature = '',
   skipUserStateFetch = false
 } = {}) {
-  const loadingTasks = [fetchMovieByRouteParams(routeParams)];
-
-  if (!skipUserStateFetch) {
-    loadingTasks.push(fetchMovieRatings(), fetchMovieWatchlist());
-  }
-
-  const [movie] = await Promise.all(loadingTasks);
+  const movie = await fetchMovieByRouteParams(routeParams);
 
   if (!movie) {
     if (warmMovie) {
@@ -17508,14 +17903,16 @@ async function loadMoviePageByRouteParams(routeParams, {
     return null;
   }
 
-  await Promise.all([
-    fetchMovieReviews(movie.id),
-    fetchMoviePosterImagesForMovieSafe(movie.id)
-  ]);
-  syncCatalogSessionSnapshotMovieState(movie.id, {
-    syncReviews: true,
-    syncMovie: movie
-  });
+  const userStateTasks = [fetchMovieRatingStatsForMovie(movie.id)];
+
+  if (!skipUserStateFetch) {
+    userStateTasks.push(
+      fetchCurrentUserRatingForMovie(movie.id),
+      fetchMovieWatchlistForCurrentUser(movie.id)
+    );
+  }
+
+  await Promise.all(userStateTasks);
 
   const nextTopSignature = getMoviePageTopRenderSignature(movie);
   const canReuseWarmTop = (
@@ -17529,12 +17926,32 @@ async function loadMoviePageByRouteParams(routeParams, {
   if (canReuseWarmTop) {
     currentMoviePageMovieData = movie;
     setMoviePageDocumentMeta(movie);
+  } else {
+    renderMoviePage(movie, { reviewsLoading: true });
+  }
+
+  loadMoviePageSimilarMovies(movie);
+
+  await Promise.all([
+    fetchMovieReviews(movie.id),
+    fetchMoviePosterImagesForMovieSafe(movie.id)
+  ]);
+  syncCatalogSessionSnapshotMovieState(movie.id, {
+    syncReviews: true,
+    syncMovie: movie
+  });
+
+  const finalTopSignature = getMoviePageTopRenderSignature(movie);
+  const canReuseCurrentTop = (
+    String(currentMoviePageMovieId) === String(movie.id) &&
+    finalTopSignature === nextTopSignature
+  );
+
+  if (canReuseWarmTop || canReuseCurrentTop) {
     renderMoviePageReviewsSection(movie);
   } else {
     renderMoviePage(movie);
   }
-
-  loadMoviePageSimilarMovies(movie);
 
   return movie;
 }
