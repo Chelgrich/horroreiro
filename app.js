@@ -95,6 +95,8 @@ const QUICK_PRESETS_SCROLL_HINT_DISTANCE = 72;
 const QUICK_PRESETS_SCROLL_HINT_DURATION_MS = 420;
 const FOLLOWING_PAGE_ACTIVITY_SOURCE_LIMIT = 80;
 const FOLLOWING_PAGE_ACTIVITY_DISPLAY_LIMIT = 60;
+const MOVIE_REVIEW_MIN_LENGTH = 80;
+const MOVIE_REVIEW_MAX_LENGTH = 5000;
 let didPlayQuickPresetsScrollHint = false;
 let quickPresetsScrollHintTimerId = null;
 let quickPresetsScrollHintFrameId = null;
@@ -6077,6 +6079,28 @@ function normalizeMovieReviewText(value) {
   return String(value || '').trim();
 }
 
+function getMovieReviewTextLength(value) {
+  return normalizeMovieReviewText(value).length;
+}
+
+function getMovieReviewValidationMessage(value) {
+  const reviewTextLength = getMovieReviewTextLength(value);
+
+  if (!reviewTextLength) {
+    return 'Текст рецензии не должен быть пустым.';
+  }
+
+  if (reviewTextLength < MOVIE_REVIEW_MIN_LENGTH) {
+    return `Рецензия должна содержать не менее ${MOVIE_REVIEW_MIN_LENGTH} символов.`;
+  }
+
+  if (reviewTextLength > MOVIE_REVIEW_MAX_LENGTH) {
+    return `Рецензия не должна превышать ${MOVIE_REVIEW_MAX_LENGTH} символов.`;
+  }
+
+  return '';
+}
+
 function isMovieReviewExpanded(reviewId) {
   return expandedSpoilerReviewIds.has(String(reviewId));
 }
@@ -7943,16 +7967,10 @@ async function saveMovieReview(movieId, { reviewText, containsSpoilers = false }
     throw new Error('Не найден фильм для сохранения рецензии.');
   }
 
-  if (!normalizedReviewText) {
-    throw new Error('Текст рецензии не должен быть пустым.');
-  }
+  const validationMessage = getMovieReviewValidationMessage(normalizedReviewText);
 
-  if (normalizedReviewText.length < 80) {
-    throw new Error('Рецензия должна содержать не менее 80 символов.');
-  }
-
-  if (normalizedReviewText.length > 5000) {
-    throw new Error('Рецензия не должна превышать 5000 символов.');
+  if (validationMessage) {
+    throw new Error(validationMessage);
   }
 
   const { error } = await supabaseClient
@@ -16092,11 +16110,11 @@ function getMoviePageReviewFormHtml(movie) {
         </label>
 
         <div class="movie-page-review-form-actions">
-          <button type="submit" data-movie-review-submit="true">Опубликовать</button>
+          <button type="submit" data-movie-review-submit="true" disabled>Опубликовать</button>
         </div>
 
         <div class="movie-page-review-form-hint">
-          Минимум 80 символов. Максимум 5000 символов.
+          Символов: <span class="movie-page-review-length" data-movie-review-length="true">0</span>. Нужно от ${MOVIE_REVIEW_MIN_LENGTH} до ${MOVIE_REVIEW_MAX_LENGTH}.
         </div>
 
         <p class="movie-page-review-form-message" data-movie-review-form-message="true"></p>
@@ -16113,6 +16131,9 @@ function getMoviePageReviewBodyHtml(review, {
   isLongReview
 }) {
   if (isEditing) {
+    const reviewTextLength = getMovieReviewTextLength(review.review_text || '');
+    const isReviewTextValid = !getMovieReviewValidationMessage(review.review_text || '');
+
     return `
       <form
         class="movie-page-review-form movie-page-review-inline-form"
@@ -16138,7 +16159,7 @@ function getMoviePageReviewBodyHtml(review, {
         </label>
 
         <div class="movie-page-review-form-actions">
-          <button type="submit" data-movie-review-submit="true">Сохранить изменения</button>
+          <button type="submit" data-movie-review-submit="true" ${isReviewTextValid ? '' : 'disabled'}>Сохранить изменения</button>
           <button
             type="button"
             class="secondary-button"
@@ -16149,7 +16170,7 @@ function getMoviePageReviewBodyHtml(review, {
         </div>
 
         <div class="movie-page-review-form-hint">
-          Минимум 80 символов. Максимум 5000 символов.
+          Символов: <span class="movie-page-review-length" data-movie-review-length="true">${reviewTextLength}</span>. Нужно от ${MOVIE_REVIEW_MIN_LENGTH} до ${MOVIE_REVIEW_MAX_LENGTH}.
         </div>
 
         <p class="movie-page-review-form-message" data-movie-review-form-message="true"></p>
@@ -16666,50 +16687,98 @@ function bindMoviePageSimilarEditorEvents(movie) {
   editor.addEventListener('drop', handleMoviePageSimilarDrop);
 }
 
+function setMovieReviewFormMessage(formElement, message = '', type = '') {
+  const messageElement = formElement?.querySelector('[data-movie-review-form-message="true"]');
+
+  if (!messageElement) {
+    return;
+  }
+
+  messageElement.textContent = message;
+  messageElement.classList.remove('is-error', 'is-success');
+
+  if (type) {
+    messageElement.classList.add(`is-${type}`);
+  }
+}
+
+function updateMovieReviewFormState(formElement, { shouldClearMessage = false } = {}) {
+  const textareaElement = formElement?.querySelector('[data-movie-review-textarea="true"]');
+  const submitButtonElement = formElement?.querySelector('[data-movie-review-submit="true"]');
+  const lengthElement = formElement?.querySelector('[data-movie-review-length="true"]');
+  const reviewText = textareaElement?.value || '';
+  const reviewTextLength = getMovieReviewTextLength(reviewText);
+  const validationMessage = getMovieReviewValidationMessage(reviewText);
+
+  if (lengthElement) {
+    lengthElement.textContent = String(reviewTextLength);
+    lengthElement.classList.toggle('is-valid', !validationMessage);
+    lengthElement.classList.toggle('is-invalid', Boolean(validationMessage));
+  }
+
+  if (submitButtonElement) {
+    submitButtonElement.disabled = Boolean(validationMessage);
+  }
+
+  if (shouldClearMessage) {
+    setMovieReviewFormMessage(formElement);
+  }
+
+  return {
+    isValid: !validationMessage,
+    validationMessage,
+    reviewTextLength
+  };
+}
+
+function setMovieReviewFormSubmitting(formElement, isSubmitting) {
+  const textareaElement = formElement?.querySelector('[data-movie-review-textarea="true"]');
+  const spoilersCheckbox = formElement?.querySelector('[data-movie-review-spoilers="true"]');
+  const submitButtonElement = formElement?.querySelector('[data-movie-review-submit="true"]');
+  const deleteButtonElement = formElement?.querySelector('[data-movie-review-delete]');
+  const cancelEditButtonElement = formElement?.querySelector('[data-movie-review-cancel-edit="true"]');
+
+  [
+    textareaElement,
+    spoilersCheckbox,
+    deleteButtonElement,
+    cancelEditButtonElement
+  ].forEach(element => {
+    if (element) {
+      element.disabled = isSubmitting;
+    }
+  });
+
+  if (submitButtonElement) {
+    submitButtonElement.disabled = isSubmitting;
+  }
+
+  if (!isSubmitting) {
+    updateMovieReviewFormState(formElement);
+  }
+}
+
 async function handleMovieReviewFormSubmit(movie, formElement) {
   if (!formElement || reviewRequestInFlight.has(String(movie.id))) {
     return;
   }
 
-  const messageElement = formElement.querySelector('[data-movie-review-form-message="true"]');
   const textareaElement = formElement.querySelector('[data-movie-review-textarea="true"]');
   const spoilersCheckbox = formElement.querySelector('[data-movie-review-spoilers="true"]');
-  const submitButtonElement = formElement.querySelector('[data-movie-review-submit="true"]');
-  const deleteButtonElement = formElement.querySelector('[data-movie-review-delete]');
+  const validationState = updateMovieReviewFormState(formElement);
 
-  const setFormMessage = (message = '', type = '') => {
-    if (!messageElement) {
-      return;
-    }
+  if (!validationState.isValid) {
+    setMovieReviewFormMessage(formElement, validationState.validationMessage, 'error');
+    textareaElement?.focus();
+    return;
+  }
 
-    messageElement.textContent = message;
-    messageElement.classList.remove('is-error', 'is-success');
-
-    if (type) {
-      messageElement.classList.add(`is-${type}`);
-    }
-  };
+  let didSaveReview = false;
 
   try {
     reviewRequestInFlight.add(String(movie.id));
-
-    if (submitButtonElement) {
-      submitButtonElement.disabled = true;
-    }
-
-    if (deleteButtonElement) {
-      deleteButtonElement.disabled = true;
-    }
-
-    if (textareaElement) {
-      textareaElement.disabled = true;
-    }
-
-    if (spoilersCheckbox) {
-      spoilersCheckbox.disabled = true;
-    }
-
-    setFormMessage('Сохраняю...');
+    setMovieReviewFormSubmitting(formElement, true);
+    setMovieReviewFormMessage(formElement, 'Сохраняю...');
 
     await saveMovieReview(movie.id, {
       reviewText: textareaElement?.value || '',
@@ -16717,13 +16786,19 @@ async function handleMovieReviewFormSubmit(movie, formElement) {
     });
 
     stopMovieReviewEditing();
-    setFormMessage('Рецензия сохранена.', 'success');
+    didSaveReview = true;
+    setMovieReviewFormMessage(formElement, 'Рецензия сохранена.', 'success');
     renderMoviePage(movie);
   } catch (error) {
     console.error('Ошибка сохранения рецензии:', error);
-    setFormMessage(error?.message || 'Не удалось сохранить рецензию.', 'error');
+    setMovieReviewFormMessage(formElement, error?.message || 'Не удалось сохранить рецензию.', 'error');
   } finally {
     reviewRequestInFlight.delete(String(movie.id));
+
+    if (!didSaveReview && formElement.isConnected) {
+      setMovieReviewFormSubmitting(formElement, false);
+      textareaElement?.focus();
+    }
   }
 }
 
@@ -16816,6 +16891,14 @@ function bindMoviePageReviewEvents(movie) {
   }
 
   moviePage.querySelectorAll('[data-movie-review-form="true"]').forEach(reviewForm => {
+    updateMovieReviewFormState(reviewForm);
+
+    reviewForm.addEventListener('input', event => {
+      if (event.target?.matches?.('[data-movie-review-textarea="true"]')) {
+        updateMovieReviewFormState(reviewForm, { shouldClearMessage: true });
+      }
+    });
+
     reviewForm.addEventListener('submit', event => {
       event.preventDefault();
       handleMovieReviewFormSubmit(movie, reviewForm);

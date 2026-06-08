@@ -5556,6 +5556,25 @@ body:has(.movie-page-shell) .page {
   color: var(--color-text-muted);
 }
 
+.movie-page-review-length {
+  color: var(--color-text-secondary);
+  font-weight: 700;
+}
+
+.movie-page-review-length.is-valid {
+  color: #b6f0c0;
+}
+
+.movie-page-review-length.is-invalid {
+  color: #ffd0cb;
+}
+
+.movie-page-review-form [data-movie-review-submit="true"]:disabled {
+  opacity: 0.54;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .movie-page-review-form-message {
   min-height: 18px;
   margin: 0;
