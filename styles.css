@@ -5637,7 +5637,7 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-review-rail-shell {
   --movie-review-rail-arrow-offset: 22px;
-  --movie-review-rail-safe-space: 24px;
+  --movie-review-rail-card-safe-padding: 38px;
 
   position: relative;
   min-width: 0;
@@ -5649,8 +5649,8 @@ body:has(.movie-page-shell) .page {
   align-items: stretch;
   gap: var(--movie-review-space, 14px);
   min-width: 0;
-  padding: 0 var(--movie-review-rail-safe-space) 4px;
-  scroll-padding-inline: var(--movie-review-rail-safe-space);
+  padding: 0 0 4px;
+  scroll-padding-inline: 0;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
@@ -5659,11 +5659,6 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-review-rail::-webkit-scrollbar {
   display: none;
-}
-
-.movie-page-review-rail:has(.movie-page-review-card:only-child) {
-  padding-inline: 0;
-  scroll-padding-inline: 0;
 }
 
 .movie-page-review-rail-button {
@@ -5692,14 +5687,16 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-rail .movie-page-review-card {
-  flex: 0 0 calc((100% - var(--movie-review-space, 14px)) / 2);
+  flex: 0 0 100%;
   width: auto;
   max-width: none;
+  padding-inline: var(--movie-review-rail-card-safe-padding);
   scroll-snap-align: start;
 }
 
 .movie-page-review-rail .movie-page-review-card:only-child {
   flex-basis: min(100%, 680px);
+  padding-inline: 16px;
 }
 
 .movie-page-review-card-header {
@@ -6921,7 +6918,7 @@ body:has(.movie-page-shell) .page {
 
   .movie-page-review-rail-shell {
     --movie-review-rail-arrow-offset: 14px;
-    --movie-review-rail-safe-space: clamp(38px, 10vw, 52px);
+    --movie-review-rail-card-safe-padding: 46px;
   }
 
   .user-page-movie-rail {
@@ -7015,6 +7012,14 @@ body:has(.movie-page-shell) .page {
   .movie-page-review-card,
   .movie-page-comment-card-inner {
     padding: 14px;
+  }
+
+  .movie-page-review-rail .movie-page-review-card {
+    padding-inline: var(--movie-review-rail-card-safe-padding);
+  }
+
+  .movie-page-review-rail .movie-page-review-card:only-child {
+    padding-inline: 14px;
   }
 
   .movie-page-review-card-header,
