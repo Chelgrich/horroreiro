@@ -97,6 +97,8 @@ const FOLLOWING_PAGE_ACTIVITY_SOURCE_LIMIT = 80;
 const FOLLOWING_PAGE_ACTIVITY_DISPLAY_LIMIT = 60;
 const MOVIE_REVIEW_MIN_LENGTH = 80;
 const MOVIE_REVIEW_MAX_LENGTH = 5000;
+const MOVIE_REVIEW_REPLY_SNIPPET_MAX_LENGTH = 120;
+const MOVIE_REVIEW_RAIL_SCROLL_STEP_RATIO = 0.86;
 const MOVIE_COMMENT_MAX_LENGTH = 1200;
 const MOVIE_COMMENT_MAX_DEPTH = 2;
 let didPlayQuickPresetsScrollHint = false;
@@ -6632,6 +6634,39 @@ function getMovieContentWarningBadgesHtml(content) {
       ${badges.map(label => `<span class="movie-page-content-flag">${escapeHtml(label)}</span>`).join('')}
     </div>
   `;
+}
+
+function getMovieContentWarningCoverText(content, contentLabel) {
+  const hasSpoilers = Boolean(content?.contains_spoilers);
+  const hasProfanity = Boolean(content?.contains_profanity);
+
+  if (hasSpoilers && hasProfanity) {
+    return `${contentLabel} содержит спойлеры и нецензурную брань.`;
+  }
+
+  if (hasSpoilers) {
+    return `${contentLabel} содержит спойлеры.`;
+  }
+
+  if (hasProfanity) {
+    return `${contentLabel} содержит нецензурную брань.`;
+  }
+
+  return '';
+}
+
+function getMovieReviewReplySnippet(review) {
+  const reviewText = normalizeMovieReviewText(review?.review_text || '').replace(/\s+/g, ' ').trim();
+
+  if (!reviewText) {
+    return '';
+  }
+
+  if (reviewText.length <= MOVIE_REVIEW_REPLY_SNIPPET_MAX_LENGTH) {
+    return reviewText;
+  }
+
+  return `${reviewText.slice(0, MOVIE_REVIEW_REPLY_SNIPPET_MAX_LENGTH).trim()}...`;
 }
 
 function getMovieCommentReplyTargetForComment(comment) {
@@ -17406,7 +17441,7 @@ function getMoviePageReviewBodyHtml(review, {
     return `
       <div class="movie-page-review-spoiler-cover">
         <div class="movie-page-review-spoiler-cover-text">
-          ${review.contains_profanity ? 'Рецензия содержит спойлеры и нецензурную брань.' : 'Рецензия содержит спойлеры.'}
+          ${escapeHtml(getMovieContentWarningCoverText(review, 'Рецензия'))}
         </div>
         <button
           type="button"
@@ -17421,9 +17456,7 @@ function getMoviePageReviewBodyHtml(review, {
 
   return `
     ${getMovieContentWarningBadgesHtml(review)}
-    <div class="movie-page-review-text ${isLongReview && !isExpandedText ? 'is-collapsed' : ''}">
-      ${escapeHtml(review.review_text)}
-    </div>
+    <div class="movie-page-review-text ${isLongReview && !isExpandedText ? 'is-collapsed' : ''}">${escapeHtml(normalizeMovieReviewText(review.review_text || ''))}</div>
   `;
 }
 
@@ -17632,11 +17665,11 @@ function getMovieCommentBodyHtml(comment) {
     return `<div class="movie-page-comment-deleted">Комментарий удалён.</div>`;
   }
 
-  if (comment.contains_spoilers && !isMovieCommentSpoilerExpanded(comment.id)) {
+  if ((comment.contains_spoilers || comment.contains_profanity) && !isMovieCommentSpoilerExpanded(comment.id)) {
     return `
       <div class="movie-page-comment-spoiler-cover">
         <div class="movie-page-comment-spoiler-cover-text">
-          ${comment.contains_profanity ? 'Комментарий содержит спойлеры и нецензурную брань.' : 'Комментарий содержит спойлеры.'}
+          ${escapeHtml(getMovieContentWarningCoverText(comment, 'Комментарий'))}
         </div>
         <button
           type="button"
@@ -17651,9 +17684,7 @@ function getMovieCommentBodyHtml(comment) {
 
   return `
     ${getMovieContentWarningBadgesHtml(comment)}
-    <div class="movie-page-comment-text">
-      ${escapeHtml(comment.comment_text || '')}
-    </div>
+    <div class="movie-page-comment-text">${escapeHtml(normalizeMovieCommentText(comment.comment_text || ''))}</div>
   `;
 }
 
@@ -17664,10 +17695,8 @@ function getMovieCommentReviewContextHtml(comment) {
 
   const review = getMovieReviewById(comment.root_review_id);
   const reviewAuthorName = review ? getMovieReviewAuthorName(review) : '';
-  const reviewText = String(review?.review_text || '').trim();
-  const reviewSnippet = reviewText.length > 120
-    ? `${reviewText.slice(0, 120).trim()}...`
-    : reviewText;
+  const shouldShowReviewSnippet = Boolean(review && !review.contains_spoilers && !review.contains_profanity);
+  const reviewSnippet = shouldShowReviewSnippet ? getMovieReviewReplySnippet(review) : '';
   const reviewLinkHtml = review
     ? `<a href="#${escapeHtml(getMovieReviewAnchorId(review.id))}">рецензию ${escapeHtml(reviewAuthorName)}</a>`
     : 'рецензию';
@@ -18014,7 +18043,7 @@ function getMoviePageReviewCardHtml(review) {
     ? `<div class="movie-page-review-user-rating">Оценка: ${userRating}/10 <span class="movie-page-review-user-rating-star">★</span></div>`
     : '';
   const isCurrentUserReview = Boolean(currentUser) && String(review.user_id) === String(currentUser.id);
-  const isSpoilerReview = Boolean(review.contains_spoilers);
+  const isSpoilerReview = Boolean(review.contains_spoilers || review.contains_profanity);
   const isExpandedSpoiler = isMovieReviewExpanded(review.id);
   const isExpandedText = isMovieReviewTextExpanded(review.id);
   const isLongReview = isMovieReviewLong(review.review_text);
@@ -18050,12 +18079,51 @@ function getMoviePageReviewCardHtml(review) {
   `;
 }
 
+function getMoviePageSectionTitleHtml(titleId, title, count = null) {
+  const hasCount = count !== null && count !== undefined && Number.isFinite(Number(count));
+
+  return `
+    <h2 id="${escapeHtml(titleId)}" class="movie-page-subtitle movie-page-section-title">
+      <span>${escapeHtml(title)}</span>
+      ${hasCount ? `<span class="movie-page-section-count">(${Number(count)})</span>` : ''}
+    </h2>
+  `;
+}
+
+function getMoviePageReviewRailHtml(reviews) {
+  return `
+    <div class="movie-page-review-rail-shell" data-movie-page-review-rail-shell="true">
+      <button
+        class="user-page-rail-button user-page-rail-button-prev movie-page-review-rail-button movie-page-review-rail-button-prev"
+        type="button"
+        data-movie-page-review-rail-prev="true"
+        aria-label="Прокрутить рецензии назад"
+        hidden
+      >
+        <span class="user-page-rail-button-icon" aria-hidden="true"></span>
+      </button>
+      <div class="movie-page-reviews-list movie-page-review-rail" data-movie-page-review-rail="true" tabindex="0">
+        ${reviews.map(review => getMoviePageReviewCardHtml(review)).join('')}
+      </div>
+      <button
+        class="user-page-rail-button user-page-rail-button-next movie-page-review-rail-button movie-page-review-rail-button-next"
+        type="button"
+        data-movie-page-review-rail-next="true"
+        aria-label="Прокрутить рецензии вперёд"
+        hidden
+      >
+        <span class="user-page-rail-button-icon" aria-hidden="true"></span>
+      </button>
+    </div>
+  `;
+}
+
 function getMoviePageReviewsSectionHtml(movie, { isLoading = false } = {}) {
   const reviews = sortMovieReviewsForDisplay(getMovieReviews(movie.id));
 
   return `
   <section class="movie-page-reviews-block" aria-labelledby="moviePageReviewsTitle" data-movie-page-reviews-section="true">
-  <h2 id="moviePageReviewsTitle" class="movie-page-subtitle">Рецензии</h2>
+  ${getMoviePageSectionTitleHtml('moviePageReviewsTitle', 'Рецензии', isLoading ? null : reviews.length)}
 
   ${isLoading ? '' : getMoviePageReviewFormHtml(movie)}
 
@@ -18068,9 +18136,7 @@ function getMoviePageReviewsSectionHtml(movie, { isLoading = false } = {}) {
           `
           : reviews.length > 0
           ? `
-            <div class="movie-page-reviews-list">
-              ${reviews.map(review => getMoviePageReviewCardHtml(review)).join('')}
-            </div>
+            ${getMoviePageReviewRailHtml(reviews)}
           `
           : `
             <div class="movie-page-review-empty-state">
@@ -18135,10 +18201,11 @@ function getMoviePageReviewReplyComposerHtml(movie) {
 
 function getMoviePageCommentsSectionHtml(movie, { isLoading = false } = {}) {
   const comments = getTopLevelMovieComments(movie.id);
+  const commentCount = getMovieComments(movie.id).filter(comment => !comment.is_deleted).length;
 
   return `
     <section class="movie-page-comments-block" aria-labelledby="moviePageCommentsTitle" data-movie-page-comments-section="true">
-      <h2 id="moviePageCommentsTitle" class="movie-page-subtitle">Комментарии</h2>
+      ${getMoviePageSectionTitleHtml('moviePageCommentsTitle', 'Комментарии', isLoading ? null : commentCount)}
 
       ${isLoading || !areMovieCommentsAvailable ? '' : getMoviePageCommentComposerHtml(movie)}
       ${isLoading || !areMovieCommentsAvailable ? '' : getMoviePageReviewReplyComposerHtml(movie)}
@@ -18534,7 +18601,7 @@ async function handleMovieReviewFormSubmit(movie, formElement) {
     stopMovieReviewEditing();
     didSaveReview = true;
     setMovieReviewFormMessage(formElement, 'Рецензия сохранена.', 'success');
-    renderMoviePage(movie);
+    renderMoviePageSocialSections(movie);
   } catch (error) {
     console.error('Ошибка сохранения рецензии:', error);
     setMovieReviewFormMessage(formElement, error?.message || 'Не удалось сохранить рецензию.', 'error');
@@ -18558,7 +18625,7 @@ async function handleMovieReviewDelete(movie, reviewId) {
       reviewRequestInFlight.add(String(movie.id));
       stopMovieReviewEditing();
       await removeMovieReview(reviewId, movie.id);
-      renderMoviePage(movie);
+      renderMoviePageSocialSections(movie);
     });
   } catch (error) {
     console.error('Ошибка удаления рецензии:', error);
@@ -18589,7 +18656,7 @@ async function handleMovieReviewLikeToggle(movie, reviewId) {
 
   try {
     reviewLikeRequestInFlight.add(String(reviewId));
-    renderMoviePageReviewsSection(movie);
+    renderMoviePageReviewsSection(movie, { preserveReviewId: reviewId });
 
     await setMovieReviewLike(review, shouldLike);
     await fetchMovieReviews(movie.id);
@@ -18604,7 +18671,7 @@ async function handleMovieReviewLikeToggle(movie, reviewId) {
     }
   } finally {
     reviewLikeRequestInFlight.delete(String(reviewId));
-    renderMoviePageReviewsSection(movie);
+    renderMoviePageReviewsSection(movie, { preserveReviewId: reviewId });
   }
 }
 
@@ -18617,6 +18684,123 @@ async function runConfirmedAction(confirmMessage, action) {
 
   await action();
   return true;
+}
+
+function getMoviePageReviewRailScrollStep(rail) {
+  return Math.max(rail.clientWidth * MOVIE_REVIEW_RAIL_SCROLL_STEP_RATIO, 220);
+}
+
+function getMoviePageReviewRailState(rail) {
+  const maxScrollLeft = Math.max(0, rail.scrollWidth - rail.clientWidth);
+  const scrollLeft = Math.max(0, rail.scrollLeft);
+  const tolerance = 2;
+
+  return {
+    canScrollPrev: scrollLeft > tolerance,
+    canScrollNext: scrollLeft < maxScrollLeft - tolerance
+  };
+}
+
+function updateMoviePageReviewRailControls(shell) {
+  const rail = shell?.querySelector('[data-movie-page-review-rail="true"]');
+  const prevButton = shell?.querySelector('[data-movie-page-review-rail-prev="true"]');
+  const nextButton = shell?.querySelector('[data-movie-page-review-rail-next="true"]');
+
+  if (!rail || !prevButton || !nextButton) {
+    return;
+  }
+
+  const { canScrollPrev, canScrollNext } = getMoviePageReviewRailState(rail);
+
+  prevButton.hidden = !canScrollPrev;
+  nextButton.hidden = !canScrollNext;
+}
+
+function syncMoviePageReviewRailControls() {
+  moviePage
+    ?.querySelectorAll('[data-movie-page-review-rail-shell="true"]')
+    .forEach(updateMoviePageReviewRailControls);
+}
+
+function bindMoviePageReviewRailControls() {
+  moviePage
+    ?.querySelectorAll('[data-movie-page-review-rail-shell="true"]')
+    .forEach(shell => {
+      const rail = shell.querySelector('[data-movie-page-review-rail="true"]');
+
+      if (rail && rail.dataset.moviePageReviewRailBound !== 'true') {
+        rail.dataset.moviePageReviewRailBound = 'true';
+        rail.addEventListener('scroll', () => updateMoviePageReviewRailControls(shell), { passive: true });
+      }
+
+      shell
+        .querySelectorAll('[data-movie-page-review-rail-prev="true"], [data-movie-page-review-rail-next="true"]')
+        .forEach(button => {
+          if (button.dataset.moviePageReviewRailButtonBound === 'true') {
+            return;
+          }
+
+          button.dataset.moviePageReviewRailButtonBound = 'true';
+          button.addEventListener('click', () => {
+            if (!rail) {
+              return;
+            }
+
+            const direction = button.matches('[data-movie-page-review-rail-next="true"]') ? 1 : -1;
+
+            rail.scrollBy({
+              left: getMoviePageReviewRailScrollStep(rail) * direction,
+              behavior: 'smooth'
+            });
+
+            requestAnimationFrame(() => updateMoviePageReviewRailControls(shell));
+          });
+        });
+    });
+
+  requestAnimationFrame(syncMoviePageReviewRailControls);
+}
+
+function getMoviePageReviewRailSnapshot(reviewId = '') {
+  const rail = moviePage?.querySelector('[data-movie-page-review-rail="true"]');
+
+  if (!rail) {
+    return null;
+  }
+
+  return {
+    scrollLeft: rail.scrollLeft,
+    reviewId: String(reviewId || '')
+  };
+}
+
+function restoreMoviePageReviewRailSnapshot(snapshot) {
+  if (!snapshot) {
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    const rail = moviePage?.querySelector('[data-movie-page-review-rail="true"]');
+
+    if (!rail) {
+      return;
+    }
+
+    rail.scrollLeft = snapshot.scrollLeft || 0;
+
+    if (snapshot.reviewId) {
+      const reviewCard = [...rail.querySelectorAll('[data-movie-review-id]')]
+        .find(card => String(card.dataset.movieReviewId || '') === snapshot.reviewId);
+
+      reviewCard?.scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest',
+        behavior: 'auto'
+      });
+    }
+
+    updateMoviePageReviewRailControls(rail.closest('[data-movie-page-review-rail-shell="true"]'));
+  });
 }
 
 function bindMoviePageReviewClickAction(selector, handler) {
@@ -18635,6 +18819,8 @@ function bindMoviePageReviewEvents(movie) {
   if (!moviePage || !movie) {
     return;
   }
+
+  bindMoviePageReviewRailControls();
 
   moviePage.querySelectorAll('[data-movie-review-form="true"]').forEach(reviewForm => {
     updateMovieReviewFormState(reviewForm);
@@ -18656,18 +18842,24 @@ function bindMoviePageReviewEvents(movie) {
   });
 
   bindMoviePageReviewClickAction('[data-movie-review-edit]', button => {
-    startMovieReviewEditing(button.dataset.movieReviewEdit);
-    renderMoviePage(movie);
+    const reviewId = button.dataset.movieReviewEdit;
+
+    startMovieReviewEditing(reviewId);
+    renderMoviePageReviewsSection(movie, { preserveReviewId: reviewId });
   });
 
-  bindMoviePageReviewClickAction('[data-movie-review-cancel-edit="true"]', () => {
+  bindMoviePageReviewClickAction('[data-movie-review-cancel-edit="true"]', button => {
+    const reviewId = button.closest('[data-movie-review-id]')?.dataset.movieReviewId || '';
+
     stopMovieReviewEditing();
-    renderMoviePage(movie);
+    renderMoviePageReviewsSection(movie, { preserveReviewId: reviewId });
   });
 
   bindMoviePageReviewClickAction('[data-movie-review-show-spoilers]', button => {
-    setMovieReviewExpandedState(button.dataset.movieReviewShowSpoilers, true);
-    renderMoviePage(movie);
+    const reviewId = button.dataset.movieReviewShowSpoilers;
+
+    setMovieReviewExpandedState(reviewId, true);
+    renderMoviePageReviewsSection(movie, { preserveReviewId: reviewId });
   });
 
   bindMoviePageReviewClickAction('[data-movie-review-toggle-text]', button => {
@@ -18675,7 +18867,7 @@ function bindMoviePageReviewEvents(movie) {
     const shouldExpand = !isMovieReviewTextExpanded(reviewId);
 
     setMovieReviewTextExpandedState(reviewId, shouldExpand);
-    renderMoviePage(movie);
+    renderMoviePageReviewsSection(movie, { preserveReviewId: reviewId });
   });
 
   bindMoviePageReviewClickAction('[data-movie-review-like]', button => {
@@ -19531,12 +19723,13 @@ function renderMoviePage(movie, options = {}) {
   bindMoviePageSimilarEditorEvents(movie);
 }
 
-function renderMoviePageReviewsSection(movie) {
+function renderMoviePageReviewsSection(movie, { preserveReviewId = '' } = {}) {
   if (!moviePage || !movie) {
     return;
   }
 
   const reviewsSection = moviePage.querySelector('[data-movie-page-reviews-section="true"]');
+  const railSnapshot = getMoviePageReviewRailSnapshot(preserveReviewId);
 
   if (!reviewsSection) {
     renderMoviePage(movie);
@@ -19546,6 +19739,7 @@ function renderMoviePageReviewsSection(movie) {
   reviewsSection.outerHTML = getMoviePageReviewsSectionHtml(movie);
   bindMoviePageReviewEvents(movie);
   bindMoviePageCommentEvents(movie);
+  restoreMoviePageReviewRailSnapshot(railSnapshot);
 }
 
 function renderMoviePageCommentsSection(movie) {
@@ -19572,7 +19766,7 @@ function renderMoviePageReviewsStatus(message) {
   }
 
   reviewsSection.innerHTML = `
-    <h2 id="moviePageReviewsTitle" class="movie-page-subtitle">Рецензии</h2>
+    ${getMoviePageSectionTitleHtml('moviePageReviewsTitle', 'Рецензии')}
     <div class="movie-page-review-empty-state">
       ${escapeHtml(message)}
     </div>
@@ -19587,7 +19781,7 @@ function renderMoviePageCommentsStatus(message) {
   }
 
   commentsSection.innerHTML = `
-    <h2 id="moviePageCommentsTitle" class="movie-page-subtitle">Комментарии</h2>
+    ${getMoviePageSectionTitleHtml('moviePageCommentsTitle', 'Комментарии')}
     <div class="movie-page-comment-empty-state">
       ${escapeHtml(message)}
     </div>

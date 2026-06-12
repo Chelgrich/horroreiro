@@ -5487,6 +5487,20 @@ body:has(.movie-page-shell) .page {
   color: var(--color-text-primary);
 }
 
+.movie-page-section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.movie-page-section-count {
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 0.78em;
+  line-height: 1;
+  font-weight: 700;
+}
+
 .movie-page-review-form-block .movie-page-subtitle {
   font-size: 16px;
 }
@@ -5621,6 +5635,40 @@ body:has(.movie-page-shell) .page {
   gap: var(--movie-review-space, 14px);
 }
 
+.movie-page-review-rail-shell {
+  position: relative;
+  min-width: 0;
+}
+
+.movie-page-review-rail {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--movie-review-space, 14px);
+  min-width: 0;
+  padding: 0 2px 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.movie-page-review-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.movie-page-review-rail-button {
+  top: 50%;
+}
+
+.movie-page-review-rail-button-prev {
+  left: 8px;
+}
+
+.movie-page-review-rail-button-next {
+  right: 8px;
+}
+
 .movie-page-review-card {
   position: relative;
   box-sizing: border-box;
@@ -5630,6 +5678,13 @@ body:has(.movie-page-shell) .page {
   background: var(--surface-card);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
+}
+
+.movie-page-review-rail .movie-page-review-card {
+  flex: 0 0 clamp(240px, 88%, 680px);
+  width: auto;
+  max-width: none;
+  scroll-snap-align: start;
 }
 
 .movie-page-review-card-header {
@@ -5855,7 +5910,8 @@ body:has(.movie-page-shell) .page {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  column-gap: 10px;
+  row-gap: 8px;
   min-width: 0;
 }
 
@@ -6308,7 +6364,8 @@ body:has(.movie-page-shell) .page {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  column-gap: 10px;
+  row-gap: 8px;
   min-width: 0;
 }
 
