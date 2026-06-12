@@ -689,11 +689,16 @@ async function fetchMoviesByIdsWithSelect(movieIds = [], selectQuery = MOVIE_CAT
     return [];
   }
 
-  const { data, error } = await supabaseClient
+  let query = supabaseClient
     .from('movies')
     .select(selectQuery)
-    .in('id', normalizedMovieIds)
-    .order('position', { foreignTable: 'movie_genres', ascending: true });
+    .in('id', normalizedMovieIds);
+
+  if (String(selectQuery || '').includes('movie_genres')) {
+    query = query.order('position', { foreignTable: 'movie_genres', ascending: true });
+  }
+
+  const { data, error } = await query;
 
   throwIfSupabaseError(error);
 
