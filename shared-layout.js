@@ -38,24 +38,24 @@
                   </button>
   
                   <div id="authPopoverMenu" class="auth-popover-menu" role="menu" aria-label="Меню аккаунта">
-                    <button
-                      type="button"
+                    <a
+                      href="#"
                       class="auth-popover-item"
                       id="profileSummaryButton"
                       role="menuitem"
                       hidden
                     >
                       Мой профиль
-                    </button>
-                    <button
-                      type="button"
+                    </a>
+                    <a
+                      href="#"
                       class="auth-popover-item"
                       id="followingSummaryButton"
                       role="menuitem"
                       hidden
                     >
                       Отслеживаемые
-                    </button>
+                    </a>
                     <button
                       type="button"
                       class="auth-popover-item"

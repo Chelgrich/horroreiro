@@ -571,13 +571,16 @@ h3 {
   text-align: left;
   font-size: 14px;
   font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
 }
 
-.auth-popover-item:hover:not(:disabled) {
+.auth-popover-item:hover:not(:disabled):not([data-current-page-link="true"]) {
   background: #222831;
 }
 
-.auth-popover-item:disabled {
+.auth-popover-item:disabled,
+.auth-popover-item[data-current-page-link="true"] {
   opacity: 0.72;
   cursor: default;
 }

@@ -2332,46 +2332,47 @@ function getCurrentUserPublicHandle() {
   ).trim();
 }
 
-function isCurrentUserProfilePage() {
-  const currentProfileUrl = buildUserPageUrl(getCurrentUserPublicHandle());
+function syncAuthPopoverNavigationLink(linkElement, href, shouldShow) {
+  if (!linkElement) {
+    return;
+  }
 
-  return Boolean(currentProfileUrl) && isSameCurrentPageUrl(currentProfileUrl);
+  const normalizedHref = String(href || '').trim();
+
+  linkElement.hidden = !shouldShow;
+
+  if (linkElement.dataset.currentPageLink === 'true') {
+    restoreCurrentPageLink(linkElement);
+  }
+
+  if (!shouldShow || !normalizedHref) {
+    linkElement.removeAttribute('href');
+    linkElement.removeAttribute('aria-current');
+    return;
+  }
+
+  linkElement.setAttribute('href', normalizedHref);
+
+  if (isSameCurrentPageUrl(normalizedHref)) {
+    disableCurrentPageLink(linkElement, normalizedHref);
+    return;
+  }
+
+  linkElement.removeAttribute('aria-current');
 }
 
-function isCurrentFollowingPage() {
-  return isSameCurrentPageUrl(buildFollowingPageUrl());
-}
-
-function openCurrentUserProfilePage() {
-  if (!shouldUseAuthenticatedUi()) {
+function handleAuthPopoverNavigationLinkClick(event) {
+  if (
+    event.defaultPrevented ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  ) {
     return;
   }
 
   closeAuthPopoverMenu();
-
-  const currentProfileUrl = buildUserPageUrl(getCurrentUserPublicHandle());
-
-  if (!currentProfileUrl || isSameCurrentPageUrl(currentProfileUrl)) {
-    return;
-  }
-
-  window.location.href = currentProfileUrl;
-}
-
-function openFollowingPage() {
-  if (!shouldUseAuthenticatedUi()) {
-    return;
-  }
-
-  closeAuthPopoverMenu();
-
-  const followingPageUrl = buildFollowingPageUrl();
-
-  if (!followingPageUrl || isSameCurrentPageUrl(followingPageUrl)) {
-    return;
-  }
-
-  window.location.href = followingPageUrl;
 }
 
 function setDisplayNameMessage(message = '', type = '') {
@@ -7318,29 +7319,19 @@ function updateAuthUI() {
   }
 
   if (profileSummaryButton) {
-    const isOwnProfilePage = shouldShowAuthenticatedUi && isCurrentUserProfilePage();
-
-    profileSummaryButton.hidden = !shouldShowAuthenticatedUi;
-    profileSummaryButton.disabled = isOwnProfilePage;
-
-    if (isOwnProfilePage) {
-      profileSummaryButton.setAttribute('aria-current', 'page');
-    } else {
-      profileSummaryButton.removeAttribute('aria-current');
-    }
+    syncAuthPopoverNavigationLink(
+      profileSummaryButton,
+      buildUserPageUrl(getCurrentUserPublicHandle()),
+      shouldShowAuthenticatedUi
+    );
   }
 
   if (followingSummaryButton) {
-    const isFollowingPageActive = shouldShowAuthenticatedUi && isCurrentFollowingPage();
-
-    followingSummaryButton.hidden = !shouldShowAuthenticatedUi;
-    followingSummaryButton.disabled = isFollowingPageActive;
-
-    if (isFollowingPageActive) {
-      followingSummaryButton.setAttribute('aria-current', 'page');
-    } else {
-      followingSummaryButton.removeAttribute('aria-current');
-    }
+    syncAuthPopoverNavigationLink(
+      followingSummaryButton,
+      buildFollowingPageUrl(),
+      shouldShowAuthenticatedUi
+    );
   }
 
   if (moviePageAdminActions) {
@@ -13443,8 +13434,8 @@ function bindSharedUiEvents() {
     logout();
   });
 
-  profileSummaryButton?.addEventListener('click', openCurrentUserProfilePage);
-  followingSummaryButton?.addEventListener('click', openFollowingPage);
+  profileSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
+  followingSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
 
   manualSimilarAuditButton?.addEventListener('click', runManualSimilarAudit);
 
