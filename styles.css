@@ -5637,7 +5637,7 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-review-rail-shell {
   --movie-review-rail-arrow-offset: 22px;
-  --movie-review-rail-card-safe-padding: 38px;
+  --movie-review-rail-card-safe-padding: 32px;
 
   position: relative;
   min-width: 0;
@@ -5687,7 +5687,7 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-rail .movie-page-review-card {
-  flex: 0 0 100%;
+  flex: 0 0 calc((100% - var(--movie-review-space, 14px)) / 2);
   width: auto;
   max-width: none;
   padding-inline: var(--movie-review-rail-card-safe-padding);
@@ -6918,7 +6918,7 @@ body:has(.movie-page-shell) .page {
 
   .movie-page-review-rail-shell {
     --movie-review-rail-arrow-offset: 14px;
-    --movie-review-rail-card-safe-padding: 46px;
+    --movie-review-rail-card-safe-padding: 32px;
   }
 
   .user-page-movie-rail {
