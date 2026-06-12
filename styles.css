@@ -431,6 +431,7 @@ h3 {
 
 .auth-icon-button,
 .movie-page-admin-icon-button,
+.movie-page-comment-icon-button,
 .movie-page-review-icon-button {
   padding: 0;
   display: inline-flex;
@@ -456,6 +457,7 @@ h3 {
 
 .auth-icon-button svg,
 .movie-page-admin-icon-button svg,
+.movie-page-comment-icon-button svg,
 .movie-page-review-icon-button svg {
   display: block;
   fill: none;
@@ -472,6 +474,7 @@ h3 {
 
 .auth-icon-button:hover,
 .movie-page-admin-icon-button:hover,
+.movie-page-comment-icon-button:hover,
 .movie-page-review-icon-button:hover {
   color: var(--color-text-primary);
   background: var(--surface-control-hover);
@@ -488,6 +491,8 @@ h3 {
 .auth-icon-button:focus-visible,
 .movie-page-admin-icon-button:focus,
 .movie-page-admin-icon-button:focus-visible,
+.movie-page-comment-icon-button:focus,
+.movie-page-comment-icon-button:focus-visible,
 .movie-page-review-icon-button:focus,
 .movie-page-review-icon-button:focus-visible {
   outline: none;
@@ -5799,8 +5804,28 @@ body:has(.movie-page-shell) .page {
   color: var(--color-text-secondary);
 }
 
+.movie-page-content-flags {
+  margin-top: 7px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.movie-page-content-flag {
+  min-height: 24px;
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.045);
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 700;
+}
+
 .movie-page-review-text {
-  margin-top: var(--movie-review-space, 14px);
+  margin-top: 7px;
   font-size: 15px;
   line-height: 1.65;
   color: #dbe2ea;
@@ -5829,6 +5854,8 @@ body:has(.movie-page-shell) .page {
 .movie-page-review-footer-end {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -6147,6 +6174,45 @@ body:has(.movie-page-shell) .page {
   color: var(--color-text-muted);
 }
 
+.movie-page-comment-review-context,
+.movie-page-comment-reply-context {
+  margin-top: var(--movie-comment-space, 12px);
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--color-text-muted);
+  background: rgba(var(--color-watchlist-base), 0.08);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.movie-page-comment-review-context a {
+  color: var(--accent-soft-text);
+  text-decoration: none;
+}
+
+.movie-page-comment-review-context a:hover,
+.movie-page-comment-review-context a:focus-visible {
+  color: var(--color-text-primary);
+}
+
+.movie-page-comment-review-context-snippet {
+  color: var(--color-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.movie-page-comment-reply-context {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: var(--color-text-secondary);
+  font-weight: 700;
+}
+
 .movie-page-comment-icon-actions {
   flex: 0 0 auto;
   display: flex;
@@ -6213,7 +6279,7 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-comment-deleted,
 .movie-page-comment-text {
-  margin-top: var(--movie-comment-space, 12px);
+  margin-top: 6px;
 }
 
 .movie-page-comment-text {
@@ -6277,8 +6343,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-comment-like {
-  min-height: 30px;
-  padding: 7px 10px;
+  min-height: 32px;
+  padding: 7px 11px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -6294,8 +6360,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-comment-like svg {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.9;
@@ -6343,8 +6409,7 @@ body:has(.movie-page-shell) .page {
   background: rgba(255, 255, 255, 0.04);
 }
 
-.movie-page-comment-children,
-.movie-page-review-comment-thread {
+.movie-page-comment-children {
   margin-top: var(--movie-comment-space, 12px);
   padding-left: 18px;
   border-left: 1px solid var(--border-divider);
@@ -6898,8 +6963,7 @@ body:has(.movie-page-shell) .page {
     --movie-comment-depth-offset: 14px;
   }
 
-  .movie-page-comment-children,
-  .movie-page-review-comment-thread {
+  .movie-page-comment-children {
     padding-left: 12px;
   }
 
@@ -7804,8 +7868,7 @@ body:has(.user-page-shell) .page-footer {
     --movie-comment-depth-offset: 8px;
   }
 
-  .movie-page-comment-children,
-  .movie-page-review-comment-thread {
+  .movie-page-comment-children {
     padding-left: 10px;
   }
 
