@@ -4689,6 +4689,20 @@ function normalizeAdditionalGenreNames(value) {
   return ['Ужасы', ...additionalGenreNames];
 }
 
+function formatPublicCommaSeparatedValues(values = []) {
+  const normalizedValues = (Array.isArray(values) ? values : [])
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+
+  return normalizedValues
+    .map((value, index) => {
+      return index === 0
+        ? value
+        : value.toLocaleLowerCase('ru-RU');
+    })
+    .join(', ');
+}
+
 function formatGenreNamesForPublicDisplay(genreNames = []) {
   const normalizedGenreNames = (Array.isArray(genreNames) ? genreNames : [])
     .map(genreName => String(genreName || '').trim())
@@ -4705,16 +4719,7 @@ function formatGenreNamesForPublicDisplay(genreNames = []) {
       ]
     : normalizedGenreNames;
 
-  return orderedGenreNames
-    .map((genreName, index) => {
-      const normalizedGenreName = String(genreName || '').trim();
-
-      return index === 0
-        ? normalizedGenreName
-        : normalizedGenreName.toLocaleLowerCase('ru-RU');
-    })
-    .filter(Boolean)
-    .join(', ');
+  return formatPublicCommaSeparatedValues(orderedGenreNames);
 }
 
 function getMonthName(month) {
@@ -17396,11 +17401,7 @@ function getMoviePageSubgenreLabel(movie) {
     return '';
   }
 
-  return movie.tags_perceived
-    .slice(0, 2)
-    .map(tag => String(tag || '').trim())
-    .filter(Boolean)
-    .join(', ');
+  return formatPublicCommaSeparatedValues(movie.tags_perceived.slice(0, 2));
 }
 
 function getMoviePageFormatsLabel(movie) {
