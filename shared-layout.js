@@ -379,17 +379,26 @@
                 <div class="movie-form-inline-group movie-form-inline-group-meta">
                   <div class="form-row">
                     <label for="director">Режиссёр:</label>
-                    <input type="text" id="director" name="director">
+                    <textarea id="director" name="director" rows="2"></textarea>
+                    <div class="field-hint">
+                      По одному имени с новой строки.
+                    </div>
                   </div>
 
                   <div class="form-row">
                     <label for="genresInput">Доп. жанры:</label>
-                    <input type="text" id="genresInput" name="genresInput">
+                    <textarea id="genresInput" name="genresInput" rows="3"></textarea>
+                    <div class="field-hint">
+                      По одному жанру с новой строки. Базовый жанр «Ужасы» добавится автоматически.
+                    </div>
                   </div>
 
                   <div class="form-row">
                     <label for="countriesInput">Страны:</label>
-                    <input type="text" id="countriesInput" name="countriesInput">
+                    <textarea id="countriesInput" name="countriesInput" rows="3"></textarea>
+                    <div class="field-hint">
+                      По одной стране с новой строки.
+                    </div>
                   </div>
                 </div>
 

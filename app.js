@@ -508,11 +508,22 @@ function applyBuildVersionSoftResetIfNeeded() {
   return true;
 }
 
-function parseCommaSeparated(value) {
-  return value
-    .split(',')
+function parseLineOrCommaSeparatedValues(value) {
+  const uniqueValues = new Map();
+
+  String(value || '')
+    .split(/\r?\n|,/)
     .map(item => item.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .forEach(item => {
+      const normalizedItem = normalizeSearchText(item);
+
+      if (!uniqueValues.has(normalizedItem)) {
+        uniqueValues.set(normalizedItem, item);
+      }
+    });
+
+  return Array.from(uniqueValues.values());
 }
 
 function parseMultilineValues(value) {
@@ -4670,15 +4681,40 @@ function areObjectsEqual(firstValue, secondValue) {
 }
 
 function normalizeAdditionalGenreNames(value) {
-  const genreNames = parseCommaSeparated(value);
+  const genreNames = parseLineOrCommaSeparatedValues(value);
+  const additionalGenreNames = genreNames.filter(name =>
+    normalizeSearchText(name) !== BASE_HORROR_GENRE_NORMALIZED
+  );
 
-  // "Ужасы" всегда должен быть базовым жанром фильма.
-  // Если пользователь его не указал вручную, добавляем автоматически.
-  if (!genreNames.some(name => normalizeSearchText(name) === 'ужасы')) {
-    return ['Ужасы', ...genreNames];
-  }
+  return ['Ужасы', ...additionalGenreNames];
+}
 
-  return genreNames;
+function formatGenreNamesForPublicDisplay(genreNames = []) {
+  const normalizedGenreNames = (Array.isArray(genreNames) ? genreNames : [])
+    .map(genreName => String(genreName || '').trim())
+    .filter(Boolean);
+  const hasBaseHorrorGenre = normalizedGenreNames.some(genreName =>
+    normalizeSearchText(genreName) === BASE_HORROR_GENRE_NORMALIZED
+  );
+  const orderedGenreNames = hasBaseHorrorGenre
+    ? [
+        'Ужасы',
+        ...normalizedGenreNames.filter(genreName =>
+          normalizeSearchText(genreName) !== BASE_HORROR_GENRE_NORMALIZED
+        )
+      ]
+    : normalizedGenreNames;
+
+  return orderedGenreNames
+    .map((genreName, index) => {
+      const normalizedGenreName = String(genreName || '').trim();
+
+      return index === 0
+        ? normalizedGenreName
+        : normalizedGenreName.toLocaleLowerCase('ru-RU');
+    })
+    .filter(Boolean)
+    .join(', ');
 }
 
 function getMonthName(month) {
@@ -6295,7 +6331,7 @@ function buildCatalogMovieMeta(movie) {
   const subgenreKeys = Array.isArray(movie?.tags_perceived)
     ? movie.tags_perceived.filter(Boolean)
     : [];
-  const genresText = genreNames.join(', ');
+  const genresText = formatGenreNamesForPublicDisplay(genreNames);
   const countriesText = countryNames.join(', ');
   const filterableGenreNames = genreNames.filter(genreName =>
     normalizeSearchText(genreName) !== BASE_HORROR_GENRE_NORMALIZED
@@ -7213,7 +7249,7 @@ function fillFormForEdit(movie) {
   setInputValue(releaseMonthInput, movie.release_month, 'releaseMonthInput');
   setInputValue(releaseYearInput, movie.release_year, 'releaseYearInput');
   setInputValue(sortOrderInput, movie.sort_order, 'sortOrderInput');
-  setInputValue(directorInput, movie.director, 'directorInput');
+  setInputValue(directorInput, parseLineOrCommaSeparatedValues(movie.director).join('\n'), 'directorInput');
   setInputValue(kinopoiskUrlInput, movie.kinopoisk_url, 'kinopoiskUrlInput');
   setInputValue(imdbUrlInput, movie.imdb_url, 'imdbUrlInput');
   setInputValue(letterboxdUrlInput, movie.letterboxd_url, 'letterboxdUrlInput');
@@ -7232,8 +7268,8 @@ function fillFormForEdit(movie) {
   const genres = movie.movie_genres
     .map(item => item.genres.name)
     .filter(name => normalizeSearchText(name) !== BASE_HORROR_GENRE_NORMALIZED)
-    .join(', ');
-  const countries = movie.movie_countries.map(item => item.countries.name).join(', ');
+    .join('\n');
+  const countries = movie.movie_countries.map(item => item.countries.name).join('\n');
 
   setInputValue(genresInput, genres, 'genresInput');
   setInputValue(countriesInput, countries, 'countriesInput');
@@ -9325,6 +9361,18 @@ async function deletePosterFileByUrl(publicUrl) {
   throwIfSupabaseError(error);
 }
 
+function orderLookupRowsByRequestedNames(rows, names) {
+  const rowsByNormalizedName = new Map(
+    (Array.isArray(rows) ? rows : [])
+      .filter(row => row?.name)
+      .map(row => [normalizeSearchText(row.name), row])
+  );
+
+  return (Array.isArray(names) ? names : [])
+    .map(name => rowsByNormalizedName.get(normalizeSearchText(name)))
+    .filter(Boolean);
+}
+
 async function ensureGenres(names) {
   if (names.length === 0) {
     return [];
@@ -9345,7 +9393,7 @@ async function ensureGenres(names) {
 
   throwIfSupabaseError(error);
 
-  return data;
+  return orderLookupRowsByRequestedNames(data, names);
 }
 
 async function ensureCountries(names) {
@@ -9368,7 +9416,7 @@ async function ensureCountries(names) {
 
   throwIfSupabaseError(error);
 
-  return data;
+  return orderLookupRowsByRequestedNames(data, names);
 }
 
 async function replaceMovieRelations(movieId, genreNames, countryNames) {
@@ -9433,7 +9481,7 @@ async function addMovie(event) {
   const releaseMonth = releaseMonthInput.value.trim();
   const releaseYear = releaseYearInput.value.trim();
   const sortOrder = sortOrderInput.value.trim();
-  const director = directorInput.value.trim();
+  const director = parseLineOrCommaSeparatedValues(directorInput.value).join(', ');
   const synopsis = synopsisInput.value.trim();
   const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
   const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value);
@@ -9442,7 +9490,7 @@ async function addMovie(event) {
   const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value);
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
-  const countryNames = parseCommaSeparated(countriesInput.value);
+  const countryNames = parseLineOrCommaSeparatedValues(countriesInput.value);
   const searchAliases = parseMultilineValues(searchAliasesInput.value);
 
   if (!title) {
@@ -9570,7 +9618,7 @@ async function updateMovie(event) {
   const releaseMonth = releaseMonthInput.value.trim();
   const releaseYear = releaseYearInput.value.trim();
   const sortOrder = sortOrderInput.value.trim();
-  const director = directorInput.value.trim();
+  const director = parseLineOrCommaSeparatedValues(directorInput.value).join(', ');
   const synopsis = synopsisInput.value.trim();
   const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
   const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value);
@@ -9579,7 +9627,7 @@ async function updateMovie(event) {
   const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value);
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
-  const countryNames = parseCommaSeparated(countriesInput.value);
+  const countryNames = parseLineOrCommaSeparatedValues(countriesInput.value);
   const searchAliases = parseMultilineValues(searchAliasesInput.value);
 
   if (!title) {
@@ -17367,8 +17415,12 @@ function getMoviePageFormatsLabel(movie) {
 }
 
 function buildMoviePageViewModel(movie, { reviewsLoading = false } = {}) {
+  const genreNames = movie.movie_genres
+    .map(item => item.genres.name)
+    .filter(Boolean);
+
   return {
-    genres: movie.movie_genres.map(item => item.genres.name).join(', '),
+    genres: formatGenreNamesForPublicDisplay(genreNames),
     countries: movie.movie_countries.map(item => item.countries.name).join(', '),
     averageRating: getMovieAverageRating(movie.id),
     votesCount: getMovieVotesCount(movie.id),
