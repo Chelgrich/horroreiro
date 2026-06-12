@@ -6920,8 +6920,8 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-review-rail-shell {
-    --movie-review-rail-arrow-offset: 10px;
-    --movie-review-rail-safe-space: 12px;
+    --movie-review-rail-arrow-offset: 14px;
+    --movie-review-rail-safe-space: clamp(38px, 10vw, 52px);
   }
 
   .user-page-movie-rail {
