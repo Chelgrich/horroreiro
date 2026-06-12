@@ -17805,6 +17805,7 @@ function getMovieCommentFooterHtml(comment, movie, comments) {
           class="movie-page-discussion-like movie-page-comment-like movie-page-comment-like-static"
           title="${escapeHtml(likeTitle)}"
           aria-label="Лайков: ${escapeHtml(countLabel)}"
+          aria-disabled="true"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 1 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"></path>
@@ -17994,6 +17995,7 @@ function getMoviePageReviewFooterHtml(review, {
           class="movie-page-discussion-like movie-page-review-like movie-page-review-like-static"
           title="${escapeHtml(likeTitle)}"
           aria-label="Лайков: ${escapeHtml(countLabel)}"
+          aria-disabled="true"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 1 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"></path>

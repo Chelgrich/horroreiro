@@ -6483,8 +6483,10 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-discussion-like.movie-page-review-like-static,
 .movie-page-discussion-like.movie-page-comment-like-static {
-  color: var(--color-text-secondary);
-  background: var(--ui-action-bg);
+  color: var(--ui-action-muted-color);
+  background: var(--ui-action-bg-muted);
+  opacity: 0.78;
+  cursor: not-allowed;
 }
 
 .movie-page-discussion-like svg {
