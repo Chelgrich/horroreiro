@@ -5646,7 +5646,7 @@ body:has(.movie-page-shell) .page {
   align-items: stretch;
   gap: var(--movie-review-space, 14px);
   min-width: 0;
-  padding: 0 2px 4px;
+  padding: 0 0 4px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
@@ -5681,10 +5681,14 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-rail .movie-page-review-card {
-  flex: 0 0 clamp(240px, 88%, 680px);
+  flex: 0 0 calc((100% - var(--movie-review-space, 14px)) / 2);
   width: auto;
   max-width: none;
   scroll-snap-align: start;
+}
+
+.movie-page-review-rail .movie-page-review-card:only-child {
+  flex-basis: 100%;
 }
 
 .movie-page-review-card-header {
@@ -6841,6 +6845,10 @@ body:has(.movie-page-shell) .page {
 
   .movie-page-similar-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .movie-page-review-rail .movie-page-review-card {
+    flex-basis: 100%;
   }
 }
 
