@@ -5524,6 +5524,7 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-comments-block {
+  --movie-comment-content-width: 680px;
   --movie-comment-space: 12px;
   --movie-comment-depth-offset: 22px;
 }
@@ -6016,10 +6017,16 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-comment-form-block {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--movie-comment-content-width);
   margin-bottom: 18px;
 }
 
 .movie-page-comment-gate {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--movie-comment-content-width);
   margin-bottom: 18px;
   padding: 14px 16px;
   background: rgba(255, 255, 255, 0.03);
@@ -6138,7 +6145,7 @@ body:has(.movie-page-shell) .page {
   position: relative;
   box-sizing: border-box;
   width: 100%;
-  max-width: min(680px, calc(100% - (var(--comment-depth, 0) * var(--movie-comment-depth-offset))));
+  max-width: min(var(--movie-comment-content-width), calc(100% - (var(--comment-depth, 0) * var(--movie-comment-depth-offset))));
   margin-left: calc(var(--comment-depth, 0) * var(--movie-comment-depth-offset));
 }
 
