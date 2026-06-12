@@ -402,6 +402,32 @@
                   </div>
                 </div>
 
+                <div class="movie-form-inline-group movie-form-inline-group-meta">
+                  <div class="form-row">
+                    <label for="productionInput">Производство:</label>
+                    <textarea id="productionInput" name="productionInput" rows="3"></textarea>
+                    <div class="field-hint">
+                      По одному значению с новой строки.
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <label for="distributionInput">Дистрибуция:</label>
+                    <textarea id="distributionInput" name="distributionInput" rows="3"></textarea>
+                    <div class="field-hint">
+                      По одному значению с новой строки.
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <label for="russianDistributionInput">Дистрибуция в России:</label>
+                    <textarea id="russianDistributionInput" name="russianDistributionInput" rows="3"></textarea>
+                    <div class="field-hint">
+                      По одному значению с новой строки.
+                    </div>
+                  </div>
+                </div>
+
                 <div class="form-row">
                   <label for="posterFile">Постеры:</label>
 

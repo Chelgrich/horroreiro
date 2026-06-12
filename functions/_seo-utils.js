@@ -11,6 +11,9 @@ const MOVIE_SELECT = `
   original_title,
   year,
   director,
+  production,
+  distribution,
+  russian_distribution,
   rating,
   poster_url,
   created_at,
@@ -120,6 +123,13 @@ function getMovieCountryNames(movie) {
   return (Array.isArray(movie?.movie_countries) ? movie.movie_countries : [])
     .map(item => item?.countries?.name)
     .filter(Boolean);
+}
+
+function formatMovieTextArray(value) {
+  return (Array.isArray(value) ? value : [])
+    .map(item => String(item || '').trim())
+    .filter(Boolean)
+    .join(', ');
 }
 
 function getMoviePagePath(movie) {
@@ -344,6 +354,9 @@ function injectMovieFallback(html, fallbackHtml) {
 function renderMovieFallbackHtml(movie) {
   const genres = getMovieGenreNames(movie).join(', ');
   const countries = getMovieCountryNames(movie).join(', ');
+  const production = formatMovieTextArray(movie?.production);
+  const distribution = formatMovieTextArray(movie?.distribution);
+  const russianDistribution = formatMovieTextArray(movie?.russian_distribution);
   const posterUrl = movie?.poster_url
     ? getPosterTransformUrl(movie.poster_url, { width: 640, quality: POSTER_IMAGE_MIN_QUALITY })
     : '';
@@ -370,6 +383,9 @@ function renderMovieFallbackHtml(movie) {
                   <div class="movie-page-meta-item"><span>Режиссёр:</span> ${movie.director ? escapeHtml(movie.director) : '-'}</div>
                   <div class="movie-page-meta-item"><span>Жанры:</span> ${genres ? escapeHtml(genres) : '-'}</div>
                   <div class="movie-page-meta-item"><span>Страны:</span> ${countries ? escapeHtml(countries) : '-'}</div>
+                  ${production ? `<div class="movie-page-meta-item"><span>Производство:</span> ${escapeHtml(production)}</div>` : ''}
+                  ${distribution ? `<div class="movie-page-meta-item"><span>Дистрибуция:</span> ${escapeHtml(distribution)}</div>` : ''}
+                  ${russianDistribution ? `<div class="movie-page-meta-item"><span>Дистрибуция в России:</span> ${escapeHtml(russianDistribution)}</div>` : ''}
                 </div>
                 ${movie.synopsis ? `<div class="movie-page-synopsis-block"><div class="movie-page-synopsis-text">${escapeHtml(movie.synopsis)}</div></div>` : ''}
               </div>

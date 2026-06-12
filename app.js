@@ -124,6 +124,9 @@ let letterboxdShortUrlInput = document.getElementById('letterboxdShortUrl');
 let rottentomatoesUrlInput = document.getElementById('rottentomatoesUrl');
 let genresInput = document.getElementById('genresInput');
 let countriesInput = document.getElementById('countriesInput');
+let productionInput = document.getElementById('productionInput');
+let distributionInput = document.getElementById('distributionInput');
+let russianDistributionInput = document.getElementById('russianDistributionInput');
 let searchAliasesInput = document.getElementById('searchAliases');
 let synopsisInput = document.getElementById('synopsis');
 let movieFormatsInput = document.getElementById('movieFormats');
@@ -154,7 +157,7 @@ const CATALOG_SCROLL_POSITION_KEY = 'horroreiro_catalog_scroll_position';
 const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
 const CATALOG_SESSION_SNAPSHOT_KEY = 'horroreiro_catalog_session_snapshot';
 const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
-const CATALOG_SESSION_SNAPSHOT_VERSION = 5;
+const CATALOG_SESSION_SNAPSHOT_VERSION = 6;
 const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
 const CATALOG_PAGE_SIZE = 40;
@@ -542,6 +545,30 @@ function parseMultilineValues(value) {
     });
 
   return Array.from(uniqueValues.values());
+}
+
+function normalizeTextArrayField(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map(item => String(item || '').trim())
+    .filter(Boolean);
+}
+
+function getTextArrayFormValue(value) {
+  return normalizeTextArrayField(value).join('\n');
+}
+
+function getOptionalTextArrayPayload(values = []) {
+  const normalizedValues = normalizeTextArrayField(values);
+
+  return normalizedValues.length > 0 ? normalizedValues : null;
+}
+
+function formatTextArrayForDetail(value) {
+  return normalizeTextArrayField(value).join(', ');
 }
 
 function buildMovieClassificationDraftFromForm() {
@@ -7046,6 +7073,9 @@ function refreshMovieModalElements() {
   rottentomatoesUrlInput = document.getElementById('rottentomatoesUrl');
   genresInput = document.getElementById('genresInput');
   countriesInput = document.getElementById('countriesInput');
+  productionInput = document.getElementById('productionInput');
+  distributionInput = document.getElementById('distributionInput');
+  russianDistributionInput = document.getElementById('russianDistributionInput');
   searchAliasesInput = document.getElementById('searchAliases');
   synopsisInput = document.getElementById('synopsis');
   movieFormatsInput = document.getElementById('movieFormats');
@@ -7256,6 +7286,9 @@ function fillFormForEdit(movie) {
   setInputValue(releaseYearInput, movie.release_year, 'releaseYearInput');
   setInputValue(sortOrderInput, movie.sort_order, 'sortOrderInput');
   setInputValue(directorInput, parseLineOrCommaSeparatedValues(movie.director).join('\n'), 'directorInput');
+  setInputValue(productionInput, getTextArrayFormValue(movie.production), 'productionInput');
+  setInputValue(distributionInput, getTextArrayFormValue(movie.distribution), 'distributionInput');
+  setInputValue(russianDistributionInput, getTextArrayFormValue(movie.russian_distribution), 'russianDistributionInput');
   setInputValue(kinopoiskUrlInput, movie.kinopoisk_url, 'kinopoiskUrlInput');
   setInputValue(imdbUrlInput, movie.imdb_url, 'imdbUrlInput');
   setInputValue(letterboxdUrlInput, movie.letterboxd_url, 'letterboxdUrlInput');
@@ -7591,6 +7624,9 @@ const MOVIE_BASE_SELECT = `
   original_title,
   year,
   director,
+  production,
+  distribution,
+  russian_distribution,
   synopsis,
   formats,
   tags_perceived,
@@ -7621,6 +7657,9 @@ const MOVIE_CATALOG_SELECT = `
   original_title,
   year,
   director,
+  production,
+  distribution,
+  russian_distribution,
   formats,
   tags_perceived,
   search_aliases,
@@ -9478,6 +9517,9 @@ async function addMovie(event) {
   const releaseYear = releaseYearInput.value.trim();
   const sortOrder = sortOrderInput.value.trim();
   const director = parseLineOrCommaSeparatedValues(directorInput.value).join(', ');
+  const production = parseMultilineValues(productionInput?.value || '');
+  const distribution = parseMultilineValues(distributionInput?.value || '');
+  const russianDistribution = parseMultilineValues(russianDistributionInput?.value || '');
   const synopsis = synopsisInput.value.trim();
   const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
   const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value);
@@ -9527,6 +9569,9 @@ async function addMovie(event) {
           original_title: originalTitle || null,
           year: year ? Number(year) : null,
           director: director || null,
+          production: getOptionalTextArrayPayload(production),
+          distribution: getOptionalTextArrayPayload(distribution),
+          russian_distribution: getOptionalTextArrayPayload(russianDistribution),
           synopsis: synopsis || null,
           formats: classificationDraft.formats,
           tags_perceived: classificationDraft.tagsPerceived,
@@ -9615,6 +9660,9 @@ async function updateMovie(event) {
   const releaseYear = releaseYearInput.value.trim();
   const sortOrder = sortOrderInput.value.trim();
   const director = parseLineOrCommaSeparatedValues(directorInput.value).join(', ');
+  const production = parseMultilineValues(productionInput?.value || '');
+  const distribution = parseMultilineValues(distributionInput?.value || '');
+  const russianDistribution = parseMultilineValues(russianDistributionInput?.value || '');
   const synopsis = synopsisInput.value.trim();
   const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
   const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value);
@@ -9716,6 +9764,18 @@ async function updateMovie(event) {
 
     if ((director || null) !== (existingMovie.director ?? null)) {
       changedFields.director = director || null;
+    }
+
+    if (!areStringArraysEqual(production, normalizeTextArrayField(existingMovie.production))) {
+      changedFields.production = getOptionalTextArrayPayload(production);
+    }
+
+    if (!areStringArraysEqual(distribution, normalizeTextArrayField(existingMovie.distribution))) {
+      changedFields.distribution = getOptionalTextArrayPayload(distribution);
+    }
+
+    if (!areStringArraysEqual(russianDistribution, normalizeTextArrayField(existingMovie.russian_distribution))) {
+      changedFields.russian_distribution = getOptionalTextArrayPayload(russianDistribution);
     }
 
     if ((synopsis || null) !== (existingMovie.synopsis ?? null)) {
@@ -17414,6 +17474,9 @@ function buildMoviePageViewModel(movie, { reviewsLoading = false } = {}) {
   return {
     genres: formatGenreNamesForPublicDisplay(genreNames),
     countries: movie.movie_countries.map(item => item.countries.name).join(', '),
+    production: formatTextArrayForDetail(movie.production),
+    distribution: formatTextArrayForDetail(movie.distribution),
+    russianDistribution: formatTextArrayForDetail(movie.russian_distribution),
     averageRating: getMovieAverageRating(movie.id),
     votesCount: getMovieVotesCount(movie.id),
     currentUserRating: getCurrentUserRating(movie.id),
@@ -17747,6 +17810,9 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
   const {
     genres,
     countries,
+    production,
+    distribution,
+    russianDistribution,
     averageRating,
     votesCount,
     currentUserRating,
@@ -17811,6 +17877,21 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
               : ''
           }
           <div class="movie-page-meta-item"><span>Страны:</span> ${countries ? escapeHtml(countries) : '-'}</div>
+          ${
+            production
+              ? `<div class="movie-page-meta-item"><span>Производство:</span> ${escapeHtml(production)}</div>`
+              : ''
+          }
+          ${
+            distribution
+              ? `<div class="movie-page-meta-item"><span>Дистрибуция:</span> ${escapeHtml(distribution)}</div>`
+              : ''
+          }
+          ${
+            russianDistribution
+              ? `<div class="movie-page-meta-item"><span>Дистрибуция в России:</span> ${escapeHtml(russianDistribution)}</div>`
+              : ''
+          }
         </div>
 
         ${
