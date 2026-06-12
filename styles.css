@@ -5921,6 +5921,7 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-like {
+  height: 32px;
   min-height: 32px;
   padding: 7px 11px;
   display: inline-flex;
@@ -6400,6 +6401,7 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-comment-like {
+  height: 32px;
   min-height: 32px;
   padding: 7px 11px;
   display: inline-flex;
