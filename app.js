@@ -17802,7 +17802,7 @@ function getMovieCommentFooterHtml(comment, movie, comments) {
     likeHtml = isOwnComment
       ? `
         <div
-          class="movie-page-comment-like movie-page-comment-like-static"
+          class="movie-page-discussion-like movie-page-comment-like movie-page-comment-like-static"
           title="${escapeHtml(likeTitle)}"
           aria-label="Лайков: ${escapeHtml(countLabel)}"
         >
@@ -17815,7 +17815,7 @@ function getMovieCommentFooterHtml(comment, movie, comments) {
       : `
         <button
           type="button"
-          class="movie-page-comment-like ${isLiked ? 'is-liked' : ''} ${isBusy ? 'is-busy' : ''}"
+          class="movie-page-discussion-like movie-page-comment-like ${isLiked ? 'is-liked' : ''} ${isBusy ? 'is-busy' : ''}"
           data-movie-comment-like="${escapeHtml(String(comment.id))}"
           aria-pressed="${isLiked ? 'true' : 'false'}"
           aria-label="${escapeHtml(`${likeTitle}. Лайков: ${countLabel}`)}"
@@ -17991,7 +17991,7 @@ function getMoviePageReviewFooterHtml(review, {
   if (isOwnReview) {
     likeHtml = `
         <div
-          class="movie-page-review-like movie-page-review-like-static"
+          class="movie-page-discussion-like movie-page-review-like movie-page-review-like-static"
           title="${escapeHtml(likeTitle)}"
           aria-label="Лайков: ${escapeHtml(countLabel)}"
         >
@@ -18005,7 +18005,7 @@ function getMoviePageReviewFooterHtml(review, {
     likeHtml = `
       <button
         type="button"
-        class="movie-page-review-like ${isLiked ? 'is-liked' : ''} ${isBusy ? 'is-busy' : ''}"
+        class="movie-page-discussion-like movie-page-review-like ${isLiked ? 'is-liked' : ''} ${isBusy ? 'is-busy' : ''}"
         data-movie-review-like="${escapeHtml(String(review.id))}"
         aria-pressed="${isLiked ? 'true' : 'false'}"
         aria-label="${escapeHtml(`${likeTitle}. Лайков: ${countLabel}`)}"

@@ -6468,6 +6468,33 @@ body:has(.movie-page-shell) .page {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.movie-page-discussion-like {
+  box-sizing: border-box;
+  width: fit-content;
+  min-width: 50px;
+  height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  padding: 0 11px;
+  flex: 0 0 auto;
+  align-self: center;
+  border-radius: 16px;
+}
+
+.movie-page-discussion-like.movie-page-review-like-static,
+.movie-page-discussion-like.movie-page-comment-like-static {
+  color: var(--color-text-secondary);
+  background: var(--ui-action-bg);
+}
+
+.movie-page-discussion-like svg {
+  flex: 0 0 15px;
+}
+
+.movie-page-discussion-like span {
+  line-height: 1;
+}
+
 .movie-page-comment-children {
   margin-top: var(--movie-comment-space, 12px);
   padding-left: 18px;
