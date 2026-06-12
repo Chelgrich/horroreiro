@@ -17695,7 +17695,8 @@ function getMovieCommentReviewContextHtml(comment) {
 
   const review = getMovieReviewById(comment.root_review_id);
   const reviewAuthorName = review ? getMovieReviewAuthorName(review) : '';
-  const reviewSnippet = getMovieReviewReplySnippet(review);
+  const shouldShowReviewSnippet = Boolean(review && !review.contains_spoilers && !review.contains_profanity);
+  const reviewSnippet = shouldShowReviewSnippet ? getMovieReviewReplySnippet(review) : '';
   const reviewLinkHtml = review
     ? `<a href="#${escapeHtml(getMovieReviewAnchorId(review.id))}">рецензию ${escapeHtml(reviewAuthorName)}</a>`
     : 'рецензию';
