@@ -1980,6 +1980,7 @@ button {
 
 .movie-card .delete-movie-btn.secondary-button,
 .movie-page-admin-icon-button.movie-page-admin-icon-button-danger,
+.movie-page-comment-icon-button.movie-page-comment-icon-button-danger,
 .movie-page-review-icon-button.movie-page-review-icon-button-danger,
 .movie-page-similar-editor-icon-button.movie-page-similar-editor-remove-button {
   color: var(--color-danger-text);
@@ -1991,6 +1992,8 @@ button {
 .movie-card .delete-movie-btn.secondary-button:focus-visible,
 .movie-page-admin-icon-button.movie-page-admin-icon-button-danger:hover,
 .movie-page-admin-icon-button.movie-page-admin-icon-button-danger:focus-visible,
+.movie-page-comment-icon-button.movie-page-comment-icon-button-danger:hover,
+.movie-page-comment-icon-button.movie-page-comment-icon-button-danger:focus-visible,
 .movie-page-review-icon-button.movie-page-review-icon-button-danger:hover,
 .movie-page-review-icon-button.movie-page-review-icon-button-danger:focus-visible,
 .movie-page-similar-editor-icon-button.movie-page-similar-editor-remove-button:hover:not(:disabled),
@@ -2013,6 +2016,7 @@ button:not(:where(
   .movie-watchlist-btn,
   .movie-page-watchlist-icon,
   .movie-page-admin-icon-button,
+  .movie-page-comment-icon-button,
   .movie-page-review-icon-button,
   .rating-star-btn,
   .mobile-rating-star-btn,
@@ -2032,6 +2036,7 @@ button:not(:where(
   .movie-watchlist-btn,
   .movie-page-watchlist-icon,
   .movie-page-admin-icon-button,
+  .movie-page-comment-icon-button,
   .movie-page-review-icon-button,
   .rating-star-btn,
   .mobile-rating-star-btn,
@@ -5488,6 +5493,7 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-reviews-block,
+.movie-page-comments-block,
 .movie-page-similar-block {
   padding-top: 14px;
   padding-bottom: 14px;
@@ -5496,6 +5502,11 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-reviews-block {
   --movie-review-space: 14px;
+}
+
+.movie-page-comments-block {
+  --movie-comment-space: 12px;
+  --movie-comment-depth-offset: 22px;
 }
 
 .movie-page-review-form-block {
@@ -5905,6 +5916,444 @@ body:has(.movie-page-shell) .page {
   font-size: 14px;
   line-height: 1.45;
   color: var(--color-text-muted);
+}
+
+.movie-page-comment-form-block {
+  margin-bottom: 18px;
+}
+
+.movie-page-comment-gate {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+}
+
+.movie-page-comment-gate-text {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.movie-page-comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.movie-page-comment-textarea {
+  min-height: 118px;
+  resize: vertical;
+}
+
+.movie-page-comment-inline-form {
+  margin-top: var(--movie-comment-space, 12px);
+}
+
+.movie-page-comment-inline-form .movie-page-comment-textarea {
+  min-height: 92px;
+}
+
+.movie-page-comment-spoiler-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.movie-page-comment-spoiler-toggle input {
+  width: 16px;
+  min-width: 16px;
+  max-width: 16px;
+  height: 16px;
+  min-height: 16px;
+  max-height: 16px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 16px;
+}
+
+.movie-page-comment-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.movie-page-comment-form-hint {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.movie-page-comment-length {
+  color: var(--color-text-secondary);
+  font-weight: 700;
+}
+
+.movie-page-comment-length.is-valid {
+  color: #b6f0c0;
+}
+
+.movie-page-comment-length.is-invalid {
+  color: #ffd0cb;
+}
+
+.movie-page-comment-form [data-movie-comment-submit="true"]:disabled {
+  opacity: 0.54;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.movie-page-comment-form-message {
+  min-height: 18px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.movie-page-comment-form-message.is-error {
+  color: #ffd0cb;
+}
+
+.movie-page-comment-form-message.is-success {
+  color: #b6f0c0;
+}
+
+.movie-page-comment-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--movie-comment-space, 12px);
+}
+
+.movie-page-comment-list-compact {
+  margin-top: var(--movie-comment-space, 12px);
+}
+
+.movie-page-comment-card {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: min(680px, calc(100% - (var(--comment-depth, 0) * var(--movie-comment-depth-offset))));
+  margin-left: calc(var(--comment-depth, 0) * var(--movie-comment-depth-offset));
+}
+
+.movie-page-comment-card-inner {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+}
+
+.movie-page-comment-card.is-deleted .movie-page-comment-card-inner {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.movie-page-comment-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.movie-page-comment-author-row {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.movie-page-comment-card-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.movie-page-comment-avatar-link {
+  flex: 0 0 auto;
+  display: block;
+  border-radius: 50%;
+  line-height: 0;
+  text-decoration: none;
+}
+
+.movie-page-comment-avatar-link:hover .movie-page-comment-avatar,
+.movie-page-comment-avatar-link:focus-visible .movie-page-comment-avatar {
+  background: rgba(var(--color-watchlist-base), 0.28);
+}
+
+.movie-page-comment-avatar-link:focus,
+.movie-page-comment-avatar-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
+}
+
+.movie-page-comment-avatar {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-primary);
+  background: rgba(var(--color-watchlist-base), 0.16);
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.movie-page-comment-avatar-image {
+  display: block;
+  object-fit: cover;
+}
+
+.movie-page-comment-author {
+  width: fit-content;
+  max-width: 100%;
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.movie-page-comment-author:hover,
+.movie-page-comment-author:focus-visible {
+  color: var(--color-accent-primary);
+}
+
+.movie-page-comment-author:focus,
+.movie-page-comment-author:focus-visible {
+  outline: none;
+  box-shadow: 0 2px 0 var(--color-accent-primary);
+}
+
+.movie-page-comment-date {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--color-text-muted);
+}
+
+.movie-page-comment-icon-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.movie-page-comment-icon-button {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+  border-color: transparent;
+}
+
+.movie-page-comment-icon-button:hover,
+.movie-page-comment-icon-button:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--ui-action-bg-hover);
+  border-color: transparent;
+}
+
+.movie-page-comment-icon-button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.movie-page-comment-icon-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.movie-page-comment-icon-button:focus,
+.movie-page-comment-icon-button:focus-visible {
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
+}
+
+.movie-page-comment-spoiler-cover,
+.movie-page-comment-deleted,
+.movie-page-comment-empty-state {
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.movie-page-comment-spoiler-cover {
+  margin-top: var(--movie-comment-space, 12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.movie-page-comment-spoiler-cover-text {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.movie-page-comment-deleted,
+.movie-page-comment-text {
+  margin-top: var(--movie-comment-space, 12px);
+}
+
+.movie-page-comment-text {
+  font-size: 14px;
+  line-height: 1.62;
+  color: #dbe2ea;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.movie-page-comment-deleted {
+  font-style: italic;
+}
+
+.movie-page-comment-footer {
+  margin-top: var(--movie-comment-space, 12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.movie-page-comment-footer-start,
+.movie-page-comment-footer-end {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.movie-page-comment-footer-end {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.movie-page-comment-reply-button,
+.movie-page-comment-thread-toggle {
+  background: var(--ui-action-bg);
+}
+
+.movie-page-comment-reply-button:hover,
+.movie-page-comment-reply-button:focus-visible,
+.movie-page-comment-thread-toggle:hover,
+.movie-page-comment-thread-toggle:focus-visible {
+  background: var(--ui-action-bg-hover);
+}
+
+.movie-page-comment-reply-button.is-disabled {
+  color: var(--ui-action-muted-color);
+  background: var(--ui-action-bg-muted);
+  cursor: help;
+}
+
+.movie-page-comment-reply-button.is-disabled:hover,
+.movie-page-comment-reply-button.is-disabled:focus-visible {
+  color: var(--ui-action-muted-color);
+  background: var(--ui-action-bg-muted);
+  transform: none;
+}
+
+.movie-page-comment-like {
+  min-height: 30px;
+  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  background: var(--ui-action-bg);
+  border: 0;
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.movie-page-comment-like svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.movie-page-comment-like:hover,
+.movie-page-comment-like:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--ui-action-bg-hover);
+}
+
+.movie-page-comment-like.is-liked {
+  color: #ffd8df;
+  background: rgba(231, 82, 107, 0.24);
+}
+
+.movie-page-comment-like.is-liked svg {
+  fill: currentColor;
+}
+
+.movie-page-comment-like.is-liked:hover,
+.movie-page-comment-like.is-liked:focus-visible {
+  background: rgba(231, 82, 107, 0.34);
+}
+
+.movie-page-comment-like:focus,
+.movie-page-comment-like:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
+}
+
+.movie-page-comment-like:disabled,
+.movie-page-comment-like-static {
+  cursor: default;
+}
+
+.movie-page-comment-like:disabled {
+  opacity: 0.72;
+}
+
+.movie-page-comment-like-static {
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.movie-page-comment-children,
+.movie-page-review-comment-thread {
+  margin-top: var(--movie-comment-space, 12px);
+  padding-left: 18px;
+  border-left: 1px solid var(--border-divider);
+}
+
+.movie-page-comment-children {
+  display: flex;
+  flex-direction: column;
+  gap: var(--movie-comment-space, 12px);
 }
 
 .movie-page-similar-empty-state {
@@ -6374,35 +6823,42 @@ body:has(.movie-page-shell) .page {
     font-size: 14px;
   }
 
-  .movie-page-review-form-actions {
+  .movie-page-review-form-actions,
+  .movie-page-comment-form-actions {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .movie-page-review-form-actions button {
+  .movie-page-review-form-actions button,
+  .movie-page-comment-form-actions button {
     width: 100%;
   }
 
-  .movie-page-review-card {
+  .movie-page-review-card,
+  .movie-page-comment-card-inner {
     padding: 14px;
   }
 
-  .movie-page-review-card-header {
+  .movie-page-review-card-header,
+  .movie-page-comment-card-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
   }
 
-  .movie-page-review-card-header-side {
+  .movie-page-review-card-header-side,
+  .movie-page-comment-icon-actions {
     justify-content: flex-start;
     gap: 10px;
   }
 
-  .movie-page-review-author-row {
+  .movie-page-review-author-row,
+  .movie-page-comment-author-row {
     gap: 8px;
   }
 
-  .movie-page-review-avatar {
+  .movie-page-review-avatar,
+  .movie-page-comment-avatar {
     width: 36px;
     height: 36px;
     min-width: 36px;
@@ -6421,18 +6877,34 @@ body:has(.movie-page-shell) .page {
     right: 14px;
   }
 
-  .movie-page-review-spoiler-cover {
+  .movie-page-review-spoiler-cover,
+  .movie-page-comment-spoiler-cover {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .movie-page-review-spoiler-cover .secondary-button {
+  .movie-page-review-spoiler-cover .secondary-button,
+  .movie-page-comment-spoiler-cover .secondary-button {
     width: 100%;
   }
 
-  .movie-page-review-text {
+  .movie-page-review-text,
+  .movie-page-comment-text {
     font-size: 14px;
     line-height: 1.6;
+  }
+
+  .movie-page-comments-block {
+    --movie-comment-depth-offset: 14px;
+  }
+
+  .movie-page-comment-children,
+  .movie-page-review-comment-thread {
+    padding-left: 12px;
+  }
+
+  .movie-page-comment-footer {
+    align-items: flex-end;
   }
 
   .movie-page-similar-editor-item {
@@ -7326,6 +7798,25 @@ body:has(.user-page-shell) .page-footer {
 
   .movie-page-poster-column {
     max-width: none;
+  }
+
+  .movie-page-comments-block {
+    --movie-comment-depth-offset: 8px;
+  }
+
+  .movie-page-comment-children,
+  .movie-page-review-comment-thread {
+    padding-left: 10px;
+  }
+
+  .movie-page-comment-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .movie-page-comment-footer-end {
+    margin-left: 0;
+    justify-content: flex-start;
   }
 
   .page-header-top {
