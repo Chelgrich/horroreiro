@@ -126,6 +126,7 @@ let imdbUrlInput = document.getElementById('imdbUrl');
 let letterboxdUrlInput = document.getElementById('letterboxdUrl');
 let letterboxdShortUrlInput = document.getElementById('letterboxdShortUrl');
 let rottentomatoesUrlInput = document.getElementById('rottentomatoesUrl');
+let trailerUrlInput = document.getElementById('trailerUrl');
 let genresInput = document.getElementById('genresInput');
 let countriesInput = document.getElementById('countriesInput');
 let productionInput = document.getElementById('productionInput');
@@ -457,6 +458,9 @@ let mobileRatingModalStars = null;
 let mobileRatingModalMeta = null;
 let mobileRatingModalRemoveButton = null;
 let mobileRatingModalMovieId = null;
+let movieTrailerModal = null;
+let movieTrailerFrame = null;
+let movieTrailerModalTitle = null;
 let avatarCropModal = null;
 let avatarCropFrame = null;
 let avatarCropImage = null;
@@ -741,11 +745,14 @@ async function fetchCatalogMoviesByIds(movieIds = []) {
       .filter(Boolean);
   }
 
-  const { data, error } = await supabaseClient
-    .from('movies')
-    .select(MOVIE_CATALOG_SELECT)
-    .in('id', missingMovieIds)
-    .order('position', { foreignTable: 'movie_genres', ascending: true });
+  const { data, error } = await runMovieSelectWithOptionalTrailer(
+    selectQuery => supabaseClient
+      .from('movies')
+      .select(selectQuery)
+      .in('id', missingMovieIds)
+      .order('position', { foreignTable: 'movie_genres', ascending: true }),
+    MOVIE_CATALOG_SELECT
+  );
 
   throwIfSupabaseError(error);
   cacheCatalogMovies(data || []);
@@ -762,16 +769,21 @@ async function fetchMoviesByIdsWithSelect(movieIds = [], selectQuery = MOVIE_CAT
     return [];
   }
 
-  let query = supabaseClient
-    .from('movies')
-    .select(selectQuery)
-    .in('id', normalizedMovieIds);
+  const { data, error } = await runMovieSelectWithOptionalTrailer(
+    currentSelectQuery => {
+      let query = supabaseClient
+        .from('movies')
+        .select(currentSelectQuery)
+        .in('id', normalizedMovieIds);
 
-  if (String(selectQuery || '').includes('movie_genres')) {
-    query = query.order('position', { foreignTable: 'movie_genres', ascending: true });
-  }
+      if (String(currentSelectQuery || '').includes('movie_genres')) {
+        query = query.order('position', { foreignTable: 'movie_genres', ascending: true });
+      }
 
-  const { data, error } = await query;
+      return query;
+    },
+    selectQuery
+  );
 
   throwIfSupabaseError(error);
 
@@ -4628,6 +4640,59 @@ function normalizeOptionalUrl(value) {
   return trimmedValue;
 }
 
+function getYouTubeVideoIdFromUrl(value) {
+  const normalizedUrl = normalizeOptionalUrl(value);
+
+  if (!normalizedUrl) {
+    return '';
+  }
+
+  try {
+    const parsedUrl = new URL(normalizedUrl);
+    const hostname = parsedUrl.hostname.replace(/^www\./i, '').toLowerCase();
+    const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+
+    if (hostname === 'youtu.be') {
+      return pathParts[0] || '';
+    }
+
+    if (
+      hostname === 'youtube.com' ||
+      hostname === 'm.youtube.com' ||
+      hostname === 'music.youtube.com' ||
+      hostname === 'youtube-nocookie.com'
+    ) {
+      if (parsedUrl.pathname === '/watch') {
+        return parsedUrl.searchParams.get('v') || '';
+      }
+
+      if (['embed', 'shorts', 'live'].includes(pathParts[0])) {
+        return pathParts[1] || '';
+      }
+    }
+  } catch (error) {
+    const fallbackMatch = normalizedUrl.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([A-Za-z0-9_-]+)/i);
+    return fallbackMatch?.[1] || '';
+  }
+
+  return '';
+}
+
+function getYouTubeTrailerEmbedUrl(value) {
+  const videoId = getYouTubeVideoIdFromUrl(value).trim();
+
+  if (!/^[A-Za-z0-9_-]{6,}$/.test(videoId)) {
+    return '';
+  }
+
+  const embedUrl = new URL(`https://www.youtube.com/embed/${videoId}`);
+
+  embedUrl.searchParams.set('autoplay', '1');
+  embedUrl.searchParams.set('rel', '0');
+
+  return embedUrl.toString();
+}
+
 function normalizeLetterboxdShortUrl(value) {
   const normalizedUrl = normalizeOptionalUrl(value);
 
@@ -7101,6 +7166,7 @@ function syncBodyScrollLock() {
     (displayNameModal && displayNameModal.classList.contains('is-open')) ||
     (filtersModal && filtersModal.classList.contains('is-open')) ||
     (mobileRatingModal && mobileRatingModal.classList.contains('is-open')) ||
+    (movieTrailerModal && movieTrailerModal.classList.contains('is-open')) ||
     (avatarCropModal && avatarCropModal.classList.contains('is-open'))
   );
 
@@ -7342,6 +7408,7 @@ function refreshMovieModalElements() {
   letterboxdUrlInput = document.getElementById('letterboxdUrl');
   letterboxdShortUrlInput = document.getElementById('letterboxdShortUrl');
   rottentomatoesUrlInput = document.getElementById('rottentomatoesUrl');
+  trailerUrlInput = document.getElementById('trailerUrl');
   genresInput = document.getElementById('genresInput');
   countriesInput = document.getElementById('countriesInput');
   productionInput = document.getElementById('productionInput');
@@ -7565,6 +7632,7 @@ function fillFormForEdit(movie) {
   setInputValue(letterboxdUrlInput, movie.letterboxd_url, 'letterboxdUrlInput');
   setInputValue(letterboxdShortUrlInput, movie.letterboxd_short_url, 'letterboxdShortUrlInput');
   setInputValue(rottentomatoesUrlInput, movie.rottentomatoes_url, 'rottentomatoesUrlInput');
+  setInputValue(trailerUrlInput, movie.trailer_url, 'trailerUrlInput');
 
   if (posterFileInput) {
     posterFileInput.value = '';
@@ -7909,6 +7977,7 @@ const MOVIE_BASE_SELECT = `
   letterboxd_url,
   letterboxd_short_url,
   rottentomatoes_url,
+  trailer_url,
   release_year,
   release_month,
   sort_order,
@@ -7940,6 +8009,7 @@ const MOVIE_CATALOG_SELECT = `
   letterboxd_url,
   letterboxd_short_url,
   rottentomatoes_url,
+  trailer_url,
   release_year,
   release_month,
   sort_order,
@@ -7982,6 +8052,38 @@ function getMovieSelectByPurpose(purpose = 'catalog') {
   return MOVIE_CATALOG_SELECT;
 }
 
+function isMissingMovieTrailerColumnError(error) {
+  const message = String(error?.message || '').toLowerCase();
+
+  return (
+    error?.code === '42703' ||
+    error?.code === 'PGRST204' ||
+    message.includes('trailer_url') ||
+    message.includes('column') && message.includes('schema cache')
+  );
+}
+
+function getMovieSelectWithoutTrailer(selectQuery) {
+  return String(selectQuery || '').replace(/\n\s*trailer_url,\s*/g, '\n');
+}
+
+async function runMovieSelectWithOptionalTrailer(createQuery, selectQuery) {
+  const result = await createQuery(selectQuery);
+
+  if (result.error && isMissingMovieTrailerColumnError(result.error)) {
+    const fallbackResult = await createQuery(getMovieSelectWithoutTrailer(selectQuery));
+
+    throwIfSupabaseError(fallbackResult.error);
+
+    return {
+      data: fallbackResult.data || null,
+      error: null
+    };
+  }
+
+  return result;
+}
+
 function hasMovieDetailPayload(movie) {
   return Boolean(
     movie &&
@@ -7991,11 +8093,14 @@ function hasMovieDetailPayload(movie) {
 }
 
 async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = 'catalog' } = {}) {
-  const { data, error } = await supabaseClient
-    .from('movies')
-    .select(getMovieSelectByPurpose(purpose))
-    .order('title', { ascending: true })
-    .order('position', { foreignTable: 'movie_genres', ascending: true });
+  const { data, error } = await runMovieSelectWithOptionalTrailer(
+    selectQuery => supabaseClient
+      .from('movies')
+      .select(selectQuery)
+      .order('title', { ascending: true })
+      .order('position', { foreignTable: 'movie_genres', ascending: true }),
+    getMovieSelectByPurpose(purpose)
+  );
 
   if (error) {
     if (!preserveExistingCatalogOnError) {
@@ -10164,6 +10269,7 @@ async function addMovie(event) {
   const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value);
   const letterboxdShortUrl = normalizeLetterboxdShortUrl(letterboxdShortUrlInput.value);
   const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value);
+  const trailerUrl = normalizeOptionalUrl(trailerUrlInput?.value || '');
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseLineOrCommaSeparatedValues(countriesInput.value);
@@ -10221,6 +10327,7 @@ async function addMovie(event) {
           letterboxd_url: letterboxdUrl || null,
           letterboxd_short_url: letterboxdShortUrl || null,
           rottentomatoes_url: rottentomatoesUrl || null,
+          ...(trailerUrl ? { trailer_url: trailerUrl } : {}),
           release_month: releaseMonth ? Number(releaseMonth) : null,
           release_year: releaseYear ? Number(releaseYear) : null,
           sort_order: sortOrder ? Number(sortOrder) : null,
@@ -10307,6 +10414,7 @@ async function updateMovie(event) {
   const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value);
   const letterboxdShortUrl = normalizeLetterboxdShortUrl(letterboxdShortUrlInput.value);
   const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value);
+  const trailerUrl = normalizeOptionalUrl(trailerUrlInput?.value || '');
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseLineOrCommaSeparatedValues(countriesInput.value);
@@ -10469,6 +10577,10 @@ async function updateMovie(event) {
 
     if ((rottentomatoesUrl || null) !== (existingMovie.rottentomatoes_url ?? null)) {
       changedFields.rottentomatoes_url = rottentomatoesUrl || null;
+    }
+
+    if ((trailerUrl || null) !== (existingMovie.trailer_url ?? null)) {
+      changedFields.trailer_url = trailerUrl || null;
     }
 
     if ((releaseMonth ? Number(releaseMonth) : null) !== (existingMovie.release_month ?? null)) {
@@ -11542,6 +11654,97 @@ async function removeUserMovieRating(movieId) {
       console.error('Ошибка удаления оценки фильма:', error);
     }
   });
+}
+
+function ensureMovieTrailerModal() {
+  if (movieTrailerModal) {
+    return;
+  }
+
+  movieTrailerModal = document.createElement('div');
+  movieTrailerModal.id = 'movieTrailerModal';
+  movieTrailerModal.className = 'modal movie-trailer-modal';
+  movieTrailerModal.innerHTML = `
+    <div class="modal-backdrop movie-trailer-modal-backdrop" data-movie-trailer-close="true"></div>
+    <div
+      class="modal-dialog movie-trailer-modal-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="movieTrailerModalTitle"
+    >
+      <div class="modal-header movie-trailer-modal-header">
+        <h2 id="movieTrailerModalTitle" class="movie-trailer-modal-title">Трейлер</h2>
+        <button
+          type="button"
+          class="modal-close-button movie-trailer-modal-close"
+          data-movie-trailer-close="true"
+          aria-label="Закрыть"
+        ></button>
+      </div>
+
+      <div class="movie-trailer-frame-shell">
+        <iframe
+          class="movie-trailer-frame"
+          title="Трейлер фильма"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+          referrerpolicy="strict-origin-when-cross-origin"
+        ></iframe>
+      </div>
+    </div>
+  `;
+
+  const pageRoot = document.querySelector('.page') || document.body;
+  pageRoot.appendChild(movieTrailerModal);
+
+  movieTrailerFrame = movieTrailerModal.querySelector('.movie-trailer-frame');
+  movieTrailerModalTitle = movieTrailerModal.querySelector('#movieTrailerModalTitle');
+
+  movieTrailerModal.querySelectorAll('[data-movie-trailer-close="true"]').forEach(element => {
+    element.addEventListener('click', () => {
+      closeMovieTrailerModal();
+    });
+  });
+}
+
+function closeMovieTrailerModal() {
+  if (!movieTrailerModal) {
+    return;
+  }
+
+  movieTrailerModal.classList.remove('is-open');
+
+  if (movieTrailerFrame) {
+    movieTrailerFrame.removeAttribute('src');
+  }
+
+  syncBodyScrollLock();
+}
+
+function openMovieTrailerModal(movie) {
+  const trailerEmbedUrl = getYouTubeTrailerEmbedUrl(movie?.trailer_url);
+
+  if (!trailerEmbedUrl) {
+    showAppMessage('Трейлер недоступен: нужна ссылка YouTube.', 'error', true);
+    return;
+  }
+
+  ensureMovieTrailerModal();
+
+  const title = String(movie?.title || '').trim();
+  const modalTitle = title ? `Трейлер: ${title}` : 'Трейлер';
+
+  if (movieTrailerModalTitle) {
+    movieTrailerModalTitle.textContent = modalTitle;
+  }
+
+  if (movieTrailerFrame) {
+    movieTrailerFrame.src = trailerEmbedUrl;
+    movieTrailerFrame.title = modalTitle;
+  }
+
+  movieTrailerModal.classList.add('is-open');
+  syncBodyScrollLock();
 }
 
 function ensureMobileRatingModal() {
@@ -14223,6 +14426,11 @@ function bindSharedUiEvents() {
     }
 
     hideUserPageRankTooltip();
+    if (movieTrailerModal && movieTrailerModal.classList.contains('is-open')) {
+      closeMovieTrailerModal();
+      return;
+    }
+
     closeMobileRatingModal();
     closeAllCustomSelects();
     closeAuthPopoverMenu();
@@ -16424,12 +16632,15 @@ function getMoviePageRouteParams() {
 }
 
 async function fetchMovieById(movieId) {
-  const { data, error } = await supabaseClient
-    .from('movies')
-    .select(MOVIE_BASE_SELECT)
-    .eq('id', movieId)
-    .order('position', { foreignTable: 'movie_genres', ascending: true })
-    .single();
+  const { data, error } = await runMovieSelectWithOptionalTrailer(
+    selectQuery => supabaseClient
+      .from('movies')
+      .select(selectQuery)
+      .eq('id', movieId)
+      .order('position', { foreignTable: 'movie_genres', ascending: true })
+      .single(),
+    MOVIE_BASE_SELECT
+  );
 
   if (error) {
     throw error;
@@ -16454,12 +16665,15 @@ async function fetchMovieByRouteParams(routeParams) {
   }
 
   if (routeParams.slug) {
-    const { data, error } = await supabaseClient
-      .from('movies')
-      .select(MOVIE_BASE_SELECT)
-      .eq('slug', routeParams.slug)
-      .order('position', { foreignTable: 'movie_genres', ascending: true })
-      .maybeSingle();
+    const { data, error } = await runMovieSelectWithOptionalTrailer(
+      selectQuery => supabaseClient
+        .from('movies')
+        .select(selectQuery)
+        .eq('slug', routeParams.slug)
+        .order('position', { foreignTable: 'movie_genres', ascending: true })
+        .maybeSingle(),
+      MOVIE_BASE_SELECT
+    );
 
     if (error) {
       throw error;
@@ -19275,6 +19489,7 @@ function buildMoviePageViewModel(movie, {
     primaryPerceivedTagLabel: getMoviePageSubgenreLabel(movie),
     formatsLabel: getMoviePageFormatsLabel(movie),
     externalLinksHtml: getMoviePageExternalLinksHtml(movie),
+    trailerEmbedUrl: getYouTubeTrailerEmbedUrl(movie.trailer_url),
     synopsis: String(movie.synopsis || '').trim(),
     isRatingBusy: ratingRequestInFlight.has(String(movie.id)),
     isWatchlistBusy: watchlistRequestInFlight.has(String(movie.id)),
@@ -19513,9 +19728,9 @@ function bindMoviePagePosterGalleryEvents(movie) {
 
 function getMoviePagePosterColumnHtml(movie, viewModel) {
   const {
-    currentUserRating,
     userMovieState,
-    isWatchlistBusy
+    isWatchlistBusy,
+    trailerEmbedUrl
   } = viewModel;
   const galleryImages = getMoviePagePosterGalleryImages(movie);
   const currentGalleryIndex = getMoviePagePosterGalleryIndex(movie.id, galleryImages.length);
@@ -19594,6 +19809,20 @@ function getMoviePagePosterColumnHtml(movie, viewModel) {
             : ''
         }
         </div>
+        ${
+          trailerEmbedUrl
+            ? `
+              <button
+                type="button"
+                class="secondary-button movie-page-rate-trigger movie-page-trailer-button"
+                data-movie-page-trailer-open="true"
+              >
+                <span class="movie-page-trailer-play-icon" aria-hidden="true"></span>
+                <span>Смотреть трейлер</span>
+              </button>
+            `
+            : ''
+        }
         </div>
       `;
     }
@@ -19754,6 +19983,7 @@ function renderMoviePage(movie, options = {}) {
 
   const watchlistIconButton = moviePage.querySelector('[data-movie-page-watchlist-icon-toggle="true"]');
   const mobileRatingButton = moviePage.querySelector('[data-open-mobile-rating="true"]');
+  const trailerButton = moviePage.querySelector('[data-movie-page-trailer-open="true"]');
 
   if (watchlistIconButton) {
     watchlistIconButton.addEventListener('click', () => {
@@ -19764,6 +19994,12 @@ function renderMoviePage(movie, options = {}) {
   if (mobileRatingButton) {
     mobileRatingButton.addEventListener('click', () => {
       openMobileRatingModal(movie);
+    });
+  }
+
+  if (trailerButton) {
+    trailerButton.addEventListener('click', () => {
+      openMovieTrailerModal(movie);
     });
   }
 

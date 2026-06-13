@@ -1088,6 +1088,27 @@ h3 {
   max-width: var(--modal-profile-settings-dialog-max-width);
 }
 
+.movie-trailer-modal-dialog {
+  width: 100%;
+  max-width: calc(var(--page-max-width) - 48px);
+}
+
+.movie-trailer-frame-shell {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--surface-media);
+  border-radius: var(--radius-md);
+}
+
+.movie-trailer-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--surface-media);
+}
+
 .avatar-crop-dialog {
   max-width: 420px;
 }
@@ -4998,6 +5019,9 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-poster-column {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .movie-page-poster-wrapper {
@@ -5189,6 +5213,43 @@ body:has(.movie-page-shell) .page {
 .movie-page-rate-trigger .movie-page-rate-value {
   margin-left: 6px;
   color: var(--color-rating-text);
+}
+
+.movie-page-trailer-button {
+  --movie-trailer-button-bg: var(--ui-action-bg);
+  --movie-trailer-button-icon-cutout: #18202a;
+  width: 100%;
+  gap: 8px;
+  background: var(--movie-trailer-button-bg);
+}
+
+.movie-page-trailer-button:hover,
+.movie-page-trailer-button:focus-visible {
+  --movie-trailer-button-bg: var(--ui-action-bg-hover);
+  --movie-trailer-button-icon-cutout: #1d2732;
+  background: var(--movie-trailer-button-bg);
+}
+
+.movie-page-trailer-play-icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.movie-page-trailer-play-icon::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--movie-trailer-button-icon-cutout);
+  transform: translate(-38%, -50%);
 }
 
 .movie-page-title {
@@ -7122,6 +7183,10 @@ body:has(.user-page-shell) .page-footer {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 12px;
     align-items: start;
+  }
+
+  .movie-form-trailer-row {
+    grid-column: 1 / -1;
   }
 
   .movie-form-inline-group-links .form-row label {

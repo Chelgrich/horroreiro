@@ -511,6 +511,19 @@
                       spellcheck="false"
                     >
                   </div>
+
+                  <div class="form-row movie-form-trailer-row">
+                    <label for="trailerUrl">Трейлер:</label>
+                    <input
+                      type="text"
+                      id="trailerUrl"
+                      name="trailerUrl"
+                      inputmode="url"
+                      autocomplete="off"
+                      spellcheck="false"
+                      placeholder="https://www.youtube.com/watch?v=N_VJaxllTDQ"
+                    >
+                  </div>
                 </div>
 
                 <div class="form-actions">
