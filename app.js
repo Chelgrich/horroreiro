@@ -5525,16 +5525,6 @@ function getMovieImportYear(movie) {
   return parseLetterboxdImportYear(movie?.year ?? movie?.release_year);
 }
 
-function getMovieLetterboxdImportTitles(movie) {
-  const titles = [
-    movie?.title,
-    movie?.original_title,
-    ...(Array.isArray(movie?.search_aliases) ? movie.search_aliases : [])
-  ];
-
-  return titles.filter(Boolean);
-}
-
 function addMovieToLetterboxdImportIndex(indexMap, key, movie) {
   if (!key || !movie?.id) {
     return;
@@ -5558,26 +5548,12 @@ function getMovieLetterboxdImportUris(movie) {
 
 function buildLetterboxdImportMovieIndex(movies) {
   const index = {
-    uri: new Map(),
-    titleYear: new Map(),
-    title: new Map()
+    uri: new Map()
   };
 
   (Array.isArray(movies) ? movies : []).forEach(movie => {
-    const movieYear = getMovieImportYear(movie);
-
     getMovieLetterboxdImportUris(movie).forEach(uri => {
       addMovieToLetterboxdImportIndex(index.uri, normalizeLetterboxdImportUri(uri), movie);
-    });
-
-    getMovieLetterboxdImportTitles(movie).forEach(title => {
-      getLetterboxdImportTitleVariants(title).forEach(titleVariant => {
-        addMovieToLetterboxdImportIndex(index.title, titleVariant, movie);
-
-        if (movieYear) {
-          addMovieToLetterboxdImportIndex(index.titleYear, `${titleVariant}::${movieYear}`, movie);
-        }
-      });
     });
   });
 
@@ -5594,6 +5570,11 @@ function getUniqueLetterboxdImportIndexMatch(indexMap, key) {
 
 function matchLetterboxdImportRowToMovie(row, movieIndex) {
   const uri = normalizeLetterboxdImportUri(getCsvField(row, LETTERBOXD_IMPORT_FIELD_ALIASES.uri));
+
+  if (!uri) {
+    return null;
+  }
+
   const uriMatch = getUniqueLetterboxdImportIndexMatch(movieIndex.uri, uri);
 
   if (uriMatch) {
@@ -5601,47 +5582,6 @@ function matchLetterboxdImportRowToMovie(row, movieIndex) {
       movie: uriMatch,
       matchType: 'letterboxd_uri'
     };
-  }
-
-  if (uri) {
-    return null;
-  }
-
-  const title = getCsvField(row, LETTERBOXD_IMPORT_FIELD_ALIASES.name);
-  const year = parseLetterboxdImportYear(getCsvField(row, LETTERBOXD_IMPORT_FIELD_ALIASES.year));
-  const titleVariants = getLetterboxdImportTitleVariants(title);
-
-  if (!titleVariants.length) {
-    return null;
-  }
-
-  if (year) {
-    for (const titleVariant of titleVariants) {
-      const titleYearMatch = getUniqueLetterboxdImportIndexMatch(
-        movieIndex.titleYear,
-        `${titleVariant}::${year}`
-      );
-
-      if (titleYearMatch) {
-        return {
-          movie: titleYearMatch,
-          matchType: 'title_year'
-        };
-      }
-    }
-
-    return null;
-  }
-
-  for (const titleVariant of titleVariants) {
-    const titleMatch = getUniqueLetterboxdImportIndexMatch(movieIndex.title, titleVariant);
-
-    if (titleMatch) {
-      return {
-        movie: titleMatch,
-        matchType: 'title'
-      };
-    }
   }
 
   return null;
