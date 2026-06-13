@@ -5730,11 +5730,13 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-card {
+  --movie-page-review-card-padding: 16px;
+
   position: relative;
   box-sizing: border-box;
   width: 100%;
   max-width: 680px;
-  padding: 16px;
+  padding: var(--movie-page-review-card-padding);
   display: flex;
   flex-direction: column;
   background: var(--surface-card);
@@ -5768,16 +5770,18 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-rail .movie-page-review-card {
+  --movie-page-review-card-padding: var(--movie-review-rail-card-safe-padding);
+
   flex: 0 0 calc((100% - var(--movie-review-space, 14px)) / 2);
   width: auto;
   max-width: none;
-  padding-inline: var(--movie-review-rail-card-safe-padding);
   scroll-snap-align: start;
 }
 
 .movie-page-review-rail .movie-page-review-card:only-child {
+  --movie-page-review-card-padding: 16px;
+
   flex-basis: min(100%, 680px);
-  padding-inline: 16px;
 }
 
 .movie-page-review-card-header {
@@ -5901,8 +5905,8 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-review-icon-actions {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: var(--movie-page-review-card-padding);
+  right: var(--movie-page-review-card-padding);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -7110,17 +7114,12 @@ body:has(.movie-page-shell) .page {
     width: 100%;
   }
 
-  .movie-page-review-card,
   .movie-page-comment-card-inner {
     padding: 14px;
   }
 
-  .movie-page-review-rail .movie-page-review-card {
-    padding-inline: var(--movie-review-rail-card-safe-padding);
-  }
-
   .movie-page-review-rail .movie-page-review-card:only-child {
-    padding-inline: 14px;
+    --movie-page-review-card-padding: 14px;
   }
 
   .movie-page-review-card-header,
@@ -7154,11 +7153,6 @@ body:has(.movie-page-shell) .page {
     height: 50px;
     min-width: 50px;
     font-size: 16px;
-  }
-
-  .movie-page-review-icon-actions {
-    top: 14px;
-    right: 14px;
   }
 
   .movie-page-review-spoiler-cover,
@@ -8159,7 +8153,6 @@ body:has(.user-page-shell) .page-footer {
     height: 28px;
   }
 
-  .movie-page-review-card,
   .movie-page-review-spoiler-cover,
   .movie-page-review-empty-state {
     padding: 12px;
