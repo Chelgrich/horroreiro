@@ -434,6 +434,8 @@ let expandedMovieCommentThreadKeys = new Set();
 let editingMovieReviewId = null;
 let editingMovieCommentId = null;
 let replyingMovieCommentTargetKey = '';
+let isMovieReviewComposerExpanded = false;
+let isMovieCommentComposerExpanded = false;
 let editingMovieId = null;
 let isModalOpen = false;
 let moviesLoadedSuccessfully = false;
@@ -6523,6 +6525,75 @@ function isMovieCommentReplyingTo(targetType, targetId) {
   return replyingMovieCommentTargetKey === getMovieCommentThreadKey(targetType, targetId);
 }
 
+function resetMoviePageComposerState() {
+  isMovieReviewComposerExpanded = false;
+  isMovieCommentComposerExpanded = false;
+}
+
+function setMoviePageComposerExpanded({
+  composerSelector,
+  openButtonSelector,
+  panelSelector,
+  textareaSelector,
+  onChange
+}, shouldExpand) {
+  const composerElement = moviePage?.querySelector(composerSelector);
+  const isExpanded = Boolean(shouldExpand);
+
+  onChange(isExpanded);
+
+  if (!composerElement) {
+    return;
+  }
+
+  const openButtonElement = composerElement.querySelector(openButtonSelector);
+  const panelElement = composerElement.querySelector(panelSelector);
+
+  composerElement.classList.toggle('is-expanded', isExpanded);
+
+  if (openButtonElement) {
+    openButtonElement.hidden = isExpanded;
+    openButtonElement.setAttribute('aria-expanded', String(isExpanded));
+  }
+
+  if (panelElement) {
+    panelElement.hidden = !isExpanded;
+  }
+
+  requestAnimationFrame(() => {
+    if (isExpanded) {
+      composerElement.querySelector(textareaSelector)?.focus();
+      return;
+    }
+
+    openButtonElement?.focus();
+  });
+}
+
+function setMoviePageReviewComposerExpanded(shouldExpand) {
+  setMoviePageComposerExpanded({
+    composerSelector: '[data-movie-review-composer="true"]',
+    openButtonSelector: '[data-movie-review-composer-open="true"]',
+    panelSelector: '[data-movie-review-composer-panel="true"]',
+    textareaSelector: '[data-movie-review-textarea="true"]',
+    onChange: isExpanded => {
+      isMovieReviewComposerExpanded = isExpanded;
+    }
+  }, shouldExpand);
+}
+
+function setMoviePageCommentComposerExpanded(shouldExpand) {
+  setMoviePageComposerExpanded({
+    composerSelector: '[data-movie-comment-composer="true"]',
+    openButtonSelector: '[data-movie-comment-composer-open="true"]',
+    panelSelector: '[data-movie-comment-composer-panel="true"]',
+    textareaSelector: '[data-movie-comment-textarea="true"]',
+    onChange: isExpanded => {
+      isMovieCommentComposerExpanded = isExpanded;
+    }
+  }, shouldExpand);
+}
+
 function sortMovieCommentRepliesForDisplay(comments = []) {
   return [...comments].sort((firstComment, secondComment) => {
     const firstTime = new Date(firstComment.created_at || 0).getTime();
@@ -6622,7 +6693,7 @@ function getMovieContentWarningBadgesHtml(content) {
   }
 
   if (content?.contains_profanity) {
-    badges.push('Нецензурная брань');
+    badges.push('Нецензурная лексика');
   }
 
   if (!badges.length) {
@@ -6641,7 +6712,7 @@ function getMovieContentWarningCoverText(content, contentLabel) {
   const hasProfanity = Boolean(content?.contains_profanity);
 
   if (hasSpoilers && hasProfanity) {
-    return `${contentLabel} содержит спойлеры и нецензурную брань.`;
+    return `${contentLabel} содержит спойлеры и нецензурную лексику.`;
   }
 
   if (hasSpoilers) {
@@ -6649,7 +6720,7 @@ function getMovieContentWarningCoverText(content, contentLabel) {
   }
 
   if (hasProfanity) {
-    return `${contentLabel} содержит нецензурную брань.`;
+    return `${contentLabel} содержит нецензурную лексику.`;
   }
 
   return '';
@@ -16901,6 +16972,7 @@ function renderMoviePageNotFound() {
 
   currentMoviePageMovieId = null;
   currentMoviePageMovieData = null;
+  resetMoviePageComposerState();
   resetMoviePageSimilarState();
 
   setMoviePageDocumentMeta(null);
@@ -17328,46 +17400,71 @@ function getMoviePageReviewFormHtml(movie) {
   }
 
   return `
-    <section class="movie-page-review-form-block">
-      <div class="movie-page-subtitle">Написать рецензию</div>
+    <section class="movie-page-review-form-block movie-page-collapsible-composer" data-movie-review-composer="true">
+      <button
+        type="button"
+        class="secondary-button movie-page-composer-open-button"
+        data-movie-review-composer-open="true"
+        aria-expanded="${isMovieReviewComposerExpanded ? 'true' : 'false'}"
+        ${isMovieReviewComposerExpanded ? 'hidden' : ''}
+      >
+        Написать рецензию
+      </button>
 
-      <form class="movie-page-review-form" data-movie-review-form="true">
-        <textarea
-          class="movie-page-review-textarea"
-          name="reviewText"
-          placeholder="Поделитесь впечатлениями о фильме"
-          rows="7"
-          data-movie-review-textarea="true"
-        ></textarea>
-
-        <label class="movie-page-review-spoiler-toggle">
-          <input
-            type="checkbox"
-            name="containsSpoilers"
-            data-movie-review-spoilers="true"
+      <div
+        class="movie-page-composer-panel"
+        data-movie-review-composer-panel="true"
+        ${isMovieReviewComposerExpanded ? '' : 'hidden'}
+      >
+        <div class="movie-page-composer-header">
+          <div class="movie-page-subtitle">Написать рецензию</div>
+          <button
+            type="button"
+            class="secondary-button secondary-button-compact movie-page-composer-collapse-button"
+            data-movie-review-composer-close="true"
           >
-          <span>Есть спойлеры</span>
-        </label>
-
-        <label class="movie-page-review-spoiler-toggle">
-          <input
-            type="checkbox"
-            name="containsProfanity"
-            data-movie-review-profanity="true"
-          >
-          <span>Есть нецензурная брань</span>
-        </label>
-
-        <div class="movie-page-review-form-actions">
-          <button type="submit" data-movie-review-submit="true" disabled>Опубликовать</button>
+            Свернуть
+          </button>
         </div>
 
-        <div class="movie-page-review-form-hint">
-          Символов: <span class="movie-page-review-length" data-movie-review-length="true">0</span>. Нужно от ${MOVIE_REVIEW_MIN_LENGTH} до ${MOVIE_REVIEW_MAX_LENGTH}.
-        </div>
+        <form class="movie-page-review-form" data-movie-review-form="true">
+          <textarea
+            class="movie-page-review-textarea"
+            name="reviewText"
+            placeholder="Поделитесь впечатлениями о фильме"
+            rows="7"
+            data-movie-review-textarea="true"
+          ></textarea>
 
-        <p class="movie-page-review-form-message" data-movie-review-form-message="true"></p>
-      </form>
+          <label class="movie-page-review-spoiler-toggle">
+            <input
+              type="checkbox"
+              name="containsSpoilers"
+              data-movie-review-spoilers="true"
+            >
+            <span>Есть спойлеры</span>
+          </label>
+
+          <label class="movie-page-review-spoiler-toggle">
+            <input
+              type="checkbox"
+              name="containsProfanity"
+              data-movie-review-profanity="true"
+            >
+            <span>Есть нецензурная лексика</span>
+          </label>
+
+          <div class="movie-page-review-form-actions">
+            <button type="submit" data-movie-review-submit="true" disabled>Опубликовать</button>
+          </div>
+
+          <div class="movie-page-review-form-hint">
+            Символов: <span class="movie-page-review-length" data-movie-review-length="true">0</span>. Нужно от ${MOVIE_REVIEW_MIN_LENGTH} до ${MOVIE_REVIEW_MAX_LENGTH}.
+          </div>
+
+          <p class="movie-page-review-form-message" data-movie-review-form-message="true"></p>
+        </form>
+      </div>
     </section>
   `;
 }
@@ -17414,7 +17511,7 @@ function getMoviePageReviewBodyHtml(review, {
             data-movie-review-profanity="true"
             ${review.contains_profanity ? 'checked' : ''}
           >
-          <span>Есть нецензурная брань</span>
+          <span>Есть нецензурная лексика</span>
         </label>
 
         <div class="movie-page-review-form-actions">
@@ -17631,7 +17728,7 @@ function getMovieCommentFormHtml({
           data-movie-comment-profanity="true"
           ${comment?.contains_profanity ? 'checked' : ''}
         >
-        <span>Есть нецензурная брань</span>
+        <span>Есть нецензурная лексика</span>
       </label>
 
       <div class="movie-page-comment-form-actions">
@@ -18160,12 +18257,39 @@ function getMoviePageCommentComposerHtml(movie) {
   }
 
   return `
-    <section class="movie-page-comment-form-block">
-      ${getMovieCommentFormHtml({
-        movie,
-        submitLabel: 'Опубликовать',
-        placeholder: 'Ваш комментарий'
-      })}
+    <section class="movie-page-comment-form-block movie-page-collapsible-composer" data-movie-comment-composer="true">
+      <button
+        type="button"
+        class="secondary-button movie-page-composer-open-button"
+        data-movie-comment-composer-open="true"
+        aria-expanded="${isMovieCommentComposerExpanded ? 'true' : 'false'}"
+        ${isMovieCommentComposerExpanded ? 'hidden' : ''}
+      >
+        Написать комментарий
+      </button>
+
+      <div
+        class="movie-page-composer-panel"
+        data-movie-comment-composer-panel="true"
+        ${isMovieCommentComposerExpanded ? '' : 'hidden'}
+      >
+        <div class="movie-page-composer-header">
+          <div class="movie-page-subtitle">Написать комментарий</div>
+          <button
+            type="button"
+            class="secondary-button secondary-button-compact movie-page-composer-collapse-button"
+            data-movie-comment-composer-close="true"
+          >
+            Свернуть
+          </button>
+        </div>
+
+        ${getMovieCommentFormHtml({
+          movie,
+          submitLabel: 'Опубликовать',
+          placeholder: 'Ваш комментарий'
+        })}
+      </div>
     </section>
   `;
 }
@@ -18598,6 +18722,7 @@ async function handleMovieReviewFormSubmit(movie, formElement) {
       await updateMovieReview(reviewId, movie.id, reviewPayload);
     } else {
       await saveMovieReview(movie.id, reviewPayload);
+      isMovieReviewComposerExpanded = false;
     }
 
     stopMovieReviewEditing();
@@ -18824,6 +18949,14 @@ function bindMoviePageReviewEvents(movie) {
 
   bindMoviePageReviewRailControls();
 
+  bindMoviePageReviewClickAction('[data-movie-review-composer-open="true"]', () => {
+    setMoviePageReviewComposerExpanded(true);
+  });
+
+  bindMoviePageReviewClickAction('[data-movie-review-composer-close="true"]', () => {
+    setMoviePageReviewComposerExpanded(false);
+  });
+
   moviePage.querySelectorAll('[data-movie-review-form="true"]').forEach(reviewForm => {
     updateMovieReviewFormState(reviewForm);
 
@@ -18970,6 +19103,12 @@ async function handleMovieCommentFormSubmit(movie, formElement) {
   }
 
   const commentId = String(formElement.dataset.movieCommentId || '').trim();
+  const isMainCommentComposer = Boolean(
+    !commentId &&
+    !formElement.dataset.movieCommentParentId &&
+    !formElement.dataset.movieCommentReplyToId &&
+    !formElement.dataset.movieCommentRootReviewId
+  );
   let didSaveComment = false;
 
   try {
@@ -18995,6 +19134,10 @@ async function handleMovieCommentFormSubmit(movie, formElement) {
         depth: Number(formElement.dataset.movieCommentDepth || 0)
       });
       stopMovieCommentReply();
+
+      if (isMainCommentComposer) {
+        isMovieCommentComposerExpanded = false;
+      }
     }
 
     didSaveComment = true;
@@ -19103,6 +19246,14 @@ function bindMoviePageCommentEvents(movie) {
   if (!moviePage || !movie) {
     return;
   }
+
+  bindMoviePageCommentClickAction('[data-movie-comment-composer-open="true"]', () => {
+    setMoviePageCommentComposerExpanded(true);
+  });
+
+  bindMoviePageCommentClickAction('[data-movie-comment-composer-close="true"]', () => {
+    setMoviePageCommentComposerExpanded(false);
+  });
 
   moviePage.querySelectorAll('[data-movie-comment-form="true"]').forEach(commentForm => {
     updateMovieCommentFormState(commentForm);
@@ -19677,6 +19828,10 @@ function getMoviePageHeaderHtml(movie, viewModel) {
 function renderMoviePage(movie, options = {}) {
   if (!moviePage || !movie) {
     return;
+  }
+
+  if (String(currentMoviePageMovieId || '') !== String(movie.id || '')) {
+    resetMoviePageComposerState();
   }
 
   currentMoviePageMovieId = movie.id;

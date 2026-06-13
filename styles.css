@@ -5533,6 +5533,38 @@ body:has(.movie-page-shell) .page {
   margin-bottom: 18px;
 }
 
+.movie-page-collapsible-composer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.movie-page-composer-open-button {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.movie-page-composer-panel {
+  width: 100%;
+}
+
+.movie-page-composer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.movie-page-composer-header .movie-page-subtitle {
+  margin: 0;
+}
+
+.movie-page-composer-collapse-button {
+  flex: 0 0 auto;
+}
+
 .movie-page-review-gate {
   margin-bottom: 18px;
   padding: 14px 16px;
