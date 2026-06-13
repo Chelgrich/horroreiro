@@ -422,6 +422,7 @@ let catalogReviewedMovieIds = new Set();
 let reviewedOnlyFilter = false;
 let reviewRequestInFlight = new Set();
 let reviewLikeRequestInFlight = new Set();
+let movieReviewHighlightTimers = new WeakMap();
 let areMovieReviewLikesAvailable = true;
 let movieCommentRequestInFlight = new Set();
 let movieCommentLikeRequestInFlight = new Set();
@@ -17795,7 +17796,7 @@ function getMovieCommentReviewContextHtml(comment) {
   const shouldShowReviewSnippet = Boolean(review && !review.contains_spoilers && !review.contains_profanity);
   const reviewSnippet = shouldShowReviewSnippet ? getMovieReviewReplySnippet(review) : '';
   const reviewLinkHtml = review
-    ? `<a href="#${escapeHtml(getMovieReviewAnchorId(review.id))}">рецензию ${escapeHtml(reviewAuthorName)}</a>`
+    ? `<a href="#${escapeHtml(getMovieReviewAnchorId(review.id))}" data-movie-comment-review-anchor="${escapeHtml(String(review.id))}">рецензию ${escapeHtml(reviewAuthorName)}</a>`
     : 'рецензию';
 
   return `
@@ -18849,6 +18850,78 @@ function syncMoviePageReviewRailControls() {
     .forEach(updateMoviePageReviewRailControls);
 }
 
+function highlightMoviePageReviewCard(reviewCard) {
+  if (!reviewCard) {
+    return;
+  }
+
+  const currentTimer = movieReviewHighlightTimers.get(reviewCard);
+
+  if (currentTimer) {
+    window.clearTimeout(currentTimer);
+  }
+
+  reviewCard.classList.remove('is-review-highlighted');
+  void reviewCard.offsetWidth;
+  reviewCard.classList.add('is-review-highlighted');
+
+  const nextTimer = window.setTimeout(() => {
+    reviewCard.classList.remove('is-review-highlighted');
+    movieReviewHighlightTimers.delete(reviewCard);
+  }, 1200);
+
+  movieReviewHighlightTimers.set(reviewCard, nextTimer);
+}
+
+function focusMoviePageReviewCard(reviewId, { shouldUpdateHash = true } = {}) {
+  const normalizedReviewId = String(reviewId || '');
+
+  if (!normalizedReviewId) {
+    return;
+  }
+
+  const reviewCard = [...(moviePage?.querySelectorAll('[data-movie-review-id]') || [])]
+    .find(card => String(card.dataset.movieReviewId || '') === normalizedReviewId);
+
+  if (!reviewCard) {
+    return;
+  }
+
+  const reviewsSection = reviewCard.closest('[data-movie-page-reviews-section="true"]');
+  const rail = reviewCard.closest('[data-movie-page-review-rail="true"]');
+
+  reviewsSection?.scrollIntoView({
+    block: 'start',
+    behavior: 'smooth'
+  });
+
+  if (rail) {
+    const railRect = rail.getBoundingClientRect();
+    const cardRect = reviewCard.getBoundingClientRect();
+    const targetScrollLeft = Math.max(0, rail.scrollLeft + cardRect.left - railRect.left);
+
+    rail.scrollTo({
+      left: targetScrollLeft,
+      behavior: 'smooth'
+    });
+
+    window.setTimeout(() => {
+      updateMoviePageReviewRailControls(rail.closest('[data-movie-page-review-rail-shell="true"]'));
+    }, 380);
+  }
+
+  highlightMoviePageReviewCard(reviewCard);
+
+  if (shouldUpdateHash) {
+    const anchorId = getMovieReviewAnchorId(normalizedReviewId);
+    const nextUrl = `${window.location.pathname}${window.location.search}#${anchorId}`;
+
+    if (`${window.location.pathname}${window.location.search}${window.location.hash}` !== nextUrl) {
+      window.history.pushState(null, '', nextUrl);
+    }
+  }
+}
+
 function bindMoviePageReviewRailControls() {
   moviePage
     ?.querySelectorAll('[data-movie-page-review-rail-shell="true"]')
@@ -19223,8 +19296,8 @@ function bindMoviePageCommentClickAction(selector, handler) {
   }
 
   moviePage.querySelectorAll(selector).forEach(element => {
-    element.addEventListener('click', () => {
-      handler(element);
+    element.addEventListener('click', event => {
+      handler(element, event);
     });
   });
 }
@@ -19253,6 +19326,11 @@ function bindMoviePageCommentEvents(movie) {
 
   bindMoviePageCommentClickAction('[data-movie-comment-composer-close="true"]', () => {
     setMoviePageCommentComposerExpanded(false);
+  });
+
+  bindMoviePageCommentClickAction('[data-movie-comment-review-anchor]', (link, event) => {
+    event.preventDefault();
+    focusMoviePageReviewCard(link.dataset.movieCommentReviewAnchor);
   });
 
   moviePage.querySelectorAll('[data-movie-comment-form="true"]').forEach(commentForm => {
