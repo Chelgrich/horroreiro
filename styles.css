@@ -5548,6 +5548,13 @@ body:has(.movie-page-shell) .page {
 .movie-page-composer-open-button {
   width: fit-content;
   max-width: 100%;
+  color: var(--color-text-primary);
+  background: var(--ui-action-bg);
+}
+
+.movie-page-composer-open-button:hover,
+.movie-page-composer-open-button:focus-visible {
+  background: var(--ui-action-bg-hover);
 }
 
 .movie-page-composer-open-button[hidden] {
@@ -5743,24 +5750,22 @@ body:has(.movie-page-shell) .page {
 
 @keyframes movie-page-review-highlight {
   0% {
-    box-shadow: 0 0 0 0 rgba(91, 140, 255, 0);
+    background-color: var(--surface-card);
   }
 
   28% {
-    box-shadow:
-      0 0 0 2px rgba(91, 140, 255, 0.5),
-      0 0 24px rgba(91, 140, 255, 0.18);
+    background-color: #202836;
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgba(91, 140, 255, 0);
+    background-color: var(--surface-card);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .movie-page-review-card.is-review-highlighted {
     animation: none;
-    box-shadow: 0 0 0 2px rgba(91, 140, 255, 0.45);
+    background-color: #202836;
   }
 }
 
@@ -6642,7 +6647,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-similar-editor-input {
-  width: 100%;
+  display: block;
+  width: calc(100% - 28px);
   min-height: 38px;
   margin: 0;
 }

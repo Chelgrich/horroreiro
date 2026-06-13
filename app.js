@@ -2271,6 +2271,10 @@ function disableCurrentPageLink(anchor, href) {
   anchor.dataset.currentPageLink = 'true';
 }
 
+function shouldSkipCurrentPageLinkGuard(anchor) {
+  return Boolean(anchor?.matches?.('[data-movie-comment-review-anchor]'));
+}
+
 function syncCurrentPageLinks() {
   const anchors = document.querySelectorAll('a[href], a[data-current-page-original-href]');
 
@@ -2278,6 +2282,14 @@ function syncCurrentPageLinks() {
     const href = anchor.getAttribute('href') || anchor.dataset.currentPageOriginalHref || '';
 
     if (!href || anchor.hasAttribute('download')) {
+      return;
+    }
+
+    if (shouldSkipCurrentPageLinkGuard(anchor)) {
+      if (anchor.dataset.currentPageLink === 'true') {
+        restoreCurrentPageLink(anchor);
+      }
+
       return;
     }
 
@@ -19302,6 +19314,17 @@ function bindMoviePageCommentClickAction(selector, handler) {
   });
 }
 
+function handleMoviePageCommentReviewAnchorClick(event) {
+  const link = event.target?.closest?.('[data-movie-comment-review-anchor]');
+
+  if (!link) {
+    return;
+  }
+
+  event.preventDefault();
+  focusMoviePageReviewCard(link.dataset.movieCommentReviewAnchor);
+}
+
 function focusMoviePageReviewReplyComposer() {
   requestAnimationFrame(() => {
     const composer = moviePage?.querySelector('[data-movie-comment-review-reply-composer="true"]');
@@ -19318,6 +19341,13 @@ function focusMoviePageReviewReplyComposer() {
 function bindMoviePageCommentEvents(movie) {
   if (!moviePage || !movie) {
     return;
+  }
+
+  const commentsSection = moviePage.querySelector('[data-movie-page-comments-section="true"]');
+
+  if (commentsSection && commentsSection.dataset.movieCommentReviewAnchorsBound !== 'true') {
+    commentsSection.dataset.movieCommentReviewAnchorsBound = 'true';
+    commentsSection.addEventListener('click', handleMoviePageCommentReviewAnchorClick);
   }
 
   bindMoviePageCommentClickAction('[data-movie-comment-composer-open="true"]', () => {
