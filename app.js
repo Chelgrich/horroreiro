@@ -5603,6 +5603,10 @@ function matchLetterboxdImportRowToMovie(row, movieIndex) {
     };
   }
 
+  if (uri) {
+    return null;
+  }
+
   const title = getCsvField(row, LETTERBOXD_IMPORT_FIELD_ALIASES.name);
   const year = parseLetterboxdImportYear(getCsvField(row, LETTERBOXD_IMPORT_FIELD_ALIASES.year));
   const titleVariants = getLetterboxdImportTitleVariants(title);
