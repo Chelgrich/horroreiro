@@ -423,6 +423,7 @@ let reviewedOnlyFilter = false;
 let reviewRequestInFlight = new Set();
 let reviewLikeRequestInFlight = new Set();
 let movieReviewHighlightTimers = new WeakMap();
+let movieReviewRailResizeObservers = new WeakMap();
 let areMovieReviewLikesAvailable = true;
 let movieCommentRequestInFlight = new Set();
 let movieCommentLikeRequestInFlight = new Set();
@@ -18862,6 +18863,16 @@ function syncMoviePageReviewRailControls() {
     .forEach(updateMoviePageReviewRailControls);
 }
 
+function scheduleMoviePageReviewRailControlsSync() {
+  requestAnimationFrame(() => {
+    syncMoviePageReviewRailControls();
+    requestAnimationFrame(syncMoviePageReviewRailControls);
+  });
+
+  window.setTimeout(syncMoviePageReviewRailControls, 120);
+  window.setTimeout(syncMoviePageReviewRailControls, 360);
+}
+
 function highlightMoviePageReviewCard(reviewCard) {
   if (!reviewCard) {
     return;
@@ -18945,6 +18956,19 @@ function bindMoviePageReviewRailControls() {
         rail.addEventListener('scroll', () => updateMoviePageReviewRailControls(shell), { passive: true });
       }
 
+      if (
+        rail &&
+        typeof ResizeObserver !== 'undefined' &&
+        rail.dataset.moviePageReviewRailResizeBound !== 'true'
+      ) {
+        rail.dataset.moviePageReviewRailResizeBound = 'true';
+        const resizeObserver = new ResizeObserver(() => updateMoviePageReviewRailControls(shell));
+
+        resizeObserver.observe(rail);
+        resizeObserver.observe(shell);
+        movieReviewRailResizeObservers.set(rail, resizeObserver);
+      }
+
       shell
         .querySelectorAll('[data-movie-page-review-rail-prev="true"], [data-movie-page-review-rail-next="true"]')
         .forEach(button => {
@@ -18970,7 +18994,7 @@ function bindMoviePageReviewRailControls() {
         });
     });
 
-  requestAnimationFrame(syncMoviePageReviewRailControls);
+  scheduleMoviePageReviewRailControlsSync();
 }
 
 function getMoviePageReviewRailSnapshot(reviewId = '') {

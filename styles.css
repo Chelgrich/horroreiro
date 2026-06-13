@@ -5577,6 +5577,11 @@ body:has(.movie-page-shell) .page {
   margin: 0;
 }
 
+.movie-page-collapsible-composer .movie-page-composer-header .movie-page-subtitle {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
 .movie-page-composer-collapse-button {
   flex: 0 0 auto;
   background: var(--ui-neutral-action-bg);
@@ -5588,14 +5593,7 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-gate {
-  box-sizing: border-box;
-  width: 100%;
-  max-width: var(--movie-review-content-width);
   margin-bottom: 18px;
-  padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-lg);
 }
 
 .movie-page-review-gate-text {
@@ -6412,7 +6410,8 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-comment-spoiler-cover,
 .movie-page-comment-deleted,
-.movie-page-comment-empty-state {
+.movie-page-comment-empty-state,
+.movie-page-review-gate {
   padding: 14px 16px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-card);
@@ -6648,9 +6647,15 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-similar-editor-input {
   display: block;
-  width: calc(100% - 28px);
+  width: 100%;
   min-height: 38px;
   margin: 0;
+}
+
+@media (min-width: 901px) {
+  .movie-page-similar-editor-input {
+    width: calc(100% - 28px);
+  }
 }
 
 .movie-page-similar-editor-hint,
@@ -8154,7 +8159,6 @@ body:has(.user-page-shell) .page-footer {
     height: 28px;
   }
 
-  .movie-page-review-gate,
   .movie-page-review-card,
   .movie-page-review-spoiler-cover,
   .movie-page-review-empty-state {
