@@ -1317,16 +1317,6 @@ async function fetchManualSimilarMovieIdsForMovie(movieId, limit = 4) {
   return loadPromise;
 }
 
-async function fetchManualSimilarMoviesForMovie(movieId, limit = 4) {
-  const similarMovieIds = await fetchManualSimilarMovieIdsForMovie(movieId, limit);
-
-  if (similarMovieIds.length === 0) {
-    return [];
-  }
-
-  return fetchCatalogMoviesByIds(similarMovieIds.slice(0, limit));
-}
-
 async function ensureManualSimilarDataLoaded({ ensureMovies = false } = {}) {
   const loadingTasks = [];
 
@@ -2146,17 +2136,6 @@ function buildFollowingPageUrl() {
   return isLocalDevRouteHost() ? 'following.html' : '/following';
 }
 
-function buildCatalogPresetUrl(presetKey) {
-  const normalizedPresetKey = String(presetKey || '').trim();
-  const catalogUrl = buildCatalogPageUrl();
-
-  if (!normalizedPresetKey) {
-    return catalogUrl;
-  }
-
-  return `${catalogUrl}${catalogUrl.includes('?') ? '&' : '?'}${CATALOG_PRESET_QUERY_PARAM}=${encodeURIComponent(normalizedPresetKey)}`;
-}
-
 function buildCatalogProfileActivityUrl(handle, activityKey) {
   const normalizedHandle = String(handle || '').trim();
   const normalizedActivityKey = String(activityKey || '').trim();
@@ -2558,15 +2537,6 @@ function openDisplayNameModal() {
   });
 }
 
-function toggleDisplayNameModal() {
-  if (isDisplayNameModalOpen) {
-    closeDisplayNameModal();
-    return;
-  }
-
-  openDisplayNameModal();
-}
-
 function syncUserPageProfileSettingsButton() {
   const settingsButton = userPage?.querySelector('[data-user-page-profile-settings="true"]');
 
@@ -2724,55 +2694,6 @@ function getUserPageAvatarMediaHtml(profile, displayName) {
     <div class="user-page-avatar" data-user-page-avatar="true" aria-hidden="true">
       ${escapeHtml(getUserPageAvatarLetter(displayName))}
     </div>
-  `;
-}
-
-function getUserPageAvatarUploadHtml(canEditAvatar) {
-  if (!canEditAvatar) {
-    return '';
-  }
-
-  return `
-    <label
-      class="user-page-avatar-upload-button"
-      aria-label="Загрузить аватар"
-      title="Загрузить аватар"
-    >
-      <input
-        type="file"
-        class="user-page-avatar-upload-input"
-        data-user-page-avatar-input="true"
-        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-      >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 5v14"></path>
-        <path d="M5 12h14"></path>
-      </svg>
-    </label>
-  `;
-}
-
-function getUserPageAvatarDeleteHtml(canEditAvatar, profile) {
-  if (!canEditAvatar) {
-    return '';
-  }
-
-  const hasAvatar = Boolean(getPublicProfileAvatarUrl(profile));
-
-  return `
-    <button
-      type="button"
-      class="user-page-avatar-delete-button"
-      data-user-page-avatar-delete="true"
-      aria-label="Удалить аватар"
-      title="Удалить аватар"
-      ${hasAvatar ? '' : 'hidden'}
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M18 6 6 18"></path>
-        <path d="m6 6 12 12"></path>
-      </svg>
-    </button>
   `;
 }
 
@@ -3369,10 +3290,6 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
-}
-
-function highlightSearchMatches(text, searchQuery) {
-  return createSearchHighlighter(searchQuery)(text);
 }
 
 function createSearchHighlighter(searchQuery) {
@@ -5484,35 +5401,6 @@ function normalizeLetterboxdImportUri(value) {
   }
 }
 
-function normalizeLetterboxdImportTitle(value) {
-  const withoutDiacritics = String(value || '')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '');
-
-  return normalizeSearchText(withoutDiacritics)
-    .replace(/&/g, ' and ')
-    .replace(/[^a-z0-9а-яё\s]+/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function getLetterboxdImportTitleVariants(value) {
-  const normalizedTitle = normalizeLetterboxdImportTitle(value);
-  const variants = new Set();
-
-  if (normalizedTitle) {
-    variants.add(normalizedTitle);
-
-    const articlelessTitle = normalizedTitle.replace(/^(the|a|an)\s+/, '');
-
-    if (articlelessTitle) {
-      variants.add(articlelessTitle);
-    }
-  }
-
-  return Array.from(variants);
-}
-
 function parseLetterboxdImportYear(value) {
   const year = Number.parseInt(String(value || '').trim(), 10);
 
@@ -6015,10 +5903,6 @@ function getCurrentUserMovieState(movieId) {
     isWatched,
     isInWatchlist: hasWatchlistRecord && !isWatched
   };
-}
-
-function isMovieInCurrentUserWatchlist(movieId) {
-  return getCurrentUserMovieState(movieId).isInWatchlist;
 }
 
 function hasMovieWatchlistRecord(movieId) {
@@ -6716,19 +6600,6 @@ function getMovieCommentReplyTargetForComment(comment) {
     rootReviewId: comment?.root_review_id || null,
     depth: commentDepth + 1
   };
-}
-
-function textMatchesSearchQuery(text, searchQuery) {
-  const normalizedQuery = normalizeSearchText(searchQuery);
-
-  if (!normalizedQuery) {
-    return true;
-  }
-
-  const normalizedText = normalizeSearchText(text);
-  const queryWords = normalizedQuery.split(' ').filter(Boolean);
-
-  return queryWords.every(word => normalizedText.includes(word));
 }
 
 function getCatalogMovieMeta(movie) {
@@ -11673,10 +11544,6 @@ async function removeUserMovieRating(movieId) {
   });
 }
 
-function isMobileRatingLayout() {
-  return window.matchMedia('(max-width: 680px)').matches;
-}
-
 function ensureMobileRatingModal() {
   if (mobileRatingModal) {
     return;
@@ -13574,28 +13441,6 @@ function getCatalogDerivedStateSignature(filterState, selectedSortMode) {
   });
 }
 
-function hasCatalogFilterStateOverrides(options = {}) {
-  const {
-    skipSorting = false,
-    ignoreGenre = false,
-    ignoreSubgenre = false,
-    ignoreFormat = false,
-    ignoreCountry = false,
-    ignoreYear = false,
-    ignoreTriggerExcludes = false
-  } = options;
-
-  return Boolean(
-    skipSorting ||
-    ignoreGenre ||
-    ignoreSubgenre ||
-    ignoreFormat ||
-    ignoreCountry ||
-    ignoreYear ||
-    ignoreTriggerExcludes
-  );
-}
-
 function filterCatalogMovies(filterState, { skipSorting = false, selectedSortMode = sortMode?.value || 'default' } = {}) {
   const filteredMovies = [];
   const sourceMovies = skipSorting
@@ -13644,17 +13489,6 @@ function getCatalogDerivedState() {
   };
 
   return state;
-}
-
-function getFilteredMovies(options = {}) {
-  if (!hasCatalogFilterStateOverrides(options)) {
-    return getCatalogDerivedState().filteredMovies;
-  }
-
-  return filterCatalogMovies(getCatalogFilterStateSnapshot(options), {
-    skipSorting: Boolean(options.skipSorting),
-    selectedSortMode: sortMode?.value || 'default'
-  });
 }
 
 function getCatalogFilterStateSnapshot(options = {}) {
@@ -16641,22 +16475,6 @@ async function fetchMovieByRouteParams(routeParams) {
   }
 
   return null;
-}
-
-function getMoviePageReleaseLabel(movie) {
-  if (!movie?.release_year && !movie?.release_month) {
-    return '';
-  }
-
-  if (movie.release_year && movie.release_month) {
-    return `${getMonthName(movie.release_month)} ${movie.release_year}`;
-  }
-
-  if (movie.release_year) {
-    return String(movie.release_year);
-  }
-
-  return getMonthName(movie.release_month);
 }
 
 function normalizeSeoText(value) {
