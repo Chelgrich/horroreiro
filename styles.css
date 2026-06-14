@@ -4382,33 +4382,6 @@ body:has(.user-page-shell) .page {
   transform: none;
 }
 
-.user-page-admin-actions {
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-}
-
-.user-page-impersonate-button {
-  width: fit-content;
-  max-width: 100%;
-  color: var(--ui-action-color);
-  background: var(--ui-action-bg);
-  border-color: transparent;
-  white-space: nowrap;
-}
-
-.user-page-impersonate-button:hover,
-.user-page-impersonate-button:focus-visible {
-  background: var(--ui-action-bg-hover);
-}
-
-.user-page-impersonate-button:disabled,
-.user-page-impersonate-button:disabled:hover {
-  cursor: default;
-  opacity: 0.68;
-  transform: none;
-}
-
 .user-page-stats {
   min-width: 0;
   display: grid;
