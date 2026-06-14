@@ -375,6 +375,7 @@ let currentUserRole = null;
 let currentUserProfile = null;
 let currentUserFollowedProfileIds = new Set();
 let userPageFollowRequestProfileIds = new Set();
+let userPageImpersonationRequestProfileId = null;
 let isAdmin = false;
 let isAuthModalOpen = false;
 let isAuthPopoverOpen = false;
@@ -14374,6 +14375,10 @@ function bindSharedUiEvents() {
       return;
     }
 
+    if (handleUserPageImpersonationClick(event)) {
+      return;
+    }
+
     if (handleFollowingPageLoginClick(event)) {
       return;
     }
@@ -14920,6 +14925,16 @@ function isOwnUserProfile(profile) {
   );
 }
 
+function canCurrentUserImpersonateProfile(profile) {
+  return Boolean(
+    isAdmin &&
+    shouldUseAuthenticatedUi() &&
+    currentUser?.id &&
+    profile?.id &&
+    String(profile.id) !== String(currentUser.id)
+  );
+}
+
 function isCurrentUserFollowingProfile(profileId) {
   const normalizedProfileId = String(profileId || '').trim();
 
@@ -14982,6 +14997,30 @@ function getUserPageFollowButtonHtml(profile) {
   `;
 }
 
+function getUserPageImpersonationButtonHtml(profile) {
+  const profileId = String(profile?.id || '').trim();
+
+  if (!profileId || !canCurrentUserImpersonateProfile(profile)) {
+    return '';
+  }
+
+  const isBusy = userPageImpersonationRequestProfileId === profileId;
+
+  return `
+    <div class="user-page-admin-actions">
+      <button
+        type="button"
+        class="secondary-button secondary-button-compact user-page-impersonate-button"
+        data-user-page-impersonate-profile-id="${escapeHtml(profileId)}"
+        title="Создать одноразовую ссылку входа под этим профилем"
+        ${isBusy ? 'disabled' : ''}
+      >
+        ${isBusy ? 'Готовлю вход...' : 'Войти как зритель'}
+      </button>
+    </div>
+  `;
+}
+
 function syncUserPageFollowButtonState(profileId) {
   const normalizedProfileId = String(profileId || '').trim();
 
@@ -15008,6 +15047,25 @@ function syncUserPageFollowButtonState(profileId) {
   button.textContent = isFollowing ? 'Отслеживается' : 'Отслеживать';
 }
 
+function syncUserPageImpersonationButtonState(profileId) {
+  const normalizedProfileId = String(profileId || '').trim();
+
+  if (!normalizedProfileId || !userPage) {
+    return;
+  }
+
+  const button = userPage.querySelector(`[data-user-page-impersonate-profile-id="${CSS.escape(normalizedProfileId)}"]`);
+
+  if (!button) {
+    return;
+  }
+
+  const isBusy = userPageImpersonationRequestProfileId === normalizedProfileId;
+
+  button.disabled = isBusy;
+  button.textContent = isBusy ? 'Готовлю вход...' : 'Войти как зритель';
+}
+
 function handleUserPageFollowClick(event) {
   const button = event.target?.closest?.('[data-user-page-follow-profile-id]');
 
@@ -15017,6 +15075,19 @@ function handleUserPageFollowClick(event) {
 
   event.preventDefault();
   toggleUserPageProfileFollow(button.dataset.userPageFollowProfileId);
+
+  return true;
+}
+
+function handleUserPageImpersonationClick(event) {
+  const button = event.target?.closest?.('[data-user-page-impersonate-profile-id]');
+
+  if (!button) {
+    return false;
+  }
+
+  event.preventDefault();
+  impersonateUserPageProfile(button.dataset.userPageImpersonateProfileId);
 
   return true;
 }
@@ -15079,6 +15150,74 @@ async function toggleUserPageProfileFollow(profileId) {
   } finally {
     userPageFollowRequestProfileIds.delete(normalizedProfileId);
     syncUserPageFollowButtonState(normalizedProfileId);
+  }
+}
+
+async function impersonateUserPageProfile(profileId) {
+  const normalizedProfileId = String(profileId || '').trim();
+
+  if (!normalizedProfileId || userPageImpersonationRequestProfileId) {
+    return;
+  }
+
+  if (!isAdmin || !shouldUseAuthenticatedUi() || !currentUser?.id) {
+    showAppMessage('Вход под пользователем доступен только администратору.', 'error', true);
+    return;
+  }
+
+  if (normalizedProfileId === String(currentUser.id)) {
+    showAppMessage('Ты уже находишься в этом профиле.', 'info', true);
+    return;
+  }
+
+  const shouldContinue = window.confirm('Войти как этот зритель? Текущая сессия администратора сменится.');
+
+  if (!shouldContinue) {
+    return;
+  }
+
+  userPageImpersonationRequestProfileId = normalizedProfileId;
+  syncUserPageImpersonationButtonState(normalizedProfileId);
+
+  try {
+    const { data, error } = await withAuthRequestTimeout(
+      supabaseClient.auth.getSession(),
+      'Не удалось проверить сессию администратора.'
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    const accessToken = data?.session?.access_token;
+
+    if (!accessToken) {
+      throw new Error('Нужна активная сессия администратора.');
+    }
+
+    const response = await withAuthRequestTimeout(
+      fetch('/api/impersonate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ userId: normalizedProfileId })
+      }),
+      'Не удалось создать ссылку входа.'
+    );
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok || !payload?.actionLink) {
+      throw new Error(payload?.error || 'Не удалось создать ссылку входа.');
+    }
+
+    window.location.assign(payload.actionLink);
+  } catch (error) {
+    console.error('Ошибка входа под пользователем:', error);
+    showAppMessage(error?.message || 'Не удалось войти под пользователем.', 'error', true);
+    userPageImpersonationRequestProfileId = null;
+    syncUserPageImpersonationButtonState(normalizedProfileId);
   }
 }
 
@@ -16478,6 +16617,7 @@ function renderUserPage(data) {
   );
   const avatarHtml = getUserPageAvatarHtml(data.profile, displayName, canEditDisplayName);
   const followButtonHtml = getUserPageFollowButtonHtml(data.profile);
+  const impersonationButtonHtml = getUserPageImpersonationButtonHtml(data.profile);
   const profileSettingsButtonHtml = canEditDisplayName
     ? `
       <button
@@ -16509,6 +16649,7 @@ function renderUserPage(data) {
           </div>
           <div class="user-page-handle">${escapeHtml(handle)}</div>
           ${followButtonHtml}
+          ${impersonationButtonHtml}
         </div>
       </section>
 

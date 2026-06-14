@@ -82,12 +82,22 @@
 
 Они не хранятся в репозитории и отдаются через Cloudflare Pages Function `/env`.
 
+Только на сервере Cloudflare Pages Functions используются:
+
+- `SUPABASE_SERVICE_ROLE_KEY` — service role ключ Supabase, не отдаётся клиенту.
+- `IMPERSONATION_ADMIN_USER_IDS` — ID администраторов через запятую или пробел, которым разрешён вход под пользователями.
+- `IMPERSONATION_REDIRECT_URL` — необязательный URL возврата после impersonation magic link. Если не задан, используется origin текущего запроса.
+
+`IMPERSONATION_REDIRECT_URL` или домен текущего запроса должны быть разрешены в Supabase Auth URL Configuration.
+
 ## Настройка Cloudflare Pages
 
 В проекте Cloudflare Pages нужно добавить переменные окружения:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `IMPERSONATION_ADMIN_USER_IDS`
 
 ## Локальная структура проекта
 
