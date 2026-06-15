@@ -28,6 +28,8 @@ const authIconButtonDefaultHtml = openAuthModalButton?.innerHTML || '';
 const authPopoverMenu = document.getElementById('authPopoverMenu');
 const importLetterboxdRatingsButton = document.getElementById('importLetterboxdRatingsButton');
 const manualSimilarAuditButton = document.getElementById('manualSimilarAuditButton');
+const completenessAuditButton = document.getElementById('completenessAuditButton');
+const databaseExportButton = document.getElementById('databaseExportButton');
 const letterboxdRatingsFileInput = document.getElementById('letterboxdRatingsFileInput');
 const logoutMenuButton = document.getElementById('logoutMenuButton');
 const authModal = document.getElementById('authModal');
@@ -404,6 +406,8 @@ let manualSimilarMovieIdsLoadedByMovieId = new Set();
 let manualSimilarMovieIdsLoadPromisesByMovieId = new Map();
 let manualSimilarDraftDirty = false;
 let isManualSimilarAuditRunning = false;
+let isCompletenessAuditRunning = false;
+let isDatabaseExportRunning = false;
 let moviePosterImagesByMovieId = new Map();
 let moviePosterImagesLoadedByMovieId = new Set();
 let moviePosterImagesLoadPromisesByMovieId = new Map();
@@ -872,6 +876,369 @@ function appendManualSimilarAuditSection(lines, title, items, formatItem) {
   });
 }
 
+async function fetchAllSupabaseRows(createQuery, pageSize = 1000) {
+  const rows = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await createQuery().range(from, from + pageSize - 1);
+
+    throwIfSupabaseError(error);
+
+    const pageRows = Array.isArray(data) ? data : [];
+    rows.push(...pageRows);
+
+    if (pageRows.length < pageSize) {
+      break;
+    }
+
+    from += pageSize;
+  }
+
+  return rows;
+}
+
+async function fetchAdminMovieRows() {
+  return fetchAllSupabaseRows(() => (
+    supabaseClient
+      .from('movies')
+      .select('*')
+      .order('title', { ascending: true })
+      .order('year', { ascending: true })
+  ));
+}
+
+async function fetchAdminMoviePosterImageRows() {
+  return fetchAllSupabaseRows(() => (
+    supabaseClient
+      .from('movie_poster_images')
+      .select('*')
+      .order('movie_id', { ascending: true })
+      .order('position', { ascending: true })
+  ));
+}
+
+async function fetchAdminMovieGenreRows() {
+  return fetchAllSupabaseRows(() => (
+    supabaseClient
+      .from('movie_genres')
+      .select('*, genres (*)')
+      .order('movie_id', { ascending: true })
+      .order('position', { ascending: true })
+  ));
+}
+
+async function fetchAdminMovieCountryRows() {
+  return fetchAllSupabaseRows(() => (
+    supabaseClient
+      .from('movie_countries')
+      .select('*, countries (*)')
+      .order('movie_id', { ascending: true })
+  ));
+}
+
+async function fetchAdminManualSimilarRows() {
+  return fetchAllSupabaseRows(() => (
+    supabaseClient
+      .from('movie_manual_similar')
+      .select('*')
+      .order('movie_id', { ascending: true })
+      .order('position', { ascending: true })
+  ));
+}
+
+function groupRowsByMovieId(rows = []) {
+  return (Array.isArray(rows) ? rows : []).reduce((groupedRows, row) => {
+    const movieId = String(row?.movie_id || '').trim();
+
+    if (!movieId) {
+      return groupedRows;
+    }
+
+    if (!groupedRows.has(movieId)) {
+      groupedRows.set(movieId, []);
+    }
+
+    groupedRows.get(movieId).push(row);
+    return groupedRows;
+  }, new Map());
+}
+
+function isEmptyTextArrayLikeField(value) {
+  if (Array.isArray(value)) {
+    return normalizeTextArrayField(value).length === 0;
+  }
+
+  return !String(value || '').trim();
+}
+
+function getMovieCompletenessAuditLabel(movie) {
+  const title = String(movie?.title || 'Без названия').trim();
+  const year = movie?.year ? ` (${movie.year})` : '';
+  const slug = String(movie?.slug || '').trim();
+  const path = slug
+    ? `/movie/${slug}`
+    : `/movie.html?id=${movie?.id || ''}`;
+
+  return `${title}${year} — ${path}`;
+}
+
+function getUniqueMoviePosterUrlCount(movie, posterRows = []) {
+  const urls = new Set();
+  const primaryPosterUrl = String(movie?.poster_url || '').trim();
+
+  if (primaryPosterUrl) {
+    urls.add(primaryPosterUrl);
+  }
+
+  posterRows.forEach(row => {
+    const imageUrl = String(row?.image_url || '').trim();
+
+    if (imageUrl) {
+      urls.add(imageUrl);
+    }
+  });
+
+  return urls.size;
+}
+
+function buildCompletenessAuditReport(movies, posterRows) {
+  const sortedMovies = [...movies].sort(compareManualSimilarAuditMovies);
+  const posterRowsByMovieId = groupRowsByMovieId(posterRows);
+  const emptyProductionMovies = [];
+  const primaryPosterOnlyMovies = [];
+  const emptyKinopoiskMovies = [];
+  const emptyTrailerMovies = [];
+
+  sortedMovies.forEach(movie => {
+    const movieId = String(movie?.id || '');
+    const moviePosterRows = posterRowsByMovieId.get(movieId) || [];
+
+    if (isEmptyTextArrayLikeField(movie?.production)) {
+      emptyProductionMovies.push(movie);
+    }
+
+    if (String(movie?.poster_url || '').trim() && getUniqueMoviePosterUrlCount(movie, moviePosterRows) === 1) {
+      primaryPosterOnlyMovies.push(movie);
+    }
+
+    if (!String(movie?.kinopoisk_url || '').trim()) {
+      emptyKinopoiskMovies.push(movie);
+    }
+
+    if (!String(movie?.trailer_url || '').trim()) {
+      emptyTrailerMovies.push(movie);
+    }
+  });
+
+  const lines = [
+    'Аудит заполненности карточек Хоррорейро',
+    `Дата: ${getManualSimilarAuditDateStamp()}`,
+    '',
+    'Сводка:',
+    `  Фильмов в каталоге: ${movies.length}`,
+    `  Пустое поле "Производство": ${emptyProductionMovies.length}`,
+    `  Только основной poster_url: ${primaryPosterOnlyMovies.length}`,
+    `  Пустое поле "Ссылка на Кинопоиск": ${emptyKinopoiskMovies.length}`,
+    `  Пустое поле "Трейлер": ${emptyTrailerMovies.length}`
+  ];
+
+  appendManualSimilarAuditSection(
+    lines,
+    '1. Пустое поле "Производство":',
+    emptyProductionMovies,
+    getMovieCompletenessAuditLabel
+  );
+
+  appendManualSimilarAuditSection(
+    lines,
+    '2. Только основной poster_url:',
+    primaryPosterOnlyMovies,
+    getMovieCompletenessAuditLabel
+  );
+
+  appendManualSimilarAuditSection(
+    lines,
+    '3. Пустое поле "Ссылка на Кинопоиск":',
+    emptyKinopoiskMovies,
+    getMovieCompletenessAuditLabel
+  );
+
+  appendManualSimilarAuditSection(
+    lines,
+    '4. Пустое поле "Трейлер":',
+    emptyTrailerMovies,
+    getMovieCompletenessAuditLabel
+  );
+
+  return {
+    text: `${lines.join('\n')}\n`,
+    summary: {
+      emptyProduction: emptyProductionMovies.length,
+      primaryPosterOnly: primaryPosterOnlyMovies.length,
+      emptyKinopoisk: emptyKinopoiskMovies.length,
+      emptyTrailer: emptyTrailerMovies.length
+    }
+  };
+}
+
+function getRowsForExportGroup(groupedRows, movieId) {
+  return groupedRows.get(String(movieId || '')) || [];
+}
+
+function getExportRowPosition(row, fallbackIndex) {
+  const position = Number(row?.position);
+
+  return Number.isFinite(position) ? position : fallbackIndex;
+}
+
+function sortExportRowsByPosition(rows = []) {
+  return [...rows].sort((firstRow, secondRow) => (
+    getExportRowPosition(firstRow, 0) - getExportRowPosition(secondRow, 0)
+  ));
+}
+
+function getExportGenreNames(rows = [], { includeBaseHorror = true } = {}) {
+  return sortExportRowsByPosition(rows)
+    .map(row => String(row?.genres?.name || row?.genre_name || row?.name || '').trim())
+    .filter(name => includeBaseHorror || normalizeSearchText(name) !== BASE_HORROR_GENRE_NORMALIZED)
+    .filter(Boolean);
+}
+
+function getExportCountryNames(rows = []) {
+  return rows
+    .map(row => String(row?.countries?.name || row?.country_name || row?.name || '').trim())
+    .filter(Boolean)
+    .sort((firstName, secondName) => firstName.localeCompare(secondName, 'ru'));
+}
+
+function getExportPosterImages(movie, rows = []) {
+  const usedUrls = new Set();
+  const images = [];
+  const primaryPosterUrl = String(movie?.poster_url || '').trim();
+
+  if (primaryPosterUrl) {
+    usedUrls.add(primaryPosterUrl);
+    images.push({
+      role: 'primary',
+      image_url: primaryPosterUrl,
+      position: 0
+    });
+  }
+
+  sortExportRowsByPosition(rows).forEach((row, index) => {
+    const imageUrl = String(row?.image_url || '').trim();
+
+    if (!imageUrl || usedUrls.has(imageUrl)) {
+      return;
+    }
+
+    usedUrls.add(imageUrl);
+    images.push({
+      ...row,
+      role: 'additional',
+      position: getExportRowPosition(row, index + 1)
+    });
+  });
+
+  return images;
+}
+
+function getExportManualSimilarItems(rows = []) {
+  return sortExportRowsByPosition(rows).map((row, index) => ({
+    ...row,
+    position: getExportRowPosition(row, index),
+    similar_movie_id: row?.similar_movie_id || null
+  }));
+}
+
+function buildEditableMovieExport(movie, {
+  movieGenres = [],
+  movieCountries = [],
+  posterImages = [],
+  manualSimilarRows = []
+} = {}) {
+  return {
+    id: movie?.id || null,
+    slug: movie?.slug || '',
+    title: movie?.title || '',
+    original_title: movie?.original_title || '',
+    year: movie?.year ?? null,
+    release_year: movie?.release_year ?? null,
+    release_month: movie?.release_month ?? null,
+    sort_order: movie?.sort_order ?? null,
+    director: parseLineOrCommaSeparatedValues(movie?.director || ''),
+    genres: getExportGenreNames(movieGenres, { includeBaseHorror: false }),
+    countries: getExportCountryNames(movieCountries),
+    production: normalizeTextArrayField(movie?.production),
+    distribution: normalizeTextArrayField(movie?.distribution),
+    russian_distribution: normalizeTextArrayField(movie?.russian_distribution),
+    synopsis: movie?.synopsis || '',
+    formats: normalizeTextArrayField(movie?.formats),
+    tags_perceived: normalizeTextArrayField(movie?.tags_perceived),
+    search_aliases: normalizeTextArrayField(movie?.search_aliases),
+    kinopoisk_url: movie?.kinopoisk_url || '',
+    imdb_url: movie?.imdb_url || '',
+    letterboxd_url: movie?.letterboxd_url || '',
+    letterboxd_short_url: movie?.letterboxd_short_url || '',
+    rottentomatoes_url: movie?.rottentomatoes_url || '',
+    trailer_url: movie?.trailer_url || '',
+    poster_url: movie?.poster_url || '',
+    poster_images: getExportPosterImages(movie, posterImages),
+    manual_similar: getExportManualSimilarItems(manualSimilarRows)
+  };
+}
+
+function buildDatabaseExportPayload({
+  movies,
+  movieGenres,
+  movieCountries,
+  posterImages,
+  manualSimilarRows
+}) {
+  const movieGenresByMovieId = groupRowsByMovieId(movieGenres);
+  const movieCountriesByMovieId = groupRowsByMovieId(movieCountries);
+  const posterImagesByMovieId = groupRowsByMovieId(posterImages);
+  const manualSimilarRowsByMovieId = groupRowsByMovieId(manualSimilarRows);
+
+  return {
+    exported_at: new Date().toISOString(),
+    app_build_version: APP_BUILD_VERSION,
+    source_origin: window.location.origin,
+    format: 'horroreiro-database-export-v1',
+    counts: {
+      movies: movies.length,
+      movie_genres: movieGenres.length,
+      movie_countries: movieCountries.length,
+      movie_poster_images: posterImages.length,
+      movie_manual_similar: manualSimilarRows.length
+    },
+    movies: movies.map(movie => {
+      const movieId = String(movie?.id || '');
+      const relatedMovieGenres = getRowsForExportGroup(movieGenresByMovieId, movieId);
+      const relatedMovieCountries = getRowsForExportGroup(movieCountriesByMovieId, movieId);
+      const relatedPosterImages = getRowsForExportGroup(posterImagesByMovieId, movieId);
+      const relatedManualSimilarRows = getRowsForExportGroup(manualSimilarRowsByMovieId, movieId);
+
+      return {
+        editable_fields: buildEditableMovieExport(movie, {
+          movieGenres: relatedMovieGenres,
+          movieCountries: relatedMovieCountries,
+          posterImages: relatedPosterImages,
+          manualSimilarRows: relatedManualSimilarRows
+        }),
+        raw: {
+          movies: movie,
+          movie_genres: relatedMovieGenres,
+          movie_countries: relatedMovieCountries,
+          movie_poster_images: relatedPosterImages,
+          movie_manual_similar: relatedManualSimilarRows
+        }
+      };
+    })
+  };
+}
+
 function buildManualSimilarAuditReport() {
   const movies = Array.isArray(allMovies) ? allMovies : [];
   const rows = Array.isArray(allManualSimilarRows) ? allManualSimilarRows : [];
@@ -1073,6 +1440,21 @@ function downloadTextFile(filename, text) {
   }, 0);
 }
 
+function downloadJsonFile(filename, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 0);
+}
+
 function getManualSimilarAuditSummaryMessage(summary) {
   const problemCount = (
     summary.moviesWithoutSimilar +
@@ -1135,6 +1517,123 @@ async function runManualSimilarAudit() {
       manualSimilarAuditButton.disabled = false;
       manualSimilarAuditButton.textContent = 'Аудит похожих';
     }
+  }
+}
+
+function setCompletenessAuditButtonState(isRunning) {
+  if (!completenessAuditButton) {
+    return;
+  }
+
+  completenessAuditButton.disabled = isRunning;
+  completenessAuditButton.textContent = isRunning ? 'Готовлю аудит...' : 'Аудит заполненности';
+}
+
+function setDatabaseExportButtonState(isRunning) {
+  if (!databaseExportButton) {
+    return;
+  }
+
+  databaseExportButton.disabled = isRunning;
+  databaseExportButton.textContent = isRunning ? 'Готовлю экспорт...' : 'Экспорт базы';
+}
+
+function getCompletenessAuditSummaryMessage(summary) {
+  const totalProblems = (
+    summary.emptyProduction +
+    summary.primaryPosterOnly +
+    summary.emptyKinopoisk +
+    summary.emptyTrailer
+  );
+
+  if (totalProblems === 0) {
+    return 'Аудит заполненности готов: недозаполненных контуров нет.';
+  }
+
+  return [
+    'Аудит заполненности готов:',
+    `производство ${summary.emptyProduction}`,
+    `один постер ${summary.primaryPosterOnly}`,
+    `Кинопоиск ${summary.emptyKinopoisk}`,
+    `трейлер ${summary.emptyTrailer}`
+  ].join(' ');
+}
+
+async function runCompletenessAudit() {
+  if (!isAdmin || isCompletenessAuditRunning) {
+    return;
+  }
+
+  isCompletenessAuditRunning = true;
+  setCompletenessAuditButtonState(true);
+  closeAuthPopoverMenu();
+  showAppMessage('Готовлю аудит заполненности...', 'info');
+
+  try {
+    const [movies, posterRows] = await Promise.all([
+      fetchAdminMovieRows(),
+      fetchAdminMoviePosterImageRows()
+    ]);
+    const report = buildCompletenessAuditReport(movies, posterRows);
+    const filename = `horroreiro-completeness-audit-${getManualSimilarAuditDateStamp()}.txt`;
+
+    downloadTextFile(filename, report.text);
+    console.info('Completeness audit report:\n', report.text);
+    showAppMessage(getCompletenessAuditSummaryMessage(report.summary), 'success', false, {
+      showAction: true
+    });
+  } catch (error) {
+    console.error('Ошибка аудита заполненности:', error);
+    showAppMessage(`Ошибка аудита заполненности: ${error.message || 'смотри консоль F12.'}`, 'error', true);
+  } finally {
+    isCompletenessAuditRunning = false;
+    setCompletenessAuditButtonState(false);
+  }
+}
+
+async function exportDatabase() {
+  if (!isAdmin || isDatabaseExportRunning) {
+    return;
+  }
+
+  isDatabaseExportRunning = true;
+  setDatabaseExportButtonState(true);
+  closeAuthPopoverMenu();
+  showAppMessage('Готовлю экспорт базы...', 'info');
+
+  try {
+    const [
+      movies,
+      movieGenres,
+      movieCountries,
+      posterImages,
+      manualSimilarRows
+    ] = await Promise.all([
+      fetchAdminMovieRows(),
+      fetchAdminMovieGenreRows(),
+      fetchAdminMovieCountryRows(),
+      fetchAdminMoviePosterImageRows(),
+      fetchAdminManualSimilarRows()
+    ]);
+    const payload = buildDatabaseExportPayload({
+      movies,
+      movieGenres,
+      movieCountries,
+      posterImages,
+      manualSimilarRows
+    });
+    const filename = `horroreiro-database-export-${getManualSimilarAuditDateStamp()}.json`;
+
+    downloadJsonFile(filename, payload);
+    showAppMessage(`Экспорт базы готов: ${payload.counts.movies} фильмов.`, 'success', false, {
+      showAction: true
+    });
+  } catch (error) {
+    console.error('Ошибка экспорта базы:', error);
+    showAppMessage(`Ошибка экспорта базы: ${error.message || 'смотри консоль F12.'}`, 'error', true);
+  } finally {
+    isDatabaseExportRunning = false;
+    setDatabaseExportButtonState(false);
   }
 }
 
@@ -7713,6 +8212,16 @@ function updateAuthUI() {
   if (manualSimilarAuditButton) {
     manualSimilarAuditButton.hidden = !(shouldShowAuthenticatedUi && isAdmin);
     manualSimilarAuditButton.disabled = isManualSimilarAuditRunning;
+  }
+
+  if (completenessAuditButton) {
+    completenessAuditButton.hidden = !(shouldShowAuthenticatedUi && isAdmin);
+    completenessAuditButton.disabled = isCompletenessAuditRunning;
+  }
+
+  if (databaseExportButton) {
+    databaseExportButton.hidden = !(shouldShowAuthenticatedUi && isAdmin);
+    databaseExportButton.disabled = isDatabaseExportRunning;
   }
 
   if (shouldShowAuthenticatedUi) {
@@ -14302,6 +14811,8 @@ function bindSharedUiEvents() {
   followingSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
 
   manualSimilarAuditButton?.addEventListener('click', runManualSimilarAudit);
+  completenessAuditButton?.addEventListener('click', runCompletenessAudit);
+  databaseExportButton?.addEventListener('click', exportDatabase);
 
   if (importLetterboxdRatingsButton && letterboxdRatingsFileInput) {
     importLetterboxdRatingsButton.addEventListener('click', () => {

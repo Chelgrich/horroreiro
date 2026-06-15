@@ -73,6 +73,24 @@
                     >
                       Аудит похожих
                     </button>
+                    <button
+                      type="button"
+                      class="auth-popover-item"
+                      id="completenessAuditButton"
+                      role="menuitem"
+                      hidden
+                    >
+                      Аудит заполненности
+                    </button>
+                    <button
+                      type="button"
+                      class="auth-popover-item"
+                      id="databaseExportButton"
+                      role="menuitem"
+                      hidden
+                    >
+                      Экспорт базы
+                    </button>
                     <input
                       type="file"
                       class="auth-popover-file-input"
