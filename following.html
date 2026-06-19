@@ -124,94 +124,10 @@
     }
   </style>
 
-  <script>
-    window.__ENV_READY__ = new Promise(resolve => {
-      const isLocalFile = window.location.protocol === 'file:';
-      const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const shouldUseLocalDevEnv = isLocalFile || isLocalHost;
-      let hasStartedStylesheetLoad = false;
-      let isEnvReadyResolved = false;
-      let envFallbackTimer = null;
-      let stylesheetFallbackTimer = null;
-
-      const localDevEnv = {
-        SUPABASE_URL: 'https://uogzcozbnosfguyfbvhe.supabase.co',
-        SUPABASE_ANON_KEY: 'sb_publishable_trS_-TlQwFqcM59nELIdsw_ygVI6B0j',
-        APP_BUILD_VERSION: 'dev-local'
-      };
-
-      function getVersionedAssetUrl(src, buildVersion) {
-        const assetPath = window.location.protocol === 'file:' ? src : `/${src}`;
-
-        return `${assetPath}?v=${encodeURIComponent(buildVersion)}`;
-      }
-
-      function finishEnvReady() {
-        if (isEnvReadyResolved) {
-          return;
-        }
-
-        isEnvReadyResolved = true;
-        window.clearTimeout(stylesheetFallbackTimer);
-        document.documentElement.classList.remove('app-load-failed');
-        document.documentElement.classList.add('app-ready');
-        resolve();
-      }
-
-      function markStylesheetFailure() {
-        if (isEnvReadyResolved) {
-          return;
-        }
-
-        document.documentElement.classList.add('app-load-failed');
-      }
-
-      function applyEnvAndLoadStyles() {
-        if (hasStartedStylesheetLoad) {
-          return;
-        }
-
-        hasStartedStylesheetLoad = true;
-        window.clearTimeout(envFallbackTimer);
-
-        const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
-        const stylesheet = document.createElement('link');
-
-        stylesheet.rel = 'stylesheet';
-        stylesheet.href = getVersionedAssetUrl('styles.css', buildVersion);
-        stylesheet.onload = finishEnvReady;
-        stylesheet.onerror = markStylesheetFailure;
-        document.head.appendChild(stylesheet);
-
-        stylesheetFallbackTimer = window.setTimeout(markStylesheetFailure, 10000);
-      }
-
-      function applyFallbackEnvAndLoadStyles() {
-        if (!window.__ENV__) {
-          window.__ENV__ = localDevEnv;
-        }
-
-        applyEnvAndLoadStyles();
-      }
-
-      if (shouldUseLocalDevEnv) {
-        window.__ENV__ = localDevEnv;
-        applyEnvAndLoadStyles();
-        return;
-      }
-
-      const envScript = document.createElement('script');
-      envScript.src = '/env';
-      envScript.onload = applyEnvAndLoadStyles;
-      envScript.onerror = applyFallbackEnvAndLoadStyles;
-      envFallbackTimer = window.setTimeout(applyFallbackEnvAndLoadStyles, 2500);
-
-      document.head.appendChild(envScript);
-    });
-  </script>
+  <script src="/boot-loader.js?v=3"></script>
 </head>
 
-<body>
+<body data-app-page="following">
   <div id="appBootShell" class="app-boot-shell" role="status" aria-live="polite">
     <div class="app-boot-shell-card">
       <div class="app-boot-logo">Хоррорейро</div>
@@ -246,39 +162,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <script>
-    (function () {
-      const envReadyPromise = window.__ENV_READY__ || Promise.resolve();
-
-      function loadScript(src, buildVersion) {
-        return new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          const assetPath = window.location.protocol === 'file:' ? src : `/${src}`;
-
-          script.src = `${assetPath}?v=${encodeURIComponent(buildVersion)}`;
-          script.onload = resolve;
-          script.onerror = reject;
-          document.body.appendChild(script);
-        });
-      }
-
-      envReadyPromise
-        .then(() => {
-          const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
-          return loadScript('shared-layout.js', buildVersion)
-            .then(() => {
-              window.SharedLayout?.mountSharedHeader({ isMoviePage: false, useLogoHeading: false });
-              window.SharedLayout?.mountSharedAuthModal();
-              window.SharedLayout?.mountSharedDisplayNameModal();
-              window.SharedLayout?.mountSharedFooter();
-            })
-            .then(() => loadScript('app.js', buildVersion));
-        })
-        .catch(error => {
-          console.error('Ошибка загрузки versioned scripts:', error);
-        });
-    })();
-  </script>
+  <script src="/app-script-loader.js?v=3"></script>
 </body>
 
 </html>

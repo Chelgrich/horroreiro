@@ -7236,6 +7236,7 @@ function buildCatalogMovieCardRenderMeta(movie, genresText, countriesText) {
   const escapedGenres = escapeHtml(genresText || '-');
   const escapedCountries = escapeHtml(countriesText || '-');
   const pageUrl = buildMoviePageUrl(movie);
+  const escapedPageUrl = escapeHtml(pageUrl);
   const externalLinksHtml = getMovieExternalLinksHtml(movie);
   const hasExternalLinks = externalLinksHtml !== '';
   const externalLinksToggleHtml = hasExternalLinks
@@ -7264,6 +7265,7 @@ function buildCatalogMovieCardRenderMeta(movie, genresText, countriesText) {
     directorText,
     posterUrl: movie?.poster_url || '',
     pageUrl,
+    escapedPageUrl,
     escapedTitle,
     escapedOriginalTitle,
     escapedDirector,
@@ -7275,7 +7277,7 @@ function buildCatalogMovieCardRenderMeta(movie, genresText, countriesText) {
     externalLinksBlockHtml,
     staticDetailsHtml: `
       <h5 class="movie-title">
-        <a href="${pageUrl}" class="movie-title-link">${escapedTitle}</a>
+        <a href="${escapedPageUrl}" class="movie-title-link">${escapedTitle}</a>
       </h5>
 
       ${originalTitleText ? `<p>Оригинальное название: ${escapedOriginalTitle}</p>` : ''}
@@ -13205,7 +13207,7 @@ function getMovieCardDetailsHtml(movie, renderContext, cardRenderMeta) {
 
   return `
     <h5 class="movie-title">
-      <a href="${cardRenderMeta.pageUrl}" class="movie-title-link">${titleHtml}</a>
+      <a href="${cardRenderMeta.escapedPageUrl}" class="movie-title-link">${titleHtml}</a>
     </h5>
 
     ${originalTitleHtml ? `<p>Оригинальное название: ${originalTitleHtml}</p>` : ''}
@@ -13246,7 +13248,7 @@ function getMoviePageExternalLinksHtml(movie) {
   if (imdbTitleId && movie.imdb_url) {
     ratingLinks.push(`
       <a
-        href="${movie.imdb_url}"
+        href="${escapeHtml(movie.imdb_url)}"
         class="movie-rating-widget-link movie-rating-widget-link-imdb"
         target="_blank"
         rel="noopener noreferrer"
@@ -13266,7 +13268,7 @@ function getMoviePageExternalLinksHtml(movie) {
   if (kinopoiskFilmId && movie.kinopoisk_url) {
     ratingLinks.push(`
       <a
-        href="${movie.kinopoisk_url}"
+        href="${escapeHtml(movie.kinopoisk_url)}"
         class="movie-rating-widget-link movie-rating-widget-link-kinopoisk"
         target="_blank"
         rel="noopener noreferrer"
@@ -13315,15 +13317,15 @@ function getMoviePageExternalLinksHtml(movie) {
       <div class="movie-external-links" aria-label="Ссылки на карточки фильма">
         ${fallbackLinks.map(link => `
           <a
-            href="${link.url}"
-            class="movie-external-link ${link.className}"
+            href="${escapeHtml(link.url)}"
+            class="movie-external-link ${escapeHtml(link.className)}"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="${link.label}"
-            title="${link.label}"
+            aria-label="${escapeHtml(link.label)}"
+            title="${escapeHtml(link.label)}"
           >
             <img
-              src="${getMovieExternalIconSrc(link.type)}"
+              src="${escapeHtml(getMovieExternalIconSrc(link.type))}"
               alt=""
               class="movie-external-link-icon"
               loading="lazy"
@@ -13390,15 +13392,15 @@ function getMovieExternalLinksHtml(movie) {
     <div class="movie-external-links" aria-label="Ссылки на карточки фильма">
       ${links.map(link => `
         <a
-          href="${link.url}"
-          class="movie-external-link ${link.className}"
+          href="${escapeHtml(link.url)}"
+          class="movie-external-link ${escapeHtml(link.className)}"
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="${link.label}"
-          title="${link.label}"
+          aria-label="${escapeHtml(link.label)}"
+          title="${escapeHtml(link.label)}"
         >
           <img
-            src="${getMovieExternalIconSrc(link.type)}"
+            src="${escapeHtml(getMovieExternalIconSrc(link.type))}"
             alt=""
             class="movie-external-link-icon"
             loading="lazy"
@@ -13427,7 +13429,7 @@ function getPosterHtml(
 
   return `
     <div class="movie-poster-block">
-      <a href="${cardRenderMeta.pageUrl}" class="movie-poster-link" aria-label="${cardRenderMeta.escapedPageLabel}">
+      <a href="${cardRenderMeta.escapedPageUrl}" class="movie-poster-link" aria-label="${cardRenderMeta.escapedPageLabel}">
         <div class="movie-poster-wrapper">
           ${
             posterUrl
@@ -16051,7 +16053,7 @@ function getUserPageMovieCardHtml(item, getBadgeHtml = null) {
   const badgeHtml = getBadgeHtml ? getBadgeHtml(item) : '';
 
   return `
-    <a href="${buildMoviePageUrl(movie)}" class="user-page-movie-card" aria-label="Перейти к фильму ${escapeHtml(movieTitle)}">
+    <a href="${escapeHtml(buildMoviePageUrl(movie))}" class="user-page-movie-card" aria-label="Перейти к фильму ${escapeHtml(movieTitle)}">
       <div class="user-page-movie-poster-wrapper">
         ${
           movie.poster_url
@@ -16688,7 +16690,7 @@ function getFollowingPageProfileCardHtml(profile) {
   const handle = getPublicProfileHandle(profile);
 
   return `
-    <a href="${buildUserPageUrl(handle)}" class="following-page-profile-card">
+      <a href="${escapeHtml(buildUserPageUrl(handle))}" class="following-page-profile-card">
       ${getFollowingPageAvatarHtml(profile, 'following-page-profile-avatar')}
       <span class="following-page-profile-name">${escapeHtml(displayName)}</span>
       <span class="following-page-profile-handle">${escapeHtml(handle)}</span>
@@ -16720,7 +16722,7 @@ function getFollowingPageActivityCardHtml(item) {
 
   return `
     <article class="following-page-activity-card">
-      <a href="${buildMoviePageUrl(movie)}" class="following-page-activity-poster-link" aria-label="Перейти к фильму ${escapeHtml(movieTitle)}">
+      <a href="${escapeHtml(buildMoviePageUrl(movie))}" class="following-page-activity-poster-link" aria-label="Перейти к фильму ${escapeHtml(movieTitle)}">
         ${
           movie.poster_url
             ? `
@@ -16738,7 +16740,7 @@ function getFollowingPageActivityCardHtml(item) {
 
       <div class="following-page-activity-body">
         <div class="following-page-activity-topline">
-          <a href="${buildUserPageUrl(handle)}" class="following-page-activity-profile">
+          <a href="${escapeHtml(buildUserPageUrl(handle))}" class="following-page-activity-profile">
             ${getFollowingPageAvatarHtml(profile, 'following-page-activity-avatar')}
             <span>${escapeHtml(displayName)}</span>
           </a>
@@ -16747,7 +16749,7 @@ function getFollowingPageActivityCardHtml(item) {
 
         <div class="following-page-activity-main">
           ${getFollowingPageActivityLabelHtml(item)}
-          <a href="${buildMoviePageUrl(movie)}" class="following-page-activity-movie">${escapeHtml(movie.title || movieTitle)}</a>
+          <a href="${escapeHtml(buildMoviePageUrl(movie))}" class="following-page-activity-movie">${escapeHtml(movie.title || movieTitle)}</a>
         </div>
 
         ${originalTitle ? `<div class="following-page-activity-original">${escapeHtml(originalTitle)}</div>` : ''}
@@ -17478,12 +17480,12 @@ function renderMoviePageNotFound() {
   moviePage.innerHTML = `
     <div class="empty-state">
       <div class="empty-state-icon" aria-hidden="true">◌</div>
-      <div class="empty-state-title">Фильм не найден</div>
+      <h1 class="empty-state-title">Фильм не найден</h1>
       <div class="empty-state-text">
         Возможно, ссылка устарела или фильм был удалён из каталога.
       </div>
       <div class="empty-state-actions">
-        <a href="${buildCatalogPageUrl()}" class="secondary-button secondary-button-compact empty-state-reset-btn">
+          <a href="${escapeHtml(buildCatalogPageUrl())}" class="secondary-button secondary-button-compact empty-state-reset-btn">
           Вернуться в каталог
         </a>
       </div>
@@ -17827,8 +17829,8 @@ function getMoviePageSimilarCardHtml(movie) {
   const votesCount = getMovieVotesCount(movie.id);
 
   return `
-    <article class="movie-page-similar-card" data-movie-id="${movie.id}">
-      <a href="${buildMoviePageUrl(movie)}" class="movie-page-similar-poster-link" aria-label="Перейти к фильму ${escapeHtml(movie.title)}">
+    <article class="movie-page-similar-card" data-movie-id="${escapeHtml(movie.id)}">
+      <a href="${escapeHtml(buildMoviePageUrl(movie))}" class="movie-page-similar-poster-link" aria-label="Перейти к фильму ${escapeHtml(movie.title)}">
         <div class="movie-page-similar-poster-wrapper">
           ${
             movie.poster_url
@@ -17848,7 +17850,7 @@ function getMoviePageSimilarCardHtml(movie) {
 
       <div class="movie-page-similar-content">
         <h3 class="movie-page-similar-title">
-          <a href="${buildMoviePageUrl(movie)}" class="movie-title-link">${escapeHtml(movie.title)}</a>
+          <a href="${escapeHtml(buildMoviePageUrl(movie))}" class="movie-title-link">${escapeHtml(movie.title)}</a>
         </h3>
 
         ${
@@ -20449,7 +20451,7 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
 
 function getMoviePageHeaderHtml(movie, viewModel) {
   return `
-    <article class="movie-page-layout" data-movie-id="${movie.id}">
+    <article class="movie-page-layout" data-movie-id="${escapeHtml(movie.id)}">
       ${getMoviePagePosterColumnHtml(movie, viewModel)}
       ${getMoviePageMainColumnHtml(movie, viewModel)}
     </article>

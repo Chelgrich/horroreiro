@@ -2551,6 +2551,7 @@ button:not(:where(
 }
 
 .empty-state-title {
+  margin: 0;
   font-size: 22px;
   font-weight: 700;
   line-height: 1.2;
