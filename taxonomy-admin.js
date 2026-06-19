@@ -756,11 +756,6 @@
       const warningsCount = countTaxonomyDiagnosticsWarnings(diagnostics);
       const report = formatTaxonomyDiagnosticsReport(diagnostics, sortedMovies.length);
 
-      console.groupCollapsed(`Диагностика тегов: ${diagnostics.length} фильмов, ${warningsCount} предупреждений`);
-      console.log(report);
-      console.log(diagnostics);
-      console.groupEnd();
-
       if (diagnostics.length === 0) {
         showAuthMessage(`Диагностика тегов завершена: ${sortedMovies.length} фильмов, проблем не найдено.`, 'success', true);
         return;
@@ -1056,11 +1051,6 @@
       const report = formatTaxonomySimilarityAuditReport(audit);
       const datePart = new Date().toISOString().slice(0, 10);
 
-      console.groupCollapsed(`Аудит похожести: ${audit.totalMovies} фильмов, ${audit.passedPairsCount} пар`);
-      console.log(report);
-      console.log(audit);
-      console.groupEnd();
-
       downloadTextFile(
         `horroreiro-similarity-audit-${datePart}.txt`,
         report,
@@ -1186,11 +1176,6 @@
       const audit = getCanonCoverageAuditReport(sortedMovies);
       const report = formatCanonCoverageAuditReport(audit);
       const datePart = new Date().toISOString().slice(0, 10);
-
-      console.groupCollapsed(`Аудит canon-покрытия: ${audit.moviesWithCandidates} фильмов, ${audit.candidatesCount} групп кандидатов`);
-      console.log(report);
-      console.log(audit);
-      console.groupEnd();
 
       downloadTextFile(
         `horroreiro-canon-coverage-audit-${datePart}.txt`,

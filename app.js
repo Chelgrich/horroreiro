@@ -1504,7 +1504,6 @@ async function runManualSimilarAudit() {
     const filename = `horroreiro-manual-similar-audit-${getManualSimilarAuditDateStamp()}.txt`;
 
     downloadTextFile(filename, report.text);
-    console.info('Manual similar audit report:\n', report.text);
     showAppMessage(getManualSimilarAuditSummaryMessage(report.summary), 'success', false, {
       showAction: true
     });
@@ -1578,7 +1577,6 @@ async function runCompletenessAudit() {
     const filename = `horroreiro-completeness-audit-${getManualSimilarAuditDateStamp()}.txt`;
 
     downloadTextFile(filename, report.text);
-    console.info('Completeness audit report:\n', report.text);
     showAppMessage(getCompletenessAuditSummaryMessage(report.summary), 'success', false, {
       showAction: true
     });
@@ -6413,7 +6411,6 @@ async function handleLetterboxdRatingsFileChange(event) {
       onProgress: message => showAppMessage(message, 'info')
     });
 
-    console.info('Letterboxd ratings import result:', importResult);
     showAppMessage(
       formatLetterboxdRatingsImportMessage(importResult),
       importResult.insertedCount > 0 ? 'success' : 'info',
