@@ -6,6 +6,8 @@
     "/env",
     "/following",
     "/following.html",
+    "/notifications",
+    "/notifications.html",
     "/admin/*",
     "/movie/*",
     "/movie.html",

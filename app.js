@@ -21,7 +21,10 @@ const profilePasswordConfirmInput = document.getElementById('profilePasswordConf
 const saveProfilePasswordButton = document.getElementById('saveProfilePasswordButton');
 const profilePasswordMessage = document.getElementById('profilePasswordMessage');
 const profileSummaryButton = document.getElementById('profileSummaryButton');
+const notificationsSummaryButton = document.getElementById('notificationsSummaryButton');
+const notificationsMenuBadge = document.getElementById('notificationsMenuBadge');
 const followingSummaryButton = document.getElementById('followingSummaryButton');
+const authNotificationBadge = document.getElementById('authNotificationBadge');
 
 const openAuthModalButton = document.getElementById('openAuthModalButton');
 const authIconButtonDefaultHtml = openAuthModalButton?.innerHTML || '';
@@ -52,6 +55,7 @@ const appToastMessage = document.getElementById('appToastMessage');
 const appToastAcceptButton = document.getElementById('appToastAcceptButton');
 const userPageMainTitle = document.querySelector('.user-page-main-title');
 const userPage = document.getElementById('userPage');
+const notificationsPage = document.getElementById('notificationsPage');
 const followingPage = document.getElementById('followingPage');
 
 const adminPanel = document.getElementById('adminPanel');
@@ -95,8 +99,9 @@ const QUICK_PRESETS_SCROLL_HINT_MEDIA_QUERY = '(max-width: 680px)';
 const QUICK_PRESETS_SCROLL_HINT_DELAY_MS = 650;
 const QUICK_PRESETS_SCROLL_HINT_DISTANCE = 72;
 const QUICK_PRESETS_SCROLL_HINT_DURATION_MS = 420;
-const FOLLOWING_PAGE_ACTIVITY_SOURCE_LIMIT = 80;
-const FOLLOWING_PAGE_ACTIVITY_DISPLAY_LIMIT = 60;
+const NOTIFICATIONS_PAGE_LIMIT = 80;
+const NOTIFICATIONS_UNREAD_REFRESH_INTERVAL_MS = 60000;
+const NOTIFICATIONS_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const MOVIE_REVIEW_MIN_LENGTH = 80;
 const MOVIE_REVIEW_MAX_LENGTH = 5000;
 const MOVIE_REVIEW_REPLY_SNIPPET_MAX_LENGTH = 120;
@@ -378,6 +383,18 @@ let currentUserRole = null;
 let currentUserProfile = null;
 let currentUserFollowedProfileIds = new Set();
 let userPageFollowRequestProfileIds = new Set();
+let notificationsUnreadCount = 0;
+let notificationsUnreadUserId = '';
+let notificationsUnreadRefreshPromise = null;
+let notificationsUnreadFetchedAt = 0;
+let areNotificationsUnavailable = false;
+let notificationsPageItems = [];
+let notificationsPageFilter = 'all';
+let isNotificationsPageMarkingAllRead = false;
+let notificationsPagePreferences = null;
+let notificationPreferenceRequestKeys = new Set();
+let followingPagePreferenceRequestKeys = new Set();
+let followingPageUnfollowRequestProfileIds = new Set();
 let isAdmin = false;
 let isAuthModalOpen = false;
 let isAuthPopoverOpen = false;
@@ -2645,6 +2662,10 @@ function buildCatalogPageUrl() {
 
 function buildFollowingPageUrl() {
   return isLocalDevRouteHost() ? 'following.html' : '/following';
+}
+
+function buildNotificationsPageUrl() {
+  return isLocalDevRouteHost() ? 'notifications.html' : '/notifications';
 }
 
 function buildCatalogProfileActivityUrl(handle, activityKey) {
@@ -8316,6 +8337,23 @@ function updateAuthUI() {
       buildFollowingPageUrl(),
       shouldShowAuthenticatedUi
     );
+  }
+
+  if (notificationsSummaryButton) {
+    syncAuthPopoverNavigationLink(
+      notificationsSummaryButton,
+      buildNotificationsPageUrl(),
+      shouldShowAuthenticatedUi
+    );
+  }
+
+  if (shouldShowAuthenticatedUi) {
+    scheduleNotificationsUnreadRefresh();
+  } else {
+    notificationsUnreadCount = 0;
+    notificationsUnreadUserId = '';
+    notificationsUnreadFetchedAt = 0;
+    syncNotificationsBadgeUi();
   }
 
   if (moviePageAdminActions) {
@@ -14975,6 +15013,7 @@ function bindSharedUiEvents() {
   });
 
   profileSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
+  notificationsSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
   followingSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
 
   manualSimilarAuditButton?.addEventListener('click', runManualSimilarAudit);
@@ -15059,6 +15098,14 @@ function bindSharedUiEvents() {
       return;
     }
 
+    if (handleFollowingPageUnfollowClick(event)) {
+      return;
+    }
+
+    if (handleNotificationsPageClick(event)) {
+      return;
+    }
+
     handleUserPageProfileSettingsClick(event);
     handleUserPageRailControlClick(event);
 
@@ -15085,6 +15132,13 @@ function bindSharedUiEvents() {
     closeCatalogExternalLinksCard(openedCard);
   });
   document.addEventListener('change', handleUserPageAvatarFileChange);
+  document.addEventListener('change', event => {
+    if (handleNotificationsPagePreferenceChange(event)) {
+      return;
+    }
+
+    handleFollowingPagePreferenceChange(event);
+  });
   document.addEventListener('focusin', event => {
     if (userPageRankTooltipTarget && !event.target?.closest?.('[data-user-page-rank-title]')) {
       hideUserPageRankTooltip();
@@ -15316,6 +15370,10 @@ function isUserPage() {
 
 function isFollowingPage() {
   return Boolean(followingPage);
+}
+
+function isNotificationsPage() {
+  return Boolean(notificationsPage);
 }
 
 function handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect) {
@@ -16796,12 +16854,860 @@ function getUserPageSectionHeaderHtml(title, url) {
   `;
 }
 
+const NOTIFICATIONS_PAGE_FILTERS = [
+  { key: 'all', label: 'Все' },
+  { key: 'social', label: 'Реакции' },
+  { key: 'replies', label: 'Ответы' },
+  { key: 'following', label: 'Отслеживаемые' },
+  { key: 'new-movies', label: 'Новинки' }
+];
+
+const NOTIFICATIONS_DEFAULT_PREFERENCES = {
+  notify_new_movies: true,
+  notify_review_likes: true,
+  notify_comment_likes: true,
+  notify_comment_replies: true,
+  notify_review_comments: true,
+  notify_new_followers: true
+};
+
+const NOTIFICATIONS_PREFERENCE_LABELS = {
+  notify_new_movies: 'Новые фильмы',
+  notify_review_likes: 'Лайки рецензий',
+  notify_comment_likes: 'Лайки комментариев',
+  notify_comment_replies: 'Ответы на комментарии',
+  notify_review_comments: 'Ответы на рецензии',
+  notify_new_followers: 'Новые отслеживания'
+};
+
+const FOLLOWING_NOTIFICATION_PREFERENCE_LABELS = {
+  notify_ratings: 'Оценки',
+  notify_watchlist: 'Смотреть позже',
+  notify_reviews: 'Рецензии'
+};
+
+function isNotificationsUnavailableError(error) {
+  if (!error) {
+    return false;
+  }
+
+  const code = String(error.code || '').trim();
+  const message = String(error.message || error.details || error.hint || '').toLowerCase();
+
+  return (
+    NOTIFICATIONS_UNAVAILABLE_CODES.has(code) ||
+    message.includes('notification_deliveries') ||
+    message.includes('notification_events') ||
+    message.includes('notification_preferences') ||
+    message.includes('user_follow_notification_preferences') ||
+    message.includes('could not find the table') ||
+    message.includes('schema cache')
+  );
+}
+
+function getNotificationsBadgeLabel(count) {
+  const normalizedCount = Number(count || 0);
+
+  if (!Number.isFinite(normalizedCount) || normalizedCount <= 0) {
+    return '';
+  }
+
+  return normalizedCount > 99 ? '99+' : String(normalizedCount);
+}
+
+function syncNotificationsBadgeUi() {
+  const shouldShowBadge = Boolean(shouldUseAuthenticatedUi() && notificationsUnreadCount > 0);
+  const badgeLabel = getNotificationsBadgeLabel(notificationsUnreadCount);
+
+  if (authNotificationBadge) {
+    authNotificationBadge.hidden = !shouldShowBadge;
+    authNotificationBadge.textContent = '';
+    authNotificationBadge.title = shouldShowBadge
+      ? `Непрочитанных уведомлений: ${notificationsUnreadCount}`
+      : '';
+  }
+
+  if (notificationsMenuBadge) {
+    notificationsMenuBadge.hidden = !shouldShowBadge;
+    notificationsMenuBadge.textContent = shouldShowBadge ? badgeLabel : '';
+  }
+}
+
+async function refreshNotificationsUnreadCount({ force = false } = {}) {
+  if (!shouldUseAuthenticatedUi() || !currentUser?.id || !supabaseClient || areNotificationsUnavailable) {
+    notificationsUnreadCount = 0;
+    notificationsUnreadUserId = currentUser?.id || '';
+    syncNotificationsBadgeUi();
+    return 0;
+  }
+
+  const currentUserId = String(currentUser.id);
+
+  if (
+    !force &&
+    notificationsUnreadUserId === currentUserId &&
+    Date.now() - notificationsUnreadFetchedAt < NOTIFICATIONS_UNREAD_REFRESH_INTERVAL_MS
+  ) {
+    syncNotificationsBadgeUi();
+    return notificationsUnreadCount;
+  }
+
+  if (!force && notificationsUnreadUserId === currentUserId && notificationsUnreadRefreshPromise) {
+    return notificationsUnreadRefreshPromise;
+  }
+
+  notificationsUnreadUserId = currentUserId;
+  notificationsUnreadRefreshPromise = (async () => {
+    const { count, error } = await supabaseClient
+      .from('notification_deliveries')
+      .select('event_id', { count: 'exact', head: true })
+      .eq('recipient_id', currentUserId)
+      .is('read_at', null);
+
+    if (error) {
+      if (isNotificationsUnavailableError(error)) {
+        areNotificationsUnavailable = true;
+        notificationsUnreadCount = 0;
+        syncNotificationsBadgeUi();
+        return 0;
+      }
+
+      throw error;
+    }
+
+    notificationsUnreadCount = Number(count || 0);
+    notificationsUnreadFetchedAt = Date.now();
+    syncNotificationsBadgeUi();
+    return notificationsUnreadCount;
+  })();
+
+  try {
+    return await notificationsUnreadRefreshPromise;
+  } catch (error) {
+    console.warn('Ошибка загрузки счётчика уведомлений:', error);
+    notificationsUnreadCount = 0;
+    syncNotificationsBadgeUi();
+    return 0;
+  } finally {
+    notificationsUnreadRefreshPromise = null;
+  }
+}
+
+function scheduleNotificationsUnreadRefresh(options = {}) {
+  void refreshNotificationsUnreadCount(options);
+}
+
+function getNotificationEventTimestampMs(item) {
+  const timestamp = new Date(item?.createdAt || item?.deliveryCreatedAt || 0).getTime();
+
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function getNotificationCategory(type) {
+  if (type === 'new_movies_digest') {
+    return 'new-movies';
+  }
+
+  if (type === 'followed_rating' || type === 'followed_watchlist' || type === 'followed_review') {
+    return 'following';
+  }
+
+  if (type === 'comment_reply' || type === 'review_comment') {
+    return 'replies';
+  }
+
+  return 'social';
+}
+
+function getNotificationMovieIdsFromPayload(payload) {
+  const movieIds = Array.isArray(payload?.movie_ids) ? payload.movie_ids : [];
+
+  return [...new Set(
+    movieIds
+      .map(movieId => String(movieId || '').trim())
+      .filter(Boolean)
+  )];
+}
+
+function normalizeNotificationRow(row) {
+  const event = Array.isArray(row?.notification_events)
+    ? row.notification_events[0]
+    : row?.notification_events;
+
+  if (!event?.id) {
+    return null;
+  }
+
+  return {
+    id: String(event.id),
+    type: String(event.type || '').trim(),
+    actorId: String(event.actor_id || '').trim(),
+    movieId: String(event.movie_id || '').trim(),
+    entityType: String(event.entity_type || '').trim(),
+    entityId: String(event.entity_id || '').trim(),
+    payload: event.payload && typeof event.payload === 'object' ? event.payload : {},
+    createdAt: event.created_at,
+    deliveryCreatedAt: row?.created_at,
+    readAt: row?.read_at || null
+  };
+}
+
+async function fetchNotificationsPageRows() {
+  if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('notification_deliveries')
+    .select('event_id, read_at, created_at, notification_events (*)')
+    .eq('recipient_id', currentUser.id)
+    .order('created_at', { ascending: false })
+    .limit(NOTIFICATIONS_PAGE_LIMIT);
+
+  if (error) {
+    if (isNotificationsUnavailableError(error)) {
+      areNotificationsUnavailable = true;
+    }
+
+    throw error;
+  }
+
+  return (data || [])
+    .map(normalizeNotificationRow)
+    .filter(Boolean);
+}
+
+async function fetchCurrentNotificationPreferences() {
+  if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
+    return { ...NOTIFICATIONS_DEFAULT_PREFERENCES };
+  }
+
+  const { data, error } = await supabaseClient
+    .from('notification_preferences')
+    .select(Object.keys(NOTIFICATIONS_DEFAULT_PREFERENCES).join(', '))
+    .eq('user_id', currentUser.id)
+    .maybeSingle();
+
+  if (error) {
+    if (isNotificationsUnavailableError(error)) {
+      areNotificationsUnavailable = true;
+      return { ...NOTIFICATIONS_DEFAULT_PREFERENCES };
+    }
+
+    throw error;
+  }
+
+  if (data) {
+    return {
+      ...NOTIFICATIONS_DEFAULT_PREFERENCES,
+      ...Object.fromEntries(
+        Object.keys(NOTIFICATIONS_DEFAULT_PREFERENCES).map(key => [key, Boolean(data[key])])
+      )
+    };
+  }
+
+  const insertPayload = {
+    user_id: currentUser.id,
+    ...NOTIFICATIONS_DEFAULT_PREFERENCES
+  };
+  const { error: insertError } = await supabaseClient
+    .from('notification_preferences')
+    .insert(insertPayload);
+
+  if (insertError && insertError.code !== '23505') {
+    if (isNotificationsUnavailableError(insertError)) {
+      areNotificationsUnavailable = true;
+      return { ...NOTIFICATIONS_DEFAULT_PREFERENCES };
+    }
+
+    throw insertError;
+  }
+
+  return { ...NOTIFICATIONS_DEFAULT_PREFERENCES };
+}
+
+async function fetchNotificationsPageData() {
+  const [notificationRows, preferences] = await Promise.all([
+    fetchNotificationsPageRows(),
+    fetchCurrentNotificationPreferences()
+  ]);
+  const actorIds = [...new Set(
+    notificationRows
+      .map(item => item.actorId)
+      .filter(Boolean)
+  )];
+  const movieIds = [...new Set(
+    notificationRows
+      .flatMap(item => [
+        item.movieId,
+        ...getNotificationMovieIdsFromPayload(item.payload)
+      ])
+      .map(movieId => String(movieId || '').trim())
+      .filter(Boolean)
+  )];
+  const [profiles, movies] = await Promise.all([
+    fetchPublicProfilesByIds(actorIds),
+    fetchMoviesByIdsWithSelect(movieIds, MOVIE_USER_PAGE_CARD_SELECT)
+  ]);
+  const profilesById = new Map((profiles || []).map(profile => [String(profile.id), profile]));
+  const moviesById = new Map((movies || []).map(movie => [String(movie.id), movie]));
+
+  notificationsPagePreferences = preferences;
+  notificationsPageItems = notificationRows
+    .map(item => ({
+      ...item,
+      actor: item.actorId ? profilesById.get(item.actorId) : null,
+      movie: item.movieId ? moviesById.get(item.movieId) : null,
+      digestMovies: getNotificationMovieIdsFromPayload(item.payload)
+        .map(movieId => moviesById.get(movieId))
+        .filter(Boolean)
+    }))
+    .sort((firstItem, secondItem) => (
+      getNotificationEventTimestampMs(secondItem) - getNotificationEventTimestampMs(firstItem)
+    ));
+
+  return {
+    items: notificationsPageItems,
+    preferences
+  };
+}
+
+function getNotificationActorLinkHtml(actor) {
+  if (!actor) {
+    return '<span class="notifications-page-actor">Пользователь</span>';
+  }
+
+  const displayName = getPublicProfileDisplayName(actor);
+  const handle = getPublicProfileHandle(actor);
+
+  return `
+    <a class="notifications-page-actor" href="${escapeHtml(buildUserPageUrl(handle))}">
+      ${escapeHtml(displayName)}
+    </a>
+  `;
+}
+
+function getNotificationMovieLinkHtml(movie, fallbackTitle = 'фильм') {
+  if (!movie) {
+    return `<span class="notifications-page-movie">${escapeHtml(fallbackTitle)}</span>`;
+  }
+
+  return `
+    <a class="notifications-page-movie" href="${escapeHtml(buildMoviePageUrl(movie))}">
+      ${escapeHtml(movie.title || getManualSimilarMovieLabel(movie))}
+    </a>
+  `;
+}
+
+function getNotificationAvatarHtml(item) {
+  if (item.type === 'new_movies_digest') {
+    return '<span class="notifications-page-avatar notifications-page-avatar-system" aria-hidden="true">+</span>';
+  }
+
+  return getFollowingPageAvatarHtml(
+    item.actor,
+    'notifications-page-avatar',
+    'small'
+  );
+}
+
+function getNotificationBadgeHtml(item) {
+  if (item.type === 'followed_rating') {
+    const rating = Number(item.payload?.rating || 0);
+
+    return rating
+      ? `<span class="notifications-page-type-badge">Оценка <strong>${escapeHtml(rating)}</strong><span>★</span></span>`
+      : '<span class="notifications-page-type-badge">Оценка</span>';
+  }
+
+  if (item.type === 'followed_watchlist') {
+    return '<span class="notifications-page-type-badge notifications-page-type-badge-watchlist">Смотреть позже</span>';
+  }
+
+  if (item.type === 'followed_review') {
+    return '<span class="notifications-page-type-badge notifications-page-type-badge-review">Рецензия</span>';
+  }
+
+  if (item.type === 'new_movies_digest') {
+    return '<span class="notifications-page-type-badge notifications-page-type-badge-digest">Новинки</span>';
+  }
+
+  return '';
+}
+
+function getNotificationBodyHtml(item) {
+  const actorHtml = getNotificationActorLinkHtml(item.actor);
+  const movieHtml = getNotificationMovieLinkHtml(item.movie);
+
+  if (item.type === 'review_liked') {
+    return `${actorHtml} оценил(а) вашу рецензию к фильму ${movieHtml}.`;
+  }
+
+  if (item.type === 'comment_liked') {
+    return `${actorHtml} оценил(а) ваш комментарий к фильму ${movieHtml}.`;
+  }
+
+  if (item.type === 'comment_reply') {
+    return `${actorHtml} ответил(а) на ваш комментарий к фильму ${movieHtml}.`;
+  }
+
+  if (item.type === 'review_comment') {
+    return `${actorHtml} оставил(а) комментарий к вашей рецензии к фильму ${movieHtml}.`;
+  }
+
+  if (item.type === 'followed_rating') {
+    return `${actorHtml} оценил(а) фильм ${movieHtml}.`;
+  }
+
+  if (item.type === 'followed_watchlist') {
+    return `${actorHtml} добавил(а) фильм ${movieHtml} в «Смотреть позже».`;
+  }
+
+  if (item.type === 'followed_review') {
+    return `${actorHtml} написал(а) рецензию к фильму ${movieHtml}.`;
+  }
+
+  if (item.type === 'profile_followed') {
+    return `${actorHtml} начал(а) отслеживать ваш профиль.`;
+  }
+
+  if (item.type === 'new_movies_digest') {
+    const digestMovies = item.digestMovies || [];
+    const digestCount = Math.max(getNotificationMovieIdsFromPayload(item.payload).length, digestMovies.length);
+    const visibleMovies = digestMovies.slice(0, 3);
+    const movieLinksHtml = visibleMovies
+      .map(movie => getNotificationMovieLinkHtml(movie))
+      .join(', ');
+    const moreCount = digestCount - visibleMovies.length;
+    const moreHtml = moreCount > 0 ? ` и ещё ${moreCount}` : '';
+
+    return `Добавлены новые фильмы${digestCount ? ` (${digestCount})` : ''}${movieLinksHtml ? `: ${movieLinksHtml}${moreHtml}.` : '.'}`;
+  }
+
+  return 'Новое уведомление.';
+}
+
+function getNotificationsPageFilterCounts(items = []) {
+  const counts = new Map(NOTIFICATIONS_PAGE_FILTERS.map(filter => [filter.key, 0]));
+
+  for (const item of items) {
+    const category = getNotificationCategory(item.type);
+
+    counts.set('all', (counts.get('all') || 0) + 1);
+    counts.set(category, (counts.get(category) || 0) + 1);
+  }
+
+  return counts;
+}
+
+function renderNotificationsPreferenceToggles(preferences) {
+  return Object.entries(NOTIFICATIONS_PREFERENCE_LABELS)
+    .map(([key, label]) => {
+      const isChecked = Boolean(preferences?.[key]);
+      const isBusy = notificationPreferenceRequestKeys.has(key);
+
+      return `
+        <label class="notifications-page-preference">
+          <input
+            type="checkbox"
+            data-notification-preference-key="${escapeHtml(key)}"
+            ${isChecked ? 'checked' : ''}
+            ${isBusy ? 'disabled' : ''}
+          >
+          <span>${escapeHtml(label)}</span>
+        </label>
+      `;
+    })
+    .join('');
+}
+
+function renderNotificationsPagePreferences(preferences) {
+  return `
+    <section class="notifications-page-settings">
+      <div class="notifications-page-settings-header">
+        <h2>Настройки уведомлений</h2>
+        <a href="${escapeHtml(buildFollowingPageUrl())}" class="notifications-page-settings-link">Настроить отслеживаемых</a>
+      </div>
+      <div class="notifications-page-preferences">
+        ${renderNotificationsPreferenceToggles(preferences)}
+      </div>
+    </section>
+  `;
+}
+
+function renderNotificationsPageFilters(items = []) {
+  const counts = getNotificationsPageFilterCounts(items);
+
+  return `
+    <div class="notifications-page-toolbar">
+      <div class="notifications-page-filter-list" role="tablist" aria-label="Фильтр уведомлений">
+        ${NOTIFICATIONS_PAGE_FILTERS.map(filter => {
+          const count = counts.get(filter.key) || 0;
+          const isActive = notificationsPageFilter === filter.key;
+
+          return `
+            <button
+              type="button"
+              class="notifications-page-filter${isActive ? ' is-active' : ''}"
+              data-notification-filter="${escapeHtml(filter.key)}"
+              aria-pressed="${isActive ? 'true' : 'false'}"
+            >
+              ${escapeHtml(filter.label)}
+              <span>${escapeHtml(count)}</span>
+            </button>
+          `;
+        }).join('')}
+      </div>
+      <button
+        type="button"
+        class="secondary-button notifications-page-read-all-button"
+        data-notifications-mark-all-read="true"
+        ${isNotificationsPageMarkingAllRead || !items.some(item => !item.readAt) ? 'disabled' : ''}
+      >
+        Отметить все прочитанными
+      </button>
+    </div>
+  `;
+}
+
+function renderNotificationsPageItem(item) {
+  const timestampMs = getNotificationEventTimestampMs(item);
+  const dateLabel = formatShortDateTime(timestampMs);
+  const readClass = item.readAt ? ' is-read' : ' is-unread';
+
+  return `
+    <article
+      class="notifications-page-item${readClass}"
+      data-notification-event-id="${escapeHtml(item.id)}"
+    >
+      ${getNotificationAvatarHtml(item)}
+      <div class="notifications-page-item-body">
+        <div class="notifications-page-item-topline">
+          ${getNotificationBadgeHtml(item)}
+          ${dateLabel ? `<time datetime="${new Date(timestampMs).toISOString()}">${escapeHtml(dateLabel)}</time>` : ''}
+        </div>
+        <div class="notifications-page-item-text">
+          ${getNotificationBodyHtml(item)}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderNotificationsPageList(items = []) {
+  const filteredItems = notificationsPageFilter === 'all'
+    ? items
+    : items.filter(item => getNotificationCategory(item.type) === notificationsPageFilter);
+
+  if (!items.length) {
+    return '<div class="notifications-page-empty-state">Уведомлений пока нет.</div>';
+  }
+
+  if (!filteredItems.length) {
+    return '<div class="notifications-page-empty-state">В этом разделе пока нет уведомлений.</div>';
+  }
+
+  return `
+    <div class="notifications-page-list">
+      ${filteredItems.map(renderNotificationsPageItem).join('')}
+    </div>
+  `;
+}
+
+function renderNotificationsPageLoading() {
+  if (!notificationsPage) {
+    return;
+  }
+
+  notificationsPage.innerHTML = '<div class="notifications-page-loading-state">Загрузка уведомлений...</div>';
+}
+
+function renderNotificationsPageAuthGate() {
+  if (!notificationsPage) {
+    return;
+  }
+
+  document.title = 'Уведомления — Хоррорейро';
+  notificationsPage.innerHTML = `
+    <div class="notifications-page-empty-state notifications-page-empty-state-large">
+      <p>Войди, чтобы видеть уведомления о реакциях, ответах и отслеживаемых профилях.</p>
+      <button type="button" class="secondary-button following-page-login-button" data-following-page-login="true">
+        Войти
+      </button>
+    </div>
+  `;
+}
+
+function renderNotificationsPageUnavailable() {
+  if (!notificationsPage) {
+    return;
+  }
+
+  document.title = 'Уведомления — Хоррорейро';
+  notificationsPage.innerHTML = `
+    <div class="notifications-page-empty-state notifications-page-empty-state-large">
+      Контур уведомлений ещё не подключён. Примените notifications-setup.sql в Supabase и обновите страницу.
+    </div>
+  `;
+}
+
+function renderNotificationsPageError() {
+  if (!notificationsPage) {
+    return;
+  }
+
+  notificationsPage.innerHTML = `
+    <div class="notifications-page-empty-state notifications-page-empty-state-large">
+      Не удалось загрузить уведомления. Попробуй обновить страницу.
+    </div>
+  `;
+}
+
+function renderNotificationsPage(data = {}) {
+  if (!notificationsPage) {
+    return;
+  }
+
+  const items = data.items || notificationsPageItems || [];
+  const preferences = data.preferences || notificationsPagePreferences || NOTIFICATIONS_DEFAULT_PREFERENCES;
+
+  document.title = 'Уведомления — Хоррорейро';
+  notificationsPage.innerHTML = `
+    ${renderNotificationsPagePreferences(preferences)}
+    <section class="notifications-page-feed">
+      <div class="notifications-page-section-header">
+        <h2>Лента уведомлений</h2>
+      </div>
+      ${renderNotificationsPageFilters(items)}
+      ${renderNotificationsPageList(items)}
+    </section>
+  `;
+}
+
+async function markNotificationRead(eventId) {
+  const normalizedEventId = String(eventId || '').trim();
+
+  if (!normalizedEventId || !shouldUseAuthenticatedUi() || !currentUser?.id) {
+    return;
+  }
+
+  const item = notificationsPageItems.find(notificationItem => notificationItem.id === normalizedEventId);
+
+  if (item?.readAt) {
+    return;
+  }
+
+  const readAt = new Date().toISOString();
+  const { error } = await supabaseClient
+    .from('notification_deliveries')
+    .update({ read_at: readAt })
+    .eq('recipient_id', currentUser.id)
+    .eq('event_id', normalizedEventId)
+    .is('read_at', null);
+
+  if (error) {
+    if (isNotificationsUnavailableError(error)) {
+      areNotificationsUnavailable = true;
+    }
+
+    throw error;
+  }
+
+  if (item) {
+    item.readAt = readAt;
+  }
+
+  notificationsUnreadCount = Math.max(0, notificationsUnreadCount - 1);
+  syncNotificationsBadgeUi();
+}
+
+async function markAllNotificationsRead() {
+  if (!shouldUseAuthenticatedUi() || !currentUser?.id || isNotificationsPageMarkingAllRead) {
+    return;
+  }
+
+  const unreadItems = notificationsPageItems.filter(item => !item.readAt);
+
+  if (!unreadItems.length) {
+    return;
+  }
+
+  isNotificationsPageMarkingAllRead = true;
+  renderNotificationsPage();
+
+  try {
+    const readAt = new Date().toISOString();
+    const { error } = await supabaseClient
+      .from('notification_deliveries')
+      .update({ read_at: readAt })
+      .eq('recipient_id', currentUser.id)
+      .is('read_at', null);
+
+    if (error) {
+      if (isNotificationsUnavailableError(error)) {
+        areNotificationsUnavailable = true;
+      }
+
+      throw error;
+    }
+
+    notificationsPageItems = notificationsPageItems.map(item => ({
+      ...item,
+      readAt: item.readAt || readAt
+    }));
+    notificationsUnreadCount = 0;
+    syncNotificationsBadgeUi();
+  } catch (error) {
+    console.error('Ошибка отметки уведомлений прочитанными:', error);
+    showAppMessage('Не удалось отметить уведомления прочитанными.', 'error', true);
+  } finally {
+    isNotificationsPageMarkingAllRead = false;
+    renderNotificationsPage();
+  }
+}
+
+function handleNotificationsPageClick(event) {
+  const filterButton = event.target?.closest?.('[data-notification-filter]');
+
+  if (filterButton) {
+    event.preventDefault();
+    notificationsPageFilter = String(filterButton.dataset.notificationFilter || 'all');
+    renderNotificationsPage();
+    return true;
+  }
+
+  const markAllReadButton = event.target?.closest?.('[data-notifications-mark-all-read="true"]');
+
+  if (markAllReadButton) {
+    event.preventDefault();
+    void markAllNotificationsRead();
+    return true;
+  }
+
+  const notificationItem = event.target?.closest?.('[data-notification-event-id]');
+
+  if (notificationItem) {
+    void markNotificationRead(notificationItem.dataset.notificationEventId).catch(error => {
+      console.warn('Ошибка отметки уведомления прочитанным:', error);
+    });
+    return false;
+  }
+
+  return false;
+}
+
+async function updateNotificationPreference(key, value) {
+  const normalizedKey = String(key || '').trim();
+
+  if (!Object.prototype.hasOwnProperty.call(NOTIFICATIONS_DEFAULT_PREFERENCES, normalizedKey)) {
+    return;
+  }
+
+  if (!shouldUseAuthenticatedUi() || !currentUser?.id || notificationPreferenceRequestKeys.has(normalizedKey)) {
+    return;
+  }
+
+  notificationPreferenceRequestKeys.add(normalizedKey);
+  notificationsPagePreferences = {
+    ...(notificationsPagePreferences || NOTIFICATIONS_DEFAULT_PREFERENCES),
+    [normalizedKey]: Boolean(value)
+  };
+  renderNotificationsPage();
+
+  try {
+    const { error } = await supabaseClient
+      .from('notification_preferences')
+      .upsert({
+        user_id: currentUser.id,
+        [normalizedKey]: Boolean(value)
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (error) {
+      if (isNotificationsUnavailableError(error)) {
+        areNotificationsUnavailable = true;
+      }
+
+      throw error;
+    }
+  } catch (error) {
+    console.error('Ошибка обновления настройки уведомлений:', error);
+    notificationsPagePreferences = {
+      ...(notificationsPagePreferences || NOTIFICATIONS_DEFAULT_PREFERENCES),
+      [normalizedKey]: !Boolean(value)
+    };
+    showAppMessage('Не удалось обновить настройку уведомлений.', 'error', true);
+  } finally {
+    notificationPreferenceRequestKeys.delete(normalizedKey);
+    renderNotificationsPage();
+  }
+}
+
+function handleNotificationsPagePreferenceChange(event) {
+  const input = event.target?.closest?.('[data-notification-preference-key]');
+
+  if (!input) {
+    return false;
+  }
+
+  void updateNotificationPreference(input.dataset.notificationPreferenceKey, input.checked);
+  return true;
+}
+
+async function loadNotificationsPage() {
+  if (!notificationsPage) {
+    return;
+  }
+
+  if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
+    renderNotificationsPageAuthGate();
+    return;
+  }
+
+  renderNotificationsPageLoading();
+
+  try {
+    const data = await fetchNotificationsPageData();
+    await refreshNotificationsUnreadCount({ force: true });
+    renderNotificationsPage(data);
+  } catch (error) {
+    if (isNotificationsUnavailableError(error)) {
+      console.warn('Контур уведомлений пока недоступен:', error);
+      renderNotificationsPageUnavailable();
+      return;
+    }
+
+    console.error('Ошибка загрузки страницы уведомлений:', error);
+    renderNotificationsPageError();
+  }
+}
+
+async function initNotificationsPage() {
+  renderNotificationsPageLoading();
+
+  const restoredUser = await restoreSession();
+
+  bindSharedAuthStateListener({
+    onAfterAuthSync: async () => {
+      await loadNotificationsPage();
+    }
+  });
+
+  if (!restoredUser && !shouldUseAuthenticatedUi()) {
+    renderNotificationsPageAuthGate();
+    return;
+  }
+
+  await loadNotificationsPage();
+}
+
 function renderFollowingPageLoading() {
   if (!followingPage) {
     return;
   }
 
-  followingPage.innerHTML = '<div class="following-page-loading-state">Загрузка отслеживаемых...</div>';
+  followingPage.innerHTML = '<div class="following-page-loading-state">Загрузка отслеживаний...</div>';
 }
 
 function renderFollowingPageAuthGate() {
@@ -16809,10 +17715,10 @@ function renderFollowingPageAuthGate() {
     return;
   }
 
-  document.title = 'Отслеживаемые — Хоррорейро';
+  document.title = 'Отслеживания — Хоррорейро';
   followingPage.innerHTML = `
     <div class="following-page-empty-state following-page-empty-state-large">
-      <p>Войди, чтобы видеть отслеживаемые профили и их активность.</p>
+      <p>Войди, чтобы управлять отслеживаемыми профилями и уведомлениями от них.</p>
       <button type="button" class="secondary-button following-page-login-button" data-following-page-login="true">
         Войти
       </button>
@@ -16827,7 +17733,7 @@ function renderFollowingPageError() {
 
   followingPage.innerHTML = `
     <div class="following-page-empty-state following-page-empty-state-large">
-      Не удалось загрузить отслеживаемые профили. Попробуй обновить страницу.
+      Не удалось загрузить отслеживания. Попробуй обновить страницу.
     </div>
   `;
 }
@@ -16856,103 +17762,60 @@ async function fetchFollowingPageFollowRows() {
   return rows;
 }
 
-async function fetchFollowingPageActivityRows(profileIds = []) {
+async function fetchFollowingPageNotificationPreferences(profileIds = []) {
   const normalizedProfileIds = [...new Set(
     (Array.isArray(profileIds) ? profileIds : [])
       .map(profileId => String(profileId || '').trim())
       .filter(Boolean)
   )];
 
-  if (!normalizedProfileIds.length) {
+  if (!shouldUseAuthenticatedUi() || !currentUser?.id || !normalizedProfileIds.length) {
     return {
-      ratingRows: [],
-      watchlistRows: [],
-      reviewRows: []
+      preferencesByProfileId: new Map(),
+      arePreferencesAvailable: true
     };
   }
 
-  const [
-    ratingsResult,
-    watchlistResult,
-    reviewsResult
-  ] = await Promise.all([
-    supabaseClient
-      .from('movie_ratings')
-      .select('user_id, movie_id, rating, created_at, updated_at')
-      .in('user_id', normalizedProfileIds)
-      .order('updated_at', { ascending: false })
-      .limit(FOLLOWING_PAGE_ACTIVITY_SOURCE_LIMIT),
-    supabaseClient
-      .from('movie_watchlist')
-      .select('user_id, movie_id, created_at')
-      .in('user_id', normalizedProfileIds)
-      .order('created_at', { ascending: false })
-      .limit(FOLLOWING_PAGE_ACTIVITY_SOURCE_LIMIT),
-    supabaseClient
-      .from('movie_reviews')
-      .select('id, user_id, movie_id, created_at, updated_at')
-      .in('user_id', normalizedProfileIds)
-      .order('updated_at', { ascending: false })
-      .limit(FOLLOWING_PAGE_ACTIVITY_SOURCE_LIMIT)
-  ]);
+  const { data, error } = await supabaseClient
+    .from('user_follow_notification_preferences')
+    .select('following_id, notify_ratings, notify_watchlist, notify_reviews')
+    .eq('follower_id', currentUser.id)
+    .in('following_id', normalizedProfileIds);
 
-  throwIfSupabaseError(ratingsResult.error);
-  throwIfSupabaseError(watchlistResult.error);
-  throwIfSupabaseError(reviewsResult.error);
+  if (error) {
+    if (isNotificationsUnavailableError(error)) {
+      return {
+        preferencesByProfileId: new Map(),
+        arePreferencesAvailable: false
+      };
+    }
+
+    throw error;
+  }
 
   return {
-    ratingRows: ratingsResult.data || [],
-    watchlistRows: watchlistResult.data || [],
-    reviewRows: reviewsResult.data || []
+    preferencesByProfileId: new Map(
+      (data || []).map(row => [
+        String(row.following_id),
+        {
+          notify_ratings: row.notify_ratings !== false,
+          notify_watchlist: row.notify_watchlist !== false,
+          notify_reviews: row.notify_reviews !== false
+        }
+      ])
+    ),
+    arePreferencesAvailable: true
   };
 }
 
-function getFollowingPageTimestampMs(row, fields = ['updated_at', 'created_at']) {
-  for (const field of fields) {
-    const timestamp = new Date(row?.[field] || 0).getTime();
+function getFollowingNotificationPreference(preferencesByProfileId, profileId) {
+  const preference = preferencesByProfileId?.get?.(String(profileId || '').trim());
 
-    if (Number.isFinite(timestamp) && timestamp > 0) {
-      return timestamp;
-    }
-  }
-
-  return 0;
-}
-
-function getFollowingPageActivityDateLabel(timestampMs) {
-  return formatShortDateTime(timestampMs);
-}
-
-function getFollowingPageActivityItems(activityRows, profilesById, moviesById) {
-  const ratingItems = (activityRows.ratingRows || []).map(row => ({
-    type: 'rating',
-    profile: profilesById.get(String(row.user_id)),
-    movie: moviesById.get(String(row.movie_id)),
-    rating: Number(row.rating || 0),
-    timestampMs: getFollowingPageTimestampMs(row, ['updated_at', 'created_at'])
-  }));
-  const watchlistItems = (activityRows.watchlistRows || []).map(row => ({
-    type: 'watchlist',
-    profile: profilesById.get(String(row.user_id)),
-    movie: moviesById.get(String(row.movie_id)),
-    timestampMs: getFollowingPageTimestampMs(row, ['created_at'])
-  }));
-  const reviewItems = (activityRows.reviewRows || []).map(row => ({
-    type: 'review',
-    profile: profilesById.get(String(row.user_id)),
-    movie: moviesById.get(String(row.movie_id)),
-    reviewId: String(row.id || ''),
-    timestampMs: getFollowingPageTimestampMs(row, ['updated_at', 'created_at'])
-  }));
-
-  return [
-    ...ratingItems,
-    ...watchlistItems,
-    ...reviewItems
-  ]
-    .filter(item => item.profile && item.movie && item.timestampMs)
-    .sort((firstItem, secondItem) => secondItem.timestampMs - firstItem.timestampMs)
-    .slice(0, FOLLOWING_PAGE_ACTIVITY_DISPLAY_LIMIT);
+  return {
+    notify_ratings: preference?.notify_ratings !== false,
+    notify_watchlist: preference?.notify_watchlist !== false,
+    notify_reviews: preference?.notify_reviews !== false
+  };
 }
 
 async function fetchFollowingPageData() {
@@ -16969,25 +17832,16 @@ async function fetchFollowingPageData() {
     return {
       followRows,
       profiles: [],
-      activityItems: []
+      preferencesByProfileId: new Map(),
+      arePreferencesAvailable: true
     };
   }
 
-  const [profiles, activityRows] = await Promise.all([
+  const [profiles, preferencesResult] = await Promise.all([
     fetchPublicProfilesByIds(followedProfileIds),
-    fetchFollowingPageActivityRows(followedProfileIds)
+    fetchFollowingPageNotificationPreferences(followedProfileIds)
   ]);
   const profilesById = new Map((profiles || []).map(profile => [String(profile.id), profile]));
-  const movieIds = [...new Set([
-    ...(activityRows.ratingRows || []).map(row => row.movie_id),
-    ...(activityRows.watchlistRows || []).map(row => row.movie_id),
-    ...(activityRows.reviewRows || []).map(row => row.movie_id)
-  ]
-    .map(movieId => String(movieId || '').trim())
-    .filter(Boolean))];
-  const movies = await fetchMoviesByIdsWithSelect(movieIds, MOVIE_USER_PAGE_CARD_SELECT);
-  const moviesById = new Map(movies.map(movie => [String(movie.id), movie]));
-  const activityItems = getFollowingPageActivityItems(activityRows, profilesById, moviesById);
   const orderedProfiles = followRows
     .map(row => profilesById.get(String(row.following_id)))
     .filter(Boolean);
@@ -16995,7 +17849,8 @@ async function fetchFollowingPageData() {
   return {
     followRows,
     profiles: orderedProfiles,
-    activityItems
+    preferencesByProfileId: preferencesResult.preferencesByProfileId,
+    arePreferencesAvailable: preferencesResult.arePreferencesAvailable
   };
 }
 
@@ -17023,76 +17878,54 @@ function getFollowingPageAvatarHtml(profile, className, size = 'small') {
   `;
 }
 
-function getFollowingPageProfileCardHtml(profile) {
-  const displayName = getPublicProfileDisplayName(profile);
-  const handle = getPublicProfileHandle(profile);
-
-  return `
-      <a href="${escapeHtml(buildUserPageUrl(handle))}" class="following-page-profile-card">
-      ${getFollowingPageAvatarHtml(profile, 'following-page-profile-avatar')}
-      <span class="following-page-profile-name">${escapeHtml(displayName)}</span>
-      <span class="following-page-profile-handle">${escapeHtml(handle)}</span>
-    </a>
-  `;
+function getFollowingPagePreferenceKey(profileId, key) {
+  return `${String(profileId || '').trim()}:${String(key || '').trim()}`;
 }
 
-function getFollowingPageActivityLabelHtml(item) {
-  if (item.type === 'rating') {
-    return `<span class="following-page-activity-badge">Оценка <strong>${escapeHtml(item.rating)}</strong><span>★</span></span>`;
-  }
-
-  if (item.type === 'review') {
-    return '<span class="following-page-activity-badge following-page-activity-badge-review">Рецензия</span>';
-  }
-
-  return '<span class="following-page-activity-badge following-page-activity-badge-watchlist">Смотреть позже</span>';
-}
-
-function getFollowingPageActivityCardHtml(item) {
-  const profile = item.profile;
-  const movie = item.movie;
+function getFollowingPageProfileCardHtml(profile, preferencesByProfileId, arePreferencesAvailable = true) {
   const displayName = getPublicProfileDisplayName(profile);
   const handle = getPublicProfileHandle(profile);
-  const movieTitle = getManualSimilarMovieLabel(movie);
-  const originalTitle = String(movie.original_title || '').trim();
-  const year = movie.year ? String(movie.year) : '';
-  const dateLabel = getFollowingPageActivityDateLabel(item.timestampMs);
+  const profileId = String(profile?.id || '').trim();
+  const preference = getFollowingNotificationPreference(preferencesByProfileId, profileId);
 
   return `
-    <article class="following-page-activity-card">
-      <a href="${escapeHtml(buildMoviePageUrl(movie))}" class="following-page-activity-poster-link" aria-label="Перейти к фильму ${escapeHtml(movieTitle)}">
-        ${
-          movie.poster_url
-            ? `
-              <img
-                class="following-page-activity-poster"
-                ${getPosterImageAttributeHtml(movie.poster_url, 'similar')}
-                alt="Постер фильма ${escapeHtml(movieTitle)}"
-                loading="lazy"
-                decoding="async"
-              >
-            `
-            : '<div class="movie-poster-placeholder">Нет постера</div>'
-        }
+    <article class="following-page-profile-card">
+      <a href="${escapeHtml(buildUserPageUrl(handle))}" class="following-page-profile-link">
+        ${getFollowingPageAvatarHtml(profile, 'following-page-profile-avatar')}
+        <span class="following-page-profile-name">${escapeHtml(displayName)}</span>
+        <span class="following-page-profile-handle">${escapeHtml(handle)}</span>
       </a>
 
-      <div class="following-page-activity-body">
-        <div class="following-page-activity-topline">
-          <a href="${escapeHtml(buildUserPageUrl(handle))}" class="following-page-activity-profile">
-            ${getFollowingPageAvatarHtml(profile, 'following-page-activity-avatar')}
-            <span>${escapeHtml(displayName)}</span>
-          </a>
-          ${dateLabel ? `<time class="following-page-activity-date" datetime="${new Date(item.timestampMs).toISOString()}">${escapeHtml(dateLabel)}</time>` : ''}
-        </div>
+      <div class="following-page-profile-controls" aria-label="Уведомления от ${escapeHtml(displayName)}">
+        ${Object.entries(FOLLOWING_NOTIFICATION_PREFERENCE_LABELS).map(([key, label]) => {
+          const preferenceKey = getFollowingPagePreferenceKey(profileId, key);
+          const isBusy = followingPagePreferenceRequestKeys.has(preferenceKey);
+          const isChecked = preference[key] !== false;
 
-        <div class="following-page-activity-main">
-          ${getFollowingPageActivityLabelHtml(item)}
-          <a href="${escapeHtml(buildMoviePageUrl(movie))}" class="following-page-activity-movie">${escapeHtml(movie.title || movieTitle)}</a>
-        </div>
-
-        ${originalTitle ? `<div class="following-page-activity-original">${escapeHtml(originalTitle)}</div>` : ''}
-        ${year ? `<div class="following-page-activity-meta">${escapeHtml(year)}</div>` : ''}
+          return `
+            <label class="following-page-profile-toggle">
+              <input
+                type="checkbox"
+                data-follow-notification-toggle="true"
+                data-following-id="${escapeHtml(profileId)}"
+                data-follow-notification-key="${escapeHtml(key)}"
+                ${isChecked ? 'checked' : ''}
+                ${isBusy || !arePreferencesAvailable ? 'disabled' : ''}
+              >
+              <span>${escapeHtml(label)}</span>
+            </label>
+          `;
+        }).join('')}
       </div>
+
+      <button
+        type="button"
+        class="secondary-button following-page-unfollow-button"
+        data-following-page-unfollow-profile-id="${escapeHtml(profileId)}"
+        ${followingPageUnfollowRequestProfileIds.has(profileId) ? 'disabled' : ''}
+      >
+        Не отслеживать
+      </button>
     </article>
   `;
 }
@@ -17102,7 +17935,7 @@ function renderFollowingPage(data) {
     return;
   }
 
-  document.title = 'Отслеживаемые — Хоррорейро';
+  document.title = 'Отслеживания — Хоррорейро';
 
   if (!data?.profiles?.length) {
     followingPage.innerHTML = `
@@ -17116,29 +17949,132 @@ function renderFollowingPage(data) {
   followingPage.innerHTML = `
     <section class="following-page-block">
       <div class="following-page-section-header">
-        <h2>Профили</h2>
+        <h2>Отслеживаемые профили</h2>
         <span>${data.profiles.length}</span>
       </div>
-      <div class="following-page-profile-grid">
-        ${data.profiles.map(getFollowingPageProfileCardHtml).join('')}
-      </div>
-    </section>
-
-    <section class="following-page-block">
-      <div class="following-page-section-header">
-        <h2>Лента активности</h2>
-      </div>
       ${
-        data.activityItems.length
-          ? `
-            <div class="following-page-activity-list">
-              ${data.activityItems.map(getFollowingPageActivityCardHtml).join('')}
-            </div>
-          `
-          : '<div class="following-page-empty-state">У отслеживаемых профилей пока нет активности.</div>'
+        data.arePreferencesAvailable
+          ? ''
+          : '<div class="following-page-empty-state following-page-warning-state">Настройки уведомлений станут доступны после применения notifications-setup.sql в Supabase.</div>'
       }
+      <div class="following-page-profile-grid">
+        ${data.profiles
+          .map(profile => getFollowingPageProfileCardHtml(
+            profile,
+            data.preferencesByProfileId,
+            data.arePreferencesAvailable
+          ))
+          .join('')}
+      </div>
     </section>
   `;
+}
+
+async function updateFollowingNotificationPreference(profileId, key, value) {
+  const normalizedProfileId = String(profileId || '').trim();
+  const normalizedKey = String(key || '').trim();
+
+  if (
+    !normalizedProfileId ||
+    !Object.prototype.hasOwnProperty.call(FOLLOWING_NOTIFICATION_PREFERENCE_LABELS, normalizedKey) ||
+    !shouldUseAuthenticatedUi() ||
+    !currentUser?.id
+  ) {
+    return;
+  }
+
+  const requestKey = getFollowingPagePreferenceKey(normalizedProfileId, normalizedKey);
+
+  if (followingPagePreferenceRequestKeys.has(requestKey)) {
+    return;
+  }
+
+  followingPagePreferenceRequestKeys.add(requestKey);
+
+  try {
+    const { error } = await supabaseClient
+      .from('user_follow_notification_preferences')
+      .upsert({
+        follower_id: currentUser.id,
+        following_id: normalizedProfileId,
+        [normalizedKey]: Boolean(value)
+      }, {
+        onConflict: 'follower_id,following_id'
+      });
+
+    if (error) {
+      if (isNotificationsUnavailableError(error)) {
+        areNotificationsUnavailable = true;
+      }
+
+      throw error;
+    }
+  } catch (error) {
+    console.error('Ошибка обновления настройки отслеживания:', error);
+    showAppMessage('Не удалось обновить настройку отслеживания.', 'error', true);
+  } finally {
+    followingPagePreferenceRequestKeys.delete(requestKey);
+    await loadFollowingPage();
+  }
+}
+
+function handleFollowingPagePreferenceChange(event) {
+  const input = event.target?.closest?.('[data-follow-notification-toggle="true"]');
+
+  if (!input) {
+    return false;
+  }
+
+  void updateFollowingNotificationPreference(
+    input.dataset.followingId,
+    input.dataset.followNotificationKey,
+    input.checked
+  );
+  return true;
+}
+
+async function unfollowProfileFromFollowingPage(profileId) {
+  const normalizedProfileId = String(profileId || '').trim();
+
+  if (!normalizedProfileId || !shouldUseAuthenticatedUi() || !currentUser?.id) {
+    return;
+  }
+
+  if (followingPageUnfollowRequestProfileIds.has(normalizedProfileId)) {
+    return;
+  }
+
+  followingPageUnfollowRequestProfileIds.add(normalizedProfileId);
+
+  try {
+    const { error } = await supabaseClient
+      .from('user_profile_follows')
+      .delete()
+      .eq('follower_id', currentUser.id)
+      .eq('following_id', normalizedProfileId);
+
+    throwIfSupabaseError(error);
+    currentUserFollowedProfileIds.delete(normalizedProfileId);
+    showAppMessage('Профиль больше не отслеживается.', 'success', true);
+  } catch (error) {
+    console.error('Ошибка удаления отслеживания:', error);
+    showAppMessage('Не удалось удалить отслеживание.', 'error', true);
+  } finally {
+    followingPageUnfollowRequestProfileIds.delete(normalizedProfileId);
+    await loadFollowingPage();
+  }
+}
+
+function handleFollowingPageUnfollowClick(event) {
+  const button = event.target?.closest?.('[data-following-page-unfollow-profile-id]');
+
+  if (!button) {
+    return false;
+  }
+
+  event.preventDefault();
+  void unfollowProfileFromFollowingPage(button.dataset.followingPageUnfollowProfileId);
+  return true;
 }
 
 function handleFollowingPageLoginClick(event) {
@@ -21113,6 +22049,11 @@ async function init() {
 
   if (isFollowingPage()) {
     await initFollowingPage();
+    return;
+  }
+
+  if (isNotificationsPage()) {
+    await initNotificationsPage();
     return;
   }
 

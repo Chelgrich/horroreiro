@@ -33,6 +33,7 @@
                       <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5Z"></path>
                       <path d="M4 21c0-3.866 3.582-7 8-7s8 3.134 8 7"></path>
                     </svg>
+                    <span id="authNotificationBadge" class="auth-notification-badge" hidden></span>
                   </button>
   
                   <div id="authPopoverMenu" class="auth-popover-menu" role="menu" aria-label="Меню аккаунта">
@@ -48,11 +49,21 @@
                     <a
                       href="#"
                       class="auth-popover-item"
+                      id="notificationsSummaryButton"
+                      role="menuitem"
+                      hidden
+                    >
+                      Уведомления
+                      <span id="notificationsMenuBadge" class="auth-popover-item-badge" hidden></span>
+                    </a>
+                    <a
+                      href="#"
+                      class="auth-popover-item"
                       id="followingSummaryButton"
                       role="menuitem"
                       hidden
                     >
-                      Отслеживаемые
+                      Отслеживания
                     </a>
                     <button
                       type="button"

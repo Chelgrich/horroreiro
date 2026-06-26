@@ -18,7 +18,8 @@
 - `index.html` — каталог фильмов
 - `movie.html` — детальная страница фильма
 - `user.html` — страница профиля
-- `following.html` — отслеживаемые профили и лента активности
+- `following.html` — отслеживаемые профили и настройки уведомлений
+- `notifications.html` — уведомления пользователя
 
 ## Клиентские ассеты
 
@@ -33,7 +34,7 @@
 
 - `/env` отдаёт публичные клиентские переменные в `window.__ENV__`
 - `/admin/users/:id/password` даёт администратору серверную установку пароля пользователя через Supabase Auth Admin API
-- `/`, `/index.html`, `/movie/*`, `/movie.html`, `/user/*`, `/user.html`, `/following`, `/following.html` отдаются с корректной no-store HTML-логикой
+- `/`, `/index.html`, `/movie/*`, `/movie.html`, `/user/*`, `/user.html`, `/following`, `/following.html`, `/notifications`, `/notifications.html` отдаются с корректной no-store HTML-логикой
 - `/sitemap.xml` генерируется динамически из актуальной базы фильмов
 
 ## Переменные окружения

@@ -22,7 +22,8 @@ const pages = {
   'index.html': 'catalog',
   'movie.html': 'movie',
   'user.html': 'user',
-  'following.html': 'following'
+  'following.html': 'following',
+  'notifications.html': 'notifications'
 };
 
 Object.entries(pages).forEach(([file, page]) => {
@@ -56,6 +57,7 @@ const activeTextTargets = [
   'movie.html',
   'user.html',
   'following.html',
+  'notifications.html',
   'app.js',
   'shared-layout.js',
   'app-script-loader.js',
@@ -82,6 +84,8 @@ const routes = JSON.parse(read('_routes.json'));
   '/user.html',
   '/following',
   '/following.html',
+  '/notifications',
+  '/notifications.html',
   '/sitemap.xml'
 ].forEach(route => {
   assert(routes.include.includes(route), `_routes.json: missing ${route}`);
