@@ -4366,17 +4366,45 @@ body:has(.user-page-shell) .page {
   line-height: var(--line-height-snug);
 }
 
-.notifications-page-settings-link {
-  color: var(--accent-soft-text);
+.notifications-page-settings-action {
+  min-height: 36px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+  border-radius: var(--radius-md);
   font-size: var(--font-size-base);
   line-height: var(--line-height-snug);
   font-weight: 700;
   text-decoration: none;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
 }
 
-.notifications-page-settings-link:hover,
-.notifications-page-settings-link:focus-visible {
+.notifications-page-settings-action:hover,
+.notifications-page-settings-action:focus-visible {
   color: var(--color-text-primary);
+  background: var(--ui-action-bg-hover);
+}
+
+.notifications-page-settings-action:focus,
+.notifications-page-settings-action:focus-visible {
+  outline: none;
+}
+
+.notifications-page-settings-action svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--icon-stroke-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .notifications-page-preferences {

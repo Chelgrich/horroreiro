@@ -17326,7 +17326,17 @@ function renderNotificationsPagePreferences(preferences) {
     <section class="notifications-page-settings">
       <div class="notifications-page-settings-header">
         <h2>Настройки уведомлений</h2>
-        <a href="${escapeHtml(buildFollowingPageUrl())}" class="notifications-page-settings-link">Настроить отслеживаемых</a>
+        <a href="${escapeHtml(buildFollowingPageUrl())}" class="notifications-page-settings-action">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M4 7h10"></path>
+            <path d="M18 7h2"></path>
+            <path d="M16 5v4"></path>
+            <path d="M4 17h2"></path>
+            <path d="M10 17h10"></path>
+            <path d="M8 15v4"></path>
+          </svg>
+          <span>Отслеживаемые профили</span>
+        </a>
       </div>
       <div class="notifications-page-preferences">
         ${renderNotificationsPreferenceToggles(preferences)}
