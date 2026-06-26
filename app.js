@@ -17390,7 +17390,10 @@ function renderNotificationsPageItem(item) {
       class="notifications-page-item${readClass}"
       data-notification-event-id="${escapeHtml(item.id)}"
     >
-      ${getNotificationAvatarHtml(item)}
+      <div class="notifications-page-avatar-shell">
+        ${getNotificationAvatarHtml(item)}
+        ${item.readAt ? '' : '<span class="notifications-page-unread-dot" aria-hidden="true"></span>'}
+      </div>
       <div class="notifications-page-item-body">
         <div class="notifications-page-item-topline">
           ${getNotificationBadgeHtml(item)}

@@ -699,13 +699,13 @@ h3 {
 
 .auth-icon-button.has-avatar {
   padding: 2px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .auth-notification-badge {
   position: absolute;
-  top: 3px;
-  right: 3px;
+  top: -2px;
+  right: -2px;
   width: 11px;
   height: 11px;
   display: inline-flex;
@@ -4530,22 +4530,16 @@ body:has(.user-page-shell) .page {
     var(--surface-card);
 }
 
-.notifications-page-item.is-unread::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 7px;
-  width: 6px;
-  height: 6px;
-  background: rgb(var(--palette-red-like-rgb));
-  border-radius: 50%;
-  transform: translateY(-50%);
-}
-
 .notifications-page-item:hover {
   color: var(--color-text-primary);
   border-color: var(--ui-soft-border-hover);
   background: var(--surface-card-hover);
+}
+
+.notifications-page-avatar-shell {
+  position: relative;
+  width: 42px;
+  height: 42px;
 }
 
 .notifications-page-avatar {
@@ -4560,6 +4554,17 @@ body:has(.user-page-shell) .page {
   font-family: var(--font-display);
   font-size: var(--font-size-title-sm);
   font-weight: 700;
+}
+
+.notifications-page-unread-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  background: rgb(var(--palette-red-like-rgb));
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--surface-card);
 }
 
 .notifications-page-avatar-system {
@@ -8627,6 +8632,11 @@ body:has(.user-page-shell) .page-footer {
   .notifications-page-item {
     grid-template-columns: 36px minmax(0, 1fr);
     gap: 10px;
+  }
+
+  .notifications-page-avatar-shell {
+    width: 36px;
+    height: 36px;
   }
 
   .notifications-page-avatar {
