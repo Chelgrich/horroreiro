@@ -24,7 +24,6 @@ const profileSummaryButton = document.getElementById('profileSummaryButton');
 const notificationsSummaryButton = document.getElementById('notificationsSummaryButton');
 const notificationsMenuBadge = document.getElementById('notificationsMenuBadge');
 const followingSummaryButton = document.getElementById('followingSummaryButton');
-const authNotificationBadge = document.getElementById('authNotificationBadge');
 
 const openAuthModalButton = document.getElementById('openAuthModalButton');
 const authIconButtonDefaultHtml = openAuthModalButton?.innerHTML || '';
@@ -7760,6 +7759,29 @@ function syncAuthIconButtonState() {
   if (!isAuthenticated) {
     closeAuthPopoverMenu();
   }
+
+  ensureAuthNotificationBadgeElement();
+}
+
+function ensureAuthNotificationBadgeElement() {
+  if (!openAuthModalButton) {
+    return null;
+  }
+
+  const existingBadge = openAuthModalButton.querySelector('#authNotificationBadge');
+
+  if (existingBadge) {
+    return existingBadge;
+  }
+
+  const badge = document.createElement('span');
+
+  badge.id = 'authNotificationBadge';
+  badge.className = 'auth-notification-badge';
+  badge.hidden = true;
+  openAuthModalButton.appendChild(badge);
+
+  return badge;
 }
 
 function setAuthSubmittingState(isSubmitting) {
@@ -16918,11 +16940,12 @@ function getNotificationsBadgeLabel(count) {
 function syncNotificationsBadgeUi() {
   const shouldShowBadge = Boolean(shouldUseAuthenticatedUi() && notificationsUnreadCount > 0);
   const badgeLabel = getNotificationsBadgeLabel(notificationsUnreadCount);
+  const authBadge = ensureAuthNotificationBadgeElement();
 
-  if (authNotificationBadge) {
-    authNotificationBadge.hidden = !shouldShowBadge;
-    authNotificationBadge.textContent = '';
-    authNotificationBadge.title = shouldShowBadge
+  if (authBadge) {
+    authBadge.hidden = !shouldShowBadge;
+    authBadge.textContent = '';
+    authBadge.title = shouldShowBadge
       ? `Непрочитанных уведомлений: ${notificationsUnreadCount}`
       : '';
   }
@@ -17384,6 +17407,20 @@ function renderNotificationsPageItem(item) {
   const timestampMs = getNotificationEventTimestampMs(item);
   const dateLabel = formatShortDateTime(timestampMs);
   const readClass = item.readAt ? ' is-read' : ' is-unread';
+  const actorHandle = item.actor ? getPublicProfileHandle(item.actor) : '';
+  const actorDisplayName = item.actor ? getPublicProfileDisplayName(item.actor) : '';
+  const avatarHtml = getNotificationAvatarHtml(item);
+  const avatarContentHtml = actorHandle
+    ? `
+      <a
+        href="${escapeHtml(buildUserPageUrl(actorHandle))}"
+        class="notifications-page-avatar-link"
+        aria-label="Профиль ${escapeHtml(actorDisplayName)}"
+      >
+        ${avatarHtml}
+      </a>
+    `
+    : avatarHtml;
 
   return `
     <article
@@ -17391,7 +17428,7 @@ function renderNotificationsPageItem(item) {
       data-notification-event-id="${escapeHtml(item.id)}"
     >
       <div class="notifications-page-avatar-shell">
-        ${getNotificationAvatarHtml(item)}
+        ${avatarContentHtml}
         ${item.readAt ? '' : '<span class="notifications-page-unread-dot" aria-hidden="true"></span>'}
       </div>
       <div class="notifications-page-item-body">
@@ -17532,6 +17569,10 @@ async function markNotificationRead(eventId) {
 
   notificationsUnreadCount = Math.max(0, notificationsUnreadCount - 1);
   syncNotificationsBadgeUi();
+
+  if (notificationsPage) {
+    renderNotificationsPage();
+  }
 }
 
 async function markAllNotificationsRead() {
@@ -17600,10 +17641,34 @@ function handleNotificationsPageClick(event) {
   const notificationItem = event.target?.closest?.('[data-notification-event-id]');
 
   if (notificationItem) {
+    const destinationLink = event.target?.closest?.('a[href]');
+    const shouldOpenNormally = Boolean(
+      destinationLink &&
+      (
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        destinationLink.target === '_blank'
+      )
+    );
+
+    if (destinationLink && !shouldOpenNormally) {
+      event.preventDefault();
+      void markNotificationRead(notificationItem.dataset.notificationEventId)
+        .catch(error => {
+          console.warn('Ошибка отметки уведомления прочитанным:', error);
+        })
+        .finally(() => {
+          window.location.href = destinationLink.href;
+        });
+      return true;
+    }
+
     void markNotificationRead(notificationItem.dataset.notificationEventId).catch(error => {
       console.warn('Ошибка отметки уведомления прочитанным:', error);
     });
-    return false;
+    return true;
   }
 
   return false;

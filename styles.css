@@ -4247,6 +4247,7 @@ body:has(.user-page-shell) .page {
   font-family: var(--font-display);
   font-size: var(--font-size-title-sm);
   font-weight: 700;
+  transition: box-shadow 0.18s ease;
 }
 
 .following-page-profile-name {
@@ -4528,6 +4529,7 @@ body:has(.user-page-shell) .page {
   background:
     linear-gradient(90deg, var(--accent-alpha-08), transparent 55%),
     var(--surface-card);
+  cursor: pointer;
 }
 
 .notifications-page-item:hover {
@@ -4542,6 +4544,25 @@ body:has(.user-page-shell) .page {
   height: 42px;
 }
 
+.notifications-page-avatar-link {
+  width: 100%;
+  height: 100%;
+  display: block;
+  color: inherit;
+  border-radius: 50%;
+  text-decoration: none;
+}
+
+.notifications-page-avatar-link:focus,
+.notifications-page-avatar-link:focus-visible {
+  outline: none;
+}
+
+.notifications-page-avatar-link:hover .notifications-page-avatar,
+.notifications-page-avatar-link:focus-visible .notifications-page-avatar {
+  box-shadow: 0 0 0 2px var(--accent-alpha-30);
+}
+
 .notifications-page-avatar {
   width: 42px;
   height: 42px;
@@ -4554,6 +4575,7 @@ body:has(.user-page-shell) .page {
   font-family: var(--font-display);
   font-size: var(--font-size-title-sm);
   font-weight: 700;
+  transition: box-shadow 0.18s ease;
 }
 
 .notifications-page-unread-dot {
