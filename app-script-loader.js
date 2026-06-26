@@ -16,10 +16,7 @@
   }
 
   function mountSharedLayout() {
-    const isMoviePage = page === 'movie';
-    const useLogoHeading = page === 'catalog';
-
-    window.SharedLayout?.mountSharedHeader({ isMoviePage, useLogoHeading });
+    window.SharedLayout?.mountSharedHeader();
     window.SharedLayout?.mountSharedAuthModal();
     window.SharedLayout?.mountSharedDisplayNameModal();
     window.SharedLayout?.mountSharedFooter();

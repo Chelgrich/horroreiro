@@ -1,8 +1,6 @@
 (function () {
-    function getSharedHeaderHtml({ isMoviePage = false, useLogoHeading = !isMoviePage } = {}) {
-      const logoHtml = useLogoHeading
-        ? `<h1 class="page-logo">Хоррорейро</h1>`
-        : `<div class="page-logo"><a href="/" class="page-logo-link">Хоррорейро</a></div>`;
+    function getSharedHeaderHtml() {
+      const logoHtml = `<div class="page-logo"><a href="/" class="page-logo-link" aria-label="Хоррорейро">Хоррорейро</a></div>`;
   
       return `
         <header class="page-header">
@@ -129,14 +127,14 @@
       `;
     }
   
-    function mountSharedHeader(options = {}) {
+    function mountSharedHeader() {
       const headerMount = document.getElementById('sharedHeaderMount');
   
       if (!headerMount) {
         return;
       }
   
-      headerMount.innerHTML = getSharedHeaderHtml(options);
+      headerMount.innerHTML = getSharedHeaderHtml();
     }
   
     function getSharedAuthModalHtml() {
