@@ -106,6 +106,7 @@ const MOVIE_COMMENT_MAX_DEPTH = 2;
 let didPlayQuickPresetsScrollHint = false;
 let quickPresetsScrollHintTimerId = null;
 let quickPresetsScrollHintFrameId = null;
+let didConsumeEmailConfirmationRedirect = false;
 
 let movieForm = document.getElementById('movieForm');
 let formTitle = document.getElementById('formTitle');
@@ -451,6 +452,7 @@ let appMessageTimer = null;
 let isAuthSubmitting = false;
 let isMovieFormSubmitting = false;
 let isProfilePasswordSubmitting = false;
+let isUserAdminPasswordSubmitting = false;
 let isLetterboxdRatingsImporting = false;
 let lastLetterboxdRatingsImportFileToken = '';
 let ratingRequestInFlight = new Set();
@@ -5377,92 +5379,202 @@ function initCatalogViewToggleButton() {
   syncCatalogViewToggleButton();
 }
 
-function isEmailConfirmationRedirect() {
+function getAuthRedirectInfo() {
   const searchParams = new URLSearchParams(window.location.search);
   const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-
-  return (
-    searchParams.get('type') === 'signup' ||
-    hashParams.get('type') === 'signup' ||
-    searchParams.has('token_hash') ||
-    searchParams.has('code') ||
-    hashParams.has('access_token')
+  const getParam = name => searchParams.get(name) || hashParams.get(name) || '';
+  const type = getParam('type');
+  const code = getParam('code');
+  const tokenHash = getParam('token_hash');
+  const accessToken = getParam('access_token');
+  const refreshToken = getParam('refresh_token');
+  const error = getParam('error') || getParam('error_code');
+  const errorDescription = getParam('error_description');
+  const hasPendingRecovery = Boolean(localStorage.getItem(PASSWORD_RECOVERY_PENDING_KEY));
+  const hasPendingEmailConfirmation = Boolean(localStorage.getItem(EMAIL_CONFIRMATION_PENDING_KEY));
+  const hasAuthReturnParams = Boolean(
+    code ||
+    tokenHash ||
+    accessToken ||
+    refreshToken ||
+    error ||
+    errorDescription
   );
+  const normalizedType = String(type || '').toLowerCase();
+  const isRecovery = normalizedType === 'recovery' || (hasPendingRecovery && hasAuthReturnParams);
+  const isEmailConfirmation = (
+    normalizedType === 'signup' ||
+    normalizedType === 'email' ||
+    normalizedType === 'email_change' ||
+    (tokenHash && !isRecovery) ||
+    (hasPendingEmailConfirmation && hasAuthReturnParams && !isRecovery)
+  );
+
+  return {
+    type: normalizedType,
+    code,
+    tokenHash,
+    accessToken,
+    refreshToken,
+    error,
+    errorDescription,
+    hasAuthReturnParams,
+    isRecovery,
+    isEmailConfirmation
+  };
+}
+
+function isEmailConfirmationRedirect() {
+  return getAuthRedirectInfo().isEmailConfirmation || didConsumeEmailConfirmationRedirect;
 }
 
 function isPasswordRecoveryRedirect() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  const hasPendingRecovery = Boolean(localStorage.getItem(PASSWORD_RECOVERY_PENDING_KEY));
-  const hasAuthReturnParams = (
-    searchParams.has('code') ||
-    searchParams.has('token_hash') ||
-    hashParams.has('access_token') ||
-    hashParams.has('refresh_token')
-  );
-
-  return (
-    searchParams.get('type') === 'recovery' ||
-    hashParams.get('type') === 'recovery' ||
-    (hasPendingRecovery && hasAuthReturnParams)
-  );
+  return getAuthRedirectInfo().isRecovery;
 }
 
 function clearEmailConfirmationParamsFromUrl() {
   const url = new URL(window.location.href);
   let wasChanged = false;
+  const authParamNames = [
+    'type',
+    'token_hash',
+    'code',
+    'access_token',
+    'refresh_token',
+    'expires_at',
+    'expires_in',
+    'token_type',
+    'provider_token',
+    'provider_refresh_token',
+    'error',
+    'error_code',
+    'error_description'
+  ];
 
-  if (url.searchParams.has('type')) {
-    url.searchParams.delete('type');
-    wasChanged = true;
-  }
-
-  if (url.searchParams.has('token_hash')) {
-    url.searchParams.delete('token_hash');
-    wasChanged = true;
-  }
-
-  if (url.searchParams.has('code')) {
-    url.searchParams.delete('code');
-    wasChanged = true;
-  }
+  authParamNames.forEach(paramName => {
+    if (url.searchParams.has(paramName)) {
+      url.searchParams.delete(paramName);
+      wasChanged = true;
+    }
+  });
 
   const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
 
-  if (hashParams.has('type')) {
-    hashParams.delete('type');
-    wasChanged = true;
-  }
-
-  if (hashParams.has('access_token')) {
-    hashParams.delete('access_token');
-    wasChanged = true;
-  }
-
-  if (hashParams.has('refresh_token')) {
-    hashParams.delete('refresh_token');
-    wasChanged = true;
-  }
-
-  if (hashParams.has('expires_at')) {
-    hashParams.delete('expires_at');
-    wasChanged = true;
-  }
-
-  if (hashParams.has('expires_in')) {
-    hashParams.delete('expires_in');
-    wasChanged = true;
-  }
-
-  if (hashParams.has('token_type')) {
-    hashParams.delete('token_type');
-    wasChanged = true;
-  }
+  authParamNames.forEach(paramName => {
+    if (hashParams.has(paramName)) {
+      hashParams.delete(paramName);
+      wasChanged = true;
+    }
+  });
 
   if (wasChanged) {
     const nextHash = hashParams.toString();
     url.hash = nextHash ? `#${nextHash}` : '';
     window.history.replaceState({}, document.title, url.toString());
+  }
+}
+
+function normalizeAuthRedirectOtpType(type) {
+  const normalizedType = String(type || '').toLowerCase();
+  const allowedTypes = new Set([
+    'email',
+    'email_change',
+    'invite',
+    'magiclink',
+    'recovery'
+  ]);
+
+  if (normalizedType === 'signup') {
+    return 'email';
+  }
+
+  if (!allowedTypes.has(normalizedType)) {
+    return '';
+  }
+
+  return normalizedType;
+}
+
+async function consumeAuthRedirectFromUrl(authRedirectInfo = getAuthRedirectInfo()) {
+  if (!authRedirectInfo.hasAuthReturnParams) {
+    return {
+      didConsume: false,
+      isRecovery: authRedirectInfo.isRecovery,
+      error: null
+    };
+  }
+
+  const authRedirectErrorMessage = authRedirectInfo.errorDescription || authRedirectInfo.error || '';
+
+  try {
+    if (authRedirectErrorMessage) {
+      throw new Error(authRedirectErrorMessage);
+    }
+
+    if (authRedirectInfo.code) {
+      const { error } = await withAuthRequestTimeout(
+        supabaseClient.auth.exchangeCodeForSession(authRedirectInfo.code),
+        'Не удалось обработать ссылку входа. Проверь соединение и попробуй открыть ссылку ещё раз.'
+      );
+
+      if (error) {
+        throw error;
+      }
+    } else if (authRedirectInfo.accessToken && authRedirectInfo.refreshToken) {
+      const { error } = await withAuthRequestTimeout(
+        supabaseClient.auth.setSession({
+          access_token: authRedirectInfo.accessToken,
+          refresh_token: authRedirectInfo.refreshToken
+        }),
+        'Не удалось восстановить сессию из ссылки. Проверь соединение и попробуй открыть ссылку ещё раз.'
+      );
+
+      if (error) {
+        throw error;
+      }
+    } else if (authRedirectInfo.tokenHash) {
+      const otpType = normalizeAuthRedirectOtpType(authRedirectInfo.type);
+
+      if (!otpType) {
+        throw new Error('Ссылка входа содержит неизвестный тип подтверждения.');
+      }
+
+      const { error } = await withAuthRequestTimeout(
+        supabaseClient.auth.verifyOtp({
+          token_hash: authRedirectInfo.tokenHash,
+          type: otpType
+        }),
+        'Не удалось подтвердить ссылку входа. Проверь соединение и попробуй открыть ссылку ещё раз.'
+      );
+
+      if (error) {
+        throw error;
+      }
+    }
+
+    if (authRedirectInfo.isRecovery) {
+      localStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1');
+    }
+
+    if (authRedirectInfo.isEmailConfirmation) {
+      didConsumeEmailConfirmationRedirect = true;
+    }
+
+    return {
+      didConsume: true,
+      isRecovery: authRedirectInfo.isRecovery,
+      error: null
+    };
+  } catch (error) {
+    console.error('Ошибка обработки auth-редиректа:', error);
+
+    return {
+      didConsume: true,
+      isRecovery: authRedirectInfo.isRecovery,
+      error
+    };
+  } finally {
+    clearEmailConfirmationParamsFromUrl();
   }
 }
 
@@ -5483,6 +5595,7 @@ function trackEmailConfirmedLoginIfNeeded() {
 
   if (trackedUserId === currentUser.id) {
     clearEmailConfirmationParamsFromUrl();
+    didConsumeEmailConfirmationRedirect = false;
     return;
   }
 
@@ -5490,6 +5603,7 @@ function trackEmailConfirmedLoginIfNeeded() {
   localStorage.setItem(EMAIL_CONFIRMATION_TRACKED_KEY, currentUser.id);
   localStorage.removeItem(EMAIL_CONFIRMATION_PENDING_KEY);
   clearEmailConfirmationParamsFromUrl();
+  didConsumeEmailConfirmationRedirect = false;
 }
 
 async function loadCurrentUserRole() {
@@ -7725,12 +7839,12 @@ function openAuthModal() {
   });
 }
 
-async function closeAuthModal() {
+async function closeAuthModal(options = {}) {
   if (!authModal) {
     return;
   }
 
-  const shouldCancelPasswordRecovery = isPasswordRecoveryMode;
+  const shouldCancelPasswordRecovery = isPasswordRecoveryMode && !options.skipPasswordRecoveryCancel;
 
   closeAuthPopoverMenu();
   closeDisplayNameModal();
@@ -11679,6 +11793,20 @@ async function saveNewPassword() {
   showAuthMessage('Сохраняю новый пароль...');
 
   try {
+    const { data: sessionData, error: sessionError } = await withAuthRequestTimeout(
+      supabaseClient.auth.getSession(),
+      'Не удалось проверить recovery-сессию. Проверь соединение и попробуй открыть ссылку ещё раз.'
+    );
+
+    if (sessionError || !sessionData?.session?.user) {
+      console.error('Recovery-сессия не найдена:', sessionError);
+      showAuthMessage(
+        'Ссылка для сброса пароля не создала активную сессию. Запроси новое письмо и открой свежую ссылку.',
+        'error'
+      );
+      return;
+    }
+
     const { error } = await withAuthRequestTimeout(
       supabaseClient.auth.updateUser({
         password: nextPassword
@@ -11711,7 +11839,7 @@ async function saveNewPassword() {
         console.error('Ошибка завершения recovery-сессии:', error);
       }
 
-      closeAuthModal();
+      closeAuthModal({ skipPasswordRecoveryCancel: true });
     }, 900);
   } catch (error) {
     console.error('Ошибка сохранения нового пароля:', error);
@@ -14837,6 +14965,9 @@ function bindSharedUiEvents() {
 
   displayNameForm?.addEventListener('submit', saveDisplayName);
   profilePasswordForm?.addEventListener('submit', saveProfilePassword);
+  document.addEventListener('submit', event => {
+    handleUserPageAdminPasswordSubmit(event);
+  });
 
   cancelDisplayNameButton?.addEventListener('click', () => {
     closeDisplayNameModal();
@@ -15589,6 +15720,173 @@ async function toggleUserPageProfileFollow(profileId) {
   } finally {
     userPageFollowRequestProfileIds.delete(normalizedProfileId);
     syncUserPageFollowButtonState(normalizedProfileId);
+  }
+}
+
+function getUserPageAdminPasswordPanelHtml(profile) {
+  const profileId = String(profile?.id || '').trim();
+
+  if (!isAdmin || !profileId || isOwnUserProfile(profile)) {
+    return '';
+  }
+
+  const displayName = getPublicProfileDisplayName(profile);
+
+  return `
+    <section class="user-page-admin-panel" aria-labelledby="userPageAdminPasswordTitle">
+      <div class="user-page-admin-panel-header">
+        <h2 id="userPageAdminPasswordTitle">Администрирование</h2>
+        <span>Пароль для ${escapeHtml(displayName)}</span>
+      </div>
+      <form
+        class="user-page-admin-password-form"
+        data-user-admin-password-form="true"
+        data-user-id="${escapeHtml(profileId)}"
+      >
+        <div class="user-page-admin-password-fields">
+          <label>
+            <span>Новый пароль</span>
+            <input
+              type="password"
+              data-user-admin-password="true"
+              autocomplete="new-password"
+              minlength="8"
+            >
+          </label>
+          <label>
+            <span>Повторите пароль</span>
+            <input
+              type="password"
+              data-user-admin-password-confirm="true"
+              autocomplete="new-password"
+              minlength="8"
+            >
+          </label>
+        </div>
+        <div class="user-page-admin-password-actions">
+          <button type="submit">Установить пароль</button>
+          <p class="user-page-admin-password-message" data-user-admin-password-message="true" aria-live="polite"></p>
+        </div>
+      </form>
+    </section>
+  `;
+}
+
+function setUserPageAdminPasswordMessage(form, message = '', type = 'info') {
+  const messageElement = form?.querySelector('[data-user-admin-password-message="true"]');
+
+  if (!messageElement) {
+    return;
+  }
+
+  messageElement.textContent = message;
+  messageElement.classList.toggle('is-error', type === 'error');
+  messageElement.classList.toggle('is-success', type === 'success');
+}
+
+function setUserPageAdminPasswordSubmitting(form, isSubmitting) {
+  isUserAdminPasswordSubmitting = isSubmitting;
+
+  form?.querySelectorAll('input, button').forEach(element => {
+    element.disabled = isSubmitting;
+  });
+
+  const submitButton = form?.querySelector('button[type="submit"]');
+
+  if (submitButton) {
+    submitButton.textContent = isSubmitting ? 'Сохраняю...' : 'Установить пароль';
+  }
+}
+
+function handleUserPageAdminPasswordSubmit(event) {
+  const form = event.target?.closest?.('[data-user-admin-password-form="true"]');
+
+  if (!form) {
+    return false;
+  }
+
+  event.preventDefault();
+  saveUserPageAdminPassword(form);
+
+  return true;
+}
+
+async function saveUserPageAdminPassword(form) {
+  if (!form || isUserAdminPasswordSubmitting) {
+    return;
+  }
+
+  if (!isAdmin || !currentUser?.id) {
+    setUserPageAdminPasswordMessage(form, 'Доступно только администратору.', 'error');
+    return;
+  }
+
+  const profileId = String(form.dataset.userId || '').trim();
+  const passwordInput = form.querySelector('[data-user-admin-password="true"]');
+  const passwordConfirmInput = form.querySelector('[data-user-admin-password-confirm="true"]');
+  const nextPassword = passwordInput?.value || '';
+  const confirmedPassword = passwordConfirmInput?.value || '';
+
+  if (!profileId) {
+    setUserPageAdminPasswordMessage(form, 'Не найден id пользователя.', 'error');
+    return;
+  }
+
+  if (nextPassword.length < 8) {
+    setUserPageAdminPasswordMessage(form, 'Пароль должен быть не короче 8 символов.', 'error');
+    passwordInput?.focus();
+    return;
+  }
+
+  if (nextPassword !== confirmedPassword) {
+    setUserPageAdminPasswordMessage(form, 'Пароли не совпадают.', 'error');
+    passwordConfirmInput?.focus();
+    passwordConfirmInput?.select();
+    return;
+  }
+
+  setUserPageAdminPasswordSubmitting(form, true);
+  setUserPageAdminPasswordMessage(form, 'Сохраняю пароль...');
+
+  try {
+    const { data: sessionData, error: sessionError } = await withAuthRequestTimeout(
+      supabaseClient.auth.getSession(),
+      'Не удалось получить текущую сессию администратора. Проверь соединение и попробуй снова.'
+    );
+    const accessToken = sessionData?.session?.access_token || '';
+
+    if (sessionError || !accessToken) {
+      throw sessionError || new Error('Сессия администратора не найдена.');
+    }
+
+    const response = await fetch(`/admin/users/${encodeURIComponent(profileId)}/password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        password: nextPassword,
+        confirmEmail: true
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok || !payload?.ok) {
+      throw new Error(payload?.message || 'Не удалось установить пароль.');
+    }
+
+    form.reset();
+    setUserPageAdminPasswordMessage(form, 'Пароль установлен, e-mail пользователя подтверждён.', 'success');
+  } catch (error) {
+    console.error('Ошибка админской установки пароля:', error);
+    setUserPageAdminPasswordMessage(
+      form,
+      getReadableAuthErrorMessage(error, 'Не удалось установить пароль. Попробуй ещё раз.'),
+      'error'
+    );
+  } finally {
+    setUserPageAdminPasswordSubmitting(form, false);
   }
 }
 
@@ -17058,6 +17356,8 @@ function renderUserPage(data) {
           reviewCount
         )}
     </section>
+
+    ${getUserPageAdminPasswordPanelHtml(data.profile)}
   `;
 
   bindUserPageRailControls();
@@ -20716,12 +21016,13 @@ async function initMoviePage() {
 }
 
 async function init() {
-  const hasPasswordRecoveryRedirect = isPasswordRecoveryRedirect();
-  isPasswordRecoveryEntryPage = hasPasswordRecoveryRedirect;
+  const initialAuthRedirectInfo = getAuthRedirectInfo();
+
+  isPasswordRecoveryEntryPage = initialAuthRedirectInfo.isRecovery;
   const wasResetApplied = applyBuildVersionSoftResetIfNeeded();
 
   if (wasResetApplied) {
-    window.location.replace(window.location.pathname + window.location.search);
+    window.location.replace(window.location.pathname + window.location.search + window.location.hash);
     return;
   }
 
@@ -20729,7 +21030,35 @@ async function init() {
   initCustomSelects();
   initCurrentPageLinkGuard();
   bindSharedUiEvents();
-  handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect);
+
+  const authRedirectResult = await consumeAuthRedirectFromUrl(initialAuthRedirectInfo);
+
+  if (authRedirectResult.error) {
+    if (authRedirectResult.isRecovery) {
+      localStorage.removeItem(PASSWORD_RECOVERY_PENDING_KEY);
+      isPasswordRecoveryEntryPage = false;
+      openAuthModal();
+      showAuthMessage(
+        getReadableAuthErrorMessage(
+          authRedirectResult.error,
+          'Ссылка для сброса пароля недействительна или устарела. Запроси новое письмо.'
+        ),
+        'error'
+      );
+    } else {
+      showAppMessage(
+        getReadableAuthErrorMessage(
+          authRedirectResult.error,
+          'Не удалось выполнить вход по ссылке. Попробуй запросить новую ссылку.'
+        ),
+        'error',
+        true
+      );
+    }
+  } else {
+    isPasswordRecoveryEntryPage = authRedirectResult.isRecovery;
+    handlePasswordRecoveryEntry(authRedirectResult.isRecovery);
+  }
 
   if (isCatalogPage()) {
     bindCatalogPageEvents();

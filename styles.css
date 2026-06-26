@@ -4604,6 +4604,83 @@ body:has(.user-page-shell) .page {
   margin-top: 26px;
 }
 
+.user-page-admin-panel {
+  margin-top: 28px;
+  padding: 18px;
+  background: rgba(13, 17, 23, 0.58);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+}
+
+.user-page-admin-panel-header {
+  margin-bottom: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+}
+
+.user-page-admin-panel-header h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.user-page-admin-panel-header span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.user-page-admin-password-form {
+  display: grid;
+  gap: 14px;
+}
+
+.user-page-admin-password-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.user-page-admin-password-fields label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.user-page-admin-password-fields input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.user-page-admin-password-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+
+.user-page-admin-password-message {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.user-page-admin-password-message.is-error {
+  color: var(--color-danger-text);
+}
+
+.user-page-admin-password-message.is-success {
+  color: rgb(var(--color-success-base));
+}
+
 .user-page-section-header {
   margin-bottom: 14px;
   display: inline-flex;
@@ -8131,6 +8208,10 @@ body:has(.user-page-shell) .page-footer {
     align-self: stretch;
     justify-content: center;
     font-size: 14px;
+  }
+
+  .user-page-admin-password-fields {
+    grid-template-columns: 1fr;
   }
 }
 

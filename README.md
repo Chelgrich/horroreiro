@@ -32,6 +32,7 @@
 ## Cloudflare Pages Functions
 
 - `/env` отдаёт публичные клиентские переменные в `window.__ENV__`
+- `/admin/users/:id/password` даёт администратору серверную установку пароля пользователя через Supabase Auth Admin API
 - `/`, `/index.html`, `/movie/*`, `/movie.html`, `/user/*`, `/user.html`, `/following`, `/following.html` отдаются с корректной no-store HTML-логикой
 - `/sitemap.xml` генерируется динамически из актуальной базы фильмов
 
@@ -41,6 +42,7 @@
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` — только для Cloudflare Functions, не отдаётся в `/env`
 
 `APP_BUILD_VERSION` обычно берётся из `CF_PAGES_COMMIT_SHA`.
 
