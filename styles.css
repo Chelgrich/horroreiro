@@ -44,8 +44,55 @@ html::-webkit-scrollbar-corner {
   --poster-overlay-radius: 8px;
   --poster-overlay-icon-size: 17px;
   --icon-stroke-width: 1.8;
+
+  /* Typography scale */
   --font-body: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-display: 'Unbounded', sans-serif;
+  --font-size-zero: 0;
+  --font-size-2xs: 10px;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-base: 14px;
+  --font-size-body: 15px;
+  --font-size-lg: 16px;
+  --font-size-xl: 17px;
+  --font-size-title-sm: 18px;
+  --font-size-title-md: 20px;
+  --font-size-title-lg: 22px;
+  --font-size-title-xl: 24px;
+  --font-size-title-2xl: 26px;
+  --font-size-display-xs: 27px;
+  --font-size-display-sm: 28px;
+  --font-size-display-md: 30px;
+  --font-size-display-lg: 32px;
+  --font-size-section-count: 0.78em;
+  --font-size-modal-title: clamp(20px, 2vw, 28px);
+  --line-height-zero: 0;
+  --line-height-none: 1;
+  --line-height-heading-tight: 1.08;
+  --line-height-heading-snug: 1.12;
+  --line-height-heading: 1.15;
+  --line-height-title-tight: 1.16;
+  --line-height-title: 1.18;
+  --line-height-snug: 1.2;
+  --line-height-compact: 1.25;
+  --line-height-card: 1.3;
+  --line-height-card-comfort: 1.35;
+  --line-height-normal: 1.4;
+  --line-height-relaxed: 1.45;
+  --line-height-body: 1.5;
+  --line-height-prose: 1.6;
+  --line-height-prose-loose: 1.65;
+  --line-height-logo: 44px;
+  --letter-spacing-normal: normal;
+  --letter-spacing-none: 0;
+  --letter-spacing-control: 0.1px;
+  --letter-spacing-body: 0.2px;
+  --letter-spacing-footer: 0.6px;
+  --letter-spacing-brand-mobile: 1px;
+  --letter-spacing-brand-tablet: 1.2px;
+  --letter-spacing-brand: 2px;
   --radius-lg: 10px;
   --radius-md: 6px;
   --radius-sm: 4px;
@@ -268,8 +315,8 @@ body {
   overflow-y: scroll;
   font-family: var(--font-body);
   font-weight: 500;
-  letter-spacing: 0.2px;
-  line-height: 1.5;
+  letter-spacing: var(--letter-spacing-body);
+  line-height: var(--line-height-body);
   color: var(--color-text-body);
   background: var(--color-bg-page);
   color-scheme: dark;
@@ -284,7 +331,7 @@ body {
   font-size: var(--page-logo-font-size);
   font-weight: 600;
   letter-spacing: var(--page-logo-letter-spacing);
-  line-height: 44px;
+  line-height: var(--line-height-logo);
   text-transform: uppercase;
   color: var(--color-text-primary);
 }
@@ -298,23 +345,23 @@ h3 {
   --catalog-columns: 4;
   --catalog-grid-gap: 16px;
   --movie-card-title-padding-bottom: 10px;
-  --movie-card-title-font-size: 20px;
-  --movie-card-title-line-height: 1.2;
-  --movie-card-title-letter-spacing: normal;
+  --movie-card-title-font-size: var(--font-size-title-md);
+  --movie-card-title-line-height: var(--line-height-snug);
+  --movie-card-title-letter-spacing: var(--letter-spacing-normal);
   --movie-card-title-overflow-wrap: normal;
   --movie-card-title-word-break: normal;
-  --movie-card-text-font-size: 14px;
-  --movie-card-text-line-height: 1.4;
+  --movie-card-text-font-size: var(--font-size-base);
+  --movie-card-text-line-height: var(--line-height-normal);
   --movie-card-text-overflow-wrap: normal;
   --movie-card-text-word-break: normal;
-  --page-logo-font-size: 32px;
-  --page-logo-letter-spacing: 2px;
-  --section-title-font-size: 18px;
-  --movies-year-title-font-size: 26px;
-  --movies-month-title-font-size: 22px;
-  --user-page-display-name-font-size: 22px;
-  --user-page-handle-font-size: 15px;
-  --movie-page-subtitle-font-size: 18px;
+  --page-logo-font-size: var(--font-size-display-lg);
+  --page-logo-letter-spacing: var(--letter-spacing-brand);
+  --section-title-font-size: var(--font-size-title-sm);
+  --movies-year-title-font-size: var(--font-size-title-2xl);
+  --movies-month-title-font-size: var(--font-size-title-lg);
+  --user-page-display-name-font-size: var(--font-size-title-lg);
+  --user-page-handle-font-size: var(--font-size-body);
+  --movie-page-subtitle-font-size: var(--font-size-title-sm);
   max-width: var(--page-max-width);
   margin: 0 auto;
   padding: 24px;
@@ -405,8 +452,8 @@ h3 {
   overflow-wrap: anywhere;
   word-break: break-word;
   white-space: normal;
-  font-size: 14px;
-  line-height: 1.2;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-snug);
   font-weight: 600;
 }
 
@@ -432,8 +479,8 @@ h3 {
 .profile-settings-section-title {
   margin: 0;
   color: var(--color-text-primary);
-  font-size: 15px;
-  line-height: 1.25;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-compact);
   font-weight: 800;
 }
 
@@ -444,8 +491,8 @@ h3 {
 
 .profile-settings-form label {
   color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-card);
   font-weight: 700;
 }
 
@@ -499,7 +546,7 @@ h3 {
   border: 0;
   border-radius: var(--radius-md);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: var(--line-height-snug);
   cursor: pointer;
   transition:
     background 0.18s ease,
@@ -536,8 +583,8 @@ h3 {
 .display-name-message {
   min-height: 18px;
   margin: var(--modal-space-sm) 0 0;
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
   color: var(--color-text-muted);
 }
 
@@ -705,9 +752,9 @@ h3 {
   border-radius: 8px;
   text-align: left;
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--font-size-base);
   font-weight: 500;
-  line-height: 1.2;
+  line-height: var(--line-height-snug);
   text-decoration: none;
   cursor: pointer;
 }
@@ -902,9 +949,9 @@ h3 {
   background: var(--accent-soft-bg);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
-  line-height: 1;
+  line-height: var(--line-height-none);
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
@@ -933,8 +980,8 @@ h3 {
   margin: 0;
   display: flex;
   align-items: center;
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-relaxed);
   color: var(--color-text-readable-muted);
   text-align: left;
   word-break: break-word;
@@ -971,7 +1018,7 @@ h3 {
   margin: 0 0 18px;
   font-size: var(--section-title-font-size);
   font-weight: 700;
-  line-height: 1.15;
+  line-height: var(--line-height-heading);
   color: var(--color-text-primary);
 }
 
@@ -998,8 +1045,8 @@ h3 {
 
 .movies-result-count {
   flex: 0 0 auto;
-  font-size: 14px;
-  line-height: 1.15;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-heading);
   color: var(--color-text-muted);
   white-space: nowrap;
 }
@@ -1013,7 +1060,7 @@ h3 {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   white-space: nowrap;
   color: var(--color-text-tertiary);
@@ -1023,7 +1070,7 @@ h3 {
 
 .catalog-view-toggle::before {
   content: "≡";
-  font-size: 14px;
+  font-size: var(--font-size-base);
   opacity: 0.8;
 }
 
@@ -1075,7 +1122,7 @@ h3 {
   min-height: var(--catalog-pagination-button-height);
   padding: 0 10px;
   justify-content: center;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-tertiary);
   background: var(--ui-neutral-action-bg);
@@ -1172,8 +1219,8 @@ h3 {
   max-width: 100%;
   padding: 0 var(--modal-title-safe-right) 0 0;
   text-align: left;
-  font-size: clamp(20px, 2vw, 28px);
-  line-height: 1.15;
+  font-size: var(--font-size-modal-title);
+  line-height: var(--line-height-heading);
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -1297,8 +1344,8 @@ h3 {
 
 .avatar-crop-controls label {
   color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-card);
   font-weight: 700;
 }
 
@@ -1314,8 +1361,8 @@ h3 {
 .avatar-crop-status {
   margin: 12px 0 0;
   color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-card-comfort);
 }
 
 .avatar-crop-status {
@@ -1359,7 +1406,7 @@ h3 {
   height: auto;
   min-height: 0;
   padding: 0;
-  font-size: 13px;
+  font-size: var(--font-size-md);
   font-weight: 500;
   color: var(--accent-primary-soft);
   background: transparent;
@@ -1405,7 +1452,7 @@ h3 {
 
 .filters-modal-status {
   display: none;
-  font-size: 13px;
+  font-size: var(--font-size-md);
   margin-top: 0;
   color: var(--color-text-dim);
 }
@@ -1432,7 +1479,7 @@ h3 {
   box-shadow: none;
   white-space: nowrap;
   opacity: 0.9;
-  letter-spacing: 0.2px;
+  letter-spacing: var(--letter-spacing-body);
   text-decoration: none;
 }
 
@@ -1484,8 +1531,8 @@ h3 {
 }
 
 .form-row label {
-  font-size: 13px;
-  line-height: 1.2;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
   font-weight: 600;
   color: var(--color-text-tertiary-muted);
 }
@@ -1543,7 +1590,7 @@ h3 {
   height: 38px;
   padding-top: 0;
   padding-bottom: 0;
-  line-height: 1.25;
+  line-height: var(--line-height-compact);
 }
 
 .manual-similar-add-button {
@@ -1560,8 +1607,8 @@ h3 {
 }
 
 .manual-similar-empty {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
   color: var(--color-text-muted);
 }
 
@@ -1584,8 +1631,8 @@ h3 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
-  line-height: 1.3;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-card);
   font-weight: 600;
 }
 
@@ -1617,8 +1664,8 @@ h3 {
 }
 
 .movie-poster-images-empty {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
   color: var(--color-text-muted);
 }
 
@@ -1660,8 +1707,8 @@ h3 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-card);
   font-weight: 700;
   color: var(--color-text-primary);
 }
@@ -1671,8 +1718,8 @@ h3 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
-  line-height: 1.3;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-card);
   color: var(--color-text-muted);
 }
 
@@ -1743,14 +1790,14 @@ h3 {
 .form-message {
   min-height: 18px;
   margin-top: 12px;
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
   color: var(--color-text-body-muted);
 }
 
 .field-hint {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
   color: var(--color-text-muted);
 }
 
@@ -1837,7 +1884,7 @@ input {
   min-width: 0;
   flex: 1 1 auto;
   display: block;
-  line-height: 1.2;
+  line-height: var(--line-height-snug);
   color: var(--color-text-body);
   white-space: nowrap;
   overflow: hidden;
@@ -1890,8 +1937,8 @@ textarea:focus {
 .movie-form select,
 .movie-form textarea,
 .file-input-ui {
-  font-size: 14px;
-  line-height: 1.2;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-snug);
 }
 
 textarea {
@@ -1899,7 +1946,7 @@ textarea {
   min-height: 104px;
   padding: 10px 12px;
   resize: vertical;
-  line-height: 1.4;
+  line-height: var(--line-height-normal);
 }
 
 .filters input {
@@ -2027,7 +2074,7 @@ textarea {
   padding-right: 8px;
   text-align: left;
   font-weight: 600;
-  letter-spacing: 0.1px;
+  letter-spacing: var(--letter-spacing-control);
   color: var(--ui-action-color);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2073,7 +2120,7 @@ textarea {
   border: none;
   border-radius: var(--radius-md);
   text-align: left;
-  line-height: 1.2;
+  line-height: var(--line-height-snug);
   cursor: pointer;
 }
 
@@ -2113,9 +2160,9 @@ button {
 .secondary-button {
   height: var(--control-height-md);
   padding: 0 14px;
-  font-size: 14px;
+  font-size: var(--font-size-base);
   font-weight: 600;
-  letter-spacing: 0.1px;
+  letter-spacing: var(--letter-spacing-control);
   color: var(--color-text-secondary);
   background: var(--surface-control-alt);
   border-color: transparent;
@@ -2149,7 +2196,7 @@ button {
 .secondary-button-compact {
   min-height: 32px;
   padding: 0 12px;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 button:not(:where(
@@ -2238,8 +2285,8 @@ button:not(:where(
   border: none;
   background: transparent;
   color: var(--color-text-dim);
-  font-size: 28px;
-  line-height: 1;
+  font-size: var(--font-size-display-sm);
+  line-height: var(--line-height-none);
   cursor: pointer;
   display: none;
   align-items: center;
@@ -2265,8 +2312,8 @@ button:not(:where(
 
 .catalog-search-row label,
 .filter-sort label {
-  font-size: 13px;
-  line-height: 1.15;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-heading);
   color: var(--color-text-muted);
   padding-left: 2px;
 }
@@ -2301,7 +2348,7 @@ button:not(:where(
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: var(--font-size-lg);
   color: var(--ui-action-color);
   background: var(--ui-action-bg);
   border-color: transparent;
@@ -2349,14 +2396,14 @@ button:not(:where(
 }
 
 .seo-text-bottom .section-title {
-  font-size: 18px;
+  font-size: var(--font-size-title-sm);
   margin-bottom: 10px;
   color: var(--color-text-control);
 }
 
 .seo-text-bottom p {
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-body);
   color: var(--color-text-muted-strong);
 }
 
@@ -2381,7 +2428,7 @@ button:not(:where(
 .quick-preset-button {
   height: var(--control-height-sm);
   padding: 0 14px;
-  font-size: 13px;
+  font-size: var(--font-size-md);
   font-weight: 600;
   color: var(--color-text-tertiary);
   background: var(--ui-neutral-action-bg);
@@ -2465,8 +2512,8 @@ button:not(:where(
   background: var(--surface-control);
   border: 1px solid var(--border-card);
   border-radius: 999px;
-  font-size: 13px;
-  line-height: 1.2;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
 }
 
 .active-filter-chip.is-profile-context {
@@ -2575,8 +2622,8 @@ button:not(:where(
   display: grid;
   place-items: center;
   color: var(--color-text-muted);
-  font-size: 15px;
-  line-height: 1.4;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-normal);
   text-align: center;
 }
 
@@ -2593,8 +2640,8 @@ button:not(:where(
   grid-column: 1 / -1;
   font-size: var(--movies-year-title-font-size);
   font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: 0.2px;
+  line-height: var(--line-height-heading);
+  letter-spacing: var(--letter-spacing-body);
   color: var(--color-text-primary);
 }
 
@@ -2619,8 +2666,8 @@ button:not(:where(
   margin: 0;
   font-size: var(--movies-month-title-font-size);
   font-weight: 600;
-  line-height: 1.18;
-  letter-spacing: 0.2px;
+  line-height: var(--line-height-title);
+  letter-spacing: var(--letter-spacing-body);
   color: var(--color-text-tertiary);
 }
 
@@ -2634,7 +2681,7 @@ button:not(:where(
 .month-sort-btn {
   height: 30px;
   padding: 0 12px;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-tertiary);
   background: var(--ui-neutral-action-bg);
@@ -2680,8 +2727,8 @@ button:not(:where(
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
-  line-height: 1;
+  font-size: var(--font-size-title-2xl);
+  line-height: var(--line-height-none);
   color: var(--color-text-blue-muted);
   background: var(--surface-empty-icon);
   border: 1px solid transparent;
@@ -2691,17 +2738,17 @@ button:not(:where(
 
 .empty-state-title {
   margin: 0;
-  font-size: 22px;
+  font-size: var(--font-size-title-lg);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: var(--line-height-snug);
   color: var(--color-text-primary);
 }
 
 .empty-state-text {
   max-width: 540px;
   margin: 10px auto 0;
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-relaxed);
   color: var(--color-text-placeholder);
 }
 
@@ -3084,10 +3131,10 @@ a[data-current-page-link="true"] {
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-size: 14px;
-  line-height: 1.35;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-card-comfort);
   font-weight: 600;
-  letter-spacing: 0.1px;
+  letter-spacing: var(--letter-spacing-control);
   color: var(--color-text-dim);
   background:
     radial-gradient(circle at top, var(--overlay-white-04), transparent 52%),
@@ -3317,8 +3364,8 @@ a[data-current-page-link="true"] {
   bottom: 8px;
   z-index: 2;
   padding: 6px 8px;
-  font-size: 12px;
-  line-height: 1.3;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-card);
   color: var(--color-text-secondary);
   background: var(--surface-overlay-caption);
   border: 1px solid transparent;
@@ -3353,7 +3400,7 @@ a[data-current-page-link="true"] {
 .movie-external-links-toggle {
   display: none;
   font-weight: 600;
-  letter-spacing: 0.1px;
+  letter-spacing: var(--letter-spacing-control);
 }
 
 .movie-card .secondary-button {
@@ -3398,9 +3445,9 @@ a[data-current-page-link="true"] {
   height: 30px;
   padding: 0 10px;
   flex: 0 0 auto;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
-  line-height: 1;
+  line-height: var(--line-height-none);
   white-space: nowrap;
 }
 
@@ -3415,14 +3462,14 @@ a[data-current-page-link="true"] {
 }
 
 .movie-rating-value {
-  font-size: 32px;
+  font-size: var(--font-size-display-lg);
   font-weight: 700;
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 
 .movie-rating-meta {
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-card);
   color: var(--color-text-placeholder);
 }
 
@@ -3441,9 +3488,9 @@ a[data-current-page-link="true"] {
   color: var(--accent-soft-text);
   background: var(--accent-soft-bg);
   box-shadow: 0 0 0 1px var(--accent-soft-shadow);
-  font-size: 13px;
+  font-size: var(--font-size-md);
   font-weight: 400;
-  line-height: 1;
+  line-height: var(--line-height-none);
   white-space: nowrap;
 }
 
@@ -3458,9 +3505,9 @@ a[data-current-page-link="true"] {
 .movie-profile-rating-value {
   flex: 0 0 auto;
   color: var(--color-rating-text);
-  font-size: 16px;
+  font-size: var(--font-size-lg);
   font-weight: 700;
-  line-height: 1;
+  line-height: var(--line-height-none);
   white-space: nowrap;
 }
 
@@ -3469,9 +3516,9 @@ a[data-current-page-link="true"] {
 }
 
 .movie-user-rating-label {
-  font-size: 13px;
+  font-size: var(--font-size-md);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: var(--line-height-snug);
   color: var(--color-text-secondary);
 }
 
@@ -3487,13 +3534,13 @@ a[data-current-page-link="true"] {
   width: 100%;
   margin-top: 8px;
   font-weight: 600;
-  letter-spacing: 0.1px;
+  letter-spacing: var(--letter-spacing-control);
 }
 
 .movie-user-rating-mobile-trigger.is-rated {
-  font-size: 14px;
+  font-size: var(--font-size-base);
   font-weight: 700;
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 
 .movie-user-rating-mobile-trigger.is-feedback-success,
@@ -3540,9 +3587,9 @@ a[data-current-page-link="true"] {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-weight: 400;
-  line-height: 1;
+  line-height: var(--line-height-none);
   text-align: center;
   color: var(--color-text-faint);
   transform: translateY(0) scale(1);
@@ -3613,9 +3660,9 @@ a[data-current-page-link="true"] {
   justify-content: center;
   padding: 0;
   margin: 0;
-  font-size: 26px;
-  line-height: 1;
-  letter-spacing: 0;
+  font-size: var(--font-size-title-2xl);
+  line-height: var(--line-height-none);
+  letter-spacing: var(--letter-spacing-none);
   text-align: center;
   color: var(--color-text-ghost);
   cursor: pointer;
@@ -3760,8 +3807,8 @@ a[data-current-page-link="true"] {
 
 .mobile-rating-modal-title {
   margin: 0;
-  font-size: 18px;
-  line-height: 1.2;
+  font-size: var(--font-size-title-sm);
+  line-height: var(--line-height-snug);
   color: var(--color-text-primary);
 }
 
@@ -3771,16 +3818,16 @@ a[data-current-page-link="true"] {
 
 .mobile-rating-modal-meta {
   margin-top: var(--modal-space-sm);
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
   color: var(--color-text-muted);
 }
 
 .mobile-rating-modal-meta strong {
-  font-size: 18px;
+  font-size: var(--font-size-title-sm);
   font-weight: 700;
   color: var(--color-text-primary);
-  letter-spacing: 0.2px;
+  letter-spacing: var(--letter-spacing-body);
 }
 
 .mobile-rating-modal-meta .rating-value {
@@ -3811,9 +3858,9 @@ a[data-current-page-link="true"] {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-weight: 400;
-  line-height: 1;
+  line-height: var(--line-height-none);
   text-align: center;
   color: var(--color-text-faint);
   transform: translateY(0) scale(1);
@@ -3840,8 +3887,8 @@ a[data-current-page-link="true"] {
   min-width: 0;
   height: 42px;
   padding: 0;
-  font-size: 24px;
-  line-height: 1;
+  font-size: var(--font-size-title-xl);
+  line-height: var(--line-height-none);
   color: var(--color-text-ghost);
   background: transparent;
   border: none;
@@ -3876,7 +3923,7 @@ a[data-current-page-link="true"] {
   display: none;
   width: auto;
   height: 32px;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-danger-text);
   background: var(--surface-control-alt);
@@ -3933,7 +3980,7 @@ body:has(.user-page-shell) .page {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  line-height: 1;
+  line-height: var(--line-height-none);
   color: var(--color-text-secondary);
   background: transparent;
   border-color: transparent;
@@ -3949,8 +3996,8 @@ body:has(.user-page-shell) .page {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0;
-  line-height: 0;
+  font-size: var(--font-size-zero);
+  line-height: var(--line-height-zero);
 }
 
 .back-link-arrow::before,
@@ -4000,8 +4047,8 @@ body:has(.user-page-shell) .page {
 .following-page-main-title {
   margin: 0 0 24px;
   color: var(--color-text-primary);
-  font-size: 28px;
-  line-height: 1.08;
+  font-size: var(--font-size-display-sm);
+  line-height: var(--line-height-heading-tight);
   font-weight: 800;
   overflow-wrap: anywhere;
 }
@@ -4011,8 +4058,8 @@ body:has(.user-page-shell) .page {
 .following-page-loading-state,
 .following-page-empty-state {
   color: var(--color-text-muted);
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-relaxed);
 }
 
 .user-page-empty-state-large,
@@ -4056,14 +4103,14 @@ body:has(.user-page-shell) .page {
 .following-page-section-header h2 {
   margin: 0;
   color: var(--color-text-primary);
-  font-size: 18px;
-  line-height: 1.2;
+  font-size: var(--font-size-title-sm);
+  line-height: var(--line-height-snug);
 }
 
 .following-page-section-header span {
   color: var(--color-text-muted);
-  font-size: 14px;
-  line-height: 1.2;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-snug);
 }
 
 .following-page-profile-grid {
@@ -4118,7 +4165,7 @@ body:has(.user-page-shell) .page {
   border-radius: 50%;
   object-fit: cover;
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--font-size-title-sm);
   font-weight: 700;
 }
 
@@ -4127,8 +4174,8 @@ body:has(.user-page-shell) .page {
   min-width: 0;
   overflow: hidden;
   color: var(--color-text-primary);
-  font-size: 15px;
-  line-height: 1.2;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-snug);
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4139,8 +4186,8 @@ body:has(.user-page-shell) .page {
   min-width: 0;
   overflow: hidden;
   color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.25;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-compact);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -4226,15 +4273,15 @@ body:has(.user-page-shell) .page {
   border-radius: 50%;
   object-fit: cover;
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
 }
 
 .following-page-activity-profile span {
   min-width: 0;
   overflow: hidden;
-  font-size: 14px;
-  line-height: 1.2;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-snug);
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4243,8 +4290,8 @@ body:has(.user-page-shell) .page {
 .following-page-activity-date {
   flex: 0 0 auto;
   color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.2;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
 }
 
 .following-page-activity-main {
@@ -4262,8 +4309,8 @@ body:has(.user-page-shell) .page {
   color: var(--accent-soft-text);
   background: var(--accent-soft-bg);
   border-radius: var(--radius-md);
-  font-size: 13px;
-  line-height: 1;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-none);
   white-space: nowrap;
 }
 
@@ -4286,8 +4333,8 @@ body:has(.user-page-shell) .page {
   min-width: 0;
   overflow: hidden;
   color: var(--color-text-primary);
-  font-size: 17px;
-  line-height: 1.2;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-snug);
   font-weight: 800;
   text-decoration: none;
   text-overflow: ellipsis;
@@ -4299,8 +4346,8 @@ body:has(.user-page-shell) .page {
   min-width: 0;
   overflow: hidden;
   color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.25;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-compact);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -4343,7 +4390,7 @@ body:has(.user-page-shell) .page {
   border: 1px solid transparent;
   border-radius: 50%;
   font-family: var(--font-display);
-  font-size: 30px;
+  font-size: var(--font-size-display-md);
   font-weight: 700;
 }
 
@@ -4385,7 +4432,7 @@ body:has(.user-page-shell) .page {
   min-width: 0;
   color: var(--color-text-primary);
   font-size: var(--user-page-display-name-font-size);
-  line-height: 1.12;
+  line-height: var(--line-height-heading-snug);
   font-weight: 800;
   overflow-wrap: anywhere;
 }
@@ -4463,14 +4510,14 @@ body:has(.user-page-shell) .page {
   margin-top: 8px;
   color: var(--color-text-muted);
   font-size: var(--user-page-handle-font-size);
-  line-height: 1.35;
+  line-height: var(--line-height-card-comfort);
 }
 
 .user-page-avatar-status {
   margin-top: 6px;
   color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-card-comfort);
 }
 
 .user-page-avatar-status.is-error {
@@ -4546,15 +4593,15 @@ body:has(.user-page-shell) .page {
 
 .user-page-stat-value {
   color: var(--color-text-primary);
-  font-size: 30px;
-  line-height: 1;
+  font-size: var(--font-size-display-md);
+  line-height: var(--line-height-none);
   font-weight: 800;
 }
 
 .user-page-stat-label {
   color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.25;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-compact);
 }
 
 .user-page-stat-rank {
@@ -4573,10 +4620,10 @@ body:has(.user-page-shell) .page {
   border: none;
   border-radius: 0;
   box-shadow: none;
-  font-size: 17px;
-  line-height: 1;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-none);
   font-weight: 800;
-  letter-spacing: 0;
+  letter-spacing: var(--letter-spacing-none);
   isolation: isolate;
 }
 
@@ -4649,8 +4696,8 @@ body:has(.user-page-shell) .page {
   border: 1px solid var(--ui-soft-border-hover);
   border-radius: 8px;
   box-shadow: 0 10px 24px var(--shadow-30);
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-card-comfort);
   text-align: center;
   pointer-events: none;
 }
@@ -4708,8 +4755,8 @@ body:has(.user-page-shell) .page {
 
 .user-page-taste-label {
   color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.25;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-compact);
 }
 
 .user-page-taste-value {
@@ -4719,8 +4766,8 @@ body:has(.user-page-shell) .page {
   align-items: baseline;
   gap: 4px;
   color: var(--color-text-primary);
-  font-size: 14px;
-  line-height: 1.25;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-compact);
   font-weight: 800;
   white-space: nowrap;
 }
@@ -4762,14 +4809,14 @@ body:has(.user-page-shell) .page {
 .user-page-admin-panel-header h2 {
   margin: 0;
   color: var(--color-text-primary);
-  font-size: 18px;
-  line-height: 1.2;
+  font-size: var(--font-size-title-sm);
+  line-height: var(--line-height-snug);
 }
 
 .user-page-admin-panel-header span {
   color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-card-comfort);
 }
 
 .user-page-admin-password-form {
@@ -4788,8 +4835,8 @@ body:has(.user-page-shell) .page {
   display: grid;
   gap: 6px;
   color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-card);
 }
 
 .user-page-admin-password-fields input {
@@ -4808,8 +4855,8 @@ body:has(.user-page-shell) .page {
 .user-page-admin-password-message {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-card-comfort);
 }
 
 .user-page-admin-password-message.is-error {
@@ -4830,8 +4877,8 @@ body:has(.user-page-shell) .page {
 
 .user-page-section-header h2 {
   margin: 0;
-  font-size: 18px;
-  line-height: 1.2;
+  font-size: var(--font-size-title-sm);
+  line-height: var(--line-height-snug);
 }
 
 .user-page-section-title-link {
@@ -4923,8 +4970,8 @@ body:has(.user-page-shell) .page {
   box-shadow:
     0 12px 28px var(--shadow-36),
     0 0 0 1px var(--overlay-white-02);
-  font-size: 32px;
-  line-height: 1;
+  font-size: var(--font-size-display-lg);
+  line-height: var(--line-height-none);
   cursor: pointer;
   transform: translateY(-50%);
   transition:
@@ -5045,8 +5092,8 @@ body:has(.user-page-shell) .page {
   color: var(--color-rating-mark-text);
   background: var(--color-rating-mark-bg);
   border-radius: 999px;
-  font-size: 14px;
-  line-height: 1;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-none);
   font-weight: 800;
   box-shadow: 0 6px 14px var(--shadow-26);
 }
@@ -5054,7 +5101,7 @@ body:has(.user-page-shell) .page {
 .user-page-card-badge-muted {
   color: var(--color-text-primary);
   background: rgba(48, 54, 61, 0.88);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .user-page-movie-card-body {
@@ -5064,8 +5111,8 @@ body:has(.user-page-shell) .page {
 .user-page-movie-card-title {
   min-width: 0;
   color: var(--color-text-primary);
-  font-size: 15px;
-  line-height: 1.24;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-compact);
   font-weight: 700;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -5078,8 +5125,8 @@ body:has(.user-page-shell) .page {
 .user-page-movie-card-meta {
   margin-top: 4px;
   color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-card);
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
@@ -5114,8 +5161,8 @@ body:has(.user-page-shell) .page {
 
 .user-page-more-card strong {
   color: var(--color-text-primary);
-  font-size: 22px;
-  line-height: 1.2;
+  font-size: var(--font-size-title-lg);
+  line-height: var(--line-height-snug);
   overflow-wrap: anywhere;
 }
 
@@ -5157,7 +5204,7 @@ body:has(.movie-page-shell) .page {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  line-height: 1;
+  line-height: var(--line-height-none);
   color: var(--color-text-secondary);
   background: transparent;
   border-color: transparent;
@@ -5219,8 +5266,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-loading-state {
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-relaxed);
   color: var(--color-text-muted);
 }
 
@@ -5279,8 +5326,8 @@ body:has(.movie-page-shell) .page {
   background:
     radial-gradient(circle at center, var(--overlay-white-045), transparent 58%),
     var(--surface-card);
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-card);
   font-weight: 700;
   text-align: center;
   opacity: 0;
@@ -5338,8 +5385,8 @@ body:has(.movie-page-shell) .page {
   color: var(--color-text-primary);
   background: var(--surface-overlay-counter);
   border-radius: var(--radius-sm);
-  font-size: 12px;
-  line-height: 1.2;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
   font-weight: 700;
   box-shadow: 0 8px 18px var(--shadow-28);
 }
@@ -5471,8 +5518,8 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-title {
   margin: 0;
-  font-size: 28px;
-  line-height: 1.08;
+  font-size: var(--font-size-display-sm);
+  line-height: var(--line-height-heading-tight);
   font-weight: 700;
   color: var(--color-text-primary);
   overflow-wrap: anywhere;
@@ -5481,8 +5528,8 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-original-title {
   margin-top: 8px;
-  font-size: 18px;
-  line-height: 1.3;
+  font-size: var(--font-size-title-sm);
+  line-height: var(--line-height-card);
   color: var(--color-text-muted);
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -5496,8 +5543,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-meta-item {
-  font-size: 15px;
-  line-height: 1.4;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-normal);
   color: var(--color-text-control);
 }
 
@@ -5518,8 +5565,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-synopsis-text {
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-prose);
   color: var(--color-text-readable);
   white-space: normal;
   overflow-wrap: anywhere;
@@ -5598,7 +5645,7 @@ body:has(.movie-page-shell) .page {
 .movie-page-subtitle {
   margin: 0 0 14px;
   font-size: var(--movie-page-subtitle-font-size);
-  line-height: 1.15;
+  line-height: var(--line-height-heading);
   font-weight: 700;
   color: var(--color-text-primary);
 }
@@ -5612,14 +5659,14 @@ body:has(.movie-page-shell) .page {
 .movie-page-section-count {
   color: var(--color-text-muted);
   font-family: var(--font-body);
-  font-size: 0.78em;
-  line-height: 1;
+  font-size: var(--font-size-section-count);
+  line-height: var(--line-height-none);
   font-weight: 700;
 }
 
 .movie-page-review-form-block .movie-page-subtitle,
 .movie-page-comment-form-block .movie-page-subtitle {
-  font-size: 16px;
+  font-size: var(--font-size-lg);
 }
 
 .movie-page-stack {
@@ -5694,8 +5741,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-collapsible-composer .movie-page-composer-header .movie-page-subtitle {
-  font-size: 14px;
-  line-height: 1.2;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-snug);
 }
 
 .movie-page-composer-collapse-button {
@@ -5713,8 +5760,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-gate-text {
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
   color: var(--color-text-muted);
 }
 
@@ -5735,8 +5782,8 @@ body:has(.movie-page-shell) .page {
   gap: 10px;
   width: fit-content;
   max-width: 100%;
-  font-size: 14px;
-  line-height: 1.3;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-card);
   color: var(--color-text-secondary);
   cursor: pointer;
 }
@@ -5760,8 +5807,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-form-hint {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
   color: var(--color-text-muted);
 }
 
@@ -5787,8 +5834,8 @@ body:has(.movie-page-shell) .page {
 .movie-page-review-form-message {
   min-height: 18px;
   margin: 0;
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
   color: var(--color-text-muted);
 }
 
@@ -5931,7 +5978,7 @@ body:has(.movie-page-shell) .page {
   flex: 0 0 auto;
   display: block;
   border-radius: 50%;
-  line-height: 0;
+  line-height: var(--line-height-zero);
   text-decoration: none;
 }
 
@@ -5956,8 +6003,8 @@ body:has(.movie-page-shell) .page {
   background: rgba(var(--color-watchlist-base), 0.16);
   border-radius: 50%;
   font-family: var(--font-display);
-  font-size: 14px;
-  line-height: 1;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-none);
   font-weight: 700;
 }
 
@@ -5965,7 +6012,7 @@ body:has(.movie-page-shell) .page {
   width: 56px;
   height: 56px;
   min-width: 56px;
-  font-size: 18px;
+  font-size: var(--font-size-title-sm);
 }
 
 .movie-page-review-avatar-image {
@@ -5983,8 +6030,8 @@ body:has(.movie-page-shell) .page {
 .movie-page-review-author {
   width: fit-content;
   max-width: 100%;
-  font-size: 15px;
-  line-height: 1.3;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-card);
   font-weight: 700;
   color: var(--color-text-primary);
   text-decoration: none;
@@ -6004,14 +6051,14 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-date {
-  font-size: 12px;
-  line-height: 1.3;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-card);
   color: var(--color-text-muted);
 }
 
 .movie-page-review-user-rating {
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-card-comfort);
   color: var(--color-text-secondary);
 }
 
@@ -6067,8 +6114,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-review-spoiler-cover-text {
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
   color: var(--color-text-secondary);
 }
 
@@ -6087,15 +6134,15 @@ body:has(.movie-page-shell) .page {
   color: var(--color-text-secondary);
   background: var(--overlay-white-045);
   border-radius: 999px;
-  font-size: 12px;
-  line-height: 1;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-none);
   font-weight: 700;
 }
 
 .movie-page-review-text {
   margin-top: 7px;
-  font-size: 15px;
-  line-height: 1.65;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-prose-loose);
   color: var(--color-text-readable);
   white-space: pre-line;
   overflow-wrap: anywhere;
@@ -6146,8 +6193,8 @@ body:has(.movie-page-shell) .page {
   background: var(--ui-action-bg);
   border: 0;
   border-radius: 999px;
-  font-size: 13px;
-  line-height: 1;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-none);
   font-weight: 700;
   cursor: pointer;
 }
@@ -6211,8 +6258,8 @@ body:has(.movie-page-shell) .page {
   background: var(--overlay-white-03);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
   color: var(--color-text-muted);
 }
 
@@ -6235,8 +6282,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-comment-gate-text {
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
   color: var(--color-text-muted);
 }
 
@@ -6265,8 +6312,8 @@ body:has(.movie-page-shell) .page {
   gap: 10px;
   width: fit-content;
   max-width: 100%;
-  font-size: 14px;
-  line-height: 1.3;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-card);
   color: var(--color-text-secondary);
   cursor: pointer;
 }
@@ -6290,8 +6337,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-comment-form-hint {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
   color: var(--color-text-muted);
 }
 
@@ -6317,8 +6364,8 @@ body:has(.movie-page-shell) .page {
 .movie-page-comment-form-message {
   min-height: 18px;
   margin: 0;
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
   color: var(--color-text-muted);
 }
 
@@ -6383,7 +6430,7 @@ body:has(.movie-page-shell) .page {
   flex: 0 0 auto;
   display: block;
   border-radius: 50%;
-  line-height: 0;
+  line-height: var(--line-height-zero);
   text-decoration: none;
 }
 
@@ -6408,8 +6455,8 @@ body:has(.movie-page-shell) .page {
   background: rgba(var(--color-watchlist-base), 0.16);
   border-radius: 50%;
   font-family: var(--font-display);
-  font-size: 13px;
-  line-height: 1;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-none);
   font-weight: 700;
 }
 
@@ -6421,8 +6468,8 @@ body:has(.movie-page-shell) .page {
 .movie-page-comment-author {
   width: fit-content;
   max-width: 100%;
-  font-size: 14px;
-  line-height: 1.25;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-compact);
   font-weight: 700;
   color: var(--color-text-primary);
   text-decoration: none;
@@ -6442,8 +6489,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-comment-date {
-  font-size: 12px;
-  line-height: 1.3;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-card);
   color: var(--color-text-muted);
 }
 
@@ -6457,8 +6504,8 @@ body:has(.movie-page-shell) .page {
   color: var(--color-text-muted);
   background: rgba(var(--color-watchlist-base), 0.08);
   border-radius: var(--radius-md);
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-card-comfort);
 }
 
 .movie-page-comment-review-context a {
@@ -6532,8 +6579,8 @@ body:has(.movie-page-shell) .page {
   background: var(--overlay-white-03);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
   color: var(--color-text-muted);
 }
 
@@ -6546,8 +6593,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-comment-spoiler-cover-text {
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
   color: var(--color-text-secondary);
 }
 
@@ -6557,8 +6604,8 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-comment-text {
-  font-size: 14px;
-  line-height: 1.62;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-prose);
   color: var(--color-text-readable);
   white-space: pre-line;
   overflow-wrap: anywhere;
@@ -6629,8 +6676,8 @@ body:has(.movie-page-shell) .page {
   background: var(--ui-action-bg);
   border: 0;
   border-radius: 999px;
-  font-size: 13px;
-  line-height: 1;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-none);
   font-weight: 700;
   cursor: pointer;
 }
@@ -6711,7 +6758,7 @@ body:has(.movie-page-shell) .page {
 }
 
 .movie-page-discussion-like span {
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 
 .movie-page-comment-children {
@@ -6731,8 +6778,8 @@ body:has(.movie-page-shell) .page {
   background: var(--overlay-white-03);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
   color: var(--color-text-muted);
 }
 
@@ -6755,8 +6802,8 @@ body:has(.movie-page-shell) .page {
 .movie-page-similar-editor-label {
   margin-bottom: 8px;
   display: block;
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-card);
   font-weight: 700;
   color: var(--color-text-secondary);
 }
@@ -6777,8 +6824,8 @@ body:has(.movie-page-shell) .page {
 .movie-page-similar-editor-hint,
 .movie-page-similar-editor-empty,
 .movie-page-similar-editor-status {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
   color: var(--color-text-muted);
 }
 
@@ -6814,8 +6861,8 @@ body:has(.movie-page-shell) .page {
   background: var(--ui-action-bg);
   border-color: transparent;
   border-radius: var(--radius-sm);
-  font-size: 12px;
-  line-height: 1.25;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-compact);
   text-align: left;
 }
 
@@ -6895,8 +6942,8 @@ body:has(.movie-page-shell) .page {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-card);
   font-weight: 700;
   color: var(--color-text-primary);
 }
@@ -6906,8 +6953,8 @@ body:has(.movie-page-shell) .page {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
-  line-height: 1.3;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-card);
   color: var(--color-text-muted);
 }
 
@@ -6985,8 +7032,8 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-similar-title {
   margin: 0;
-  font-size: 18px;
-  line-height: 1.2;
+  font-size: var(--font-size-title-sm);
+  line-height: var(--line-height-snug);
   font-weight: 700;
   color: var(--color-text-primary);
   overflow-wrap: anywhere;
@@ -6995,16 +7042,16 @@ body:has(.movie-page-shell) .page {
 
 .movie-page-similar-original-title {
   margin-bottom: 4px;
-  font-size: 14px;
-  line-height: 1.35;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-card-comfort);
   color: var(--color-text-muted);
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 
 .movie-page-similar-meta {
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
   color: var(--color-text-readable);
 }
 
@@ -7061,7 +7108,7 @@ body:has(.movie-page-shell) .page {
 
   .movie-page-original-title {
     margin-top: 6px;
-    line-height: 1.32;
+    line-height: var(--line-height-card);
   }
 
   .movie-page-similar-editor {
@@ -7079,10 +7126,10 @@ body:has(.movie-page-shell) .page {
 
 @media (max-width: 680px) {
   .page {
-    --user-page-display-name-font-size: 20px;
-    --user-page-handle-font-size: 13px;
-    --section-title-font-size: 16px;
-    --movie-page-subtitle-font-size: 16px;
+    --user-page-display-name-font-size: var(--font-size-title-md);
+    --user-page-handle-font-size: var(--font-size-md);
+    --section-title-font-size: var(--font-size-lg);
+    --movie-page-subtitle-font-size: var(--font-size-lg);
   }
 
   .user-page-hero {
@@ -7101,17 +7148,17 @@ body:has(.movie-page-shell) .page {
     width: 58px;
     height: 58px;
     min-width: 58px;
-    font-size: 24px;
+    font-size: var(--font-size-title-xl);
   }
 
   .user-page-main-title,
   .following-page-main-title,
   .movie-page-title {
-    font-size: 24px;
+    font-size: var(--font-size-title-xl);
   }
 
   .user-page-handle {
-    line-height: 1.3;
+    line-height: var(--line-height-card);
   }
 
   .user-page-taste-stats {
@@ -7119,12 +7166,12 @@ body:has(.movie-page-shell) .page {
   }
 
   .user-page-section-header h2 {
-    font-size: 16px;
+    font-size: var(--font-size-lg);
   }
 
   .movie-page-review-form-block .movie-page-subtitle,
   .movie-page-comment-form-block .movie-page-subtitle {
-    font-size: 15px;
+    font-size: var(--font-size-body);
   }
 
   .movie-page-review-rail-shell {
@@ -7170,16 +7217,16 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-title {
-    line-height: 1.12;
+    line-height: var(--line-height-heading-snug);
   }
 
   .movie-page-subtitle {
-    line-height: 1.18;
+    line-height: var(--line-height-title);
     margin-bottom: 12px;
   }
 
   .movie-page-original-title {
-    font-size: 15px;
+    font-size: var(--font-size-body);
   }
 
   .movie-page-meta-list {
@@ -7187,13 +7234,13 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-meta-item {
-    font-size: 14px;
-    line-height: 1.36;
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-card-comfort);
   }
 
   .movie-page-synopsis-text {
-    font-size: 14px;
-    line-height: 1.58;
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-prose);
   }
 
   .movie-rating-widgets {
@@ -7201,7 +7248,7 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-loading-state {
-    font-size: 14px;
+    font-size: var(--font-size-base);
   }
 
   .movie-page-review-form-actions,
@@ -7246,14 +7293,14 @@ body:has(.movie-page-shell) .page {
     width: 36px;
     height: 36px;
     min-width: 36px;
-    font-size: 13px;
+    font-size: var(--font-size-md);
   }
 
   .movie-page-review-author-row.is-meta-tall .movie-page-review-avatar {
     width: 50px;
     height: 50px;
     min-width: 50px;
-    font-size: 16px;
+    font-size: var(--font-size-lg);
   }
 
   .movie-page-review-spoiler-cover,
@@ -7269,8 +7316,8 @@ body:has(.movie-page-shell) .page {
 
   .movie-page-review-text,
   .movie-page-comment-text {
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-prose);
   }
 
   .movie-page-comments-block {
@@ -7299,7 +7346,7 @@ body:has(.movie-page-shell) .page {
   }
 
   .movie-page-similar-title {
-    font-size: 17px;
+    font-size: var(--font-size-xl);
   }
 }
 
@@ -7331,21 +7378,21 @@ body:has(.user-page-shell) .page-footer {
 .footer-brand {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 18px;
-  letter-spacing: 2px;
+  font-size: var(--font-size-title-sm);
+  letter-spacing: var(--letter-spacing-brand);
   text-transform: uppercase;
   color: var(--color-text-primary);
 }
 
 .footer-slogan {
-  font-size: 13px;
-  letter-spacing: 0.6px;
+  font-size: var(--font-size-md);
+  letter-spacing: var(--letter-spacing-footer);
   color: var(--color-text-dim);
   text-align: left;
 }
 
 .footer-author {
-  font-size: 13px;
+  font-size: var(--font-size-md);
   color: var(--color-text-dim);
   text-align: right;
 }
@@ -7354,7 +7401,7 @@ body:has(.user-page-shell) .page-footer {
   min-height: var(--control-height-md);
   padding-top: 8px;
   padding-bottom: 8px;
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 
 @media (min-width: 901px) {
@@ -7435,14 +7482,14 @@ body:has(.user-page-shell) .page-footer {
 @media (max-width: 900px) {
   .page {
     padding: 16px;
-    --page-logo-font-size: 32px;
-    --page-logo-letter-spacing: 1.2px;
-    --section-title-font-size: 18px;
-    --movies-year-title-font-size: 22px;
-    --movies-month-title-font-size: 20px;
+    --page-logo-font-size: var(--font-size-display-lg);
+    --page-logo-letter-spacing: var(--letter-spacing-brand-tablet);
+    --section-title-font-size: var(--font-size-title-sm);
+    --movies-year-title-font-size: var(--font-size-title-lg);
+    --movies-month-title-font-size: var(--font-size-title-md);
     --movie-card-title-padding-bottom: 8px;
-    --movie-card-text-font-size: 13px;
-    --movie-card-text-line-height: 1.36;
+    --movie-card-text-font-size: var(--font-size-md);
+    --movie-card-text-line-height: var(--line-height-card-comfort);
   }
 
   .page-header-top {
@@ -7564,8 +7611,8 @@ body:has(.user-page-shell) .page-footer {
 
   .modal-header h2 {
     padding-right: var(--modal-title-safe-right);
-    font-size: 18px;
-    line-height: 1.2;
+    font-size: var(--font-size-title-sm);
+    line-height: var(--line-height-snug);
   }
 
   .filters-modal-actions {
@@ -7623,7 +7670,7 @@ body:has(.user-page-shell) .page-footer {
   .quick-preset-button {
     max-width: 100%;
     font-weight: 500;
-    font-size: 13px;
+    font-size: var(--font-size-md);
   }
 
   .active-filter-chip {
@@ -7648,8 +7695,8 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .filters .form-row label {
-    font-size: 13px;
-    line-height: 1.2;
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-snug);
   }
 
   .filters input:not([type="checkbox"]),
@@ -7695,12 +7742,12 @@ body:has(.user-page-shell) .page-footer {
     justify-content: center;
     text-align: center;
     width: 100%;
-    line-height: 1;
+    line-height: var(--line-height-none);
   }
 
   .auth-message {
-    font-size: 12px;
-    line-height: 1.4;
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-normal);
   }
 
   .movies-section-header {
@@ -7711,7 +7758,7 @@ body:has(.user-page-shell) .page-footer {
   .catalog-view-toggle {
     height: 36px;
     padding: 0 10px;
-    font-size: 13px;
+    font-size: var(--font-size-md);
   }
 
   .movies-year-title:not(:first-child) {
@@ -7724,7 +7771,7 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .movies-month-title {
-    line-height: 1.16;
+    line-height: var(--line-height-title-tight);
   }
 
   .month-sort-controls {
@@ -7734,7 +7781,7 @@ body:has(.user-page-shell) .page-footer {
   .month-sort-btn {
     height: 28px;
     padding: 0 10px;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
   }
 
   .movie-card {
@@ -7785,18 +7832,18 @@ body:has(.user-page-shell) .page-footer {
     --catalog-grid-gap: 12px;
     --catalog-pagination-gap: clamp(4px, 1.2vw, 6px);
     --catalog-pagination-button-height: 34px;
-    --page-logo-font-size: 26px;
-    --page-logo-letter-spacing: 1px;
-    --section-title-font-size: 16px;
-    --movies-year-title-font-size: 20px;
-    --movies-month-title-font-size: 18px;
+    --page-logo-font-size: var(--font-size-title-2xl);
+    --page-logo-letter-spacing: var(--letter-spacing-brand-mobile);
+    --section-title-font-size: var(--font-size-lg);
+    --movies-year-title-font-size: var(--font-size-title-md);
+    --movies-month-title-font-size: var(--font-size-title-sm);
     --movie-card-title-padding-bottom: 7px;
-    --movie-card-title-font-size: 16px;
-    --movie-card-title-line-height: 1.16;
+    --movie-card-title-font-size: var(--font-size-lg);
+    --movie-card-title-line-height: var(--line-height-title-tight);
     --movie-card-title-overflow-wrap: anywhere;
     --movie-card-title-word-break: break-word;
-    --movie-card-text-font-size: 12px;
-    --movie-card-text-line-height: 1.28;
+    --movie-card-text-font-size: var(--font-size-sm);
+    --movie-card-text-line-height: var(--line-height-card);
     --movie-card-text-overflow-wrap: anywhere;
     --movie-card-text-word-break: break-word;
   }
@@ -7806,11 +7853,11 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .display-name-text {
-    font-size: 13px;
+    font-size: var(--font-size-md);
   }
 
   .catalog-search-row input[type="text"] {
-    font-size: 14px;
+    font-size: var(--font-size-base);
   }
 
   .catalog-search-row,
@@ -7839,7 +7886,7 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .catalog-toolbar-actions > button {
-    font-size: 14px;
+    font-size: var(--font-size-base);
   }
 
   .quick-presets-bar {
@@ -7891,7 +7938,7 @@ body:has(.user-page-shell) .page-footer {
     min-height: 32px;
     padding: 0 8px;
     align-self: flex-start;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     margin-top: 0;
   }
 
@@ -7900,8 +7947,8 @@ body:has(.user-page-shell) .page-footer {
     grid-row: 2;
     min-width: 0;
     width: auto;
-    font-size: 12px;
-    line-height: 1.25;
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-compact);
     text-align: left;
     white-space: normal;
   }
@@ -7923,7 +7970,7 @@ body:has(.user-page-shell) .page-footer {
 
   .movies-year-title {
     margin: 8px 0 0;
-    line-height: 1.12;
+    line-height: var(--line-height-heading-snug);
   }
 
   .movies-year-title:not(:first-child) {
@@ -7940,7 +7987,7 @@ body:has(.user-page-shell) .page-footer {
 
   .movies-month-title {
     margin: 0 0 6px 0;
-    line-height: 1.14;
+    line-height: var(--line-height-heading);
   }
 
   .month-sort-controls {
@@ -7952,11 +7999,11 @@ body:has(.user-page-shell) .page-footer {
   .month-sort-btn {
     height: 30px;
     padding: 0 12px;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
   }
 
   .quick-preset-button {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
   }
 
   .astral-preset-toast {
@@ -8009,8 +8056,8 @@ body:has(.user-page-shell) .page-footer {
     margin-bottom: 14px;
     justify-content: center;
     border-radius: 6px;
-    font-size: 12px;
-    line-height: 1.2;
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-snug);
     font-weight: 500;
   }
 
@@ -8062,12 +8109,12 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .movie-rating-value {
-    font-size: 26px;
+    font-size: var(--font-size-title-2xl);
   }
 
   .movie-rating-meta {
-    font-size: 12px;
-    line-height: 1.3;
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-card);
   }
 
   .movie-profile-rating {
@@ -8075,11 +8122,11 @@ body:has(.user-page-shell) .page-footer {
     min-height: 32px;
     padding: 0 10px;
     gap: 6px;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
   }
 
   .movie-profile-rating-value {
-    font-size: 14px;
+    font-size: var(--font-size-base);
   }
 
   .movie-user-rating {
@@ -8087,7 +8134,7 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .movie-user-rating-label {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     padding-left: 4px;
   }
 
@@ -8102,18 +8149,18 @@ body:has(.user-page-shell) .page-footer {
   .movie-user-rating-mobile-trigger {
     min-height: 32px;
     padding: 0 10px;
-    font-size: 12px;
-    line-height: 1.2;
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-snug);
   }
 
   .rating-star-btn {
     height: 26px;
-    font-size: 18px;
+    font-size: var(--font-size-title-sm);
   }
 
   .movie-card-actions button {
     width: 100%;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
   }
 
@@ -8123,7 +8170,7 @@ body:has(.user-page-shell) .page-footer {
   .filter-sort .custom-select-trigger,
   .catalog-search-row label,
   .filter-sort label {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
   }
 
   .movie-search-alias-hint {
@@ -8131,7 +8178,7 @@ body:has(.user-page-shell) .page-footer {
     right: 6px;
     bottom: 6px;
     padding: 5px 7px;
-    line-height: 1.3;
+    line-height: var(--line-height-card);
     -webkit-line-clamp: 3;
   }
 }
@@ -8166,10 +8213,10 @@ body:has(.user-page-shell) .page-footer {
 
 @media (max-width: 480px) {
   .page {
-    --user-page-display-name-font-size: 18px;
-    --user-page-handle-font-size: 12px;
-    --section-title-font-size: 15px;
-    --movie-page-subtitle-font-size: 15px;
+    --user-page-display-name-font-size: var(--font-size-title-sm);
+    --user-page-handle-font-size: var(--font-size-sm);
+    --section-title-font-size: var(--font-size-body);
+    --movie-page-subtitle-font-size: var(--font-size-body);
   }
 
   .movie-page-layout {
@@ -8255,21 +8302,21 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .footer-brand {
-    font-size: 16px;
+    font-size: var(--font-size-lg);
   }
 
   .footer-slogan {
-    font-size: 13px;
+    font-size: var(--font-size-md);
   }
 
   .footer-author {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
   }
 
   .user-page-main-title,
   .following-page-main-title,
   .movie-page-title {
-    font-size: 22px;
+    font-size: var(--font-size-title-lg);
   }
 
   .following-page-profile-grid {
@@ -8291,7 +8338,7 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .following-page-activity-movie {
-    font-size: 15px;
+    font-size: var(--font-size-body);
   }
 
   .user-page-overview {
@@ -8299,12 +8346,12 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .user-page-section-header h2 {
-    font-size: 15px;
+    font-size: var(--font-size-body);
   }
 
   .movie-page-review-form-block .movie-page-subtitle,
   .movie-page-comment-form-block .movie-page-subtitle {
-    font-size: 14px;
+    font-size: var(--font-size-base);
   }
 
   .user-page-stats {
@@ -8319,11 +8366,11 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .user-page-stat-value {
-    font-size: 27px;
+    font-size: var(--font-size-display-xs);
   }
 
   .user-page-stat-label {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
   }
 
   .user-page-taste-stats {
@@ -8340,13 +8387,13 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .user-page-taste-label {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
   }
 
   .user-page-taste-value {
     align-self: stretch;
     justify-content: center;
-    font-size: 14px;
+    font-size: var(--font-size-base);
   }
 
   .user-page-admin-password-fields {
@@ -8361,19 +8408,19 @@ body:has(.user-page-shell) .page-footer {
     --catalog-pagination-button-width: clamp(24px, 8vw, 30px);
     --catalog-pagination-button-height: 32px;
     --catalog-pagination-ellipsis-width: 10px;
-    --page-logo-font-size: 24px;
-    --user-page-display-name-font-size: 14px;
-    --user-page-handle-font-size: 11px;
-    --movies-year-title-font-size: 24px;
-    --movies-month-title-font-size: 22px;
+    --page-logo-font-size: var(--font-size-title-xl);
+    --user-page-display-name-font-size: var(--font-size-base);
+    --user-page-handle-font-size: var(--font-size-xs);
+    --movies-year-title-font-size: var(--font-size-title-xl);
+    --movies-month-title-font-size: var(--font-size-title-lg);
     --movie-card-title-padding-bottom: 8px;
-    --movie-card-title-font-size: 20px;
-    --movie-card-title-line-height: 1.18;
-    --movie-card-title-letter-spacing: 0.2px;
+    --movie-card-title-font-size: var(--font-size-title-md);
+    --movie-card-title-line-height: var(--line-height-title);
+    --movie-card-title-letter-spacing: var(--letter-spacing-body);
     --movie-card-title-overflow-wrap: anywhere;
     --movie-card-title-word-break: break-word;
-    --movie-card-text-font-size: 14px;
-    --movie-card-text-line-height: 1.32;
+    --movie-card-text-font-size: var(--font-size-base);
+    --movie-card-text-line-height: var(--line-height-card);
     --movie-card-text-overflow-wrap: anywhere;
     --movie-card-text-word-break: break-word;
   }
@@ -8395,7 +8442,7 @@ body:has(.user-page-shell) .page-footer {
     width: 38px;
     height: 38px;
     min-width: 38px;
-    font-size: 18px;
+    font-size: var(--font-size-title-sm);
   }
 
   .user-page-title-row {
@@ -8403,7 +8450,7 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .user-page-display-name {
-    line-height: 1.18;
+    line-height: var(--line-height-title);
   }
 
   .user-page-display-name-edit-button {
@@ -8424,7 +8471,7 @@ body:has(.user-page-shell) .page-footer {
 
   .user-page-handle {
     margin-top: 3px;
-    line-height: 1.25;
+    line-height: var(--line-height-compact);
   }
 
   .user-page-stats {
@@ -8438,11 +8485,11 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .user-page-stat-value {
-    font-size: 24px;
+    font-size: var(--font-size-title-xl);
   }
 
   .user-page-stat-label {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
   }
 
   .user-page-stat-rank {
@@ -8450,7 +8497,7 @@ body:has(.user-page-shell) .page-footer {
     right: -7px;
     width: 42px;
     height: 48px;
-    font-size: 14px;
+    font-size: var(--font-size-base);
   }
 
   .user-page-stat-rank-number {
@@ -8485,11 +8532,11 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .user-page-taste-label {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
   }
 
   .user-page-taste-value {
-    font-size: 13px;
+    font-size: var(--font-size-md);
   }
 
   .movie-page-similar-grid {
@@ -8498,7 +8545,7 @@ body:has(.user-page-shell) .page-footer {
 
   .movies-year-title {
     margin: 12px 0 0;
-    line-height: 1.15;
+    line-height: var(--line-height-heading);
   }
 
   .movies-year-title:not(:first-child) {
@@ -8511,7 +8558,7 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .movies-month-title {
-    line-height: 1.18;
+    line-height: var(--line-height-title);
   }
 
   .catalog-toolbar-actions {
@@ -8529,13 +8576,13 @@ body:has(.user-page-shell) .page-footer {
     flex-basis: calc(39% - 4px);
     padding: 0 10px;
     gap: 6px;
-    font-size: 0;
+    font-size: var(--font-size-zero);
   }
 
   .catalog-toolbar-actions > button::after {
     content: "Фильтр";
-    font-size: 13px;
-    line-height: 1;
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-none);
   }
 
   .catalog-toolbar-actions > button::before {
@@ -8552,7 +8599,7 @@ body:has(.user-page-shell) .page-footer {
   .catalog-toolbar-actions .filter-sort .custom-select-trigger {
     padding-right: 28px;
     padding-left: 10px;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
   }
 
   .catalog-toolbar-actions .filter-sort .custom-select-trigger::after {
@@ -8573,8 +8620,8 @@ body:has(.user-page-shell) .page-footer {
 
   .movie-external-links-toggle,
   .movie-user-rating-mobile-trigger {
-    font-size: 14px;
-    line-height: 1.2;
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-snug);
   }
 
   .movie-rating-block {
@@ -8590,27 +8637,27 @@ body:has(.user-page-shell) .page-footer {
   }
 
   .movie-rating-value {
-    font-size: 22px;
+    font-size: var(--font-size-title-lg);
   }
 
   .movie-rating-meta {
-    font-size: 13px;
-    line-height: 1.25;
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-compact);
   }
 
   .remove-rating-inline-btn {
     height: 28px;
     padding: 0 8px;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     white-space: normal;
     text-align: center;
-    line-height: 1.15;
+    line-height: var(--line-height-heading);
   }
 
   .movie-user-rating-label {
-    font-size: 13px;
+    font-size: var(--font-size-md);
     margin-bottom: 4px;
-    line-height: 1.2;
+    line-height: var(--line-height-snug);
   }
 
   .movie-user-rating-stars {
@@ -8621,14 +8668,14 @@ body:has(.user-page-shell) .page-footer {
     min-width: 0;
     flex: 1 1 0;
     height: 30px;
-    font-size: 22px;
-    line-height: 1;
+    font-size: var(--font-size-title-lg);
+    line-height: var(--line-height-none);
   }
 
   .movie-card-actions button {
     flex: 1 1 100%;
     width: 100%;
-    font-size: 14px;
-    line-height: 1.2;
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-snug);
   }
 }
