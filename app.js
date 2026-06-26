@@ -13892,7 +13892,47 @@ function shouldResetMovieCardFocusAfterLinkOpen(event) {
   );
 }
 
+function shouldHoldMovieCardHoverAfterLinkOpen(event, link) {
+  return (
+    shouldResetMovieCardFocusAfterLinkOpen(event) ||
+    link?.classList?.contains('movie-external-link')
+  );
+}
+
+function holdMovieCardHoverAfterLinkOpen(event, link = event.currentTarget) {
+  if (!shouldHoldMovieCardHoverAfterLinkOpen(event, link) || !link) {
+    return;
+  }
+
+  const card = link.closest('.movie-card[data-movie-id]');
+
+  if (!card || !container?.contains(card)) {
+    return;
+  }
+
+  card.classList.add('is-link-opening');
+
+  const clearHeldState = () => {
+    card.classList.remove('is-link-opening');
+    card.removeEventListener('mouseleave', clearHeldState);
+    window.removeEventListener('blur', clearHeldState);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      clearHeldState();
+    }
+  };
+
+  card.addEventListener('mouseleave', clearHeldState, { once: true });
+  window.addEventListener('blur', clearHeldState, { once: true });
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+}
+
 function resetMovieCardFocusAfterLinkOpen(event, link = event.currentTarget) {
+  holdMovieCardHoverAfterLinkOpen(event, link);
+
   if (!shouldResetMovieCardFocusAfterLinkOpen(event)) {
     return;
   }
@@ -13989,7 +14029,7 @@ function toggleCatalogExternalLinksPanel(toggleButton, card) {
 }
 
 function handleCatalogCardAuxClick(event) {
-  const link = event.target.closest('.movie-poster-link, .movie-title-link');
+  const link = event.target.closest('.movie-poster-link, .movie-title-link, .movie-external-link');
 
   if (link && container?.contains(link)) {
     resetMovieCardFocusAfterLinkOpen(event, link);
@@ -14003,7 +14043,7 @@ async function handleCatalogCardClick(event) {
     return;
   }
 
-  const link = target.closest('.movie-poster-link, .movie-title-link');
+  const link = target.closest('.movie-poster-link, .movie-title-link, .movie-external-link');
 
   if (link) {
     resetMovieCardFocusAfterLinkOpen(event, link);

@@ -2806,24 +2806,28 @@ button:not(:where(
   transition: opacity 0.2s ease;
 }
 
-.movie-card:hover {
+.movie-card:hover,
+.movie-card.is-link-opening {
   transform: none;
   background: var(--surface-card-hover);
   border-color: var(--ui-soft-border-hover);
   box-shadow: var(--ui-card-hover-shadow);
 }
 
-.movie-card:hover::before {
+.movie-card:hover::before,
+.movie-card.is-link-opening::before {
   opacity: 1;
 }
 
-.movie-card-rated:hover {
+.movie-card-rated:hover,
+.movie-card-rated.is-link-opening {
   background:
     linear-gradient(rgba(var(--color-success-base), 0.08), rgba(var(--color-success-base), 0.08)),
     var(--surface-card-hover);
 }
 
-.movie-card-watchlist:hover {
+.movie-card-watchlist:hover,
+.movie-card-watchlist.is-link-opening {
   background:
     linear-gradient(rgba(var(--color-watchlist-base), 0.08), rgba(var(--color-watchlist-base), 0.08)),
     var(--surface-card-hover);
@@ -2846,7 +2850,8 @@ button:not(:where(
   box-shadow: 0 0 10px rgba(var(--color-success-base), 0.12);
 }
 
-.movie-card-rated:hover {
+.movie-card-rated:hover,
+.movie-card-rated.is-link-opening {
   box-shadow:
     0 0 12px rgba(var(--color-success-base), 0.16),
     0 14px 30px var(--shadow-24);
@@ -2865,7 +2870,8 @@ button:not(:where(
   box-shadow: 0 0 10px rgba(var(--color-watchlist-base), 0.12);
 }
 
-.movie-card-watchlist:hover {
+.movie-card-watchlist:hover,
+.movie-card-watchlist.is-link-opening {
   box-shadow:
     0 0 12px rgba(var(--color-watchlist-base), 0.16),
     0 14px 30px var(--shadow-24);
@@ -3312,7 +3318,8 @@ a[data-current-page-link="true"] {
     filter 0.25s ease;
 }
 
-.movie-card:hover .movie-poster {
+.movie-card:hover .movie-poster,
+.movie-card.is-link-opening .movie-poster {
   transform: scale(1.015);
   filter: brightness(1.02);
 }
