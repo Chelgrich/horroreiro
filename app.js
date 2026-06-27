@@ -66,8 +66,12 @@ const genreFilter = document.getElementById('genreFilter');
 const subgenreFilter = document.getElementById('subgenreFilter');
 const formatFilter = document.getElementById('formatFilter');
 const countryFilter = document.getElementById('countryFilter');
-const ratingFilter = document.getElementById('ratingFilter');
-const yearFilter = document.getElementById('yearFilter');
+const runtimeFromFilter = document.getElementById('runtimeFromFilter');
+const runtimeToFilter = document.getElementById('runtimeToFilter');
+const yearFromFilter = document.getElementById('yearFromFilter');
+const yearToFilter = document.getElementById('yearToFilter');
+const ratingFromFilter = document.getElementById('ratingFromFilter');
+const ratingToFilter = document.getElementById('ratingToFilter');
 const watchlistFilter = document.getElementById('watchlistFilter');
 const watchlistFilterRow = document.getElementById('watchlistFilterRow');
 const watchedFilter = document.getElementById('watchedFilter');
@@ -248,7 +252,13 @@ const CATALOG_URL_STATE_PARAMS = new Set([
   'format',
   'country',
   'year',
+  'year_from',
+  'year_to',
   'rating',
+  'rating_from',
+  'rating_to',
+  'runtime_from',
+  'runtime_to',
   'reviews',
   'watchlist',
   'watched',
@@ -499,7 +509,6 @@ let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
 let allGenreNames = [];
 let allCountryNames = [];
-let allMovieYears = [];
 let lastCatalogAnchorMovieId = null;
 let currentMoviePageMovieId = null;
 let currentMoviePageMovieData = null;
@@ -4672,8 +4681,12 @@ function getDefaultCatalogState() {
     subgenre: '',
     format: '',
     country: '',
-    rating: '',
-    year: '',
+    ratingFrom: '',
+    ratingTo: '',
+    yearFrom: '',
+    yearTo: '',
+    runtimeFrom: '',
+    runtimeTo: '',
     withReviews: false,
     watchlist: '',
     watched: '',
@@ -4801,8 +4814,12 @@ function getCurrentCatalogStateForPersistence() {
     subgenre: subgenreFilter.value,
     format: formatFilter.value,
     country: countryFilter.value,
-    rating: ratingFilter.value,
-    year: yearFilter.value,
+    ratingFrom: getCatalogRangeControlValue(ratingFromFilter, { min: 1, max: 10, allowDecimal: true }),
+    ratingTo: getCatalogRangeControlValue(ratingToFilter, { min: 1, max: 10, allowDecimal: true }),
+    yearFrom: getCatalogRangeControlValue(yearFromFilter, { min: 1900, max: 2100 }),
+    yearTo: getCatalogRangeControlValue(yearToFilter, { min: 1900, max: 2100 }),
+    runtimeFrom: getCatalogRangeControlValue(runtimeFromFilter, { min: 1, max: 999 }),
+    runtimeTo: getCatalogRangeControlValue(runtimeToFilter, { min: 1, max: 999 }),
     withReviews: reviewedOnlyFilter,
     watchlist: currentUser ? watchlistFilter.value : '',
     watched: currentUser ? watchedFilter.value : '',
@@ -4826,6 +4843,83 @@ function getSelectOptionValue(selectElement, value, fallbackValue = '') {
   return Array.from(selectElement.options).some(option => option.value === normalizedValue)
     ? normalizedValue
     : fallbackValue;
+}
+
+function normalizeCatalogRangeValue(value, {
+  min = Number.NEGATIVE_INFINITY,
+  max = Number.POSITIVE_INFINITY,
+  allowDecimal = false
+} = {}) {
+  const normalizedValue = String(value ?? '').trim().replace(',', '.');
+
+  if (!normalizedValue) {
+    return '';
+  }
+
+  const numericValue = Number(normalizedValue);
+
+  if (
+    !Number.isFinite(numericValue) ||
+    numericValue < min ||
+    numericValue > max ||
+    (!allowDecimal && !Number.isInteger(numericValue))
+  ) {
+    return '';
+  }
+
+  return allowDecimal
+    ? String(Number(numericValue.toFixed(1))).replace(/\.0$/, '')
+    : String(Math.trunc(numericValue));
+}
+
+function getCatalogRangeControlValue(inputElement, options) {
+  return normalizeCatalogRangeValue(inputElement?.value, options);
+}
+
+function setCatalogRangeControlValue(inputElement, value, options) {
+  if (!inputElement) {
+    return;
+  }
+
+  inputElement.value = normalizeCatalogRangeValue(value, options);
+}
+
+function getCatalogRangeBounds(fromValue, toValue, options) {
+  const normalizedFromValue = normalizeCatalogRangeValue(fromValue, options);
+  const normalizedToValue = normalizeCatalogRangeValue(toValue, options);
+  let from = normalizedFromValue === '' ? null : Number(normalizedFromValue);
+  let to = normalizedToValue === '' ? null : Number(normalizedToValue);
+
+  if (from !== null && to !== null && from > to) {
+    [from, to] = [to, from];
+  }
+
+  return {
+    from,
+    to,
+    hasRange: from !== null || to !== null
+  };
+}
+
+function formatCatalogRangeLabel(label, fromValue, toValue, {
+  valueFormatter = value => String(value)
+} = {}) {
+  const hasFrom = fromValue !== null && fromValue !== undefined && fromValue !== '';
+  const hasTo = toValue !== null && toValue !== undefined && toValue !== '';
+
+  if (hasFrom && hasTo) {
+    return `${label}: ${valueFormatter(fromValue)} - ${valueFormatter(toValue)}`;
+  }
+
+  if (hasFrom) {
+    return `${label}: от ${valueFormatter(fromValue)}`;
+  }
+
+  if (hasTo) {
+    return `${label}: до ${valueFormatter(toValue)}`;
+  }
+
+  return '';
 }
 
 function getCatalogUrlValueAlias(paramName, value) {
@@ -4900,8 +4994,30 @@ function readCatalogUrlState() {
     catalogState.subgenre = getCatalogUrlValueByAlias('subgenre', searchParams.get('subgenre'), subgenreFilter);
     catalogState.format = getCatalogUrlValueByAlias('format', searchParams.get('format'), formatFilter);
     catalogState.country = getCatalogUrlValueByAlias('country', searchParams.get('country'), countryFilter);
-    catalogState.rating = getSelectOptionValue(ratingFilter, searchParams.get('rating'), '');
-    catalogState.year = String(searchParams.get('year') || '').trim();
+    catalogState.ratingFrom = normalizeCatalogRangeValue(
+      searchParams.get('rating_from') || searchParams.get('rating'),
+      { min: 1, max: 10, allowDecimal: true }
+    );
+    catalogState.ratingTo = normalizeCatalogRangeValue(
+      searchParams.get('rating_to'),
+      { min: 1, max: 10, allowDecimal: true }
+    );
+    catalogState.yearFrom = normalizeCatalogRangeValue(
+      searchParams.get('year_from') || searchParams.get('year'),
+      { min: 1900, max: 2100 }
+    );
+    catalogState.yearTo = normalizeCatalogRangeValue(
+      searchParams.get('year_to') || searchParams.get('year'),
+      { min: 1900, max: 2100 }
+    );
+    catalogState.runtimeFrom = normalizeCatalogRangeValue(
+      searchParams.get('runtime_from'),
+      { min: 1, max: 999 }
+    );
+    catalogState.runtimeTo = normalizeCatalogRangeValue(
+      searchParams.get('runtime_to'),
+      { min: 1, max: 999 }
+    );
     catalogState.withReviews = getCatalogUrlBooleanValue(searchParams.get('reviews'));
     catalogState.watchlist = getSelectOptionValue(watchlistFilter, searchParams.get('watchlist'), '');
     catalogState.watched = getSelectOptionValue(watchedFilter, searchParams.get('watched'), '');
@@ -4960,8 +5076,12 @@ function applyCatalogStateToControls(catalogState) {
   setSelectValue(subgenreFilter, nextCatalogState.subgenre);
   setSelectValue(formatFilter, nextCatalogState.format);
   setSelectValue(countryFilter, nextCatalogState.country);
-  setSelectValue(ratingFilter, nextCatalogState.rating);
-  setSelectValue(yearFilter, nextCatalogState.year);
+  setCatalogRangeControlValue(ratingFromFilter, nextCatalogState.ratingFrom, { min: 1, max: 10, allowDecimal: true });
+  setCatalogRangeControlValue(ratingToFilter, nextCatalogState.ratingTo, { min: 1, max: 10, allowDecimal: true });
+  setCatalogRangeControlValue(yearFromFilter, nextCatalogState.yearFrom, { min: 1900, max: 2100 });
+  setCatalogRangeControlValue(yearToFilter, nextCatalogState.yearTo, { min: 1900, max: 2100 });
+  setCatalogRangeControlValue(runtimeFromFilter, nextCatalogState.runtimeFrom, { min: 1, max: 999 });
+  setCatalogRangeControlValue(runtimeToFilter, nextCatalogState.runtimeTo, { min: 1, max: 999 });
   reviewedOnlyFilter = Boolean(nextCatalogState.withReviews);
   setSelectValue(watchlistFilter, currentUser ? nextCatalogState.watchlist : '');
   setSelectValue(watchedFilter, currentUser ? nextCatalogState.watched : '');
@@ -4996,8 +5116,12 @@ function getCatalogUrlSearchParamsFromControls() {
     setCatalogUrlParam(searchParams, 'subgenre', subgenreFilter.value);
     setCatalogUrlParam(searchParams, 'format', formatFilter.value);
     setCatalogUrlParam(searchParams, 'country', countryFilter.value);
-    setCatalogUrlParam(searchParams, 'year', yearFilter.value);
-    setCatalogUrlParam(searchParams, 'rating', ratingFilter.value);
+    setCatalogUrlParam(searchParams, 'year_from', getCatalogRangeControlValue(yearFromFilter, { min: 1900, max: 2100 }));
+    setCatalogUrlParam(searchParams, 'year_to', getCatalogRangeControlValue(yearToFilter, { min: 1900, max: 2100 }));
+    setCatalogUrlParam(searchParams, 'rating_from', getCatalogRangeControlValue(ratingFromFilter, { min: 1, max: 10, allowDecimal: true }));
+    setCatalogUrlParam(searchParams, 'rating_to', getCatalogRangeControlValue(ratingToFilter, { min: 1, max: 10, allowDecimal: true }));
+    setCatalogUrlParam(searchParams, 'runtime_from', getCatalogRangeControlValue(runtimeFromFilter, { min: 1, max: 999 }));
+    setCatalogUrlParam(searchParams, 'runtime_to', getCatalogRangeControlValue(runtimeToFilter, { min: 1, max: 999 }));
 
     if (reviewedOnlyFilter) {
       searchParams.set('reviews', '1');
@@ -5082,8 +5206,6 @@ function applySavedCatalogState({ fallbackToStorage = true } = {}) {
       subgenreFilter,
       formatFilter,
       countryFilter,
-      ratingFilter,
-      yearFilter,
       watchlistFilter,
       watchedFilter,
       viewMode,
@@ -5389,8 +5511,12 @@ function hasNonDefaultFilterValues() {
     subgenreFilter.value ||
     formatFilter.value ||
     countryFilter.value ||
-    ratingFilter.value !== '' ||
-    yearFilter.value ||
+    runtimeFromFilter.value ||
+    runtimeToFilter.value ||
+    yearFromFilter.value ||
+    yearToFilter.value ||
+    ratingFromFilter.value ||
+    ratingToFilter.value ||
     (currentUser && watchlistFilter.value) ||
     (currentUser && watchedFilter.value)
   );
@@ -7494,7 +7620,6 @@ function rebuildCatalogMovieMeta() {
   const movies = Array.isArray(allMovies) ? allMovies : [];
   const catalogGenreNames = new Set();
   const catalogCountryNames = new Set();
-  const catalogYearValues = new Set();
 
   catalogMoviesById = new Map();
   catalogMovieMetaById = new Map();
@@ -7518,9 +7643,6 @@ function rebuildCatalogMovieMeta() {
       catalogCountryNames.add(countryName);
     });
 
-    if (movie.year) {
-      catalogYearValues.add(Number(movie.year));
-    }
   });
 
   catalogSortedMoviesByMode = {
@@ -7533,7 +7655,6 @@ function rebuildCatalogMovieMeta() {
   allCountryNames = Array.from(catalogCountryNames).sort((firstName, secondName) =>
     firstName.localeCompare(secondName, 'ru')
   );
-  allMovieYears = Array.from(catalogYearValues).sort((a, b) => b - a);
 }
 
 function getMatchedSearchAlias(movie, searchQuery, queryWords = null) {
@@ -8515,8 +8636,6 @@ const filterCustomSelectElements = [
   subgenreFilter,
   formatFilter,
   countryFilter,
-  ratingFilter,
-  yearFilter,
   watchlistFilter,
   watchedFilter,
   viewMode,
@@ -8683,28 +8802,6 @@ function refreshCountryFilterOptions(countryCounts = new Map()) {
 
   countryFilter.value = selectedCountry;
   refreshCustomSelect(countryFilter);
-}
-
-function loadYearFilterOptions(yearCounts = new Map()) {
-  if (!yearFilter) {
-    return;
-  }
-
-  const selectedYear = yearFilter.value || '';
-  const years = allMovieYears;
-
-  yearFilter.innerHTML = '<option value="">Все годы</option>';
-
-  years.forEach(year => {
-    const option = document.createElement('option');
-    option.value = String(year);
-    option.textContent = `${year} (${yearCounts.get(Number(year)) || 0})`;
-    option.disabled = (yearCounts.get(Number(year)) || 0) === 0 && String(year) !== selectedYear;
-    yearFilter.appendChild(option);
-  });
-
-  yearFilter.value = selectedYear;
-  refreshCustomSelect(yearFilter);
 }
 
 const MOVIE_BASE_SELECT = `
@@ -10147,14 +10244,15 @@ function shouldRenderFullCatalogAfterWatchlistChange() {
 }
 
 function shouldRenderFullCatalogAfterRatingChange() {
-  if (!watchedFilter || !watchlistFilter || !ratingFilter) {
+  if (!watchedFilter || !watchlistFilter || !ratingFromFilter || !ratingToFilter) {
     return false;
   }
 
   return Boolean(
     watchedFilter.value ||
     watchlistFilter.value ||
-    ratingFilter.value !== ''
+    ratingFromFilter.value !== '' ||
+    ratingToFilter.value !== ''
   );
 }
 
@@ -10223,8 +10321,12 @@ function resetFilterControls({
   subgenreFilter.value = '';
   formatFilter.value = '';
   countryFilter.value = '';
-  ratingFilter.value = '';
-  yearFilter.value = '';
+  runtimeFromFilter.value = '';
+  runtimeToFilter.value = '';
+  yearFromFilter.value = '';
+  yearToFilter.value = '';
+  ratingFromFilter.value = '';
+  ratingToFilter.value = '';
   reviewedOnlyFilter = false;
   watchlistFilter.value = '';
   watchedFilter.value = '';
@@ -10311,7 +10413,9 @@ function getActiveQuickPresetKey() {
   const hasSubgenreFilter = Boolean(subgenreFilter.value);
   const hasFormatFilter = Boolean(formatFilter.value);
   const hasCountryFilter = Boolean(countryFilter.value);
-  const hasYearFilter = Boolean(yearFilter.value);
+  const hasYearFilter = Boolean(yearFromFilter.value || yearToFilter.value);
+  const hasRatingFilter = Boolean(ratingFromFilter.value || ratingToFilter.value);
+  const hasRuntimeFilter = Boolean(runtimeFromFilter.value || runtimeToFilter.value);
 
   if (
     normalizeSearchText(searchInput.value) === 'астрал' &&
@@ -10321,33 +10425,44 @@ function getActiveQuickPresetKey() {
     !hasFormatFilter &&
     !hasCountryFilter &&
     !hasYearFilter &&
-    ratingFilter.value === '' &&
+    !hasRatingFilter &&
+    !hasRuntimeFilter &&
     (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
   ) {
     return 'astrals';
   }
 
-  if (hasSearchQuery || hasGenreFilter || hasSubgenreFilter || hasFormatFilter || hasCountryFilter || hasYearFilter) {
+  if (
+    hasSearchQuery ||
+    hasGenreFilter ||
+    hasSubgenreFilter ||
+    hasFormatFilter ||
+    hasCountryFilter ||
+    hasYearFilter ||
+    hasRuntimeFilter
+  ) {
     return null;
   }
 
   if (
     reviewedOnlyFilter &&
-    ratingFilter.value === '' &&
+    !hasRatingFilter &&
     (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
   ) {
     return 'with-reviews';
   }
 
   if (
-    ratingFilter.value === '7' &&
+    ratingFromFilter.value === '7' &&
+    ratingToFilter.value === '' &&
     (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
   ) {
     return 'top-rated';
   }
 
   if (
-    ratingFilter.value === '3' &&
+    ratingFromFilter.value === '' &&
+    ratingToFilter.value === '3' &&
     (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
   ) {
     return 'low-rated';
@@ -10357,7 +10472,7 @@ function getActiveQuickPresetKey() {
     currentUser &&
     watchlistFilter.value === 'in_watchlist' &&
     !watchedFilter.value &&
-    ratingFilter.value === ''
+    !hasRatingFilter
   ) {
     return 'watchlist';
   }
@@ -10366,7 +10481,7 @@ function getActiveQuickPresetKey() {
     currentUser &&
     watchedFilter.value === 'watched' &&
     !watchlistFilter.value &&
-    ratingFilter.value === ''
+    !hasRatingFilter
   ) {
     return 'watched';
   }
@@ -10375,7 +10490,7 @@ function getActiveQuickPresetKey() {
     currentUser &&
     watchedFilter.value === 'unwatched' &&
     !watchlistFilter.value &&
-    ratingFilter.value === ''
+    !hasRatingFilter
   ) {
     return 'unwatched';
   }
@@ -10482,11 +10597,13 @@ function applyQuickPreset(presetKey, { preservePage = false, urlMode = 'push' } 
   });
 
   if (presetKey === 'top-rated') {
-    ratingFilter.value = '7';
+    ratingFromFilter.value = '7';
+    ratingToFilter.value = '';
   }
 
   if (presetKey === 'low-rated') {
-    ratingFilter.value = '3';
+    ratingFromFilter.value = '';
+    ratingToFilter.value = '3';
   }
 
   if (presetKey === 'with-reviews') {
@@ -10518,11 +10635,7 @@ function applyQuickPreset(presetKey, { preservePage = false, urlMode = 'push' } 
     watchedFilter.value = 'unwatched';
   }
 
-  refreshCustomSelectGroup([
-    ratingFilter,
-    watchlistFilter,
-    watchedFilter
-  ]);
+  refreshCustomSelectGroup([watchlistFilter, watchedFilter]);
 
   syncCatalogViewToggleButton();
   refreshDynamicFilterOptions();
@@ -10581,21 +10694,47 @@ function getActiveFilterChips() {
     });
   }
 
-  if (yearFilter.value) {
-    chips.push({ label: `Год: ${yearFilter.value}`, key: 'year' });
+  const runtimeRange = getCatalogRangeBounds(
+    runtimeFromFilter.value,
+    runtimeToFilter.value,
+    { min: 1, max: 999 }
+  );
+
+  if (runtimeRange.hasRange) {
+    chips.push({
+      label: formatCatalogRangeLabel('Продолжительность', runtimeRange.from, runtimeRange.to, {
+        valueFormatter: formatRuntimeMinutes
+      }),
+      key: 'runtime'
+    });
+  }
+
+  const yearRange = getCatalogRangeBounds(
+    yearFromFilter.value,
+    yearToFilter.value,
+    { min: 1900, max: 2100 }
+  );
+
+  if (yearRange.hasRange) {
+    chips.push({
+      label: formatCatalogRangeLabel('Год', yearRange.from, yearRange.to),
+      key: 'year'
+    });
   }
 
   if (countryFilter.value) {
     chips.push({ label: `Страна: ${countryFilter.value}`, key: 'country' });
   }
 
-  if (ratingFilter.value !== '') {
-    const isLowRatedPresetActive = getActiveQuickPresetKey() === 'low-rated';
+  const ratingRange = getCatalogRangeBounds(
+    ratingFromFilter.value,
+    ratingToFilter.value,
+    { min: 1, max: 10, allowDecimal: true }
+  );
 
+  if (ratingRange.hasRange) {
     chips.push({
-      label: isLowRatedPresetActive
-        ? `Рейтинг: до ${ratingFilter.value}`
-        : `Рейтинг: от ${ratingFilter.value}`,
+      label: formatCatalogRangeLabel('Рейтинг', ratingRange.from, ratingRange.to),
       key: 'rating'
     });
   }
@@ -10675,9 +10814,14 @@ function clearFilterChip(filterKey) {
     reviewedOnlyFilter = false;
   }
 
+  if (filterKey === 'runtime') {
+    runtimeFromFilter.value = '';
+    runtimeToFilter.value = '';
+  }
+
   if (filterKey === 'year') {
-    yearFilter.value = '';
-    refreshCustomSelect(yearFilter);
+    yearFromFilter.value = '';
+    yearToFilter.value = '';
   }
 
   if (filterKey === 'country') {
@@ -10686,8 +10830,8 @@ function clearFilterChip(filterKey) {
   }
 
   if (filterKey === 'rating') {
-    ratingFilter.value = '';
-    refreshCustomSelect(ratingFilter);
+    ratingFromFilter.value = '';
+    ratingToFilter.value = '';
   }
 
   saveCatalogStateAndRenderFilters();
@@ -14562,9 +14706,20 @@ function getCatalogFilterStateSnapshot(options = {}) {
     ignoreFormat = false,
     ignoreCountry = false,
     ignoreYear = false,
+    ignoreRuntime = false,
     ignoreTriggerExcludes = false
   } = options;
-  const minRating = ratingFilter.value;
+  const ratingRange = getCatalogRangeBounds(
+    ratingFromFilter.value,
+    ratingToFilter.value,
+    { min: 1, max: 10, allowDecimal: true }
+  );
+  const yearRange = ignoreYear
+    ? { from: null, to: null, hasRange: false }
+    : getCatalogRangeBounds(yearFromFilter.value, yearToFilter.value, { min: 1900, max: 2100 });
+  const runtimeRange = ignoreRuntime
+    ? { from: null, to: null, hasRange: false }
+    : getCatalogRangeBounds(runtimeFromFilter.value, runtimeToFilter.value, { min: 1, max: 999 });
   const selectedWatchlist = watchlistFilter.value;
   const selectedWatched = watchedFilter.value;
   const searchQuery = searchInput.value;
@@ -14574,10 +14729,15 @@ function getCatalogFilterStateSnapshot(options = {}) {
     selectedSubgenre: ignoreSubgenre ? '' : subgenreFilter.value,
     selectedFormat: ignoreFormat ? '' : formatFilter.value,
     selectedCountry: ignoreCountry ? '' : countryFilter.value,
-    minRating,
-    minimumRating: Number(minRating),
-    selectedYear: ignoreYear ? '' : yearFilter.value,
-    selectedYearNumber: Number(yearFilter.value),
+    ratingFrom: ratingRange.from,
+    ratingTo: ratingRange.to,
+    hasRatingRange: ratingRange.hasRange,
+    yearFrom: yearRange.from,
+    yearTo: yearRange.to,
+    hasYearRange: yearRange.hasRange,
+    runtimeFrom: runtimeRange.from,
+    runtimeTo: runtimeRange.to,
+    hasRuntimeRange: runtimeRange.hasRange,
     selectedWatchlist,
     hasWatchlistFilter: selectedWatchlist === 'in_watchlist' || selectedWatchlist === 'not_in_watchlist',
     selectedWatched,
@@ -14588,9 +14748,26 @@ function getCatalogFilterStateSnapshot(options = {}) {
     hasCurrentUser: Boolean(currentUser),
     hasProfileActivityFilter: isCatalogProfileActivityActive(),
     profileActivityMovieIds: getCatalogProfileActivityMatchSet(),
-    isLowRatedPresetActive: getActiveQuickPresetKey() === 'low-rated',
     reviewedOnly: reviewedOnlyFilter
   };
+}
+
+function doesNumberMatchCatalogRange(value, from, to) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return false;
+  }
+
+  if (from !== null && numericValue < from) {
+    return false;
+  }
+
+  if (to !== null && numericValue > to) {
+    return false;
+  }
+
+  return true;
 }
 
 function doesMovieMatchCatalogFilters(movie, filterState, meta = getCatalogMovieMeta(movie)) {
@@ -14624,11 +14801,10 @@ function doesMovieMatchCatalogFilters(movie, filterState, meta = getCatalogMovie
     return false;
   }
 
-  if (filterState.minRating !== '') {
+  if (filterState.hasRatingRange) {
     const averageRating = getMovieAverageRating(movie.id);
-    const matchesRating = filterState.isLowRatedPresetActive
-      ? averageRating > 0 && averageRating <= filterState.minimumRating
-      : averageRating >= filterState.minimumRating;
+    const matchesRating = averageRating > 0 &&
+      doesNumberMatchCatalogRange(averageRating, filterState.ratingFrom, filterState.ratingTo);
 
     if (!matchesRating) {
       return false;
@@ -14636,10 +14812,20 @@ function doesMovieMatchCatalogFilters(movie, filterState, meta = getCatalogMovie
   }
 
   if (
-    filterState.selectedYear &&
+    filterState.hasYearRange &&
     (
       movie.year === null ||
-      Number(movie.year) !== filterState.selectedYearNumber
+      !doesNumberMatchCatalogRange(movie.year, filterState.yearFrom, filterState.yearTo)
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    filterState.hasRuntimeRange &&
+    (
+      movie.runtime_minutes === null ||
+      !doesNumberMatchCatalogRange(movie.runtime_minutes, filterState.runtimeFrom, filterState.runtimeTo)
     )
   ) {
     return false;
@@ -14685,7 +14871,7 @@ function getCatalogFilterMatches(movie, filterState, meta = getCatalogMovieMeta(
   )
     ? getCurrentUserMovieState(movie.id)
     : null;
-  const averageRating = filterState.minRating !== ''
+  const averageRating = filterState.hasRatingRange
     ? getMovieAverageRating(movie.id)
     : 0;
   return {
@@ -14702,18 +14888,24 @@ function getCatalogFilterMatches(movie, filterState, meta = getCatalogMovieMeta(
     format: !filterState.selectedFormat || meta.formatKeys.has(filterState.selectedFormat),
     country: !filterState.selectedCountry || meta.countryNames.has(filterState.selectedCountry),
     rating: (
-      filterState.minRating === '' ||
+      !filterState.hasRatingRange ||
       (
-        filterState.isLowRatedPresetActive
-          ? averageRating > 0 && averageRating <= filterState.minimumRating
-          : averageRating >= filterState.minimumRating
+        averageRating > 0 &&
+        doesNumberMatchCatalogRange(averageRating, filterState.ratingFrom, filterState.ratingTo)
       )
     ),
     year: (
-      !filterState.selectedYear ||
+      !filterState.hasYearRange ||
       (
         movie.year !== null &&
-        Number(movie.year) === filterState.selectedYearNumber
+        doesNumberMatchCatalogRange(movie.year, filterState.yearFrom, filterState.yearTo)
+      )
+    ),
+    runtime: (
+      !filterState.hasRuntimeRange ||
+      (
+        movie.runtime_minutes !== null &&
+        doesNumberMatchCatalogRange(movie.runtime_minutes, filterState.runtimeFrom, filterState.runtimeTo)
       )
     ),
     reviews: !filterState.reviewedOnly || catalogReviewedMovieIds.has(String(movie.id)),
@@ -14747,6 +14939,7 @@ function matchesCatalogFilterCountScope(matches, ignoredFilterKey) {
     (ignoredFilterKey === 'format' || matches.format) &&
     (ignoredFilterKey === 'country' || matches.country) &&
     (ignoredFilterKey === 'year' || matches.year) &&
+    (ignoredFilterKey === 'runtime' || matches.runtime) &&
     matches.rating &&
     matches.reviews &&
     matches.watchlist &&
@@ -14767,8 +14960,7 @@ function getDynamicFilterOptionCounts() {
     genreCounts: new Map(),
     subgenreCounts: new Map(),
     formatCounts: new Map(),
-    countryCounts: new Map(),
-    yearCounts: new Map()
+    countryCounts: new Map()
   };
   const filterState = getCatalogFilterStateSnapshot();
 
@@ -14799,10 +14991,6 @@ function getDynamicFilterOptionCounts() {
         addCount(counts.countryCounts, countryName);
       });
     }
-
-    if (matchesCatalogFilterCountScope(matches, 'year')) {
-      addCount(counts.yearCounts, Number(movie?.year));
-    }
   });
 
   return counts;
@@ -14815,7 +15003,6 @@ function refreshDynamicFilterOptions() {
   loadSubgenreFilterOptions(filterOptionCounts.subgenreCounts);
   loadFormatFilterOptions(filterOptionCounts.formatCounts);
   refreshCountryFilterOptions(filterOptionCounts.countryCounts);
-  loadYearFilterOptions(filterOptionCounts.yearCounts);
 }
 
 function sortMoviesWithinMonth(movies, monthSortMode, monthSortDirection = 'desc') {
@@ -15403,11 +15590,21 @@ function bindCatalogPageEvents() {
     subgenreFilter,
     formatFilter,
     countryFilter,
-    ratingFilter,
-    yearFilter,
     watchlistFilter,
     watchedFilter
   ].forEach(filterElement => {
+    filterElement?.addEventListener('change', handleFiltersChange);
+  });
+
+  [
+    runtimeFromFilter,
+    runtimeToFilter,
+    yearFromFilter,
+    yearToFilter,
+    ratingFromFilter,
+    ratingToFilter
+  ].forEach(filterElement => {
+    filterElement?.addEventListener('input', handleFiltersChange);
     filterElement?.addEventListener('change', handleFiltersChange);
   });
 

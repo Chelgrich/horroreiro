@@ -2644,6 +2644,65 @@ button:not(:where(
   margin-bottom: 0;
 }
 
+.filter-range-row {
+  min-width: 0;
+}
+
+.filter-range-label {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+  font-weight: 600;
+  color: var(--color-text-tertiary-muted);
+}
+
+.filter-range-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.filter-range-inputs label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: var(--control-height-md);
+  padding: 0 10px;
+  border: 1px solid var(--border-control-visible);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  background: var(--surface-control);
+}
+
+.filter-range-inputs span {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-none);
+  color: var(--color-text-muted);
+}
+
+.filter-range-inputs input {
+  width: 100%;
+  min-width: 0;
+  height: calc(var(--control-height-md) - 2px);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-compact);
+}
+
+.filter-range-inputs input:focus {
+  outline: none;
+}
+
+.filter-range-inputs label:focus-within {
+  border-color: var(--border-control-hover);
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
+}
+
 .is-auth-only-row {
   display: none;
 }

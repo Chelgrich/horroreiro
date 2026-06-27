@@ -196,7 +196,7 @@
     }
   </style>
 
-  <script src="/boot-loader.js?v=12"></script>
+  <script src="/boot-loader.js?v=13"></script>
 </head>
 
 <body data-app-page="catalog">
@@ -327,11 +327,32 @@
             </select>
           </div>
 
-          <div class="form-row">
-            <label for="yearFilter">Год:</label>
-            <select id="yearFilter" name="yearFilter">
-              <option value="">Все годы</option>
-            </select>
+          <div class="form-row filter-range-row">
+            <span class="filter-range-label">Продолжительность:</span>
+            <div class="filter-range-inputs">
+              <label for="runtimeFromFilter">
+                <span>От</span>
+                <input type="number" id="runtimeFromFilter" name="runtimeFromFilter" min="1" max="999" step="1" inputmode="numeric">
+              </label>
+              <label for="runtimeToFilter">
+                <span>До</span>
+                <input type="number" id="runtimeToFilter" name="runtimeToFilter" min="1" max="999" step="1" inputmode="numeric">
+              </label>
+            </div>
+          </div>
+
+          <div class="form-row filter-range-row">
+            <span class="filter-range-label">Год:</span>
+            <div class="filter-range-inputs">
+              <label for="yearFromFilter">
+                <span>От</span>
+                <input type="number" id="yearFromFilter" name="yearFromFilter" min="1900" max="2100" step="1" inputmode="numeric">
+              </label>
+              <label for="yearToFilter">
+                <span>До</span>
+                <input type="number" id="yearToFilter" name="yearToFilter" min="1900" max="2100" step="1" inputmode="numeric">
+              </label>
+            </div>
           </div>
 
           <div class="form-row">
@@ -339,21 +360,18 @@
             <select id="countryFilter" name="countryFilter"></select>
           </div>
 
-          <div class="form-row">
-            <label for="ratingFilter">Рейтинг от:</label>
-            <select id="ratingFilter" name="ratingFilter">
-              <option value="">Любой</option>
-              <option value="1">1+</option>
-              <option value="2">2+</option>
-              <option value="3">3+</option>
-              <option value="4">4+</option>
-              <option value="5">5+</option>
-              <option value="6">6+</option>
-              <option value="7">7+</option>
-              <option value="8">8+</option>
-              <option value="9">9+</option>
-              <option value="10">10</option>
-            </select>
+          <div class="form-row filter-range-row">
+            <span class="filter-range-label">Рейтинг:</span>
+            <div class="filter-range-inputs">
+              <label for="ratingFromFilter">
+                <span>От</span>
+                <input type="number" id="ratingFromFilter" name="ratingFromFilter" min="1" max="10" step="0.1" inputmode="decimal">
+              </label>
+              <label for="ratingToFilter">
+                <span>До</span>
+                <input type="number" id="ratingToFilter" name="ratingToFilter" min="1" max="10" step="0.1" inputmode="decimal">
+              </label>
+            </div>
           </div>
         </div>
 
@@ -404,7 +422,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <script src="/app-script-loader.js?v=12"></script>
+  <script src="/app-script-loader.js?v=13"></script>
 </body>
 
 </html>
