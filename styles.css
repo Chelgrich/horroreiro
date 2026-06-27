@@ -1960,13 +1960,13 @@ input::placeholder {
   color: var(--color-text-disabled);
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):hover,
 textarea:hover,
 select:hover {
   border-color: var(--ui-soft-border-hover);
 }
 
-input:focus,
+input:not([type="range"]):focus,
 select:focus,
 textarea:focus {
   outline: none;
@@ -2756,17 +2756,26 @@ button:not(:where(
   min-height: 0;
   margin: 0;
   padding: 0;
-  border: 0;
+  border: 0 !important;
   background: transparent;
   appearance: none;
   -webkit-appearance: none;
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
   pointer-events: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .filter-range-slider input[type="range"]::-webkit-slider-runnable-track {
   height: 4px;
   background: transparent;
   border: 0;
+  outline: none;
+  outline-width: 0;
+  outline-color: transparent;
+  box-shadow: none;
 }
 
 .filter-range-slider input[type="range"]::-webkit-slider-thumb {
@@ -2789,6 +2798,10 @@ button:not(:where(
   height: 4px;
   background: transparent;
   border: 0;
+  outline: none;
+  outline-width: 0;
+  outline-color: transparent;
+  box-shadow: none;
 }
 
 .filter-range-slider input[type="range"]::-moz-range-thumb {
@@ -2802,6 +2815,10 @@ button:not(:where(
     0 0 14px var(--range-thumb-shadow);
   cursor: pointer;
   pointer-events: auto;
+}
+
+.filter-range-slider input[type="range"]::-moz-focus-outer {
+  border: 0;
 }
 
 .filter-range-slider input[type="range"]:hover::-webkit-slider-thumb {
@@ -2821,7 +2838,58 @@ button:not(:where(
 }
 
 .filter-range-slider input[type="range"]:focus {
+  border: 0 !important;
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.filter-range-slider input[type="range"]:focus-visible,
+.filter-range-slider input[type="range"]:active {
+  border: 0 !important;
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.filter-range-slider input[type="range"]:focus::-webkit-slider-runnable-track,
+.filter-range-slider input[type="range"]:focus-visible::-webkit-slider-runnable-track,
+.filter-range-slider input[type="range"]:active::-webkit-slider-runnable-track {
+  border: 0;
   outline: none;
+  outline-width: 0;
+  outline-color: transparent;
+  box-shadow: none;
+  background: transparent;
+}
+
+.filter-range-slider input[type="range"]:focus::-moz-range-track,
+.filter-range-slider input[type="range"]:focus-visible::-moz-range-track,
+.filter-range-slider input[type="range"]:active::-moz-range-track {
+  border: 0;
+  outline: none;
+  outline-width: 0;
+  outline-color: transparent;
+  box-shadow: none;
+  background: transparent;
+}
+
+.filter-range-slider input[type="range"]:focus::-webkit-slider-thumb,
+.filter-range-slider input[type="range"]:focus-visible::-webkit-slider-thumb,
+.filter-range-slider input[type="range"]:active::-webkit-slider-thumb {
+  outline: none;
+  outline-width: 0;
+  outline-color: transparent;
+}
+
+.filter-range-slider input[type="range"]:focus::-moz-range-thumb,
+.filter-range-slider input[type="range"]:focus-visible::-moz-range-thumb,
+.filter-range-slider input[type="range"]:active::-moz-range-thumb {
+  outline: none;
+  outline-width: 0;
+  outline-color: transparent;
 }
 
 .is-auth-only-row {
