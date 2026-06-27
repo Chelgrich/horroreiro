@@ -121,11 +121,7 @@ const CATALOG_RANGE_FILTER_CONFIGS = {
     defaultMax: 2100,
     step: 1,
     allowDecimal: false,
-    getMovieValue: movie => {
-      const year = Number(movie?.year);
-
-      return Number.isInteger(year) ? year : null;
-    }
+    getMovieValue: getCatalogMovieYearFilterValue
   },
   rating: {
     key: 'rating',
@@ -134,14 +130,15 @@ const CATALOG_RANGE_FILTER_CONFIGS = {
     fromSlider: ratingFromSlider,
     toSlider: ratingToSlider,
     fillElement: ratingRangeFill,
-    defaultMin: 1,
+    defaultMin: 0,
     defaultMax: 10,
     step: 0.1,
     allowDecimal: true,
+    useFixedBounds: true,
     getMovieValue: movie => {
       const averageRating = getMovieAverageRating(movie?.id);
 
-      return averageRating > 0 ? averageRating : null;
+      return Number.isFinite(averageRating) ? averageRating : 0;
     }
   }
 };
@@ -4914,6 +4911,18 @@ function getCatalogRangeFilterConfigs() {
     .filter(Boolean);
 }
 
+function getCatalogMovieYearFilterValue(movie) {
+  const publicYear = Number(movie?.year);
+
+  if (Number.isInteger(publicYear) && publicYear > 1900) {
+    return publicYear;
+  }
+
+  const releaseYear = Number(movie?.release_year);
+
+  return Number.isInteger(releaseYear) && releaseYear > 1900 ? releaseYear : null;
+}
+
 function roundCatalogRangeValueToStep(value, config, direction = 'nearest') {
   const step = Number(config?.step || 1);
   const numericValue = Number(value);
@@ -4959,6 +4968,13 @@ function formatCatalogRangeControlValue(value, config) {
 function getCatalogRangeActualBounds(config) {
   if (!config) {
     return { min: 0, max: 0 };
+  }
+
+  if (config.useFixedBounds) {
+    return {
+      min: config.defaultMin,
+      max: config.defaultMax
+    };
   }
 
   const values = [];
@@ -10853,7 +10869,7 @@ function getActiveQuickPresetKey() {
   }
 
   if (
-    ratingFromFilter.value === '' &&
+    ratingFromFilter.value === '1' &&
     ratingToFilter.value === '3' &&
     (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
   ) {
@@ -10994,7 +11010,7 @@ function applyQuickPreset(presetKey, { preservePage = false, urlMode = 'push' } 
   }
 
   if (presetKey === 'low-rated') {
-    ratingFromFilter.value = '';
+    ratingFromFilter.value = '1';
     ratingToFilter.value = '3';
   }
 
@@ -15195,19 +15211,30 @@ function doesMovieMatchCatalogFilters(movie, filterState, meta = getCatalogMovie
 
   if (filterState.hasRatingRange) {
     const averageRating = getMovieAverageRating(movie.id);
-    const matchesRating = averageRating > 0 &&
-      doesNumberMatchCatalogRange(averageRating, filterState.ratingFrom, filterState.ratingTo);
+    const matchesRating = doesNumberMatchCatalogRange(
+      averageRating,
+      filterState.ratingFrom,
+      filterState.ratingTo
+    );
 
     if (!matchesRating) {
       return false;
     }
   }
 
+  const movieYearFilterValue = filterState.hasYearRange
+    ? getCatalogMovieYearFilterValue(movie)
+    : null;
+
   if (
     filterState.hasYearRange &&
     (
-      movie.year === null ||
-      !doesNumberMatchCatalogRange(movie.year, filterState.yearFrom, filterState.yearTo)
+      movieYearFilterValue === null ||
+      !doesNumberMatchCatalogRange(
+        movieYearFilterValue,
+        filterState.yearFrom,
+        filterState.yearTo
+      )
     )
   ) {
     return false;
@@ -15266,6 +15293,9 @@ function getCatalogFilterMatches(movie, filterState, meta = getCatalogMovieMeta(
   const averageRating = filterState.hasRatingRange
     ? getMovieAverageRating(movie.id)
     : 0;
+  const movieYearFilterValue = filterState.hasYearRange
+    ? getCatalogMovieYearFilterValue(movie)
+    : null;
   return {
     profileActivity: (
       !filterState.hasProfileActivityFilter ||
@@ -15281,16 +15311,17 @@ function getCatalogFilterMatches(movie, filterState, meta = getCatalogMovieMeta(
     country: !filterState.selectedCountry || meta.countryNames.has(filterState.selectedCountry),
     rating: (
       !filterState.hasRatingRange ||
-      (
-        averageRating > 0 &&
-        doesNumberMatchCatalogRange(averageRating, filterState.ratingFrom, filterState.ratingTo)
-      )
+      doesNumberMatchCatalogRange(averageRating, filterState.ratingFrom, filterState.ratingTo)
     ),
     year: (
       !filterState.hasYearRange ||
       (
-        movie.year !== null &&
-        doesNumberMatchCatalogRange(movie.year, filterState.yearFrom, filterState.yearTo)
+        movieYearFilterValue !== null &&
+        doesNumberMatchCatalogRange(
+          movieYearFilterValue,
+          filterState.yearFrom,
+          filterState.yearTo
+        )
       )
     ),
     runtime: (
