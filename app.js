@@ -124,6 +124,7 @@ let yearInput = document.getElementById('year');
 let releaseMonthInput = document.getElementById('releaseMonth');
 let releaseYearInput = document.getElementById('releaseYear');
 let sortOrderInput = document.getElementById('sortOrder');
+let runtimeMinutesInput = document.getElementById('runtimeMinutes');
 let directorInput = document.getElementById('director');
 let posterFileInput = document.getElementById('posterFile');
 let posterFileName = document.getElementById('posterFileName');
@@ -767,7 +768,7 @@ async function fetchCatalogMoviesByIds(movieIds = []) {
       .filter(Boolean);
   }
 
-  const { data, error } = await runMovieSelectWithOptionalTrailer(
+  const { data, error } = await runMovieSelectWithOptionalColumns(
     selectQuery => supabaseClient
       .from('movies')
       .select(selectQuery)
@@ -791,7 +792,7 @@ async function fetchMoviesByIdsWithSelect(movieIds = [], selectQuery = MOVIE_CAT
     return [];
   }
 
-  const { data, error } = await runMovieSelectWithOptionalTrailer(
+  const { data, error } = await runMovieSelectWithOptionalColumns(
     currentSelectQuery => {
       let query = supabaseClient
         .from('movies')
@@ -1027,6 +1028,7 @@ function buildCompletenessAuditReport(movies, posterRows) {
   const primaryPosterOnlyMovies = [];
   const emptyKinopoiskMovies = [];
   const emptyTrailerMovies = [];
+  const emptyRuntimeMovies = [];
 
   sortedMovies.forEach(movie => {
     const movieId = String(movie?.id || '');
@@ -1047,6 +1049,10 @@ function buildCompletenessAuditReport(movies, posterRows) {
     if (!String(movie?.trailer_url || '').trim()) {
       emptyTrailerMovies.push(movie);
     }
+
+    if (!normalizeRuntimeMinutesValue(movie?.runtime_minutes)) {
+      emptyRuntimeMovies.push(movie);
+    }
   });
 
   const lines = [
@@ -1057,8 +1063,9 @@ function buildCompletenessAuditReport(movies, posterRows) {
     `  Фильмов в каталоге: ${movies.length}`,
     `  Пустое поле "Производство": ${emptyProductionMovies.length}`,
     `  Только основной poster_url: ${primaryPosterOnlyMovies.length}`,
-    `  Пустое поле "Ссылка на Кинопоиск": ${emptyKinopoiskMovies.length}`,
-    `  Пустое поле "Трейлер": ${emptyTrailerMovies.length}`
+    `  Пустое поле "Кинопоиск": ${emptyKinopoiskMovies.length}`,
+    `  Пустое поле "Трейлер": ${emptyTrailerMovies.length}`,
+    `  Пустое поле "Продолжительность": ${emptyRuntimeMovies.length}`
   ];
 
   appendManualSimilarAuditSection(
@@ -1077,7 +1084,7 @@ function buildCompletenessAuditReport(movies, posterRows) {
 
   appendManualSimilarAuditSection(
     lines,
-    '3. Пустое поле "Ссылка на Кинопоиск":',
+    '3. Пустое поле "Кинопоиск":',
     emptyKinopoiskMovies,
     getMovieCompletenessAuditLabel
   );
@@ -1089,13 +1096,21 @@ function buildCompletenessAuditReport(movies, posterRows) {
     getMovieCompletenessAuditLabel
   );
 
+  appendManualSimilarAuditSection(
+    lines,
+    '5. Пустое поле "Продолжительность":',
+    emptyRuntimeMovies,
+    getMovieCompletenessAuditLabel
+  );
+
   return {
     text: `${lines.join('\n')}\n`,
     summary: {
       emptyProduction: emptyProductionMovies.length,
       primaryPosterOnly: primaryPosterOnlyMovies.length,
       emptyKinopoisk: emptyKinopoiskMovies.length,
-      emptyTrailer: emptyTrailerMovies.length
+      emptyTrailer: emptyTrailerMovies.length,
+      emptyRuntime: emptyRuntimeMovies.length
     }
   };
 }
@@ -1182,6 +1197,7 @@ function buildEditableMovieExport(movie, {
     title: movie?.title || '',
     original_title: movie?.original_title || '',
     year: movie?.year ?? null,
+    runtime_minutes: movie?.runtime_minutes ?? null,
     release_year: movie?.release_year ?? null,
     release_month: movie?.release_month ?? null,
     sort_order: movie?.sort_order ?? null,
@@ -1560,7 +1576,8 @@ function getCompletenessAuditSummaryMessage(summary) {
     summary.emptyProduction +
     summary.primaryPosterOnly +
     summary.emptyKinopoisk +
-    summary.emptyTrailer
+    summary.emptyTrailer +
+    summary.emptyRuntime
   );
 
   if (totalProblems === 0) {
@@ -1572,7 +1589,8 @@ function getCompletenessAuditSummaryMessage(summary) {
     `производство ${summary.emptyProduction}`,
     `один постер ${summary.primaryPosterOnly}`,
     `Кинопоиск ${summary.emptyKinopoisk}`,
-    `трейлер ${summary.emptyTrailer}`
+    `трейлер ${summary.emptyTrailer}`,
+    `продолжительность ${summary.emptyRuntime}`
   ].join(' ');
 }
 
@@ -5212,6 +5230,55 @@ function getYouTubeTrailerEmbedUrl(value) {
   return embedUrl.toString();
 }
 
+function normalizeRuntimeMinutesValue(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const runtimeMinutes = Number(value);
+
+  if (!Number.isInteger(runtimeMinutes) || runtimeMinutes < 1 || runtimeMinutes > 999) {
+    return null;
+  }
+
+  return runtimeMinutes;
+}
+
+function parseRuntimeMinutesFormValue(value) {
+  const trimmedValue = String(value || '').trim();
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  const runtimeMinutes = Number(trimmedValue);
+
+  return Number.isInteger(runtimeMinutes) && runtimeMinutes >= 1 && runtimeMinutes <= 999
+    ? runtimeMinutes
+    : Number.NaN;
+}
+
+function formatRuntimeMinutes(runtimeMinutes) {
+  const normalizedRuntimeMinutes = normalizeRuntimeMinutesValue(runtimeMinutes);
+
+  if (!normalizedRuntimeMinutes) {
+    return '';
+  }
+
+  const hours = Math.floor(normalizedRuntimeMinutes / 60);
+  const minutes = normalizedRuntimeMinutes % 60;
+
+  if (hours > 0 && minutes > 0) {
+    return `${hours} ч ${minutes} мин`;
+  }
+
+  if (hours > 0) {
+    return `${hours} ч`;
+  }
+
+  return `${minutes} мин`;
+}
+
 function normalizeLetterboxdShortUrl(value) {
   const normalizedUrl = normalizeOptionalUrl(value);
 
@@ -8054,6 +8121,7 @@ function refreshMovieModalElements() {
   releaseMonthInput = document.getElementById('releaseMonth');
   releaseYearInput = document.getElementById('releaseYear');
   sortOrderInput = document.getElementById('sortOrder');
+  runtimeMinutesInput = document.getElementById('runtimeMinutes');
   directorInput = document.getElementById('director');
   posterFileInput = document.getElementById('posterFile');
   posterFileName = document.getElementById('posterFileName');
@@ -8278,6 +8346,7 @@ function fillFormForEdit(movie) {
   setInputValue(releaseMonthInput, movie.release_month, 'releaseMonthInput');
   setInputValue(releaseYearInput, movie.release_year, 'releaseYearInput');
   setInputValue(sortOrderInput, movie.sort_order, 'sortOrderInput');
+  setInputValue(runtimeMinutesInput, movie.runtime_minutes, 'runtimeMinutesInput');
   setInputValue(directorInput, parseLineOrCommaSeparatedValues(movie.director).join('\n'), 'directorInput');
   setInputValue(productionInput, getTextArrayFormValue(movie.production), 'productionInput');
   setInputValue(distributionInput, getTextArrayFormValue(movie.distribution), 'distributionInput');
@@ -8342,7 +8411,7 @@ function updateAuthUI() {
   }
 
   if (adminPanel) {
-    adminPanel.classList.toggle('is-visible', shouldShowAuthenticatedUi && isAdmin);
+    adminPanel.classList.toggle('is-visible', shouldShowAuthenticatedUi && isAdmin && isCatalogPage());
   }
 
   if (profileSummaryButton) {
@@ -8644,6 +8713,7 @@ const MOVIE_BASE_SELECT = `
   title,
   original_title,
   year,
+  runtime_minutes,
   director,
   production,
   distribution,
@@ -8678,6 +8748,7 @@ const MOVIE_CATALOG_SELECT = `
   title,
   original_title,
   year,
+  runtime_minutes,
   director,
   production,
   distribution,
@@ -8734,36 +8805,68 @@ function getMovieSelectByPurpose(purpose = 'catalog') {
   return MOVIE_CATALOG_SELECT;
 }
 
-function isMissingMovieTrailerColumnError(error) {
+const OPTIONAL_MOVIE_SELECT_COLUMNS = ['trailer_url', 'runtime_minutes'];
+let movieRuntimeMinutesColumnAvailable = true;
+
+function getMissingOptionalMovieColumn(error) {
   const message = String(error?.message || '').toLowerCase();
 
-  return (
-    error?.code === '42703' ||
-    error?.code === 'PGRST204' ||
-    message.includes('trailer_url') ||
-    message.includes('column') && message.includes('schema cache')
+  return OPTIONAL_MOVIE_SELECT_COLUMNS.find(columnName => message.includes(columnName)) || '';
+}
+
+function isMissingOptionalMovieColumnError(error) {
+  const missingColumn = getMissingOptionalMovieColumn(error);
+
+  return Boolean(
+    missingColumn &&
+    (
+      error?.code === '42703' ||
+      error?.code === 'PGRST204' ||
+      String(error?.message || '').toLowerCase().includes('schema cache')
+    )
   );
 }
 
-function getMovieSelectWithoutTrailer(selectQuery) {
-  return String(selectQuery || '').replace(/\n\s*trailer_url,\s*/g, '\n');
+function markMissingOptionalMovieColumn(columnName) {
+  if (columnName === 'runtime_minutes') {
+    movieRuntimeMinutesColumnAvailable = false;
+  }
 }
 
-async function runMovieSelectWithOptionalTrailer(createQuery, selectQuery) {
-  const result = await createQuery(selectQuery);
+function getMovieSelectWithoutOptionalColumn(selectQuery, columnName) {
+  const safeColumnName = String(columnName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  if (result.error && isMissingMovieTrailerColumnError(result.error)) {
-    const fallbackResult = await createQuery(getMovieSelectWithoutTrailer(selectQuery));
+  return String(selectQuery || '').replace(new RegExp(`\\n\\s*${safeColumnName},\\s*`, 'g'), '\n');
+}
 
-    throwIfSupabaseError(fallbackResult.error);
+async function runMovieSelectWithOptionalColumns(createQuery, selectQuery) {
+  let currentSelectQuery = selectQuery;
+  let result = await createQuery(currentSelectQuery);
 
-    return {
-      data: fallbackResult.data || null,
-      error: null
-    };
+  while (result.error && isMissingOptionalMovieColumnError(result.error)) {
+    const missingColumn = getMissingOptionalMovieColumn(result.error);
+
+    if (!missingColumn || !String(currentSelectQuery || '').includes(missingColumn)) {
+      break;
+    }
+
+    markMissingOptionalMovieColumn(missingColumn);
+    currentSelectQuery = getMovieSelectWithoutOptionalColumn(currentSelectQuery, missingColumn);
+    result = await createQuery(currentSelectQuery);
   }
 
-  return result;
+  if (result.error) {
+    return result;
+  }
+
+  if (String(currentSelectQuery || '').includes('runtime_minutes')) {
+    movieRuntimeMinutesColumnAvailable = true;
+  }
+
+  return {
+    data: result.data || null,
+    error: null
+  };
 }
 
 function hasMovieDetailPayload(movie) {
@@ -8775,7 +8878,7 @@ function hasMovieDetailPayload(movie) {
 }
 
 async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = 'catalog' } = {}) {
-  const { data, error } = await runMovieSelectWithOptionalTrailer(
+  const { data, error } = await runMovieSelectWithOptionalColumns(
     selectQuery => supabaseClient
       .from('movies')
       .select(selectQuery)
@@ -10941,6 +11044,7 @@ async function addMovie(event) {
   const releaseMonth = releaseMonthInput.value.trim();
   const releaseYear = releaseYearInput.value.trim();
   const sortOrder = sortOrderInput.value.trim();
+  const runtimeMinutes = parseRuntimeMinutesFormValue(runtimeMinutesInput?.value || '');
   const director = parseLineOrCommaSeparatedValues(directorInput.value).join(', ');
   const production = parseMultilineValues(productionInput?.value || '');
   const distribution = parseMultilineValues(distributionInput?.value || '');
@@ -10959,6 +11063,12 @@ async function addMovie(event) {
 
   if (!title) {
     formMessage.textContent = 'Название обязательно.';
+    setMovieFormSubmittingState(false);
+    return;
+  }
+
+  if (Number.isNaN(runtimeMinutes)) {
+    formMessage.textContent = 'Продолжительность должна быть целым числом минут от 1 до 999.';
     setMovieFormSubmittingState(false);
     return;
   }
@@ -11010,6 +11120,7 @@ async function addMovie(event) {
           letterboxd_short_url: letterboxdShortUrl || null,
           rottentomatoes_url: rottentomatoesUrl || null,
           ...(trailerUrl ? { trailer_url: trailerUrl } : {}),
+          ...(movieRuntimeMinutesColumnAvailable ? { runtime_minutes: runtimeMinutes } : {}),
           release_month: releaseMonth ? Number(releaseMonth) : null,
           release_year: releaseYear ? Number(releaseYear) : null,
           sort_order: sortOrder ? Number(sortOrder) : null,
@@ -11086,6 +11197,7 @@ async function updateMovie(event) {
   const releaseMonth = releaseMonthInput.value.trim();
   const releaseYear = releaseYearInput.value.trim();
   const sortOrder = sortOrderInput.value.trim();
+  const runtimeMinutes = parseRuntimeMinutesFormValue(runtimeMinutesInput?.value || '');
   const director = parseLineOrCommaSeparatedValues(directorInput.value).join(', ');
   const production = parseMultilineValues(productionInput?.value || '');
   const distribution = parseMultilineValues(distributionInput?.value || '');
@@ -11104,6 +11216,12 @@ async function updateMovie(event) {
 
   if (!title) {
     formMessage.textContent = 'Название обязательно.';
+    setMovieFormSubmittingState(false);
+    return;
+  }
+
+  if (Number.isNaN(runtimeMinutes)) {
+    formMessage.textContent = 'Продолжительность должна быть целым числом минут от 1 до 999.';
     setMovieFormSubmittingState(false);
     return;
   }
@@ -11263,6 +11381,13 @@ async function updateMovie(event) {
 
     if ((trailerUrl || null) !== (existingMovie.trailer_url ?? null)) {
       changedFields.trailer_url = trailerUrl || null;
+    }
+
+    if (
+      movieRuntimeMinutesColumnAvailable &&
+      runtimeMinutes !== normalizeRuntimeMinutesValue(existingMovie.runtime_minutes)
+    ) {
+      changedFields.runtime_minutes = runtimeMinutes;
     }
 
     if ((releaseMonth ? Number(releaseMonth) : null) !== (existingMovie.release_month ?? null)) {
@@ -18496,7 +18621,7 @@ function getMoviePageRouteParams() {
 }
 
 async function fetchMovieById(movieId) {
-  const { data, error } = await runMovieSelectWithOptionalTrailer(
+  const { data, error } = await runMovieSelectWithOptionalColumns(
     selectQuery => supabaseClient
       .from('movies')
       .select(selectQuery)
@@ -18529,7 +18654,7 @@ async function fetchMovieByRouteParams(routeParams) {
   }
 
   if (routeParams.slug) {
-    const { data, error } = await runMovieSelectWithOptionalTrailer(
+    const { data, error } = await runMovieSelectWithOptionalColumns(
       selectQuery => supabaseClient
         .from('movies')
         .select(selectQuery)
@@ -21346,6 +21471,7 @@ function buildMoviePageViewModel(movie, {
     production: formatTextArrayForDetail(movie.production),
     distribution: formatTextArrayForDetail(movie.distribution),
     russianDistribution: formatTextArrayForDetail(movie.russian_distribution),
+    runtimeLabel: formatRuntimeMinutes(movie.runtime_minutes),
     averageRating: getMovieAverageRating(movie.id),
     votesCount: getMovieVotesCount(movie.id),
     currentUserRating: getCurrentUserRating(movie.id),
@@ -21698,6 +21824,7 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
     production,
     distribution,
     russianDistribution,
+    runtimeLabel,
     averageRating,
     votesCount,
     currentUserRating,
@@ -21755,7 +21882,7 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
           <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
           <div class="movie-page-meta-item"><span>Режиссёр:</span> ${movie.director ? escapeHtml(movie.director) : '-'}</div>
           <div class="movie-page-meta-item"><span>Жанры:</span> ${genres ? escapeHtml(genres) : '-'}</div>
-          <div class="movie-page-meta-item"><span>Поджанр:</span> ${primaryPerceivedTagLabel ? escapeHtml(primaryPerceivedTagLabel) : '-'}</div>
+          <div class="movie-page-meta-item"><span>Поджанры:</span> ${primaryPerceivedTagLabel ? escapeHtml(primaryPerceivedTagLabel) : '-'}</div>
           ${
             formatsLabel
               ? `<div class="movie-page-meta-item"><span>Формат:</span> ${escapeHtml(formatsLabel)}</div>`
@@ -21775,6 +21902,11 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
           ${
             russianDistribution
               ? `<div class="movie-page-meta-item"><span>Дистрибуция в России:</span> ${escapeHtml(russianDistribution)}</div>`
+              : ''
+          }
+          ${
+            runtimeLabel
+              ? `<div class="movie-page-meta-item"><span>Продолжительность:</span> ${escapeHtml(runtimeLabel)}</div>`
               : ''
           }
         </div>

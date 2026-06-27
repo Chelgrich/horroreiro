@@ -7737,7 +7737,7 @@ body:has(.user-page-shell) .page-footer {
 
   .movie-form-inline-group-release {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
     align-items: start;
   }
@@ -7760,17 +7760,16 @@ body:has(.user-page-shell) .page-footer {
 
   .movie-form-inline-group-links {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
     align-items: start;
   }
 
-  .movie-form-trailer-row {
-    grid-column: 1 / -1;
-  }
-
   .movie-form-inline-group-links .form-row label {
-    min-height: 2.4em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .catalog-toolbar-actions {

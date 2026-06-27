@@ -1,6 +1,7 @@
 (function () {
     function getSharedHeaderHtml() {
       const logoHtml = `<div class="page-logo"><a href="/" class="page-logo-link" aria-label="Хоррорейро">Хоррорейро</a></div>`;
+      const shouldRenderAddMovieButton = document.body?.dataset.appPage === 'catalog';
   
       return `
         <header class="page-header">
@@ -117,20 +118,26 @@
                   </div>
                 </div>
   
-                <div id="adminPanel" class="admin-panel auth-ui-block">
-                  <button
-                    id="openAddMovieButton"
-                    type="button"
-                    class="floating-add-movie-button"
-                    aria-label="Добавить фильм"
-                    title="Добавить фильм"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M12 5v14"></path>
-                      <path d="M5 12h14"></path>
-                    </svg>
-                  </button>
-                </div>
+                ${
+                  shouldRenderAddMovieButton
+                    ? `
+                      <div id="adminPanel" class="admin-panel auth-ui-block">
+                        <button
+                          id="openAddMovieButton"
+                          type="button"
+                          class="floating-add-movie-button"
+                          aria-label="Добавить фильм"
+                          title="Добавить фильм"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 5v14"></path>
+                            <path d="M5 12h14"></path>
+                          </svg>
+                        </button>
+                      </div>
+                    `
+                    : ''
+                }
               </div>
             </div>
           </div>
@@ -401,6 +408,19 @@
                     <label for="sortOrder">Порядок внутри месяца:</label>
                     <input type="number" id="sortOrder" name="sortOrder" min="1" step="1">
                   </div>
+
+                  <div class="form-row">
+                    <label for="runtimeMinutes">Продолжительность:</label>
+                    <input
+                      type="number"
+                      id="runtimeMinutes"
+                      name="runtimeMinutes"
+                      min="1"
+                      max="999"
+                      step="1"
+                      placeholder="85"
+                    >
+                  </div>
                 </div>
 
                 <div class="movie-form-inline-group movie-form-inline-group-meta">
@@ -480,7 +500,7 @@
 
                 <div class="movie-form-inline-group movie-form-inline-group-links">
                   <div class="form-row">
-                    <label for="kinopoiskUrl">Ссылка на Кинопоиск:</label>
+                    <label for="kinopoiskUrl">Кинопоиск:</label>
                     <input
                       type="text"
                       id="kinopoiskUrl"
@@ -492,7 +512,7 @@
                   </div>
 
                   <div class="form-row">
-                    <label for="imdbUrl">Ссылка на IMDb:</label>
+                    <label for="imdbUrl">IMDb:</label>
                     <input
                       type="text"
                       id="imdbUrl"
@@ -504,7 +524,7 @@
                   </div>
 
                   <div class="form-row">
-                    <label for="letterboxdUrl">Ссылка на Letterboxd:</label>
+                    <label for="letterboxdUrl">Letterboxd:</label>
                     <input
                       type="text"
                       id="letterboxdUrl"
@@ -528,7 +548,7 @@
                   </div>
 
                   <div class="form-row">
-                    <label for="rottentomatoesUrl">Ссылка на RT:</label>
+                    <label for="rottentomatoesUrl">Rotten Tomatoes:</label>
                     <input
                       type="text"
                       id="rottentomatoesUrl"
@@ -539,7 +559,7 @@
                     >
                   </div>
 
-                  <div class="form-row movie-form-trailer-row">
+                  <div class="form-row">
                     <label for="trailerUrl">Трейлер:</label>
                     <input
                       type="text"
@@ -548,7 +568,7 @@
                       inputmode="url"
                       autocomplete="off"
                       spellcheck="false"
-                      placeholder="https://www.youtube.com/watch?v=N_VJaxllTDQ"
+                      placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
                     >
                   </div>
                 </div>
