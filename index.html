@@ -196,7 +196,7 @@
     }
   </style>
 
-  <script src="/boot-loader.js?v=14"></script>
+  <script src="/boot-loader.js?v=15"></script>
 </head>
 
 <body data-app-page="catalog">
@@ -327,34 +327,58 @@
             </select>
           </div>
 
-          <div class="form-row filter-range-row">
-            <span class="filter-range-label">Продолжительность:</span>
-            <div class="filter-range-inputs">
-              <input type="number" id="runtimeFromFilter" name="runtimeFromFilter" min="1" max="999" step="1" inputmode="numeric" placeholder="От" aria-label="Продолжительность от">
-              <input type="number" id="runtimeToFilter" name="runtimeToFilter" min="1" max="999" step="1" inputmode="numeric" placeholder="До" aria-label="Продолжительность до">
-            </div>
-          </div>
-
-          <div class="form-row filter-range-row">
-            <span class="filter-range-label">Год:</span>
-            <div class="filter-range-inputs">
-              <input type="number" id="yearFromFilter" name="yearFromFilter" min="1900" max="2100" step="1" inputmode="numeric" placeholder="От" aria-label="Год от">
-              <input type="number" id="yearToFilter" name="yearToFilter" min="1900" max="2100" step="1" inputmode="numeric" placeholder="До" aria-label="Год до">
-            </div>
-          </div>
-
           <div class="form-row">
             <label for="countryFilter">Страна:</label>
             <select id="countryFilter" name="countryFilter"></select>
           </div>
 
-          <div class="form-row filter-range-row">
-            <span class="filter-range-label">Рейтинг:</span>
-            <div class="filter-range-inputs">
-              <input type="number" id="ratingFromFilter" name="ratingFromFilter" min="1" max="10" step="0.1" inputmode="decimal" placeholder="От" aria-label="Рейтинг от">
-              <input type="number" id="ratingToFilter" name="ratingToFilter" min="1" max="10" step="0.1" inputmode="decimal" placeholder="До" aria-label="Рейтинг до">
+          <fieldset class="form-row filter-range-row filter-range-row-start">
+            <legend class="filter-range-label">Продолжительность:</legend>
+            <div class="filter-range-control">
+              <div class="filter-range-inputs">
+                <input type="number" id="runtimeFromFilter" name="runtimeFromFilter" min="1" max="999" step="1" inputmode="numeric" placeholder="От" aria-label="Продолжительность от">
+                <input type="number" id="runtimeToFilter" name="runtimeToFilter" min="1" max="999" step="1" inputmode="numeric" placeholder="До" aria-label="Продолжительность до">
+              </div>
+              <div class="filter-range-slider" id="runtimeRangeSlider" aria-hidden="true">
+                <div class="filter-range-slider-track"></div>
+                <div class="filter-range-slider-fill" id="runtimeRangeFill"></div>
+                <input type="range" id="runtimeFromSlider" min="1" max="999" step="1" value="1" tabindex="-1" aria-hidden="true">
+                <input type="range" id="runtimeToSlider" min="1" max="999" step="1" value="999" tabindex="-1" aria-hidden="true">
+              </div>
             </div>
-          </div>
+          </fieldset>
+
+          <fieldset class="form-row filter-range-row">
+            <legend class="filter-range-label">Год:</legend>
+            <div class="filter-range-control">
+              <div class="filter-range-inputs">
+                <input type="number" id="yearFromFilter" name="yearFromFilter" min="1900" max="2100" step="1" inputmode="numeric" placeholder="От" aria-label="Год от">
+                <input type="number" id="yearToFilter" name="yearToFilter" min="1900" max="2100" step="1" inputmode="numeric" placeholder="До" aria-label="Год до">
+              </div>
+              <div class="filter-range-slider" id="yearRangeSlider" aria-hidden="true">
+                <div class="filter-range-slider-track"></div>
+                <div class="filter-range-slider-fill" id="yearRangeFill"></div>
+                <input type="range" id="yearFromSlider" min="1900" max="2100" step="1" value="1900" tabindex="-1" aria-hidden="true">
+                <input type="range" id="yearToSlider" min="1900" max="2100" step="1" value="2100" tabindex="-1" aria-hidden="true">
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="form-row filter-range-row">
+            <legend class="filter-range-label">Рейтинг:</legend>
+            <div class="filter-range-control">
+              <div class="filter-range-inputs">
+                <input type="number" id="ratingFromFilter" name="ratingFromFilter" min="1" max="10" step="0.1" inputmode="decimal" placeholder="От" aria-label="Рейтинг от">
+                <input type="number" id="ratingToFilter" name="ratingToFilter" min="1" max="10" step="0.1" inputmode="decimal" placeholder="До" aria-label="Рейтинг до">
+              </div>
+              <div class="filter-range-slider" id="ratingRangeSlider" aria-hidden="true">
+                <div class="filter-range-slider-track"></div>
+                <div class="filter-range-slider-fill" id="ratingRangeFill"></div>
+                <input type="range" id="ratingFromSlider" min="1" max="10" step="0.1" value="1" tabindex="-1" aria-hidden="true">
+                <input type="range" id="ratingToSlider" min="1" max="10" step="0.1" value="10" tabindex="-1" aria-hidden="true">
+              </div>
+            </div>
+          </fieldset>
         </div>
 
         <div class="filters-modal-actions">
@@ -404,7 +428,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <script src="/app-script-loader.js?v=14"></script>
+  <script src="/app-script-loader.js?v=15"></script>
 </body>
 
 </html>

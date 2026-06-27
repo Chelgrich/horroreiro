@@ -68,10 +68,19 @@ const formatFilter = document.getElementById('formatFilter');
 const countryFilter = document.getElementById('countryFilter');
 const runtimeFromFilter = document.getElementById('runtimeFromFilter');
 const runtimeToFilter = document.getElementById('runtimeToFilter');
+const runtimeFromSlider = document.getElementById('runtimeFromSlider');
+const runtimeToSlider = document.getElementById('runtimeToSlider');
+const runtimeRangeFill = document.getElementById('runtimeRangeFill');
 const yearFromFilter = document.getElementById('yearFromFilter');
 const yearToFilter = document.getElementById('yearToFilter');
+const yearFromSlider = document.getElementById('yearFromSlider');
+const yearToSlider = document.getElementById('yearToSlider');
+const yearRangeFill = document.getElementById('yearRangeFill');
 const ratingFromFilter = document.getElementById('ratingFromFilter');
 const ratingToFilter = document.getElementById('ratingToFilter');
+const ratingFromSlider = document.getElementById('ratingFromSlider');
+const ratingToSlider = document.getElementById('ratingToSlider');
+const ratingRangeFill = document.getElementById('ratingRangeFill');
 const watchlistFilter = document.getElementById('watchlistFilter');
 const watchlistFilterRow = document.getElementById('watchlistFilterRow');
 const watchedFilter = document.getElementById('watchedFilter');
@@ -86,6 +95,56 @@ const resetFiltersTopButton = document.getElementById('resetFiltersTopButton');
 const filtersModalStatus = document.getElementById('filtersModalStatus');
 const activeFiltersBar = document.getElementById('activeFiltersBar');
 const quickPresetsBar = document.getElementById('quickPresetsBar');
+const CATALOG_RANGE_FILTER_KEYS = ['runtime', 'year', 'rating'];
+const CATALOG_RANGE_FILTER_CONFIGS = {
+  runtime: {
+    key: 'runtime',
+    fromInput: runtimeFromFilter,
+    toInput: runtimeToFilter,
+    fromSlider: runtimeFromSlider,
+    toSlider: runtimeToSlider,
+    fillElement: runtimeRangeFill,
+    defaultMin: 1,
+    defaultMax: 999,
+    step: 1,
+    allowDecimal: false,
+    getMovieValue: movie => normalizeRuntimeMinutesValue(movie?.runtime_minutes)
+  },
+  year: {
+    key: 'year',
+    fromInput: yearFromFilter,
+    toInput: yearToFilter,
+    fromSlider: yearFromSlider,
+    toSlider: yearToSlider,
+    fillElement: yearRangeFill,
+    defaultMin: 1900,
+    defaultMax: 2100,
+    step: 1,
+    allowDecimal: false,
+    getMovieValue: movie => {
+      const year = Number(movie?.year);
+
+      return Number.isInteger(year) ? year : null;
+    }
+  },
+  rating: {
+    key: 'rating',
+    fromInput: ratingFromFilter,
+    toInput: ratingToFilter,
+    fromSlider: ratingFromSlider,
+    toSlider: ratingToSlider,
+    fillElement: ratingRangeFill,
+    defaultMin: 1,
+    defaultMax: 10,
+    step: 0.1,
+    allowDecimal: true,
+    getMovieValue: movie => {
+      const averageRating = getMovieAverageRating(movie?.id);
+
+      return averageRating > 0 ? averageRating : null;
+    }
+  }
+};
 
 const container = document.getElementById('movies');
 const moviePage = document.getElementById('moviePage');
@@ -4814,12 +4873,12 @@ function getCurrentCatalogStateForPersistence() {
     subgenre: subgenreFilter.value,
     format: formatFilter.value,
     country: countryFilter.value,
-    ratingFrom: getCatalogRangeControlValue(ratingFromFilter, { min: 1, max: 10, allowDecimal: true }),
-    ratingTo: getCatalogRangeControlValue(ratingToFilter, { min: 1, max: 10, allowDecimal: true }),
-    yearFrom: getCatalogRangeControlValue(yearFromFilter, { min: 1900, max: 2100 }),
-    yearTo: getCatalogRangeControlValue(yearToFilter, { min: 1900, max: 2100 }),
-    runtimeFrom: getCatalogRangeControlValue(runtimeFromFilter, { min: 1, max: 999 }),
-    runtimeTo: getCatalogRangeControlValue(runtimeToFilter, { min: 1, max: 999 }),
+    ratingFrom: getCatalogRangeControlValue(ratingFromFilter, getCatalogRangeInputOptions('rating')),
+    ratingTo: getCatalogRangeControlValue(ratingToFilter, getCatalogRangeInputOptions('rating')),
+    yearFrom: getCatalogRangeControlValue(yearFromFilter, getCatalogRangeInputOptions('year')),
+    yearTo: getCatalogRangeControlValue(yearToFilter, getCatalogRangeInputOptions('year')),
+    runtimeFrom: getCatalogRangeControlValue(runtimeFromFilter, getCatalogRangeInputOptions('runtime')),
+    runtimeTo: getCatalogRangeControlValue(runtimeToFilter, getCatalogRangeInputOptions('runtime')),
     withReviews: reviewedOnlyFilter,
     watchlist: currentUser ? watchlistFilter.value : '',
     watched: currentUser ? watchedFilter.value : '',
@@ -4843,6 +4902,337 @@ function getSelectOptionValue(selectElement, value, fallbackValue = '') {
   return Array.from(selectElement.options).some(option => option.value === normalizedValue)
     ? normalizedValue
     : fallbackValue;
+}
+
+function getCatalogRangeFilterConfig(rangeKey) {
+  return CATALOG_RANGE_FILTER_CONFIGS[rangeKey] || null;
+}
+
+function getCatalogRangeFilterConfigs() {
+  return CATALOG_RANGE_FILTER_KEYS
+    .map(getCatalogRangeFilterConfig)
+    .filter(Boolean);
+}
+
+function roundCatalogRangeValueToStep(value, config, direction = 'nearest') {
+  const step = Number(config?.step || 1);
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue) || !Number.isFinite(step) || step <= 0) {
+    return numericValue;
+  }
+
+  const scaledValue = numericValue / step;
+  const roundedValue = direction === 'floor'
+    ? Math.floor(scaledValue) * step
+    : direction === 'ceil'
+      ? Math.ceil(scaledValue) * step
+      : Math.round(scaledValue) * step;
+
+  return normalizeCatalogRangeNumberPrecision(roundedValue, config);
+}
+
+function normalizeCatalogRangeNumberPrecision(value, config) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return numericValue;
+  }
+
+  return config?.allowDecimal
+    ? Number(numericValue.toFixed(1))
+    : Math.trunc(numericValue);
+}
+
+function formatCatalogRangeControlValue(value, config) {
+  const numericValue = normalizeCatalogRangeNumberPrecision(value, config);
+
+  if (!Number.isFinite(numericValue)) {
+    return '';
+  }
+
+  return config?.allowDecimal
+    ? String(Number(numericValue.toFixed(1))).replace(/\.0$/, '')
+    : String(Math.trunc(numericValue));
+}
+
+function getCatalogRangeActualBounds(config) {
+  if (!config) {
+    return { min: 0, max: 0 };
+  }
+
+  const values = [];
+
+  (Array.isArray(allMovies) ? allMovies : []).forEach(movie => {
+    const value = Number(config.getMovieValue?.(movie));
+
+    if (Number.isFinite(value)) {
+      values.push(value);
+    }
+  });
+
+  if (values.length === 0) {
+    return {
+      min: config.defaultMin,
+      max: config.defaultMax
+    };
+  }
+
+  const minValue = Math.max(
+    config.defaultMin,
+    roundCatalogRangeValueToStep(Math.min(...values), config, 'floor')
+  );
+  const maxValue = Math.min(
+    config.defaultMax,
+    roundCatalogRangeValueToStep(Math.max(...values), config, 'ceil')
+  );
+
+  return {
+    min: Math.min(minValue, maxValue),
+    max: Math.max(minValue, maxValue)
+  };
+}
+
+function getCatalogRangeInputOptions(rangeKey) {
+  const config = getCatalogRangeFilterConfig(rangeKey);
+  const bounds = getCatalogRangeActualBounds(config);
+
+  return {
+    min: bounds.min,
+    max: bounds.max,
+    allowDecimal: Boolean(config?.allowDecimal)
+  };
+}
+
+function clampCatalogRangeNumber(value, config, bounds = getCatalogRangeActualBounds(config)) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return null;
+  }
+
+  const roundedValue = roundCatalogRangeValueToStep(numericValue, config);
+
+  return Math.min(bounds.max, Math.max(bounds.min, roundedValue));
+}
+
+function setCatalogRangeInputValue(inputElement, value, config) {
+  if (!inputElement) {
+    return;
+  }
+
+  inputElement.value = value === null || value === undefined || value === ''
+    ? ''
+    : formatCatalogRangeControlValue(value, config);
+}
+
+function setCatalogRangeElementBounds(element, bounds, config) {
+  if (!element || !config || !bounds) {
+    return;
+  }
+
+  element.min = formatCatalogRangeControlValue(bounds.min, config);
+  element.max = formatCatalogRangeControlValue(bounds.max, config);
+  element.step = String(config.step || 1);
+}
+
+function getCatalogRangeInputNumber(inputElement, config, bounds) {
+  const normalizedValue = normalizeCatalogRangeValue(inputElement?.value, {
+    min: bounds.min,
+    max: bounds.max,
+    allowDecimal: Boolean(config?.allowDecimal)
+  });
+
+  return normalizedValue === '' ? null : Number(normalizedValue);
+}
+
+function normalizeCatalogRangeInputs(config, changedBound = null) {
+  if (!config?.fromInput || !config?.toInput) {
+    return;
+  }
+
+  const bounds = getCatalogRangeActualBounds(config);
+  let from = getCatalogRangeInputNumber(config.fromInput, config, bounds);
+  let to = getCatalogRangeInputNumber(config.toInput, config, bounds);
+
+  if (config.fromInput.value.trim() && from === null) {
+    from = bounds.min;
+  }
+
+  if (config.toInput.value.trim() && to === null) {
+    to = bounds.max;
+  }
+
+  if (from !== null) {
+    from = clampCatalogRangeNumber(from, config, bounds);
+  }
+
+  if (to !== null) {
+    to = clampCatalogRangeNumber(to, config, bounds);
+  }
+
+  if (from !== null && to !== null && from > to) {
+    const step = Number(config.step || 1);
+
+    if (changedBound === 'to') {
+      to = clampCatalogRangeNumber(from + step, config, bounds);
+
+      if (to < from) {
+        to = from;
+      }
+    } else {
+      from = clampCatalogRangeNumber(to - step, config, bounds);
+
+      if (from > to) {
+        from = to;
+      }
+    }
+  }
+
+  setCatalogRangeInputValue(config.fromInput, from, config);
+  setCatalogRangeInputValue(config.toInput, to, config);
+  syncCatalogRangeSlider(config);
+}
+
+function syncCatalogRangeSlider(config) {
+  if (!config?.fromSlider || !config?.toSlider) {
+    return;
+  }
+
+  const bounds = getCatalogRangeActualBounds(config);
+
+  [config.fromInput, config.toInput, config.fromSlider, config.toSlider].forEach(element => {
+    setCatalogRangeElementBounds(element, bounds, config);
+  });
+
+  const from = getCatalogRangeInputNumber(config.fromInput, config, bounds);
+  const to = getCatalogRangeInputNumber(config.toInput, config, bounds);
+  const effectiveFrom = from === null ? bounds.min : from;
+  const effectiveTo = to === null ? bounds.max : to;
+
+  config.fromSlider.value = formatCatalogRangeControlValue(effectiveFrom, config);
+  config.toSlider.value = formatCatalogRangeControlValue(effectiveTo, config);
+
+  const range = bounds.max - bounds.min;
+  const startPercent = range > 0 ? ((effectiveFrom - bounds.min) / range) * 100 : 0;
+  const endPercent = range > 0 ? ((effectiveTo - bounds.min) / range) * 100 : 100;
+
+  if (config.fillElement) {
+    config.fillElement.style.setProperty('--range-start', `${Math.max(0, Math.min(100, startPercent))}%`);
+    config.fillElement.style.setProperty('--range-end', `${Math.max(0, Math.min(100, endPercent))}%`);
+  }
+}
+
+function refreshCatalogRangeControls() {
+  getCatalogRangeFilterConfigs().forEach(config => {
+    const bounds = getCatalogRangeActualBounds(config);
+
+    setCatalogRangeElementBounds(config.fromInput, bounds, config);
+    setCatalogRangeElementBounds(config.toInput, bounds, config);
+    setCatalogRangeElementBounds(config.fromSlider, bounds, config);
+    setCatalogRangeElementBounds(config.toSlider, bounds, config);
+
+    if (config.fromInput) {
+      config.fromInput.placeholder = `От ${formatCatalogRangeControlValue(bounds.min, config)}`;
+    }
+
+    if (config.toInput) {
+      config.toInput.placeholder = `До ${formatCatalogRangeControlValue(bounds.max, config)}`;
+    }
+
+    normalizeCatalogRangeInputs(config);
+  });
+}
+
+function getCatalogRangeConfigByElement(element) {
+  return getCatalogRangeFilterConfigs().find(config => (
+    config.fromInput === element ||
+    config.toInput === element ||
+    config.fromSlider === element ||
+    config.toSlider === element
+  )) || null;
+}
+
+function getCatalogRangeChangedBound(config, element) {
+  if (!config || !element) {
+    return null;
+  }
+
+  return element === config.fromInput || element === config.fromSlider ? 'from' : 'to';
+}
+
+function shouldDeferCatalogRangeInputNormalization(config, changedBound) {
+  if (!config || !changedBound) {
+    return false;
+  }
+
+  const bounds = getCatalogRangeActualBounds(config);
+  const changedInput = changedBound === 'from' ? config.fromInput : config.toInput;
+  const otherInput = changedBound === 'from' ? config.toInput : config.fromInput;
+  const rawValue = String(changedInput?.value || '').trim().replace(',', '.');
+
+  if (!rawValue) {
+    return false;
+  }
+
+  const numericValue = Number(rawValue);
+
+  if (!Number.isFinite(numericValue)) {
+    return true;
+  }
+
+  if (numericValue < bounds.min || numericValue > bounds.max) {
+    return true;
+  }
+
+  const otherValue = getCatalogRangeInputNumber(otherInput, config, bounds);
+
+  return (
+    otherValue !== null &&
+    (
+      (changedBound === 'from' && numericValue > otherValue) ||
+      (changedBound === 'to' && numericValue < otherValue)
+    )
+  );
+}
+
+function handleCatalogRangeInputChange(event) {
+  const config = getCatalogRangeConfigByElement(event.target);
+
+  if (!config) {
+    return;
+  }
+
+  const changedBound = getCatalogRangeChangedBound(config, event.target);
+
+  if (event.type === 'input' && shouldDeferCatalogRangeInputNormalization(config, changedBound)) {
+    syncCatalogRangeSlider(config);
+    return;
+  }
+
+  normalizeCatalogRangeInputs(config, changedBound);
+  handleFiltersChange();
+}
+
+function handleCatalogRangeSliderInput(event) {
+  const config = getCatalogRangeConfigByElement(event.target);
+
+  if (!config) {
+    return;
+  }
+
+  const changedBound = getCatalogRangeChangedBound(config, event.target);
+  const bounds = getCatalogRangeActualBounds(config);
+  const sliderValue = clampCatalogRangeNumber(event.target.value, config, bounds);
+
+  if (changedBound === 'from') {
+    setCatalogRangeInputValue(config.fromInput, sliderValue, config);
+  } else {
+    setCatalogRangeInputValue(config.toInput, sliderValue, config);
+  }
+
+  normalizeCatalogRangeInputs(config, changedBound);
+  handleFiltersChange();
 }
 
 function normalizeCatalogRangeValue(value, {
@@ -4996,27 +5386,27 @@ function readCatalogUrlState() {
     catalogState.country = getCatalogUrlValueByAlias('country', searchParams.get('country'), countryFilter);
     catalogState.ratingFrom = normalizeCatalogRangeValue(
       searchParams.get('rating_from') || searchParams.get('rating'),
-      { min: 1, max: 10, allowDecimal: true }
+      getCatalogRangeInputOptions('rating')
     );
     catalogState.ratingTo = normalizeCatalogRangeValue(
       searchParams.get('rating_to'),
-      { min: 1, max: 10, allowDecimal: true }
+      getCatalogRangeInputOptions('rating')
     );
     catalogState.yearFrom = normalizeCatalogRangeValue(
       searchParams.get('year_from') || searchParams.get('year'),
-      { min: 1900, max: 2100 }
+      getCatalogRangeInputOptions('year')
     );
     catalogState.yearTo = normalizeCatalogRangeValue(
       searchParams.get('year_to') || searchParams.get('year'),
-      { min: 1900, max: 2100 }
+      getCatalogRangeInputOptions('year')
     );
     catalogState.runtimeFrom = normalizeCatalogRangeValue(
       searchParams.get('runtime_from'),
-      { min: 1, max: 999 }
+      getCatalogRangeInputOptions('runtime')
     );
     catalogState.runtimeTo = normalizeCatalogRangeValue(
       searchParams.get('runtime_to'),
-      { min: 1, max: 999 }
+      getCatalogRangeInputOptions('runtime')
     );
     catalogState.withReviews = getCatalogUrlBooleanValue(searchParams.get('reviews'));
     catalogState.watchlist = getSelectOptionValue(watchlistFilter, searchParams.get('watchlist'), '');
@@ -5076,12 +5466,13 @@ function applyCatalogStateToControls(catalogState) {
   setSelectValue(subgenreFilter, nextCatalogState.subgenre);
   setSelectValue(formatFilter, nextCatalogState.format);
   setSelectValue(countryFilter, nextCatalogState.country);
-  setCatalogRangeControlValue(ratingFromFilter, nextCatalogState.ratingFrom, { min: 1, max: 10, allowDecimal: true });
-  setCatalogRangeControlValue(ratingToFilter, nextCatalogState.ratingTo, { min: 1, max: 10, allowDecimal: true });
-  setCatalogRangeControlValue(yearFromFilter, nextCatalogState.yearFrom, { min: 1900, max: 2100 });
-  setCatalogRangeControlValue(yearToFilter, nextCatalogState.yearTo, { min: 1900, max: 2100 });
-  setCatalogRangeControlValue(runtimeFromFilter, nextCatalogState.runtimeFrom, { min: 1, max: 999 });
-  setCatalogRangeControlValue(runtimeToFilter, nextCatalogState.runtimeTo, { min: 1, max: 999 });
+  setCatalogRangeControlValue(ratingFromFilter, nextCatalogState.ratingFrom, getCatalogRangeInputOptions('rating'));
+  setCatalogRangeControlValue(ratingToFilter, nextCatalogState.ratingTo, getCatalogRangeInputOptions('rating'));
+  setCatalogRangeControlValue(yearFromFilter, nextCatalogState.yearFrom, getCatalogRangeInputOptions('year'));
+  setCatalogRangeControlValue(yearToFilter, nextCatalogState.yearTo, getCatalogRangeInputOptions('year'));
+  setCatalogRangeControlValue(runtimeFromFilter, nextCatalogState.runtimeFrom, getCatalogRangeInputOptions('runtime'));
+  setCatalogRangeControlValue(runtimeToFilter, nextCatalogState.runtimeTo, getCatalogRangeInputOptions('runtime'));
+  refreshCatalogRangeControls();
   reviewedOnlyFilter = Boolean(nextCatalogState.withReviews);
   setSelectValue(watchlistFilter, currentUser ? nextCatalogState.watchlist : '');
   setSelectValue(watchedFilter, currentUser ? nextCatalogState.watched : '');
@@ -5116,12 +5507,12 @@ function getCatalogUrlSearchParamsFromControls() {
     setCatalogUrlParam(searchParams, 'subgenre', subgenreFilter.value);
     setCatalogUrlParam(searchParams, 'format', formatFilter.value);
     setCatalogUrlParam(searchParams, 'country', countryFilter.value);
-    setCatalogUrlParam(searchParams, 'year_from', getCatalogRangeControlValue(yearFromFilter, { min: 1900, max: 2100 }));
-    setCatalogUrlParam(searchParams, 'year_to', getCatalogRangeControlValue(yearToFilter, { min: 1900, max: 2100 }));
-    setCatalogUrlParam(searchParams, 'rating_from', getCatalogRangeControlValue(ratingFromFilter, { min: 1, max: 10, allowDecimal: true }));
-    setCatalogUrlParam(searchParams, 'rating_to', getCatalogRangeControlValue(ratingToFilter, { min: 1, max: 10, allowDecimal: true }));
-    setCatalogUrlParam(searchParams, 'runtime_from', getCatalogRangeControlValue(runtimeFromFilter, { min: 1, max: 999 }));
-    setCatalogUrlParam(searchParams, 'runtime_to', getCatalogRangeControlValue(runtimeToFilter, { min: 1, max: 999 }));
+    setCatalogUrlParam(searchParams, 'year_from', getCatalogRangeControlValue(yearFromFilter, getCatalogRangeInputOptions('year')));
+    setCatalogUrlParam(searchParams, 'year_to', getCatalogRangeControlValue(yearToFilter, getCatalogRangeInputOptions('year')));
+    setCatalogUrlParam(searchParams, 'rating_from', getCatalogRangeControlValue(ratingFromFilter, getCatalogRangeInputOptions('rating')));
+    setCatalogUrlParam(searchParams, 'rating_to', getCatalogRangeControlValue(ratingToFilter, getCatalogRangeInputOptions('rating')));
+    setCatalogUrlParam(searchParams, 'runtime_from', getCatalogRangeControlValue(runtimeFromFilter, getCatalogRangeInputOptions('runtime')));
+    setCatalogUrlParam(searchParams, 'runtime_to', getCatalogRangeControlValue(runtimeToFilter, getCatalogRangeInputOptions('runtime')));
 
     if (reviewedOnlyFilter) {
       searchParams.set('reviews', '1');
@@ -10338,6 +10729,7 @@ function resetFilterControls({
   refreshCustomSelectGroup(
     filterCustomSelectElements.filter(selectElement => selectElement !== sortMode)
   );
+  refreshCatalogRangeControls();
 
   if (!skipSave) {
     saveCatalogState();
@@ -10697,7 +11089,7 @@ function getActiveFilterChips() {
   const runtimeRange = getCatalogRangeBounds(
     runtimeFromFilter.value,
     runtimeToFilter.value,
-    { min: 1, max: 999 }
+    getCatalogRangeInputOptions('runtime')
   );
 
   if (runtimeRange.hasRange) {
@@ -10712,7 +11104,7 @@ function getActiveFilterChips() {
   const yearRange = getCatalogRangeBounds(
     yearFromFilter.value,
     yearToFilter.value,
-    { min: 1900, max: 2100 }
+    getCatalogRangeInputOptions('year')
   );
 
   if (yearRange.hasRange) {
@@ -10729,7 +11121,7 @@ function getActiveFilterChips() {
   const ratingRange = getCatalogRangeBounds(
     ratingFromFilter.value,
     ratingToFilter.value,
-    { min: 1, max: 10, allowDecimal: true }
+    getCatalogRangeInputOptions('rating')
   );
 
   if (ratingRange.hasRange) {
@@ -14712,14 +15104,14 @@ function getCatalogFilterStateSnapshot(options = {}) {
   const ratingRange = getCatalogRangeBounds(
     ratingFromFilter.value,
     ratingToFilter.value,
-    { min: 1, max: 10, allowDecimal: true }
+    getCatalogRangeInputOptions('rating')
   );
   const yearRange = ignoreYear
     ? { from: null, to: null, hasRange: false }
-    : getCatalogRangeBounds(yearFromFilter.value, yearToFilter.value, { min: 1900, max: 2100 });
+    : getCatalogRangeBounds(yearFromFilter.value, yearToFilter.value, getCatalogRangeInputOptions('year'));
   const runtimeRange = ignoreRuntime
     ? { from: null, to: null, hasRange: false }
-    : getCatalogRangeBounds(runtimeFromFilter.value, runtimeToFilter.value, { min: 1, max: 999 });
+    : getCatalogRangeBounds(runtimeFromFilter.value, runtimeToFilter.value, getCatalogRangeInputOptions('runtime'));
   const selectedWatchlist = watchlistFilter.value;
   const selectedWatched = watchedFilter.value;
   const searchQuery = searchInput.value;
@@ -15003,6 +15395,7 @@ function refreshDynamicFilterOptions() {
   loadSubgenreFilterOptions(filterOptionCounts.subgenreCounts);
   loadFormatFilterOptions(filterOptionCounts.formatCounts);
   refreshCountryFilterOptions(filterOptionCounts.countryCounts);
+  refreshCatalogRangeControls();
 }
 
 function sortMoviesWithinMonth(movies, monthSortMode, monthSortDirection = 'desc') {
@@ -15604,8 +15997,21 @@ function bindCatalogPageEvents() {
     ratingFromFilter,
     ratingToFilter
   ].forEach(filterElement => {
-    filterElement?.addEventListener('input', handleFiltersChange);
-    filterElement?.addEventListener('change', handleFiltersChange);
+    filterElement?.addEventListener('input', handleCatalogRangeInputChange);
+    filterElement?.addEventListener('change', handleCatalogRangeInputChange);
+    filterElement?.addEventListener('blur', handleCatalogRangeInputChange);
+  });
+
+  [
+    runtimeFromSlider,
+    runtimeToSlider,
+    yearFromSlider,
+    yearToSlider,
+    ratingFromSlider,
+    ratingToSlider
+  ].forEach(filterElement => {
+    filterElement?.addEventListener('input', handleCatalogRangeSliderInput);
+    filterElement?.addEventListener('change', handleCatalogRangeSliderInput);
   });
 
   viewMode?.addEventListener('change', () => {
