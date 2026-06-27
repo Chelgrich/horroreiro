@@ -1993,7 +1993,7 @@ textarea {
   line-height: var(--line-height-normal);
 }
 
-.filters input {
+.filters input:not([type="range"]) {
   height: 44px;
   padding: 0 12px;
 }
@@ -2753,6 +2753,7 @@ button:not(:where(
   inset: 0;
   width: 100%;
   height: 22px;
+  min-height: 0;
   margin: 0;
   padding: 0;
   border: 0;
@@ -2821,14 +2822,6 @@ button:not(:where(
 
 .filter-range-slider input[type="range"]:focus {
   outline: none;
-}
-
-.filter-range-slider input[type="range"]:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 3px var(--surface-page), 0 0 0 6px var(--control-focus-ring);
-}
-
-.filter-range-slider input[type="range"]:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 3px var(--surface-page), 0 0 0 6px var(--control-focus-ring);
 }
 
 .is-auth-only-row {
@@ -8201,7 +8194,7 @@ body:has(.user-page-shell) .page-footer {
     line-height: var(--line-height-snug);
   }
 
-  .filters input:not([type="checkbox"]),
+  .filters input:not([type="checkbox"]):not([type="range"]),
   .filters select,
   .filters .custom-select-trigger,
   .catalog-toolbar .custom-select-trigger {
