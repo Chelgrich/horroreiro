@@ -160,7 +160,7 @@ const QUICK_PRESETS_SCROLL_HINT_DELAY_MS = 650;
 const QUICK_PRESETS_SCROLL_HINT_DISTANCE = 72;
 const QUICK_PRESETS_SCROLL_HINT_DURATION_MS = 420;
 const NOTIFICATIONS_PAGE_LIMIT = 80;
-const NOTIFICATION_READ_DWELL_MS = 2000;
+const NOTIFICATION_READ_DWELL_MS = 1300;
 const NOTIFICATION_READ_VISIBILITY_RATIO = 0.7;
 const NOTIFICATION_CONTEXT_SNIPPET_LABELS = {
   review: 'Рецензия',
@@ -18186,11 +18186,7 @@ function getNotificationMovieLinkHtml(movie, fallbackTitle = 'фильм') {
     return `<span class="notifications-page-movie">${escapeHtml(fallbackTitle)}</span>`;
   }
 
-  return `
-    <a class="notifications-page-movie" href="${escapeHtml(buildMoviePageUrl(movie))}">
-      ${escapeHtml(getNotificationMovieDisplayTitle(movie, fallbackTitle))}
-    </a>
-  `;
+  return `<a class="notifications-page-movie" href="${escapeHtml(buildMoviePageUrl(movie))}">${escapeHtml(getNotificationMovieDisplayTitle(movie, fallbackTitle))}</a>`;
 }
 
 function getNotificationAvatarHtml(item) {
