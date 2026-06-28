@@ -101,6 +101,15 @@
                     >
                       Экспорт базы
                     </button>
+                    <button
+                      type="button"
+                      class="auth-popover-item"
+                      id="notificationTestButton"
+                      role="menuitem"
+                      hidden
+                    >
+                      Тест уведомлений
+                    </button>
                     <input
                       type="file"
                       class="auth-popover-file-input"

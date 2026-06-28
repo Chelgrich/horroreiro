@@ -32,6 +32,7 @@ const importLetterboxdRatingsButton = document.getElementById('importLetterboxdR
 const manualSimilarAuditButton = document.getElementById('manualSimilarAuditButton');
 const completenessAuditButton = document.getElementById('completenessAuditButton');
 const databaseExportButton = document.getElementById('databaseExportButton');
+const notificationTestButton = document.getElementById('notificationTestButton');
 const letterboxdRatingsFileInput = document.getElementById('letterboxdRatingsFileInput');
 const logoutMenuButton = document.getElementById('logoutMenuButton');
 const authModal = document.getElementById('authModal');
@@ -459,6 +460,7 @@ let areNotificationsUnavailable = false;
 let notificationsPageItems = [];
 let notificationsPageFilter = 'all';
 let isNotificationsPageMarkingAllRead = false;
+let isNotificationTestRunning = false;
 let notificationsPagePreferences = null;
 let notificationPreferenceRequestKeys = new Set();
 let followingPagePreferenceRequestKeys = new Set();
@@ -1638,6 +1640,15 @@ function setDatabaseExportButtonState(isRunning) {
   databaseExportButton.textContent = isRunning ? 'Готовлю экспорт...' : 'Экспорт базы';
 }
 
+function setNotificationTestButtonState(isRunning) {
+  if (!notificationTestButton) {
+    return;
+  }
+
+  notificationTestButton.disabled = isRunning;
+  notificationTestButton.textContent = isRunning ? 'Готовлю тест...' : 'Тест уведомлений';
+}
+
 function getCompletenessAuditSummaryMessage(summary) {
   const totalProblems = (
     summary.emptyProduction +
@@ -1735,6 +1746,69 @@ async function exportDatabase() {
   } finally {
     isDatabaseExportRunning = false;
     setDatabaseExportButtonState(false);
+  }
+}
+
+function isNotificationTestFunctionMissingError(error) {
+  const code = String(error?.code || '').trim();
+  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+
+  return (
+    code === '42883' ||
+    code === 'PGRST202' ||
+    message.includes('create_notification_test_suite') ||
+    message.includes('could not find the function') ||
+    message.includes('schema cache')
+  );
+}
+
+async function runNotificationTestSuite() {
+  if (!isAdmin || isNotificationTestRunning) {
+    return;
+  }
+
+  isNotificationTestRunning = true;
+  setNotificationTestButtonState(true);
+  closeAuthPopoverMenu();
+  showAppMessage('Готовлю тестовые уведомления...', 'info');
+
+  try {
+    const { data, error } = await supabaseClient.rpc('create_notification_test_suite');
+
+    if (error) {
+      throw error;
+    }
+
+    areNotificationsUnavailable = false;
+    await refreshNotificationsUnreadCount({ force: true });
+
+    const createdCount = Number(data?.created || data?.created_count || 0);
+    const deletedCount = Number(data?.deleted_previous || data?.deleted || 0);
+    const summary = [
+      `Тестовые уведомления готовы: ${createdCount || 9}.`,
+      deletedCount ? `Старые тестовые удалены: ${deletedCount}.` : ''
+    ].filter(Boolean).join(' ');
+
+    showAppMessage(summary, 'success', true);
+
+    if (isNotificationsPage()) {
+      const pageData = await fetchNotificationsPageData();
+      await refreshNotificationsUnreadCount({ force: true });
+      renderNotificationsPage(pageData);
+    } else {
+      window.location.href = buildNotificationsPageUrl();
+    }
+  } catch (error) {
+    console.error('Ошибка генерации тестовых уведомлений:', error);
+
+    if (isNotificationTestFunctionMissingError(error)) {
+      showAppMessage('Тест уведомлений недоступен: примените notification-test-tools-setup.sql в Supabase.', 'error', true);
+    } else {
+      showAppMessage(`Не удалось создать тестовые уведомления: ${error.message || 'смотри консоль F12.'}`, 'error', true);
+    }
+  } finally {
+    isNotificationTestRunning = false;
+    setNotificationTestButtonState(false);
   }
 }
 
@@ -8981,6 +9055,11 @@ function updateAuthUI() {
     databaseExportButton.disabled = isDatabaseExportRunning;
   }
 
+  if (notificationTestButton) {
+    notificationTestButton.hidden = !(shouldShowAuthenticatedUi && isAdmin);
+    notificationTestButton.disabled = isNotificationTestRunning;
+  }
+
   if (shouldShowAuthenticatedUi) {
     closeAuthModal();
   }
@@ -15791,6 +15870,7 @@ function bindSharedUiEvents() {
   manualSimilarAuditButton?.addEventListener('click', runManualSimilarAudit);
   completenessAuditButton?.addEventListener('click', runCompletenessAudit);
   databaseExportButton?.addEventListener('click', exportDatabase);
+  notificationTestButton?.addEventListener('click', runNotificationTestSuite);
 
   if (importLetterboxdRatingsButton && letterboxdRatingsFileInput) {
     importLetterboxdRatingsButton.addEventListener('click', () => {
