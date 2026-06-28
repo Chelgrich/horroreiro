@@ -196,7 +196,7 @@
     }
   </style>
 
-  <script src="/boot-loader.js?v=19"></script>
+  <script src="/boot-loader.js?v=20"></script>
 </head>
 
 <body data-app-page="catalog">
@@ -263,13 +263,25 @@
         <button type="button" class="secondary-button secondary-button-compact quick-preset-button" data-quick-preset="low-rated">
           Рейтинг 3-
         </button>
-        <button type="button" class="secondary-button secondary-button-compact quick-preset-button" data-quick-preset="watchlist" data-requires-auth="true">
+        <button type="button" class="secondary-button secondary-button-compact quick-preset-button" data-quick-preset="unrated">
+          Без рейтинга
+        </button>
+        <button type="button" class="secondary-button secondary-button-compact quick-preset-button" data-quick-preset="short-runtime">
+          До 1,5 часов
+        </button>
+        <button type="button" class="secondary-button secondary-button-compact quick-preset-button" data-quick-preset="with-reviews">
+          С рецензиями
+        </button>
+        <button type="button" class="secondary-button secondary-button-compact quick-preset-button" data-quick-preset="astrals">
+          Астралы
+        </button>
+        <button type="button" class="secondary-button secondary-button-compact quick-preset-button is-hidden-by-auth" data-quick-preset="watchlist" data-requires-auth="true">
           Смотреть позже
         </button>
-        <button type="button" class="secondary-button secondary-button-compact quick-preset-button" data-quick-preset="watched" data-requires-auth="true">
+        <button type="button" class="secondary-button secondary-button-compact quick-preset-button is-hidden-by-auth" data-quick-preset="watched" data-requires-auth="true">
           Просмотренные
         </button>
-        <button type="button" class="secondary-button secondary-button-compact quick-preset-button" data-quick-preset="unwatched" data-requires-auth="true">
+        <button type="button" class="secondary-button secondary-button-compact quick-preset-button is-hidden-by-auth" data-quick-preset="unwatched" data-requires-auth="true">
           Непросмотренные
         </button>
       </div>
@@ -333,7 +345,7 @@
           </div>
 
           <fieldset class="form-row filter-range-row filter-range-row-start">
-            <legend class="filter-range-label">Продолжительность:</legend>
+            <legend class="filter-range-label">Продолжительность (мин):</legend>
             <div class="filter-range-control">
               <div class="filter-range-inputs">
                 <input type="number" id="runtimeFromFilter" name="runtimeFromFilter" min="1" max="999" step="1" inputmode="numeric" placeholder="От" aria-label="Продолжительность от">
@@ -392,7 +404,7 @@
     <section class="section movies-section">
       <div class="movies-section-header">
         <div class="movies-section-heading">
-          <h1 class="section-title">Фильмы ужасов</h1>
+          <h1 class="section-title">Каталог</h1>
           <div id="moviesResultCount" class="movies-result-count" aria-live="polite" hidden></div>
         </div>
       </div>
@@ -428,7 +440,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <script src="/app-script-loader.js?v=19"></script>
+  <script src="/app-script-loader.js?v=20"></script>
 </body>
 
 </html>

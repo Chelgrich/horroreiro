@@ -1318,9 +1318,24 @@ h3 {
   max-width: var(--modal-profile-settings-dialog-max-width);
 }
 
-.movie-trailer-modal-dialog {
-  width: 100%;
-  max-width: calc(var(--page-max-width) - 48px);
+.modal.movie-trailer-modal.is-open {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+}
+
+.modal-dialog.movie-trailer-modal-dialog {
+  width: min(
+    calc(100vw - 48px),
+    calc(var(--page-max-width) - 48px),
+    calc((100vh - 128px) * 16 / 9)
+  );
+  max-width: none;
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  background: var(--palette-neutral-990);
 }
 
 .movie-trailer-frame-shell {
@@ -2690,8 +2705,8 @@ button:not(:where(
   border-radius: var(--radius-md);
   background: var(--surface-control);
   color: var(--color-text-primary);
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-compact);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-body);
   appearance: textfield;
   -moz-appearance: textfield;
 }
@@ -3254,6 +3269,10 @@ button:not(:where(
 
 .movie-text-skeleton-countries {
   width: 74%;
+}
+
+.movie-text-skeleton-runtime {
+  width: 62%;
 }
 
 .movie-rating-value-skeleton {

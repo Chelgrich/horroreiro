@@ -15,7 +15,7 @@
     const localDevEnv = {
       SUPABASE_URL: 'https://uogzcozbnosfguyfbvhe.supabase.co',
       SUPABASE_ANON_KEY: 'sb_publishable_trS_-TlQwFqcM59nELIdsw_ygVI6B0j',
-      APP_BUILD_VERSION: 'dev-local-19'
+      APP_BUILD_VERSION: 'dev-local-20'
     };
 
     function getVersionedAssetUrl(src, buildVersion) {

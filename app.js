@@ -292,11 +292,13 @@ const USER_PAGE_ACTIVITY_AGGREGATE_LIMIT = 10000;
 const CATALOG_ROUTE_PRESET_KEYS = new Set([
   'top-rated',
   'low-rated',
+  'unrated',
+  'short-runtime',
+  'with-reviews',
+  'astrals',
   'watchlist',
   'watched',
-  'unwatched',
-  'with-reviews',
-  'astrals'
+  'unwatched'
 ]);
 const AUTH_REQUIRED_CATALOG_PRESET_KEYS = new Set(['watchlist', 'watched', 'unwatched']);
 const CATALOG_URL_STATE_PARAMS = new Set([
@@ -7969,6 +7971,8 @@ function buildCatalogMovieCardRenderMeta(movie, genresText, countriesText) {
   const escapedDirector = directorText ? escapeHtml(directorText) : '-';
   const escapedGenres = escapeHtml(genresText || '-');
   const escapedCountries = escapeHtml(countriesText || '-');
+  const runtimeLabel = formatRuntimeMinutes(movie?.runtime_minutes);
+  const escapedRuntime = runtimeLabel ? escapeHtml(runtimeLabel) : '';
   const pageUrl = buildMoviePageUrl(movie);
   const escapedPageUrl = escapeHtml(pageUrl);
   const externalLinksHtml = getMovieExternalLinksHtml(movie);
@@ -8005,6 +8009,7 @@ function buildCatalogMovieCardRenderMeta(movie, genresText, countriesText) {
     escapedDirector,
     escapedGenres,
     escapedCountries,
+    escapedRuntime,
     escapedPosterAlt: escapeHtml(`Постер фильма ${titleText}`),
     escapedPageLabel: escapeHtml(`Открыть страницу фильма ${titleText}`),
     externalLinksToggleHtml,
@@ -8019,6 +8024,7 @@ function buildCatalogMovieCardRenderMeta(movie, genresText, countriesText) {
       <p>Режиссёр: ${escapedDirector}</p>
       <p>Жанры: ${escapedGenres}</p>
       <p>Страны: ${escapedCountries}</p>
+      ${escapedRuntime ? `<p>Продолжительность: ${escapedRuntime}</p>` : ''}
     `
   };
 }
@@ -10824,6 +10830,7 @@ function getActiveQuickPresetKey() {
   const hasYearFilter = Boolean(yearFromFilter.value || yearToFilter.value);
   const hasRatingFilter = Boolean(ratingFromFilter.value || ratingToFilter.value);
   const hasRuntimeFilter = Boolean(runtimeFromFilter.value || runtimeToFilter.value);
+  const hasAuthPresetFilter = Boolean(currentUser && (watchlistFilter.value || watchedFilter.value));
 
   if (
     normalizeSearchText(searchInput.value) === 'астрал' &&
@@ -10835,9 +10842,25 @@ function getActiveQuickPresetKey() {
     !hasYearFilter &&
     !hasRatingFilter &&
     !hasRuntimeFilter &&
-    (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
+    !hasAuthPresetFilter
   ) {
     return 'astrals';
+  }
+
+  if (
+    runtimeFromFilter.value === '' &&
+    runtimeToFilter.value === '90' &&
+    !hasSearchQuery &&
+    !reviewedOnlyFilter &&
+    !hasGenreFilter &&
+    !hasSubgenreFilter &&
+    !hasFormatFilter &&
+    !hasCountryFilter &&
+    !hasYearFilter &&
+    !hasRatingFilter &&
+    !hasAuthPresetFilter
+  ) {
+    return 'short-runtime';
   }
 
   if (
@@ -10855,7 +10878,7 @@ function getActiveQuickPresetKey() {
   if (
     reviewedOnlyFilter &&
     !hasRatingFilter &&
-    (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
+    !hasAuthPresetFilter
   ) {
     return 'with-reviews';
   }
@@ -10863,7 +10886,7 @@ function getActiveQuickPresetKey() {
   if (
     ratingFromFilter.value === '7' &&
     ratingToFilter.value === '' &&
-    (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
+    !hasAuthPresetFilter
   ) {
     return 'top-rated';
   }
@@ -10871,9 +10894,17 @@ function getActiveQuickPresetKey() {
   if (
     ratingFromFilter.value === '1' &&
     ratingToFilter.value === '3' &&
-    (!currentUser || (!watchlistFilter.value && !watchedFilter.value))
+    !hasAuthPresetFilter
   ) {
     return 'low-rated';
+  }
+
+  if (
+    ratingFromFilter.value === '0' &&
+    ratingToFilter.value === '0' &&
+    !hasAuthPresetFilter
+  ) {
+    return 'unrated';
   }
 
   if (
@@ -10906,43 +10937,10 @@ function getActiveQuickPresetKey() {
   return null;
 }
 
-function ensureReviewedQuickPresetButton() {
-  if (!quickPresetsBar || quickPresetsBar.querySelector('[data-quick-preset="with-reviews"]')) {
-    return;
-  }
-
-  const reviewedPresetButton = document.createElement('button');
-
-  reviewedPresetButton.type = 'button';
-  reviewedPresetButton.className = 'quick-preset-button';
-  reviewedPresetButton.dataset.quickPreset = 'with-reviews';
-  reviewedPresetButton.textContent = 'С рецензиями';
-
-  quickPresetsBar.appendChild(reviewedPresetButton);
-}
-
-function ensureAstralQuickPresetButton() {
-  if (!quickPresetsBar || quickPresetsBar.querySelector('[data-quick-preset="astrals"]')) {
-    return;
-  }
-
-  const astralPresetButton = document.createElement('button');
-
-  astralPresetButton.type = 'button';
-  astralPresetButton.className = 'quick-preset-button';
-  astralPresetButton.dataset.quickPreset = 'astrals';
-  astralPresetButton.textContent = 'Астралы';
-
-  quickPresetsBar.appendChild(astralPresetButton);
-}
-
 function syncQuickPresetButtons() {
   if (!quickPresetsBar) {
     return;
   }
-
-  ensureReviewedQuickPresetButton();
-  ensureAstralQuickPresetButton();
 
   const activePresetKey = getActiveQuickPresetKey();
 
@@ -11012,6 +11010,16 @@ function applyQuickPreset(presetKey, { preservePage = false, urlMode = 'push' } 
   if (presetKey === 'low-rated') {
     ratingFromFilter.value = '1';
     ratingToFilter.value = '3';
+  }
+
+  if (presetKey === 'unrated') {
+    ratingFromFilter.value = '0';
+    ratingToFilter.value = '0';
+  }
+
+  if (presetKey === 'short-runtime') {
+    runtimeFromFilter.value = '';
+    runtimeToFilter.value = '90';
   }
 
   if (presetKey === 'with-reviews') {
@@ -13105,7 +13113,11 @@ function openMovieTrailerModal(movie) {
   ensureMovieTrailerModal();
 
   const title = String(movie?.title || '').trim();
-  const modalTitle = title ? `Трейлер: ${title}` : 'Трейлер';
+  const year = Number(movie?.year ?? movie?.release_year);
+  const titleWithYear = title && Number.isFinite(year)
+    ? `${title} (${year})`
+    : title;
+  const modalTitle = titleWithYear ? `Трейлер: ${titleWithYear}` : 'Трейлер';
 
   if (movieTrailerModalTitle) {
     movieTrailerModalTitle.textContent = modalTitle;
@@ -13791,6 +13803,7 @@ function getCatalogSkeletonMovies(cardsCount) {
 function getMovieCardSkeletonHtml(movie = null) {
   const hasOriginalTitle = !movie || Boolean(movie.original_title);
   const hasExternalLinks = !movie || hasMovieExternalLinks(movie);
+  const hasRuntime = !movie || Boolean(formatRuntimeMinutes(movie.runtime_minutes));
 
   return `
     <article class="movie-card movie-card-skeleton" aria-hidden="true">
@@ -13811,6 +13824,7 @@ function getMovieCardSkeletonHtml(movie = null) {
       <p><span class="movie-text-skeleton movie-text-skeleton-director"></span></p>
       <p><span class="movie-text-skeleton movie-text-skeleton-genres"></span></p>
       <p><span class="movie-text-skeleton movie-text-skeleton-countries"></span></p>
+      ${hasRuntime ? '<p><span class="movie-text-skeleton movie-text-skeleton-runtime"></span></p>' : ''}
 
       <div class="movie-rating-block">
         ${hasExternalLinks ? getMovieExternalLinksSkeletonHtml() : ''}
@@ -14080,6 +14094,7 @@ function getMovieCardDetailsHtml(movie, renderContext, cardRenderMeta) {
     <p>Режиссёр: ${directorHtml}</p>
     <p>Жанры: ${cardRenderMeta.escapedGenres}</p>
     <p>Страны: ${cardRenderMeta.escapedCountries}</p>
+    ${cardRenderMeta.escapedRuntime ? `<p>Продолжительность: ${cardRenderMeta.escapedRuntime}</p>` : ''}
   `;
 }
 
