@@ -410,7 +410,7 @@
                   </div>
 
                   <div class="form-row">
-                    <label for="runtimeMinutes">Продолжительность:</label>
+                    <label for="runtimeMinutes">Время:</label>
                     <input
                       type="number"
                       id="runtimeMinutes"

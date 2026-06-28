@@ -180,7 +180,7 @@
     }
   </style>
 
-  <script src="/boot-loader.js?v=20"></script>
+  <script src="/boot-loader.js?v=23"></script>
 </head>
 
 <body data-app-page="movie">
@@ -242,7 +242,91 @@
 
       <div id="moviePage" class="movie-page-content-shell">
         <!-- MOVIE_PAGE_FALLBACK_START -->
-        <div class="movie-page-loading-state">Загрузка фильма...</div>
+        <div class="movie-page-stack movie-page-stack-skeleton" aria-busy="true" aria-live="polite">
+          <span class="movie-page-skeleton-status">Загружаем фильм...</span>
+          <article class="movie-page-layout movie-page-layout-skeleton" aria-hidden="true">
+            <div class="movie-page-poster-column">
+              <div class="movie-page-poster-wrapper movie-poster-wrapper-skeleton">
+                <div class="movie-poster-skeleton" aria-hidden="true"></div>
+              </div>
+              <span class="secondary-button movie-page-rate-trigger movie-page-skeleton-action"></span>
+            </div>
+
+            <div class="movie-page-main-column">
+              <div class="movie-page-title-block">
+                <div class="movie-page-title-row">
+                  <div class="movie-page-title-main">
+                    <span class="movie-text-skeleton movie-page-skeleton-title"></span>
+                    <span class="movie-text-skeleton movie-page-skeleton-original-title"></span>
+                  </div>
+
+                  <div class="movie-page-summary-panel movie-page-skeleton-summary">
+                    <span class="movie-text-skeleton movie-page-skeleton-rating"></span>
+                    <span class="secondary-button movie-page-rate-trigger movie-page-skeleton-rate-button"></span>
+                  </div>
+                </div>
+
+                <div class="movie-page-meta-list movie-page-skeleton-meta-list">
+                  <div class="movie-page-skeleton-meta-line">
+                    <span class="movie-text-skeleton movie-page-skeleton-label"></span>
+                    <span class="movie-text-skeleton movie-page-skeleton-value movie-page-skeleton-value-1"></span>
+                  </div>
+                  <div class="movie-page-skeleton-meta-line">
+                    <span class="movie-text-skeleton movie-page-skeleton-label"></span>
+                    <span class="movie-text-skeleton movie-page-skeleton-value movie-page-skeleton-value-2"></span>
+                  </div>
+                  <div class="movie-page-skeleton-meta-line">
+                    <span class="movie-text-skeleton movie-page-skeleton-label"></span>
+                    <span class="movie-text-skeleton movie-page-skeleton-value movie-page-skeleton-value-3"></span>
+                  </div>
+                  <div class="movie-page-skeleton-meta-line">
+                    <span class="movie-text-skeleton movie-page-skeleton-label"></span>
+                    <span class="movie-text-skeleton movie-page-skeleton-value movie-page-skeleton-value-4"></span>
+                  </div>
+                  <div class="movie-page-skeleton-meta-line">
+                    <span class="movie-text-skeleton movie-page-skeleton-label"></span>
+                    <span class="movie-text-skeleton movie-page-skeleton-value movie-page-skeleton-value-5"></span>
+                  </div>
+                  <div class="movie-page-skeleton-meta-line">
+                    <span class="movie-text-skeleton movie-page-skeleton-label"></span>
+                    <span class="movie-text-skeleton movie-page-skeleton-value movie-page-skeleton-value-6"></span>
+                  </div>
+                  <div class="movie-page-skeleton-meta-line">
+                    <span class="movie-text-skeleton movie-page-skeleton-label"></span>
+                    <span class="movie-text-skeleton movie-page-skeleton-value movie-page-skeleton-value-7"></span>
+                  </div>
+                  <div class="movie-page-skeleton-meta-line">
+                    <span class="movie-text-skeleton movie-page-skeleton-label"></span>
+                    <span class="movie-text-skeleton movie-page-skeleton-value movie-page-skeleton-value-8"></span>
+                  </div>
+                </div>
+
+                <div class="movie-page-synopsis-block movie-page-skeleton-synopsis">
+                  <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-1"></span>
+                  <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-2"></span>
+                  <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-3"></span>
+                </div>
+
+                <div class="movie-page-external-links-block movie-page-skeleton-links">
+                  <span class="movie-external-link movie-external-link-skeleton"></span>
+                  <span class="movie-external-link movie-external-link-skeleton"></span>
+                  <span class="movie-external-link movie-external-link-skeleton"></span>
+                  <span class="movie-external-link movie-external-link-skeleton"></span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <section class="movie-page-reviews-block movie-page-skeleton-section" aria-hidden="true">
+            <span class="movie-text-skeleton movie-page-skeleton-section-title"></span>
+            <div class="movie-page-skeleton-panel"></div>
+          </section>
+
+          <section class="movie-page-comments-block movie-page-skeleton-section" aria-hidden="true">
+            <span class="movie-text-skeleton movie-page-skeleton-section-title"></span>
+            <div class="movie-page-skeleton-panel movie-page-skeleton-panel-short"></div>
+          </section>
+        </div>
         <!-- MOVIE_PAGE_FALLBACK_END -->
       </div>
     </section>
@@ -252,7 +336,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <script src="/app-script-loader.js?v=20"></script>
+  <script src="/app-script-loader.js?v=23"></script>
 </body>
 
 </html>

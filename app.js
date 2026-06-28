@@ -1132,7 +1132,7 @@ function buildCompletenessAuditReport(movies, posterRows) {
     `  Только основной poster_url: ${primaryPosterOnlyMovies.length}`,
     `  Пустое поле "Кинопоиск": ${emptyKinopoiskMovies.length}`,
     `  Пустое поле "Трейлер": ${emptyTrailerMovies.length}`,
-    `  Пустое поле "Продолжительность": ${emptyRuntimeMovies.length}`
+    `  Пустое поле "Время": ${emptyRuntimeMovies.length}`
   ];
 
   appendManualSimilarAuditSection(
@@ -1165,7 +1165,7 @@ function buildCompletenessAuditReport(movies, posterRows) {
 
   appendManualSimilarAuditSection(
     lines,
-    '5. Пустое поле "Продолжительность":',
+    '5. Пустое поле "Время":',
     emptyRuntimeMovies,
     getMovieCompletenessAuditLabel
   );
@@ -1657,7 +1657,7 @@ function getCompletenessAuditSummaryMessage(summary) {
     `один постер ${summary.primaryPosterOnly}`,
     `Кинопоиск ${summary.emptyKinopoisk}`,
     `трейлер ${summary.emptyTrailer}`,
-    `продолжительность ${summary.emptyRuntime}`
+    `время ${summary.emptyRuntime}`
   ].join(' ');
 }
 
@@ -4631,25 +4631,6 @@ function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
   bindRestoredCatalogDomState();
 
   return true;
-}
-
-function getMoviePageTopRenderSignature(movie) {
-  if (!movie) {
-    return '';
-  }
-
-  const movieId = String(movie.id);
-  const ratingStats = movieRatingStatsByMovieId.get(movieId) || null;
-
-  return JSON.stringify({
-    userId: currentUser?.id || null,
-    isAdmin,
-    movie,
-    posterImages: getMoviePosterImages(movieId),
-    ratingStats,
-    currentUserRating: getCurrentUserRating(movieId),
-    userMovieState: getCurrentUserMovieState(movieId)
-  });
 }
 
 function debounce(callback, delay = 200) {
@@ -8024,7 +8005,7 @@ function buildCatalogMovieCardRenderMeta(movie, genresText, countriesText) {
       <p>Режиссёр: ${escapedDirector}</p>
       <p>Жанры: ${escapedGenres}</p>
       <p>Страны: ${escapedCountries}</p>
-      ${escapedRuntime ? `<p>Продолжительность: ${escapedRuntime}</p>` : ''}
+      ${escapedRuntime ? `<p>Время: ${escapedRuntime}</p>` : ''}
     `
   };
 }
@@ -11118,7 +11099,7 @@ function getActiveFilterChips() {
 
   if (runtimeRange.hasRange) {
     chips.push({
-      label: formatCatalogRangeLabel('Продолжительность', runtimeRange.from, runtimeRange.to, {
+      label: formatCatalogRangeLabel('Время', runtimeRange.from, runtimeRange.to, {
         valueFormatter: formatRuntimeMinutes
       }),
       key: 'runtime'
@@ -11628,7 +11609,7 @@ async function addMovie(event) {
   }
 
   if (Number.isNaN(runtimeMinutes)) {
-    formMessage.textContent = 'Продолжительность должна быть целым числом минут от 1 до 999.';
+    formMessage.textContent = 'Время должно быть целым числом минут от 1 до 999.';
     setMovieFormSubmittingState(false);
     return;
   }
@@ -11781,7 +11762,7 @@ async function updateMovie(event) {
   }
 
   if (Number.isNaN(runtimeMinutes)) {
-    formMessage.textContent = 'Продолжительность должна быть целым числом минут от 1 до 999.';
+    formMessage.textContent = 'Время должно быть целым числом минут от 1 до 999.';
     setMovieFormSubmittingState(false);
     return;
   }
@@ -13102,6 +13083,19 @@ function closeMovieTrailerModal() {
   syncBodyScrollLock();
 }
 
+function syncMovieTrailerModalOffset() {
+  if (!movieTrailerModal) {
+    return;
+  }
+
+  const header = document.querySelector('.page-header');
+  const headerRect = header?.getBoundingClientRect?.();
+  const headerHeight = Math.ceil(headerRect?.height || header?.offsetHeight || 0);
+  const topOffset = Math.max(16, headerHeight + 12);
+
+  movieTrailerModal.style.setProperty('--movie-trailer-modal-top-offset', `${topOffset}px`);
+}
+
 function openMovieTrailerModal(movie) {
   const trailerEmbedUrl = getYouTubeTrailerEmbedUrl(movie?.trailer_url);
 
@@ -13128,6 +13122,7 @@ function openMovieTrailerModal(movie) {
     movieTrailerFrame.title = modalTitle;
   }
 
+  syncMovieTrailerModalOffset();
   movieTrailerModal.classList.add('is-open');
   syncBodyScrollLock();
 }
@@ -13771,6 +13766,10 @@ function scheduleAppResizeSync() {
     syncCatalogPaginationSlotCount();
     syncUserPageRailControls();
     syncAppToastPosition();
+
+    if (movieTrailerModal?.classList.contains('is-open')) {
+      syncMovieTrailerModalOffset();
+    }
   });
 }
 
@@ -14094,7 +14093,7 @@ function getMovieCardDetailsHtml(movie, renderContext, cardRenderMeta) {
     <p>Режиссёр: ${directorHtml}</p>
     <p>Жанры: ${cardRenderMeta.escapedGenres}</p>
     <p>Страны: ${cardRenderMeta.escapedCountries}</p>
-    ${cardRenderMeta.escapedRuntime ? `<p>Продолжительность: ${cardRenderMeta.escapedRuntime}</p>` : ''}
+    ${cardRenderMeta.escapedRuntime ? `<p>Время: ${cardRenderMeta.escapedRuntime}</p>` : ''}
   `;
 }
 
@@ -19897,7 +19896,7 @@ function renderMoviePageSimilarSection(movieId) {
   bindMoviePageSimilarEditorEvents(movie);
 }
 
-async function loadMoviePageSimilarMovies(movie, limit = 4) {
+async function loadMoviePageSimilarMovies(movie, limit = 4, { shouldRender = true } = {}) {
   if (!movie || !moviePage) {
     return;
   }
@@ -19913,7 +19912,10 @@ async function loadMoviePageSimilarMovies(movie, limit = 4) {
   currentMoviePageSimilarMovieId = movieId;
   currentMoviePageSimilarMovieIds = [];
   currentMoviePageSimilarMovies = [];
-  renderMoviePageSimilarSection(movieId);
+
+  if (shouldRender) {
+    renderMoviePageSimilarSection(movieId);
+  }
 
   try {
     let similarMovieIds = [];
@@ -19937,13 +19939,16 @@ async function loadMoviePageSimilarMovies(movie, limit = 4) {
       return;
     }
 
-    if (!moviePage.querySelector('[data-movie-page-similar-mount="true"]')) {
+    if (shouldRender && !moviePage.querySelector('[data-movie-page-similar-mount="true"]')) {
       renderMoviePage(movie);
     }
 
     currentMoviePageSimilarMovieIds = similarMovieIds;
     currentMoviePageSimilarMovies = similarMovies;
-    renderMoviePageSimilarSection(movieId);
+
+    if (shouldRender) {
+      renderMoviePageSimilarSection(movieId);
+    }
   } catch (error) {
     console.error('Ошибка загрузки похожих фильмов:', error);
   }
@@ -22106,10 +22111,7 @@ function getMoviePageFormatsLabel(movie) {
     .join(', ');
 }
 
-function buildMoviePageViewModel(movie, {
-  reviewsLoading = false,
-  commentsLoading = false
-} = {}) {
+function buildMoviePageViewModel(movie) {
   const genreNames = movie.movie_genres
     .map(item => item.genres.name)
     .filter(Boolean);
@@ -22132,8 +22134,8 @@ function buildMoviePageViewModel(movie, {
     synopsis: String(movie.synopsis || '').trim(),
     isRatingBusy: ratingRequestInFlight.has(String(movie.id)),
     isWatchlistBusy: watchlistRequestInFlight.has(String(movie.id)),
-    reviewsSectionHtml: getMoviePageReviewsSectionHtml(movie, { isLoading: reviewsLoading }),
-    commentsSectionHtml: getMoviePageCommentsSectionHtml(movie, { isLoading: commentsLoading })
+    reviewsSectionHtml: getMoviePageReviewsSectionHtml(movie),
+    commentsSectionHtml: getMoviePageCommentsSectionHtml(movie)
   };
 }
 
@@ -22555,7 +22557,7 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
           }
           ${
             runtimeLabel
-              ? `<div class="movie-page-meta-item"><span>Продолжительность:</span> ${escapeHtml(runtimeLabel)}</div>`
+              ? `<div class="movie-page-meta-item"><span>Время:</span> ${escapeHtml(runtimeLabel)}</div>`
               : ''
           }
         </div>
@@ -22593,7 +22595,78 @@ function getMoviePageHeaderHtml(movie, viewModel) {
   `;
 }
 
-function renderMoviePage(movie, options = {}) {
+function getMoviePageSkeletonHtml() {
+  const metaLinesHtml = Array.from({ length: 8 }, (_, index) => `
+    <div class="movie-page-skeleton-meta-line">
+      <span class="movie-text-skeleton movie-page-skeleton-label"></span>
+      <span class="movie-text-skeleton movie-page-skeleton-value movie-page-skeleton-value-${index + 1}"></span>
+    </div>
+  `).join('');
+
+  return `
+    <div class="movie-page-stack movie-page-stack-skeleton" aria-busy="true" aria-live="polite">
+      <span class="movie-page-skeleton-status">Загружаем фильм...</span>
+      <article class="movie-page-layout movie-page-layout-skeleton" aria-hidden="true">
+        <div class="movie-page-poster-column">
+          <div class="movie-page-poster-wrapper movie-poster-wrapper-skeleton">
+            <div class="movie-poster-skeleton" aria-hidden="true"></div>
+          </div>
+          <span class="secondary-button movie-page-rate-trigger movie-page-skeleton-action"></span>
+        </div>
+
+        <div class="movie-page-main-column">
+          <div class="movie-page-title-block">
+            <div class="movie-page-title-row">
+              <div class="movie-page-title-main">
+                <span class="movie-text-skeleton movie-page-skeleton-title"></span>
+                <span class="movie-text-skeleton movie-page-skeleton-original-title"></span>
+              </div>
+
+              <div class="movie-page-summary-panel movie-page-skeleton-summary">
+                <span class="movie-text-skeleton movie-page-skeleton-rating"></span>
+                <span class="secondary-button movie-page-rate-trigger movie-page-skeleton-rate-button"></span>
+              </div>
+            </div>
+
+            <div class="movie-page-meta-list movie-page-skeleton-meta-list">
+              ${metaLinesHtml}
+            </div>
+
+            <div class="movie-page-synopsis-block movie-page-skeleton-synopsis">
+              <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-1"></span>
+              <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-2"></span>
+              <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-3"></span>
+            </div>
+
+            <div class="movie-page-external-links-block movie-page-skeleton-links">
+              ${Array.from({ length: 4 }, () => '<span class="movie-external-link movie-external-link-skeleton"></span>').join('')}
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <section class="movie-page-reviews-block movie-page-skeleton-section" aria-hidden="true">
+        <span class="movie-text-skeleton movie-page-skeleton-section-title"></span>
+        <div class="movie-page-skeleton-panel"></div>
+      </section>
+
+      <section class="movie-page-comments-block movie-page-skeleton-section" aria-hidden="true">
+        <span class="movie-text-skeleton movie-page-skeleton-section-title"></span>
+        <div class="movie-page-skeleton-panel movie-page-skeleton-panel-short"></div>
+      </section>
+    </div>
+  `;
+}
+
+function renderMoviePageSkeleton() {
+  if (!moviePage) {
+    return;
+  }
+
+  moviePage.innerHTML = getMoviePageSkeletonHtml();
+}
+
+function renderMoviePage(movie) {
   if (!moviePage || !movie) {
     return;
   }
@@ -22605,7 +22678,7 @@ function renderMoviePage(movie, options = {}) {
   currentMoviePageMovieId = movie.id;
   currentMoviePageMovieData = movie;
 
-  const viewModel = buildMoviePageViewModel(movie, options);
+  const viewModel = buildMoviePageViewModel(movie);
   const { reviewsSectionHtml, commentsSectionHtml } = viewModel;
 
   setMoviePageDocumentMeta(movie);
@@ -22732,7 +22805,6 @@ async function deleteMovieFromMoviePage(movieId, movieTitle) {
 
 async function loadMoviePageByRouteParams(routeParams, {
   warmMovie = null,
-  warmTopSignature = '',
   skipUserStateFetch = false
 } = {}) {
   const movie = await fetchMovieByRouteParams(routeParams);
@@ -22757,25 +22829,15 @@ async function loadMoviePageByRouteParams(routeParams, {
 
   await Promise.all(userStateTasks);
 
-  const nextTopSignature = getMoviePageTopRenderSignature(movie);
-  const canReuseWarmTop = (
-    warmMovie &&
-    String(warmMovie.id) === String(movie.id) &&
-    warmTopSignature &&
-    warmTopSignature === nextTopSignature &&
-    String(currentMoviePageMovieId) === String(movie.id)
-  );
-
-  if (canReuseWarmTop) {
-    currentMoviePageMovieData = movie;
-    setMoviePageDocumentMeta(movie);
-  } else {
-    renderMoviePage(movie, { reviewsLoading: true, commentsLoading: true });
+  if (String(currentMoviePageMovieId || '') !== String(movie.id || '')) {
+    resetMoviePageComposerState();
   }
 
-  loadMoviePageSimilarMovies(movie);
+  currentMoviePageMovieId = movie.id;
+  currentMoviePageMovieData = movie;
 
   await Promise.all([
+    loadMoviePageSimilarMovies(movie, 4, { shouldRender: false }),
     fetchMovieReviews(movie.id),
     fetchMovieComments(movie.id),
     fetchMoviePosterImagesForMovieSafe(movie.id)
@@ -22785,18 +22847,7 @@ async function loadMoviePageByRouteParams(routeParams, {
     syncMovie: movie
   });
 
-  const finalTopSignature = getMoviePageTopRenderSignature(movie);
-  const canReuseCurrentTop = (
-    String(currentMoviePageMovieId) === String(movie.id) &&
-    finalTopSignature === nextTopSignature
-  );
-
-  if (canReuseWarmTop || canReuseCurrentTop) {
-    renderMoviePageReviewsSection(movie);
-    renderMoviePageCommentsSection(movie);
-  } else {
-    renderMoviePage(movie);
-  }
+  renderMoviePage(movie);
 
   return movie;
 }
@@ -22812,28 +22863,25 @@ async function initMoviePage() {
   await restoreSession();
   trackEmailConfirmedLoginIfNeeded();
   const warmMovie = hydrateMoviePageFromCatalogSnapshot(routeParams);
-  const warmTopSignature = warmMovie
-    ? getMoviePageTopRenderSignature(warmMovie)
-    : '';
-
-  if (warmMovie) {
-    renderMoviePage(warmMovie, { reviewsLoading: true, commentsLoading: true });
-  }
+  renderMoviePageSkeleton();
 
   try {
     await loadMoviePageByRouteParams(routeParams, {
-      warmMovie,
-      warmTopSignature
+      warmMovie
     });
   } catch (error) {
     console.error('Ошибка загрузки страницы фильма:', error);
 
-    if (!warmMovie) {
+    const fallbackMovie = currentMoviePageMovieData || warmMovie;
+
+    if (!fallbackMovie) {
       renderMoviePageNotFound();
-    } else {
-      renderMoviePageReviewsStatus('Не удалось обновить рецензии. Попробуй обновить страницу.');
-      renderMoviePageCommentsStatus('Не удалось обновить комментарии. Попробуй обновить страницу.');
+      return;
     }
+
+    renderMoviePage(fallbackMovie);
+    renderMoviePageReviewsStatus('Не удалось обновить рецензии. Попробуй обновить страницу.');
+    renderMoviePageCommentsStatus('Не удалось обновить комментарии. Попробуй обновить страницу.');
   }
 
   bindSharedAuthStateListener({
