@@ -312,6 +312,10 @@ html::-webkit-scrollbar-corner {
 
 body {
   margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   overflow-y: scroll;
   font-family: var(--font-body);
   font-weight: 500;
@@ -344,6 +348,8 @@ h3 {
 
 .page {
   box-sizing: border-box;
+  flex: 1 0 auto;
+  width: 100%;
   --catalog-columns: 4;
   --catalog-grid-gap: 16px;
   --movie-card-title-padding-bottom: 10px;
@@ -4289,18 +4295,6 @@ a[data-current-page-link="true"] {
   text-decoration: none;
 }
 
-body:has(.user-page-shell) {
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-}
-
-body:has(.user-page-shell) .page {
-  flex: 1 0 auto;
-  width: 100%;
-  box-sizing: border-box;
-}
-
 .user-page-shell {
   min-height: 0;
 }
@@ -5759,18 +5753,6 @@ body:has(.user-page-shell) .page {
   font-size: var(--font-size-title-lg);
   line-height: var(--line-height-snug);
   overflow-wrap: anywhere;
-}
-
-body:has(.movie-page-shell) {
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-}
-
-body:has(.movie-page-shell) .page {
-  flex: 1 0 auto;
-  width: 100%;
-  box-sizing: border-box;
 }
 
 .movie-page-shell {
@@ -8090,10 +8072,8 @@ body:has(.movie-page-shell) .page {
   border-top: 1px solid var(--border-divider-footer);
 }
 
-body:has(.movie-page-shell) .page-footer,
-body:has(.user-page-shell) .page-footer {
+#sharedFooterMount {
   flex-shrink: 0;
-  margin-top: auto;
 }
 
 .page-footer-inner {
