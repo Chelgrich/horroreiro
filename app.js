@@ -160,6 +160,12 @@ const QUICK_PRESETS_SCROLL_HINT_DELAY_MS = 650;
 const QUICK_PRESETS_SCROLL_HINT_DISTANCE = 72;
 const QUICK_PRESETS_SCROLL_HINT_DURATION_MS = 420;
 const NOTIFICATIONS_PAGE_LIMIT = 80;
+const NOTIFICATION_READ_DWELL_MS = 2000;
+const NOTIFICATION_READ_VISIBILITY_RATIO = 0.7;
+const NOTIFICATION_CONTEXT_SNIPPET_LABELS = {
+  review: 'Рецензия',
+  comment: 'Комментарий'
+};
 const NOTIFICATIONS_UNREAD_REFRESH_INTERVAL_MS = 60000;
 const NOTIFICATIONS_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const MOVIE_REVIEW_MIN_LENGTH = 80;
@@ -463,6 +469,9 @@ let isNotificationsPageMarkingAllRead = false;
 let isNotificationTestRunning = false;
 let notificationsPagePreferences = null;
 let notificationPreferenceRequestKeys = new Set();
+let notificationReadDwellTimers = new Map();
+let notificationReadObserver = null;
+let areNotificationReadTrackingEventsBound = false;
 let followingPagePreferenceRequestKeys = new Set();
 let followingPageUnfollowRequestProfileIds = new Set();
 let isAdmin = false;
@@ -3042,6 +3051,11 @@ function initCurrentPageLinkGuard() {
 
   window.addEventListener('popstate', scheduleCurrentPageLinkSync);
   window.addEventListener('hashchange', scheduleCurrentPageLinkSync);
+  window.addEventListener('hashchange', () => {
+    if (isMoviePage()) {
+      requestAnimationFrame(focusMoviePageHashTarget);
+    }
+  });
 }
 
 function escapeRegExp(value) {
@@ -7576,6 +7590,10 @@ function getMovieReviewById(reviewId) {
 
 function getMovieReviewAnchorId(reviewId) {
   return `movie-review-${String(reviewId || '').replace(/[^a-zA-Z0-9_-]/g, '')}`;
+}
+
+function getMovieCommentAnchorId(commentId) {
+  return `movie-comment-${String(commentId || '').replace(/[^a-zA-Z0-9_-]/g, '')}`;
 }
 
 function getMovieCommentAuthorName(comment) {
@@ -15999,6 +16017,7 @@ function bindSharedUiEvents() {
 
   window.addEventListener('resize', () => {
     hideUserPageRankTooltip();
+    observeNotificationsPageVisibleItems();
     scheduleAppResizeSync();
   });
   window.addEventListener('scroll', hideUserPageRankTooltip, { passive: true });
@@ -17381,14 +17400,14 @@ function updateUserPageRailControls(shell) {
   nextButton.hidden = !canScrollNext;
 }
 
-function syncUserPageRailControls() {
-  userPage
+function syncUserPageRailControls(root = userPage) {
+  root
     ?.querySelectorAll('[data-user-page-rail-shell="true"]')
     .forEach(updateUserPageRailControls);
 }
 
-function bindUserPageRailControls() {
-  userPage
+function bindUserPageRailControls(root = userPage) {
+  root
     ?.querySelectorAll('[data-user-page-rail-shell="true"]')
     .forEach(shell => {
       const rail = shell.querySelector('[data-user-page-rail="true"]');
@@ -17401,7 +17420,7 @@ function bindUserPageRailControls() {
       rail.addEventListener('scroll', () => updateUserPageRailControls(shell), { passive: true });
     });
 
-  requestAnimationFrame(syncUserPageRailControls);
+  requestAnimationFrame(() => syncUserPageRailControls(root));
 }
 
 function scrollUserPageRail(shell, direction) {
@@ -17905,6 +17924,86 @@ function getNotificationMovieIdsFromPayload(payload) {
   )];
 }
 
+function getNotificationReviewSnippetIds(items = []) {
+  const reviewIds = new Set();
+
+  (Array.isArray(items) ? items : []).forEach(item => {
+    if ((item.type === 'review_liked' || item.type === 'followed_review') && item.entityId) {
+      reviewIds.add(String(item.entityId));
+    }
+  });
+
+  return [...reviewIds];
+}
+
+function getNotificationCommentSnippetIds(items = []) {
+  const commentIds = new Set();
+
+  (Array.isArray(items) ? items : []).forEach(item => {
+    if (
+      (item.type === 'comment_liked' || item.type === 'comment_reply' || item.type === 'review_comment') &&
+      item.entityId
+    ) {
+      commentIds.add(String(item.entityId));
+    }
+  });
+
+  return [...commentIds];
+}
+
+async function fetchNotificationReviewSnippets(reviewIds = []) {
+  const normalizedReviewIds = [...new Set(
+    (Array.isArray(reviewIds) ? reviewIds : [])
+      .map(reviewId => String(reviewId || '').trim())
+      .filter(Boolean)
+  )];
+
+  if (!normalizedReviewIds.length) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_reviews')
+    .select('id, movie_id, review_text, contains_spoilers, contains_profanity')
+    .in('id', normalizedReviewIds);
+
+  if (error) {
+    console.warn('Ошибка загрузки фрагментов рецензий для уведомлений:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+async function fetchNotificationCommentSnippets(commentIds = []) {
+  const normalizedCommentIds = [...new Set(
+    (Array.isArray(commentIds) ? commentIds : [])
+      .map(commentId => String(commentId || '').trim())
+      .filter(Boolean)
+  )];
+
+  if (!normalizedCommentIds.length || !areMovieCommentsAvailable) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_comments')
+    .select('id, movie_id, comment_text, contains_spoilers, contains_profanity, is_deleted')
+    .in('id', normalizedCommentIds);
+
+  if (error) {
+    if (isMovieCommentsTableUnavailableError(error)) {
+      areMovieCommentsAvailable = false;
+    }
+
+    console.warn('Ошибка загрузки фрагментов комментариев для уведомлений:', error);
+    return [];
+  }
+
+  areMovieCommentsAvailable = true;
+  return data || [];
+}
+
 function normalizeNotificationRow(row) {
   const event = Array.isArray(row?.notification_events)
     ? row.notification_events[0]
@@ -18021,12 +18120,18 @@ async function fetchNotificationsPageData() {
       .map(movieId => String(movieId || '').trim())
       .filter(Boolean)
   )];
-  const [profiles, movies] = await Promise.all([
+  const reviewSnippetIds = getNotificationReviewSnippetIds(notificationRows);
+  const commentSnippetIds = getNotificationCommentSnippetIds(notificationRows);
+  const [profiles, movies, reviewSnippets, commentSnippets] = await Promise.all([
     fetchPublicProfilesByIds(actorIds),
-    fetchMoviesByIdsWithSelect(movieIds, MOVIE_USER_PAGE_CARD_SELECT)
+    fetchMoviesByIdsWithSelect(movieIds, MOVIE_USER_PAGE_CARD_SELECT),
+    fetchNotificationReviewSnippets(reviewSnippetIds),
+    fetchNotificationCommentSnippets(commentSnippetIds)
   ]);
   const profilesById = new Map((profiles || []).map(profile => [String(profile.id), profile]));
   const moviesById = new Map((movies || []).map(movie => [String(movie.id), movie]));
+  const reviewSnippetsById = new Map((reviewSnippets || []).map(review => [String(review.id), review]));
+  const commentSnippetsById = new Map((commentSnippets || []).map(comment => [String(comment.id), comment]));
 
   notificationsPagePreferences = preferences;
   notificationsPageItems = notificationRows
@@ -18034,6 +18139,8 @@ async function fetchNotificationsPageData() {
       ...item,
       actor: item.actorId ? profilesById.get(item.actorId) : null,
       movie: item.movieId ? moviesById.get(item.movieId) : null,
+      reviewSnippet: item.entityId ? reviewSnippetsById.get(item.entityId) : null,
+      commentSnippet: item.entityId ? commentSnippetsById.get(item.entityId) : null,
       digestMovies: getNotificationMovieIdsFromPayload(item.payload)
         .map(movieId => moviesById.get(movieId))
         .filter(Boolean)
@@ -18063,6 +18170,17 @@ function getNotificationActorLinkHtml(actor) {
   `;
 }
 
+function getNotificationMovieDisplayTitle(movie, fallbackTitle = 'фильм') {
+  if (!movie) {
+    return fallbackTitle;
+  }
+
+  const title = String(movie.title || getManualSimilarMovieLabel(movie) || fallbackTitle).trim();
+  const year = Number(movie.year || 0);
+
+  return Number.isFinite(year) && year > 0 ? `${title} (${year})` : title;
+}
+
 function getNotificationMovieLinkHtml(movie, fallbackTitle = 'фильм') {
   if (!movie) {
     return `<span class="notifications-page-movie">${escapeHtml(fallbackTitle)}</span>`;
@@ -18070,7 +18188,7 @@ function getNotificationMovieLinkHtml(movie, fallbackTitle = 'фильм') {
 
   return `
     <a class="notifications-page-movie" href="${escapeHtml(buildMoviePageUrl(movie))}">
-      ${escapeHtml(movie.title || getManualSimilarMovieLabel(movie))}
+      ${escapeHtml(getNotificationMovieDisplayTitle(movie, fallbackTitle))}
     </a>
   `;
 }
@@ -18087,80 +18205,229 @@ function getNotificationAvatarHtml(item) {
   );
 }
 
-function getNotificationBadgeHtml(item) {
+function getNotificationBadgeLabelHtml(item) {
   if (item.type === 'followed_rating') {
     const rating = Number(item.payload?.rating || 0);
 
     return rating
-      ? `<span class="notifications-page-type-badge">Оценка <strong>${escapeHtml(rating)}</strong><span>★</span></span>`
-      : '<span class="notifications-page-type-badge">Оценка</span>';
+      ? `Оценка <strong>${escapeHtml(rating)}</strong><span>★</span>`
+      : 'Оценка';
   }
 
   if (item.type === 'followed_watchlist') {
-    return '<span class="notifications-page-type-badge notifications-page-type-badge-watchlist">Смотреть позже</span>';
+    return 'Смотреть позже';
   }
 
   if (item.type === 'followed_review') {
-    return '<span class="notifications-page-type-badge notifications-page-type-badge-review">Рецензия</span>';
+    return 'Рецензия';
   }
 
   if (item.type === 'new_movies_digest') {
-    return '<span class="notifications-page-type-badge notifications-page-type-badge-digest">Новинки</span>';
+    return 'Новинки';
+  }
+
+  if (item.type === 'review_liked' || item.type === 'comment_liked') {
+    return 'Реакция';
+  }
+
+  if (item.type === 'comment_reply' || item.type === 'review_comment') {
+    return 'Ответ';
+  }
+
+  if (item.type === 'profile_followed') {
+    return 'Новое отслеживание';
   }
 
   return '';
 }
 
+function getNotificationBadgeHtml(item) {
+  const labelHtml = getNotificationBadgeLabelHtml(item);
+
+  if (!labelHtml) {
+    return '';
+  }
+
+  return `
+    <span class="notifications-page-type-badge${item.type === 'followed_rating' ? ' is-rating' : ''}">
+      ${labelHtml}
+    </span>
+  `;
+}
+
+function getNotificationContextKind(item) {
+  if (item.type === 'review_liked' || item.type === 'followed_review') {
+    return 'review';
+  }
+
+  if (item.type === 'comment_liked' || item.type === 'comment_reply' || item.type === 'review_comment') {
+    return 'comment';
+  }
+
+  return '';
+}
+
+function getNotificationContextSource(item) {
+  const contextKind = getNotificationContextKind(item);
+
+  if (contextKind === 'review') {
+    return item.reviewSnippet || null;
+  }
+
+  if (contextKind === 'comment') {
+    return item.commentSnippet || null;
+  }
+
+  return null;
+}
+
+function getNotificationContextText(source, contextKind) {
+  if (!source) {
+    return '';
+  }
+
+  const label = NOTIFICATION_CONTEXT_SNIPPET_LABELS[contextKind] || 'Текст';
+
+  if (source.is_deleted) {
+    return `${label} удалён.`;
+  }
+
+  if (source.contains_spoilers || source.contains_profanity) {
+    return getMovieContentWarningCoverText(source, label);
+  }
+
+  const rawText = contextKind === 'review'
+    ? normalizeMovieReviewText(source.review_text || '')
+    : normalizeMovieCommentText(source.comment_text || '');
+
+  return rawText.replace(/\s+/g, ' ').trim();
+}
+
+function getNotificationContextAnchorId(source, contextKind) {
+  if (!source?.id) {
+    return '';
+  }
+
+  return contextKind === 'review'
+    ? getMovieReviewAnchorId(source.id)
+    : getMovieCommentAnchorId(source.id);
+}
+
+function getNotificationContextHtml(item) {
+  const contextKind = getNotificationContextKind(item);
+  const source = getNotificationContextSource(item);
+  const contextText = getNotificationContextText(source, contextKind);
+  const anchorId = getNotificationContextAnchorId(source, contextKind);
+
+  if (!contextKind || !source || !contextText) {
+    return '';
+  }
+
+  const label = NOTIFICATION_CONTEXT_SNIPPET_LABELS[contextKind] || 'Текст';
+  const contextInnerHtml = `
+    <span class="notifications-page-context-label">${escapeHtml(label)}</span>
+    <span class="notifications-page-context-text">${escapeHtml(contextText)}</span>
+  `;
+
+  if (!item.movie || !anchorId) {
+    return `<div class="notifications-page-context">${contextInnerHtml}</div>`;
+  }
+
+  return `
+    <a class="notifications-page-context" href="${escapeHtml(`${buildMoviePageUrl(item.movie)}#${anchorId}`)}">
+      ${contextInnerHtml}
+    </a>
+  `;
+}
+
+function getNotificationMovieCardHtml(movie) {
+  if (!movie) {
+    return '';
+  }
+
+  return getUserPageMovieCardHtml({ movie });
+}
+
+function getNotificationDigestMoviesHtml(item) {
+  const digestMovies = item.digestMovies || [];
+  const digestCount = Math.max(getNotificationMovieIdsFromPayload(item.payload).length, digestMovies.length);
+
+  return `
+    <div class="notifications-page-digest-summary">
+      Добавлены новые фильмы${digestCount ? ` (${digestCount})` : ''}
+    </div>
+    ${
+      digestMovies.length
+        ? `
+          <div class="notifications-page-movie-rail-shell user-page-movie-rail-shell" data-user-page-rail-shell="true">
+            <button
+              class="user-page-rail-button user-page-rail-button-prev notifications-page-movie-rail-button"
+              type="button"
+              data-user-page-rail-prev="true"
+              aria-label="Прокрутить новинки назад"
+              hidden
+            >
+              <span class="user-page-rail-button-icon" aria-hidden="true"></span>
+            </button>
+            <div class="notifications-page-movie-rail user-page-movie-rail" data-user-page-rail="true" tabindex="0">
+              ${digestMovies.map(getNotificationMovieCardHtml).join('')}
+            </div>
+            <button
+              class="user-page-rail-button user-page-rail-button-next notifications-page-movie-rail-button"
+              type="button"
+              data-user-page-rail-next="true"
+              aria-label="Прокрутить новинки вперёд"
+              hidden
+            >
+              <span class="user-page-rail-button-icon" aria-hidden="true"></span>
+            </button>
+          </div>
+        `
+        : ''
+    }
+  `;
+}
+
 function getNotificationBodyHtml(item) {
   const actorHtml = getNotificationActorLinkHtml(item.actor);
   const movieHtml = getNotificationMovieLinkHtml(item.movie);
+  let mainHtml = '';
 
   if (item.type === 'review_liked') {
-    return `${actorHtml} оценил(а) вашу рецензию к фильму ${movieHtml}.`;
+    mainHtml = `${actorHtml} оценил(а) вашу рецензию к фильму ${movieHtml}.`;
+  }
+  else if (item.type === 'comment_liked') {
+    mainHtml = `${actorHtml} оценил(а) ваш комментарий к фильму ${movieHtml}.`;
+  }
+  else if (item.type === 'comment_reply') {
+    mainHtml = `${actorHtml} ответил(а) на ваш комментарий к фильму ${movieHtml}.`;
+  }
+  else if (item.type === 'review_comment') {
+    mainHtml = `${actorHtml} оставил(а) комментарий к вашей рецензии к фильму ${movieHtml}.`;
+  }
+  else if (item.type === 'followed_rating') {
+    mainHtml = `${actorHtml} оценил(а) фильм ${movieHtml}.`;
+  }
+  else if (item.type === 'followed_watchlist') {
+    mainHtml = `${actorHtml} добавил(а) фильм ${movieHtml} в «Смотреть позже».`;
+  }
+  else if (item.type === 'followed_review') {
+    mainHtml = `${actorHtml} написал(а) рецензию к фильму ${movieHtml}.`;
+  }
+  else if (item.type === 'profile_followed') {
+    mainHtml = `${actorHtml} начал(а) отслеживать ваш профиль.`;
+  }
+  else if (item.type === 'new_movies_digest') {
+    return getNotificationDigestMoviesHtml(item);
+  }
+  else {
+    mainHtml = 'Новое уведомление.';
   }
 
-  if (item.type === 'comment_liked') {
-    return `${actorHtml} оценил(а) ваш комментарий к фильму ${movieHtml}.`;
-  }
-
-  if (item.type === 'comment_reply') {
-    return `${actorHtml} ответил(а) на ваш комментарий к фильму ${movieHtml}.`;
-  }
-
-  if (item.type === 'review_comment') {
-    return `${actorHtml} оставил(а) комментарий к вашей рецензии к фильму ${movieHtml}.`;
-  }
-
-  if (item.type === 'followed_rating') {
-    return `${actorHtml} оценил(а) фильм ${movieHtml}.`;
-  }
-
-  if (item.type === 'followed_watchlist') {
-    return `${actorHtml} добавил(а) фильм ${movieHtml} в «Смотреть позже».`;
-  }
-
-  if (item.type === 'followed_review') {
-    return `${actorHtml} написал(а) рецензию к фильму ${movieHtml}.`;
-  }
-
-  if (item.type === 'profile_followed') {
-    return `${actorHtml} начал(а) отслеживать ваш профиль.`;
-  }
-
-  if (item.type === 'new_movies_digest') {
-    const digestMovies = item.digestMovies || [];
-    const digestCount = Math.max(getNotificationMovieIdsFromPayload(item.payload).length, digestMovies.length);
-    const visibleMovies = digestMovies.slice(0, 3);
-    const movieLinksHtml = visibleMovies
-      .map(movie => getNotificationMovieLinkHtml(movie))
-      .join(', ');
-    const moreCount = digestCount - visibleMovies.length;
-    const moreHtml = moreCount > 0 ? ` и ещё ${moreCount}` : '';
-
-    return `Добавлены новые фильмы${digestCount ? ` (${digestCount})` : ''}${movieLinksHtml ? `: ${movieLinksHtml}${moreHtml}.` : '.'}`;
-  }
-
-  return 'Новое уведомление.';
+  return `
+    <div class="notifications-page-item-main-text">${mainHtml}</div>
+    ${getNotificationContextHtml(item)}
+  `;
 }
 
 function getNotificationsPageFilterCounts(items = []) {
@@ -18371,6 +18638,8 @@ function renderNotificationsPage(data = {}) {
     return;
   }
 
+  clearNotificationReadDwellTimers();
+
   const items = data.items || notificationsPageItems || [];
   const preferences = data.preferences || notificationsPagePreferences || NOTIFICATIONS_DEFAULT_PREFERENCES;
 
@@ -18385,16 +18654,203 @@ function renderNotificationsPage(data = {}) {
       ${renderNotificationsPageList(items)}
     </section>
   `;
+  bindUserPageRailControls(notificationsPage);
+  bindNotificationsPageReadTracking();
 }
 
-async function markNotificationRead(eventId) {
+function clearNotificationReadDwellTimers() {
+  notificationReadDwellTimers.forEach(timerId => window.clearTimeout(timerId));
+  notificationReadDwellTimers.clear();
+}
+
+function getNotificationItemByEventId(eventId) {
+  const normalizedEventId = String(eventId || '').trim();
+
+  return notificationsPageItems.find(item => item.id === normalizedEventId) || null;
+}
+
+function getNotificationElementByEventId(eventId) {
+  const normalizedEventId = String(eventId || '').trim();
+
+  if (!notificationsPage || !normalizedEventId) {
+    return null;
+  }
+
+  return notificationsPage.querySelector(`[data-notification-event-id="${CSS.escape(normalizedEventId)}"]`);
+}
+
+function syncNotificationsPageReadAllButtonState() {
+  const readAllButton = notificationsPage?.querySelector('[data-notifications-mark-all-read="true"]');
+
+  if (!readAllButton) {
+    return;
+  }
+
+  readAllButton.disabled = isNotificationsPageMarkingAllRead || !notificationsPageItems.some(item => !item.readAt);
+}
+
+function applyNotificationReadStateToDom(eventId) {
+  const notificationElement = getNotificationElementByEventId(eventId);
+
+  if (!notificationElement) {
+    return;
+  }
+
+  notificationElement.classList.remove('is-unread');
+  notificationElement.classList.add('is-read');
+  notificationElement.querySelector('.notifications-page-unread-dot')?.remove();
+  syncNotificationsPageReadAllButtonState();
+}
+
+function clearNotificationReadDwell(eventId) {
+  const normalizedEventId = String(eventId || '').trim();
+  const timerId = notificationReadDwellTimers.get(normalizedEventId);
+
+  if (!timerId) {
+    return;
+  }
+
+  window.clearTimeout(timerId);
+  notificationReadDwellTimers.delete(normalizedEventId);
+}
+
+function startNotificationReadDwell(eventId) {
+  const normalizedEventId = String(eventId || '').trim();
+  const item = getNotificationItemByEventId(normalizedEventId);
+
+  if (!normalizedEventId || !item || item.readAt || notificationReadDwellTimers.has(normalizedEventId)) {
+    return;
+  }
+
+  const timerId = window.setTimeout(() => {
+    notificationReadDwellTimers.delete(normalizedEventId);
+    void markNotificationRead(normalizedEventId, { rerender: false }).catch(error => {
+      console.warn('Ошибка отметки уведомления прочитанным:', error);
+    });
+  }, NOTIFICATION_READ_DWELL_MS);
+
+  notificationReadDwellTimers.set(normalizedEventId, timerId);
+}
+
+function isNotificationVisibilityReadTrackingEnabled() {
+  return Boolean(window.matchMedia?.('(hover: none), (pointer: coarse)').matches);
+}
+
+function observeNotificationsPageVisibleItems() {
+  if (notificationReadObserver) {
+    notificationReadObserver.disconnect();
+    notificationReadObserver = null;
+  }
+
+  if (
+    !notificationsPage ||
+    !isNotificationVisibilityReadTrackingEnabled() ||
+    typeof IntersectionObserver === 'undefined'
+  ) {
+    return;
+  }
+
+  notificationReadObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      const eventId = entry.target?.dataset?.notificationEventId || '';
+
+      if (
+        entry.isIntersecting &&
+        entry.intersectionRatio >= NOTIFICATION_READ_VISIBILITY_RATIO &&
+        document.visibilityState !== 'hidden'
+      ) {
+        startNotificationReadDwell(eventId);
+      } else {
+        clearNotificationReadDwell(eventId);
+      }
+    });
+  }, {
+    threshold: [0, NOTIFICATION_READ_VISIBILITY_RATIO, 1]
+  });
+
+  notificationsPage
+    .querySelectorAll('.notifications-page-item.is-unread[data-notification-event-id]')
+    .forEach(item => notificationReadObserver.observe(item));
+}
+
+function handleNotificationReadPointerOver(event) {
+  if (event.pointerType === 'touch') {
+    return;
+  }
+
+  const notificationElement = event.target?.closest?.('.notifications-page-item[data-notification-event-id]');
+
+  if (!notificationElement || !notificationsPage?.contains(notificationElement)) {
+    return;
+  }
+
+  startNotificationReadDwell(notificationElement.dataset.notificationEventId);
+}
+
+function handleNotificationReadPointerOut(event) {
+  if (event.pointerType === 'touch') {
+    return;
+  }
+
+  const notificationElement = event.target?.closest?.('.notifications-page-item[data-notification-event-id]');
+
+  if (!notificationElement || notificationElement.contains(event.relatedTarget)) {
+    return;
+  }
+
+  clearNotificationReadDwell(notificationElement.dataset.notificationEventId);
+}
+
+function handleNotificationReadFocusIn(event) {
+  const notificationElement = event.target?.closest?.('.notifications-page-item[data-notification-event-id]');
+
+  if (!notificationElement || !notificationsPage?.contains(notificationElement)) {
+    return;
+  }
+
+  startNotificationReadDwell(notificationElement.dataset.notificationEventId);
+}
+
+function handleNotificationReadFocusOut(event) {
+  const notificationElement = event.target?.closest?.('.notifications-page-item[data-notification-event-id]');
+
+  if (!notificationElement || notificationElement.contains(event.relatedTarget)) {
+    return;
+  }
+
+  clearNotificationReadDwell(notificationElement.dataset.notificationEventId);
+}
+
+function bindNotificationsPageReadTracking() {
+  if (!areNotificationReadTrackingEventsBound) {
+    document.addEventListener('pointerover', handleNotificationReadPointerOver);
+    document.addEventListener('pointerout', handleNotificationReadPointerOut);
+    document.addEventListener('focusin', handleNotificationReadFocusIn);
+    document.addEventListener('focusout', handleNotificationReadFocusOut);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        clearNotificationReadDwellTimers();
+        return;
+      }
+
+      observeNotificationsPageVisibleItems();
+    });
+    areNotificationReadTrackingEventsBound = true;
+  }
+
+  observeNotificationsPageVisibleItems();
+}
+
+async function markNotificationRead(eventId, { rerender = true } = {}) {
   const normalizedEventId = String(eventId || '').trim();
 
   if (!normalizedEventId || !shouldUseAuthenticatedUi() || !currentUser?.id) {
     return;
   }
 
-  const item = notificationsPageItems.find(notificationItem => notificationItem.id === normalizedEventId);
+  clearNotificationReadDwell(normalizedEventId);
+
+  const item = getNotificationItemByEventId(normalizedEventId);
 
   if (item?.readAt) {
     return;
@@ -18423,8 +18879,10 @@ async function markNotificationRead(eventId) {
   notificationsUnreadCount = Math.max(0, notificationsUnreadCount - 1);
   syncNotificationsBadgeUi();
 
-  if (notificationsPage) {
+  if (notificationsPage && rerender) {
     renderNotificationsPage();
+  } else if (notificationsPage) {
+    applyNotificationReadStateToDom(normalizedEventId);
   }
 }
 
@@ -18495,8 +18953,13 @@ function handleNotificationsPageClick(event) {
 
   if (notificationItem) {
     const destinationLink = event.target?.closest?.('a[href]');
+    const notificationEventId = notificationItem.dataset.notificationEventId;
+
+    if (!destinationLink) {
+      return false;
+    }
+
     const shouldOpenNormally = Boolean(
-      destinationLink &&
       (
         event.metaKey ||
         event.ctrlKey ||
@@ -18506,9 +18969,9 @@ function handleNotificationsPageClick(event) {
       )
     );
 
-    if (destinationLink && !shouldOpenNormally) {
+    if (!shouldOpenNormally) {
       event.preventDefault();
-      void markNotificationRead(notificationItem.dataset.notificationEventId)
+      void markNotificationRead(notificationEventId, { rerender: false })
         .catch(error => {
           console.warn('Ошибка отметки уведомления прочитанным:', error);
         })
@@ -18518,7 +18981,7 @@ function handleNotificationsPageClick(event) {
       return true;
     }
 
-    void markNotificationRead(notificationItem.dataset.notificationEventId).catch(error => {
+    void markNotificationRead(notificationEventId, { rerender: false }).catch(error => {
       console.warn('Ошибка отметки уведомления прочитанным:', error);
     });
     return true;
@@ -20683,6 +21146,7 @@ function getMovieCommentCardHtml(comment, movie, comments = allMovieComments) {
   return `
     <article
       class="movie-page-comment-card${comment.is_deleted ? ' is-deleted' : ''}"
+      id="${escapeHtml(getMovieCommentAnchorId(comment.id))}"
       data-movie-comment-id="${escapeHtml(String(comment.id))}"
       style="--comment-depth: ${Math.max(0, Math.min(MOVIE_COMMENT_MAX_DEPTH, Number(comment.depth || 0)))}"
     >
@@ -21642,6 +22106,94 @@ function focusMoviePageReviewCard(reviewId, { shouldUpdateHash = true } = {}) {
     if (`${window.location.pathname}${window.location.search}${window.location.hash}` !== nextUrl) {
       window.history.pushState(null, '', nextUrl);
     }
+  }
+}
+
+function expandMovieCommentAncestors(commentId) {
+  let comment = getMovieCommentById(commentId);
+  let didExpand = false;
+
+  while (comment?.parent_comment_id) {
+    const parentComment = getMovieCommentById(comment.parent_comment_id);
+
+    if (!parentComment?.id) {
+      break;
+    }
+
+    if (!isMovieCommentThreadExpanded('comment', parentComment.id)) {
+      setMovieCommentThreadExpandedState('comment', parentComment.id, true);
+      didExpand = true;
+    }
+
+    comment = parentComment;
+  }
+
+  return didExpand;
+}
+
+function highlightMoviePageCommentCard(commentCard) {
+  if (!commentCard) {
+    return;
+  }
+
+  commentCard.classList.remove('is-comment-highlighted');
+  void commentCard.offsetWidth;
+  commentCard.classList.add('is-comment-highlighted');
+
+  window.setTimeout(() => {
+    commentCard.classList.remove('is-comment-highlighted');
+  }, 1200);
+}
+
+function focusMoviePageCommentCard(commentId, { shouldUpdateHash = true } = {}) {
+  const normalizedCommentId = String(commentId || '');
+
+  if (!normalizedCommentId || !currentMoviePageMovieData) {
+    return;
+  }
+
+  const didExpandAncestors = expandMovieCommentAncestors(normalizedCommentId);
+
+  if (didExpandAncestors) {
+    renderMoviePageCommentsSection(currentMoviePageMovieData);
+  }
+
+  const commentCard = moviePage?.querySelector(`[data-movie-comment-id="${CSS.escape(normalizedCommentId)}"]`);
+
+  if (!commentCard) {
+    return;
+  }
+
+  commentCard.scrollIntoView({
+    block: 'center',
+    behavior: 'smooth'
+  });
+  highlightMoviePageCommentCard(commentCard);
+
+  if (shouldUpdateHash) {
+    const anchorId = getMovieCommentAnchorId(normalizedCommentId);
+    const nextUrl = `${window.location.pathname}${window.location.search}#${anchorId}`;
+
+    if (`${window.location.pathname}${window.location.search}${window.location.hash}` !== nextUrl) {
+      window.history.pushState(null, '', nextUrl);
+    }
+  }
+}
+
+function focusMoviePageHashTarget() {
+  const anchorId = decodeURIComponent(String(window.location.hash || '').replace(/^#/, ''));
+
+  if (!anchorId || !moviePage) {
+    return;
+  }
+
+  if (anchorId.startsWith('movie-review-')) {
+    focusMoviePageReviewCard(anchorId.replace(/^movie-review-/, ''), { shouldUpdateHash: false });
+    return;
+  }
+
+  if (anchorId.startsWith('movie-comment-')) {
+    focusMoviePageCommentCard(anchorId.replace(/^movie-comment-/, ''), { shouldUpdateHash: false });
   }
 }
 
@@ -22809,6 +23361,7 @@ function renderMoviePage(movie) {
   bindMoviePageReviewEvents(movie);
   bindMoviePageCommentEvents(movie);
   bindMoviePageSimilarEditorEvents(movie);
+  requestAnimationFrame(focusMoviePageHashTarget);
 }
 
 function renderMoviePageReviewsSection(movie, { preserveReviewId = '' } = {}) {
