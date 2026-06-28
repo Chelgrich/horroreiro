@@ -19618,6 +19618,7 @@ function renderMoviePageNotFound() {
       </div>
     </div>
   `;
+  document.documentElement.classList.add('movie-page-rendered');
 }
 
 function resetMoviePageSimilarState() {
@@ -22663,6 +22664,7 @@ function renderMoviePageSkeleton() {
     return;
   }
 
+  document.documentElement.classList.remove('movie-page-rendered');
   moviePage.innerHTML = getMoviePageSkeletonHtml();
 }
 
@@ -22698,6 +22700,7 @@ function renderMoviePage(movie) {
       </div>
     </div>
   `;
+  document.documentElement.classList.add('movie-page-rendered');
 
   const watchlistIconButton = moviePage.querySelector('[data-movie-page-watchlist-icon-toggle="true"]');
   const mobileRatingButton = moviePage.querySelector('[data-open-mobile-rating="true"]');
@@ -22855,6 +22858,8 @@ async function loadMoviePageByRouteParams(routeParams, {
 async function initMoviePage() {
   const routeParams = getMoviePageRouteParams();
 
+  renderMoviePageSkeleton();
+
   if (!routeParams) {
     renderMoviePageNotFound();
     return;
@@ -22863,7 +22868,6 @@ async function initMoviePage() {
   await restoreSession();
   trackEmailConfirmedLoginIfNeeded();
   const warmMovie = hydrateMoviePageFromCatalogSnapshot(routeParams);
-  renderMoviePageSkeleton();
 
   try {
     await loadMoviePageByRouteParams(routeParams, {
@@ -22907,6 +22911,10 @@ async function init() {
   if (wasResetApplied) {
     window.location.replace(window.location.pathname + window.location.search + window.location.hash);
     return;
+  }
+
+  if (isMoviePage()) {
+    renderMoviePageSkeleton();
   }
 
   bindCustomSelectGlobalEvents();
