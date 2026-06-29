@@ -23317,6 +23317,12 @@ function getMoviePageSkeletonHtml() {
       <span class="movie-text-skeleton movie-page-skeleton-value movie-page-skeleton-value-${index + 1}"></span>
     </div>
   `).join('');
+  const externalLinksHtml = [
+    'movie-page-skeleton-link-wide',
+    'movie-page-skeleton-link-wide',
+    'movie-page-skeleton-link-icon',
+    'movie-page-skeleton-link-icon',
+  ].map((className) => `<span class="movie-text-skeleton movie-page-skeleton-link ${className}"></span>`).join('');
 
   return `
     <div class="movie-page-stack movie-page-stack-skeleton" aria-busy="true" aria-live="polite">
@@ -23326,7 +23332,7 @@ function getMoviePageSkeletonHtml() {
           <div class="movie-page-poster-wrapper movie-poster-wrapper-skeleton">
             <div class="movie-poster-skeleton" aria-hidden="true"></div>
           </div>
-          <span class="secondary-button movie-page-rate-trigger movie-page-skeleton-action"></span>
+          <span class="movie-text-skeleton movie-page-skeleton-action"></span>
         </div>
 
         <div class="movie-page-main-column">
@@ -23339,7 +23345,7 @@ function getMoviePageSkeletonHtml() {
 
               <div class="movie-page-summary-panel movie-page-skeleton-summary">
                 <span class="movie-text-skeleton movie-page-skeleton-rating"></span>
-                <span class="secondary-button movie-page-rate-trigger movie-page-skeleton-rate-button"></span>
+                <span class="movie-text-skeleton movie-page-skeleton-rate-button"></span>
               </div>
             </div>
 
@@ -23354,7 +23360,7 @@ function getMoviePageSkeletonHtml() {
             </div>
 
             <div class="movie-page-external-links-block movie-page-skeleton-links">
-              ${Array.from({ length: 4 }, () => '<span class="movie-external-link movie-external-link-skeleton"></span>').join('')}
+              ${externalLinksHtml}
             </div>
           </div>
         </div>

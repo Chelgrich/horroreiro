@@ -3240,6 +3240,7 @@ button:not(:where(
 
 .movie-text-skeleton,
 .movie-external-link.movie-external-link-skeleton,
+.movie-page-skeleton-link,
 .movie-page-skeleton-action,
 .movie-page-skeleton-rate-button,
 .movie-page-skeleton-panel {
@@ -6033,9 +6034,27 @@ a[data-current-page-link="true"] {
 }
 
 .movie-page-skeleton-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
   padding-top: 14px;
   padding-bottom: 14px;
   min-height: 38px;
+}
+
+.movie-page-skeleton-link {
+  flex: 0 0 auto;
+  height: 38px;
+  border-radius: 8px;
+}
+
+.movie-page-skeleton-link-wide {
+  width: 84px;
+}
+
+.movie-page-skeleton-link-icon {
+  width: 38px;
 }
 
 .movie-page-skeleton-section {
