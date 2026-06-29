@@ -235,6 +235,7 @@ const EMAIL_CONFIRMATION_TRACKED_KEY = 'horroreiro_email_confirmation_tracked';
 const PASSWORD_RECOVERY_PENDING_KEY = 'horroreiro_password_recovery_pending';
 const CATALOG_SCROLL_POSITION_KEY = 'horroreiro_catalog_scroll_position';
 const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
+const CATALOG_FAST_RETURN_PENDING_KEY = 'horroreiro_catalog_fast_return_pending';
 const CATALOG_SESSION_SNAPSHOT_KEY = 'horroreiro_catalog_session_snapshot';
 const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
 const CATALOG_SESSION_SNAPSHOT_VERSION = 6;
@@ -4108,6 +4109,39 @@ function restoreCatalogScrollPosition() {
     sessionStorage.removeItem(CATALOG_SCROLL_POSITION_KEY);
   } catch (error) {
     console.warn('Ошибка восстановления позиции каталога:', error);
+  }
+}
+
+function hasSavedCatalogReturnPosition() {
+  try {
+    return Boolean(
+      sessionStorage.getItem(CATALOG_ANCHOR_MOVIE_ID_KEY) !== null ||
+      sessionStorage.getItem(CATALOG_SCROLL_POSITION_KEY) !== null
+    );
+  } catch (error) {
+    console.warn('Ошибка проверки сохранённой позиции каталога:', error);
+    return false;
+  }
+}
+
+function markCatalogFastReturnPending() {
+  try {
+    sessionStorage.setItem(CATALOG_FAST_RETURN_PENDING_KEY, '1');
+  } catch (error) {
+    console.warn('Ошибка сохранения признака быстрого возврата в каталог:', error);
+  }
+}
+
+function consumeCatalogFastReturnPending() {
+  try {
+    const hasPendingFastReturn = sessionStorage.getItem(CATALOG_FAST_RETURN_PENDING_KEY) === '1';
+
+    sessionStorage.removeItem(CATALOG_FAST_RETURN_PENDING_KEY);
+
+    return hasPendingFastReturn;
+  } catch (error) {
+    console.warn('Ошибка чтения признака быстрого возврата в каталог:', error);
+    return false;
   }
 }
 
@@ -14747,6 +14781,23 @@ function shouldHoldMovieCardHoverAfterLinkOpen(event, link) {
   );
 }
 
+function isSameTabCatalogMovieLinkNavigation(event, link) {
+  return Boolean(
+    link &&
+    (
+      link.classList.contains('movie-poster-link') ||
+      link.classList.contains('movie-title-link')
+    ) &&
+    !event.defaultPrevented &&
+    event.button === 0 &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.shiftKey &&
+    !event.altKey &&
+    link.target !== '_blank'
+  );
+}
+
 function holdMovieCardHoverAfterLinkOpen(event, link = event.currentTarget) {
   if (!shouldHoldMovieCardHoverAfterLinkOpen(event, link) || !link) {
     return;
@@ -14894,6 +14945,10 @@ async function handleCatalogCardClick(event) {
   const link = target.closest('.movie-poster-link, .movie-title-link, .movie-external-link');
 
   if (link) {
+    if (isSameTabCatalogMovieLinkNavigation(event, link)) {
+      markCatalogFastReturnPending();
+    }
+
     resetMovieCardFocusAfterLinkOpen(event, link);
   }
 
@@ -16391,6 +16446,14 @@ function hydrateCatalogPageFromSnapshot(hydratedSnapshot, { shouldRestoreScroll 
   };
 }
 
+function canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot, { isReturnNavigation = false } = {}) {
+  if (!isReturnNavigation || !hydrationState?.didHydrateCatalogFromSnapshot || !hydratedSnapshot) {
+    return false;
+  }
+
+  return (hydratedSnapshot.userId || null) === (currentUser?.id || null);
+}
+
 async function initCatalogPage() {
   initCatalogViewToggleButton();
   renderMoviesSkeleton();
@@ -16398,6 +16461,7 @@ async function initCatalogPage() {
   const routePresetKey = getCatalogRoutePresetKey();
   const restoreSessionPromise = restoreSession();
   const initialCatalogUrlState = readCatalogUrlState();
+  const isReturnNavigationWithSnapshot = consumeCatalogFastReturnPending() && hasSavedCatalogReturnPosition();
   const shouldSkipSnapshotForProfileActivity = Boolean(
     initialCatalogUrlState?.profileHandle &&
     initialCatalogUrlState?.profileActivity
@@ -16450,6 +16514,28 @@ async function initCatalogPage() {
       syncCatalogAfterAuthChange();
     }
   });
+
+  if (canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot, {
+    isReturnNavigation: isReturnNavigationWithSnapshot
+  })) {
+    applySavedCatalogState();
+    await syncCatalogProfileActivityContextBeforeRender();
+
+    if (routePresetKey) {
+      const didApplyRoutePreset = applyQuickPreset(routePresetKey, {
+        preservePage: true,
+        urlMode: 'replace'
+      });
+
+      if (didApplyRoutePreset) {
+        updateFiltersButtonLabel();
+        return;
+      }
+    }
+
+    updateFiltersButtonLabel();
+    return;
+  }
 
   const catalogLoadState = await reloadCatalogData({
     showSkeleton: !hydrationState.didHydrateCatalogFromSnapshot,
@@ -23225,7 +23311,7 @@ function getMoviePageHeaderHtml(movie, viewModel) {
 }
 
 function getMoviePageSkeletonHtml() {
-  const metaLinesHtml = Array.from({ length: 8 }, (_, index) => `
+  const metaLinesHtml = Array.from({ length: 10 }, (_, index) => `
     <div class="movie-page-skeleton-meta-line">
       <span class="movie-text-skeleton movie-page-skeleton-label"></span>
       <span class="movie-text-skeleton movie-page-skeleton-value movie-page-skeleton-value-${index + 1}"></span>
