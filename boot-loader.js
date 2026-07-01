@@ -10,6 +10,7 @@
     let hasStartedStylesheetLoad = false;
     let isEnvReadyResolved = false;
     let envFallbackTimer = null;
+    let appStartupFallbackTimer = null;
     let stylesheetFallbackTimer = null;
 
     const localDevEnv = {
@@ -32,7 +33,12 @@
       isEnvReadyResolved = true;
       window.clearTimeout(stylesheetFallbackTimer);
       document.documentElement.classList.remove('app-load-failed');
-      document.documentElement.classList.add('app-ready');
+      document.documentElement.classList.add('app-styles-ready');
+      appStartupFallbackTimer = window.setTimeout(() => {
+        if (!document.documentElement.classList.contains('app-ready')) {
+          document.documentElement.classList.add('app-load-failed');
+        }
+      }, 20000);
       resolve();
     }
 

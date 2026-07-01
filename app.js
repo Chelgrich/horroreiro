@@ -239,6 +239,7 @@ const CATALOG_FAST_RETURN_PENDING_KEY = 'horroreiro_catalog_fast_return_pending'
 const CATALOG_SESSION_SNAPSHOT_KEY = 'horroreiro_catalog_session_snapshot';
 const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
 const MOVIE_PAGE_SESSION_CACHE_KEY = 'horroreiro_movie_page_session_cache';
+const DATA_MUTATION_STAMP_KEY = 'horroreiro_data_mutation_stamp';
 const CATALOG_SESSION_SNAPSHOT_VERSION = 6;
 const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
@@ -517,6 +518,7 @@ let moviePosterImagesTableAvailable = true;
 let moviePosterImagesDraft = [];
 let moviePosterImagesDraftDirty = false;
 let moviePosterImagesDraftDraggedEntryId = null;
+let isMoviePagePayloadRpcAvailable = true;
 let allMovieRatings = [];
 let allMovieWatchlist = [];
 let allMovieReviews = [];
@@ -2113,6 +2115,7 @@ async function replaceManualSimilarMovies(movieId, similarMovieIds = []) {
   }
 
   await fetchManualSimilarMovies();
+  markLocalDataMutation(`manual-similar:${ownerMovieId}`);
   return true;
 }
 
@@ -2700,6 +2703,7 @@ async function replaceMoviePosterImages(movieId, draftEntries = [], { preservedU
     }
 
     await fetchMoviePosterImagesForMovie(ownerMovieId, { force: true });
+    markLocalDataMutation(`poster-images:${ownerMovieId}`);
 
     const removedUrls = [...previousUrls].filter(url => (
       !finalUrls.has(url) &&
@@ -4197,6 +4201,7 @@ function createCatalogSessionSnapshotPayload() {
   return {
     version: CATALOG_SESSION_SNAPSHOT_VERSION,
     buildVersion: APP_BUILD_VERSION,
+    dataMutationStamp: getDataMutationStamp(),
     savedAt: Date.now(),
     userId: currentUser?.id || null,
     movies: allMovies,
@@ -4225,6 +4230,7 @@ function getCatalogSessionSnapshotSignature(snapshot) {
   return JSON.stringify({
     version: snapshot.version,
     buildVersion: snapshot.buildVersion,
+    dataMutationStamp: snapshot.dataMutationStamp || '',
     userId: snapshot.userId || null,
     movies: snapshot.movies || [],
     movieRatings: [...(snapshot.movieRatings || [])].sort(sortByMovieAndUser),
@@ -4246,6 +4252,29 @@ function getStableStringHash(value) {
   }
 
   return (hash >>> 0).toString(36);
+}
+
+function getDataMutationStamp() {
+  try {
+    return localStorage.getItem(DATA_MUTATION_STAMP_KEY) || '';
+  } catch (error) {
+    return '';
+  }
+}
+
+function markLocalDataMutation(scope = 'data') {
+  try {
+    const stamp = `${Date.now().toString(36)}:${String(scope || 'data')}:${Math.random().toString(36).slice(2)}`;
+
+    localStorage.setItem(DATA_MUTATION_STAMP_KEY, stamp);
+    return stamp;
+  } catch (error) {
+    return '';
+  }
+}
+
+function isDataMutationStampFresh(stamp) {
+  return String(stamp || '') === getDataMutationStamp();
 }
 
 function getCatalogDataSignatureHash(snapshot, { forceRefresh = false } = {}) {
@@ -4303,6 +4332,7 @@ function readCatalogSessionSnapshot({ allowStale = false } = {}) {
     if (
       snapshot?.version !== CATALOG_SESSION_SNAPSHOT_VERSION ||
       snapshot?.buildVersion !== APP_BUILD_VERSION ||
+      !isDataMutationStampFresh(snapshot?.dataMutationStamp) ||
       !Array.isArray(snapshot?.movies) ||
       (!allowStale && snapshotAge > CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS)
     ) {
@@ -4407,6 +4437,7 @@ function getMoviePageSessionCacheSignature(entry) {
   const signature = JSON.stringify({
     version: entry.version,
     buildVersion: entry.buildVersion,
+    dataMutationStamp: entry.dataMutationStamp || '',
     userId: entry.userId || null,
     isAdmin: Boolean(entry.isAdmin),
     movie: entry.movie || null,
@@ -4434,6 +4465,7 @@ function createMoviePageSessionCacheEntry(movie) {
   const entry = {
     version: MOVIE_PAGE_SESSION_CACHE_VERSION,
     buildVersion: APP_BUILD_VERSION,
+    dataMutationStamp: getDataMutationStamp(),
     savedAt: Date.now(),
     userId: currentUser?.id || null,
     isAdmin: Boolean(isAdmin),
@@ -4534,6 +4566,7 @@ function getMoviePageSessionCacheEntry(routeParams) {
 
   if (
     !entry?.movie?.id ||
+    !isDataMutationStampFresh(entry.dataMutationStamp) ||
     entryAge > MOVIE_PAGE_SESSION_CACHE_MAX_AGE_MS ||
     String(entry.userId || '') !== String(currentUser?.id || '') ||
     Boolean(entry.isAdmin) !== Boolean(isAdmin)
@@ -10508,6 +10541,16 @@ async function reloadMoviePageData(movieId) {
     return null;
   }
 
+  const rpcMovie = await fetchMoviePagePayloadByRouteParams({ id: movieId, slug: null });
+
+  if (rpcMovie) {
+    await Promise.all([
+      fetchMovieReviews(movieId),
+      fetchMovieComments(movieId)
+    ]);
+    return rpcMovie;
+  }
+
   const [movie] = await Promise.all([
     fetchMovieById(movieId),
     fetchMovieRatingStatsForMovie(movieId),
@@ -10528,6 +10571,7 @@ async function refreshMovieReviewsAfterMutation(movieId, reviewIdToCollapse = nu
   }
 
   await fetchMovieReviews(movieId);
+  markLocalDataMutation(`reviews:${movieId}`);
   if (allMovieReviews.some(review => String(review.movie_id) === String(movieId))) {
     catalogReviewedMovieIds.add(String(movieId));
   } else {
@@ -10652,6 +10696,7 @@ async function setMovieReviewLike(review, shouldLike) {
       throwIfSupabaseError(error);
     }
 
+    markLocalDataMutation(`review-like:${reviewId}`);
     return;
   }
 
@@ -10662,10 +10707,12 @@ async function setMovieReviewLike(review, shouldLike) {
     .eq('user_id', activeUser.id);
 
   throwIfSupabaseError(error);
+  markLocalDataMutation(`review-like:${reviewId}`);
 }
 
 async function refreshMovieCommentsAfterMutation(movieId) {
   await fetchMovieComments(movieId);
+  markLocalDataMutation(`comments:${movieId}`);
 }
 
 function getMovieCommentPayloadFromTarget({
@@ -10837,6 +10884,7 @@ async function setMovieCommentLike(comment, shouldLike) {
       throwIfSupabaseError(error);
     }
 
+    markLocalDataMutation(`comment-like:${commentId}`);
     return;
   }
 
@@ -10847,6 +10895,7 @@ async function setMovieCommentLike(comment, shouldLike) {
     .eq('user_id', activeUser.id);
 
   throwIfSupabaseError(error);
+  markLocalDataMutation(`comment-like:${commentId}`);
 }
 
 async function reloadCatalogData({
@@ -12113,6 +12162,8 @@ async function addMovie(event) {
       );
     }
 
+    markLocalDataMutation(`movie-create:${insertedMovie.id}`);
+
     if (isCatalogPage()) {
       setMovieFormStatus('Обновляю каталог...');
       await withPendingRequestTimeout(
@@ -12415,6 +12466,8 @@ async function updateMovie(event) {
       return;
     }
 
+    markLocalDataMutation(`movie-update:${editingMovieId}`);
+
     if (isCatalogPage()) {
       setMovieFormStatus('Обновляю каталог...');
       await withPendingRequestTimeout(
@@ -12474,6 +12527,7 @@ async function deleteMovieRecord(movieId) {
     .eq('id', movieId);
 
   throwIfSupabaseError(error);
+  markLocalDataMutation(`movie-delete:${movieId}`);
 }
 
 async function deleteMovie(movieId, movieTitle) {
@@ -13273,6 +13327,7 @@ async function runMovieMutationWithUiSync({
     requestSet.delete(String(movieId));
 
     if (actionSucceeded) {
+      markLocalDataMutation(`movie-user-state:${movieId}`);
       syncCatalogSessionSnapshotMovieState(movieId);
       rerender();
 
@@ -20244,6 +20299,106 @@ async function fetchMovieByRouteParams(routeParams) {
   return null;
 }
 
+function isMoviePagePayloadRpcUnavailableError(error) {
+  const code = String(error?.code || '').trim();
+  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+
+  return (
+    code === 'PGRST202' ||
+    code === '42883' ||
+    message.includes('get_movie_page_payload')
+  );
+}
+
+function normalizeMoviePagePayload(payload) {
+  if (typeof payload !== 'string') {
+    return payload || null;
+  }
+
+  try {
+    return JSON.parse(payload);
+  } catch (error) {
+    console.warn('Unable to parse movie page RPC payload:', error);
+    return null;
+  }
+}
+
+function applyMoviePagePayload(rawPayload, { skipUserStateFetch = false } = {}) {
+  const payload = normalizeMoviePagePayload(rawPayload);
+  const movie = payload?.movie || null;
+
+  if (!movie?.id) {
+    return null;
+  }
+
+  const movieId = String(movie.id);
+
+  upsertMovieRatingStatsRows(
+    payload.rating_stats ? [payload.rating_stats] : [],
+    [movieId]
+  );
+
+  if (!skipUserStateFetch && currentUser) {
+    const activeUserId = String(currentUser.id);
+
+    upsertKnownMovieRatingRows(
+      payload.current_user_rating ? [payload.current_user_rating] : [],
+      row => (
+        String(row.movie_id) === movieId &&
+        String(row.user_id) === activeUserId
+      )
+    );
+
+    allMovieWatchlist = allMovieWatchlist.filter(row => !(
+      String(row.movie_id) === movieId &&
+      String(row.user_id) === activeUserId
+    ));
+
+    if (payload.current_user_watchlist) {
+      allMovieWatchlist.push(payload.current_user_watchlist);
+    }
+
+    rebuildCurrentUserWatchlistIndex();
+    markCatalogDataChanged();
+  }
+
+  setMoviePosterImagesCache(movieId, Array.isArray(payload.poster_images) ? payload.poster_images : []);
+  return movie;
+}
+
+async function fetchMoviePagePayloadByRouteParams(routeParams, { skipUserStateFetch = false } = {}) {
+  if (!routeParams || !isMoviePagePayloadRpcAvailable) {
+    return null;
+  }
+
+  const movieId = routeParams.id ? String(routeParams.id) : null;
+  const movieSlug = routeParams.slug ? String(routeParams.slug) : null;
+
+  if (!movieId && !movieSlug) {
+    return null;
+  }
+
+  const shouldIncludeUserState = Boolean(!skipUserStateFetch && shouldUseAuthenticatedUi());
+  const { data, error } = await supabaseClient.rpc('get_movie_page_payload', {
+    p_movie_id: movieId,
+    p_slug: movieSlug,
+    p_include_user_state: shouldIncludeUserState
+  });
+
+  if (error) {
+    if (isMoviePagePayloadRpcUnavailableError(error)) {
+      isMoviePagePayloadRpcAvailable = false;
+    }
+
+    console.warn('Movie page RPC payload is unavailable, falling back to separate queries:', error);
+    return null;
+  }
+
+  return applyMoviePagePayload(data, {
+    skipUserStateFetch: !shouldIncludeUserState
+  });
+}
+
 function normalizeSeoText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
 }
@@ -23865,7 +24020,12 @@ async function loadMoviePageByRouteParams(routeParams, {
   skipUserStateFetch = false,
   skipRenderIfCacheFresh = false
 } = {}) {
-  const movie = await fetchMovieByRouteParams(routeParams);
+  let movie = await fetchMoviePagePayloadByRouteParams(routeParams, { skipUserStateFetch });
+  const isMoviePayloadLoadedByRpc = Boolean(movie);
+
+  if (!movie) {
+    movie = await fetchMovieByRouteParams(routeParams);
+  }
 
   if (!movie) {
     if (warmMovie) {
@@ -23878,14 +24038,19 @@ async function loadMoviePageByRouteParams(routeParams, {
   }
 
   const loadTasks = [
-    fetchMovieRatingStatsForMovie(movie.id),
     loadMoviePageSimilarMovies(movie, 4, { shouldRender: false }),
     fetchMovieReviews(movie.id),
-    fetchMovieComments(movie.id),
-    fetchMoviePosterImagesForMovieSafe(movie.id)
+    fetchMovieComments(movie.id)
   ];
 
-  if (!skipUserStateFetch) {
+  if (!isMoviePayloadLoadedByRpc) {
+    loadTasks.push(
+      fetchMovieRatingStatsForMovie(movie.id),
+      fetchMoviePosterImagesForMovieSafe(movie.id)
+    );
+  }
+
+  if (!isMoviePayloadLoadedByRpc && !skipUserStateFetch) {
     loadTasks.push(
       fetchCurrentUserRatingForMovie(movie.id),
       fetchMovieWatchlistForCurrentUser(movie.id)
@@ -23976,7 +24141,35 @@ async function initMoviePage() {
   });
 }
 
-async function init() {
+async function initDetectedPage() {
+  if (isCatalogPage()) {
+    bindCatalogPageEvents();
+    await initCatalogPage();
+    return;
+  }
+
+  if (isUserPage()) {
+    await initUserPage();
+    return;
+  }
+
+  if (isFollowingPage()) {
+    await initFollowingPage();
+    return;
+  }
+
+  if (isNotificationsPage()) {
+    await initNotificationsPage();
+    return;
+  }
+
+  if (isMoviePage()) {
+    bindMoviePageEvents();
+    await initMoviePage();
+  }
+}
+
+async function initSharedApp() {
   const initialAuthRedirectInfo = getAuthRedirectInfo();
 
   isPasswordRecoveryEntryPage = initialAuthRedirectInfo.isRecovery;
@@ -23984,7 +24177,7 @@ async function init() {
 
   if (wasResetApplied) {
     window.location.replace(window.location.pathname + window.location.search + window.location.hash);
-    return;
+    return false;
   }
 
   bindCustomSelectGlobalEvents();
@@ -24021,31 +24214,28 @@ async function init() {
     handlePasswordRecoveryEntry(authRedirectResult.isRecovery);
   }
 
-  if (isCatalogPage()) {
-    bindCatalogPageEvents();
-    await initCatalogPage();
-    return;
-  }
-
-  if (isUserPage()) {
-    await initUserPage();
-    return;
-  }
-
-  if (isFollowingPage()) {
-    await initFollowingPage();
-    return;
-  }
-
-  if (isNotificationsPage()) {
-    await initNotificationsPage();
-    return;
-  }
-
-  if (isMoviePage()) {
-    bindMoviePageEvents();
-    await initMoviePage();
-  }
+  return true;
 }
 
-init();
+async function init() {
+  const shouldContinue = await initSharedApp();
+
+  if (shouldContinue === false) {
+    return;
+  }
+
+  await initDetectedPage();
+}
+
+window.HorroreiroApp = {
+  init,
+  initSharedApp,
+  initDetectedPage,
+  bindCatalogPageEvents,
+  bindMoviePageEvents,
+  initCatalogPage,
+  initUserPage,
+  initFollowingPage,
+  initNotificationsPage,
+  initMoviePage
+};

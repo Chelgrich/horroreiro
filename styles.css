@@ -253,6 +253,9 @@ html::-webkit-scrollbar-corner {
   --ui-soft-border: rgba(145, 158, 174, 0.11);
   --ui-soft-border-hover: rgba(145, 158, 174, 0.18);
   --ui-soft-border-focus: var(--accent-alpha-30);
+  --content-card-border: var(--ui-soft-border);
+  --content-card-border-hover: var(--ui-soft-border-hover);
+  --content-card-border-focus: var(--ui-soft-border-focus);
   --ui-focus-ring: var(--accent-alpha-09);
   --border-panel: transparent;
   --border-card: transparent;
@@ -3105,7 +3108,7 @@ button:not(:where(
   gap: 10px;
   padding: 16px 30px 24px;
   background: var(--surface-card);
-  border: 1px solid var(--ui-soft-border);
+  border: 1px solid var(--content-card-border);
   border-radius: var(--radius-lg);
   box-shadow: 0 0 0 var(--shadow-transparent);
   transform: translateY(0);
@@ -3133,7 +3136,7 @@ button:not(:where(
 .movie-card.is-link-opening {
   transform: none;
   background: var(--surface-card-hover);
-  border-color: var(--ui-soft-border-hover);
+  border-color: var(--content-card-border-hover);
   box-shadow: var(--ui-card-hover-shadow);
 }
 
@@ -3158,7 +3161,7 @@ button:not(:where(
 
 .movie-card:focus-within {
   transform: none;
-  border-color: var(--ui-soft-border-focus);
+  border-color: var(--content-card-border-focus);
   box-shadow: var(--ui-card-hover-shadow);
 }
 
@@ -4464,7 +4467,7 @@ a[data-current-page-link="true"] {
   gap: 14px;
   color: var(--color-text-secondary);
   background: var(--surface-card);
-  border: 1px solid var(--ui-soft-border);
+  border: 1px solid var(--content-card-border);
   border-radius: var(--radius-lg);
   transition:
     color 0.18s ease,
@@ -4476,14 +4479,14 @@ a[data-current-page-link="true"] {
 .following-page-profile-card:focus,
 .following-page-profile-card:focus-visible {
   color: var(--color-text-primary);
-  border-color: var(--ui-soft-border-hover);
+  border-color: var(--content-card-border-hover);
   box-shadow: var(--ui-card-hover-shadow);
 }
 
 .following-page-profile-card:focus,
 .following-page-profile-card:focus-visible {
   outline: none;
-  border-color: var(--ui-soft-border-focus);
+  border-color: var(--content-card-border-focus);
 }
 
 .following-page-profile-link {
@@ -4612,7 +4615,7 @@ a[data-current-page-link="true"] {
 .notifications-page-settings {
   padding: 16px;
   background: var(--surface-card);
-  border: 1px solid var(--ui-soft-border);
+  border: 1px solid var(--content-card-border);
   border-radius: var(--radius-lg);
 }
 
@@ -4791,7 +4794,7 @@ a[data-current-page-link="true"] {
   align-items: start;
   color: var(--color-text-secondary);
   background: var(--surface-card);
-  border: 1px solid var(--ui-soft-border);
+  border: 1px solid var(--content-card-border);
   border-radius: var(--radius-lg);
   text-decoration: none;
   transition:
@@ -4808,7 +4811,7 @@ a[data-current-page-link="true"] {
 
 .notifications-page-item:hover {
   color: var(--color-text-primary);
-  border-color: var(--ui-soft-border-hover);
+  border-color: var(--content-card-border-hover);
   background: var(--surface-card-hover);
 }
 
@@ -5683,7 +5686,7 @@ a[data-current-page-link="true"] {
   box-sizing: border-box;
   padding: 8px;
   color: var(--color-text-secondary);
-  border: 1px solid var(--ui-soft-border);
+  border: 1px solid var(--content-card-border);
   border-radius: var(--radius-lg);
   text-decoration: none;
   transition:
@@ -5697,13 +5700,13 @@ a[data-current-page-link="true"] {
 .user-page-movie-card:focus,
 .user-page-movie-card:focus-visible {
   color: var(--color-text-primary);
-  border-color: var(--ui-soft-border-hover);
+  border-color: var(--content-card-border-hover);
   box-shadow: var(--ui-card-hover-shadow);
 }
 
 .user-page-movie-card:focus,
 .user-page-movie-card:focus-visible {
-  border-color: var(--ui-soft-border-focus);
+  border-color: var(--content-card-border-focus);
 }
 
 .user-page-movie-poster-wrapper {
@@ -7809,7 +7812,7 @@ a[data-current-page-link="true"] {
   gap: 12px;
   padding: 14px 14px 16px;
   background: var(--surface-card);
-  border: 1px solid var(--ui-soft-border);
+  border: 1px solid var(--content-card-border);
   border-radius: var(--radius-lg);
   transition:
     border-color 0.18s ease,
@@ -7819,12 +7822,12 @@ a[data-current-page-link="true"] {
 
 .movie-page-similar-card:hover {
   background: var(--surface-card-hover);
-  border-color: var(--ui-soft-border-hover);
+  border-color: var(--content-card-border-hover);
   box-shadow: var(--ui-card-hover-shadow);
 }
 
 .movie-page-similar-card:focus-within {
-  border-color: var(--ui-soft-border-focus);
+  border-color: var(--content-card-border-focus);
   box-shadow: var(--ui-card-hover-shadow);
 }
 

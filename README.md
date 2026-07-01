@@ -25,6 +25,7 @@
 
 - `boot-loader.js` — ранняя загрузка `/env` и versioned `styles.css`
 - `app-script-loader.js` — page-aware загрузка общих и страницезависимых скриптов
+- `app-page-runtime.js` — диспетчер инициализации текущей страницы
 - `shared-layout.js` — общая шапка, модалки авторизации, настройки профиля и футер
 - `custom-select.js` — кастомные select-контролы для каталога и модалки фильма
 - `app.js` — основная логика приложения
@@ -58,5 +59,5 @@
 ```powershell
 git diff --check
 git ls-files '*.js' | ForEach-Object { node --check $_ }
-node tools/smoke-check.js
+node tools/smoke-check.mjs
 ```
