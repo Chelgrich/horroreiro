@@ -3395,6 +3395,7 @@ function getUserPageAvatarMediaHtml(profile, displayName) {
         class="user-page-avatar user-page-avatar-image"
         data-user-page-avatar="true"
         src="${escapeHtml(avatarUrl)}"
+        decoding="async"
         alt="Аватар пользователя ${escapeHtml(displayName)}"
       >
     `;
@@ -7214,7 +7215,7 @@ function syncUiAfterLetterboxdRatingsImport(movieIds) {
     currentMoviePageMovieData &&
     importedMovieIds.includes(String(currentMoviePageMovieId))
   ) {
-    renderMoviePage(currentMoviePageMovieData);
+    renderMoviePageHeaderSection(currentMoviePageMovieData);
     persistCurrentMoviePageSessionCache();
     return;
   }
@@ -7665,6 +7666,8 @@ function getMovieReviewAuthorAvatarHtml(review) {
         src="${escapeHtml(avatarUrl)}"
         alt=""
         aria-hidden="true"
+        loading="lazy"
+        decoding="async"
       >
     `;
   } else {
@@ -10505,17 +10508,17 @@ async function reloadMoviePageData(movieId) {
     return null;
   }
 
-  await Promise.all([
+  const [movie] = await Promise.all([
+    fetchMovieById(movieId),
     fetchMovieRatingStatsForMovie(movieId),
     fetchCurrentUserRatingForMovie(movieId),
-    fetchMovieWatchlistForCurrentUser(movieId)
+    fetchMovieWatchlistForCurrentUser(movieId),
+    fetchMovieReviews(movieId),
+    fetchMovieComments(movieId),
+    fetchMoviePosterImagesForMovieSafe(movieId, { force: true })
   ]);
 
-  await fetchMovieReviews(movieId);
-  await fetchMovieComments(movieId);
-  await fetchMoviePosterImagesForMovieSafe(movieId, { force: true });
-
-  return fetchMovieById(movieId);
+  return movie;
 }
 
 async function refreshMovieReviewsAfterMutation(movieId, reviewIdToCollapse = null) {
@@ -11796,6 +11799,9 @@ function getPosterImageData(publicUrl, presetName = 'catalog') {
 
 function getPosterImageAttributeHtml(publicUrl, presetName = 'catalog') {
   const imageData = getPosterImageData(publicUrl, presetName);
+  const preset = POSTER_IMAGE_PRESETS[presetName] || POSTER_IMAGE_PRESETS.catalog;
+  const intrinsicWidth = Number(preset.widths?.[0] || 0);
+  const intrinsicHeight = intrinsicWidth > 0 ? Math.round(intrinsicWidth * 1.5) : 0;
 
   if (!imageData.src) {
     return '';
@@ -11803,6 +11809,8 @@ function getPosterImageAttributeHtml(publicUrl, presetName = 'catalog') {
 
   return [
     `src="${escapeHtml(imageData.src)}"`,
+    intrinsicWidth ? `width="${intrinsicWidth}"` : '',
+    intrinsicHeight ? `height="${intrinsicHeight}"` : '',
     imageData.srcset ? `srcset="${escapeHtml(imageData.srcset)}"` : '',
     imageData.sizes ? `sizes="${escapeHtml(imageData.sizes)}"` : '',
     imageData.fallbackSrc ? `data-poster-fallback-src="${escapeHtml(imageData.fallbackSrc)}"` : '',
@@ -12530,8 +12538,10 @@ async function applyCurrentSessionUser(user) {
   currentUser = user ?? null;
   rebuildMovieRatingIndexes();
   rebuildCurrentUserWatchlistIndex();
-  await loadCurrentUserRole();
-  await fetchCurrentUserProfileFollows();
+  await Promise.all([
+    loadCurrentUserRole(),
+    fetchCurrentUserProfileFollows()
+  ]);
   updateAuthUI();
 }
 
@@ -13294,7 +13304,7 @@ function rerenderCatalogWithFallback(
     currentMoviePageMovieData &&
     String(currentMoviePageMovieId) === String(movieId)
   ) {
-    renderMoviePage(currentMoviePageMovieData);
+    renderMoviePageHeaderSection(currentMoviePageMovieData);
     persistCurrentMoviePageSessionCache();
     return;
   }
@@ -14547,6 +14557,7 @@ function getMoviePageExternalLinksHtml(movie) {
           alt="Рейтинг IMDb"
           class="movie-rating-widget-image"
           loading="lazy"
+          decoding="async"
         >
       </a>
     `);
@@ -14567,6 +14578,7 @@ function getMoviePageExternalLinksHtml(movie) {
           alt="Рейтинг Кинопоиска"
           class="movie-rating-widget-image"
           loading="lazy"
+          decoding="async"
         >
       </a>
     `);
@@ -14616,6 +14628,7 @@ function getMoviePageExternalLinksHtml(movie) {
               alt=""
               class="movie-external-link-icon"
               loading="lazy"
+              decoding="async"
             >
           </a>
         `).join('')}
@@ -14691,6 +14704,7 @@ function getMovieExternalLinksHtml(movie) {
             alt=""
             class="movie-external-link-icon"
             loading="lazy"
+            decoding="async"
           >
         </a>
       `).join('')}
@@ -21174,6 +21188,8 @@ function getMovieCommentAuthorAvatarHtml(comment) {
         src="${escapeHtml(avatarUrl)}"
         alt=""
         aria-hidden="true"
+        loading="lazy"
+        decoding="async"
       >
     `;
   } else {
@@ -23105,7 +23121,7 @@ function getMoviePageFormatsLabel(movie) {
     .join(', ');
 }
 
-function buildMoviePageViewModel(movie) {
+function buildMoviePageViewModel(movie, { includeSocialSections = true } = {}) {
   const genreNames = movie.movie_genres
     .map(item => item.genres.name)
     .filter(Boolean);
@@ -23128,8 +23144,8 @@ function buildMoviePageViewModel(movie) {
     synopsis: String(movie.synopsis || '').trim(),
     isRatingBusy: ratingRequestInFlight.has(String(movie.id)),
     isWatchlistBusy: watchlistRequestInFlight.has(String(movie.id)),
-    reviewsSectionHtml: getMoviePageReviewsSectionHtml(movie),
-    commentsSectionHtml: getMoviePageCommentsSectionHtml(movie)
+    reviewsSectionHtml: includeSocialSections ? getMoviePageReviewsSectionHtml(movie) : '',
+    commentsSectionHtml: includeSocialSections ? getMoviePageCommentsSectionHtml(movie) : ''
   };
 }
 
@@ -23346,6 +23362,11 @@ function bindMoviePagePosterGalleryEvents(movie) {
     return;
   }
 
+  if (wrapper.dataset.moviePagePosterGalleryBound === 'true') {
+    return;
+  }
+
+  wrapper.dataset.moviePagePosterGalleryBound = 'true';
   wrapper.addEventListener('click', event => {
     const button = event.target.closest('[data-movie-page-poster-gallery-step]');
 
@@ -23667,6 +23688,59 @@ function renderMoviePageSkeleton() {
   moviePage.innerHTML = getMoviePageSkeletonHtml();
 }
 
+function bindMoviePageHeaderEvents(movie, rootElement = moviePage) {
+  if (!rootElement || !movie) {
+    return;
+  }
+
+  const watchlistIconButton = rootElement.querySelector('[data-movie-page-watchlist-icon-toggle="true"]');
+  const mobileRatingButton = rootElement.querySelector('[data-open-mobile-rating="true"]');
+  const trailerButton = rootElement.querySelector('[data-movie-page-trailer-open="true"]');
+
+  if (watchlistIconButton) {
+    watchlistIconButton.addEventListener('click', () => {
+      toggleMovieWatchlist(movie.id);
+    });
+  }
+
+  if (mobileRatingButton) {
+    mobileRatingButton.addEventListener('click', () => {
+      openMobileRatingModal(movie);
+    });
+  }
+
+  if (trailerButton) {
+    trailerButton.addEventListener('click', () => {
+      openMovieTrailerModal(movie);
+    });
+  }
+
+  bindPosterFallbackImages(rootElement);
+  bindMoviePagePosterGalleryEvents(movie);
+}
+
+function renderMoviePageHeaderSection(movie) {
+  if (!moviePage || !movie) {
+    return;
+  }
+
+  const headerElement = moviePage.querySelector('.movie-page-layout');
+
+  if (!headerElement) {
+    renderMoviePage(movie);
+    return;
+  }
+
+  currentMoviePageMovieId = movie.id;
+  currentMoviePageMovieData = movie;
+
+  const viewModel = buildMoviePageViewModel(movie, { includeSocialSections: false });
+
+  headerElement.outerHTML = getMoviePageHeaderHtml(movie, viewModel);
+  bindMoviePageHeaderEvents(movie);
+  document.documentElement.classList.add('movie-page-rendered');
+}
+
 function renderMoviePage(movie) {
   if (!moviePage || !movie) {
     return;
@@ -23701,30 +23775,7 @@ function renderMoviePage(movie) {
   `;
   document.documentElement.classList.add('movie-page-rendered');
 
-  const watchlistIconButton = moviePage.querySelector('[data-movie-page-watchlist-icon-toggle="true"]');
-  const mobileRatingButton = moviePage.querySelector('[data-open-mobile-rating="true"]');
-  const trailerButton = moviePage.querySelector('[data-movie-page-trailer-open="true"]');
-
-  if (watchlistIconButton) {
-    watchlistIconButton.addEventListener('click', () => {
-      toggleMovieWatchlist(movie.id);
-    });
-  }
-
-  if (mobileRatingButton) {
-    mobileRatingButton.addEventListener('click', () => {
-      openMobileRatingModal(movie);
-    });
-  }
-
-  if (trailerButton) {
-    trailerButton.addEventListener('click', () => {
-      openMovieTrailerModal(movie);
-    });
-  }
-
-  bindPosterFallbackImages(moviePage);
-  bindMoviePagePosterGalleryEvents(movie);
+  bindMoviePageHeaderEvents(movie);
   bindMoviePageReviewEvents(movie);
   bindMoviePageCommentEvents(movie);
   bindMoviePageSimilarEditorEvents(movie);
@@ -23826,16 +23877,20 @@ async function loadMoviePageByRouteParams(routeParams, {
     return null;
   }
 
-  const userStateTasks = [fetchMovieRatingStatsForMovie(movie.id)];
+  const loadTasks = [
+    fetchMovieRatingStatsForMovie(movie.id),
+    loadMoviePageSimilarMovies(movie, 4, { shouldRender: false }),
+    fetchMovieReviews(movie.id),
+    fetchMovieComments(movie.id),
+    fetchMoviePosterImagesForMovieSafe(movie.id)
+  ];
 
   if (!skipUserStateFetch) {
-    userStateTasks.push(
+    loadTasks.push(
       fetchCurrentUserRatingForMovie(movie.id),
       fetchMovieWatchlistForCurrentUser(movie.id)
     );
   }
-
-  await Promise.all(userStateTasks);
 
   if (String(currentMoviePageMovieId || '') !== String(movie.id || '')) {
     resetMoviePageComposerState();
@@ -23844,12 +23899,7 @@ async function loadMoviePageByRouteParams(routeParams, {
   currentMoviePageMovieId = movie.id;
   currentMoviePageMovieData = movie;
 
-  await Promise.all([
-    loadMoviePageSimilarMovies(movie, 4, { shouldRender: false }),
-    fetchMovieReviews(movie.id),
-    fetchMovieComments(movie.id),
-    fetchMoviePosterImagesForMovieSafe(movie.id)
-  ]);
+  await Promise.all(loadTasks);
   syncCatalogSessionSnapshotMovieState(movie.id, {
     syncReviews: true,
     syncMovie: movie
