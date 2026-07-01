@@ -33,7 +33,7 @@
     return String(document.body?.dataset?.appPage || '').trim();
   }
 
-  async function run(app) {
+  async function run(app, { onShellReady = null } = {}) {
     if (!app || typeof app.initSharedApp !== 'function') {
       throw new Error('Horroreiro app runtime is unavailable.');
     }
@@ -49,7 +49,13 @@
       return;
     }
 
-    await pageModule.run(app);
+    const pageRunResult = pageModule.run(app);
+
+    if (typeof onShellReady === 'function') {
+      onShellReady();
+    }
+
+    await pageRunResult;
   }
 
   window.HorroreiroPageRuntime = {

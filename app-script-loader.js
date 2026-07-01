@@ -55,11 +55,12 @@
   }
 
   function markAppScriptFailure(error) {
+    console.error('Ошибка загрузки приложения:', error);
+
     if (isAppStarted) {
       return;
     }
 
-    console.error('Ошибка загрузки приложения:', error);
     document.documentElement.classList.add('app-load-failed');
     document.documentElement.classList.remove('app-ready');
   }
@@ -72,10 +73,13 @@
 
   function runAppRuntime() {
     if (window.HorroreiroPageRuntime?.run && window.HorroreiroApp) {
-      return window.HorroreiroPageRuntime.run(window.HorroreiroApp);
+      return window.HorroreiroPageRuntime.run(window.HorroreiroApp, {
+        onShellReady: markAppStarted
+      });
     }
 
     if (window.HorroreiroApp?.init) {
+      markAppStarted();
       return window.HorroreiroApp.init();
     }
 
@@ -124,8 +128,7 @@
         .then(() => loadScript('app-page-runtime.js', buildVersion))
         .then(() => loadScript('app.js', buildVersion))
         .then(runAppRuntime)
-        .then(watchUserRankBadgeText)
-        .then(markAppStarted);
+        .then(watchUserRankBadgeText);
     })
     .catch(markAppScriptFailure);
 })();
