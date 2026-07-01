@@ -9873,6 +9873,49 @@ function hasUserScopedCatalogState(catalogState) {
   );
 }
 
+function getRenderedCatalogMovieIds() {
+  if (!container) {
+    return [];
+  }
+
+  return Array.from(container.querySelectorAll('.movie-card[data-movie-id]:not(.movie-card-skeleton)'))
+    .map(card => String(card.dataset.movieId || '').trim())
+    .filter(Boolean);
+}
+
+function getCatalogUserCardStateFingerprint(movieId) {
+  const movieKey = String(movieId || '');
+  const currentUserRating = getCurrentUserRating(movieKey);
+  const watchlistState = currentUserWatchlistMovieIds.has(movieKey) ? 'watchlist' : '';
+
+  return `${currentUserRating ?? ''}|${watchlistState}`;
+}
+
+function getCatalogUserCardStateByMovieId(movieIds = []) {
+  const stateByMovieId = new Map();
+
+  (Array.isArray(movieIds) ? movieIds : [])
+    .map(movieId => String(movieId || '').trim())
+    .filter(Boolean)
+    .forEach(movieId => {
+      stateByMovieId.set(movieId, getCatalogUserCardStateFingerprint(movieId));
+    });
+
+  return stateByMovieId;
+}
+
+function getChangedCatalogUserCardMovieIds(previousStateByMovieId) {
+  if (!(previousStateByMovieId instanceof Map) || previousStateByMovieId.size === 0) {
+    return [];
+  }
+
+  return Array.from(previousStateByMovieId.entries())
+    .filter(([movieId, previousFingerprint]) => (
+      previousFingerprint !== getCatalogUserCardStateFingerprint(movieId)
+    ))
+    .map(([movieId]) => movieId);
+}
+
 function shouldAwaitUserStateForCatalogLoad({
   forceAwaitUserState = false
 } = {}) {
@@ -9908,6 +9951,8 @@ function loadDeferredCatalogUserState({
     return;
   }
 
+  const renderedUserStateBeforeLoad = getCatalogUserCardStateByMovieId(getRenderedCatalogMovieIds());
+
   fetchCatalogUserState({ skipCurrentUserRatings })
     .then(() => {
       if (
@@ -9919,7 +9964,24 @@ function loadDeferredCatalogUserState({
       }
 
       persistCatalogSessionSnapshot();
-      rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.preserveScrollOnly);
+
+      if (renderedUserStateBeforeLoad.size === 0) {
+        rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.preserveScrollOnly);
+        return;
+      }
+
+      const changedMovieIds = getChangedCatalogUserCardMovieIds(renderedUserStateBeforeLoad);
+
+      if (changedMovieIds.length === 0) {
+        return;
+      }
+
+      changedMovieIds.forEach(movieId => {
+        rerenderMovieCard(movieId, {
+          preserveCardTop: false,
+          animateStateAppearance: false
+        });
+      });
     })
     .catch(error => {
       console.error('Ошибка фоновой загрузки пользовательского слоя каталога:', error);
@@ -16814,13 +16876,28 @@ async function initCatalogPage() {
   );
   const hydratedSnapshot = shouldSkipSnapshotForProfileActivity ? null : readCatalogSessionSnapshot();
   const preAuthUserId = currentUser?.id || null;
-  let hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot);
+  const shouldWaitForSessionBeforeHydration = Boolean(hydratedSnapshot?.userId && !preAuthUserId);
+  let hydrationState = {
+    didHydrateCatalogFromSnapshot: false,
+    didHydrateCatalogDomFromSnapshot: false,
+    hydratedCatalogSignature: ''
+  };
+  let restoredUser = null;
 
-  const restoredUser = await restoreSessionPromise;
+  if (!shouldWaitForSessionBeforeHydration) {
+    hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot);
+  }
+
+  restoredUser = await restoreSessionPromise;
   trackEmailConfirmedLoginIfNeeded();
+
+  if (shouldWaitForSessionBeforeHydration) {
+    hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot);
+  }
 
   const activeUserId = currentUser?.id || null;
   const shouldRehydrateForRestoredUser = (
+    !shouldWaitForSessionBeforeHydration &&
     hydratedSnapshot &&
     activeUserId &&
     activeUserId !== preAuthUserId &&
