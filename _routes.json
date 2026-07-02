@@ -4,6 +4,8 @@
     "/",
     "/index.html",
     "/env",
+    "/editor",
+    "/editor.html",
     "/following",
     "/following.html",
     "/notifications",

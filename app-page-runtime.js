@@ -21,6 +21,11 @@
         return app.initNotificationsPage();
       }
     },
+    editor: {
+      run(app) {
+        return app.initEditorPage();
+      }
+    },
     movie: {
       run(app) {
         app.bindMoviePageEvents();

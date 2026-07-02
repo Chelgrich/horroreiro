@@ -74,6 +74,15 @@
                     >
                       Импорт оценок Letterboxd
                     </button>
+                    <a
+                      href="#"
+                      class="auth-popover-item"
+                      id="editorCenterSummaryButton"
+                      role="menuitem"
+                      hidden
+                    >
+                      Центр редактора
+                    </a>
                     <button
                       type="button"
                       class="auth-popover-item"

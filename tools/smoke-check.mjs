@@ -22,7 +22,8 @@ const pageFiles = {
   'movie.html': 'movie',
   'user.html': 'user',
   'following.html': 'following',
-  'notifications.html': 'notifications'
+  'notifications.html': 'notifications',
+  'editor.html': 'editor'
 };
 
 const routes = [
@@ -30,7 +31,8 @@ const routes = [
   { path: '/movie/test-movie', expected: 'id="moviePage"', label: 'movie detail' },
   { path: '/user/profile000', expected: 'id="userPage"', label: 'user profile' },
   { path: '/notifications', expected: 'id="notificationsPage"', label: 'notifications' },
-  { path: '/following', expected: 'id="followingPage"', label: 'following' }
+  { path: '/following', expected: 'id="followingPage"', label: 'following' },
+  { path: '/editor', expected: 'id="editorPage"', label: 'editor center' }
 ];
 
 const contentTypes = {
@@ -92,6 +94,10 @@ function getSpaFallbackPath(pathname) {
 
   if (pathname === '/notifications' || pathname === '/notifications.html') {
     return 'notifications.html';
+  }
+
+  if (pathname === '/editor' || pathname === '/editor.html') {
+    return 'editor.html';
   }
 
   if (pathname === '/following' || pathname === '/following.html') {
@@ -173,6 +179,7 @@ async function checkStaticGuards() {
     'user.html',
     'following.html',
     'notifications.html',
+    'editor.html',
     'app.js',
     'shared-layout.js',
     'app-script-loader.js',
@@ -198,6 +205,8 @@ async function checkStaticGuards() {
     '/movie.html',
     '/user/*',
     '/user.html',
+    '/editor',
+    '/editor.html',
     '/following',
     '/following.html',
     '/notifications',
