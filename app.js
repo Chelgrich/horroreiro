@@ -2504,7 +2504,29 @@ async function fetchDirectorBySlug(slug) {
     throw error;
   }
 
-  return normalizeDirectorRow(data);
+  if (data) {
+    return normalizeDirectorRow(data);
+  }
+
+  const { data: fallbackData, error: fallbackError } = await supabaseClient
+    .from('people')
+    .select('*')
+    .order('name_ru', { ascending: true });
+
+  if (fallbackError) {
+    if (isDirectorsUnavailableError(fallbackError)) {
+      areDirectorsAvailable = false;
+      return null;
+    }
+
+    throw fallbackError;
+  }
+
+  const fallbackDirector = (fallbackData || [])
+    .map(normalizeDirectorRow)
+    .find(director => slugifyMovieValue(director?.name_ru || director?.name || '') === normalizedSlug);
+
+  return fallbackDirector || null;
 }
 
 async function fetchDirectorMovieRelationRows(directorId) {
@@ -2619,14 +2641,131 @@ async function fetchDirectorMovies(directorId) {
   return getSortedMoviesCopy(orderedMovies, 'default');
 }
 
+function getLegacyDirectorNamesForMovie(movie) {
+  return parseLineOrCommaSeparatedValues(movie?.director || '');
+}
+
+function findLegacyDirectorNameMatch(movie, { slug = '', nameRu = '' } = {}) {
+  const normalizedSlug = String(slug || '').trim();
+  const normalizedNameKey = normalizeSearchText(nameRu);
+
+  if (!normalizedSlug && !normalizedNameKey) {
+    return '';
+  }
+
+  return getLegacyDirectorNamesForMovie(movie).find(directorName => {
+    if (normalizedSlug && slugifyMovieValue(directorName) === normalizedSlug) {
+      return true;
+    }
+
+    return normalizedNameKey && normalizeSearchText(directorName) === normalizedNameKey;
+  }) || '';
+}
+
+function mergeDirectorMovieLists(primaryMovies = [], fallbackMovies = []) {
+  const moviesById = new Map();
+
+  [...primaryMovies, ...fallbackMovies].forEach(movie => {
+    if (movie?.id && !moviesById.has(String(movie.id))) {
+      moviesById.set(String(movie.id), movie);
+    }
+  });
+
+  return getSortedMoviesCopy([...moviesById.values()], 'default');
+}
+
+async function fetchLegacyDirectorMovieMatches({ slug = '', nameRu = '' } = {}) {
+  const normalizedSlug = String(slug || '').trim();
+  const normalizedNameRu = String(nameRu || '').trim();
+
+  if (!normalizedSlug && !normalizedNameRu) {
+    return {
+      nameRu: '',
+      movies: []
+    };
+  }
+
+  const { data, error } = await runMovieSelectWithOptionalColumns(
+    selectQuery => {
+      let query = supabaseClient
+        .from('movies')
+        .select(selectQuery)
+        .not('director', 'is', null);
+
+      if (String(selectQuery || '').includes('movie_genres')) {
+        query = query.order('position', { foreignTable: 'movie_genres', ascending: true });
+      }
+
+      return query;
+    },
+    MOVIE_CATALOG_SELECT
+  );
+
+  throwIfSupabaseError(error);
+
+  let matchedNameRu = '';
+  const matchingMovies = (data || []).filter(movie => {
+    const matchedName = findLegacyDirectorNameMatch(movie, {
+      slug: normalizedSlug,
+      nameRu: normalizedNameRu
+    });
+
+    if (matchedName && !matchedNameRu) {
+      matchedNameRu = matchedName;
+    }
+
+    return Boolean(matchedName);
+  });
+
+  cacheCatalogMovies(matchingMovies);
+
+  return {
+    nameRu: matchedNameRu || normalizedNameRu,
+    movies: getSortedMoviesCopy(matchingMovies, 'default')
+  };
+}
+
+async function fetchLegacyDirectorPageData(slug) {
+  const legacyMatches = await fetchLegacyDirectorMovieMatches({ slug });
+
+  if (!legacyMatches.nameRu || legacyMatches.movies.length === 0) {
+    return null;
+  }
+
+  return {
+    director: normalizeDirectorRow({
+      id: '',
+      slug,
+      name_ru: legacyMatches.nameRu,
+      name: '',
+      aliases: [],
+      birth_date: null,
+      death_date: null,
+      birth_place: '',
+      photo_url: '',
+      is_legacy_fallback: true
+    }),
+    movies: legacyMatches.movies
+  };
+}
+
 async function fetchDirectorPageData(slug) {
   const director = await fetchDirectorBySlug(slug);
 
   if (!director) {
-    return null;
+    return fetchLegacyDirectorPageData(slug);
   }
 
-  const movies = await fetchDirectorMovies(director.id);
+  let movies = await fetchDirectorMovies(director.id);
+
+  if (movies.length === 0) {
+    const legacyMatches = await fetchLegacyDirectorMovieMatches({
+      slug: director.slug,
+      nameRu: director.name_ru
+    });
+
+    movies = mergeDirectorMovieLists(movies, legacyMatches.movies);
+  }
 
   return {
     director,
@@ -2751,7 +2890,7 @@ function renderDirectorPage(data) {
           }
           ${metaHtml ? `<div class="director-page-meta-list">${metaHtml}</div>` : ''}
           ${
-            isAdmin
+            isAdmin && director.id && !director.is_legacy_fallback
               ? `
                 <button type="button" class="secondary-button director-page-edit-button" data-director-edit="${escapeHtml(director.id)}">
                   Редактировать
