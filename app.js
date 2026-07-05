@@ -3045,8 +3045,12 @@ async function loadDirectorPage() {
   renderDirectorPageLoading();
 
   try {
-    await restoreSession();
-    trackEmailConfirmedLoginIfNeeded();
+    try {
+      await restoreSession();
+      trackEmailConfirmedLoginIfNeeded();
+    } catch (authError) {
+      console.error('Ошибка восстановления сессии на странице режиссёра:', authError);
+    }
 
     const data = await fetchDirectorPageData(slug);
 
