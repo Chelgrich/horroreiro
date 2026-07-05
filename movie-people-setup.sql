@@ -67,6 +67,7 @@ create table if not exists public.people (
   death_date date,
   birth_place text,
   photo_url text,
+  tmdb_url text,
   created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -79,6 +80,9 @@ create table if not exists public.people (
     or death_date >= birth_date
   )
 );
+
+alter table public.people
+  add column if not exists tmdb_url text;
 
 create table if not exists public.movie_people (
   movie_id uuid not null references public.movies(id) on delete cascade,
@@ -95,6 +99,10 @@ create index if not exists people_name_key_idx
 
 create index if not exists people_slug_idx
   on public.people (slug);
+
+create index if not exists people_tmdb_url_idx
+  on public.people (tmdb_url)
+  where tmdb_url is not null;
 
 create index if not exists movie_people_role_person_position_idx
   on public.movie_people (role, person_id, position, movie_id);

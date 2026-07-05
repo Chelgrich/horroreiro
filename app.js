@@ -613,6 +613,7 @@ let directorIdInput = null;
 let directorNameRuInput = null;
 let directorNameInput = null;
 let directorAliasesInput = null;
+let directorTmdbUrlInput = null;
 let directorBirthDateInput = null;
 let directorDeathDateInput = null;
 let directorBirthPlaceInput = null;
@@ -3553,6 +3554,17 @@ function ensureDirectorModal() {
           <div class="field-hint">По одному имени с новой строки.</div>
         </div>
 
+        <div class="form-row">
+          <label for="directorTmdbUrl">Ссылка TMDB:</label>
+          <input
+            type="text"
+            id="directorTmdbUrl"
+            data-director-tmdb-url="true"
+            inputmode="url"
+            placeholder="https://www.themoviedb.org/person/..."
+          >
+        </div>
+
         <div class="form-actions">
           <button type="submit" data-director-submit="true">Сохранить</button>
           <button type="button" class="secondary-button form-mode-button director-delete-button" data-director-delete="true" hidden>
@@ -3575,6 +3587,7 @@ function ensureDirectorModal() {
   directorNameRuInput = directorModal.querySelector('[data-director-name-ru="true"]');
   directorNameInput = directorModal.querySelector('[data-director-name="true"]');
   directorAliasesInput = directorModal.querySelector('[data-director-aliases="true"]');
+  directorTmdbUrlInput = directorModal.querySelector('[data-director-tmdb-url="true"]');
   directorBirthDateInput = directorModal.querySelector('[data-director-birth-date="true"]');
   directorDeathDateInput = directorModal.querySelector('[data-director-death-date="true"]');
   directorBirthPlaceInput = directorModal.querySelector('[data-director-birth-place="true"]');
@@ -3633,6 +3646,7 @@ function setDirectorFormSubmitting(isSubmitting) {
     directorNameRuInput,
     directorNameInput,
     directorAliasesInput,
+    directorTmdbUrlInput,
     directorBirthDateInput,
     directorDeathDateInput,
     directorBirthPlaceInput,
@@ -3701,6 +3715,7 @@ function openDirectorModal(director = null) {
   setFormInputValue(directorNameRuInput, normalizedDirector.name_ru || '', 'directorNameRuInput');
   setFormInputValue(directorNameInput, normalizedDirector.name || '', 'directorNameInput');
   setFormInputValue(directorAliasesInput, normalizeDirectorAliasValues(normalizedDirector.aliases || []).join('\n'), 'directorAliasesInput');
+  setFormInputValue(directorTmdbUrlInput, normalizedDirector.tmdb_url || '', 'directorTmdbUrlInput');
   setFormInputValue(directorBirthDateInput, normalizedDirector.birth_date || '', 'directorBirthDateInput');
   setFormInputValue(directorDeathDateInput, normalizedDirector.death_date || '', 'directorDeathDateInput');
   setFormInputValue(directorBirthPlaceInput, normalizedDirector.birth_place || '', 'directorBirthPlaceInput');
@@ -3840,6 +3855,7 @@ function mergeDirectorPayloadForExisting(existingDirector, payload) {
     birth_date: payload.birth_date || existingDirector.birth_date || null,
     death_date: payload.death_date || existingDirector.death_date || null,
     birth_place: payload.birth_place || existingDirector.birth_place || null,
+    tmdb_url: payload.tmdb_url || existingDirector.tmdb_url || null,
     photo_url: payload.photo_url || existingDirector.photo_url || null
   };
 }
@@ -4025,6 +4041,7 @@ async function saveDirectorFromModal(event) {
   const nameRu = String(directorNameRuInput?.value || '').trim();
   const name = String(directorNameInput?.value || '').trim();
   const aliases = normalizeDirectorAliasValues(directorAliasesInput?.value || '');
+  const tmdbUrl = normalizeTmdbPersonUrl(directorTmdbUrlInput?.value || '');
   const birthDate = String(directorBirthDateInput?.value || '').trim();
   const deathDate = String(directorDeathDateInput?.value || '').trim();
   const birthPlace = String(directorBirthPlaceInput?.value || '').trim();
@@ -4070,6 +4087,7 @@ async function saveDirectorFromModal(event) {
       birth_date: birthDate || null,
       death_date: deathDate || null,
       birth_place: birthPlace || null,
+      tmdb_url: tmdbUrl || null,
       photo_url: photoUrl || null
     };
 
@@ -8584,6 +8602,26 @@ function normalizeOptionalUrl(value) {
   }
 
   return trimmedValue;
+}
+
+function normalizeTmdbPersonUrl(value) {
+  const normalizedUrl = normalizeOptionalUrl(value);
+
+  if (!normalizedUrl) {
+    return '';
+  }
+
+  try {
+    const parsedUrl = new URL(normalizedUrl);
+
+    parsedUrl.hash = '';
+    parsedUrl.search = '';
+    parsedUrl.pathname = parsedUrl.pathname.replace(/\/+$/g, '');
+
+    return parsedUrl.toString();
+  } catch (error) {
+    return normalizedUrl;
+  }
 }
 
 function getYouTubeVideoIdFromUrl(value) {
