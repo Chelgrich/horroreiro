@@ -2247,6 +2247,7 @@ button {
 }
 
 .movie-card .delete-movie-btn.secondary-button,
+.director-delete-button.secondary-button,
 .movie-page-admin-icon-button.movie-page-admin-icon-button-danger,
 .movie-page-comment-icon-button.movie-page-comment-icon-button-danger,
 .movie-page-review-icon-button.movie-page-review-icon-button-danger,
@@ -2258,6 +2259,8 @@ button {
 
 .movie-card .delete-movie-btn.secondary-button:hover,
 .movie-card .delete-movie-btn.secondary-button:focus-visible,
+.director-delete-button.secondary-button:hover,
+.director-delete-button.secondary-button:focus-visible,
 .movie-page-admin-icon-button.movie-page-admin-icon-button-danger:hover,
 .movie-page-admin-icon-button.movie-page-admin-icon-button-danger:focus-visible,
 .movie-page-comment-icon-button.movie-page-comment-icon-button-danger:hover,

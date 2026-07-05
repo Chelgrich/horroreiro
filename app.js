@@ -622,6 +622,7 @@ let directorPhotoPreview = null;
 let directorPhotoRemoveInput = null;
 let directorFormMessage = null;
 let directorSubmitButton = null;
+let directorDeleteButton = null;
 let isDirectorModalOpen = false;
 let isDirectorFormSubmitting = false;
 let moviePageSimilarRequestId = 0;
@@ -708,6 +709,15 @@ function parseMultilineValues(value) {
     });
 
   return Array.from(uniqueValues.values());
+}
+
+function setFormInputValue(inputElement, value, inputName = 'input') {
+  if (!inputElement) {
+    console.error(`Не найден элемент формы: ${inputName}`);
+    return;
+  }
+
+  inputElement.value = value ?? '';
 }
 
 function normalizeTextArrayField(value) {
@@ -2529,6 +2539,31 @@ async function fetchDirectorBySlug(slug) {
   return fallbackDirector || null;
 }
 
+async function fetchDirectorById(directorId) {
+  const normalizedDirectorId = String(directorId || '').trim();
+
+  if (!normalizedDirectorId || !areDirectorsAvailable) {
+    return null;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('people')
+    .select('*')
+    .eq('id', normalizedDirectorId)
+    .maybeSingle();
+
+  if (error) {
+    if (isDirectorsUnavailableError(error)) {
+      areDirectorsAvailable = false;
+      return null;
+    }
+
+    throw error;
+  }
+
+  return normalizeDirectorRow(data);
+}
+
 async function fetchDirectorMovieRelationRows(directorId) {
   const normalizedDirectorId = String(directorId || '').trim();
 
@@ -2945,8 +2980,8 @@ function bindDirectorPageEvents() {
 
     button.dataset.directorEditBound = 'true';
     button.addEventListener('click', () => {
-      if (isAdmin && currentDirectorPageData?.director) {
-        openDirectorModal(currentDirectorPageData.director);
+      if (isAdmin && currentDirectorPageData?.director?.id) {
+        void openDirectorModalById(currentDirectorPageData.director.id);
       }
     });
   });
@@ -3283,6 +3318,43 @@ function getDirectorByIdFromAdminRows(directorId) {
   return currentDirectorsAdminRows.find(director => String(director.id) === normalizedDirectorId) || null;
 }
 
+async function openDirectorModalById(directorId) {
+  const normalizedDirectorId = String(directorId || '').trim();
+
+  if (!normalizedDirectorId) {
+    openDirectorModal();
+    return;
+  }
+
+  const fallbackDirector = getDirectorByIdFromAdminRows(normalizedDirectorId);
+
+  try {
+    const director = await fetchDirectorById(normalizedDirectorId);
+
+    if (director) {
+      openDirectorModal(director);
+      return;
+    }
+
+    if (fallbackDirector) {
+      openDirectorModal(fallbackDirector);
+      return;
+    }
+
+    showAppMessage('Персона не найдена. Обнови страницу.', 'error');
+  } catch (error) {
+    console.error('Ошибка загрузки персоны для редактирования:', error);
+
+    if (fallbackDirector) {
+      openDirectorModal(fallbackDirector);
+      setDirectorFormMessage('Не удалось обновить данные перед редактированием. Проверь изменения перед сохранением.', 'error');
+      return;
+    }
+
+    showAppMessage('Не удалось открыть карточку персоны.', 'error');
+  }
+}
+
 function bindDirectorsAdminPageEvents() {
   if (!directorsAdminPage) {
     return;
@@ -3295,11 +3367,7 @@ function bindDirectorsAdminPageEvents() {
 
     button.dataset.directorEditBound = 'true';
     button.addEventListener('click', () => {
-      const director = getDirectorByIdFromAdminRows(button.dataset.directorEdit);
-
-      if (director) {
-        openDirectorModal(director);
-      }
+      void openDirectorModalById(button.dataset.directorEdit);
     });
   });
 }
@@ -3400,6 +3468,9 @@ function ensureDirectorModal() {
 
         <div class="form-actions">
           <button type="submit" data-director-submit="true">Сохранить</button>
+          <button type="button" class="secondary-button form-mode-button director-delete-button" data-director-delete="true" hidden>
+            Удалить
+          </button>
           <button type="button" class="secondary-button form-mode-button" data-director-modal-close="true">
             Отмена
           </button>
@@ -3426,6 +3497,7 @@ function ensureDirectorModal() {
   directorPhotoRemoveInput = directorModal.querySelector('[data-director-photo-remove="true"]');
   directorFormMessage = directorModal.querySelector('[data-director-form-message="true"]');
   directorSubmitButton = directorModal.querySelector('[data-director-submit="true"]');
+  directorDeleteButton = directorModal.querySelector('[data-director-delete="true"]');
 
   directorModal.querySelectorAll('[data-director-modal-close="true"]').forEach(element => {
     element.addEventListener('click', closeDirectorModal);
@@ -3448,6 +3520,8 @@ function ensureDirectorModal() {
     updateDirectorPhotoFileUi();
     setDirectorFormMessage();
   });
+
+  directorDeleteButton?.addEventListener('click', deleteDirectorFromModal);
 
   directorForm?.addEventListener('submit', saveDirectorFromModal);
 }
@@ -3475,7 +3549,8 @@ function setDirectorFormSubmitting(isSubmitting) {
     directorBirthDateInput,
     directorDeathDateInput,
     directorBirthPlaceInput,
-    directorPhotoFileInput
+    directorPhotoFileInput,
+    directorDeleteButton
   ].forEach(element => {
     if (element) {
       element.disabled = isSubmitting;
@@ -3535,13 +3610,13 @@ function openDirectorModal(director = null) {
     directorModalTitle.textContent = normalizedDirector.id ? 'Редактировать режиссёра' : 'Добавить режиссёра';
   }
 
-  setInputValue(directorIdInput, normalizedDirector.id || '', 'directorIdInput');
-  setInputValue(directorNameRuInput, normalizedDirector.name_ru || '', 'directorNameRuInput');
-  setInputValue(directorNameInput, normalizedDirector.name || '', 'directorNameInput');
-  setInputValue(directorAliasesInput, normalizeDirectorAliasValues(normalizedDirector.aliases || []).join('\n'), 'directorAliasesInput');
-  setInputValue(directorBirthDateInput, normalizedDirector.birth_date || '', 'directorBirthDateInput');
-  setInputValue(directorDeathDateInput, normalizedDirector.death_date || '', 'directorDeathDateInput');
-  setInputValue(directorBirthPlaceInput, normalizedDirector.birth_place || '', 'directorBirthPlaceInput');
+  setFormInputValue(directorIdInput, normalizedDirector.id || '', 'directorIdInput');
+  setFormInputValue(directorNameRuInput, normalizedDirector.name_ru || '', 'directorNameRuInput');
+  setFormInputValue(directorNameInput, normalizedDirector.name || '', 'directorNameInput');
+  setFormInputValue(directorAliasesInput, normalizeDirectorAliasValues(normalizedDirector.aliases || []).join('\n'), 'directorAliasesInput');
+  setFormInputValue(directorBirthDateInput, normalizedDirector.birth_date || '', 'directorBirthDateInput');
+  setFormInputValue(directorDeathDateInput, normalizedDirector.death_date || '', 'directorDeathDateInput');
+  setFormInputValue(directorBirthPlaceInput, normalizedDirector.birth_place || '', 'directorBirthPlaceInput');
 
   if (directorPhotoFileInput) {
     directorPhotoFileInput.value = '';
@@ -3553,6 +3628,10 @@ function openDirectorModal(director = null) {
 
   if (directorPhotoFileName) {
     directorPhotoFileName.textContent = 'Файл не выбран';
+  }
+
+  if (directorDeleteButton) {
+    directorDeleteButton.hidden = !normalizedDirector.id;
   }
 
   renderDirectorModalPhotoPreview(normalizedDirector.photo_url || '');
@@ -3598,6 +3677,131 @@ async function buildUniqueDirectorSlug(nameRu, excludeDirectorId = null) {
     slugCandidate = `${baseSlug}-${suffix}`;
     suffix += 1;
   }
+}
+
+function getDirectorNameKey(nameRu) {
+  return normalizeSearchText(nameRu);
+}
+
+function getDirectorCompletenessScore(director) {
+  if (!director) {
+    return 0;
+  }
+
+  let score = 0;
+
+  if (String(director.photo_url || '').trim()) score += 16;
+  if (String(director.name || '').trim()) score += 8;
+  if (String(director.birth_date || '').trim()) score += 4;
+  if (String(director.death_date || '').trim()) score += 2;
+  if (String(director.birth_place || '').trim()) score += 2;
+  if (normalizeDirectorAliasValues(director.aliases).length > 0) score += 2;
+
+  return score;
+}
+
+function choosePreferredDirectorRow(firstDirector, secondDirector) {
+  if (!firstDirector) {
+    return secondDirector || null;
+  }
+
+  if (!secondDirector) {
+    return firstDirector;
+  }
+
+  const firstScore = getDirectorCompletenessScore(firstDirector);
+  const secondScore = getDirectorCompletenessScore(secondDirector);
+
+  if (secondScore > firstScore) {
+    return secondDirector;
+  }
+
+  return firstDirector;
+}
+
+async function findExistingDirectorByNameRu(nameRu, excludeDirectorId = null) {
+  const nameKey = getDirectorNameKey(nameRu);
+  const excludedId = String(excludeDirectorId || '').trim();
+
+  if (!nameKey || !areDirectorsAvailable) {
+    return null;
+  }
+
+  const rows = await fetchAdminPersonRows();
+
+  return rows
+    .map(normalizeDirectorRow)
+    .filter(Boolean)
+    .filter(director => String(director.id) !== excludedId)
+    .filter(director => getDirectorNameKey(director.name_ru) === nameKey)
+    .reduce((preferredDirector, director) => (
+      choosePreferredDirectorRow(preferredDirector, director)
+    ), null);
+}
+
+function mergeDirectorPayloadForExisting(existingDirector, payload) {
+  if (!existingDirector) {
+    return payload;
+  }
+
+  return {
+    ...payload,
+    name: payload.name || existingDirector.name || null,
+    aliases: Array.isArray(payload.aliases) && payload.aliases.length > 0
+      ? payload.aliases
+      : normalizeDirectorAliasValues(existingDirector.aliases),
+    birth_date: payload.birth_date || existingDirector.birth_date || null,
+    death_date: payload.death_date || existingDirector.death_date || null,
+    birth_place: payload.birth_place || existingDirector.birth_place || null,
+    photo_url: payload.photo_url || existingDirector.photo_url || null
+  };
+}
+
+async function mergeDirectorIntoExisting(sourceDirectorId, targetDirectorId) {
+  const sourceId = String(sourceDirectorId || '').trim();
+  const targetId = String(targetDirectorId || '').trim();
+
+  if (!sourceId || !targetId || sourceId === targetId) {
+    return;
+  }
+
+  const { data: sourceLinks, error: sourceLinksError } = await supabaseClient
+    .from('movie_people')
+    .select('movie_id, role, position')
+    .eq('person_id', sourceId);
+
+  throwIfSupabaseError(sourceLinksError);
+
+  const targetLinks = (sourceLinks || []).map(row => ({
+    movie_id: row.movie_id,
+    person_id: targetId,
+    role: row.role,
+    position: row.position
+  }));
+
+  if (targetLinks.length > 0) {
+    const { error: upsertLinksError } = await supabaseClient
+      .from('movie_people')
+      .upsert(targetLinks, {
+        onConflict: 'movie_id,person_id,role'
+      });
+
+    throwIfSupabaseError(upsertLinksError);
+  }
+
+  const { error: deleteLinksError } = await supabaseClient
+    .from('movie_people')
+    .delete()
+    .eq('person_id', sourceId);
+
+  throwIfSupabaseError(deleteLinksError);
+
+  const { error: deletePersonError } = await supabaseClient
+    .from('people')
+    .delete()
+    .eq('id', sourceId);
+
+  throwIfSupabaseError(deletePersonError);
 }
 
 async function uploadDirectorPhotoFile(file) {
@@ -3663,6 +3867,66 @@ async function deleteDirectorPhotoFileByUrl(publicUrl) {
   throwIfSupabaseError(error);
 }
 
+async function deleteDirectorFromModal() {
+  if (!isAdmin || isDirectorFormSubmitting) {
+    return;
+  }
+
+  const directorId = String(directorIdInput?.value || '').trim();
+
+  if (!directorId) {
+    return;
+  }
+
+  await runConfirmedAction('Удалить персону? Это возможно только если она не привязана к фильмам.', async () => {
+    try {
+      ensureActiveSessionForWrite();
+      setDirectorFormSubmitting(true);
+      setDirectorFormMessage('Проверяю связи...');
+
+      const { count, error: countError } = await supabaseClient
+        .from('movie_people')
+        .select('movie_id', {
+          count: 'exact',
+          head: true
+        })
+        .eq('person_id', directorId);
+
+      throwIfSupabaseError(countError);
+
+      if (Number(count) > 0) {
+        setDirectorFormMessage(`Нельзя удалить: персона привязана к ${count} ${getMoviesCountLabel(count)}.`, 'error');
+        return;
+      }
+
+      const director = await fetchDirectorById(directorId);
+      const { error: deleteError } = await supabaseClient
+        .from('people')
+        .delete()
+        .eq('id', directorId);
+
+      throwIfSupabaseError(deleteError);
+
+      if (director?.photo_url) {
+        await deleteDirectorPhotoFileByUrl(director.photo_url);
+      }
+
+      closeDirectorModal();
+
+      if (isDirectorsAdminPage()) {
+        await loadDirectorsAdminPage();
+      } else if (isDirectorPage()) {
+        window.location.href = buildDirectorsAdminPageUrl();
+      }
+    } catch (error) {
+      console.error('Ошибка удаления персоны:', error);
+      setDirectorFormMessage(error?.message || 'Не удалось удалить персону.', 'error');
+    } finally {
+      setDirectorFormSubmitting(false);
+    }
+  });
+}
+
 async function saveDirectorFromModal(event) {
   event.preventDefault();
 
@@ -3679,11 +3943,6 @@ async function saveDirectorFromModal(event) {
   const birthPlace = String(directorBirthPlaceInput?.value || '').trim();
   const photoFile = directorPhotoFileInput?.files?.[0] || null;
   const shouldRemovePhoto = Boolean(directorPhotoRemoveInput?.checked);
-  const existingDirector = directorId
-    ? currentDirectorsAdminRows.find(director => String(director.id) === directorId)
-      || currentDirectorPageData?.director
-    : null;
-
   if (!nameRu) {
     setDirectorFormMessage('Имя на русском обязательно.', 'error');
     directorNameRuInput?.focus();
@@ -3695,7 +3954,18 @@ async function saveDirectorFromModal(event) {
     setDirectorFormSubmitting(true);
     setDirectorFormMessage('Сохраняю...');
 
-    let photoUrl = existingDirector?.photo_url || '';
+    const existingDirector = directorId
+      ? await fetchDirectorById(directorId)
+        || currentDirectorsAdminRows.find(director => String(director.id) === directorId)
+        || currentDirectorPageData?.director
+      : null;
+    const sameNameDirector = await findExistingDirectorByNameRu(nameRu, directorId);
+    const isMergeIntoExisting = Boolean(existingDirector?.id && sameNameDirector?.id);
+    const targetDirector = isMergeIntoExisting
+      ? sameNameDirector
+      : existingDirector || sameNameDirector || null;
+
+    let photoUrl = targetDirector?.photo_url || '';
 
     if (shouldRemovePhoto) {
       photoUrl = '';
@@ -3716,47 +3986,65 @@ async function saveDirectorFromModal(event) {
       photo_url: photoUrl || null
     };
 
-    if (directorId) {
-      if (nameRu !== (existingDirector?.name_ru || '') || !existingDirector?.slug) {
-        payload.slug = await buildUniqueDirectorSlug(nameRu, directorId);
+    const shouldPreserveExistingTargetValues = Boolean(!directorId && sameNameDirector) || isMergeIntoExisting;
+    const savePayload = shouldPreserveExistingTargetValues
+      ? mergeDirectorPayloadForExisting(targetDirector, payload)
+      : payload;
+    let savedDirector = null;
+
+    if (targetDirector?.id) {
+      if (nameRu !== (targetDirector.name_ru || '') || !targetDirector.slug) {
+        savePayload.slug = await buildUniqueDirectorSlug(nameRu, targetDirector.id);
       }
 
       const { data, error } = await supabaseClient
         .from('people')
-        .update(payload)
-        .eq('id', directorId)
+        .update(savePayload)
+        .eq('id', targetDirector.id)
         .select('*')
         .single();
 
       throwIfSupabaseError(error);
 
-      const nextDirector = normalizeDirectorRow(data);
+      savedDirector = normalizeDirectorRow(data);
 
-      if (currentDirectorPageData?.director && String(currentDirectorPageData.director.id) === directorId) {
-        currentDirectorPageData.director = nextDirector;
+      if (isMergeIntoExisting) {
+        await mergeDirectorIntoExisting(existingDirector.id, targetDirector.id);
+      }
+
+      if (currentDirectorPageData?.director && String(currentDirectorPageData.director.id) === String(savedDirector.id)) {
+        currentDirectorPageData.director = savedDirector;
         renderDirectorPage(currentDirectorPageData);
       }
     } else {
-      payload.slug = await buildUniqueDirectorSlug(nameRu);
-      payload.created_by = currentUser.id;
+      savePayload.slug = await buildUniqueDirectorSlug(nameRu);
+      savePayload.created_by = currentUser.id;
 
-      const { error } = await supabaseClient
+      const { data, error } = await supabaseClient
         .from('people')
-        .insert(payload);
+        .insert(savePayload)
+        .select('*')
+        .single();
 
       throwIfSupabaseError(error);
+      savedDirector = normalizeDirectorRow(data);
     }
 
     if (
-      existingDirector?.photo_url &&
-      existingDirector.photo_url !== photoUrl &&
+      targetDirector?.photo_url &&
+      targetDirector.photo_url !== photoUrl &&
       (shouldRemovePhoto || photoFile)
     ) {
-      await deleteDirectorPhotoFileByUrl(existingDirector.photo_url);
+      await deleteDirectorPhotoFileByUrl(targetDirector.photo_url);
     }
 
     setDirectorFormMessage('Сохранено.', 'success');
     closeDirectorModal();
+
+    if (isDirectorPage() && savedDirector?.slug && currentDirectorPageData?.director?.id !== savedDirector.id) {
+      window.location.href = buildDirectorPageUrl(savedDirector);
+      return;
+    }
 
     if (isDirectorsAdminPage()) {
       await loadDirectorsAdminPage();
@@ -3790,16 +4078,26 @@ async function ensureDirectorsByNames(names = []) {
     throw error;
   }
 
-  const directorsByNameKey = new Map(
-    (data || [])
-      .map(normalizeDirectorRow)
-      .filter(Boolean)
-      .map(director => [normalizeSearchText(director.name_ru), director])
-  );
+  const directorsByNameKey = (data || [])
+    .map(normalizeDirectorRow)
+    .filter(Boolean)
+    .reduce((directorsMap, director) => {
+      const nameKey = getDirectorNameKey(director.name_ru);
+
+      if (!nameKey) {
+        return directorsMap;
+      }
+
+      directorsMap.set(
+        nameKey,
+        choosePreferredDirectorRow(directorsMap.get(nameKey), director)
+      );
+      return directorsMap;
+    }, new Map());
   const result = [];
 
   for (const nameRu of normalizedNames) {
-    const nameKey = normalizeSearchText(nameRu);
+    const nameKey = getDirectorNameKey(nameRu);
     let director = directorsByNameKey.get(nameKey);
 
     if (!director) {
