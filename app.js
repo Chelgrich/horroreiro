@@ -301,7 +301,7 @@ const BASE_HORROR_GENRE_NORMALIZED = '\u0443\u0436\u0430\u0441\u044b';
 const MANUAL_SIMILAR_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const MOVIE_REVIEW_LIKES_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const MOVIE_POSTER_IMAGES_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
-const DIRECTORS_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205', 'PGRST200']);
+const DIRECTORS_UNAVAILABLE_CODES = new Set(['42P01', '42703', 'PGRST204', 'PGRST205']);
 const MOVIE_COMMENTS_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const MOVIE_COMMENT_LIKES_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const SITE_ORIGIN = 'https://horroreiro.ru';
@@ -2345,12 +2345,17 @@ function handleEditorPageClick(event) {
 function isDirectorsUnavailableError(error) {
   const code = String(error?.code || '').trim();
   const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+  const mentionsPeopleSchema = (
+    message.includes('people') ||
+    message.includes('movie_people')
+  );
 
   return (
-    DIRECTORS_UNAVAILABLE_CODES.has(code) ||
-    message.includes('people') ||
-    message.includes('movie_people') ||
-    message.includes('relationship')
+    (DIRECTORS_UNAVAILABLE_CODES.has(code) && mentionsPeopleSchema) ||
+    (code === 'PGRST200' && mentionsPeopleSchema && message.includes('relationship')) ||
+    (mentionsPeopleSchema && message.includes('could not find the table')) ||
+    (mentionsPeopleSchema && message.includes('schema cache')) ||
+    (mentionsPeopleSchema && message.includes('relation') && message.includes('does not exist'))
   );
 }
 
@@ -2843,6 +2848,22 @@ function renderDirectorPageUnavailable() {
   `;
 }
 
+function renderDirectorPageError() {
+  if (!directorPage) {
+    return;
+  }
+
+  document.title = 'Режиссёр — Хоррорейро';
+  directorPage.innerHTML = `
+    <div class="director-page-empty-state director-page-empty-state-large">
+      <p>Не удалось загрузить страницу режиссёра. Попробуй обновить страницу.</p>
+      <a href="${escapeHtml(buildCatalogPageUrl())}" class="secondary-button director-page-login-button">
+        Назад в каталог
+      </a>
+    </div>
+  `;
+}
+
 function renderDirectorPageNotFound() {
   if (!directorPage) {
     return;
@@ -3063,7 +3084,13 @@ async function loadDirectorPage() {
     }
   } catch (error) {
     console.error('Ошибка загрузки страницы режиссёра:', error);
-    renderDirectorPageUnavailable();
+    if (isDirectorsUnavailableError(error)) {
+      areDirectorsAvailable = false;
+      renderDirectorPageUnavailable();
+      return;
+    }
+
+    renderDirectorPageError();
   }
 }
 
