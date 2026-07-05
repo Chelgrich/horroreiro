@@ -25,6 +25,7 @@ const notificationsSummaryButton = document.getElementById('notificationsSummary
 const notificationsMenuBadge = document.getElementById('notificationsMenuBadge');
 const followingSummaryButton = document.getElementById('followingSummaryButton');
 const editorCenterSummaryButton = document.getElementById('editorCenterSummaryButton');
+const directorsAdminSummaryButton = document.getElementById('directorsAdminSummaryButton');
 
 const openAuthModalButton = document.getElementById('openAuthModalButton');
 const authIconButtonDefaultHtml = openAuthModalButton?.innerHTML || '';
@@ -59,6 +60,8 @@ const userPage = document.getElementById('userPage');
 const notificationsPage = document.getElementById('notificationsPage');
 const followingPage = document.getElementById('followingPage');
 const editorPage = document.getElementById('editorPage');
+const directorPage = document.getElementById('directorPage');
+const directorsAdminPage = document.getElementById('directorsAdminPage');
 
 const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
@@ -265,6 +268,9 @@ const CATALOG_PROFILE_ACTIVITY_LABELS = {
 const POSTER_STORAGE_PUBLIC_PATH = '/storage/v1/object/public/posters/';
 const POSTER_STORAGE_RENDER_PATH = '/storage/v1/render/image/public/posters/';
 const POSTER_IMAGE_MIN_QUALITY = 90;
+const DIRECTOR_STORAGE_BUCKET = 'people';
+const DIRECTOR_STORAGE_PUBLIC_PATH = `/storage/v1/object/public/${DIRECTOR_STORAGE_BUCKET}/`;
+const DIRECTOR_STORAGE_RENDER_PATH = `/storage/v1/render/image/public/${DIRECTOR_STORAGE_BUCKET}/`;
 const AVATAR_STORAGE_BUCKET = 'avatars';
 const AVATAR_STORAGE_PUBLIC_PATH = `/storage/v1/object/public/${AVATAR_STORAGE_BUCKET}/`;
 const AVATAR_ACCEPTED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -295,6 +301,7 @@ const BASE_HORROR_GENRE_NORMALIZED = '\u0443\u0436\u0430\u0441\u044b';
 const MANUAL_SIMILAR_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const MOVIE_REVIEW_LIKES_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const MOVIE_POSTER_IMAGES_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
+const DIRECTORS_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205', 'PGRST200']);
 const MOVIE_COMMENTS_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const MOVIE_COMMENT_LIKES_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const SITE_ORIGIN = 'https://horroreiro.ru';
@@ -596,6 +603,27 @@ let currentMoviePageSimilarMovieId = null;
 let currentMoviePageSimilarMovieIds = [];
 let currentMoviePageSimilarMovies = [];
 let currentMoviePagePosterIndexByMovieId = new Map();
+let areDirectorsAvailable = true;
+let currentDirectorPageData = null;
+let currentDirectorsAdminRows = [];
+let directorModal = null;
+let directorForm = null;
+let directorModalTitle = null;
+let directorIdInput = null;
+let directorNameRuInput = null;
+let directorNameInput = null;
+let directorAliasesInput = null;
+let directorBirthDateInput = null;
+let directorDeathDateInput = null;
+let directorBirthPlaceInput = null;
+let directorPhotoFileInput = null;
+let directorPhotoFileName = null;
+let directorPhotoPreview = null;
+let directorPhotoRemoveInput = null;
+let directorFormMessage = null;
+let directorSubmitButton = null;
+let isDirectorModalOpen = false;
+let isDirectorFormSubmitting = false;
 let moviePageSimilarRequestId = 0;
 let isMoviePageSimilarEditorSaving = false;
 let moviePageSimilarEditorSearchQuery = '';
@@ -1278,7 +1306,8 @@ function buildEditableMovieExport(movie, {
   movieGenres = [],
   movieCountries = [],
   posterImages = [],
-  manualSimilarRows = []
+  manualSimilarRows = [],
+  moviePeople = []
 } = {}) {
   return {
     id: movie?.id || null,
@@ -1308,7 +1337,15 @@ function buildEditableMovieExport(movie, {
     trailer_url: movie?.trailer_url || '',
     poster_url: movie?.poster_url || '',
     poster_images: getExportPosterImages(movie, posterImages),
-    manual_similar: getExportManualSimilarItems(manualSimilarRows)
+    manual_similar: getExportManualSimilarItems(manualSimilarRows),
+    linked_people: moviePeople
+      .slice()
+      .sort((firstRow, secondRow) => Number(firstRow?.position ?? 0) - Number(secondRow?.position ?? 0))
+      .map(row => ({
+        person_id: row?.person_id || null,
+        role: row?.role || '',
+        position: Number(row?.position ?? 0)
+      }))
   };
 }
 
@@ -1317,12 +1354,15 @@ function buildDatabaseExportPayload({
   movieGenres,
   movieCountries,
   posterImages,
-  manualSimilarRows
+  manualSimilarRows,
+  people = [],
+  moviePeople = []
 }) {
   const movieGenresByMovieId = groupRowsByMovieId(movieGenres);
   const movieCountriesByMovieId = groupRowsByMovieId(movieCountries);
   const posterImagesByMovieId = groupRowsByMovieId(posterImages);
   const manualSimilarRowsByMovieId = groupRowsByMovieId(manualSimilarRows);
+  const moviePeopleByMovieId = groupRowsByMovieId(moviePeople);
 
   return {
     exported_at: new Date().toISOString(),
@@ -1334,28 +1374,34 @@ function buildDatabaseExportPayload({
       movie_genres: movieGenres.length,
       movie_countries: movieCountries.length,
       movie_poster_images: posterImages.length,
-      movie_manual_similar: manualSimilarRows.length
+      movie_manual_similar: manualSimilarRows.length,
+      people: people.length,
+      movie_people: moviePeople.length
     },
+    people: people.map(normalizeDirectorRow).filter(Boolean),
     movies: movies.map(movie => {
       const movieId = String(movie?.id || '');
       const relatedMovieGenres = getRowsForExportGroup(movieGenresByMovieId, movieId);
       const relatedMovieCountries = getRowsForExportGroup(movieCountriesByMovieId, movieId);
       const relatedPosterImages = getRowsForExportGroup(posterImagesByMovieId, movieId);
       const relatedManualSimilarRows = getRowsForExportGroup(manualSimilarRowsByMovieId, movieId);
+      const relatedMoviePeople = getRowsForExportGroup(moviePeopleByMovieId, movieId);
 
       return {
         editable_fields: buildEditableMovieExport(movie, {
           movieGenres: relatedMovieGenres,
           movieCountries: relatedMovieCountries,
           posterImages: relatedPosterImages,
-          manualSimilarRows: relatedManualSimilarRows
+          manualSimilarRows: relatedManualSimilarRows,
+          moviePeople: relatedMoviePeople
         }),
         raw: {
           movies: movie,
           movie_genres: relatedMovieGenres,
           movie_countries: relatedMovieCountries,
           movie_poster_images: relatedPosterImages,
-          movie_manual_similar: relatedManualSimilarRows
+          movie_manual_similar: relatedManualSimilarRows,
+          movie_people: relatedMoviePeople
         }
       };
     })
@@ -1739,20 +1785,40 @@ async function exportDatabase() {
       movieGenres,
       movieCountries,
       posterImages,
-      manualSimilarRows
+      manualSimilarRows,
+      people,
+      moviePeople
     ] = await Promise.all([
       fetchAdminMovieRows(),
       fetchAdminMovieGenreRows(),
       fetchAdminMovieCountryRows(),
       fetchAdminMoviePosterImageRows(),
-      fetchAdminManualSimilarRows()
+      fetchAdminManualSimilarRows(),
+      fetchAdminPersonRows().catch(error => {
+        if (isDirectorsUnavailableError(error)) {
+          areDirectorsAvailable = false;
+          return [];
+        }
+
+        throw error;
+      }),
+      fetchAdminMoviePeopleRows().catch(error => {
+        if (isDirectorsUnavailableError(error)) {
+          areDirectorsAvailable = false;
+          return [];
+        }
+
+        throw error;
+      })
     ]);
     const payload = buildDatabaseExportPayload({
       movies,
       movieGenres,
       movieCountries,
       posterImages,
-      manualSimilarRows
+      manualSimilarRows,
+      people,
+      moviePeople
     });
     const filename = `horroreiro-database-export-${getManualSimilarAuditDateStamp()}.json`;
 
@@ -2264,6 +2330,1420 @@ function handleEditorPageClick(event) {
   }
 
   return false;
+}
+
+function isDirectorsUnavailableError(error) {
+  const code = String(error?.code || '').trim();
+  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+
+  return (
+    DIRECTORS_UNAVAILABLE_CODES.has(code) ||
+    message.includes('people') ||
+    message.includes('movie_people') ||
+    message.includes('relationship')
+  );
+}
+
+function getDirectorPageRouteSlug() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const pathSlugMatch = window.location.pathname.match(/\/name\/([^/]+)\/?$/);
+  const pathSlug = pathSlugMatch ? decodeURIComponent(pathSlugMatch[1] || '').trim() : '';
+  const querySlug = String(searchParams.get('slug') || '').trim();
+
+  return pathSlug || querySlug;
+}
+
+function normalizeDirectorAliasValues(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map(alias => String(alias || '').trim())
+      .filter(Boolean);
+  }
+
+  return parseMultilineValues(value)
+    .map(alias => alias.trim())
+    .filter(Boolean);
+}
+
+function getDirectorDisplayName(director) {
+  return String(director?.name_ru || director?.name || '').trim() || 'Без имени';
+}
+
+function getDirectorSecondaryName(director) {
+  return String(director?.name || '').trim();
+}
+
+function getDirectorInitials(director) {
+  const displayName = getDirectorDisplayName(director);
+
+  return displayName
+    .split(/\s+/)
+    .map(part => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
+
+function formatYearsLabel(count) {
+  const normalizedCount = Math.abs(Number(count) || 0);
+  const lastTwoDigits = normalizedCount % 100;
+  const lastDigit = normalizedCount % 10;
+
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+    return 'лет';
+  }
+
+  if (lastDigit === 1) {
+    return 'год';
+  }
+
+  if (lastDigit >= 2 && lastDigit <= 4) {
+    return 'года';
+  }
+
+  return 'лет';
+}
+
+function parseDateOnly(value) {
+  const normalizedValue = String(value || '').trim();
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  const date = new Date(`${normalizedValue}T00:00:00`);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getAgeInYears(startDate, endDate = new Date()) {
+  if (!startDate || !endDate) {
+    return null;
+  }
+
+  let age = endDate.getFullYear() - startDate.getFullYear();
+  const monthDelta = endDate.getMonth() - startDate.getMonth();
+  const dayDelta = endDate.getDate() - startDate.getDate();
+
+  if (monthDelta < 0 || (monthDelta === 0 && dayDelta < 0)) {
+    age -= 1;
+  }
+
+  return Math.max(0, age);
+}
+
+function formatDirectorDate(value) {
+  const date = parseDateOnly(value);
+
+  if (!date) {
+    return '';
+  }
+
+  return date.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+}
+
+function getDirectorLifeLabel(director) {
+  const birthDate = parseDateOnly(director?.birth_date);
+  const deathDate = parseDateOnly(director?.death_date);
+
+  if (!birthDate && !deathDate) {
+    return '';
+  }
+
+  const birthLabel = formatDirectorDate(director?.birth_date);
+  const deathLabel = formatDirectorDate(director?.death_date);
+  const age = birthDate ? getAgeInYears(birthDate, deathDate || new Date()) : null;
+  const ageLabel = age !== null ? ` (${age} ${formatYearsLabel(age)})` : '';
+
+  if (birthLabel && deathLabel) {
+    return `${birthLabel} — ${deathLabel}${ageLabel}`;
+  }
+
+  if (birthLabel) {
+    return `${birthLabel}${ageLabel}`;
+  }
+
+  return deathLabel;
+}
+
+function normalizeDirectorRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...row,
+    aliases: Array.isArray(row.aliases) ? row.aliases : []
+  };
+}
+
+async function fetchDirectorBySlug(slug) {
+  const normalizedSlug = String(slug || '').trim();
+
+  if (!normalizedSlug || !areDirectorsAvailable) {
+    return null;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('people')
+    .select('*')
+    .eq('slug', normalizedSlug)
+    .maybeSingle();
+
+  if (error) {
+    if (isDirectorsUnavailableError(error)) {
+      areDirectorsAvailable = false;
+      return null;
+    }
+
+    throw error;
+  }
+
+  return normalizeDirectorRow(data);
+}
+
+async function fetchDirectorMovieRelationRows(directorId) {
+  const normalizedDirectorId = String(directorId || '').trim();
+
+  if (!normalizedDirectorId || !areDirectorsAvailable) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_people')
+    .select('movie_id, position')
+    .eq('person_id', normalizedDirectorId)
+    .eq('role', 'director')
+    .order('position', { ascending: true });
+
+  if (error) {
+    if (isDirectorsUnavailableError(error)) {
+      areDirectorsAvailable = false;
+      return [];
+    }
+
+    throw error;
+  }
+
+  return data || [];
+}
+
+async function fetchMovieDirectorsForMovie(movieId) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!normalizedMovieId || !areDirectorsAvailable) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_people')
+    .select('role, position, people (*)')
+    .eq('movie_id', normalizedMovieId)
+    .eq('role', 'director')
+    .order('position', { ascending: true });
+
+  if (error) {
+    if (isDirectorsUnavailableError(error)) {
+      areDirectorsAvailable = false;
+      return [];
+    }
+
+    throw error;
+  }
+
+  return (data || [])
+    .map(row => ({
+      ...row,
+      people: normalizeDirectorRow(row.people)
+    }))
+    .filter(row => row.people?.id);
+}
+
+async function ensureMovieDirectorItemsLoaded(movie) {
+  if (!movie?.id || Array.isArray(movie.movie_people) || !areDirectorsAvailable) {
+    return movie;
+  }
+
+  movie.movie_people = await fetchMovieDirectorsForMovie(movie.id);
+  return movie;
+}
+
+function getMovieDirectorItems(movie) {
+  const rows = Array.isArray(movie?.movie_people)
+    ? movie.movie_people
+    : Array.isArray(movie?.movie_directors)
+      ? movie.movie_directors
+      : [];
+
+  return rows
+    .filter(row => !row?.role || row.role === 'director')
+    .map(row => row?.people || row?.directors || row?.director || null)
+    .filter(director => director?.id);
+}
+
+function getMoviePageDirectorHtml(movie) {
+  const directors = getMovieDirectorItems(movie);
+
+  if (directors.length === 0) {
+    return movie?.director ? escapeHtml(movie.director) : '-';
+  }
+
+  return directors.map(director => `
+    <a class="movie-page-meta-link" href="${escapeHtml(buildDirectorPageUrl(director))}">
+      ${escapeHtml(getDirectorDisplayName(director))}
+    </a>
+  `).join(', ');
+}
+
+async function fetchDirectorMovies(directorId) {
+  const relationRows = await fetchDirectorMovieRelationRows(directorId);
+  const movieIds = relationRows
+    .map(row => String(row.movie_id || '').trim())
+    .filter(Boolean);
+
+  if (movieIds.length === 0) {
+    return [];
+  }
+
+  const movies = await fetchMoviesByIdsWithSelect(movieIds, MOVIE_CATALOG_SELECT);
+  const moviesById = new Map(movies.map(movie => [String(movie.id), movie]));
+  const orderedMovies = relationRows
+    .map(row => moviesById.get(String(row.movie_id || '')))
+    .filter(Boolean);
+
+  return getSortedMoviesCopy(orderedMovies, 'default');
+}
+
+async function fetchDirectorPageData(slug) {
+  const director = await fetchDirectorBySlug(slug);
+
+  if (!director) {
+    return null;
+  }
+
+  const movies = await fetchDirectorMovies(director.id);
+
+  return {
+    director,
+    movies
+  };
+}
+
+function renderDirectorPageLoading() {
+  if (!directorPage) {
+    return;
+  }
+
+  directorPage.innerHTML = '<div class="director-page-loading-state">Загрузка режиссёра...</div>';
+}
+
+function renderDirectorPageUnavailable() {
+  if (!directorPage) {
+    return;
+  }
+
+  document.title = 'Режиссёр — Хоррорейро';
+  directorPage.innerHTML = `
+    <div class="director-page-empty-state director-page-empty-state-large">
+      <p>Страницы режиссёров пока недоступны. Нужно применить movie-people-setup.sql в Supabase.</p>
+    </div>
+  `;
+}
+
+function renderDirectorPageNotFound() {
+  if (!directorPage) {
+    return;
+  }
+
+  document.title = 'Режиссёр не найден — Хоррорейро';
+  directorPage.innerHTML = `
+    <div class="director-page-empty-state director-page-empty-state-large">
+      <p>Режиссёр не найден.</p>
+      <a href="${escapeHtml(buildCatalogPageUrl())}" class="secondary-button director-page-login-button">
+        Назад в каталог
+      </a>
+    </div>
+  `;
+}
+
+function getDirectorPhotoHtml(director) {
+  const photoUrl = String(director?.photo_url || '').trim();
+  const displayName = getDirectorDisplayName(director);
+
+  if (photoUrl) {
+    return `
+      <img
+        class="director-page-photo"
+        src="${escapeHtml(photoUrl)}"
+        alt="Фото: ${escapeHtml(displayName)}"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      >
+    `;
+  }
+
+  return `
+    <div class="director-page-photo-placeholder" aria-hidden="true">
+      ${escapeHtml(getDirectorInitials(director) || '??')}
+    </div>
+  `;
+}
+
+function getDirectorMetaItemsHtml(director) {
+  const originalName = getDirectorSecondaryName(director);
+  const lifeLabel = getDirectorLifeLabel(director);
+  const birthPlace = String(director?.birth_place || '').trim();
+  const aliases = normalizeDirectorAliasValues(director?.aliases || []).join(', ');
+
+  return [
+    originalName ? `<div class="director-page-meta-item"><span>Имя:</span> ${escapeHtml(originalName)}</div>` : '',
+    lifeLabel ? `<div class="director-page-meta-item"><span>Дата рождения:</span> ${escapeHtml(lifeLabel)}</div>` : '',
+    birthPlace ? `<div class="director-page-meta-item"><span>Место рождения:</span> ${escapeHtml(birthPlace)}</div>` : '',
+    aliases ? `<div class="director-page-meta-item"><span>Другие имена:</span> ${escapeHtml(aliases)}</div>` : ''
+  ].filter(Boolean).join('');
+}
+
+function renderDirectorMoviesGrid(movies) {
+  const renderContext = createMovieCardRenderContext('');
+
+  allMovies = Array.isArray(movies) ? movies : [];
+  rebuildCatalogMovieMeta();
+
+  return `
+    <div class="director-page-movies-grid" data-director-page-movies-grid="true">
+      ${allMovies.map(movie => createMovieCard(movie, renderContext).outerHTML).join('')}
+    </div>
+  `;
+}
+
+function renderDirectorPage(data) {
+  if (!directorPage || !data?.director) {
+    return;
+  }
+
+  const { director, movies } = data;
+  const displayName = getDirectorDisplayName(director);
+  const metaHtml = getDirectorMetaItemsHtml(director);
+
+  currentDirectorPageData = data;
+  document.title = `${displayName} — Хоррорейро`;
+
+  directorPage.innerHTML = `
+    <div class="director-page-layout">
+      <div class="director-page-photo-column">
+        <div class="director-page-photo-wrapper">
+          ${getDirectorPhotoHtml(director)}
+        </div>
+      </div>
+      <div class="director-page-main-column">
+        <div class="director-page-title-block">
+          <h1 class="director-page-title">${escapeHtml(displayName)}</h1>
+          ${
+            getDirectorSecondaryName(director)
+              ? `<div class="director-page-original-name">${escapeHtml(getDirectorSecondaryName(director))}</div>`
+              : ''
+          }
+          ${metaHtml ? `<div class="director-page-meta-list">${metaHtml}</div>` : ''}
+          ${
+            isAdmin
+              ? `
+                <button type="button" class="secondary-button director-page-edit-button" data-director-edit="${escapeHtml(director.id)}">
+                  Редактировать
+                </button>
+              `
+              : ''
+          }
+        </div>
+      </div>
+    </div>
+
+    <section class="director-page-movies-section">
+      <div class="director-page-section-header">
+        <h2>Фильмы</h2>
+        <span>${escapeHtml(String(movies.length))}</span>
+      </div>
+      ${
+        movies.length
+          ? renderDirectorMoviesGrid(movies)
+          : '<div class="director-page-empty-state">Фильмы пока не привязаны.</div>'
+      }
+    </section>
+  `;
+
+  bindDirectorPageEvents();
+}
+
+function bindDirectorMoviesGridEvents(grid) {
+  if (!grid || grid.dataset.directorMovieGridBound === 'true') {
+    return;
+  }
+
+  grid.dataset.directorMovieGridBound = 'true';
+  grid.addEventListener('click', handleCatalogCardClick);
+  grid.addEventListener('auxclick', handleCatalogCardAuxClick);
+  grid.addEventListener('mouseover', handleCatalogRatingStarMouseOver);
+  grid.addEventListener('mouseout', handleCatalogRatingStarMouseOut);
+  bindPosterFallbackImages(grid);
+}
+
+function bindDirectorPageEvents() {
+  if (!directorPage) {
+    return;
+  }
+
+  bindDirectorMoviesGridEvents(directorPage.querySelector('[data-director-page-movies-grid="true"]'));
+
+  directorPage.querySelectorAll('[data-director-edit]').forEach(button => {
+    if (button.dataset.directorEditBound === 'true') {
+      return;
+    }
+
+    button.dataset.directorEditBound = 'true';
+    button.addEventListener('click', () => {
+      if (isAdmin && currentDirectorPageData?.director) {
+        openDirectorModal(currentDirectorPageData.director);
+      }
+    });
+  });
+}
+
+async function loadDirectorPage() {
+  if (!directorPage) {
+    return;
+  }
+
+  const slug = getDirectorPageRouteSlug();
+
+  if (!slug) {
+    renderDirectorPageNotFound();
+    return;
+  }
+
+  renderDirectorPageLoading();
+
+  try {
+    await restoreSession();
+    trackEmailConfirmedLoginIfNeeded();
+
+    const data = await fetchDirectorPageData(slug);
+
+    if (!areDirectorsAvailable) {
+      renderDirectorPageUnavailable();
+      return;
+    }
+
+    if (!data) {
+      renderDirectorPageNotFound();
+      return;
+    }
+
+    await Promise.all([
+      fetchMovieRatings(),
+      shouldUseAuthenticatedUi() ? fetchCurrentUserRatings() : Promise.resolve(),
+      shouldUseAuthenticatedUi() ? fetchCurrentUserWatchlist() : Promise.resolve()
+    ]);
+
+    renderDirectorPage(data);
+  } catch (error) {
+    console.error('Ошибка загрузки страницы режиссёра:', error);
+    renderDirectorPageNotFound();
+  }
+}
+
+async function initDirectorPage() {
+  await loadDirectorPage();
+
+  bindSharedAuthStateListener({
+    onAfterAuthSync: loadDirectorPage
+  });
+}
+
+async function fetchAdminPersonRows() {
+  return fetchAllSupabaseRows(() => (
+    supabaseClient
+      .from('people')
+      .select('*')
+      .order('name_ru', { ascending: true })
+  ));
+}
+
+async function fetchAdminMoviePeopleRows() {
+  return fetchAllSupabaseRows(() => (
+    supabaseClient
+      .from('movie_people')
+      .select('movie_id, person_id, role, position')
+      .order('role', { ascending: true })
+      .order('person_id', { ascending: true })
+      .order('position', { ascending: true })
+  ));
+}
+
+async function fetchAdminMovieDirectorRows() {
+  return fetchAllSupabaseRows(() => (
+    supabaseClient
+      .from('movie_people')
+      .select('movie_id, person_id, role, position')
+      .eq('role', 'director')
+      .order('person_id', { ascending: true })
+      .order('position', { ascending: true })
+  ));
+}
+
+function renderDirectorsAdminPageLoading() {
+  if (!directorsAdminPage) {
+    return;
+  }
+
+  directorsAdminPage.innerHTML = '<div class="directors-admin-page-loading-state">Загрузка режиссёров...</div>';
+}
+
+function renderDirectorsAdminPageAuthGate() {
+  if (!directorsAdminPage) {
+    return;
+  }
+
+  document.title = 'Режиссёры — Хоррорейро';
+  directorsAdminPage.innerHTML = `
+    <div class="directors-admin-page-empty-state directors-admin-page-empty-state-large">
+      <p>Войди под администратором, чтобы открыть список режиссёров.</p>
+      <button type="button" class="secondary-button directors-admin-page-login-button" data-directors-admin-action="login">
+        Войти
+      </button>
+    </div>
+  `;
+}
+
+function renderDirectorsAdminPageForbidden() {
+  if (!directorsAdminPage) {
+    return;
+  }
+
+  document.title = 'Режиссёры — Хоррорейро';
+  directorsAdminPage.innerHTML = `
+    <div class="directors-admin-page-empty-state directors-admin-page-empty-state-large">
+      <p>Список режиссёров доступен только администратору.</p>
+    </div>
+  `;
+}
+
+function renderDirectorsAdminPageUnavailable() {
+  if (!directorsAdminPage) {
+    return;
+  }
+
+  document.title = 'Режиссёры — Хоррорейро';
+  directorsAdminPage.innerHTML = `
+    <div class="directors-admin-page-empty-state directors-admin-page-empty-state-large">
+      <p>Таблицы персон пока недоступны. Примените movie-people-setup.sql в Supabase.</p>
+    </div>
+  `;
+}
+
+function renderDirectorsAdminPageError() {
+  if (!directorsAdminPage) {
+    return;
+  }
+
+  directorsAdminPage.innerHTML = `
+    <div class="directors-admin-page-empty-state directors-admin-page-empty-state-large">
+      <p>Не удалось загрузить режиссёров. Попробуй обновить страницу.</p>
+      <button type="button" class="secondary-button directors-admin-page-login-button" data-directors-admin-action="refresh">
+        Повторить
+      </button>
+    </div>
+  `;
+}
+
+function getMovieCountsByDirectorId(movieDirectorRows = []) {
+  return (Array.isArray(movieDirectorRows) ? movieDirectorRows : []).reduce((counts, row) => {
+    const directorId = String(row?.person_id || '').trim();
+
+    if (!directorId) {
+      return counts;
+    }
+
+    counts.set(directorId, (counts.get(directorId) || 0) + 1);
+    return counts;
+  }, new Map());
+}
+
+function getDuplicateDirectorNameKeys(directors = []) {
+  const counts = new Map();
+
+  directors.forEach(director => {
+    const key = normalizeSearchText(director?.name_ru);
+
+    if (!key) {
+      return;
+    }
+
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+
+  return new Set(
+    Array.from(counts.entries())
+      .filter(([, count]) => count > 1)
+      .map(([key]) => key)
+  );
+}
+
+function renderDirectorsAdminRow(director, movieCount, duplicateNameKeys) {
+  const displayName = getDirectorDisplayName(director);
+  const secondaryName = getDirectorSecondaryName(director);
+  const lifeLabel = getDirectorLifeLabel(director);
+  const isDuplicateName = duplicateNameKeys.has(normalizeSearchText(director?.name_ru));
+
+  return `
+    <article class="directors-admin-card">
+      <a class="directors-admin-card-main" href="${escapeHtml(buildDirectorPageUrl(director))}">
+        <div class="directors-admin-card-avatar">
+          ${
+            director.photo_url
+              ? `<img src="${escapeHtml(director.photo_url)}" alt="" loading="lazy" decoding="async">`
+              : `<span>${escapeHtml(getDirectorInitials(director) || '??')}</span>`
+          }
+        </div>
+        <div class="directors-admin-card-body">
+          <div class="directors-admin-card-name">${escapeHtml(displayName)}</div>
+          ${secondaryName ? `<div class="directors-admin-card-original">${escapeHtml(secondaryName)}</div>` : ''}
+          ${lifeLabel ? `<div class="directors-admin-card-meta">${escapeHtml(lifeLabel)}</div>` : ''}
+          <div class="directors-admin-card-meta">${escapeHtml(String(movieCount))} ${escapeHtml(getMoviesCountLabel(movieCount))}</div>
+        </div>
+      </a>
+      <div class="directors-admin-card-actions">
+        ${isDuplicateName ? '<span class="directors-admin-duplicate-badge" title="Есть режиссёры с таким же именем">Тёзка</span>' : ''}
+        <button type="button" class="secondary-button secondary-button-compact" data-director-edit="${escapeHtml(director.id)}">
+          Редактировать
+        </button>
+      </div>
+    </article>
+  `;
+}
+
+function getMoviesCountLabel(count) {
+  const normalizedCount = Math.abs(Number(count) || 0);
+  const lastTwoDigits = normalizedCount % 100;
+  const lastDigit = normalizedCount % 10;
+
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+    return 'фильмов';
+  }
+
+  if (lastDigit === 1) {
+    return 'фильм';
+  }
+
+  if (lastDigit >= 2 && lastDigit <= 4) {
+    return 'фильма';
+  }
+
+  return 'фильмов';
+}
+
+function renderDirectorsAdminPage({ directors = [], movieDirectorRows = [] } = {}) {
+  if (!directorsAdminPage) {
+    return;
+  }
+
+  const movieCountsByDirectorId = getMovieCountsByDirectorId(movieDirectorRows);
+  const duplicateNameKeys = getDuplicateDirectorNameKeys(directors);
+
+  currentDirectorsAdminRows = directors;
+  document.title = 'Режиссёры — Хоррорейро';
+
+  directorsAdminPage.innerHTML = `
+    <section class="directors-admin-page-toolbar">
+      <div>
+        <p class="directors-admin-page-kicker">${escapeHtml(String(directors.length))} ${escapeHtml(getMoviesCountLabel(directors.length)).replace('фильм', 'режиссёр')}</p>
+        <p class="directors-admin-page-note">Технический список для быстрого редактирования страниц режиссёров.</p>
+      </div>
+      <button type="button" class="secondary-button" data-directors-admin-action="create">
+        Добавить режиссёра
+      </button>
+    </section>
+    ${
+      directors.length
+        ? `
+          <div class="directors-admin-grid">
+            ${directors.map(director => (
+              renderDirectorsAdminRow(
+                director,
+                movieCountsByDirectorId.get(String(director.id)) || 0,
+                duplicateNameKeys
+              )
+            )).join('')}
+          </div>
+        `
+        : '<div class="directors-admin-page-empty-state">Режиссёры пока не созданы.</div>'
+    }
+  `;
+
+  bindDirectorsAdminPageEvents();
+}
+
+async function loadDirectorsAdminPage() {
+  if (!directorsAdminPage) {
+    return;
+  }
+
+  if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
+    renderDirectorsAdminPageAuthGate();
+    return;
+  }
+
+  if (!isAdmin) {
+    renderDirectorsAdminPageForbidden();
+    return;
+  }
+
+  renderDirectorsAdminPageLoading();
+
+  try {
+    const [directors, movieDirectorRows] = await Promise.all([
+      fetchAdminPersonRows(),
+      fetchAdminMovieDirectorRows()
+    ]);
+
+    areDirectorsAvailable = true;
+    renderDirectorsAdminPage({
+      directors: directors.map(normalizeDirectorRow).filter(Boolean),
+      movieDirectorRows
+    });
+  } catch (error) {
+    if (isDirectorsUnavailableError(error)) {
+      areDirectorsAvailable = false;
+      renderDirectorsAdminPageUnavailable();
+      return;
+    }
+
+    console.error('Ошибка загрузки списка режиссёров:', error);
+    renderDirectorsAdminPageError();
+  }
+}
+
+async function initDirectorsAdminPage() {
+  renderDirectorsAdminPageLoading();
+  await restoreSession();
+  trackEmailConfirmedLoginIfNeeded();
+  await loadDirectorsAdminPage();
+
+  bindSharedAuthStateListener({
+    onAfterAuthSync: loadDirectorsAdminPage
+  });
+}
+
+function getDirectorByIdFromAdminRows(directorId) {
+  const normalizedDirectorId = String(directorId || '').trim();
+
+  return currentDirectorsAdminRows.find(director => String(director.id) === normalizedDirectorId) || null;
+}
+
+function bindDirectorsAdminPageEvents() {
+  if (!directorsAdminPage) {
+    return;
+  }
+
+  directorsAdminPage.querySelectorAll('[data-director-edit]').forEach(button => {
+    if (button.dataset.directorEditBound === 'true') {
+      return;
+    }
+
+    button.dataset.directorEditBound = 'true';
+    button.addEventListener('click', () => {
+      const director = getDirectorByIdFromAdminRows(button.dataset.directorEdit);
+
+      if (director) {
+        openDirectorModal(director);
+      }
+    });
+  });
+}
+
+function handleDirectorsAdminPageClick(event) {
+  const actionButton = event.target?.closest?.('[data-directors-admin-action]');
+
+  if (!actionButton || !directorsAdminPage?.contains(actionButton)) {
+    return false;
+  }
+
+  const action = String(actionButton.dataset.directorsAdminAction || '').trim();
+
+  event.preventDefault();
+
+  if (action === 'login') {
+    openAuthModal();
+    return true;
+  }
+
+  if (action === 'refresh') {
+    void loadDirectorsAdminPage();
+    return true;
+  }
+
+  if (action === 'create') {
+    openDirectorModal();
+    return true;
+  }
+
+  return false;
+}
+
+function ensureDirectorModal() {
+  if (directorModal) {
+    return;
+  }
+
+  directorModal = document.createElement('div');
+  directorModal.id = 'directorModal';
+  directorModal.className = 'modal director-modal';
+  directorModal.innerHTML = `
+    <div class="modal-backdrop" data-director-modal-close="true"></div>
+    <div class="modal-dialog director-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="directorModalTitle">
+      <div class="modal-header">
+        <h2 id="directorModalTitle">Режиссёр</h2>
+        <button type="button" class="modal-close-button" data-director-modal-close="true" aria-label="Закрыть"></button>
+      </div>
+      <form class="director-form" data-director-form="true">
+        <input type="hidden" data-director-id="true">
+
+        <div class="director-form-photo-row">
+          <div class="director-form-photo-preview" data-director-photo-preview="true"></div>
+          <div class="director-form-photo-actions">
+            <label class="secondary-button director-form-photo-upload">
+              <span>Выбрать фото</span>
+              <input type="file" data-director-photo-file="true" accept="image/jpeg,image/png,image/webp">
+            </label>
+            <button type="button" class="secondary-button secondary-button-compact" data-director-photo-remove-button="true">
+              Удалить фото
+            </button>
+            <input type="checkbox" data-director-photo-remove="true" hidden>
+            <div class="director-form-photo-name" data-director-photo-file-name="true">Файл не выбран</div>
+          </div>
+        </div>
+
+        <div class="movie-form-inline-group movie-form-inline-group-titles">
+          <div class="form-row">
+            <label for="directorNameRu">Имя на русском:</label>
+            <input type="text" id="directorNameRu" data-director-name-ru="true" required>
+          </div>
+          <div class="form-row">
+            <label for="directorName">Имя:</label>
+            <input type="text" id="directorName" data-director-name="true">
+          </div>
+        </div>
+
+        <div class="movie-form-inline-group movie-form-inline-group-meta">
+          <div class="form-row">
+            <label for="directorBirthDate">Дата рождения:</label>
+            <input type="date" id="directorBirthDate" data-director-birth-date="true">
+          </div>
+          <div class="form-row">
+            <label for="directorDeathDate">Дата смерти:</label>
+            <input type="date" id="directorDeathDate" data-director-death-date="true">
+          </div>
+          <div class="form-row">
+            <label for="directorBirthPlace">Место рождения:</label>
+            <input type="text" id="directorBirthPlace" data-director-birth-place="true">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="directorAliases">Дополнительные имена:</label>
+          <textarea id="directorAliases" data-director-aliases="true" rows="3"></textarea>
+          <div class="field-hint">По одному имени с новой строки.</div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" data-director-submit="true">Сохранить</button>
+          <button type="button" class="secondary-button form-mode-button" data-director-modal-close="true">
+            Отмена
+          </button>
+        </div>
+      </form>
+      <p class="form-message" data-director-form-message="true"></p>
+    </div>
+  `;
+
+  document.body.appendChild(directorModal);
+
+  directorForm = directorModal.querySelector('[data-director-form="true"]');
+  directorModalTitle = directorModal.querySelector('#directorModalTitle');
+  directorIdInput = directorModal.querySelector('[data-director-id="true"]');
+  directorNameRuInput = directorModal.querySelector('[data-director-name-ru="true"]');
+  directorNameInput = directorModal.querySelector('[data-director-name="true"]');
+  directorAliasesInput = directorModal.querySelector('[data-director-aliases="true"]');
+  directorBirthDateInput = directorModal.querySelector('[data-director-birth-date="true"]');
+  directorDeathDateInput = directorModal.querySelector('[data-director-death-date="true"]');
+  directorBirthPlaceInput = directorModal.querySelector('[data-director-birth-place="true"]');
+  directorPhotoFileInput = directorModal.querySelector('[data-director-photo-file="true"]');
+  directorPhotoFileName = directorModal.querySelector('[data-director-photo-file-name="true"]');
+  directorPhotoPreview = directorModal.querySelector('[data-director-photo-preview="true"]');
+  directorPhotoRemoveInput = directorModal.querySelector('[data-director-photo-remove="true"]');
+  directorFormMessage = directorModal.querySelector('[data-director-form-message="true"]');
+  directorSubmitButton = directorModal.querySelector('[data-director-submit="true"]');
+
+  directorModal.querySelectorAll('[data-director-modal-close="true"]').forEach(element => {
+    element.addEventListener('click', closeDirectorModal);
+  });
+
+  directorModal.querySelector('[data-director-photo-remove-button="true"]')?.addEventListener('click', () => {
+    if (directorPhotoRemoveInput) {
+      directorPhotoRemoveInput.checked = true;
+    }
+
+    if (directorPhotoFileInput) {
+      directorPhotoFileInput.value = '';
+    }
+
+    renderDirectorModalPhotoPreview('');
+    setDirectorFormMessage();
+  });
+
+  directorPhotoFileInput?.addEventListener('change', () => {
+    updateDirectorPhotoFileUi();
+    setDirectorFormMessage();
+  });
+
+  directorForm?.addEventListener('submit', saveDirectorFromModal);
+}
+
+function setDirectorFormMessage(message = '', type = '') {
+  if (!directorFormMessage) {
+    return;
+  }
+
+  directorFormMessage.textContent = message;
+  directorFormMessage.classList.remove('is-error', 'is-success');
+
+  if (type) {
+    directorFormMessage.classList.add(`is-${type}`);
+  }
+}
+
+function setDirectorFormSubmitting(isSubmitting) {
+  isDirectorFormSubmitting = isSubmitting;
+
+  [
+    directorNameRuInput,
+    directorNameInput,
+    directorAliasesInput,
+    directorBirthDateInput,
+    directorDeathDateInput,
+    directorBirthPlaceInput,
+    directorPhotoFileInput
+  ].forEach(element => {
+    if (element) {
+      element.disabled = isSubmitting;
+    }
+  });
+
+  if (directorSubmitButton) {
+    directorSubmitButton.disabled = isSubmitting;
+    directorSubmitButton.textContent = isSubmitting ? 'Сохраняю...' : 'Сохранить';
+  }
+}
+
+function renderDirectorModalPhotoPreview(photoUrl = '') {
+  if (!directorPhotoPreview) {
+    return;
+  }
+
+  const normalizedPhotoUrl = String(photoUrl || '').trim();
+
+  directorPhotoPreview.innerHTML = normalizedPhotoUrl
+    ? `<img src="${escapeHtml(normalizedPhotoUrl)}" alt="" loading="lazy" decoding="async">`
+    : '<span>Фото</span>';
+}
+
+function updateDirectorPhotoFileUi() {
+  const file = directorPhotoFileInput?.files?.[0] || null;
+
+  if (directorPhotoFileName) {
+    directorPhotoFileName.textContent = file ? file.name : 'Файл не выбран';
+  }
+
+  if (file) {
+    if (directorPhotoRemoveInput) {
+      directorPhotoRemoveInput.checked = false;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    renderDirectorModalPhotoPreview(objectUrl);
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  }
+}
+
+function openDirectorModal(director = null) {
+  if (!isAdmin) {
+    return;
+  }
+
+  ensureDirectorModal();
+
+  const normalizedDirector = normalizeDirectorRow(director) || {};
+
+  isDirectorModalOpen = true;
+  directorModal.classList.add('is-open');
+  document.body.classList.add('modal-open');
+
+  if (directorModalTitle) {
+    directorModalTitle.textContent = normalizedDirector.id ? 'Редактировать режиссёра' : 'Добавить режиссёра';
+  }
+
+  setInputValue(directorIdInput, normalizedDirector.id || '', 'directorIdInput');
+  setInputValue(directorNameRuInput, normalizedDirector.name_ru || '', 'directorNameRuInput');
+  setInputValue(directorNameInput, normalizedDirector.name || '', 'directorNameInput');
+  setInputValue(directorAliasesInput, normalizeDirectorAliasValues(normalizedDirector.aliases || []).join('\n'), 'directorAliasesInput');
+  setInputValue(directorBirthDateInput, normalizedDirector.birth_date || '', 'directorBirthDateInput');
+  setInputValue(directorDeathDateInput, normalizedDirector.death_date || '', 'directorDeathDateInput');
+  setInputValue(directorBirthPlaceInput, normalizedDirector.birth_place || '', 'directorBirthPlaceInput');
+
+  if (directorPhotoFileInput) {
+    directorPhotoFileInput.value = '';
+  }
+
+  if (directorPhotoRemoveInput) {
+    directorPhotoRemoveInput.checked = false;
+  }
+
+  if (directorPhotoFileName) {
+    directorPhotoFileName.textContent = 'Файл не выбран';
+  }
+
+  renderDirectorModalPhotoPreview(normalizedDirector.photo_url || '');
+  setDirectorFormMessage();
+  setDirectorFormSubmitting(false);
+  directorNameRuInput?.focus();
+}
+
+function closeDirectorModal() {
+  if (!directorModal || isDirectorFormSubmitting) {
+    return;
+  }
+
+  isDirectorModalOpen = false;
+  directorModal.classList.remove('is-open');
+  document.body.classList.remove('modal-open');
+}
+
+async function buildUniqueDirectorSlug(nameRu, excludeDirectorId = null) {
+  const baseSlug = slugifyMovieValue(nameRu) || 'name';
+  let slugCandidate = baseSlug;
+  let suffix = 2;
+
+  while (true) {
+    let query = supabaseClient
+      .from('people')
+      .select('id')
+      .eq('slug', slugCandidate)
+      .limit(1);
+
+    if (excludeDirectorId) {
+      query = query.neq('id', excludeDirectorId);
+    }
+
+    const { data, error } = await query;
+
+    throwIfSupabaseError(error);
+
+    if (!data || data.length === 0) {
+      return slugCandidate;
+    }
+
+    slugCandidate = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+}
+
+async function uploadDirectorPhotoFile(file) {
+  if (!file) {
+    return '';
+  }
+
+  const rawExtension = String(file.name || 'jpg').split('.').pop() || 'jpg';
+  const fileExtension = rawExtension.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExtension}`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from(DIRECTOR_STORAGE_BUCKET)
+    .upload(fileName, file, {
+      upsert: false
+    });
+
+  throwIfSupabaseError(uploadError);
+
+  const { data } = supabaseClient.storage
+    .from(DIRECTOR_STORAGE_BUCKET)
+    .getPublicUrl(fileName);
+
+  return data?.publicUrl || '';
+}
+
+function extractDirectorStoragePath(publicUrl) {
+  if (!publicUrl) {
+    return null;
+  }
+
+  let parsedUrl = null;
+
+  try {
+    parsedUrl = new URL(publicUrl);
+  } catch (error) {
+    return null;
+  }
+
+  const pathname = parsedUrl.pathname;
+  const marker = pathname.includes(DIRECTOR_STORAGE_PUBLIC_PATH)
+    ? DIRECTOR_STORAGE_PUBLIC_PATH
+    : DIRECTOR_STORAGE_RENDER_PATH;
+
+  if (!pathname.includes(marker)) {
+    return null;
+  }
+
+  return pathname.split(marker)[1] || null;
+}
+
+async function deleteDirectorPhotoFileByUrl(publicUrl) {
+  const storagePath = extractDirectorStoragePath(publicUrl);
+
+  if (!storagePath) {
+    return;
+  }
+
+  const { error } = await supabaseClient.storage
+    .from(DIRECTOR_STORAGE_BUCKET)
+    .remove([storagePath]);
+
+  throwIfSupabaseError(error);
+}
+
+async function saveDirectorFromModal(event) {
+  event.preventDefault();
+
+  if (!isAdmin || isDirectorFormSubmitting) {
+    return;
+  }
+
+  const directorId = String(directorIdInput?.value || '').trim();
+  const nameRu = String(directorNameRuInput?.value || '').trim();
+  const name = String(directorNameInput?.value || '').trim();
+  const aliases = normalizeDirectorAliasValues(directorAliasesInput?.value || '');
+  const birthDate = String(directorBirthDateInput?.value || '').trim();
+  const deathDate = String(directorDeathDateInput?.value || '').trim();
+  const birthPlace = String(directorBirthPlaceInput?.value || '').trim();
+  const photoFile = directorPhotoFileInput?.files?.[0] || null;
+  const shouldRemovePhoto = Boolean(directorPhotoRemoveInput?.checked);
+  const existingDirector = directorId
+    ? currentDirectorsAdminRows.find(director => String(director.id) === directorId)
+      || currentDirectorPageData?.director
+    : null;
+
+  if (!nameRu) {
+    setDirectorFormMessage('Имя на русском обязательно.', 'error');
+    directorNameRuInput?.focus();
+    return;
+  }
+
+  try {
+    ensureActiveSessionForWrite();
+    setDirectorFormSubmitting(true);
+    setDirectorFormMessage('Сохраняю...');
+
+    let photoUrl = existingDirector?.photo_url || '';
+
+    if (shouldRemovePhoto) {
+      photoUrl = '';
+    }
+
+    if (photoFile) {
+      setDirectorFormMessage('Загружаю фото...');
+      photoUrl = await uploadDirectorPhotoFile(photoFile);
+    }
+
+    const payload = {
+      name_ru: nameRu,
+      name: name || null,
+      aliases,
+      birth_date: birthDate || null,
+      death_date: deathDate || null,
+      birth_place: birthPlace || null,
+      photo_url: photoUrl || null
+    };
+
+    if (directorId) {
+      if (nameRu !== (existingDirector?.name_ru || '') || !existingDirector?.slug) {
+        payload.slug = await buildUniqueDirectorSlug(nameRu, directorId);
+      }
+
+      const { data, error } = await supabaseClient
+        .from('people')
+        .update(payload)
+        .eq('id', directorId)
+        .select('*')
+        .single();
+
+      throwIfSupabaseError(error);
+
+      const nextDirector = normalizeDirectorRow(data);
+
+      if (currentDirectorPageData?.director && String(currentDirectorPageData.director.id) === directorId) {
+        currentDirectorPageData.director = nextDirector;
+        renderDirectorPage(currentDirectorPageData);
+      }
+    } else {
+      payload.slug = await buildUniqueDirectorSlug(nameRu);
+      payload.created_by = currentUser.id;
+
+      const { error } = await supabaseClient
+        .from('people')
+        .insert(payload);
+
+      throwIfSupabaseError(error);
+    }
+
+    if (
+      existingDirector?.photo_url &&
+      existingDirector.photo_url !== photoUrl &&
+      (shouldRemovePhoto || photoFile)
+    ) {
+      await deleteDirectorPhotoFileByUrl(existingDirector.photo_url);
+    }
+
+    setDirectorFormMessage('Сохранено.', 'success');
+    closeDirectorModal();
+
+    if (isDirectorsAdminPage()) {
+      await loadDirectorsAdminPage();
+    }
+  } catch (error) {
+    console.error('Ошибка сохранения режиссёра:', error);
+    setDirectorFormMessage(error?.message || 'Не удалось сохранить режиссёра.', 'error');
+  } finally {
+    setDirectorFormSubmitting(false);
+  }
+}
+
+async function ensureDirectorsByNames(names = []) {
+  const normalizedNames = parseLineOrCommaSeparatedValues(names.join('\n'));
+
+  if (!areDirectorsAvailable || normalizedNames.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('people')
+    .select('*')
+    .order('name_ru', { ascending: true });
+
+  if (error) {
+    if (isDirectorsUnavailableError(error)) {
+      areDirectorsAvailable = false;
+      return [];
+    }
+
+    throw error;
+  }
+
+  const directorsByNameKey = new Map(
+    (data || [])
+      .map(normalizeDirectorRow)
+      .filter(Boolean)
+      .map(director => [normalizeSearchText(director.name_ru), director])
+  );
+  const result = [];
+
+  for (const nameRu of normalizedNames) {
+    const nameKey = normalizeSearchText(nameRu);
+    let director = directorsByNameKey.get(nameKey);
+
+    if (!director) {
+      const payload = {
+        name_ru: nameRu,
+        slug: await buildUniqueDirectorSlug(nameRu),
+        created_by: currentUser?.id || null
+      };
+      const { data: insertedDirector, error: insertError } = await supabaseClient
+        .from('people')
+        .insert(payload)
+        .select('*')
+        .single();
+
+      if (insertError) {
+        if (isDirectorsUnavailableError(insertError)) {
+          areDirectorsAvailable = false;
+          return result;
+        }
+
+        throw insertError;
+      }
+
+      director = normalizeDirectorRow(insertedDirector);
+      directorsByNameKey.set(nameKey, director);
+    }
+
+    if (director) {
+      result.push(director);
+    }
+  }
+
+  return result;
+}
+
+async function replaceMovieDirectors(movieId, directorNames = []) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!normalizedMovieId || !areDirectorsAvailable) {
+    return false;
+  }
+
+  try {
+    const directors = await ensureDirectorsByNames(directorNames);
+
+    const { error: deleteError } = await supabaseClient
+      .from('movie_people')
+      .delete()
+      .eq('movie_id', normalizedMovieId)
+      .eq('role', 'director');
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    if (directors.length === 0) {
+      return true;
+    }
+
+    const rows = directors.map((director, index) => ({
+      movie_id: normalizedMovieId,
+      person_id: director.id,
+      role: 'director',
+      position: index
+    }));
+
+    const { error: insertError } = await supabaseClient
+      .from('movie_people')
+      .insert(rows);
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    return true;
+  } catch (error) {
+    if (isDirectorsUnavailableError(error)) {
+      areDirectorsAvailable = false;
+      return false;
+    }
+
+    throw error;
+  }
 }
 
 function getManualSimilarSelectableMovies() {
@@ -3284,6 +4764,24 @@ function buildNotificationsPageUrl() {
 
 function buildEditorPageUrl() {
   return isLocalDevRouteHost() ? 'editor.html' : '/editor';
+}
+
+function buildDirectorsAdminPageUrl() {
+  return isLocalDevRouteHost() ? 'directors.html' : '/directors';
+}
+
+function buildDirectorPageUrl(director) {
+  const slug = String(director?.slug || '').trim();
+
+  if (!slug) {
+    return buildDirectorsAdminPageUrl();
+  }
+
+  const encodedSlug = encodeURIComponent(slug);
+
+  return isLocalDevRouteHost()
+    ? `name.html?slug=${encodedSlug}`
+    : `/name/${encodedSlug}`;
 }
 
 function buildCatalogProfileActivityUrl(handle, activityKey) {
@@ -9839,6 +11337,14 @@ function updateAuthUI() {
     );
   }
 
+  if (directorsAdminSummaryButton) {
+    syncAuthPopoverNavigationLink(
+      directorsAdminSummaryButton,
+      buildDirectorsAdminPageUrl(),
+      shouldShowAuthenticatedUi && isAdmin
+    );
+  }
+
   if (shouldShowAuthenticatedUi) {
     scheduleNotificationsUnreadRefresh();
   } else {
@@ -12560,7 +14066,8 @@ async function addMovie(event) {
   const releaseYear = releaseYearInput.value.trim();
   const sortOrder = sortOrderInput.value.trim();
   const runtimeMinutes = parseRuntimeMinutesFormValue(runtimeMinutesInput?.value || '');
-  const director = parseLineOrCommaSeparatedValues(directorInput.value).join(', ');
+  const directorNames = parseLineOrCommaSeparatedValues(directorInput.value);
+  const director = directorNames.join(', ');
   const production = parseMultilineValues(productionInput?.value || '');
   const distribution = parseMultilineValues(distributionInput?.value || '');
   const russianDistribution = parseMultilineValues(russianDistributionInput?.value || '');
@@ -12655,6 +14162,15 @@ async function addMovie(event) {
       'Превышено время ожидания сохранения жанров и стран.'
     );
 
+    if (directorNames.length > 0) {
+      setMovieFormStatus('Сохраняю режиссёров...');
+      await withPendingRequestTimeout(
+        replaceMovieDirectors(insertedMovie.id, directorNames),
+        15000,
+        'Превышено время ожидания сохранения режиссёров.'
+      );
+    }
+
     if (manualSimilarMovieIds.length > 0) {
       setMovieFormStatus('Сохраняю похожие фильмы...');
       await withPendingRequestTimeout(
@@ -12715,7 +14231,8 @@ async function updateMovie(event) {
   const releaseYear = releaseYearInput.value.trim();
   const sortOrder = sortOrderInput.value.trim();
   const runtimeMinutes = parseRuntimeMinutesFormValue(runtimeMinutesInput?.value || '');
-  const director = parseLineOrCommaSeparatedValues(directorInput.value).join(', ');
+  const directorNames = parseLineOrCommaSeparatedValues(directorInput.value);
+  const director = directorNames.join(', ');
   const production = parseMultilineValues(productionInput?.value || '');
   const distribution = parseMultilineValues(distributionInput?.value || '');
   const russianDistribution = parseMultilineValues(russianDistributionInput?.value || '');
@@ -12769,6 +14286,13 @@ async function updateMovie(event) {
 
   const normalizedExistingCountries = [...existingCountryNames].sort((a, b) => a.localeCompare(b, 'ru'));
   const normalizedNewCountries = [...countryNames].sort((a, b) => a.localeCompare(b, 'ru'));
+  const existingLinkedDirectorNames = getMovieDirectorItems(existingMovie)
+    .map(getDirectorDisplayName)
+    .filter(Boolean);
+  const existingDirectorNames = existingLinkedDirectorNames.length
+    ? existingLinkedDirectorNames
+    : parseLineOrCommaSeparatedValues(existingMovie.director || '');
+  const directorsChanged = !areStringArraysEqual(existingDirectorNames, directorNames);
 
   const relationsChanged = (
     !areStringArraysEqual(normalizedExistingGenres, normalizedNewGenres) ||
@@ -12942,6 +14466,15 @@ async function updateMovie(event) {
       );
     }
 
+    if (directorsChanged) {
+      setMovieFormStatus('Сохраняю режиссёров...');
+      await withPendingRequestTimeout(
+        replaceMovieDirectors(editingMovieId, directorNames),
+        15000,
+        'Превышено время ожидания сохранения режиссёров.'
+      );
+    }
+
     if (manualSimilarChanged) {
       setMovieFormStatus('Сохраняю похожие фильмы...');
       await withPendingRequestTimeout(
@@ -12970,7 +14503,13 @@ async function updateMovie(event) {
       }
     }
 
-    if (Object.keys(changedFields).length === 0 && !relationsChanged && !manualSimilarChanged && !posterImagesChanged) {
+    if (
+      Object.keys(changedFields).length === 0 &&
+      !relationsChanged &&
+      !directorsChanged &&
+      !manualSimilarChanged &&
+      !posterImagesChanged
+    ) {
       setMovieFormStatus('Изменений нет.');
       closeMovieModal();
       resetFormToCreateMode();
@@ -16797,6 +18336,7 @@ function bindSharedUiEvents() {
   notificationsSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
   followingSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
   editorCenterSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
+  directorsAdminSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
 
   manualSimilarAuditButton?.addEventListener('click', runManualSimilarAudit);
   completenessAuditButton?.addEventListener('click', runCompletenessAudit);
@@ -16893,6 +18433,10 @@ function bindSharedUiEvents() {
       return;
     }
 
+    if (handleDirectorsAdminPageClick(event)) {
+      return;
+    }
+
     handleUserPageProfileSettingsClick(event);
     handleUserPageRailControlClick(event);
 
@@ -16958,6 +18502,11 @@ function bindSharedUiEvents() {
     closeAllCustomSelects();
     closeAuthPopoverMenu();
     closeDisplayNameModal();
+
+    if (isDirectorModalOpen) {
+      closeDirectorModal();
+      return;
+    }
 
     if (isModalOpen) {
       closeMovieModal();
@@ -17189,6 +18738,14 @@ function isNotificationsPage() {
 
 function isEditorPage() {
   return Boolean(editorPage);
+}
+
+function isDirectorPage() {
+  return Boolean(directorPage);
+}
+
+function isDirectorsAdminPage() {
+  return Boolean(directorsAdminPage);
 }
 
 function handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect) {
@@ -24236,7 +25793,7 @@ function getMoviePageMainColumnHtml(movie, viewModel) {
 
         <div class="movie-page-meta-list">
           <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
-          <div class="movie-page-meta-item"><span>Режиссёр:</span> ${movie.director ? escapeHtml(movie.director) : '-'}</div>
+          <div class="movie-page-meta-item"><span>Режиссёр:</span> ${getMoviePageDirectorHtml(movie)}</div>
           <div class="movie-page-meta-item"><span>Жанры:</span> ${genres ? escapeHtml(genres) : '-'}</div>
           <div class="movie-page-meta-item"><span>Поджанры:</span> ${primaryPerceivedTagLabel ? escapeHtml(primaryPerceivedTagLabel) : '-'}</div>
           ${
@@ -24578,6 +26135,10 @@ async function loadMoviePageByRouteParams(routeParams, {
     fetchMovieComments(movie.id)
   ];
 
+  if (areDirectorsAvailable && !Array.isArray(movie.movie_people)) {
+    loadTasks.push(ensureMovieDirectorItemsLoaded(movie));
+  }
+
   if (!isMoviePayloadLoadedByRpc) {
     loadTasks.push(
       fetchMovieRatingStatsForMovie(movie.id),
@@ -24703,6 +26264,16 @@ async function initDetectedPage() {
     return;
   }
 
+  if (isDirectorsAdminPage()) {
+    await initDirectorsAdminPage();
+    return;
+  }
+
+  if (isDirectorPage()) {
+    await initDirectorPage();
+    return;
+  }
+
   if (isMoviePage()) {
     bindMoviePageEvents();
     await initMoviePage();
@@ -24778,5 +26349,7 @@ window.HorroreiroApp = {
   initFollowingPage,
   initNotificationsPage,
   initEditorPage,
+  initDirectorPage,
+  initDirectorsAdminPage,
   initMoviePage
 };

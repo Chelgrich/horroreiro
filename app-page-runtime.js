@@ -26,6 +26,16 @@
         return app.initEditorPage();
       }
     },
+    director: {
+      run(app) {
+        return app.initDirectorPage();
+      }
+    },
+    directors: {
+      run(app) {
+        return app.initDirectorsAdminPage();
+      }
+    },
     movie: {
       run(app) {
         app.bindMoviePageEvents();

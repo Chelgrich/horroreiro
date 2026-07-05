@@ -23,7 +23,9 @@ const pageFiles = {
   'user.html': 'user',
   'following.html': 'following',
   'notifications.html': 'notifications',
-  'editor.html': 'editor'
+  'editor.html': 'editor',
+  'name.html': 'director',
+  'directors.html': 'directors'
 };
 
 const routes = [
@@ -32,7 +34,9 @@ const routes = [
   { path: '/user/profile000', expected: 'id="userPage"', label: 'user profile' },
   { path: '/notifications', expected: 'id="notificationsPage"', label: 'notifications' },
   { path: '/following', expected: 'id="followingPage"', label: 'following' },
-  { path: '/editor', expected: 'id="editorPage"', label: 'editor center' }
+  { path: '/editor', expected: 'id="editorPage"', label: 'editor center' },
+  { path: '/name/test-director', expected: 'id="directorPage"', label: 'director detail' },
+  { path: '/directors', expected: 'id="directorsAdminPage"', label: 'directors admin' }
 ];
 
 const contentTypes = {
@@ -98,6 +102,14 @@ function getSpaFallbackPath(pathname) {
 
   if (pathname === '/editor' || pathname === '/editor.html') {
     return 'editor.html';
+  }
+
+  if (pathname === '/directors' || pathname === '/directors.html') {
+    return 'directors.html';
+  }
+
+  if (pathname === '/name.html' || pathname.startsWith('/name/')) {
+    return 'name.html';
   }
 
   if (pathname === '/following' || pathname === '/following.html') {
@@ -180,6 +192,8 @@ async function checkStaticGuards() {
     'following.html',
     'notifications.html',
     'editor.html',
+    'name.html',
+    'directors.html',
     'app.js',
     'shared-layout.js',
     'app-script-loader.js',
@@ -207,10 +221,14 @@ async function checkStaticGuards() {
     '/user.html',
     '/editor',
     '/editor.html',
+    '/directors',
+    '/directors.html',
     '/following',
     '/following.html',
     '/notifications',
     '/notifications.html',
+    '/name/*',
+    '/name.html',
     '/sitemap.xml'
   ].forEach(route => {
     assert(routesConfig.include.includes(route), `_routes.json: missing ${route}`);

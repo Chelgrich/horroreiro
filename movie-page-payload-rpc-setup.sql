@@ -54,6 +54,21 @@ as $$
               join public.countries
                 on countries.id = movie_countries.country_id
               where movie_countries.movie_id = movie.id
+            ), '[]'::jsonb),
+            'movie_people',
+            coalesce((
+              select jsonb_agg(
+                jsonb_build_object(
+                  'role', movie_people.role,
+                  'position', movie_people.position,
+                  'people', to_jsonb(people)
+                )
+                order by movie_people.role, movie_people.position, people.name_ru
+              )
+              from public.movie_people
+              join public.people
+                on people.id = movie_people.person_id
+              where movie_people.movie_id = movie.id
             ), '[]'::jsonb)
           ),
         'rating_stats',

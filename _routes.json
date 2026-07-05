@@ -6,6 +6,8 @@
     "/env",
     "/editor",
     "/editor.html",
+    "/directors",
+    "/directors.html",
     "/following",
     "/following.html",
     "/notifications",
@@ -13,6 +15,8 @@
     "/admin/*",
     "/movie/*",
     "/movie.html",
+    "/name/*",
+    "/name.html",
     "/user.html",
     "/user/*",
     "/sitemap.xml"

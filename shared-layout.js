@@ -83,6 +83,15 @@
                     >
                       Центр редактора
                     </a>
+                    <a
+                      href="#"
+                      class="auth-popover-item"
+                      id="directorsAdminSummaryButton"
+                      role="menuitem"
+                      hidden
+                    >
+                      Режиссёры
+                    </a>
                     <button
                       type="button"
                       class="auth-popover-item"
