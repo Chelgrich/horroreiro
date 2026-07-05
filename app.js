@@ -2899,7 +2899,17 @@ function getDirectorPhotoHtml(director) {
 
   return `
     <div class="director-page-photo-placeholder" aria-hidden="true">
-      ${escapeHtml(getDirectorInitials(director) || '??')}
+      <svg
+        class="director-page-photo-placeholder-icon"
+        viewBox="0 0 96 96"
+        focusable="false"
+        aria-hidden="true"
+      >
+        <path
+          fill="currentColor"
+          d="M48 50c-12.7 0-23-10.3-23-23S35.3 4 48 4s23 10.3 23 23-10.3 23-23 23Zm0 10c20.5 0 36 12.5 36 29.1 0 1.6-1.3 2.9-2.9 2.9H14.9A2.9 2.9 0 0 1 12 89.1C12 72.5 27.5 60 48 60Z"
+        />
+      </svg>
     </div>
   `;
 }
@@ -2921,13 +2931,23 @@ function getDirectorMetaItemsHtml(director) {
 function renderDirectorMoviesGrid(movies) {
   try {
     const renderContext = createMovieCardRenderContext('');
+    let priorityPosterSlotsRemaining = CATALOG_PRIORITY_POSTER_COUNT;
+    const getPriorityPosterOptions = movie => {
+      const isPriorityPoster = priorityPosterSlotsRemaining > 0 && Boolean(movie?.poster_url);
+
+      if (isPriorityPoster) {
+        priorityPosterSlotsRemaining = Math.max(0, priorityPosterSlotsRemaining - 1);
+      }
+
+      return { isPriorityPoster };
+    };
 
     allMovies = Array.isArray(movies) ? movies : [];
     rebuildCatalogMovieMeta();
 
     return `
       <div class="director-page-movies-grid" data-director-page-movies-grid="true">
-        ${allMovies.map(movie => createMovieCard(movie, renderContext).outerHTML).join('')}
+        ${allMovies.map(movie => createMovieCard(movie, renderContext, getPriorityPosterOptions(movie)).outerHTML).join('')}
       </div>
     `;
   } catch (error) {
@@ -3002,11 +3022,12 @@ function bindDirectorMoviesGridEvents(grid) {
   }
 
   grid.dataset.directorMovieGridBound = 'true';
+  bindMoviePosterLoadStates(grid);
+  bindPosterFallbackImages(grid);
   grid.addEventListener('click', handleCatalogCardClick);
   grid.addEventListener('auxclick', handleCatalogCardAuxClick);
   grid.addEventListener('mouseover', handleCatalogRatingStarMouseOver);
   grid.addEventListener('mouseout', handleCatalogRatingStarMouseOut);
-  bindPosterFallbackImages(grid);
 }
 
 function bindDirectorPageEvents() {
@@ -7447,18 +7468,22 @@ function hydrateMoviePageFromCatalogSnapshot(routeParams) {
   return getCatalogMovieById(snapshotMovie.id) || snapshotMovie;
 }
 
-function bindRestoredCatalogPosterLoadStates() {
-  if (!container) {
+function bindMoviePosterLoadStates(root = document) {
+  if (!root) {
     return;
   }
 
-  container.querySelectorAll('.movie-poster').forEach(posterImage => {
+  root.querySelectorAll?.('.movie-poster').forEach(posterImage => {
     const posterSkeleton = posterImage
       .closest('.movie-poster-wrapper')
       ?.querySelector('.movie-poster-skeleton');
 
     bindPosterLoadState(posterImage, posterSkeleton);
   });
+}
+
+function bindRestoredCatalogPosterLoadStates() {
+  bindMoviePosterLoadStates(container);
 }
 
 function bindRestoredCatalogDomState() {

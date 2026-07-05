@@ -4947,11 +4947,12 @@ a[data-current-page-link="true"] {
   background:
     radial-gradient(circle at 50% 35%, var(--accent-alpha-18), transparent 48%),
     var(--surface-control);
-  font-family: var(--font-display);
-  font-size: clamp(42px, 8vw, 72px);
-  line-height: var(--line-height-none);
-  font-weight: 700;
-  letter-spacing: var(--letter-spacing-none);
+}
+
+.director-page-photo-placeholder-icon {
+  width: clamp(72px, 42%, 128px);
+  height: auto;
+  opacity: 0.72;
 }
 
 .director-page-title-block {
