@@ -2238,12 +2238,20 @@ button {
 .secondary-button {
   height: var(--control-height-md);
   padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   font-size: var(--font-size-base);
   font-weight: 600;
   letter-spacing: var(--letter-spacing-control);
   color: var(--color-text-secondary);
+  text-decoration: none;
+  cursor: pointer;
   background: var(--surface-control-alt);
+  border: 1px solid transparent;
   border-color: transparent;
+  border-radius: var(--radius-md);
 }
 
 .movie-card .delete-movie-btn.secondary-button,

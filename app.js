@@ -2788,23 +2788,37 @@ async function fetchDirectorPageData(slug) {
   const director = await fetchDirectorBySlug(slug);
 
   if (!director) {
-    return fetchLegacyDirectorPageData(slug);
+    try {
+      return await fetchLegacyDirectorPageData(slug);
+    } catch (error) {
+      console.error('Ошибка загрузки legacy-страницы режиссёра:', error);
+      return null;
+    }
   }
 
-  let movies = await fetchDirectorMovies(director.id);
+  let movies = [];
+  let moviesError = null;
 
-  if (movies.length === 0) {
-    const legacyMatches = await fetchLegacyDirectorMovieMatches({
-      slug: director.slug,
-      nameRu: director.name_ru
-    });
+  try {
+    movies = await fetchDirectorMovies(director.id);
 
-    movies = mergeDirectorMovieLists(movies, legacyMatches.movies);
+    if (movies.length === 0) {
+      const legacyMatches = await fetchLegacyDirectorMovieMatches({
+        slug: director.slug,
+        nameRu: director.name_ru
+      });
+
+      movies = mergeDirectorMovieLists(movies, legacyMatches.movies);
+    }
+  } catch (error) {
+    moviesError = error;
+    console.error('Ошибка загрузки фильмографии персоны:', error);
   }
 
   return {
     director,
-    movies
+    movies,
+    moviesError
   };
 }
 
@@ -2884,16 +2898,22 @@ function getDirectorMetaItemsHtml(director) {
 }
 
 function renderDirectorMoviesGrid(movies) {
-  const renderContext = createMovieCardRenderContext('');
+  try {
+    const renderContext = createMovieCardRenderContext('');
 
-  allMovies = Array.isArray(movies) ? movies : [];
-  rebuildCatalogMovieMeta();
+    allMovies = Array.isArray(movies) ? movies : [];
+    rebuildCatalogMovieMeta();
 
-  return `
-    <div class="director-page-movies-grid" data-director-page-movies-grid="true">
-      ${allMovies.map(movie => createMovieCard(movie, renderContext).outerHTML).join('')}
-    </div>
-  `;
+    return `
+      <div class="director-page-movies-grid" data-director-page-movies-grid="true">
+        ${allMovies.map(movie => createMovieCard(movie, renderContext).outerHTML).join('')}
+      </div>
+    `;
+  } catch (error) {
+    console.error('Ошибка рендера фильмографии персоны:', error);
+
+    return '<div class="director-page-empty-state">Не удалось отобразить фильмы. Попробуй обновить страницу.</div>';
+  }
 }
 
 function renderDirectorPage(data) {
@@ -2901,7 +2921,7 @@ function renderDirectorPage(data) {
     return;
   }
 
-  const { director, movies } = data;
+  const { director, movies, moviesError } = data;
   const displayName = getDirectorDisplayName(director);
   const metaHtml = getDirectorMetaItemsHtml(director);
 
@@ -2943,7 +2963,9 @@ function renderDirectorPage(data) {
         <span>${escapeHtml(String(movies.length))}</span>
       </div>
       ${
-        movies.length
+        moviesError
+          ? '<div class="director-page-empty-state">Не удалось загрузить фильмы. Попробуй обновить страницу.</div>'
+          : movies.length
           ? renderDirectorMoviesGrid(movies)
           : '<div class="director-page-empty-state">Фильмы пока не привязаны.</div>'
       }
@@ -3017,16 +3039,31 @@ async function loadDirectorPage() {
       return;
     }
 
-    await Promise.all([
+    const supportResults = await Promise.allSettled([
       fetchMovieRatings(),
       shouldUseAuthenticatedUi() ? fetchCurrentUserRatings() : Promise.resolve(),
       shouldUseAuthenticatedUi() ? fetchCurrentUserWatchlist() : Promise.resolve()
     ]);
 
-    renderDirectorPage(data);
+    supportResults
+      .filter(result => result.status === 'rejected')
+      .forEach(result => {
+        console.error('Ошибка загрузки вспомогательных данных страницы режиссёра:', result.reason);
+      });
+
+    try {
+      renderDirectorPage(data);
+    } catch (renderError) {
+      console.error('Ошибка рендера страницы режиссёра:', renderError);
+      renderDirectorPage({
+        ...data,
+        movies: [],
+        moviesError: renderError
+      });
+    }
   } catch (error) {
     console.error('Ошибка загрузки страницы режиссёра:', error);
-    renderDirectorPageNotFound();
+    renderDirectorPageUnavailable();
   }
 }
 
