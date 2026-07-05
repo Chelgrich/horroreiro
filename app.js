@@ -2915,13 +2915,11 @@ function getDirectorPhotoHtml(director) {
 }
 
 function getDirectorMetaItemsHtml(director) {
-  const originalName = getDirectorSecondaryName(director);
   const lifeLabel = getDirectorLifeLabel(director);
   const birthPlace = String(director?.birth_place || '').trim();
   const aliases = normalizeDirectorAliasValues(director?.aliases || []).join(', ');
 
   return [
-    originalName ? `<div class="director-page-meta-item"><span>Имя:</span> ${escapeHtml(originalName)}</div>` : '',
     lifeLabel ? `<div class="director-page-meta-item"><span>Дата рождения:</span> ${escapeHtml(lifeLabel)}</div>` : '',
     birthPlace ? `<div class="director-page-meta-item"><span>Место рождения:</span> ${escapeHtml(birthPlace)}</div>` : '',
     aliases ? `<div class="director-page-meta-item"><span>Другие имена:</span> ${escapeHtml(aliases)}</div>` : ''
@@ -3000,7 +2998,7 @@ function renderDirectorPage(data) {
 
     <section class="director-page-movies-section">
       <div class="director-page-section-header">
-        <h2>Фильмы</h2>
+        <h2>Режиссёр</h2>
         <span>${escapeHtml(String(movies.length))}</span>
       </div>
       ${
