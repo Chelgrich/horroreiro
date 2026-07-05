@@ -3067,7 +3067,7 @@ async function loadDirectorPage() {
     const supportResults = await Promise.allSettled([
       fetchMovieRatings(),
       shouldUseAuthenticatedUi() ? fetchCurrentUserRatings() : Promise.resolve(),
-      shouldUseAuthenticatedUi() ? fetchCurrentUserWatchlist() : Promise.resolve()
+      shouldUseAuthenticatedUi() ? fetchMovieWatchlist() : Promise.resolve()
     ]);
 
     supportResults
