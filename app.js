@@ -3744,8 +3744,10 @@ function openDirectorModal(director = null) {
   directorNameRuInput?.focus();
 }
 
-function closeDirectorModal() {
-  if (!directorModal || isDirectorFormSubmitting) {
+function closeDirectorModal(options = {}) {
+  const forceClose = Boolean(options?.force);
+
+  if (!directorModal || (isDirectorFormSubmitting && !forceClose)) {
     return;
   }
 
@@ -4016,7 +4018,7 @@ async function deleteDirectorFromModal() {
         await deleteDirectorPhotoFileByUrl(director.photo_url);
       }
 
-      closeDirectorModal();
+      closeDirectorModal({ force: true });
 
       if (isDirectorsAdminPage()) {
         await loadDirectorsAdminPage();
@@ -4146,7 +4148,7 @@ async function saveDirectorFromModal(event) {
     }
 
     setDirectorFormMessage('Сохранено.', 'success');
-    closeDirectorModal();
+    closeDirectorModal({ force: true });
 
     if (isDirectorPage() && savedDirector?.slug && currentDirectorPageData?.director?.id !== savedDirector.id) {
       window.location.href = buildDirectorPageUrl(savedDirector);
