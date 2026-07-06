@@ -3351,10 +3351,14 @@ function renderDirectorsAdminPage({ directors = [], movieDirectorRows = [] } = {
   bindDirectorsAdminPageEvents();
 }
 
-async function loadDirectorsAdminPage() {
+async function loadDirectorsAdminPage({ preserveScroll = false } = {}) {
   if (!directorsAdminPage) {
     return;
   }
+
+  const scrollYBeforeLoad = preserveScroll
+    ? window.scrollY || window.pageYOffset || 0
+    : null;
 
   if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
     renderDirectorsAdminPageAuthGate();
@@ -3366,7 +3370,9 @@ async function loadDirectorsAdminPage() {
     return;
   }
 
-  renderDirectorsAdminPageLoading();
+  if (!preserveScroll) {
+    renderDirectorsAdminPageLoading();
+  }
 
   try {
     const [directors, movieDirectorRows] = await Promise.all([
@@ -3379,6 +3385,8 @@ async function loadDirectorsAdminPage() {
       directors: directors.map(normalizeDirectorRow).filter(Boolean),
       movieDirectorRows
     });
+
+    restoreWindowScrollPositionOnNextFrames(scrollYBeforeLoad);
   } catch (error) {
     if (isDirectorsUnavailableError(error)) {
       areDirectorsAvailable = false;
@@ -4021,7 +4029,7 @@ async function deleteDirectorFromModal() {
       closeDirectorModal({ force: true });
 
       if (isDirectorsAdminPage()) {
-        await loadDirectorsAdminPage();
+        await loadDirectorsAdminPage({ preserveScroll: true });
       } else if (isDirectorPage()) {
         window.location.href = buildDirectorsAdminPageUrl();
       }
@@ -4156,7 +4164,7 @@ async function saveDirectorFromModal(event) {
     }
 
     if (isDirectorsAdminPage()) {
-      await loadDirectorsAdminPage();
+      await loadDirectorsAdminPage({ preserveScroll: true });
     }
   } catch (error) {
     console.error('Ошибка сохранения режиссёра:', error);
@@ -13558,6 +13566,25 @@ function preserveWindowScrollPosition(callback) {
 
   requestAnimationFrame(() => {
     scrollWindowToPosition(currentScrollY);
+  });
+}
+
+function restoreWindowScrollPositionOnNextFrames(scrollY) {
+  if (scrollY === null || scrollY === undefined) {
+    return;
+  }
+
+  const normalizedScrollY = Number(scrollY);
+
+  if (!Number.isFinite(normalizedScrollY) || normalizedScrollY < 0) {
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    scrollWindowToPosition(normalizedScrollY);
+    requestAnimationFrame(() => {
+      scrollWindowToPosition(normalizedScrollY);
+    });
   });
 }
 
