@@ -5086,6 +5086,13 @@ a[data-current-page-link="true"] {
   border-radius: var(--radius-lg);
 }
 
+.directors-admin-card.is-missing-tmdb {
+  background:
+    linear-gradient(180deg, var(--danger-alpha-08), rgba(var(--palette-red-rgb), 0.025)),
+    var(--surface-card);
+  border-color: var(--danger-alpha-72);
+}
+
 .directors-admin-card-main {
   min-width: 0;
   display: grid;
@@ -5164,17 +5171,26 @@ a[data-current-page-link="true"] {
   gap: 8px;
 }
 
-.directors-admin-duplicate-badge {
+.directors-admin-duplicate-badge,
+.directors-admin-missing-tmdb-badge {
   min-height: 28px;
   padding: 0 10px;
   display: inline-flex;
   align-items: center;
-  color: var(--accent-soft-text);
-  background: var(--accent-soft-bg);
   border-radius: 999px;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-none);
   font-weight: 800;
+}
+
+.directors-admin-duplicate-badge {
+  color: var(--accent-soft-text);
+  background: var(--accent-soft-bg);
+}
+
+.directors-admin-missing-tmdb-badge {
+  color: var(--color-danger-text-soft);
+  background: var(--danger-alpha-16);
 }
 
 .director-form {

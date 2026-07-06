@@ -3260,9 +3260,10 @@ function renderDirectorsAdminRow(director, movieCount, duplicateNameKeys) {
   const secondaryName = getDirectorSecondaryName(director);
   const lifeLabel = getDirectorLifeLabel(director);
   const isDuplicateName = duplicateNameKeys.has(normalizeSearchText(director?.name_ru));
+  const hasTmdbUrl = Boolean(String(director?.tmdb_url || '').trim());
 
   return `
-    <article class="directors-admin-card">
+    <article class="directors-admin-card${hasTmdbUrl ? '' : ' is-missing-tmdb'}">
       <a class="directors-admin-card-main" href="${escapeHtml(buildDirectorPageUrl(director))}">
         <div class="directors-admin-card-avatar">
           ${
@@ -3280,6 +3281,7 @@ function renderDirectorsAdminRow(director, movieCount, duplicateNameKeys) {
       </a>
       <div class="directors-admin-card-actions">
         ${isDuplicateName ? '<span class="directors-admin-duplicate-badge" title="Есть режиссёры с таким же именем">Тёзка</span>' : ''}
+        ${hasTmdbUrl ? '' : '<span class="directors-admin-missing-tmdb-badge" title="Не заполнена ссылка TMDB">Нет TMDB</span>'}
         <button type="button" class="secondary-button secondary-button-compact" data-director-edit="${escapeHtml(director.id)}">
           Редактировать
         </button>
