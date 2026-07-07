@@ -612,6 +612,7 @@ let directorModalTitle = null;
 let directorIdInput = null;
 let directorNameRuInput = null;
 let directorNameInput = null;
+let directorGenderInput = null;
 let directorAliasesInput = null;
 let directorTmdbUrlInput = null;
 let directorBirthDateInput = null;
@@ -2381,24 +2382,16 @@ function normalizeDirectorAliasValues(value) {
     .filter(Boolean);
 }
 
+function normalizeDirectorGender(value) {
+  return String(value || '').trim() === 'Ж' ? 'Ж' : 'М';
+}
+
 function getDirectorDisplayName(director) {
   return String(director?.name_ru || director?.name || '').trim() || 'Без имени';
 }
 
 function getDirectorSecondaryName(director) {
   return String(director?.name || '').trim();
-}
-
-function getDirectorInitials(director) {
-  const displayName = getDirectorDisplayName(director);
-
-  return displayName
-    .split(/\s+/)
-    .map(part => part[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
 }
 
 function formatYearsLabel(count) {
@@ -2494,6 +2487,7 @@ function normalizeDirectorRow(row) {
 
   return {
     ...row,
+    gender: normalizeDirectorGender(row.gender),
     aliases: Array.isArray(row.aliases) ? row.aliases : []
   };
 }
@@ -2780,6 +2774,7 @@ async function fetchLegacyDirectorPageData(slug) {
       name_ru: legacyMatches.nameRu,
       name: '',
       aliases: [],
+      gender: 'М',
       birth_date: null,
       death_date: null,
       birth_place: '',
@@ -2881,6 +2876,39 @@ function renderDirectorPageNotFound() {
   `;
 }
 
+function getDirectorPlaceholderSvgHtml(director, iconClassName = 'director-page-photo-placeholder-icon') {
+  const isFemale = normalizeDirectorGender(director?.gender) === 'Ж';
+  const iconPaths = isFemale
+    ? `
+        <path
+          fill="currentColor"
+          opacity="0.34"
+          d="M24 68c-5.5-8.2-8-18.4-8-31.1C16 17.6 28.8 4 48 4s32 13.6 32 32.9c0 12.7-2.5 22.9-8 31.1l-10.8-4.4c4.2-7.2 6.2-15.8 6.2-26.2C67.4 24.7 59.3 16 48 16s-19.4 8.7-19.4 21.4c0 10.4 2 19 6.2 26.2L24 68Z"
+        />
+        <path
+          fill="currentColor"
+          d="M48 49c-10.6 0-19.2-8.7-19.2-19.5S37.4 10 48 10s19.2 8.7 19.2 19.5S58.6 49 48 49Zm0 9c19.1 0 33.5 12.4 33.5 29 0 1.6-1.3 3-3 3h-61c-1.7 0-3-1.4-3-3C14.5 70.4 28.9 58 48 58Z"
+        />
+      `
+    : `
+        <path
+          fill="currentColor"
+          d="M48 50c-12.7 0-23-10.3-23-23S35.3 4 48 4s23 10.3 23 23-10.3 23-23 23Zm0 10c20.5 0 36 12.5 36 29.1 0 1.6-1.3 2.9-2.9 2.9H14.9A2.9 2.9 0 0 1 12 89.1C12 72.5 27.5 60 48 60Z"
+        />
+      `;
+
+  return `
+    <svg
+      class="${escapeHtml(`${iconClassName} ${isFemale ? 'is-female' : 'is-male'}`)}"
+      viewBox="0 0 96 96"
+      focusable="false"
+      aria-hidden="true"
+    >
+      ${iconPaths}
+    </svg>
+  `;
+}
+
 function getDirectorPhotoHtml(director) {
   const photoUrl = String(director?.photo_url || '').trim();
   const displayName = getDirectorDisplayName(director);
@@ -2900,17 +2928,7 @@ function getDirectorPhotoHtml(director) {
 
   return `
     <div class="director-page-photo-placeholder" aria-hidden="true">
-      <svg
-        class="director-page-photo-placeholder-icon"
-        viewBox="0 0 96 96"
-        focusable="false"
-        aria-hidden="true"
-      >
-        <path
-          fill="currentColor"
-          d="M48 50c-12.7 0-23-10.3-23-23S35.3 4 48 4s23 10.3 23 23-10.3 23-23 23Zm0 10c20.5 0 36 12.5 36 29.1 0 1.6-1.3 2.9-2.9 2.9H14.9A2.9 2.9 0 0 1 12 89.1C12 72.5 27.5 60 48 60Z"
-        />
-      </svg>
+      ${getDirectorPlaceholderSvgHtml(director)}
     </div>
   `;
 }
@@ -3269,7 +3287,7 @@ function renderDirectorsAdminRow(director, movieCount, duplicateNameKeys) {
           ${
             director.photo_url
               ? `<img src="${escapeHtml(director.photo_url)}" alt="" loading="lazy" decoding="async">`
-              : `<span>${escapeHtml(getDirectorInitials(director) || '??')}</span>`
+              : getDirectorPlaceholderSvgHtml(director, 'directors-admin-card-avatar-placeholder-icon')
           }
         </div>
         <div class="directors-admin-card-body">
@@ -3541,6 +3559,13 @@ function ensureDirectorModal() {
             <label for="directorName">Имя:</label>
             <input type="text" id="directorName" data-director-name="true">
           </div>
+          <div class="form-row">
+            <label for="directorGender">Пол:</label>
+            <select id="directorGender" data-director-gender="true">
+              <option value="М">М</option>
+              <option value="Ж">Ж</option>
+            </select>
+          </div>
         </div>
 
         <div class="movie-form-inline-group movie-form-inline-group-meta">
@@ -3596,6 +3621,7 @@ function ensureDirectorModal() {
   directorIdInput = directorModal.querySelector('[data-director-id="true"]');
   directorNameRuInput = directorModal.querySelector('[data-director-name-ru="true"]');
   directorNameInput = directorModal.querySelector('[data-director-name="true"]');
+  directorGenderInput = directorModal.querySelector('[data-director-gender="true"]');
   directorAliasesInput = directorModal.querySelector('[data-director-aliases="true"]');
   directorTmdbUrlInput = directorModal.querySelector('[data-director-tmdb-url="true"]');
   directorBirthDateInput = directorModal.querySelector('[data-director-birth-date="true"]');
@@ -3655,6 +3681,7 @@ function setDirectorFormSubmitting(isSubmitting) {
   [
     directorNameRuInput,
     directorNameInput,
+    directorGenderInput,
     directorAliasesInput,
     directorTmdbUrlInput,
     directorBirthDateInput,
@@ -3724,6 +3751,7 @@ function openDirectorModal(director = null) {
   setFormInputValue(directorIdInput, normalizedDirector.id || '', 'directorIdInput');
   setFormInputValue(directorNameRuInput, normalizedDirector.name_ru || '', 'directorNameRuInput');
   setFormInputValue(directorNameInput, normalizedDirector.name || '', 'directorNameInput');
+  setFormInputValue(directorGenderInput, normalizeDirectorGender(normalizedDirector.gender), 'directorGenderInput');
   setFormInputValue(directorAliasesInput, normalizeDirectorAliasValues(normalizedDirector.aliases || []).join('\n'), 'directorAliasesInput');
   setFormInputValue(directorTmdbUrlInput, normalizedDirector.tmdb_url || '', 'directorTmdbUrlInput');
   setFormInputValue(directorBirthDateInput, normalizedDirector.birth_date || '', 'directorBirthDateInput');
@@ -3861,6 +3889,7 @@ function mergeDirectorPayloadForExisting(existingDirector, payload) {
   return {
     ...payload,
     name: payload.name || existingDirector.name || null,
+    gender: normalizeDirectorGender(existingDirector.gender || payload.gender),
     aliases: Array.isArray(payload.aliases) && payload.aliases.length > 0
       ? payload.aliases
       : normalizeDirectorAliasValues(existingDirector.aliases),
@@ -4052,6 +4081,7 @@ async function saveDirectorFromModal(event) {
   const directorId = String(directorIdInput?.value || '').trim();
   const nameRu = String(directorNameRuInput?.value || '').trim();
   const name = String(directorNameInput?.value || '').trim();
+  const gender = normalizeDirectorGender(directorGenderInput?.value);
   const aliases = normalizeDirectorAliasValues(directorAliasesInput?.value || '');
   const tmdbUrl = normalizeTmdbPersonUrl(directorTmdbUrlInput?.value || '');
   const birthDate = String(directorBirthDateInput?.value || '').trim();
@@ -4095,6 +4125,7 @@ async function saveDirectorFromModal(event) {
     const payload = {
       name_ru: nameRu,
       name: name || null,
+      gender,
       aliases,
       birth_date: birthDate || null,
       death_date: deathDate || null,

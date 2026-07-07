@@ -63,6 +63,7 @@ create table if not exists public.people (
   name_ru text not null,
   name text,
   aliases text[] not null default '{}'::text[],
+  gender text not null default 'М',
   birth_date date,
   death_date date,
   birth_place text,
@@ -73,6 +74,7 @@ create table if not exists public.people (
   updated_at timestamptz not null default now(),
   person_name_key text generated always as (public.horroreiro_person_name_key(name_ru)) stored,
   constraint people_name_ru_not_blank check (length(btrim(name_ru)) > 0),
+  constraint people_gender_check check (gender in ('М', 'Ж')),
   constraint people_slug_not_blank check (length(btrim(slug)) > 0),
   constraint people_life_dates_order check (
     death_date is null
@@ -83,6 +85,25 @@ create table if not exists public.people (
 
 alter table public.people
   add column if not exists tmdb_url text;
+
+alter table public.people
+  add column if not exists gender text;
+
+update public.people
+set gender = 'М'
+where gender is null
+   or gender not in ('М', 'Ж');
+
+alter table public.people
+  alter column gender set default 'М',
+  alter column gender set not null;
+
+alter table public.people
+  drop constraint if exists people_gender_check;
+
+alter table public.people
+  add constraint people_gender_check
+  check (gender in ('М', 'Ж'));
 
 create table if not exists public.movie_people (
   movie_id uuid not null references public.movies(id) on delete cascade,

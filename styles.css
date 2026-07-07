@@ -5133,6 +5133,12 @@ a[data-current-page-link="true"] {
   object-fit: cover;
 }
 
+.directors-admin-card-avatar-placeholder-icon {
+  width: 26px;
+  height: auto;
+  opacity: 0.74;
+}
+
 .directors-admin-card-body {
   min-width: 0;
   display: grid;
