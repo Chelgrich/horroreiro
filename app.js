@@ -2878,8 +2878,8 @@ function renderDirectorPageNotFound() {
 
 function getDirectorPlaceholderSvgHtml(director, iconClassName = 'director-page-photo-placeholder-icon') {
   const isFemale = normalizeDirectorGender(director?.gender) === 'Ж';
-  const iconViewBox = isFemale ? '332 128 202 236' : '78 128 194 234';
-  const iconPath = isFemale
+  const iconViewBox = isFemale ? '78 128 194 234' : '332 128 202 236';
+  const iconPath = !isFemale
     ? `
         <path
           fill="currentColor"
