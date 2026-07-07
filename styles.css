@@ -5204,6 +5204,11 @@ a[data-current-page-link="true"] {
   gap: 14px;
 }
 
+.director-form select {
+  height: var(--control-height-md);
+  padding: 0 12px;
+}
+
 .director-form-photo-row {
   display: grid;
   grid-template-columns: 112px minmax(0, 1fr);
