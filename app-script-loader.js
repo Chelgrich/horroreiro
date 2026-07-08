@@ -122,10 +122,13 @@
     .then(() => {
       const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
 
-      return loadScript('shared-layout.js', buildVersion)
+      const sharedLayoutPromise = loadScript('shared-layout.js', buildVersion);
+      const pageRuntimePromise = loadScript('app-page-runtime.js', buildVersion);
+
+      return sharedLayoutPromise
         .then(mountSharedLayout)
         .then(() => (needsCustomSelect ? loadScript('custom-select.js', buildVersion) : undefined))
-        .then(() => loadScript('app-page-runtime.js', buildVersion))
+        .then(() => pageRuntimePromise)
         .then(() => loadScript('app.js', buildVersion))
         .then(runAppRuntime)
         .then(watchUserRankBadgeText);

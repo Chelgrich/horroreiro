@@ -1900,7 +1900,7 @@ async function runNotificationTestSuite() {
     console.error('Ошибка генерации тестовых уведомлений:', error);
 
     if (isNotificationTestFunctionMissingError(error)) {
-      showAppMessage('Тест уведомлений недоступен: примените notification-test-tools-setup.sql в Supabase.', 'error', true);
+      showAppMessage('Тест уведомлений недоступен: серверные инструменты тестирования не подключены.', 'error', true);
     } else {
       showAppMessage(`Не удалось создать тестовые уведомления: ${error.message || 'смотри консоль F12.'}`, 'error', true);
     }
@@ -2378,6 +2378,23 @@ function isMovieDirectorSyncRpcUnavailableError(error) {
   );
 }
 
+function isDirectorPagePayloadRpcUnavailableError(error) {
+  const code = String(error?.code || '').trim();
+  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+
+  return (
+    ['42883', 'PGRST202', 'PGRST204'].includes(code) &&
+    message.includes('get_person_page_payload')
+  ) || (
+    message.includes('get_person_page_payload') &&
+    (
+      message.includes('could not find') ||
+      message.includes('schema cache') ||
+      message.includes('does not exist')
+    )
+  );
+}
+
 function getDirectorPageRouteSlug() {
   const searchParams = new URLSearchParams(window.location.search);
   const pathSlugMatch = window.location.pathname.match(/\/name\/([^/]+)\/?$/);
@@ -2802,7 +2819,52 @@ async function fetchLegacyDirectorPageData(slug) {
   };
 }
 
+async function fetchDirectorPagePayloadViaRpc(slug) {
+  const normalizedSlug = String(slug || '').trim();
+
+  if (!normalizedSlug || !areDirectorsAvailable) {
+    return null;
+  }
+
+  const { data, error } = await supabaseClient.rpc('get_person_page_payload', {
+    page_slug: normalizedSlug
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data?.director) {
+    return null;
+  }
+
+  const director = normalizeDirectorRow(data.director);
+  const movies = getSortedMoviesCopy(Array.isArray(data.movies) ? data.movies : [], 'default');
+
+  cacheCatalogMovies(movies);
+
+  return {
+    director,
+    movies,
+    moviesError: null
+  };
+}
+
 async function fetchDirectorPageData(slug) {
+  try {
+    const payload = await fetchDirectorPagePayloadViaRpc(slug);
+
+    if (payload) {
+      return payload;
+    }
+  } catch (error) {
+    if (isDirectorPagePayloadRpcUnavailableError(error)) {
+      console.warn('Person page payload RPC is unavailable, falling back to client queries:', error);
+    } else {
+      throw error;
+    }
+  }
+
   const director = await fetchDirectorBySlug(slug);
 
   if (!director) {
@@ -2856,7 +2918,7 @@ function renderDirectorPageUnavailable() {
   document.title = 'Режиссёр — Хоррорейро';
   directorPage.innerHTML = `
     <div class="director-page-empty-state director-page-empty-state-large">
-      <p>Страницы режиссёров пока недоступны. Нужно применить movie-people-setup.sql в Supabase.</p>
+      <p>Страницы режиссёров пока недоступны: серверный контур персон не подключён.</p>
     </div>
   `;
 }
@@ -3241,7 +3303,7 @@ function renderDirectorsAdminPageUnavailable() {
   document.title = 'Режиссёры — Хоррорейро';
   directorsAdminPage.innerHTML = `
     <div class="directors-admin-page-empty-state directors-admin-page-empty-state-large">
-      <p>Таблицы персон пока недоступны. Примените movie-people-setup.sql в Supabase.</p>
+      <p>Таблицы персон пока недоступны: серверный контур персон не подключён.</p>
     </div>
   `;
 }
@@ -4683,7 +4745,7 @@ async function replaceManualSimilarMovies(movieId, similarMovieIds = []) {
       return false;
     }
 
-    throw new Error('Таблица ручных похожих фильмов пока недоступна. Примените SQL-миграцию и повторите сохранение.');
+    throw new Error('Серверный контур ручных похожих фильмов пока недоступен. Повтори сохранение позже.');
   }
 
   const { error: deleteError } = await supabaseClient
@@ -4943,7 +5005,7 @@ function renderMoviePosterImagesDraftList() {
   if (!moviePosterImagesTableAvailable) {
     moviePosterImagesList.innerHTML = `
       <div class="movie-poster-images-empty">
-        Галерея недоступна: примените SQL-миграцию и повторите попытку.
+        Галерея недоступна: серверный контур галереи пока не подключён.
       </div>
     `;
     return;
@@ -5255,7 +5317,7 @@ async function replaceMoviePosterImages(movieId, draftEntries = [], { preservedU
       return false;
     }
 
-    throw new Error('Таблица галереи постеров пока недоступна. Примените SQL-миграцию и повторите сохранение.');
+    throw new Error('Серверный контур галереи постеров пока недоступен. Повтори сохранение позже.');
   }
 
   if (!moviePosterImagesLoadedByMovieId.has(ownerMovieId)) {
@@ -12365,9 +12427,6 @@ const MOVIE_CATALOG_SELECT = `
   year,
   runtime_minutes,
   director,
-  production,
-  distribution,
-  russian_distribution,
   formats,
   tags_perceived,
   search_aliases,
@@ -12377,7 +12436,6 @@ const MOVIE_CATALOG_SELECT = `
   letterboxd_url,
   letterboxd_short_url,
   rottentomatoes_url,
-  trailer_url,
   release_year,
   release_month,
   sort_order,
@@ -14940,7 +14998,7 @@ async function addMovie(event) {
     if (isCatalogPage()) {
       setMovieFormStatus('Обновляю каталог...');
       await withPendingRequestTimeout(
-        reloadCatalogData({ showSkeleton: true }),
+        reloadCatalogData({ showSkeleton: false }),
         15000,
         'Превышено время ожидания обновления каталога.'
       ); // сначала дожидаемся полной синхронизации состояния каталога
@@ -15278,7 +15336,7 @@ async function updateMovie(event) {
     if (isCatalogPage()) {
       setMovieFormStatus('Обновляю каталог...');
       await withPendingRequestTimeout(
-        reloadCatalogData({ showSkeleton: true }),
+        reloadCatalogData({ showSkeleton: false }),
         15000,
         'Превышено время ожидания обновления каталога.'
       );
@@ -15345,7 +15403,7 @@ async function deleteMovie(movieId, movieTitle) {
       resetFormToCreateMode();
     }
 
-    await reloadCatalogData({ showSkeleton: true });
+    await reloadCatalogData({ showSkeleton: false });
     rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.preserveScrollOnly);
 
     setMovieFormStatus(`Фильм "${movieTitle}" удалён.`);
@@ -21893,7 +21951,7 @@ function renderNotificationsPageUnavailable() {
   document.title = 'Уведомления — Хоррорейро';
   notificationsPage.innerHTML = `
     <div class="notifications-page-empty-state notifications-page-empty-state-large">
-      Контур уведомлений ещё не подключён. Примените notifications-setup.sql в Supabase и обновите страницу.
+      Контур уведомлений ещё не подключён. Обнови страницу позже или проверь серверную настройку.
     </div>
   `;
 }
@@ -22626,7 +22684,7 @@ function renderFollowingPage(data) {
       ${
         data.arePreferencesAvailable
           ? ''
-          : '<div class="following-page-empty-state following-page-warning-state">Настройки уведомлений станут доступны после применения notifications-setup.sql в Supabase.</div>'
+          : '<div class="following-page-empty-state following-page-warning-state">Настройки уведомлений станут доступны после подключения серверного контура.</div>'
       }
       <div class="following-page-profile-grid">
         ${data.profiles
@@ -25351,7 +25409,7 @@ async function handleMovieReviewLikeToggle(movie, reviewId) {
 
     if (isMovieReviewLikesTableUnavailableError(error)) {
       areMovieReviewLikesAvailable = false;
-      showAppMessage('Лайки рецензий пока недоступны: нужно применить SQL для movie_review_likes.', 'error', true);
+      showAppMessage('Лайки рецензий пока недоступны: серверный контур лайков не подключён.', 'error', true);
     } else {
       showAppMessage(error?.message || 'Не удалось обновить лайк рецензии.', 'error', true);
     }
@@ -25949,7 +26007,7 @@ async function handleMovieCommentLikeToggle(movie, commentId) {
 
     if (isMovieCommentLikesTableUnavailableError(error)) {
       areMovieCommentLikesAvailable = false;
-      showAppMessage('Лайки комментариев пока недоступны: нужно применить SQL для movie_comment_likes.', 'error', true);
+      showAppMessage('Лайки комментариев пока недоступны: серверный контур лайков не подключён.', 'error', true);
     } else {
       showAppMessage(error?.message || 'Не удалось обновить лайк комментария.', 'error', true);
     }
