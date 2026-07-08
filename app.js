@@ -4285,6 +4285,55 @@ async function ensureDirectorsByNames(names = []) {
   return result;
 }
 
+async function deleteOrphanPeopleByIds(personIds = []) {
+  const uniquePersonIds = Array.from(new Set(
+    (Array.isArray(personIds) ? personIds : [])
+      .map(personId => String(personId || '').trim())
+      .filter(Boolean)
+  ));
+
+  if (!areDirectorsAvailable || uniquePersonIds.length === 0) {
+    return;
+  }
+
+  for (const personId of uniquePersonIds) {
+    const { count, error: countError } = await supabaseClient
+      .from('movie_people')
+      .select('movie_id', {
+        count: 'exact',
+        head: true
+      })
+      .eq('person_id', personId);
+
+    if (countError) {
+      if (isDirectorsUnavailableError(countError)) {
+        areDirectorsAvailable = false;
+        return;
+      }
+
+      throw countError;
+    }
+
+    if (Number(count) > 0) {
+      continue;
+    }
+
+    const { error: deleteError } = await supabaseClient
+      .from('people')
+      .delete()
+      .eq('id', personId);
+
+    if (deleteError) {
+      if (isDirectorsUnavailableError(deleteError)) {
+        areDirectorsAvailable = false;
+        return;
+      }
+
+      throw deleteError;
+    }
+  }
+}
+
 async function replaceMovieDirectors(movieId, directorNames = []) {
   const normalizedMovieId = String(movieId || '').trim();
 
@@ -4294,6 +4343,20 @@ async function replaceMovieDirectors(movieId, directorNames = []) {
 
   try {
     const directors = await ensureDirectorsByNames(directorNames);
+    const nextDirectorIds = new Set(directors.map(director => String(director.id)));
+    const { data: previousLinks, error: previousLinksError } = await supabaseClient
+      .from('movie_people')
+      .select('person_id')
+      .eq('movie_id', normalizedMovieId)
+      .eq('role', 'director');
+
+    if (previousLinksError) {
+      throw previousLinksError;
+    }
+
+    const orphanCandidateIds = (previousLinks || [])
+      .map(row => String(row?.person_id || '').trim())
+      .filter(personId => personId && !nextDirectorIds.has(personId));
 
     const { error: deleteError } = await supabaseClient
       .from('movie_people')
@@ -4306,6 +4369,7 @@ async function replaceMovieDirectors(movieId, directorNames = []) {
     }
 
     if (directors.length === 0) {
+      await deleteOrphanPeopleByIds(orphanCandidateIds);
       return true;
     }
 
@@ -4324,6 +4388,7 @@ async function replaceMovieDirectors(movieId, directorNames = []) {
       throw insertError;
     }
 
+    await deleteOrphanPeopleByIds(orphanCandidateIds);
     return true;
   } catch (error) {
     if (isDirectorsUnavailableError(error)) {
@@ -14921,10 +14986,21 @@ async function updateMovie(event) {
   const existingLinkedDirectorNames = getMovieDirectorItems(existingMovie)
     .map(getDirectorDisplayName)
     .filter(Boolean);
+  const existingDirectorLinksKnown = (
+    Array.isArray(existingMovie?.movie_people) ||
+    Array.isArray(existingMovie?.movie_directors)
+  );
   const existingDirectorNames = existingLinkedDirectorNames.length
     ? existingLinkedDirectorNames
     : parseLineOrCommaSeparatedValues(existingMovie.director || '');
-  const directorsChanged = !areStringArraysEqual(existingDirectorNames, directorNames);
+  const shouldRefreshDirectorLinks = (
+    directorNames.length > 0 &&
+    (!existingDirectorLinksKnown || existingLinkedDirectorNames.length === 0)
+  );
+  const directorsChanged = (
+    !areStringArraysEqual(existingDirectorNames, directorNames) ||
+    shouldRefreshDirectorLinks
+  );
 
   const relationsChanged = (
     !areStringArraysEqual(normalizedExistingGenres, normalizedNewGenres) ||
