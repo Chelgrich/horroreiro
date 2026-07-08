@@ -2361,6 +2361,23 @@ function isDirectorsUnavailableError(error) {
   );
 }
 
+function isMovieDirectorSyncRpcUnavailableError(error) {
+  const code = String(error?.code || '').trim();
+  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+
+  return (
+    ['42883', 'PGRST202', 'PGRST204'].includes(code) &&
+    message.includes('horroreiro_sync_movie_directors')
+  ) || (
+    message.includes('horroreiro_sync_movie_directors') &&
+    (
+      message.includes('could not find') ||
+      message.includes('schema cache') ||
+      message.includes('does not exist')
+    )
+  );
+}
+
 function getDirectorPageRouteSlug() {
   const searchParams = new URLSearchParams(window.location.search);
   const pathSlugMatch = window.location.pathname.match(/\/name\/([^/]+)\/?$/);
@@ -4334,7 +4351,39 @@ async function deleteOrphanPeopleByIds(personIds = []) {
   }
 }
 
+async function syncMovieDirectorsViaRpc(movieId) {
+  const { error } = await supabaseClient.rpc('horroreiro_sync_movie_directors', {
+    target_movie_id: movieId
+  });
+
+  throwIfSupabaseError(error);
+  return true;
+}
+
 async function replaceMovieDirectors(movieId, directorNames = []) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!normalizedMovieId || !areDirectorsAvailable) {
+    return false;
+  }
+
+  try {
+    return await syncMovieDirectorsViaRpc(normalizedMovieId);
+  } catch (error) {
+    if (isMovieDirectorSyncRpcUnavailableError(error)) {
+      return replaceMovieDirectorsClientFallback(normalizedMovieId, directorNames);
+    }
+
+    if (isDirectorsUnavailableError(error)) {
+      areDirectorsAvailable = false;
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+async function replaceMovieDirectorsClientFallback(movieId, directorNames = []) {
   const normalizedMovieId = String(movieId || '').trim();
 
   if (!normalizedMovieId || !areDirectorsAvailable) {

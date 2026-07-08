@@ -1,3 +1,11 @@
+create or replace function public.horroreiro_person_name_key(value text)
+returns text
+language sql
+immutable
+as $$
+  select regexp_replace(replace(lower(btrim(coalesce(value, ''))), 'ё', 'е'), '\s+', ' ', 'g');
+$$;
+
 create or replace function public.horroreiro_movie_director_names(value text)
 returns table(name text, sort_position integer)
 language sql
