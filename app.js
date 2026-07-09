@@ -606,6 +606,11 @@ let currentMoviePagePosterIndexByMovieId = new Map();
 let areDirectorsAvailable = true;
 let currentDirectorPageData = null;
 let currentDirectorsAdminRows = [];
+let currentDirectorsAdminMovieRows = [];
+let directorsAdminFilters = {
+  missingBirthDate: false,
+  missingBirthPlace: false
+};
 let directorModal = null;
 let directorForm = null;
 let directorModalTitle = null;
@@ -3356,6 +3361,93 @@ function getDuplicateDirectorNameKeys(directors = []) {
   );
 }
 
+function hasDirectorBirthDate(director) {
+  return Boolean(String(director?.birth_date || '').trim());
+}
+
+function hasDirectorBirthPlace(director) {
+  return Boolean(String(director?.birth_place || '').trim());
+}
+
+function getDirectorsAdminFilterCounts(directors = []) {
+  return (Array.isArray(directors) ? directors : []).reduce((counts, director) => {
+    if (!hasDirectorBirthDate(director)) {
+      counts.missingBirthDate += 1;
+    }
+
+    if (!hasDirectorBirthPlace(director)) {
+      counts.missingBirthPlace += 1;
+    }
+
+    return counts;
+  }, {
+    missingBirthDate: 0,
+    missingBirthPlace: 0
+  });
+}
+
+function getFilteredDirectorsAdminRows(directors = []) {
+  const sourceDirectors = Array.isArray(directors) ? directors : [];
+  const shouldFilterBirthDate = Boolean(directorsAdminFilters.missingBirthDate);
+  const shouldFilterBirthPlace = Boolean(directorsAdminFilters.missingBirthPlace);
+
+  if (!shouldFilterBirthDate && !shouldFilterBirthPlace) {
+    return sourceDirectors;
+  }
+
+  return sourceDirectors.filter(director => (
+    (!shouldFilterBirthDate || !hasDirectorBirthDate(director)) &&
+    (!shouldFilterBirthPlace || !hasDirectorBirthPlace(director))
+  ));
+}
+
+function hasActiveDirectorsAdminFilters() {
+  return Boolean(
+    directorsAdminFilters.missingBirthDate ||
+    directorsAdminFilters.missingBirthPlace
+  );
+}
+
+function renderDirectorsAdminFilterButton(key, label, count) {
+  const isActive = Boolean(directorsAdminFilters[key]);
+
+  return `
+    <button
+      type="button"
+      class="directors-admin-filter-chip${isActive ? ' is-active' : ''}"
+      data-directors-admin-filter="${escapeHtml(key)}"
+      aria-pressed="${isActive ? 'true' : 'false'}"
+    >
+      <span>${escapeHtml(label)}</span>
+      <span class="directors-admin-filter-chip-count">${escapeHtml(String(count))}</span>
+    </button>
+  `;
+}
+
+function renderDirectorsAdminFilters(directors = []) {
+  const counts = getDirectorsAdminFilterCounts(directors);
+  const resetButtonHtml = hasActiveDirectorsAdminFilters()
+    ? `
+      <button
+        type="button"
+        class="directors-admin-filter-reset"
+        data-directors-admin-filter="reset"
+      >
+        Сбросить
+      </button>
+    `
+    : '';
+
+  return `
+    <div class="directors-admin-page-filters" aria-label="Фильтры заполненности">
+      <span class="directors-admin-page-filters-label">Показать:</span>
+      ${renderDirectorsAdminFilterButton('missingBirthDate', 'Без даты рождения', counts.missingBirthDate)}
+      ${renderDirectorsAdminFilterButton('missingBirthPlace', 'Без места рождения', counts.missingBirthPlace)}
+      ${resetButtonHtml}
+    </div>
+  `;
+}
+
 function renderDirectorsAdminRow(director, movieCount, duplicateNameKeys) {
   const displayName = getDirectorDisplayName(director);
   const secondaryName = getDirectorSecondaryName(director);
@@ -3411,32 +3503,44 @@ function getMoviesCountLabel(count) {
   return 'фильмов';
 }
 
+function getDirectorsCountLabel(count) {
+  return getMoviesCountLabel(count).replace('фильм', 'режиссёр');
+}
+
 function renderDirectorsAdminPage({ directors = [], movieDirectorRows = [] } = {}) {
   if (!directorsAdminPage) {
     return;
   }
 
+  const sourceDirectors = Array.isArray(directors) ? directors : [];
+  const filteredDirectors = getFilteredDirectorsAdminRows(sourceDirectors);
   const movieCountsByDirectorId = getMovieCountsByDirectorId(movieDirectorRows);
-  const duplicateNameKeys = getDuplicateDirectorNameKeys(directors);
+  const duplicateNameKeys = getDuplicateDirectorNameKeys(sourceDirectors);
+  const activeFilters = hasActiveDirectorsAdminFilters();
+  const directorsCountText = activeFilters
+    ? `${filteredDirectors.length} из ${sourceDirectors.length} ${getDirectorsCountLabel(sourceDirectors.length)}`
+    : `${sourceDirectors.length} ${getDirectorsCountLabel(sourceDirectors.length)}`;
 
-  currentDirectorsAdminRows = directors;
+  currentDirectorsAdminRows = sourceDirectors;
+  currentDirectorsAdminMovieRows = Array.isArray(movieDirectorRows) ? movieDirectorRows : [];
   document.title = 'Режиссёры — Хоррорейро';
 
   directorsAdminPage.innerHTML = `
     <section class="directors-admin-page-toolbar">
       <div>
-        <p class="directors-admin-page-kicker">${escapeHtml(String(directors.length))} ${escapeHtml(getMoviesCountLabel(directors.length)).replace('фильм', 'режиссёр')}</p>
+        <p class="directors-admin-page-kicker">${escapeHtml(directorsCountText)}</p>
         <p class="directors-admin-page-note">Технический список для быстрого редактирования страниц режиссёров.</p>
       </div>
       <button type="button" class="secondary-button" data-directors-admin-action="create">
         Добавить режиссёра
       </button>
     </section>
+    ${sourceDirectors.length ? renderDirectorsAdminFilters(sourceDirectors) : ''}
     ${
-      directors.length
+      filteredDirectors.length
         ? `
           <div class="directors-admin-grid">
-            ${directors.map(director => (
+            ${filteredDirectors.map(director => (
               renderDirectorsAdminRow(
                 director,
                 movieCountsByDirectorId.get(String(director.id)) || 0,
@@ -3445,7 +3549,7 @@ function renderDirectorsAdminPage({ directors = [], movieDirectorRows = [] } = {
             )).join('')}
           </div>
         `
-        : '<div class="directors-admin-page-empty-state">Режиссёры пока не созданы.</div>'
+        : `<div class="directors-admin-page-empty-state">${sourceDirectors.length ? 'По выбранным фильтрам режиссёров нет.' : 'Режиссёры пока не созданы.'}</div>`
     }
   `;
 
@@ -3571,7 +3675,45 @@ function bindDirectorsAdminPageEvents() {
   });
 }
 
+function rerenderDirectorsAdminPageFromCurrentState() {
+  renderDirectorsAdminPage({
+    directors: currentDirectorsAdminRows,
+    movieDirectorRows: currentDirectorsAdminMovieRows
+  });
+}
+
+function handleDirectorsAdminFilterToggle(filterKey) {
+  if (filterKey === 'reset') {
+    directorsAdminFilters = {
+      missingBirthDate: false,
+      missingBirthPlace: false
+    };
+    rerenderDirectorsAdminPageFromCurrentState();
+    return true;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(directorsAdminFilters, filterKey)) {
+    return false;
+  }
+
+  directorsAdminFilters = {
+    ...directorsAdminFilters,
+    [filterKey]: !directorsAdminFilters[filterKey]
+  };
+  rerenderDirectorsAdminPageFromCurrentState();
+  return true;
+}
+
 function handleDirectorsAdminPageClick(event) {
+  const filterButton = event.target?.closest?.('[data-directors-admin-filter]');
+
+  if (filterButton && directorsAdminPage?.contains(filterButton)) {
+    event.preventDefault();
+    return handleDirectorsAdminFilterToggle(
+      String(filterButton.dataset.directorsAdminFilter || '').trim()
+    );
+  }
+
   const actionButton = event.target?.closest?.('[data-directors-admin-action]');
 
   if (!actionButton || !directorsAdminPage?.contains(actionButton)) {

@@ -5067,6 +5067,87 @@ a[data-current-page-link="true"] {
   background: var(--ui-action-bg-hover);
 }
 
+.directors-admin-page-filters {
+  margin-top: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--surface-card);
+  border: 1px solid var(--content-card-border);
+  border-radius: var(--radius-lg);
+}
+
+.directors-admin-page-filters-label {
+  margin-right: 2px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-snug);
+  font-weight: 700;
+}
+
+.directors-admin-filter-chip,
+.directors-admin-filter-reset {
+  min-height: 34px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--color-text-primary);
+  background: var(--ui-neutral-action-bg);
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-none);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.directors-admin-filter-chip:hover,
+.directors-admin-filter-chip:focus-visible,
+.directors-admin-filter-reset:hover,
+.directors-admin-filter-reset:focus-visible {
+  background: var(--ui-neutral-action-bg-hover);
+}
+
+.directors-admin-filter-chip:focus-visible,
+.directors-admin-filter-reset:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-soft);
+}
+
+.directors-admin-filter-chip.is-active {
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+}
+
+.directors-admin-filter-chip.is-active:hover,
+.directors-admin-filter-chip.is-active:focus-visible {
+  background: var(--ui-action-bg-hover);
+}
+
+.directors-admin-filter-chip-count {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-primary);
+  background: var(--accent-alpha-16);
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-none);
+}
+
 .directors-admin-grid {
   margin-top: 14px;
   display: grid;
