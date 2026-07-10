@@ -793,6 +793,11 @@ h3 {
   cursor: pointer;
 }
 
+.auth-popover-item[hidden],
+.auth-popover-item[data-admin-only-menu-item="true"][hidden] {
+  display: none;
+}
+
 .auth-popover-item:hover:not(:disabled):not([data-current-page-link="true"]) {
   background: var(--color-surface-control-muted);
 }

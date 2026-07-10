@@ -78,6 +78,7 @@
                       href="#"
                       class="auth-popover-item"
                       id="editorCenterSummaryButton"
+                      data-admin-only-menu-item="true"
                       role="menuitem"
                       hidden
                     >
@@ -87,6 +88,7 @@
                       href="#"
                       class="auth-popover-item"
                       id="directorsAdminSummaryButton"
+                      data-admin-only-menu-item="true"
                       role="menuitem"
                       hidden
                     >
@@ -96,6 +98,7 @@
                       type="button"
                       class="auth-popover-item"
                       id="manualSimilarAuditButton"
+                      data-admin-only-menu-item="true"
                       role="menuitem"
                       hidden
                     >
@@ -105,6 +108,7 @@
                       type="button"
                       class="auth-popover-item"
                       id="completenessAuditButton"
+                      data-admin-only-menu-item="true"
                       role="menuitem"
                       hidden
                     >
@@ -114,6 +118,7 @@
                       type="button"
                       class="auth-popover-item"
                       id="databaseExportButton"
+                      data-admin-only-menu-item="true"
                       role="menuitem"
                       hidden
                     >
@@ -123,6 +128,7 @@
                       type="button"
                       class="auth-popover-item"
                       id="notificationTestButton"
+                      data-admin-only-menu-item="true"
                       role="menuitem"
                       hidden
                     >
