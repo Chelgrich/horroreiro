@@ -1,0 +1,175 @@
+{
+  "assets": [
+    {
+      "file": "app.js",
+      "raw": 855003,
+      "gzip": 167264,
+      "brotli": 121322
+    },
+    {
+      "file": "styles.css",
+      "raw": 234914,
+      "gzip": 31261,
+      "brotli": 24829
+    },
+    {
+      "file": "shared-layout.js",
+      "raw": 29934,
+      "gzip": 5077,
+      "brotli": 4109
+    },
+    {
+      "file": "index.html",
+      "raw": 20071,
+      "gzip": 4929,
+      "brotli": 3872
+    },
+    {
+      "file": "movie.html",
+      "raw": 15108,
+      "gzip": 3493,
+      "brotli": 2737
+    },
+    {
+      "file": "custom-select.js",
+      "raw": 14821,
+      "gzip": 2871,
+      "brotli": 2496
+    },
+    {
+      "file": "user.html",
+      "raw": 6538,
+      "gzip": 2026,
+      "brotli": 1531
+    },
+    {
+      "file": "notifications.html",
+      "raw": 5576,
+      "gzip": 1922,
+      "brotli": 1456
+    },
+    {
+      "file": "editor.html",
+      "raw": 5550,
+      "gzip": 1919,
+      "brotli": 1462
+    },
+    {
+      "file": "following.html",
+      "raw": 5479,
+      "gzip": 1871,
+      "brotli": 1427
+    },
+    {
+      "file": "directors.html",
+      "raw": 5310,
+      "gzip": 1879,
+      "brotli": 1433
+    },
+    {
+      "file": "name.html",
+      "raw": 5221,
+      "gzip": 1847,
+      "brotli": 1411
+    },
+    {
+      "file": "app-script-loader.js",
+      "raw": 3273,
+      "gzip": 1129,
+      "brotli": 911
+    },
+    {
+      "file": "boot-loader.js",
+      "raw": 3035,
+      "gzip": 945,
+      "brotli": 785
+    },
+    {
+      "file": "app-page-runtime.js",
+      "raw": 1609,
+      "gzip": 535,
+      "brotli": 443
+    }
+  ],
+  "groups": {
+    "js": {
+      "raw": 907675,
+      "gzip": 177821,
+      "brotli": 130066
+    },
+    "css": {
+      "raw": 234914,
+      "gzip": 31261,
+      "brotli": 24829
+    },
+    "html": {
+      "raw": 68853,
+      "gzip": 19886,
+      "brotli": 15329
+    }
+  },
+  "startup": {
+    "catalog": {
+      "files": [
+        "boot-loader.js",
+        "app-script-loader.js",
+        "shared-layout.js",
+        "custom-select.js",
+        "app-page-runtime.js",
+        "app.js"
+      ],
+      "raw": 907675,
+      "gzip": 177821,
+      "brotli": 130066
+    },
+    "movie": {
+      "files": [
+        "boot-loader.js",
+        "app-script-loader.js",
+        "shared-layout.js",
+        "custom-select.js",
+        "app-page-runtime.js",
+        "app.js"
+      ],
+      "raw": 907675,
+      "gzip": 177821,
+      "brotli": 130066
+    },
+    "profile": {
+      "files": [
+        "boot-loader.js",
+        "app-script-loader.js",
+        "shared-layout.js",
+        "app-page-runtime.js",
+        "app.js"
+      ],
+      "raw": 892854,
+      "gzip": 174950,
+      "brotli": 127570
+    },
+    "notifications": {
+      "files": [
+        "boot-loader.js",
+        "app-script-loader.js",
+        "shared-layout.js",
+        "app-page-runtime.js",
+        "app.js"
+      ],
+      "raw": 892854,
+      "gzip": 174950,
+      "brotli": 127570
+    },
+    "directors": {
+      "files": [
+        "boot-loader.js",
+        "app-script-loader.js",
+        "shared-layout.js",
+        "app-page-runtime.js",
+        "app.js"
+      ],
+      "raw": 892854,
+      "gzip": 174950,
+      "brotli": 127570
+    }
+  }
+}

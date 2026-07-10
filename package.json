@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "smoke": "node tools/smoke-check.mjs",
+    "size": "node tools/asset-size-report.mjs",
+    "size:json": "node tools/asset-size-report.mjs --json",
+    "size:compare": "node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json"
+  }
+}

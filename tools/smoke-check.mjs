@@ -8,13 +8,17 @@ const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const host = '127.0.0.1';
 const port = 4181;
 
-const jsFiles = [
+const clientJsFiles = [
   'boot-loader.js',
   'app-script-loader.js',
   'shared-layout.js',
   'custom-select.js',
   'app-page-runtime.js',
   'app.js'
+];
+const syntaxFiles = [
+  ...clientJsFiles,
+  'tools/asset-size-report.mjs'
 ];
 
 const pageFiles = {
@@ -57,7 +61,7 @@ function assert(condition, message) {
 }
 
 function checkJavaScriptSyntax() {
-  jsFiles.forEach(file => {
+  syntaxFiles.forEach(file => {
     const result = spawnSync(process.execPath, ['--check', file], {
       cwd: rootDir,
       encoding: 'utf8'
@@ -68,6 +72,24 @@ function checkJavaScriptSyntax() {
       `${file}: syntax check failed\n${result.stderr || result.stdout}`
     );
   });
+}
+
+function checkAssetSizeReport() {
+  const result = spawnSync(process.execPath, ['tools/asset-size-report.mjs', '--json'], {
+    cwd: rootDir,
+    encoding: 'utf8'
+  });
+
+  assert(
+    result.status === 0,
+    `asset-size-report.mjs: failed\n${result.stderr || result.stdout}`
+  );
+
+  const report = JSON.parse(result.stdout || '{}');
+
+  assert(report.groups?.js?.raw > 0, 'asset-size-report.mjs: missing JS total');
+  assert(report.groups?.css?.raw > 0, 'asset-size-report.mjs: missing CSS total');
+  assert(report.startup?.catalog?.brotli > 0, 'asset-size-report.mjs: missing catalog startup profile');
 }
 
 async function readText(relativePath) {
@@ -245,7 +267,9 @@ async function checkStaticGuards() {
     'movie.html: missing SEO fallback markers'
   );
 
-  for (const file of jsFiles.filter(item => item !== 'custom-select.js')) {
+  assert(await fileExists('tools/asset-size-baseline.json'), 'missing asset size baseline');
+
+  for (const file of clientJsFiles.filter(item => item !== 'custom-select.js')) {
     const text = await readText(file);
     const unsafeAttributeLines = text
       .split(/\r?\n/)
@@ -289,6 +313,7 @@ async function checkRoutes() {
 }
 
 checkJavaScriptSyntax();
+checkAssetSizeReport();
 await checkStaticGuards();
 await checkRoutes();
 
