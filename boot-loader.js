@@ -20,9 +20,11 @@
     };
 
     function getVersionedAssetUrl(src, buildVersion) {
-      const assetPath = window.location.protocol === 'file:' ? src : `/${src}`;
+      if (shouldUseLocalDevEnv) {
+        return window.location.protocol === 'file:' ? src : `/${src}`;
+      }
 
-      return `${assetPath}?v=${encodeURIComponent(buildVersion)}`;
+      return `/app-assets/${encodeURIComponent(buildVersion)}?file=${encodeURIComponent(src)}`;
     }
 
     function finishEnvReady() {

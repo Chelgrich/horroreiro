@@ -24,6 +24,7 @@ const syntaxFiles = [
   ...clientJsFiles,
   ...lazyJsFiles,
   'vite.config.mjs',
+  'functions/app-assets/[version].js',
   'tools/asset-size-report.mjs'
 ];
 
@@ -206,10 +207,15 @@ async function checkStaticGuards() {
   }
 
   const appScriptLoader = await readText('app-script-loader.js');
+  const bootLoader = await readText('boot-loader.js');
 
   assert(
     appScriptLoader.includes("loadScript('app-page-runtime.js'"),
     'app-script-loader.js: missing app-page-runtime.js load step'
+  );
+  assert(
+    bootLoader.includes('/app-assets/') && appScriptLoader.includes('/app-assets/'),
+    'boot-loader.js/app-script-loader.js: production assets must use app-assets route'
   );
 
   const headersText = await readText('_headers');
@@ -220,13 +226,14 @@ async function checkStaticGuards() {
     '/app-page-runtime.js',
     '/letterboxd-import.js',
     '/assets/directors-admin-app.js',
-    '/shared-layout.js'
+    '/shared-layout.js',
+    '/styles.css'
   ].forEach(assetPath => {
     const escapedAssetPath = assetPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     assert(
-      new RegExp(`${escapedAssetPath}\\r?\\n\\s+Cache-Control: public, max-age=31536000, immutable`).test(headersText),
-      `_headers: missing immutable cache header for ${assetPath}`
+      new RegExp(`${escapedAssetPath}\\r?\\n\\s+Cache-Control: public, max-age=0, must-revalidate`).test(headersText),
+      `_headers: missing revalidation cache header for ${assetPath}`
     );
   });
 
@@ -263,6 +270,7 @@ async function checkStaticGuards() {
   [
     '/',
     '/index.html',
+    '/app-assets/*',
     '/movie/*',
     '/movie.html',
     '/user/*',

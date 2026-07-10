@@ -4,6 +4,7 @@
     "/",
     "/index.html",
     "/env",
+    "/app-assets/*",
     "/editor",
     "/editor.html",
     "/directors",

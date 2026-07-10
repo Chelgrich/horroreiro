@@ -9605,6 +9605,13 @@ const LETTERBOXD_IMPORT_QUERY_CHUNK_SIZE = 200;
 let letterboxdImportToolsPromise = null;
 
 function getLazyFeatureModuleUrl(filename) {
+  const isLocalFile = window.location.protocol === 'file:';
+  const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+  if (!isLocalFile && !isLocalHost) {
+    return `/app-assets/${encodeURIComponent(APP_BUILD_VERSION)}?file=${encodeURIComponent(filename)}`;
+  }
+
   const assetPath = window.location.protocol === 'file:' ? filename : `/${filename}`;
 
   return `${assetPath}?v=${encodeURIComponent(APP_BUILD_VERSION)}`;

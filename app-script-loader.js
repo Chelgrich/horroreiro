@@ -4,12 +4,24 @@
   const needsCustomSelect = page === 'catalog' || page === 'movie';
   let isAppStarted = false;
 
+  function getVersionedScriptUrl(src, buildVersion) {
+    const isLocalFile = window.location.protocol === 'file:';
+    const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    if (isLocalFile || isLocalHost) {
+      const assetPath = isLocalFile ? src : `/${src}`;
+
+      return `${assetPath}?v=${encodeURIComponent(buildVersion)}`;
+    }
+
+    return `/app-assets/${encodeURIComponent(buildVersion)}?file=${encodeURIComponent(src)}`;
+  }
+
   function loadScript(src, buildVersion) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      const assetPath = window.location.protocol === 'file:' ? src : `/${src}`;
 
-      script.src = `${assetPath}?v=${encodeURIComponent(buildVersion)}`;
+      script.src = getVersionedScriptUrl(src, buildVersion);
       script.onload = resolve;
       script.onerror = reject;
       document.body.appendChild(script);
