@@ -17,11 +17,13 @@ const clientJsFiles = [
   'app.js'
 ];
 const lazyJsFiles = [
-  'letterboxd-import.js'
+  'letterboxd-import.js',
+  'assets/directors-admin-app.js'
 ];
 const syntaxFiles = [
   ...clientJsFiles,
   ...lazyJsFiles,
+  'vite.config.mjs',
   'tools/asset-size-report.mjs'
 ];
 
@@ -217,6 +219,7 @@ async function checkStaticGuards() {
     '/custom-select.js',
     '/app-page-runtime.js',
     '/letterboxd-import.js',
+    '/assets/directors-admin-app.js',
     '/shared-layout.js'
   ].forEach(assetPath => {
     const escapedAssetPath = assetPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -239,6 +242,7 @@ async function checkStaticGuards() {
     'directors.html',
     'app.js',
     'letterboxd-import.js',
+    'assets/directors-admin-app.js',
     'shared-layout.js',
     'app-script-loader.js',
     'app-page-runtime.js',

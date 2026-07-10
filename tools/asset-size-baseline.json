@@ -2,9 +2,9 @@
   "assets": [
     {
       "file": "app.js",
-      "raw": 849708,
-      "gzip": 166013,
-      "brotli": 120205
+      "raw": 843264,
+      "gzip": 164657,
+      "brotli": 119293
     },
     {
       "file": "styles.css",
@@ -17,6 +17,12 @@
       "raw": 29934,
       "gzip": 5077,
       "brotli": 4109
+    },
+    {
+      "file": "assets/directors-admin-app.js",
+      "raw": 27043,
+      "gzip": 8906,
+      "brotli": 7885
     },
     {
       "file": "index.html",
@@ -99,9 +105,9 @@
   ],
   "groups": {
     "js": {
-      "raw": 908377,
-      "gzip": 178493,
-      "brotli": 130674
+      "raw": 928976,
+      "gzip": 186043,
+      "brotli": 137647
     },
     "css": {
       "raw": 234914,
@@ -124,9 +130,9 @@
         "app-page-runtime.js",
         "app.js"
       ],
-      "raw": 902380,
-      "gzip": 176570,
-      "brotli": 128949
+      "raw": 895936,
+      "gzip": 175214,
+      "brotli": 128037
     },
     "movie": {
       "files": [
@@ -137,9 +143,9 @@
         "app-page-runtime.js",
         "app.js"
       ],
-      "raw": 902380,
-      "gzip": 176570,
-      "brotli": 128949
+      "raw": 895936,
+      "gzip": 175214,
+      "brotli": 128037
     },
     "profile": {
       "files": [
@@ -149,9 +155,9 @@
         "app-page-runtime.js",
         "app.js"
       ],
-      "raw": 887559,
-      "gzip": 173699,
-      "brotli": 126453
+      "raw": 881115,
+      "gzip": 172343,
+      "brotli": 125541
     },
     "notifications": {
       "files": [
@@ -161,9 +167,9 @@
         "app-page-runtime.js",
         "app.js"
       ],
-      "raw": 887559,
-      "gzip": 173699,
-      "brotli": 126453
+      "raw": 881115,
+      "gzip": 172343,
+      "brotli": 125541
     },
     "directors": {
       "files": [
@@ -171,11 +177,12 @@
         "app-script-loader.js",
         "shared-layout.js",
         "app-page-runtime.js",
-        "app.js"
+        "app.js",
+        "assets/directors-admin-app.js"
       ],
-      "raw": 887559,
-      "gzip": 173699,
-      "brotli": 126453
+      "raw": 908158,
+      "gzip": 181249,
+      "brotli": 133426
     }
   }
 }

@@ -31,6 +31,12 @@
 - `app.js` — основная логика приложения
 - `styles.css` — стили интерфейса
 
+## Framework-острова
+
+- `/directors` рендерится отдельным Preact/Vite-островом из `src/directors-admin-app.jsx`.
+- После правок в `src/directors-admin-app.jsx` нужно запускать `npm run build:directors`.
+- Сборка коммитится в `assets/directors-admin-app.js`, чтобы Cloudflare Pages мог отдать страницу без отдельного build-пайплайна.
+
 ## Cloudflare Pages Functions
 
 - `/env` отдаёт публичные клиентские переменные в `window.__ENV__`

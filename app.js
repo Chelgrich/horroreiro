@@ -611,10 +611,8 @@ let areDirectorsAvailable = true;
 let currentDirectorPageData = null;
 let currentDirectorsAdminRows = [];
 let currentDirectorsAdminMovieRows = [];
-let directorsAdminFilters = {
-  missingBirthDate: false,
-  missingBirthPlace: false
-};
+let directorsAdminFrameworkAppPromise = null;
+let directorsAdminFrameworkApp = null;
 let directorModal = null;
 let directorForm = null;
 let directorModalTitle = null;
@@ -3267,12 +3265,77 @@ async function fetchAdminMovieDirectorRows() {
   ));
 }
 
+function getDirectorsAdminFrameworkActions() {
+  return {
+    login: openAuthModal,
+    refresh: () => {
+      void loadDirectorsAdminPage();
+    },
+    create: openDirectorModal,
+    edit: directorId => {
+      void openDirectorModalById(directorId);
+    }
+  };
+}
+
+function getDirectorsAdminFrameworkUtils() {
+  return {
+    buildDirectorPageUrl,
+    getDirectorDisplayName,
+    getDirectorSecondaryName,
+    getDirectorLifeLabel,
+    getDirectorPlaceholderSvgHtml
+  };
+}
+
+async function ensureDirectorsAdminFrameworkApp() {
+  if (directorsAdminFrameworkApp || !directorsAdminPage) {
+    return directorsAdminFrameworkApp;
+  }
+
+  if (!directorsAdminFrameworkAppPromise) {
+    directorsAdminFrameworkAppPromise = import(getLazyFeatureModuleUrl('assets/directors-admin-app.js'))
+      .then(module => {
+        directorsAdminFrameworkApp = module.mountDirectorsAdminApp(directorsAdminPage, {
+          status: 'loading',
+          actions: getDirectorsAdminFrameworkActions(),
+          utils: getDirectorsAdminFrameworkUtils()
+        });
+
+        return directorsAdminFrameworkApp;
+      })
+      .catch(error => {
+        directorsAdminFrameworkAppPromise = null;
+        throw error;
+      });
+  }
+
+  return directorsAdminFrameworkAppPromise;
+}
+
+function renderDirectorsAdminFrameworkState(state = {}) {
+  if (!directorsAdminPage || !directorsAdminFrameworkApp) {
+    return false;
+  }
+
+  document.title = 'Режиссёры — Хоррорейро';
+  directorsAdminFrameworkApp.update({
+    ...state,
+    actions: getDirectorsAdminFrameworkActions(),
+    utils: getDirectorsAdminFrameworkUtils()
+  });
+
+  return true;
+}
+
 function renderDirectorsAdminPageLoading() {
   if (!directorsAdminPage) {
     return;
   }
 
-  directorsAdminPage.innerHTML = '<div class="directors-admin-page-loading-state">Загрузка режиссёров...</div>';
+  if (!renderDirectorsAdminFrameworkState({ status: 'loading' })) {
+    directorsAdminPage.innerHTML = '<div class="directors-admin-page-loading-state">Загрузка режиссёров...</div>';
+  }
 }
 
 function renderDirectorsAdminPageAuthGate() {
@@ -3280,15 +3343,17 @@ function renderDirectorsAdminPageAuthGate() {
     return;
   }
 
-  document.title = 'Режиссёры — Хоррорейро';
-  directorsAdminPage.innerHTML = `
-    <div class="directors-admin-page-empty-state directors-admin-page-empty-state-large">
-      <p>Войди под администратором, чтобы открыть список режиссёров.</p>
-      <button type="button" class="secondary-button directors-admin-page-login-button" data-directors-admin-action="login">
-        Войти
-      </button>
-    </div>
-  `;
+  if (!renderDirectorsAdminFrameworkState({ status: 'auth' })) {
+    document.title = 'Режиссёры — Хоррорейро';
+    directorsAdminPage.innerHTML = `
+      <div class="directors-admin-page-empty-state directors-admin-page-empty-state-large">
+        <p>Войди под администратором, чтобы открыть список режиссёров.</p>
+        <button type="button" class="secondary-button directors-admin-page-login-button" data-directors-admin-action="login">
+          Войти
+        </button>
+      </div>
+    `;
+  }
 }
 
 function renderDirectorsAdminPageForbidden() {
@@ -3296,12 +3361,14 @@ function renderDirectorsAdminPageForbidden() {
     return;
   }
 
-  document.title = 'Режиссёры — Хоррорейро';
-  directorsAdminPage.innerHTML = `
-    <div class="directors-admin-page-empty-state directors-admin-page-empty-state-large">
-      <p>Список режиссёров доступен только администратору.</p>
-    </div>
-  `;
+  if (!renderDirectorsAdminFrameworkState({ status: 'forbidden' })) {
+    document.title = 'Режиссёры — Хоррорейро';
+    directorsAdminPage.innerHTML = `
+      <div class="directors-admin-page-empty-state directors-admin-page-empty-state-large">
+        <p>Список режиссёров доступен только администратору.</p>
+      </div>
+    `;
+  }
 }
 
 function renderDirectorsAdminPageUnavailable() {
@@ -3309,12 +3376,14 @@ function renderDirectorsAdminPageUnavailable() {
     return;
   }
 
-  document.title = 'Режиссёры — Хоррорейро';
-  directorsAdminPage.innerHTML = `
-    <div class="directors-admin-page-empty-state directors-admin-page-empty-state-large">
-      <p>Таблицы персон пока недоступны: серверный контур персон не подключён.</p>
-    </div>
-  `;
+  if (!renderDirectorsAdminFrameworkState({ status: 'unavailable' })) {
+    document.title = 'Режиссёры — Хоррорейро';
+    directorsAdminPage.innerHTML = `
+      <div class="directors-admin-page-empty-state directors-admin-page-empty-state-large">
+        <p>Таблицы персон пока недоступны: серверный контур персон не подключён.</p>
+      </div>
+    `;
+  }
 }
 
 function renderDirectorsAdminPageError() {
@@ -3322,169 +3391,16 @@ function renderDirectorsAdminPageError() {
     return;
   }
 
-  directorsAdminPage.innerHTML = `
-    <div class="directors-admin-page-empty-state directors-admin-page-empty-state-large">
-      <p>Не удалось загрузить режиссёров. Попробуй обновить страницу.</p>
-      <button type="button" class="secondary-button directors-admin-page-login-button" data-directors-admin-action="refresh">
-        Повторить
-      </button>
-    </div>
-  `;
-}
-
-function getMovieCountsByDirectorId(movieDirectorRows = []) {
-  return (Array.isArray(movieDirectorRows) ? movieDirectorRows : []).reduce((counts, row) => {
-    const directorId = String(row?.person_id || '').trim();
-
-    if (!directorId) {
-      return counts;
-    }
-
-    counts.set(directorId, (counts.get(directorId) || 0) + 1);
-    return counts;
-  }, new Map());
-}
-
-function getDuplicateDirectorNameKeys(directors = []) {
-  const counts = new Map();
-
-  directors.forEach(director => {
-    const key = normalizeSearchText(director?.name_ru);
-
-    if (!key) {
-      return;
-    }
-
-    counts.set(key, (counts.get(key) || 0) + 1);
-  });
-
-  return new Set(
-    Array.from(counts.entries())
-      .filter(([, count]) => count > 1)
-      .map(([key]) => key)
-  );
-}
-
-function hasDirectorBirthDate(director) {
-  return Boolean(String(director?.birth_date || '').trim());
-}
-
-function hasDirectorBirthPlace(director) {
-  return Boolean(String(director?.birth_place || '').trim());
-}
-
-function getDirectorsAdminFilterCounts(directors = []) {
-  return (Array.isArray(directors) ? directors : []).reduce((counts, director) => {
-    if (!hasDirectorBirthDate(director)) {
-      counts.missingBirthDate += 1;
-    }
-
-    if (!hasDirectorBirthPlace(director)) {
-      counts.missingBirthPlace += 1;
-    }
-
-    return counts;
-  }, {
-    missingBirthDate: 0,
-    missingBirthPlace: 0
-  });
-}
-
-function getFilteredDirectorsAdminRows(directors = []) {
-  const sourceDirectors = Array.isArray(directors) ? directors : [];
-  const shouldFilterBirthDate = Boolean(directorsAdminFilters.missingBirthDate);
-  const shouldFilterBirthPlace = Boolean(directorsAdminFilters.missingBirthPlace);
-
-  if (!shouldFilterBirthDate && !shouldFilterBirthPlace) {
-    return sourceDirectors;
-  }
-
-  return sourceDirectors.filter(director => (
-    (!shouldFilterBirthDate || !hasDirectorBirthDate(director)) &&
-    (!shouldFilterBirthPlace || !hasDirectorBirthPlace(director))
-  ));
-}
-
-function hasActiveDirectorsAdminFilters() {
-  return Boolean(
-    directorsAdminFilters.missingBirthDate ||
-    directorsAdminFilters.missingBirthPlace
-  );
-}
-
-function renderDirectorsAdminFilterButton(key, label, count) {
-  const isActive = Boolean(directorsAdminFilters[key]);
-
-  return `
-    <button
-      type="button"
-      class="directors-admin-filter-chip${isActive ? ' is-active' : ''}"
-      data-directors-admin-filter="${escapeHtml(key)}"
-      aria-pressed="${isActive ? 'true' : 'false'}"
-    >
-      <span>${escapeHtml(label)}</span>
-      <span class="directors-admin-filter-chip-count">${escapeHtml(String(count))}</span>
-    </button>
-  `;
-}
-
-function renderDirectorsAdminFilters(directors = []) {
-  const counts = getDirectorsAdminFilterCounts(directors);
-  const resetButtonHtml = hasActiveDirectorsAdminFilters()
-    ? `
-      <button
-        type="button"
-        class="directors-admin-filter-reset"
-        data-directors-admin-filter="reset"
-      >
-        Сбросить
-      </button>
-    `
-    : '';
-
-  return `
-    <div class="directors-admin-page-filters" aria-label="Фильтры заполненности">
-      <span class="directors-admin-page-filters-label">Показать:</span>
-      ${renderDirectorsAdminFilterButton('missingBirthDate', 'Без даты рождения', counts.missingBirthDate)}
-      ${renderDirectorsAdminFilterButton('missingBirthPlace', 'Без места рождения', counts.missingBirthPlace)}
-      ${resetButtonHtml}
-    </div>
-  `;
-}
-
-function renderDirectorsAdminRow(director, movieCount, duplicateNameKeys) {
-  const displayName = getDirectorDisplayName(director);
-  const secondaryName = getDirectorSecondaryName(director);
-  const lifeLabel = getDirectorLifeLabel(director);
-  const isDuplicateName = duplicateNameKeys.has(normalizeSearchText(director?.name_ru));
-  const hasTmdbUrl = Boolean(String(director?.tmdb_url || '').trim());
-
-  return `
-    <article class="directors-admin-card${hasTmdbUrl ? '' : ' is-missing-tmdb'}">
-      <a class="directors-admin-card-main" href="${escapeHtml(buildDirectorPageUrl(director))}">
-        <div class="directors-admin-card-avatar">
-          ${
-            director.photo_url
-              ? `<img src="${escapeHtml(director.photo_url)}" alt="" loading="lazy" decoding="async">`
-              : getDirectorPlaceholderSvgHtml(director, 'directors-admin-card-avatar-placeholder-icon')
-          }
-        </div>
-        <div class="directors-admin-card-body">
-          <div class="directors-admin-card-name">${escapeHtml(displayName)}</div>
-          ${secondaryName ? `<div class="directors-admin-card-original">${escapeHtml(secondaryName)}</div>` : ''}
-          ${lifeLabel ? `<div class="directors-admin-card-meta">${escapeHtml(lifeLabel)}</div>` : ''}
-          <div class="directors-admin-card-meta">${escapeHtml(String(movieCount))} ${escapeHtml(getMoviesCountLabel(movieCount))}</div>
-        </div>
-      </a>
-      <div class="directors-admin-card-actions">
-        ${isDuplicateName ? '<span class="directors-admin-duplicate-badge" title="Есть режиссёры с таким же именем">Тёзка</span>' : ''}
-        ${hasTmdbUrl ? '' : '<span class="directors-admin-missing-tmdb-badge" title="Не заполнена ссылка TMDB">Нет TMDB</span>'}
-        <button type="button" class="secondary-button secondary-button-compact" data-director-edit="${escapeHtml(director.id)}">
-          Редактировать
+  if (!renderDirectorsAdminFrameworkState({ status: 'error' })) {
+    directorsAdminPage.innerHTML = `
+      <div class="directors-admin-page-empty-state directors-admin-page-empty-state-large">
+        <p>Не удалось загрузить режиссёров. Попробуй обновить страницу.</p>
+        <button type="button" class="secondary-button directors-admin-page-login-button" data-directors-admin-action="refresh">
+          Повторить
         </button>
       </div>
-    </article>
-  `;
+    `;
+  }
 }
 
 function getMoviesCountLabel(count) {
@@ -3507,57 +3423,22 @@ function getMoviesCountLabel(count) {
   return 'фильмов';
 }
 
-function getDirectorsCountLabel(count) {
-  return getMoviesCountLabel(count).replace('фильм', 'режиссёр');
-}
-
 function renderDirectorsAdminPage({ directors = [], movieDirectorRows = [] } = {}) {
   if (!directorsAdminPage) {
     return;
   }
 
   const sourceDirectors = Array.isArray(directors) ? directors : [];
-  const filteredDirectors = getFilteredDirectorsAdminRows(sourceDirectors);
-  const movieCountsByDirectorId = getMovieCountsByDirectorId(movieDirectorRows);
-  const duplicateNameKeys = getDuplicateDirectorNameKeys(sourceDirectors);
-  const activeFilters = hasActiveDirectorsAdminFilters();
-  const directorsCountText = activeFilters
-    ? `${filteredDirectors.length} из ${sourceDirectors.length} ${getDirectorsCountLabel(sourceDirectors.length)}`
-    : `${sourceDirectors.length} ${getDirectorsCountLabel(sourceDirectors.length)}`;
-
   currentDirectorsAdminRows = sourceDirectors;
   currentDirectorsAdminMovieRows = Array.isArray(movieDirectorRows) ? movieDirectorRows : [];
-  document.title = 'Режиссёры — Хоррорейро';
 
-  directorsAdminPage.innerHTML = `
-    <section class="directors-admin-page-toolbar">
-      <div>
-        <p class="directors-admin-page-kicker">${escapeHtml(directorsCountText)}</p>
-        <p class="directors-admin-page-note">Технический список для быстрого редактирования страниц режиссёров.</p>
-      </div>
-      <button type="button" class="secondary-button" data-directors-admin-action="create">
-        Добавить режиссёра
-      </button>
-    </section>
-    ${sourceDirectors.length ? renderDirectorsAdminFilters(sourceDirectors) : ''}
-    ${
-      filteredDirectors.length
-        ? `
-          <div class="directors-admin-grid">
-            ${filteredDirectors.map(director => (
-              renderDirectorsAdminRow(
-                director,
-                movieCountsByDirectorId.get(String(director.id)) || 0,
-                duplicateNameKeys
-              )
-            )).join('')}
-          </div>
-        `
-        : `<div class="directors-admin-page-empty-state">${sourceDirectors.length ? 'По выбранным фильтрам режиссёров нет.' : 'Режиссёры пока не созданы.'}</div>`
-    }
-  `;
-
-  bindDirectorsAdminPageEvents();
+  if (!renderDirectorsAdminFrameworkState({
+    status: 'ready',
+    directors: sourceDirectors,
+    movieDirectorRows: currentDirectorsAdminMovieRows
+  })) {
+    renderDirectorsAdminPageError();
+  }
 }
 
 async function loadDirectorsAdminPage({ preserveScroll = false } = {}) {
@@ -3568,6 +3449,14 @@ async function loadDirectorsAdminPage({ preserveScroll = false } = {}) {
   const scrollYBeforeLoad = preserveScroll
     ? window.scrollY || window.pageYOffset || 0
     : null;
+
+  try {
+    await ensureDirectorsAdminFrameworkApp();
+  } catch (error) {
+    console.error('Ошибка загрузки framework-интерфейса режиссёров:', error);
+    renderDirectorsAdminPageError();
+    return;
+  }
 
   if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
     renderDirectorsAdminPageAuthGate();
@@ -3662,62 +3551,7 @@ async function openDirectorModalById(directorId) {
   }
 }
 
-function bindDirectorsAdminPageEvents() {
-  if (!directorsAdminPage) {
-    return;
-  }
-
-  directorsAdminPage.querySelectorAll('[data-director-edit]').forEach(button => {
-    if (button.dataset.directorEditBound === 'true') {
-      return;
-    }
-
-    button.dataset.directorEditBound = 'true';
-    button.addEventListener('click', () => {
-      void openDirectorModalById(button.dataset.directorEdit);
-    });
-  });
-}
-
-function rerenderDirectorsAdminPageFromCurrentState() {
-  renderDirectorsAdminPage({
-    directors: currentDirectorsAdminRows,
-    movieDirectorRows: currentDirectorsAdminMovieRows
-  });
-}
-
-function handleDirectorsAdminFilterToggle(filterKey) {
-  if (filterKey === 'reset') {
-    directorsAdminFilters = {
-      missingBirthDate: false,
-      missingBirthPlace: false
-    };
-    rerenderDirectorsAdminPageFromCurrentState();
-    return true;
-  }
-
-  if (!Object.prototype.hasOwnProperty.call(directorsAdminFilters, filterKey)) {
-    return false;
-  }
-
-  directorsAdminFilters = {
-    ...directorsAdminFilters,
-    [filterKey]: !directorsAdminFilters[filterKey]
-  };
-  rerenderDirectorsAdminPageFromCurrentState();
-  return true;
-}
-
 function handleDirectorsAdminPageClick(event) {
-  const filterButton = event.target?.closest?.('[data-directors-admin-filter]');
-
-  if (filterButton && directorsAdminPage?.contains(filterButton)) {
-    event.preventDefault();
-    return handleDirectorsAdminFilterToggle(
-      String(filterButton.dataset.directorsAdminFilter || '').trim()
-    );
-  }
-
   const actionButton = event.target?.closest?.('[data-directors-admin-action]');
 
   if (!actionButton || !directorsAdminPage?.contains(actionButton)) {

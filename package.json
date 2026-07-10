@@ -3,8 +3,14 @@
   "type": "module",
   "scripts": {
     "smoke": "node tools/smoke-check.mjs",
+    "build:directors": "vite build",
     "size": "node tools/asset-size-report.mjs",
     "size:json": "node tools/asset-size-report.mjs --json",
     "size:compare": "node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.5",
+    "preact": "^10.29.7",
+    "vite": "^8.1.4"
   }
 }

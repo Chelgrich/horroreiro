@@ -13,7 +13,8 @@ const assetGroups = {
     'custom-select.js',
     'app-page-runtime.js',
     'app.js',
-    'letterboxd-import.js'
+    'letterboxd-import.js',
+    'assets/directors-admin-app.js'
   ],
   css: [
     'styles.css'
@@ -66,7 +67,8 @@ const startupProfiles = {
     'app-script-loader.js',
     'shared-layout.js',
     'app-page-runtime.js',
-    'app.js'
+    'app.js',
+    'assets/directors-admin-app.js'
   ]
 };
 
