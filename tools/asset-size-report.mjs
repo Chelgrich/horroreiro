@@ -12,7 +12,8 @@ const assetGroups = {
     'shared-layout.js',
     'custom-select.js',
     'app-page-runtime.js',
-    'app.js'
+    'app.js',
+    'letterboxd-import.js'
   ],
   css: [
     'styles.css'
@@ -100,21 +101,26 @@ function parseArgs(argv) {
 }
 
 function formatBytes(bytes) {
-  if (!Number.isFinite(bytes) || bytes <= 0) {
+  const numericBytes = Number(bytes || 0);
+
+  if (!Number.isFinite(numericBytes) || numericBytes === 0) {
     return '0 B';
   }
 
-  if (bytes < 1024) {
-    return `${bytes} B`;
+  const sign = numericBytes < 0 ? '-' : '';
+  const absoluteBytes = Math.abs(numericBytes);
+
+  if (absoluteBytes < 1024) {
+    return `${sign}${absoluteBytes} B`;
   }
 
-  const kib = bytes / 1024;
+  const kib = absoluteBytes / 1024;
 
   if (kib < 1024) {
-    return `${kib.toFixed(1)} KiB`;
+    return `${sign}${kib.toFixed(1)} KiB`;
   }
 
-  return `${(kib / 1024).toFixed(2)} MiB`;
+  return `${sign}${(kib / 1024).toFixed(2)} MiB`;
 }
 
 function getMetricDelta(nextValue, previousValue) {

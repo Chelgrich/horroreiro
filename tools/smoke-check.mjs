@@ -16,8 +16,12 @@ const clientJsFiles = [
   'app-page-runtime.js',
   'app.js'
 ];
+const lazyJsFiles = [
+  'letterboxd-import.js'
+];
 const syntaxFiles = [
   ...clientJsFiles,
+  ...lazyJsFiles,
   'tools/asset-size-report.mjs'
 ];
 
@@ -206,6 +210,23 @@ async function checkStaticGuards() {
     'app-script-loader.js: missing app-page-runtime.js load step'
   );
 
+  const headersText = await readText('_headers');
+
+  [
+    '/app.js',
+    '/custom-select.js',
+    '/app-page-runtime.js',
+    '/letterboxd-import.js',
+    '/shared-layout.js'
+  ].forEach(assetPath => {
+    const escapedAssetPath = assetPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    assert(
+      new RegExp(`${escapedAssetPath}\\r?\\n\\s+Cache-Control: public, max-age=31536000, immutable`).test(headersText),
+      `_headers: missing immutable cache header for ${assetPath}`
+    );
+  });
+
   const activeTextTargets = [
     '_headers',
     'index.html',
@@ -217,6 +238,7 @@ async function checkStaticGuards() {
     'name.html',
     'directors.html',
     'app.js',
+    'letterboxd-import.js',
     'shared-layout.js',
     'app-script-loader.js',
     'app-page-runtime.js',

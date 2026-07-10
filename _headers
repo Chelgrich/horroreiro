@@ -4,6 +4,12 @@
 /custom-select.js
   Cache-Control: public, max-age=31536000, immutable
 
+/app-page-runtime.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/letterboxd-import.js
+  Cache-Control: public, max-age=31536000, immutable
+
 /shared-layout.js
   Cache-Control: public, max-age=31536000, immutable
 
