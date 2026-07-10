@@ -244,6 +244,7 @@ const CATALOG_FAST_RETURN_PENDING_KEY = 'horroreiro_catalog_fast_return_pending'
 const CATALOG_SESSION_SNAPSHOT_KEY = 'horroreiro_catalog_session_snapshot';
 const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
 const MOVIE_PAGE_SESSION_CACHE_KEY = 'horroreiro_movie_page_session_cache';
+const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY = 'horroreiro_user_page_activity_aggregate_cache';
 const DATA_MUTATION_STAMP_KEY = 'horroreiro_data_mutation_stamp';
 const CATALOG_SESSION_SNAPSHOT_VERSION = 6;
 const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
@@ -251,6 +252,8 @@ const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
 const MOVIE_PAGE_SESSION_CACHE_VERSION = 1;
 const MOVIE_PAGE_SESSION_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 const MOVIE_PAGE_SESSION_CACHE_MAX_ENTRIES = 6;
+const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_VERSION = 1;
+const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 const CATALOG_PAGE_SIZE = 40;
 const CATALOG_PAGINATION_PAGE_SLOTS = 6;
 const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
@@ -595,6 +598,7 @@ let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
 let allGenreNames = [];
 let allCountryNames = [];
+let userPageActivityAggregateRowsCache = null;
 let lastCatalogAnchorMovieId = null;
 let currentMoviePageMovieId = null;
 let currentMoviePageMovieData = null;
@@ -7113,8 +7117,10 @@ function markLocalDataMutation(scope = 'data') {
     const stamp = `${Date.now().toString(36)}:${String(scope || 'data')}:${Math.random().toString(36).slice(2)}`;
 
     localStorage.setItem(DATA_MUTATION_STAMP_KEY, stamp);
+    invalidateUserPageActivityAggregateRowsCache();
     return stamp;
   } catch (error) {
+    invalidateUserPageActivityAggregateRowsCache();
     return '';
   }
 }
@@ -20534,7 +20540,108 @@ function getOptionalUserPageAggregateRows(result, label) {
   return Array.isArray(result?.data) ? result.data : [];
 }
 
+function isUserPageActivityAggregateRowsCacheValid(cache) {
+  if (
+    !cache ||
+    cache.version !== USER_PAGE_ACTIVITY_AGGREGATE_CACHE_VERSION ||
+    cache.buildVersion !== APP_BUILD_VERSION ||
+    cache.mutationStamp !== getDataMutationStamp()
+  ) {
+    return false;
+  }
+
+  const createdAt = Number(cache.createdAt || 0);
+
+  if (!createdAt || Date.now() - createdAt > USER_PAGE_ACTIVITY_AGGREGATE_CACHE_MAX_AGE_MS) {
+    return false;
+  }
+
+  return (
+    Array.isArray(cache.profileRows) &&
+    Array.isArray(cache.ratingRows) &&
+    Array.isArray(cache.watchlistRows) &&
+    Array.isArray(cache.reviewRows)
+  );
+}
+
+function getUserPageActivityAggregateRowsCachePayload(cache) {
+  return {
+    profileRows: cache.profileRows || [],
+    ratingRows: cache.ratingRows || [],
+    watchlistRows: cache.watchlistRows || [],
+    reviewRows: cache.reviewRows || [],
+    hasProfileRows: Boolean(cache.hasProfileRows),
+    hasRatingRows: Boolean(cache.hasRatingRows),
+    hasWatchlistRows: Boolean(cache.hasWatchlistRows),
+    hasReviewRows: Boolean(cache.hasReviewRows)
+  };
+}
+
+function readUserPageActivityAggregateRowsCache() {
+  if (isUserPageActivityAggregateRowsCacheValid(userPageActivityAggregateRowsCache)) {
+    return getUserPageActivityAggregateRowsCachePayload(userPageActivityAggregateRowsCache);
+  }
+
+  try {
+    const rawCache = sessionStorage.getItem(USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY);
+    const parsedCache = rawCache ? JSON.parse(rawCache) : null;
+
+    if (!isUserPageActivityAggregateRowsCacheValid(parsedCache)) {
+      sessionStorage.removeItem(USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY);
+      userPageActivityAggregateRowsCache = null;
+      return null;
+    }
+
+    userPageActivityAggregateRowsCache = parsedCache;
+    return getUserPageActivityAggregateRowsCachePayload(parsedCache);
+  } catch (error) {
+    userPageActivityAggregateRowsCache = null;
+    return null;
+  }
+}
+
+function writeUserPageActivityAggregateRowsCache(payload) {
+  const cache = {
+    version: USER_PAGE_ACTIVITY_AGGREGATE_CACHE_VERSION,
+    buildVersion: APP_BUILD_VERSION,
+    mutationStamp: getDataMutationStamp(),
+    createdAt: Date.now(),
+    profileRows: Array.isArray(payload?.profileRows) ? payload.profileRows : [],
+    ratingRows: Array.isArray(payload?.ratingRows) ? payload.ratingRows : [],
+    watchlistRows: Array.isArray(payload?.watchlistRows) ? payload.watchlistRows : [],
+    reviewRows: Array.isArray(payload?.reviewRows) ? payload.reviewRows : [],
+    hasProfileRows: Boolean(payload?.hasProfileRows),
+    hasRatingRows: Boolean(payload?.hasRatingRows),
+    hasWatchlistRows: Boolean(payload?.hasWatchlistRows),
+    hasReviewRows: Boolean(payload?.hasReviewRows)
+  };
+
+  userPageActivityAggregateRowsCache = cache;
+
+  try {
+    sessionStorage.setItem(USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY, JSON.stringify(cache));
+  } catch (error) {
+    // Session storage can be unavailable or full; in-memory cache is enough as a fallback.
+  }
+}
+
+function invalidateUserPageActivityAggregateRowsCache() {
+  userPageActivityAggregateRowsCache = null;
+
+  try {
+    sessionStorage.removeItem(USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY);
+  } catch (error) {
+    // Ignore storage errors; cache invalidation is best-effort.
+  }
+}
+
 async function fetchUserPageActivityAggregateRows() {
+  const cachedRows = readUserPageActivityAggregateRowsCache();
+
+  if (cachedRows) {
+    return cachedRows;
+  }
+
   try {
     const [
       profilesResult,
@@ -20560,7 +20667,7 @@ async function fetchUserPageActivityAggregateRows() {
         .limit(USER_PAGE_ACTIVITY_AGGREGATE_LIMIT)
     ]);
 
-    return {
+    const aggregateRows = {
       profileRows: getOptionalUserPageAggregateRows(profilesResult, 'profiles'),
       ratingRows: getOptionalUserPageAggregateRows(ratingsResult, 'movie_ratings'),
       watchlistRows: getOptionalUserPageAggregateRows(watchlistResult, 'movie_watchlist'),
@@ -20570,6 +20677,17 @@ async function fetchUserPageActivityAggregateRows() {
       hasWatchlistRows: !watchlistResult.error,
       hasReviewRows: !reviewsResult.error
     };
+
+    if (
+      aggregateRows.hasProfileRows &&
+      aggregateRows.hasRatingRows &&
+      aggregateRows.hasWatchlistRows &&
+      aggregateRows.hasReviewRows
+    ) {
+      writeUserPageActivityAggregateRowsCache(aggregateRows);
+    }
+
+    return aggregateRows;
   } catch (error) {
     console.warn('Не удалось загрузить агрегаты профиля:', error);
     return {
