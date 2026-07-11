@@ -12,6 +12,28 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-11 - Add TMDB movie aggregator link
+
+- Files:
+  - `app.js`
+  - `shared-layout.js`
+  - `functions/_seo-utils.js`
+  - `icons/tmdb.svg`
+  - `docs/DATA_MODEL.md`
+- Summary:
+  - Added editable movie `tmdb_url` support as an optional Supabase column.
+  - Added TMDB to catalog/detail external aggregator links and movie SEO `sameAs`.
+  - Added TMDB as the third field in the second external-links row; trailer moves to the next row.
+- Checks:
+  - `node --check app.js`
+  - `node --check shared-layout.js`
+  - `node --check functions\_seo-utils.js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+- Follow-up:
+  - Apply `alter table public.movies add column if not exists tmdb_url text;` in Supabase before entering TMDB links.
+
 ## 2026-07-11 - Add persistent Codex context docs
 
 - Files:

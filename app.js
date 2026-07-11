@@ -206,6 +206,7 @@ let imdbUrlInput = document.getElementById('imdbUrl');
 let letterboxdUrlInput = document.getElementById('letterboxdUrl');
 let letterboxdShortUrlInput = document.getElementById('letterboxdShortUrl');
 let rottentomatoesUrlInput = document.getElementById('rottentomatoesUrl');
+let tmdbUrlInput = document.getElementById('tmdbUrl');
 let trailerUrlInput = document.getElementById('trailerUrl');
 let genresInput = document.getElementById('genresInput');
 let countriesInput = document.getElementById('countriesInput');
@@ -1353,6 +1354,7 @@ function buildEditableMovieExport(movie, {
     letterboxd_url: movie?.letterboxd_url || '',
     letterboxd_short_url: movie?.letterboxd_short_url || '',
     rottentomatoes_url: movie?.rottentomatoes_url || '',
+    tmdb_url: movie?.tmdb_url || '',
     trailer_url: movie?.trailer_url || '',
     poster_url: movie?.poster_url || '',
     poster_images: getExportPosterImages(movie, posterImages),
@@ -11577,6 +11579,7 @@ function refreshMovieModalElements() {
   letterboxdUrlInput = document.getElementById('letterboxdUrl');
   letterboxdShortUrlInput = document.getElementById('letterboxdShortUrl');
   rottentomatoesUrlInput = document.getElementById('rottentomatoesUrl');
+  tmdbUrlInput = document.getElementById('tmdbUrl');
   trailerUrlInput = document.getElementById('trailerUrl');
   genresInput = document.getElementById('genresInput');
   countriesInput = document.getElementById('countriesInput');
@@ -11802,6 +11805,7 @@ function fillFormForEdit(movie) {
   setInputValue(letterboxdUrlInput, movie.letterboxd_url, 'letterboxdUrlInput');
   setInputValue(letterboxdShortUrlInput, movie.letterboxd_short_url, 'letterboxdShortUrlInput');
   setInputValue(rottentomatoesUrlInput, movie.rottentomatoes_url, 'rottentomatoesUrlInput');
+  setInputValue(tmdbUrlInput, movie.tmdb_url, 'tmdbUrlInput');
   setInputValue(trailerUrlInput, movie.trailer_url, 'trailerUrlInput');
 
   if (posterFileInput) {
@@ -12172,6 +12176,7 @@ const MOVIE_BASE_SELECT = `
   letterboxd_url,
   letterboxd_short_url,
   rottentomatoes_url,
+  tmdb_url,
   trailer_url,
   release_year,
   release_month,
@@ -12202,6 +12207,7 @@ const MOVIE_CATALOG_SELECT = `
   letterboxd_url,
   letterboxd_short_url,
   rottentomatoes_url,
+  tmdb_url,
   release_year,
   release_month,
   sort_order,
@@ -12244,8 +12250,9 @@ function getMovieSelectByPurpose(purpose = 'catalog') {
   return MOVIE_CATALOG_SELECT;
 }
 
-const OPTIONAL_MOVIE_SELECT_COLUMNS = ['trailer_url', 'runtime_minutes'];
+const OPTIONAL_MOVIE_SELECT_COLUMNS = ['trailer_url', 'runtime_minutes', 'tmdb_url'];
 let movieRuntimeMinutesColumnAvailable = true;
+let movieTmdbUrlColumnAvailable = true;
 
 function getMissingOptionalMovieColumn(error) {
   const message = String(error?.message || '').toLowerCase();
@@ -12269,6 +12276,10 @@ function isMissingOptionalMovieColumnError(error) {
 function markMissingOptionalMovieColumn(columnName) {
   if (columnName === 'runtime_minutes') {
     movieRuntimeMinutesColumnAvailable = false;
+  }
+
+  if (columnName === 'tmdb_url') {
+    movieTmdbUrlColumnAvailable = false;
   }
 }
 
@@ -12300,6 +12311,10 @@ async function runMovieSelectWithOptionalColumns(createQuery, selectQuery) {
 
   if (String(currentSelectQuery || '').includes('runtime_minutes')) {
     movieRuntimeMinutesColumnAvailable = true;
+  }
+
+  if (String(currentSelectQuery || '').includes('tmdb_url')) {
+    movieTmdbUrlColumnAvailable = true;
   }
 
   return {
@@ -14647,6 +14662,7 @@ async function addMovie(event) {
   const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value);
   const letterboxdShortUrl = normalizeLetterboxdShortUrl(letterboxdShortUrlInput.value);
   const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value);
+  const tmdbUrl = normalizeOptionalUrl(tmdbUrlInput?.value || '');
   const trailerUrl = normalizeOptionalUrl(trailerUrlInput?.value || '');
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
@@ -14711,6 +14727,7 @@ async function addMovie(event) {
           letterboxd_url: letterboxdUrl || null,
           letterboxd_short_url: letterboxdShortUrl || null,
           rottentomatoes_url: rottentomatoesUrl || null,
+          ...(movieTmdbUrlColumnAvailable ? { tmdb_url: tmdbUrl || null } : {}),
           ...(trailerUrl ? { trailer_url: trailerUrl } : {}),
           ...(movieRuntimeMinutesColumnAvailable ? { runtime_minutes: runtimeMinutes } : {}),
           release_month: releaseMonth ? Number(releaseMonth) : null,
@@ -14812,6 +14829,7 @@ async function updateMovie(event) {
   const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value);
   const letterboxdShortUrl = normalizeLetterboxdShortUrl(letterboxdShortUrlInput.value);
   const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value);
+  const tmdbUrl = normalizeOptionalUrl(tmdbUrlInput?.value || '');
   const trailerUrl = normalizeOptionalUrl(trailerUrlInput?.value || '');
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
@@ -14999,6 +15017,13 @@ async function updateMovie(event) {
 
     if ((rottentomatoesUrl || null) !== (existingMovie.rottentomatoes_url ?? null)) {
       changedFields.rottentomatoes_url = rottentomatoesUrl || null;
+    }
+
+    if (
+      movieTmdbUrlColumnAvailable &&
+      (tmdbUrl || null) !== (existingMovie.tmdb_url ?? null)
+    ) {
+      changedFields.tmdb_url = tmdbUrl || null;
     }
 
     if ((trailerUrl || null) !== (existingMovie.trailer_url ?? null)) {
@@ -16999,7 +17024,8 @@ function hasMovieExternalLinks(movie) {
     movie?.kinopoisk_url ||
     movie?.imdb_url ||
     movie?.letterboxd_url ||
-    movie?.rottentomatoes_url
+    movie?.rottentomatoes_url ||
+    movie?.tmdb_url
   );
 }
 
@@ -17206,7 +17232,8 @@ function getMovieExternalIconSrc(type) {
     kinopoisk: '/icons/kp.svg',
     imdb: '/icons/imdb.svg',
     letterboxd: '/icons/lb.svg',
-    rottentomatoes: '/icons/rt.svg'
+    rottentomatoes: '/icons/rt.svg',
+    tmdb: '/icons/tmdb.svg'
   };
 
   return icons[type] || '';
@@ -17294,6 +17321,12 @@ function getMoviePageExternalLinksHtml(movie) {
       label: 'Rotten Tomatoes',
       type: 'rottentomatoes',
       className: 'is-rottentomatoes'
+    } : null,
+    movie.tmdb_url ? {
+      url: movie.tmdb_url,
+      label: 'TMDB',
+      type: 'tmdb',
+      className: 'is-tmdb'
     } : null
   ].filter(Boolean);
 
@@ -17367,6 +17400,12 @@ function getMovieExternalLinksHtml(movie) {
       label: 'Rotten Tomatoes',
       type: 'rottentomatoes',
       className: 'is-rottentomatoes'
+    },
+    {
+      url: movie.tmdb_url,
+      label: 'TMDB',
+      type: 'tmdb',
+      className: 'is-tmdb'
     }
   ].filter(item => item.url);
 
@@ -23230,7 +23269,8 @@ function getMovieSameAsLinks(movie) {
     movie?.kinopoisk_url,
     movie?.imdb_url,
     movie?.letterboxd_url,
-    movie?.rottentomatoes_url
+    movie?.rottentomatoes_url,
+    movie?.tmdb_url
   ].filter(Boolean);
 }
 

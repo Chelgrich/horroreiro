@@ -593,6 +593,18 @@
                   </div>
 
                   <div class="form-row">
+                    <label for="tmdbUrl">TMDB:</label>
+                    <input
+                      type="text"
+                      id="tmdbUrl"
+                      name="tmdbUrl"
+                      inputmode="url"
+                      autocomplete="off"
+                      spellcheck="false"
+                    >
+                  </div>
+
+                  <div class="form-row">
                     <label for="trailerUrl">Трейлер:</label>
                     <input
                       type="text"

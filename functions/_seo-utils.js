@@ -23,6 +23,7 @@ const MOVIE_SELECT = `
   imdb_url,
   letterboxd_url,
   rottentomatoes_url,
+  tmdb_url,
   search_aliases,
   synopsis,
   formats,
@@ -221,7 +222,8 @@ function getMovieSameAs(movie) {
     movie?.kinopoisk_url,
     movie?.imdb_url,
     movie?.letterboxd_url,
-    movie?.rottentomatoes_url
+    movie?.rottentomatoes_url,
+    movie?.tmdb_url
   ].filter(Boolean);
 }
 

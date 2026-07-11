@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 98 98" width="98" height="98" preserveAspectRatio="none">
+  <rect width="98" height="98" rx="16" fill="#071D2B"/>
+  <circle cx="25" cy="28" r="7" fill="#90CEA1"/>
+  <circle cx="49" cy="28" r="7" fill="#01B4E4"/>
+  <circle cx="73" cy="28" r="7" fill="#5B8CFF"/>
+  <text
+    x="49"
+    y="66"
+    text-anchor="middle"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="24"
+    font-weight="800"
+    fill="#E7EBF0"
+  >TMDB</text>
+</svg>

@@ -18,7 +18,7 @@ Important editable fields include:
 - director text field;
 - poster URL and poster gallery;
 - trailer URL;
-- aggregator URLs: Kinopoisk, IMDb, Letterboxd, Boxd.it, Rotten Tomatoes;
+- aggregator URLs: Kinopoisk, IMDb, Letterboxd, Boxd.it, Rotten Tomatoes, TMDB;
 - production, distribution, Russian distribution;
 - formats;
 - perceived tags/subgenres;
@@ -211,4 +211,3 @@ Cloudflare Functions:
   - `/directors` admin island/adapters;
   - public `/name` detail;
   - data sync from movie save if role-related.
-
