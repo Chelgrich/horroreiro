@@ -12,6 +12,20 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-11 - Align rating widget hover states
+
+- Files:
+  - `styles.css`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Made detail-page rating widgets use the same hover, focus-visible, and active motion as external aggregator icon links.
+- Checks:
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+- Follow-up:
+  - None.
+
 ## 2026-07-11 - Limit TMDB movie link to detail page
 
 - Files:
