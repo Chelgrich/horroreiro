@@ -4748,6 +4748,7 @@ a[data-current-page-link="true"] {
 
 .editor-page-issue-grid {
   display: grid;
+  align-items: start;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }

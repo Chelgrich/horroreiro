@@ -12,6 +12,21 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-12 - Keep editor issue cards natural height
+
+- Files:
+  - `styles.css`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Prevented editor center issue cards from stretching to match the tallest card in the same grid row.
+  - Empty or short issue blocks now keep their natural height while the grid layout stays intact.
+- Checks:
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+- Follow-up:
+  - None.
+
 ## 2026-07-12 - Exclude missing similar links from editor summary
 
 - Files:
