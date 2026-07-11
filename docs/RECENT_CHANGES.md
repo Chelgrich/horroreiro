@@ -12,6 +12,23 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-12 - Exclude missing similar links from editor summary
+
+- Files:
+  - `app.js`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Kept the editor center "Без похожих" issue block visible as a working checklist.
+  - Excluded missing manual similar links from the top editor summary counters.
+  - Excluded missing manual similar links from the "Приоритет на проверку" list and its ordering.
+- Checks:
+  - `node --check app.js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+- Follow-up:
+  - None.
+
 ## 2026-07-11 - Align rating widget hover states
 
 - Files:

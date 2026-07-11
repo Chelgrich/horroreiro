@@ -260,6 +260,7 @@ const CATALOG_PAGINATION_PAGE_SLOTS = 6;
 const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
 const CATALOG_PRIORITY_POSTER_COUNT = 8;
 const EDITOR_CENTER_PREVIEW_LIMIT = 12;
+const EDITOR_CENTER_SUMMARY_EXCLUDED_ISSUE_KEYS = new Set(['similar']);
 const CATALOG_PRESET_QUERY_PARAM = 'preset';
 const CATALOG_PROFILE_QUERY_PARAM = 'profile';
 const CATALOG_PROFILE_ACTIVITY_QUERY_PARAM = 'activity';
@@ -2165,6 +2166,10 @@ function getEditorMovieIssuesSummary(issueKeys = []) {
     .join(', ');
 }
 
+function getEditorSummaryIssueKeys(issueKeys = []) {
+  return issueKeys.filter(issueKey => !EDITOR_CENTER_SUMMARY_EXCLUDED_ISSUE_KEYS.has(issueKey));
+}
+
 function renderEditorMovieLink(movie, metaText = '') {
   const movieLabel = getManualSimilarMovieLabel(movie);
   const movieUrl = buildMoviePageUrl(movie);
@@ -2209,7 +2214,15 @@ function renderEditorIssueCard(issue) {
 
 function renderEditorPriorityList(entries = []) {
   const priorityEntries = entries
-    .filter(entry => entry.issueKeys.length > 1)
+    .map(entry => ({
+      ...entry,
+      summaryIssueKeys: getEditorSummaryIssueKeys(entry.issueKeys)
+    }))
+    .filter(entry => entry.summaryIssueKeys.length > 1)
+    .sort((firstEntry, secondEntry) => (
+      secondEntry.summaryIssueKeys.length - firstEntry.summaryIssueKeys.length ||
+      compareManualSimilarAuditMovies(firstEntry.movie, secondEntry.movie)
+    ))
     .slice(0, EDITOR_CENTER_PREVIEW_LIMIT);
 
   if (!priorityEntries.length) {
@@ -2219,7 +2232,7 @@ function renderEditorPriorityList(entries = []) {
   return `
     <div class="editor-page-movie-list editor-page-priority-list">
       ${priorityEntries.map(entry => (
-        renderEditorMovieLink(entry.movie, getEditorMovieIssuesSummary(entry.issueKeys))
+        renderEditorMovieLink(entry.movie, getEditorMovieIssuesSummary(entry.summaryIssueKeys))
       )).join('')}
     </div>
   `;
@@ -2230,8 +2243,9 @@ function renderEditorPage(data) {
     return;
   }
 
-  const totalIssueCount = data.issues.reduce((sum, issue) => sum + issue.movies.length, 0);
-  const multiIssueCount = data.movieIssueEntries.filter(entry => entry.issueKeys.length > 1).length;
+  const summaryIssues = data.issues.filter(issue => !EDITOR_CENTER_SUMMARY_EXCLUDED_ISSUE_KEYS.has(issue.key));
+  const totalIssueCount = summaryIssues.reduce((sum, issue) => sum + issue.movies.length, 0);
+  const multiIssueCount = data.movieIssueEntries.filter(entry => getEditorSummaryIssueKeys(entry.issueKeys).length > 1).length;
 
   document.title = 'Центр редактора — Хоррорейро';
   editorPage.innerHTML = `
