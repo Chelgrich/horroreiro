@@ -28,6 +28,33 @@ const syntaxFiles = [
   'tools/asset-size-report.mjs'
 ];
 
+const contextJournalFile = 'docs/RECENT_CHANGES.md';
+const contextSensitiveExactFiles = new Set([
+  'AGENTS.md',
+  'README.md',
+  '_headers',
+  '_routes.json',
+  'app-page-runtime.js',
+  'app-script-loader.js',
+  'app.js',
+  'boot-loader.js',
+  'custom-select.js',
+  'docs/CODEX_CONTEXT.md',
+  'docs/DATA_MODEL.md',
+  'letterboxd-import.js',
+  'package-lock.json',
+  'package.json',
+  'shared-layout.js',
+  'styles.css',
+  'vite.config.mjs'
+]);
+const contextSensitivePrefixes = [
+  'assets/',
+  'functions/',
+  'src/',
+  'tools/'
+];
+
 const pageFiles = {
   'index.html': 'catalog',
   'movie.html': 'movie',
@@ -110,6 +137,67 @@ async function fileExists(relativePath) {
   } catch (error) {
     return false;
   }
+}
+
+function getDirtyFiles() {
+  const result = spawnSync('git', ['status', '--porcelain', '--untracked-files=all'], {
+    cwd: rootDir,
+    encoding: 'utf8'
+  });
+
+  if (result.status !== 0) {
+    return [];
+  }
+
+  return (result.stdout || '')
+    .split(/\r?\n/)
+    .map(line => line.trimEnd())
+    .filter(Boolean)
+    .map(line => {
+      const rawPath = line.slice(3).trim();
+      const renameTarget = rawPath.includes(' -> ')
+        ? rawPath.split(' -> ').pop()
+        : rawPath;
+
+      return renameTarget.replace(/^"|"$/g, '').replace(/\\/g, '/');
+    })
+    .filter(Boolean);
+}
+
+function isContextSensitiveFile(file) {
+  const normalizedFile = String(file || '').replace(/\\/g, '/');
+
+  if (!normalizedFile || normalizedFile === contextJournalFile) {
+    return false;
+  }
+
+  if (normalizedFile.endsWith('.html')) {
+    return true;
+  }
+
+  return (
+    contextSensitiveExactFiles.has(normalizedFile) ||
+    contextSensitivePrefixes.some(prefix => normalizedFile.startsWith(prefix))
+  );
+}
+
+function checkContextJournalUpdated() {
+  const dirtyFiles = getDirtyFiles();
+
+  if (dirtyFiles.length === 0) {
+    return;
+  }
+
+  const sensitiveFiles = dirtyFiles.filter(isContextSensitiveFile);
+
+  if (sensitiveFiles.length === 0) {
+    return;
+  }
+
+  assert(
+    dirtyFiles.includes(contextJournalFile),
+    `docs context is stale: update ${contextJournalFile} for source changes such as ${sensitiveFiles.slice(0, 5).join(', ')}`
+  );
 }
 
 function getSpaFallbackPath(pathname) {
@@ -302,6 +390,10 @@ async function checkStaticGuards() {
   );
 
   assert(await fileExists('tools/asset-size-baseline.json'), 'missing asset size baseline');
+  assert(await fileExists('AGENTS.md'), 'missing Codex entrypoint AGENTS.md');
+  assert(await fileExists('docs/CODEX_CONTEXT.md'), 'missing Codex architecture context');
+  assert(await fileExists('docs/DATA_MODEL.md'), 'missing Codex data model context');
+  assert(await fileExists(contextJournalFile), 'missing Codex recent changes journal');
 
   for (const file of clientJsFiles.filter(item => item !== 'custom-select.js')) {
     const text = await readText(file);
@@ -348,6 +440,7 @@ async function checkRoutes() {
 
 checkJavaScriptSyntax();
 checkAssetSizeReport();
+checkContextJournalUpdated();
 await checkStaticGuards();
 await checkRoutes();
 
