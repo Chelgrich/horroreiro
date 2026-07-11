@@ -173,7 +173,7 @@ Rules:
 - Add `movie_people` rows for new director links.
 - Remove stale links when a director is removed from the movie field.
 - Delete orphan people rows when no movie references remain, if safe.
-- `tmdb_url` is not shown publicly but is used for future matching/enrichment.
+- Movie `tmdb_url` is used for future matching/enrichment and is shown only on movie detail pages, not in catalog cards.
 
 ### Storage
 

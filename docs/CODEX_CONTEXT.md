@@ -189,7 +189,7 @@ Behavior:
 - On movie save, director names should synchronize to people rows by `name_ru` and maintain `movie_people` rows with role `director`.
 - If a director is removed from a movie and no other movies reference that person, cleanup can delete the orphan person row.
 - Person placeholder image depends on `gender` (`М` / `Ж`), but gender is not displayed publicly.
-- `tmdb_url` is stored for matching/future enrichment but is not shown publicly.
+- Movie `tmdb_url` is used for matching/future enrichment and is shown only on movie detail pages, not in catalog cards.
 
 ## Notifications And Following
 
@@ -241,4 +241,3 @@ node --check assets/directors-admin-app.js
 ```
 
 `tools/smoke-check.mjs` also checks that key source edits are accompanied by `docs/RECENT_CHANGES.md` updates while the working tree is dirty.
-

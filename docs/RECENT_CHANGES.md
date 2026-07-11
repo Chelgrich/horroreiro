@@ -12,6 +12,24 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-11 - Limit TMDB movie link to detail page
+
+- Files:
+  - `app.js`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+- Summary:
+  - Added build-version cache busting to local aggregator SVG icon URLs so replaced immutable icons update after deploy.
+  - Removed TMDB from catalog movie-card aggregator links.
+  - Normalized detail-page aggregator order to Kinopoisk, IMDb, Letterboxd, Rotten Tomatoes, TMDB.
+- Checks:
+  - `node --check app.js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+- Follow-up:
+  - None.
+
 ## 2026-07-11 - Add TMDB movie aggregator link
 
 - Files:
@@ -22,7 +40,7 @@ Format:
   - `docs/DATA_MODEL.md`
 - Summary:
   - Added editable movie `tmdb_url` support as an optional Supabase column.
-  - Added TMDB to catalog/detail external aggregator links and movie SEO `sameAs`.
+  - Added TMDB to movie detail external aggregator links and movie SEO `sameAs`.
   - Added TMDB as the third field in the second external-links row; trailer moves to the next row.
 - Checks:
   - `node --check app.js`

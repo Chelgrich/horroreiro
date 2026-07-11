@@ -17236,7 +17236,13 @@ function getMovieExternalIconSrc(type) {
     tmdb: '/icons/tmdb.svg'
   };
 
-  return icons[type] || '';
+  const iconSrc = icons[type] || '';
+
+  if (!iconSrc) {
+    return '';
+  }
+
+  return `${iconSrc}?v=${encodeURIComponent(APP_BUILD_VERSION)}`;
 }
 
 function extractImdbTitleId(url) {
@@ -17254,27 +17260,6 @@ function getMoviePageExternalLinksHtml(movie) {
   const kinopoiskFilmId = extractKinopoiskFilmId(movie.kinopoisk_url);
 
   const ratingLinks = [];
-
-  if (imdbTitleId && movie.imdb_url) {
-    ratingLinks.push(`
-      <a
-        href="${escapeHtml(movie.imdb_url)}"
-        class="movie-rating-widget-link movie-rating-widget-link-imdb"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Открыть рейтинг IMDb"
-        title="IMDb"
-      >
-        <img
-          src="https://imdb.desol.one/${imdbTitleId}.png"
-          alt="Рейтинг IMDb"
-          class="movie-rating-widget-image"
-          loading="lazy"
-          decoding="async"
-        >
-      </a>
-    `);
-  }
 
   if (kinopoiskFilmId && movie.kinopoisk_url) {
     ratingLinks.push(`
@@ -17297,18 +17282,39 @@ function getMoviePageExternalLinksHtml(movie) {
     `);
   }
 
+  if (imdbTitleId && movie.imdb_url) {
+    ratingLinks.push(`
+      <a
+        href="${escapeHtml(movie.imdb_url)}"
+        class="movie-rating-widget-link movie-rating-widget-link-imdb"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Открыть рейтинг IMDb"
+        title="IMDb"
+      >
+        <img
+          src="https://imdb.desol.one/${imdbTitleId}.png"
+          alt="Рейтинг IMDb"
+          class="movie-rating-widget-image"
+          loading="lazy"
+          decoding="async"
+        >
+      </a>
+    `);
+  }
+
   const fallbackLinks = [
-    imdbTitleId ? null : (movie.imdb_url ? {
-      url: movie.imdb_url,
-      label: 'IMDb',
-      type: 'imdb',
-      className: 'is-imdb'
-    } : null),
     kinopoiskFilmId ? null : (movie.kinopoisk_url ? {
       url: movie.kinopoisk_url,
       label: 'Кинопоиск',
       type: 'kinopoisk',
       className: 'is-kinopoisk'
+    } : null),
+    imdbTitleId ? null : (movie.imdb_url ? {
+      url: movie.imdb_url,
+      label: 'IMDb',
+      type: 'imdb',
+      className: 'is-imdb'
     } : null),
     movie.letterboxd_url ? {
       url: movie.letterboxd_url,
@@ -17400,12 +17406,6 @@ function getMovieExternalLinksHtml(movie) {
       label: 'Rotten Tomatoes',
       type: 'rottentomatoes',
       className: 'is-rottentomatoes'
-    },
-    {
-      url: movie.tmdb_url,
-      label: 'TMDB',
-      type: 'tmdb',
-      className: 'is-tmdb'
     }
   ].filter(item => item.url);
 
