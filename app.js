@@ -2499,6 +2499,10 @@ function getAgeInYears(startDate, endDate = new Date()) {
   return Math.max(0, age);
 }
 
+function isDirectorDeceased(director) {
+  return Boolean(parseDateOnly(director?.death_date));
+}
+
 function formatDirectorDate(value) {
   const date = parseDateOnly(value);
 
@@ -2523,7 +2527,8 @@ function getDirectorLifeLabel(director) {
 
   const birthLabel = formatDirectorDate(director?.birth_date);
   const deathLabel = formatDirectorDate(director?.death_date);
-  const age = birthDate ? getAgeInYears(birthDate, deathDate || new Date()) : null;
+  const ageReferenceDate = deathDate || new Date();
+  const age = birthDate ? getAgeInYears(birthDate, ageReferenceDate) : null;
   const ageLabel = age !== null ? ` (${age} ${formatYearsLabel(age)})` : '';
 
   if (birthLabel && deathLabel) {
@@ -3095,7 +3100,7 @@ function renderDirectorPage(data) {
   directorPage.innerHTML = `
     <div class="director-page-layout">
       <div class="director-page-photo-column">
-        <div class="director-page-photo-wrapper">
+        <div class="director-page-photo-wrapper${isDirectorDeceased(director) ? ' is-deceased' : ''}">
           ${getDirectorPhotoHtml(director)}
         </div>
       </div>

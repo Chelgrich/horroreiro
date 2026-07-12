@@ -12,6 +12,23 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-12 - Handle deceased people on person pages
+
+- Files:
+  - `app.js`
+  - `styles.css`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Person page age calculation now explicitly uses death date as the age reference when `death_date` is filled.
+  - Person photos and photo placeholders become grayscale via CSS when a death date is present.
+- Checks:
+  - `node --check app.js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+- Follow-up:
+  - None.
+
 ## 2026-07-12 - Keep editor issue cards natural height
 
 - Files:

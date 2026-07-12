@@ -4946,6 +4946,11 @@ a[data-current-page-link="true"] {
   object-fit: cover;
 }
 
+.director-page-photo-wrapper.is-deceased .director-page-photo,
+.director-page-photo-wrapper.is-deceased .director-page-photo-placeholder {
+  filter: grayscale(1);
+}
+
 .director-page-photo-placeholder {
   display: grid;
   place-items: center;
