@@ -12,6 +12,24 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-13 - Add movie data enrichment guide
+
+- Files:
+  - `AGENTS.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/MOVIE_DATA_ENRICHMENT_GUIDE.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a dedicated guide for verifying and filling movie year, additional genres, countries, production, distribution, and Russian distribution.
+  - Linked the guide from the project context read order and data model notes so future enrichment work uses the stricter source/quality rules.
+  - Clarified that `Ужасы` must not be written to additional genres and non-horror candidates should be reported in a separate manual-review list.
+- Checks:
+  - `node tools\smoke-check.mjs`
+  - `git diff --check`
+- Follow-up:
+  - None.
+
 ## 2026-07-12 - Handle deceased people on person pages
 
 - Files:

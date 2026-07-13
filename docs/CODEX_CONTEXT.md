@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-07-11.
+Last updated: 2026-07-13.
 
 ## Purpose
 
@@ -173,6 +173,19 @@ Important risk:
 
 - Reviews/comments have admin moderation paths. Admin edits should not accidentally rewrite original timestamps if only moderation flags change.
 - Comment replies to reviews are rendered in the comments feed with a reference snippet, not nested under the review.
+
+## Movie Data Enrichment
+
+Use `docs/MOVIE_DATA_ENRICHMENT_GUIDE.md` before verifying, enriching, or overwriting these movie card fields:
+
+- year;
+- additional genres;
+- countries;
+- production;
+- distribution;
+- Russian distribution.
+
+Core principle: prefer fewer confirmed values over broad aggregator-derived values. TMDb, IMDb, Letterboxd, Rotten Tomatoes, and similar aggregators may be used for identification and leads, but disputed production, country, genre, release-year, and distributor decisions require stronger confirmation.
 
 ## People / Directors
 

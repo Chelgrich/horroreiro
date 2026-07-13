@@ -7,7 +7,8 @@ Read this file before architecture or implementation work in this repository.
 1. Read `docs/CODEX_CONTEXT.md` for the architecture map.
 2. Read the latest entries in `docs/RECENT_CHANGES.md` for recent decisions and traps.
 3. Read `docs/DATA_MODEL.md` before changing Supabase queries, auth, profile, movie, people, social, or notification flows.
-4. Inspect the code around the exact feature before editing. These docs are a map, not a substitute for the source.
+4. Read `docs/MOVIE_DATA_ENRICHMENT_GUIDE.md` before verifying, enriching, or overwriting movie year, additional genres, countries, production, distribution, or Russian distribution values.
+5. Inspect the code around the exact feature before editing. These docs are a map, not a substitute for the source.
 
 ## Update Rule
 
@@ -26,4 +27,3 @@ After any file change that affects behavior, architecture, data flow, deploy beh
 - Production `horroreiro.ru` follows `main`; `dev` is the active working branch. When a change must fix production, push the relevant commit to `main` too.
 - Supabase schema SQL files are usually one-time operational artifacts. If SQL was already applied manually, do not keep stale setup files around unless they are reusable documentation.
 - Client code must not use service-role secrets. Server-only operations live under `functions/`.
-
