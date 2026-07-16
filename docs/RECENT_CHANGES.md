@@ -12,6 +12,23 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-16 - Update editor completeness contours
+
+- Files:
+  - `app.js`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added editor completeness contours for empty distribution and empty Russian distribution fields.
+  - Removed runtime and missing similar movies from the editor completeness grid and TXT completeness audit.
+  - Made editor summary counters and the priority list count every remaining completeness contour.
+- Checks:
+  - `node --check app.js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+- Follow-up:
+  - None.
+
 ## 2026-07-13 - Add movie data enrichment guide
 
 - Files:

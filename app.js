@@ -260,7 +260,7 @@ const CATALOG_PAGINATION_PAGE_SLOTS = 6;
 const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
 const CATALOG_PRIORITY_POSTER_COUNT = 8;
 const EDITOR_CENTER_PREVIEW_LIMIT = 12;
-const EDITOR_CENTER_SUMMARY_EXCLUDED_ISSUE_KEYS = new Set(['similar']);
+const EDITOR_CENTER_SUMMARY_EXCLUDED_ISSUE_KEYS = new Set();
 const CATALOG_PRESET_QUERY_PARAM = 'preset';
 const CATALOG_PROFILE_QUERY_PARAM = 'profile';
 const CATALOG_PROFILE_ACTIVITY_QUERY_PARAM = 'activity';
@@ -1163,10 +1163,11 @@ function buildCompletenessAuditReport(movies, posterRows) {
   const sortedMovies = [...movies].sort(compareManualSimilarAuditMovies);
   const posterRowsByMovieId = groupRowsByMovieId(posterRows);
   const emptyProductionMovies = [];
+  const emptyDistributionMovies = [];
+  const emptyRussianDistributionMovies = [];
   const primaryPosterOnlyMovies = [];
   const emptyKinopoiskMovies = [];
   const emptyTrailerMovies = [];
-  const emptyRuntimeMovies = [];
 
   sortedMovies.forEach(movie => {
     const movieId = String(movie?.id || '');
@@ -1174,6 +1175,14 @@ function buildCompletenessAuditReport(movies, posterRows) {
 
     if (isEmptyTextArrayLikeField(movie?.production)) {
       emptyProductionMovies.push(movie);
+    }
+
+    if (isEmptyTextArrayLikeField(movie?.distribution)) {
+      emptyDistributionMovies.push(movie);
+    }
+
+    if (isEmptyTextArrayLikeField(movie?.russian_distribution)) {
+      emptyRussianDistributionMovies.push(movie);
     }
 
     if (String(movie?.poster_url || '').trim() && getUniqueMoviePosterUrlCount(movie, moviePosterRows) === 1) {
@@ -1187,10 +1196,6 @@ function buildCompletenessAuditReport(movies, posterRows) {
     if (!String(movie?.trailer_url || '').trim()) {
       emptyTrailerMovies.push(movie);
     }
-
-    if (!normalizeRuntimeMinutesValue(movie?.runtime_minutes)) {
-      emptyRuntimeMovies.push(movie);
-    }
   });
 
   const lines = [
@@ -1200,10 +1205,11 @@ function buildCompletenessAuditReport(movies, posterRows) {
     'Сводка:',
     `  Фильмов в каталоге: ${movies.length}`,
     `  Пустое поле "Производство": ${emptyProductionMovies.length}`,
+    `  Пустое поле "Дистрибуция": ${emptyDistributionMovies.length}`,
+    `  Пустое поле "Дистрибуция в РФ": ${emptyRussianDistributionMovies.length}`,
     `  Только основной poster_url: ${primaryPosterOnlyMovies.length}`,
     `  Пустое поле "Кинопоиск": ${emptyKinopoiskMovies.length}`,
-    `  Пустое поле "Трейлер": ${emptyTrailerMovies.length}`,
-    `  Пустое поле "Время": ${emptyRuntimeMovies.length}`
+    `  Пустое поле "Трейлер": ${emptyTrailerMovies.length}`
   ];
 
   appendManualSimilarAuditSection(
@@ -1215,29 +1221,36 @@ function buildCompletenessAuditReport(movies, posterRows) {
 
   appendManualSimilarAuditSection(
     lines,
-    '2. Только основной poster_url:',
+    '2. Пустое поле "Дистрибуция":',
+    emptyDistributionMovies,
+    getMovieCompletenessAuditLabel
+  );
+
+  appendManualSimilarAuditSection(
+    lines,
+    '3. Пустое поле "Дистрибуция в РФ":',
+    emptyRussianDistributionMovies,
+    getMovieCompletenessAuditLabel
+  );
+
+  appendManualSimilarAuditSection(
+    lines,
+    '4. Только основной poster_url:',
     primaryPosterOnlyMovies,
     getMovieCompletenessAuditLabel
   );
 
   appendManualSimilarAuditSection(
     lines,
-    '3. Пустое поле "Кинопоиск":',
+    '5. Пустое поле "Кинопоиск":',
     emptyKinopoiskMovies,
     getMovieCompletenessAuditLabel
   );
 
   appendManualSimilarAuditSection(
     lines,
-    '4. Пустое поле "Трейлер":',
+    '6. Пустое поле "Трейлер":',
     emptyTrailerMovies,
-    getMovieCompletenessAuditLabel
-  );
-
-  appendManualSimilarAuditSection(
-    lines,
-    '5. Пустое поле "Время":',
-    emptyRuntimeMovies,
     getMovieCompletenessAuditLabel
   );
 
@@ -1245,10 +1258,11 @@ function buildCompletenessAuditReport(movies, posterRows) {
     text: `${lines.join('\n')}\n`,
     summary: {
       emptyProduction: emptyProductionMovies.length,
+      emptyDistribution: emptyDistributionMovies.length,
+      emptyRussianDistribution: emptyRussianDistributionMovies.length,
       primaryPosterOnly: primaryPosterOnlyMovies.length,
       emptyKinopoisk: emptyKinopoiskMovies.length,
-      emptyTrailer: emptyTrailerMovies.length,
-      emptyRuntime: emptyRuntimeMovies.length
+      emptyTrailer: emptyTrailerMovies.length
     }
   };
 }
@@ -1740,10 +1754,11 @@ function setNotificationTestButtonState(isRunning) {
 function getCompletenessAuditSummaryMessage(summary) {
   const totalProblems = (
     summary.emptyProduction +
+    summary.emptyDistribution +
+    summary.emptyRussianDistribution +
     summary.primaryPosterOnly +
     summary.emptyKinopoisk +
-    summary.emptyTrailer +
-    summary.emptyRuntime
+    summary.emptyTrailer
   );
 
   if (totalProblems === 0) {
@@ -1753,10 +1768,11 @@ function getCompletenessAuditSummaryMessage(summary) {
   return [
     'Аудит заполненности готов:',
     `производство ${summary.emptyProduction}`,
+    `дистрибуция ${summary.emptyDistribution}`,
+    `дистрибуция РФ ${summary.emptyRussianDistribution}`,
     `один постер ${summary.primaryPosterOnly}`,
     `Кинопоиск ${summary.emptyKinopoisk}`,
-    `трейлер ${summary.emptyTrailer}`,
-    `время ${summary.emptyRuntime}`
+    `трейлер ${summary.emptyTrailer}`
   ].join(' ');
 }
 
@@ -1929,6 +1945,18 @@ function getEditorCenterIssueConfigs() {
       description: 'Пустое поле "Производство" в модалке фильма.'
     },
     {
+      key: 'distribution',
+      title: 'Без дистрибуции',
+      label: 'Дистрибуция',
+      description: 'Пустое поле "Дистрибуция" в модалке фильма.'
+    },
+    {
+      key: 'russianDistribution',
+      title: 'Без дистрибуции в РФ',
+      label: 'Дистрибуция в РФ',
+      description: 'Пустое поле "Дистрибуция в России" в модалке фильма.'
+    },
+    {
       key: 'poster',
       title: 'Один постер',
       label: 'Постеры',
@@ -1945,58 +1973,12 @@ function getEditorCenterIssueConfigs() {
       title: 'Без трейлера',
       label: 'Трейлер',
       description: 'Пустое поле "Трейлер".'
-    },
-    {
-      key: 'runtime',
-      title: 'Без времени',
-      label: 'Время',
-      description: 'Не заполнена продолжительность фильма.'
-    },
-    {
-      key: 'similar',
-      title: 'Без похожих',
-      label: 'Похожие',
-      description: 'Нет валидных ручных похожих фильмов.'
     }
   ];
 }
 
-function buildEditorManualSimilarCountByMovieId(movies = [], manualSimilarRows = []) {
-  const movieIds = new Set();
-  const countsByMovieId = new Map();
-
-  movies.forEach(movie => {
-    const movieId = String(movie?.id || '').trim();
-
-    if (!movieId) {
-      return;
-    }
-
-    movieIds.add(movieId);
-    countsByMovieId.set(movieId, 0);
-  });
-
-  (Array.isArray(manualSimilarRows) ? manualSimilarRows : []).forEach(row => {
-    const movieId = String(row?.movie_id || '').trim();
-    const similarMovieId = String(row?.similar_movie_id || '').trim();
-
-    if (
-      !movieIds.has(movieId) ||
-      !movieIds.has(similarMovieId) ||
-      movieId === similarMovieId
-    ) {
-      return;
-    }
-
-    countsByMovieId.set(movieId, (countsByMovieId.get(movieId) || 0) + 1);
-  });
-
-  return countsByMovieId;
-}
-
 function getEditorMovieIssueKeys(movie, {
-  posterRowsByMovieId,
-  manualSimilarCountByMovieId
+  posterRowsByMovieId
 } = {}) {
   const issueKeys = [];
   const movieId = String(movie?.id || '').trim();
@@ -2004,6 +1986,14 @@ function getEditorMovieIssueKeys(movie, {
 
   if (isEmptyTextArrayLikeField(movie?.production)) {
     issueKeys.push('production');
+  }
+
+  if (isEmptyTextArrayLikeField(movie?.distribution)) {
+    issueKeys.push('distribution');
+  }
+
+  if (isEmptyTextArrayLikeField(movie?.russian_distribution)) {
+    issueKeys.push('russianDistribution');
   }
 
   if (String(movie?.poster_url || '').trim() && getUniqueMoviePosterUrlCount(movie, moviePosterRows) === 1) {
@@ -2018,25 +2008,15 @@ function getEditorMovieIssueKeys(movie, {
     issueKeys.push('trailer');
   }
 
-  if (!normalizeRuntimeMinutesValue(movie?.runtime_minutes)) {
-    issueKeys.push('runtime');
-  }
-
-  if ((manualSimilarCountByMovieId?.get(movieId) || 0) === 0) {
-    issueKeys.push('similar');
-  }
-
   return issueKeys;
 }
 
 function buildEditorCenterData({
   movies = [],
-  posterRows = [],
-  manualSimilarRows = []
+  posterRows = []
 } = {}) {
   const sortedMovies = [...movies].sort(compareManualSimilarAuditMovies);
   const posterRowsByMovieId = groupRowsByMovieId(posterRows);
-  const manualSimilarCountByMovieId = buildEditorManualSimilarCountByMovieId(sortedMovies, manualSimilarRows);
   const issueConfigs = getEditorCenterIssueConfigs();
   const issueMap = new Map(issueConfigs.map(config => [
     config.key,
@@ -2049,8 +2029,7 @@ function buildEditorCenterData({
 
   sortedMovies.forEach(movie => {
     const issueKeys = getEditorMovieIssueKeys(movie, {
-      posterRowsByMovieId,
-      manualSimilarCountByMovieId
+      posterRowsByMovieId
     });
 
     issueKeys.forEach(issueKey => {
@@ -2079,18 +2058,15 @@ function buildEditorCenterData({
 async function fetchEditorCenterData() {
   const [
     movies,
-    posterRows,
-    manualSimilarRows
+    posterRows
   ] = await Promise.all([
     fetchAdminMovieRows(),
-    fetchAdminMoviePosterImageRows(),
-    fetchAdminManualSimilarRows()
+    fetchAdminMoviePosterImageRows()
   ]);
 
   return buildEditorCenterData({
     movies,
-    posterRows,
-    manualSimilarRows
+    posterRows
   });
 }
 
@@ -2252,7 +2228,7 @@ function renderEditorPage(data) {
     <section class="editor-page-toolbar" aria-label="Действия редактора">
       <div>
         <p class="editor-page-kicker">Сводка обновлена в ${escapeHtml(formatEditorPageUpdatedAt(data.updatedAt))}</p>
-        <p class="editor-page-toolbar-note">Быстрый контроль заполненности и ручных похожих перед крупными обновлениями.</p>
+        <p class="editor-page-toolbar-note">Быстрый контроль заполненности карточек перед крупными обновлениями.</p>
       </div>
       <div class="editor-page-toolbar-actions">
         <button type="button" class="secondary-button" data-editor-action="refresh">Обновить</button>
