@@ -3,6 +3,9 @@ const DEFAULT_SOCIAL_IMAGE = `${SITE_ORIGIN}/og-preview.jpg`;
 const POSTER_STORAGE_PUBLIC_PATH = '/storage/v1/object/public/posters/';
 const POSTER_STORAGE_RENDER_PATH = '/storage/v1/render/image/public/posters/';
 const POSTER_IMAGE_MIN_QUALITY = 90;
+const INTENTIONAL_EMPTY_FIELD_MARKERS = new Set([
+  'не применимо'
+]);
 
 const MOVIE_SELECT = `
   id,
@@ -40,6 +43,24 @@ const SITEMAP_MOVIE_SELECT = 'id, slug, created_at';
 
 function normalizeText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function normalizeSearchText(value) {
+  return normalizeText(value)
+    .toLowerCase()
+    .replaceAll('ё', 'е');
+}
+
+function isIntentionalEmptyFieldMarker(value) {
+  return INTENTIONAL_EMPTY_FIELD_MARKERS.has(normalizeSearchText(value));
+}
+
+function getPublicOptionalValue(value) {
+  const trimmedValue = String(value || '').trim();
+
+  return trimmedValue && !isIntentionalEmptyFieldMarker(trimmedValue)
+    ? trimmedValue
+    : '';
 }
 
 function truncateText(value, maxLength = 160) {
@@ -129,7 +150,7 @@ function getMovieCountryNames(movie) {
 function formatMovieTextArray(value) {
   return (Array.isArray(value) ? value : [])
     .map(item => String(item || '').trim())
-    .filter(Boolean)
+    .filter(item => item && !isIntentionalEmptyFieldMarker(item))
     .join(', ');
 }
 
@@ -219,11 +240,11 @@ function getMovieSeoDescription(movie) {
 
 function getMovieSameAs(movie) {
   return [
-    movie?.kinopoisk_url,
-    movie?.imdb_url,
-    movie?.letterboxd_url,
-    movie?.rottentomatoes_url,
-    movie?.tmdb_url
+    getPublicOptionalValue(movie?.kinopoisk_url),
+    getPublicOptionalValue(movie?.imdb_url),
+    getPublicOptionalValue(movie?.letterboxd_url),
+    getPublicOptionalValue(movie?.rottentomatoes_url),
+    getPublicOptionalValue(movie?.tmdb_url)
   ].filter(Boolean);
 }
 

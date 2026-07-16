@@ -261,6 +261,10 @@ const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
 const CATALOG_PRIORITY_POSTER_COUNT = 8;
 const EDITOR_CENTER_PREVIEW_LIMIT = 12;
 const EDITOR_CENTER_SUMMARY_EXCLUDED_ISSUE_KEYS = new Set();
+const INTENTIONAL_EMPTY_FIELD_MARKER = 'Не применимо';
+const INTENTIONAL_EMPTY_FIELD_MARKERS = new Set([
+  'не применимо'
+]);
 const CATALOG_PRESET_QUERY_PARAM = 'preset';
 const CATALOG_PROFILE_QUERY_PARAM = 'profile';
 const CATALOG_PROFILE_ACTIVITY_QUERY_PARAM = 'activity';
@@ -731,14 +735,18 @@ function setFormInputValue(inputElement, value, inputName = 'input') {
   inputElement.value = value ?? '';
 }
 
-function normalizeTextArrayField(value) {
+function isIntentionalEmptyFieldMarker(value) {
+  return INTENTIONAL_EMPTY_FIELD_MARKERS.has(normalizeSearchText(value));
+}
+
+function normalizeTextArrayField(value, { excludeIntentionalEmpty = false } = {}) {
   if (!Array.isArray(value)) {
     return [];
   }
 
   return value
     .map(item => String(item || '').trim())
-    .filter(Boolean);
+    .filter(item => item && (!excludeIntentionalEmpty || !isIntentionalEmptyFieldMarker(item)));
 }
 
 function getTextArrayFormValue(value) {
@@ -752,7 +760,7 @@ function getOptionalTextArrayPayload(values = []) {
 }
 
 function formatTextArrayForDetail(value) {
-  return normalizeTextArrayField(value).join(', ');
+  return normalizeTextArrayField(value, { excludeIntentionalEmpty: true }).join(', ');
 }
 
 function buildMovieClassificationDraftFromForm() {
@@ -8791,11 +8799,15 @@ function throwIfSupabaseError(error) {
   }
 }
 
-function normalizeOptionalUrl(value) {
+function normalizeOptionalUrl(value, { preserveIntentionalEmpty = false } = {}) {
   const trimmedValue = String(value || '').trim();
 
   if (!trimmedValue) {
     return '';
+  }
+
+  if (isIntentionalEmptyFieldMarker(trimmedValue)) {
+    return preserveIntentionalEmpty ? INTENTIONAL_EMPTY_FIELD_MARKER : '';
   }
 
   // Если пользователь вставил ссылку без протокола, пробуем добавить https://
@@ -8804,6 +8816,10 @@ function normalizeOptionalUrl(value) {
   }
 
   return trimmedValue;
+}
+
+function getPublicOptionalUrl(value) {
+  return normalizeOptionalUrl(value);
 }
 
 function normalizeTmdbPersonUrl(value) {
@@ -14652,13 +14668,13 @@ async function addMovie(event) {
   const distribution = parseMultilineValues(distributionInput?.value || '');
   const russianDistribution = parseMultilineValues(russianDistributionInput?.value || '');
   const synopsis = synopsisInput.value.trim();
-  const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
-  const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value);
-  const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value);
+  const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value, { preserveIntentionalEmpty: true });
+  const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value, { preserveIntentionalEmpty: true });
+  const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value, { preserveIntentionalEmpty: true });
   const letterboxdShortUrl = normalizeLetterboxdShortUrl(letterboxdShortUrlInput.value);
-  const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value);
-  const tmdbUrl = normalizeOptionalUrl(tmdbUrlInput?.value || '');
-  const trailerUrl = normalizeOptionalUrl(trailerUrlInput?.value || '');
+  const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value, { preserveIntentionalEmpty: true });
+  const tmdbUrl = normalizeOptionalUrl(tmdbUrlInput?.value || '', { preserveIntentionalEmpty: true });
+  const trailerUrl = normalizeOptionalUrl(trailerUrlInput?.value || '', { preserveIntentionalEmpty: true });
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseLineOrCommaSeparatedValues(countriesInput.value);
@@ -14819,13 +14835,13 @@ async function updateMovie(event) {
   const distribution = parseMultilineValues(distributionInput?.value || '');
   const russianDistribution = parseMultilineValues(russianDistributionInput?.value || '');
   const synopsis = synopsisInput.value.trim();
-  const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value);
-  const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value);
-  const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value);
+  const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value, { preserveIntentionalEmpty: true });
+  const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value, { preserveIntentionalEmpty: true });
+  const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value, { preserveIntentionalEmpty: true });
   const letterboxdShortUrl = normalizeLetterboxdShortUrl(letterboxdShortUrlInput.value);
-  const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value);
-  const tmdbUrl = normalizeOptionalUrl(tmdbUrlInput?.value || '');
-  const trailerUrl = normalizeOptionalUrl(trailerUrlInput?.value || '');
+  const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value, { preserveIntentionalEmpty: true });
+  const tmdbUrl = normalizeOptionalUrl(tmdbUrlInput?.value || '', { preserveIntentionalEmpty: true });
+  const trailerUrl = normalizeOptionalUrl(trailerUrlInput?.value || '', { preserveIntentionalEmpty: true });
 
   const genreNames = normalizeAdditionalGenreNames(genresInput.value);
   const countryNames = parseLineOrCommaSeparatedValues(countriesInput.value);
@@ -17016,11 +17032,11 @@ function getMovieCardActionsSkeletonHtml() {
 
 function hasMovieExternalLinks(movie) {
   return Boolean(
-    movie?.kinopoisk_url ||
-    movie?.imdb_url ||
-    movie?.letterboxd_url ||
-    movie?.rottentomatoes_url ||
-    movie?.tmdb_url
+    getPublicOptionalUrl(movie?.kinopoisk_url) ||
+    getPublicOptionalUrl(movie?.imdb_url) ||
+    getPublicOptionalUrl(movie?.letterboxd_url) ||
+    getPublicOptionalUrl(movie?.rottentomatoes_url) ||
+    getPublicOptionalUrl(movie?.tmdb_url)
   );
 }
 
@@ -17251,15 +17267,20 @@ function extractKinopoiskFilmId(url) {
 }
 
 function getMoviePageExternalLinksHtml(movie) {
-  const imdbTitleId = extractImdbTitleId(movie.imdb_url);
-  const kinopoiskFilmId = extractKinopoiskFilmId(movie.kinopoisk_url);
+  const kinopoiskUrl = getPublicOptionalUrl(movie?.kinopoisk_url);
+  const imdbUrl = getPublicOptionalUrl(movie?.imdb_url);
+  const letterboxdUrl = getPublicOptionalUrl(movie?.letterboxd_url);
+  const rottentomatoesUrl = getPublicOptionalUrl(movie?.rottentomatoes_url);
+  const tmdbUrl = getPublicOptionalUrl(movie?.tmdb_url);
+  const imdbTitleId = extractImdbTitleId(imdbUrl);
+  const kinopoiskFilmId = extractKinopoiskFilmId(kinopoiskUrl);
 
   const ratingLinks = [];
 
-  if (kinopoiskFilmId && movie.kinopoisk_url) {
+  if (kinopoiskFilmId && kinopoiskUrl) {
     ratingLinks.push(`
       <a
-        href="${escapeHtml(movie.kinopoisk_url)}"
+        href="${escapeHtml(kinopoiskUrl)}"
         class="movie-rating-widget-link movie-rating-widget-link-kinopoisk"
         target="_blank"
         rel="noopener noreferrer"
@@ -17277,10 +17298,10 @@ function getMoviePageExternalLinksHtml(movie) {
     `);
   }
 
-  if (imdbTitleId && movie.imdb_url) {
+  if (imdbTitleId && imdbUrl) {
     ratingLinks.push(`
       <a
-        href="${escapeHtml(movie.imdb_url)}"
+        href="${escapeHtml(imdbUrl)}"
         class="movie-rating-widget-link movie-rating-widget-link-imdb"
         target="_blank"
         rel="noopener noreferrer"
@@ -17299,32 +17320,32 @@ function getMoviePageExternalLinksHtml(movie) {
   }
 
   const fallbackLinks = [
-    kinopoiskFilmId ? null : (movie.kinopoisk_url ? {
-      url: movie.kinopoisk_url,
+    kinopoiskFilmId ? null : (kinopoiskUrl ? {
+      url: kinopoiskUrl,
       label: 'Кинопоиск',
       type: 'kinopoisk',
       className: 'is-kinopoisk'
     } : null),
-    imdbTitleId ? null : (movie.imdb_url ? {
-      url: movie.imdb_url,
+    imdbTitleId ? null : (imdbUrl ? {
+      url: imdbUrl,
       label: 'IMDb',
       type: 'imdb',
       className: 'is-imdb'
     } : null),
-    movie.letterboxd_url ? {
-      url: movie.letterboxd_url,
+    letterboxdUrl ? {
+      url: letterboxdUrl,
       label: 'Letterboxd',
       type: 'letterboxd',
       className: 'is-letterboxd'
     } : null,
-    movie.rottentomatoes_url ? {
-      url: movie.rottentomatoes_url,
+    rottentomatoesUrl ? {
+      url: rottentomatoesUrl,
       label: 'Rotten Tomatoes',
       type: 'rottentomatoes',
       className: 'is-rottentomatoes'
     } : null,
-    movie.tmdb_url ? {
-      url: movie.tmdb_url,
+    tmdbUrl ? {
+      url: tmdbUrl,
       label: 'TMDB',
       type: 'tmdb',
       className: 'is-tmdb'
@@ -17379,25 +17400,25 @@ function getMoviePageExternalLinksHtml(movie) {
 function getMovieExternalLinksHtml(movie) {
   const links = [
     {
-      url: movie.kinopoisk_url,
+      url: getPublicOptionalUrl(movie?.kinopoisk_url),
       label: 'Кинопоиск',
       type: 'kinopoisk',
       className: 'is-kinopoisk'
     },
     {
-      url: movie.imdb_url,
+      url: getPublicOptionalUrl(movie?.imdb_url),
       label: 'IMDb',
       type: 'imdb',
       className: 'is-imdb'
     },
     {
-      url: movie.letterboxd_url,
+      url: getPublicOptionalUrl(movie?.letterboxd_url),
       label: 'Letterboxd',
       type: 'letterboxd',
       className: 'is-letterboxd'
     },
     {
-      url: movie.rottentomatoes_url,
+      url: getPublicOptionalUrl(movie?.rottentomatoes_url),
       label: 'Rotten Tomatoes',
       type: 'rottentomatoes',
       className: 'is-rottentomatoes'
@@ -23261,11 +23282,11 @@ function getMovieSocialImage(movie) {
 
 function getMovieSameAsLinks(movie) {
   return [
-    movie?.kinopoisk_url,
-    movie?.imdb_url,
-    movie?.letterboxd_url,
-    movie?.rottentomatoes_url,
-    movie?.tmdb_url
+    getPublicOptionalUrl(movie?.kinopoisk_url),
+    getPublicOptionalUrl(movie?.imdb_url),
+    getPublicOptionalUrl(movie?.letterboxd_url),
+    getPublicOptionalUrl(movie?.rottentomatoes_url),
+    getPublicOptionalUrl(movie?.tmdb_url)
   ].filter(Boolean);
 }
 

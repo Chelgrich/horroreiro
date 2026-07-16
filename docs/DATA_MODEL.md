@@ -1,6 +1,6 @@
 # Horroreiro Data Model Context
 
-Last updated: 2026-07-13.
+Last updated: 2026-07-16.
 
 This document describes the client-visible data model and operational assumptions. Supabase schema SQL has often been applied manually through the Supabase UI; do not assume old setup SQL files exist or are still authoritative.
 
@@ -44,6 +44,7 @@ Movie data enrichment:
 - Existing values may be overwritten when better-confirmed sources show they are wrong, incomplete, or based only on aggregator assumptions.
 - Do not add filler values for production, countries, or additional genres just for completeness.
 - Do not write `Ужасы` into additional genres; horror is the catalog baseline. Movies whose horror status is not confirmed should be reported in a separate review list instead of silently reclassified.
+- `Не применимо` is an intentional empty marker for movie fields where the value should stop appearing in completeness contours but remain hidden from public movie cards, external links, trailer embeds, and SEO fallback output.
 
 ### Ratings And Watchlist
 

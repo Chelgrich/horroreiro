@@ -12,6 +12,26 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-16 - Add intentional empty movie field marker
+
+- Files:
+  - `app.js`
+  - `functions/_seo-utils.js`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added `Не применимо` as a service marker for movie fields that are intentionally empty.
+  - Completeness contours treat the marker as filled, while public movie details, aggregator links, trailer embeds, and SEO fallback output hide it.
+  - Movie edit forms preserve the marker so it remains visible to admins.
+- Checks:
+  - `node --check app.js`
+  - `node --check functions\_seo-utils.js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+- Follow-up:
+  - None.
+
 ## 2026-07-16 - Update editor completeness contours
 
 - Files:
