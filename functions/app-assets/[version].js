@@ -7,6 +7,8 @@ const ALLOWED_APP_ASSETS = new Set([
   'assets/directors-admin-app.js',
   'custom-select.js',
   'letterboxd-import.js',
+  'movie-page.css',
+  'person-placeholders.js',
   'shared-layout.js',
   'styles.css'
 ]);

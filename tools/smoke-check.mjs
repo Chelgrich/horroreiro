@@ -19,6 +19,7 @@ const clientJsFiles = [
 const lazyJsFiles = [
   'admin-actions.js',
   'letterboxd-import.js',
+  'person-placeholders.js',
   'assets/directors-admin-app.js'
 ];
 const syntaxFiles = [
@@ -43,8 +44,10 @@ const contextSensitiveExactFiles = new Set([
   'docs/CODEX_CONTEXT.md',
   'docs/DATA_MODEL.md',
   'letterboxd-import.js',
+  'movie-page.css',
   'package-lock.json',
   'package.json',
+  'person-placeholders.js',
   'shared-layout.js',
   'styles.css',
   'vite.config.mjs'
@@ -328,9 +331,11 @@ async function checkStaticGuards() {
     '/app-page-runtime.js',
     '/admin-actions.js',
     '/letterboxd-import.js',
+    '/person-placeholders.js',
     '/assets/directors-admin-app.js',
     '/shared-layout.js',
-    '/styles.css'
+    '/styles.css',
+    '/movie-page.css'
   ].forEach(assetPath => {
     const escapedAssetPath = assetPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -353,8 +358,11 @@ async function checkStaticGuards() {
     'app.js',
     'admin-actions.js',
     'letterboxd-import.js',
+    'person-placeholders.js',
     'assets/directors-admin-app.js',
     'shared-layout.js',
+    'styles.css',
+    'movie-page.css',
     'app-script-loader.js',
     'app-page-runtime.js',
     'boot-loader.js'

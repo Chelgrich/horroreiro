@@ -23,13 +23,15 @@
 
 ## Клиентские ассеты
 
-- `boot-loader.js` — ранняя загрузка `/env` и versioned `styles.css`
+- `boot-loader.js` — ранняя загрузка `/env`, versioned `styles.css` и страницезависимых CSS
 - `app-script-loader.js` — page-aware загрузка общих и страницезависимых скриптов
 - `app-page-runtime.js` — диспетчер инициализации текущей страницы
 - `shared-layout.js` — общая шапка, модалки авторизации, настройки профиля и футер
 - `custom-select.js` — кастомные select-контролы для каталога и модалки фильма
 - `app.js` — основная логика приложения
-- `styles.css` — стили интерфейса
+- `styles.css` — общие стили интерфейса
+- `movie-page.css` — стили детальной страницы фильма, грузятся только на detail-страницах
+- `person-placeholders.js` — lazy-модуль SVG-заглушек персон
 
 ## Framework-острова
 

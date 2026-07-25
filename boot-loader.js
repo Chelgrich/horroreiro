@@ -27,6 +27,17 @@
       return `/app-assets/${encodeURIComponent(buildVersion)}?file=${encodeURIComponent(src)}`;
     }
 
+    function getPageStylesheetAssets() {
+      const page = document.body?.dataset?.appPage || '';
+      const assets = ['styles.css'];
+
+      if (page === 'movie') {
+        assets.push('movie-page.css');
+      }
+
+      return assets;
+    }
+
     function finishEnvReady() {
       if (isEnvReadyResolved) {
         return;
@@ -61,13 +72,36 @@
       window.clearTimeout(envFallbackTimer);
 
       const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
-      const stylesheet = document.createElement('link');
+      const stylesheetAssets = getPageStylesheetAssets();
+      let pendingStylesheets = stylesheetAssets.length;
+      let hasFailedStylesheetLoad = false;
 
-      stylesheet.rel = 'stylesheet';
-      stylesheet.href = getVersionedAssetUrl('styles.css', buildVersion);
-      stylesheet.onload = finishEnvReady;
-      stylesheet.onerror = markStylesheetFailure;
-      document.head.appendChild(stylesheet);
+      const handleStylesheetLoad = () => {
+        if (hasFailedStylesheetLoad) {
+          return;
+        }
+
+        pendingStylesheets -= 1;
+
+        if (pendingStylesheets <= 0) {
+          finishEnvReady();
+        }
+      };
+
+      const handleStylesheetError = () => {
+        hasFailedStylesheetLoad = true;
+        markStylesheetFailure();
+      };
+
+      stylesheetAssets.forEach(assetName => {
+        const stylesheet = document.createElement('link');
+
+        stylesheet.rel = 'stylesheet';
+        stylesheet.href = getVersionedAssetUrl(assetName, buildVersion);
+        stylesheet.onload = handleStylesheetLoad;
+        stylesheet.onerror = handleStylesheetError;
+        document.head.appendChild(stylesheet);
+      });
 
       stylesheetFallbackTimer = window.setTimeout(markStylesheetFailure, 10000);
     }

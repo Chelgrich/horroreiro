@@ -12,6 +12,42 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-26 - Split movie styles and defer detail work
+
+- Files:
+  - `app.js`
+  - `boot-loader.js`
+  - `styles.css`
+  - `movie-page.css`
+  - `person-placeholders.js`
+  - `_headers`
+  - `functions/app-assets/[version].js`
+  - `tools/asset-size-report.mjs`
+  - `tools/asset-size-baseline.json`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Split movie detail-only CSS into `movie-page.css` and load it only for movie detail shells before app startup.
+  - Moved large person placeholder SVG silhouettes into lazy-loaded `person-placeholders.js`.
+  - Changed movie detail loading so the primary movie section can render before reviews, comments, and similar movies finish loading.
+  - Added catalog DOM render signatures to skip identical card-grid rebuilds.
+  - Switched movie review/comment interactions to delegated section handlers and removed the old per-element binding helpers.
+  - Optimized person detail photos through Supabase image render URLs with original-image fallback.
+  - Removed an obsolete trigger-filter option from catalog filter state.
+- Checks:
+  - `node --check app.js`
+  - `node --check person-placeholders.js`
+  - `node --check boot-loader.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check functions\app-assets\[version].js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+- Follow-up:
+  - None.
+
 ## 2026-07-25 - Optimize admin actions and cleanup checks
 
 - Files:

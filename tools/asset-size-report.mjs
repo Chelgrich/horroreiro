@@ -15,10 +15,12 @@ const assetGroups = {
     'app.js',
     'admin-actions.js',
     'letterboxd-import.js',
+    'person-placeholders.js',
     'assets/directors-admin-app.js'
   ],
   css: [
-    'styles.css'
+    'styles.css',
+    'movie-page.css'
   ],
   html: [
     'index.html',
