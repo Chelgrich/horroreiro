@@ -322,6 +322,13 @@ async function checkStaticGuards() {
     bootLoader.includes('/app-assets/') && appScriptLoader.includes('/app-assets/'),
     'boot-loader.js/app-script-loader.js: production assets must use app-assets route'
   );
+  assert(
+    bootLoader.includes('function getCurrentAppPage') &&
+      bootLoader.includes("normalizedPathname.startsWith('/movie/')") &&
+      bootLoader.includes("filename === 'movie.html'") &&
+      bootLoader.includes("assets.push('movie-page.css')"),
+    'boot-loader.js: movie page stylesheet must be selected before body is parsed'
+  );
 
   const headersText = await readText('_headers');
 

@@ -27,8 +27,54 @@
       return `/app-assets/${encodeURIComponent(buildVersion)}?file=${encodeURIComponent(src)}`;
     }
 
+    function getCurrentAppPage() {
+      const bodyPage = document.body?.dataset?.appPage || '';
+
+      if (bodyPage) {
+        return bodyPage;
+      }
+
+      const pathname = window.location.pathname || '/';
+      const normalizedPathname = pathname.replace(/\/+$/, '') || '/';
+      const filename = normalizedPathname.split('/').pop() || '';
+
+      if (normalizedPathname === '/' || filename === 'index.html') {
+        return 'catalog';
+      }
+
+      if (normalizedPathname.startsWith('/movie/') || filename === 'movie.html') {
+        return 'movie';
+      }
+
+      if (normalizedPathname.startsWith('/name/') || filename === 'name.html') {
+        return 'director';
+      }
+
+      if (normalizedPathname.startsWith('/user/') || filename === 'user.html') {
+        return 'user';
+      }
+
+      if (normalizedPathname === '/following' || filename === 'following.html') {
+        return 'following';
+      }
+
+      if (normalizedPathname === '/notifications' || filename === 'notifications.html') {
+        return 'notifications';
+      }
+
+      if (normalizedPathname === '/editor' || filename === 'editor.html') {
+        return 'editor';
+      }
+
+      if (normalizedPathname === '/directors' || filename === 'directors.html') {
+        return 'directors';
+      }
+
+      return '';
+    }
+
     function getPageStylesheetAssets() {
-      const page = document.body?.dataset?.appPage || '';
+      const page = getCurrentAppPage();
       const assets = ['styles.css'];
 
       if (page === 'movie') {

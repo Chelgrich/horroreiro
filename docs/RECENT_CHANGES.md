@@ -12,6 +12,27 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-26 - Fix movie detail stylesheet bootstrap
+
+- Files:
+  - `boot-loader.js`
+  - `app.js`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Fixed page detection in `boot-loader.js` so `movie-page.css` is selected from the current URL before `<body data-app-page>` exists.
+  - Changed person photo transforms to request explicit 2:3 image dimensions from Supabase render URLs.
+  - Added a smoke-check guard for movie-page stylesheet bootstrap.
+- Checks:
+  - `node --check app.js`
+  - `node --check boot-loader.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - Boot-loader route mock: catalog loads only `styles.css`, movie routes load `styles.css` and `movie-page.css`.
+- Follow-up:
+  - None.
+
 ## 2026-07-26 - Split movie styles and defer detail work
 
 - Files:

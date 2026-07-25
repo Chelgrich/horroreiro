@@ -309,6 +309,7 @@ const POSTER_IMAGE_PRESETS = {
 const DIRECTOR_IMAGE_PRESET = {
   widths: [320, 480, 640],
   quality: POSTER_IMAGE_MIN_QUALITY,
+  heightRatio: 1.5,
   sizes: '(max-width: 480px) calc(100vw - 48px), (max-width: 900px) 320px, 320px'
 };
 const BASE_HORROR_GENRE_NORMALIZED = '\u0443\u0436\u0430\u0441\u044b';
@@ -2406,7 +2407,7 @@ function getDirectorPlaceholderSvgHtml(director, iconClassName = 'director-page-
   `;
 }
 
-function getDirectorTransformUrl(publicUrl, { width, quality } = {}) {
+function getDirectorTransformUrl(publicUrl, { width, height, quality } = {}) {
   const storagePath = extractDirectorStoragePath(publicUrl);
 
   if (!storagePath || !width) {
@@ -2423,11 +2424,16 @@ function getDirectorTransformUrl(publicUrl, { width, quality } = {}) {
 
   const transformedUrl = new URL(`${parsedUrl.origin}${DIRECTOR_STORAGE_RENDER_PATH}${storagePath}`);
   const normalizedWidth = Math.max(1, Math.min(1800, Number(width) || 0));
+  const normalizedHeight = Math.max(
+    1,
+    Math.min(2700, Number(height) || Math.round(normalizedWidth * DIRECTOR_IMAGE_PRESET.heightRatio))
+  );
   const normalizedQuality = Math.round(
     Math.max(POSTER_IMAGE_MIN_QUALITY, Math.min(100, Number(quality) || POSTER_IMAGE_MIN_QUALITY))
   );
 
   transformedUrl.searchParams.set('width', String(normalizedWidth));
+  transformedUrl.searchParams.set('height', String(normalizedHeight));
   transformedUrl.searchParams.set('resize', 'cover');
   transformedUrl.searchParams.set('quality', String(normalizedQuality));
 
@@ -2451,6 +2457,7 @@ function getDirectorImageData(publicUrl) {
       width,
       url: getDirectorTransformUrl(originalUrl, {
         width,
+        height: Math.round(width * DIRECTOR_IMAGE_PRESET.heightRatio),
         quality: DIRECTOR_IMAGE_PRESET.quality
       })
     }))
