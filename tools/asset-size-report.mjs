@@ -13,6 +13,7 @@ const assetGroups = {
     'custom-select.js',
     'app-page-runtime.js',
     'app.js',
+    'admin-actions.js',
     'letterboxd-import.js',
     'assets/directors-admin-app.js'
   ],

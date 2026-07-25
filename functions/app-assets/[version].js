@@ -3,6 +3,7 @@ import { fetchNoStoreAsset } from '../_response-utils.js';
 const ALLOWED_APP_ASSETS = new Set([
   'app.js',
   'app-page-runtime.js',
+  'admin-actions.js',
   'assets/directors-admin-app.js',
   'custom-select.js',
   'letterboxd-import.js',

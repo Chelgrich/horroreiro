@@ -12,6 +12,38 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-25 - Optimize admin actions and cleanup checks
+
+- Files:
+  - `app.js`
+  - `admin-actions.js`
+  - `styles.css`
+  - `_headers`
+  - `functions/app-assets/[version].js`
+  - `tools/asset-size-report.mjs`
+  - `tools/asset-size-baseline.json`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved heavy downloadable admin action builders for audits and database export into lazy-loaded `admin-actions.js`.
+  - Added the lazy admin module to versioned asset serving, cache headers, syntax checks, and size reporting while keeping it out of startup profiles.
+  - Switched editor/completeness audit movie loading to a lean completeness-only Supabase select; full movie rows remain for database export.
+  - Consolidated duplicated review/comment like CSS and added a smoke-check guard against dated one-time root artifacts.
+  - Removed stale untracked root JSON artifacts from previous enrichment/export runs.
+- Checks:
+  - `node --check app.js`
+  - `node --check admin-actions.js`
+  - `node --check shared-layout.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check functions\app-assets\[version].js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+- Follow-up:
+  - None.
+
 ## 2026-07-16 - Add intentional empty movie field marker
 
 - Files:

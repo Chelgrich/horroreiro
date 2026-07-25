@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { access, readFile } from 'node:fs/promises';
+import { access, readFile, readdir } from 'node:fs/promises';
 import { dirname, extname, join, normalize } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +17,7 @@ const clientJsFiles = [
   'app.js'
 ];
 const lazyJsFiles = [
+  'admin-actions.js',
   'letterboxd-import.js',
   'assets/directors-admin-app.js'
 ];
@@ -54,6 +55,7 @@ const contextSensitivePrefixes = [
   'src/',
   'tools/'
 ];
+const temporaryRootArtifactPattern = /^(?:horroreiro-|tmdb-).*\d{4}-\d{2}-\d{2}.*\.(?:json|txt|csv)$/i;
 
 const pageFiles = {
   'index.html': 'catalog',
@@ -124,6 +126,18 @@ function checkAssetSizeReport() {
   assert(report.groups?.js?.raw > 0, 'asset-size-report.mjs: missing JS total');
   assert(report.groups?.css?.raw > 0, 'asset-size-report.mjs: missing CSS total');
   assert(report.startup?.catalog?.brotli > 0, 'asset-size-report.mjs: missing catalog startup profile');
+}
+
+async function checkNoTemporaryRootArtifacts() {
+  const entries = await readdir(rootDir, { withFileTypes: true });
+  const temporaryArtifacts = entries
+    .filter(entry => entry.isFile() && temporaryRootArtifactPattern.test(entry.name))
+    .map(entry => entry.name);
+
+  assert(
+    temporaryArtifacts.length === 0,
+    `temporary root artifacts should be moved or removed: ${temporaryArtifacts.join(', ')}`
+  );
 }
 
 async function readText(relativePath) {
@@ -312,6 +326,7 @@ async function checkStaticGuards() {
     '/app.js',
     '/custom-select.js',
     '/app-page-runtime.js',
+    '/admin-actions.js',
     '/letterboxd-import.js',
     '/assets/directors-admin-app.js',
     '/shared-layout.js',
@@ -336,6 +351,7 @@ async function checkStaticGuards() {
     'name.html',
     'directors.html',
     'app.js',
+    'admin-actions.js',
     'letterboxd-import.js',
     'assets/directors-admin-app.js',
     'shared-layout.js',
@@ -441,6 +457,7 @@ async function checkRoutes() {
 checkJavaScriptSyntax();
 checkAssetSizeReport();
 checkContextJournalUpdated();
+await checkNoTemporaryRootArtifacts();
 await checkStaticGuards();
 await checkRoutes();
 

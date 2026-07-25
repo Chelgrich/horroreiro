@@ -7,6 +7,9 @@
 /app-page-runtime.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/admin-actions.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /letterboxd-import.js
   Cache-Control: public, max-age=0, must-revalidate
 

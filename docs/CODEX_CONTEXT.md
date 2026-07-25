@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-07-13.
+Last updated: 2026-07-25.
 
 ## Purpose
 
@@ -110,6 +110,15 @@ All HTML-like app shell responses should be no-store.
 `custom-select.js` owns custom select behavior used by catalog and movie modal selects.
 
 `letterboxd-import.js` is lazy-loaded only when importing Letterboxd ratings.
+
+`admin-actions.js` is lazy-loaded only for rare admin actions:
+
+- manual similar audit;
+- completeness TXT audit;
+- full database JSON export;
+- notification test-suite error classification.
+
+Keep `/editor` page summary logic in `app.js`; keep downloadable/report-heavy builders in `admin-actions.js`.
 
 ## Framework Island
 

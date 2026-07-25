@@ -7869,7 +7869,8 @@ a[data-current-page-link="true"] {
   justify-content: flex-end;
 }
 
-.movie-page-review-like {
+.movie-page-review-like,
+.movie-page-comment-like {
   height: 32px;
   min-height: 32px;
   padding: 7px 11px;
@@ -7887,7 +7888,8 @@ a[data-current-page-link="true"] {
   cursor: pointer;
 }
 
-.movie-page-review-like svg {
+.movie-page-review-like svg,
+.movie-page-comment-like svg {
   width: 15px;
   height: 15px;
   fill: none;
@@ -7898,41 +7900,53 @@ a[data-current-page-link="true"] {
 }
 
 .movie-page-review-like:hover,
-.movie-page-review-like:focus-visible {
+.movie-page-review-like:focus-visible,
+.movie-page-comment-like:hover,
+.movie-page-comment-like:focus-visible {
   color: var(--color-text-primary);
   background: var(--ui-action-bg-hover);
 }
 
-.movie-page-review-like.is-liked {
+.movie-page-review-like.is-liked,
+.movie-page-comment-like.is-liked {
   color: var(--color-danger-text);
   background: var(--danger-like-alpha-24);
 }
 
-.movie-page-review-like.is-liked svg {
+.movie-page-review-like.is-liked svg,
+.movie-page-comment-like.is-liked svg {
   fill: currentColor;
 }
 
 .movie-page-review-like.is-liked:hover,
-.movie-page-review-like.is-liked:focus-visible {
+.movie-page-review-like.is-liked:focus-visible,
+.movie-page-comment-like.is-liked:hover,
+.movie-page-comment-like.is-liked:focus-visible {
   background: var(--danger-like-alpha-34);
 }
 
 .movie-page-review-like:focus,
-.movie-page-review-like:focus-visible {
+.movie-page-review-like:focus-visible,
+.movie-page-comment-like:focus,
+.movie-page-comment-like:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--control-focus-ring);
 }
 
 .movie-page-review-like:disabled,
-.movie-page-review-like-static {
+.movie-page-review-like-static,
+.movie-page-comment-like:disabled,
+.movie-page-comment-like-static {
   cursor: default;
 }
 
-.movie-page-review-like:disabled {
+.movie-page-review-like:disabled,
+.movie-page-comment-like:disabled {
   opacity: 0.72;
 }
 
-.movie-page-review-like-static {
+.movie-page-review-like-static,
+.movie-page-comment-like-static {
   color: var(--color-text-muted);
   background: var(--overlay-white-04);
 }
@@ -8354,74 +8368,6 @@ a[data-current-page-link="true"] {
   color: var(--ui-action-muted-color);
   background: var(--ui-action-bg-muted);
   transform: none;
-}
-
-.movie-page-comment-like {
-  height: 32px;
-  min-height: 32px;
-  padding: 7px 11px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  color: var(--color-text-secondary);
-  background: var(--ui-action-bg);
-  border: 0;
-  border-radius: 999px;
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-none);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.movie-page-comment-like svg {
-  width: 15px;
-  height: 15px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.9;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.movie-page-comment-like:hover,
-.movie-page-comment-like:focus-visible {
-  color: var(--color-text-primary);
-  background: var(--ui-action-bg-hover);
-}
-
-.movie-page-comment-like.is-liked {
-  color: var(--color-danger-text);
-  background: var(--danger-like-alpha-24);
-}
-
-.movie-page-comment-like.is-liked svg {
-  fill: currentColor;
-}
-
-.movie-page-comment-like.is-liked:hover,
-.movie-page-comment-like.is-liked:focus-visible {
-  background: var(--danger-like-alpha-34);
-}
-
-.movie-page-comment-like:focus,
-.movie-page-comment-like:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--control-focus-ring);
-}
-
-.movie-page-comment-like:disabled,
-.movie-page-comment-like-static {
-  cursor: default;
-}
-
-.movie-page-comment-like:disabled {
-  opacity: 0.72;
-}
-
-.movie-page-comment-like-static {
-  color: var(--color-text-muted);
-  background: var(--overlay-white-04);
 }
 
 .movie-page-discussion-like {
