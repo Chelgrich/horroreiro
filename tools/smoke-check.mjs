@@ -45,6 +45,7 @@ const contextSensitiveExactFiles = new Set([
   'docs/DATA_MODEL.md',
   'letterboxd-import.js',
   'movie-page.css',
+  'secondary-pages.css',
   'package-lock.json',
   'package.json',
   'person-placeholders.js',
@@ -329,6 +330,11 @@ async function checkStaticGuards() {
       bootLoader.includes("assets.push('movie-page.css')"),
     'boot-loader.js: movie page stylesheet must be selected before body is parsed'
   );
+  assert(
+    bootLoader.includes("['following', 'notifications', 'editor', 'director', 'directors'].includes(page)") &&
+      bootLoader.includes("assets.push('secondary-pages.css')"),
+    'boot-loader.js: secondary page stylesheet must be selected by page type'
+  );
 
   const headersText = await readText('_headers');
 
@@ -342,7 +348,8 @@ async function checkStaticGuards() {
     '/assets/directors-admin-app.js',
     '/shared-layout.js',
     '/styles.css',
-    '/movie-page.css'
+    '/movie-page.css',
+    '/secondary-pages.css'
   ].forEach(assetPath => {
     const escapedAssetPath = assetPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -370,6 +377,7 @@ async function checkStaticGuards() {
     'shared-layout.js',
     'styles.css',
     'movie-page.css',
+    'secondary-pages.css',
     'app-script-loader.js',
     'app-page-runtime.js',
     'boot-loader.js'

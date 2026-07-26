@@ -9,6 +9,7 @@ const ALLOWED_APP_ASSETS = new Set([
   'letterboxd-import.js',
   'movie-page.css',
   'person-placeholders.js',
+  'secondary-pages.css',
   'shared-layout.js',
   'styles.css'
 ]);

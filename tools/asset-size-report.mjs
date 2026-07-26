@@ -20,7 +20,8 @@ const assetGroups = {
   ],
   css: [
     'styles.css',
-    'movie-page.css'
+    'movie-page.css',
+    'secondary-pages.css'
   ],
   html: [
     'index.html',

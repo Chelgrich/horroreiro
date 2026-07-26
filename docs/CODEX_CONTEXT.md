@@ -33,7 +33,7 @@ Page HTML is static shell plus shared scripts:
   - loads `/env`;
   - creates `window.__ENV__`;
   - loads versioned `styles.css`;
-  - loads page-specific CSS such as `movie-page.css` before app startup when the current shell needs it;
+  - loads page-specific CSS such as `movie-page.css` and `secondary-pages.css` before app startup when the current shell needs it;
   - marks `app-styles-ready` or `app-load-failed`.
 - `app-script-loader.js`
   - waits for `window.__ENV_READY__`;
@@ -53,7 +53,7 @@ Production asset URL strategy:
 - Core JS/CSS and lazy feature modules use `/app-assets/<APP_BUILD_VERSION>?file=<asset>`.
 - `functions/app-assets/[version].js` allowlists app assets and proxies them from current Pages assets with `no-store`.
 - `_headers` sets core app assets to `public, max-age=0, must-revalidate`.
-- Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `movie-page.css`, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, `letterboxd-import.js`, `person-placeholders.js`, or `assets/directors-admin-app.js`.
+- Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `movie-page.css`, `secondary-pages.css`, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, `letterboxd-import.js`, `person-placeholders.js`, or `assets/directors-admin-app.js`.
 
 ## Pages
 
@@ -109,6 +109,8 @@ All HTML-like app shell responses should be no-store.
 `styles.css` is the global design system and shared page styles. It uses CSS variables heavily. Avoid local one-off colors if a token exists.
 
 `movie-page.css` owns movie detail-only styles and is loaded by `boot-loader.js` only for `data-app-page="movie"`.
+
+`secondary-pages.css` owns non-catalog/non-movie secondary page styles for following, notifications, editor, public person pages, and the directors admin page. It is loaded only for `data-app-page="following"`, `"notifications"`, `"editor"`, `"director"`, or `"directors"`.
 
 `custom-select.js` owns custom select behavior used by catalog and movie modal selects.
 

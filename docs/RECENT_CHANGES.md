@@ -12,6 +12,36 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-26 - Split secondary page styles
+
+- Files:
+  - `styles.css`
+  - `secondary-pages.css`
+  - `boot-loader.js`
+  - `_headers`
+  - `functions/app-assets/[version].js`
+  - `tools/asset-size-report.mjs`
+  - `tools/asset-size-baseline.json`
+  - `tools/smoke-check.mjs`
+  - `README.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved secondary page-only CSS for following, notifications, editor, public person pages, and directors admin into `secondary-pages.css`.
+  - Updated the boot loader to load `secondary-pages.css` only on those page types, leaving catalog/profile/movie startup with a smaller global stylesheet.
+  - Added asset proxy, cache header, size report, and smoke-check coverage for the new stylesheet.
+- Checks:
+  - `node --check app.js`
+  - `node --check boot-loader.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check functions\app-assets\[version].js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - CSS brace check for `styles.css`, `movie-page.css`, and `secondary-pages.css`.
+- Follow-up:
+  - None.
+
 ## 2026-07-26 - Fix movie detail stylesheet bootstrap
 
 - Files:

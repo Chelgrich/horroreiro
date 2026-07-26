@@ -31,6 +31,7 @@
 - `app.js` — основная логика приложения
 - `styles.css` — общие стили интерфейса
 - `movie-page.css` — стили детальной страницы фильма, грузятся только на detail-страницах
+- `secondary-pages.css` — стили вторичных страниц: `/following`, `/notifications`, `/editor`, `/name/*`, `/directors`
 - `person-placeholders.js` — lazy-модуль SVG-заглушек персон
 
 ## Framework-острова

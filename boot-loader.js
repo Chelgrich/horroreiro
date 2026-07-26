@@ -81,6 +81,10 @@
         assets.push('movie-page.css');
       }
 
+      if (['following', 'notifications', 'editor', 'director', 'directors'].includes(page)) {
+        assets.push('secondary-pages.css');
+      }
+
       return assets;
     }
 
