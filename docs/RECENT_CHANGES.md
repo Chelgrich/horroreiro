@@ -12,6 +12,31 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-28 - Restore movie detail similar handlers
+
+- Files:
+  - `app.js`
+  - `movie-social.js`
+  - `tools/asset-size-baseline.json`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Restored the manual similar movies detail section renderer and editor event handlers to `app.js` after the social-module extraction accidentally moved them into `movie-social.js`.
+  - Kept `movie-social.js` scoped to reviews/comments by removing manual similar movie helpers from it.
+  - Added smoke guards so manual similar detail handlers must remain in `app.js` and cannot silently drift into `movie-social.js` again.
+  - Restored local reviews/comments section renderers inside `movie-social.js` and switched the exported controller methods to safe arrow properties to avoid recursive API calls.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-social.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `node tools\asset-size-report.mjs --save tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Local browser smoke for `/movie/taro-2024`
+- Follow-up:
+  - None.
+
 ## 2026-07-28 - Extract movie detail social block
 
 - Files:

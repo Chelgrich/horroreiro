@@ -419,6 +419,7 @@ async function checkStaticGuards() {
   ];
 
   const appJs = await readText('app.js');
+  const movieSocialJs = await readText('movie-social.js');
   const directorsAdminSource = await readText('src/directors-admin-app.jsx');
 
   assert(
@@ -428,6 +429,23 @@ async function checkStaticGuards() {
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('movie-social.js'))"),
     'app.js: movie detail social block must lazy-load movie-social.js'
+  );
+  assert(
+    appJs.includes('function getMoviePageSimilarSectionHtml(') &&
+      appJs.includes('function bindMoviePageSimilarEditorEvents('),
+    'app.js: movie detail manual similar section/editor handlers must stay in app.js'
+  );
+  assert(
+    !movieSocialJs.includes('getMoviePageSimilar') &&
+      !movieSocialJs.includes('moviePageSimilar'),
+    'movie-social.js: manual similar implementation should stay in app.js'
+  );
+  assert(
+    movieSocialJs.includes('function renderMoviePageReviewsSection(') &&
+      movieSocialJs.includes('function renderMoviePageCommentsSection(') &&
+      movieSocialJs.includes('renderMoviePageReviewsSection: (movie, options = {}) =>') &&
+      movieSocialJs.includes('renderMoviePageCommentsSection: movie =>'),
+    'movie-social.js: social render API must call local render functions without recursive method shorthand'
   );
   assert(
     !appJs.includes('function getMoviePageReviewFormHtml(') &&

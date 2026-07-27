@@ -2386,267 +2386,6 @@ function getMoviePageCommentsSectionHtml(movie, { isLoading = false } = {}) {
   `;
 }
 
-function getMoviePageSimilarSectionHtml(similarMovies, movie = currentMoviePageMovieData, { isLoading = false } = {}) {
-  const hasSimilarMovies = Array.isArray(similarMovies) && similarMovies.length > 0;
-  const editorHtml = isLoading ? '' : getMoviePageSimilarEditorHtml(movie);
-
-  if (!hasSimilarMovies && !editorHtml) {
-    if (isLoading) {
-      return `
-  <section class="movie-page-similar-block" aria-labelledby="moviePageSimilarTitle">
-    <h2 id="moviePageSimilarTitle" class="movie-page-subtitle">Похожие фильмы</h2>
-    <div class="movie-page-similar-empty-state">
-      Загружаю похожие фильмы...
-    </div>
-  </section>
-      `;
-    }
-
-    return '';
-  }
-
-  return `
-  <section class="movie-page-similar-block" aria-labelledby="moviePageSimilarTitle">
-  <h2 id="moviePageSimilarTitle" class="movie-page-subtitle">Похожие фильмы</h2>
-  ${editorHtml}
-  ${
-    hasSimilarMovies
-      ? `
-        <div class="movie-page-similar-grid">
-          ${similarMovies.map(similarMovie => getMoviePageSimilarCardHtml(similarMovie)).join('')}
-        </div>
-      `
-      : `
-        <div class="movie-page-similar-empty-state">
-          Похожие фильмы пока не выбраны.
-        </div>
-      `
-  }
-    </section>
-  `;
-}
-
-function getMoviePageSimilarIdsAfterMove(movieId, direction) {
-  const normalizedMovieId = String(movieId || '');
-  const currentIndex = currentMoviePageSimilarMovieIds.indexOf(normalizedMovieId);
-  const nextIndex = currentIndex + Number(direction || 0);
-
-  if (
-    currentIndex < 0 ||
-    nextIndex < 0 ||
-    nextIndex >= currentMoviePageSimilarMovieIds.length
-  ) {
-    return currentMoviePageSimilarMovieIds;
-  }
-
-  const nextMovieIds = currentMoviePageSimilarMovieIds.slice();
-  const [movedMovieId] = nextMovieIds.splice(currentIndex, 1);
-
-  nextMovieIds.splice(nextIndex, 0, movedMovieId);
-  return nextMovieIds;
-}
-
-function getMoviePageSimilarIdsAfterDrop(sourceMovieId, targetMovieId, shouldPlaceAfter = false) {
-  const sourceId = String(sourceMovieId || '');
-  const targetId = String(targetMovieId || '');
-
-  if (!sourceId || !targetId || sourceId === targetId) {
-    return currentMoviePageSimilarMovieIds;
-  }
-
-  const nextMovieIds = currentMoviePageSimilarMovieIds.filter(movieId => String(movieId) !== sourceId);
-  const targetIndex = nextMovieIds.indexOf(targetId);
-
-  if (targetIndex < 0) {
-    return currentMoviePageSimilarMovieIds;
-  }
-
-  nextMovieIds.splice(targetIndex + (shouldPlaceAfter ? 1 : 0), 0, sourceId);
-  return nextMovieIds;
-}
-
-function focusMoviePageSimilarSearch(selectionStart = null) {
-  requestAnimationFrame(() => {
-    const searchInputElement = moviePage?.querySelector('[data-movie-page-similar-search="true"]');
-
-    if (!searchInputElement) {
-      return;
-    }
-
-    searchInputElement.focus();
-
-    if (
-      Number.isFinite(selectionStart) &&
-      typeof searchInputElement.setSelectionRange === 'function'
-    ) {
-      searchInputElement.setSelectionRange(selectionStart, selectionStart);
-    }
-  });
-}
-
-async function saveMoviePageSimilarEditorIds(nextMovieIds, successMessage = 'Похожие фильмы сохранены.') {
-  const movie = currentMoviePageMovieData;
-  const movieId = String(movie?.id || '');
-
-  if (!isAdmin || !movieId || isMoviePageSimilarEditorSaving) {
-    return;
-  }
-
-  const normalizedMovieIds = normalizeManualSimilarMovieIds(nextMovieIds, movieId);
-  const previousMovieIds = currentMoviePageSimilarMovieIds.slice();
-  const previousMovies = currentMoviePageSimilarMovies.slice();
-
-  currentMoviePageSimilarMovieIds = normalizedMovieIds;
-  currentMoviePageSimilarMovies = normalizedMovieIds
-    .map(similarMovieId => getCatalogMovieById(similarMovieId))
-    .filter(Boolean);
-  isMoviePageSimilarEditorSaving = true;
-  setMoviePageSimilarEditorStatus('Сохраняю похожие фильмы...');
-  renderMoviePageSimilarSection(movieId);
-
-  try {
-    await replaceManualSimilarMovies(movieId, normalizedMovieIds);
-
-    currentMoviePageSimilarMovieIds = getManualSimilarMovieIds(movieId);
-    currentMoviePageSimilarMovies = await fetchCatalogMoviesByIds(currentMoviePageSimilarMovieIds);
-    moviePageSimilarEditorSearchQuery = '';
-    setMoviePageSimilarEditorStatus(successMessage, 'success');
-  } catch (error) {
-    console.error('Ошибка сохранения похожих на деталке:', error);
-    currentMoviePageSimilarMovieIds = previousMovieIds;
-    currentMoviePageSimilarMovies = previousMovies;
-    setMoviePageSimilarEditorStatus(
-      error?.message || 'Не удалось сохранить похожие фильмы.',
-      'error'
-    );
-  } finally {
-    isMoviePageSimilarEditorSaving = false;
-    moviePageSimilarEditorDraggedMovieId = null;
-    renderMoviePageSimilarSection(movieId);
-  }
-}
-
-function handleMoviePageSimilarSearchInput(event, movie) {
-  const searchInputElement = event.currentTarget;
-  const selectionStart = searchInputElement.selectionStart;
-
-  moviePageSimilarEditorSearchQuery = searchInputElement.value;
-  setMoviePageSimilarEditorStatus();
-  renderMoviePageSimilarSection(movie.id);
-  focusMoviePageSimilarSearch(selectionStart);
-}
-
-function handleMoviePageSimilarEditorClick(event) {
-  const addButton = event.target.closest('[data-movie-page-similar-add]');
-  const removeButton = event.target.closest('[data-movie-page-similar-remove]');
-  const moveButton = event.target.closest('[data-movie-page-similar-move]');
-
-  if (addButton) {
-    saveMoviePageSimilarEditorIds(
-      [...currentMoviePageSimilarMovieIds, addButton.dataset.moviePageSimilarAdd],
-      'Похожий фильм добавлен.'
-    );
-    return;
-  }
-
-  if (removeButton) {
-    const movieId = removeButton.dataset.moviePageSimilarRemove;
-
-    saveMoviePageSimilarEditorIds(
-      currentMoviePageSimilarMovieIds.filter(similarMovieId => String(similarMovieId) !== String(movieId)),
-      'Похожий фильм убран.'
-    );
-    return;
-  }
-
-  if (moveButton) {
-    saveMoviePageSimilarEditorIds(
-      getMoviePageSimilarIdsAfterMove(
-        moveButton.dataset.moviePageSimilarMove,
-        Number(moveButton.dataset.moviePageSimilarDirection || 0)
-      ),
-      'Порядок похожих обновлён.'
-    );
-  }
-}
-
-function handleMoviePageSimilarDragStart(event) {
-  const item = event.target.closest('[data-movie-page-similar-editor-item]');
-
-  if (!item || isMoviePageSimilarEditorSaving) {
-    event.preventDefault();
-    return;
-  }
-
-  moviePageSimilarEditorDraggedMovieId = item.dataset.moviePageSimilarEditorItem;
-  event.dataTransfer.effectAllowed = 'move';
-  event.dataTransfer.setData('text/plain', moviePageSimilarEditorDraggedMovieId);
-  item.classList.add('is-dragging');
-}
-
-function handleMoviePageSimilarDragEnd(event) {
-  event.target
-    .closest('[data-movie-page-similar-editor-item]')
-    ?.classList.remove('is-dragging');
-  moviePageSimilarEditorDraggedMovieId = null;
-}
-
-function handleMoviePageSimilarDragOver(event) {
-  if (!moviePageSimilarEditorDraggedMovieId) {
-    return;
-  }
-
-  const item = event.target.closest('[data-movie-page-similar-editor-item]');
-
-  if (!item) {
-    return;
-  }
-
-  event.preventDefault();
-  event.dataTransfer.dropEffect = 'move';
-}
-
-function handleMoviePageSimilarDrop(event) {
-  const targetItem = event.target.closest('[data-movie-page-similar-editor-item]');
-  const sourceMovieId = moviePageSimilarEditorDraggedMovieId ||
-    event.dataTransfer.getData('text/plain');
-  const targetMovieId = targetItem?.dataset.moviePageSimilarEditorItem;
-
-  if (!sourceMovieId || !targetMovieId || sourceMovieId === targetMovieId) {
-    return;
-  }
-
-  event.preventDefault();
-
-  const targetRect = targetItem.getBoundingClientRect();
-  const shouldPlaceAfter = event.clientY > targetRect.top + (targetRect.height / 2);
-
-  saveMoviePageSimilarEditorIds(
-    getMoviePageSimilarIdsAfterDrop(sourceMovieId, targetMovieId, shouldPlaceAfter),
-    'Порядок похожих обновлён.'
-  );
-}
-
-function bindMoviePageSimilarEditorEvents(movie) {
-  const editor = moviePage?.querySelector('[data-movie-page-similar-editor="true"]');
-
-  if (!editor || !movie?.id) {
-    return;
-  }
-
-  editor
-    .querySelector('[data-movie-page-similar-search="true"]')
-    ?.addEventListener('input', event => {
-      handleMoviePageSimilarSearchInput(event, movie);
-    });
-
-  editor.addEventListener('click', handleMoviePageSimilarEditorClick);
-  editor.addEventListener('dragstart', handleMoviePageSimilarDragStart);
-  editor.addEventListener('dragend', handleMoviePageSimilarDragEnd);
-  editor.addEventListener('dragover', handleMoviePageSimilarDragOver);
-  editor.addEventListener('drop', handleMoviePageSimilarDrop);
-}
-
 function setMovieReviewFormMessage(formElement, message = '', type = '') {
   const messageElement = formElement?.querySelector('[data-movie-review-form-message="true"]');
 
@@ -3298,6 +3037,73 @@ function updateMovieCommentFormState(formElement, { shouldClearMessage = false }
   };
 }
 
+function renderMoviePageReviewsSection(movie, { preserveReviewId = '' } = {}) {
+  if (!moviePage || !movie) {
+    return;
+  }
+
+  const reviewsSection = moviePage.querySelector('[data-movie-page-reviews-section="true"]');
+  const railSnapshot = getMoviePageReviewRailSnapshot(preserveReviewId);
+
+  if (!reviewsSection) {
+    renderMoviePage(movie);
+    return;
+  }
+
+  reviewsSection.outerHTML = getMoviePageReviewsSectionHtml(movie);
+  bindMoviePageReviewEvents(movie);
+  bindMoviePageCommentEvents(movie);
+  restoreMoviePageReviewRailSnapshot(railSnapshot);
+  persistCurrentMoviePageSessionCache();
+}
+
+function renderMoviePageCommentsSection(movie) {
+  if (!moviePage || !movie) {
+    return;
+  }
+
+  const commentsSection = moviePage.querySelector('[data-movie-page-comments-section="true"]');
+
+  if (!commentsSection) {
+    renderMoviePage(movie);
+    return;
+  }
+
+  commentsSection.outerHTML = getMoviePageCommentsSectionHtml(movie);
+  bindMoviePageCommentEvents(movie);
+  persistCurrentMoviePageSessionCache();
+}
+
+function renderMoviePageReviewsStatus(message) {
+  const reviewsSection = moviePage?.querySelector('[data-movie-page-reviews-section="true"]');
+
+  if (!reviewsSection) {
+    return;
+  }
+
+  reviewsSection.innerHTML = `
+    ${getMoviePageSectionTitleHtml('moviePageReviewsTitle', 'Рецензии')}
+    <div class="movie-page-review-empty-state">
+      ${escapeHtml(message)}
+    </div>
+  `;
+}
+
+function renderMoviePageCommentsStatus(message) {
+  const commentsSection = moviePage?.querySelector('[data-movie-page-comments-section="true"]');
+
+  if (!commentsSection) {
+    return;
+  }
+
+  commentsSection.innerHTML = `
+    ${getMoviePageSectionTitleHtml('moviePageCommentsTitle', 'Комментарии')}
+    <div class="movie-page-comment-empty-state">
+      ${escapeHtml(message)}
+    </div>
+  `;
+}
+
 function setMovieCommentFormSubmitting(formElement, isSubmitting) {
   const textareaElement = formElement?.querySelector('[data-movie-comment-textarea="true"]');
   const spoilersCheckbox = formElement?.querySelector('[data-movie-comment-spoilers="true"]');
@@ -3642,47 +3448,47 @@ function bindMoviePageCommentEvents(movie) {
   return {
     syncContextState: syncMovieSocialContextState,
     resetMoviePageComposerState,
-    getMoviePageReviewsSectionHtml(movie, options = {}) {
+    getMoviePageReviewsSectionHtml: (movie, options = {}) => {
       syncMovieSocialContextState();
       return getMoviePageReviewsSectionHtml(movie, options);
     },
-    getMoviePageCommentsSectionHtml(movie, options = {}) {
+    getMoviePageCommentsSectionHtml: (movie, options = {}) => {
       syncMovieSocialContextState();
       return getMoviePageCommentsSectionHtml(movie, options);
     },
-    async fetchMovieReviews(movieId) {
+    fetchMovieReviews: async movieId => {
       syncMovieSocialContextState();
       return fetchMovieReviews(movieId);
     },
-    async fetchMovieComments(movieId) {
+    fetchMovieComments: async movieId => {
       syncMovieSocialContextState();
       return fetchMovieComments(movieId);
     },
-    bindMoviePageReviewEvents(movie) {
+    bindMoviePageReviewEvents: movie => {
       syncMovieSocialContextState();
       bindMoviePageReviewEvents(movie);
     },
-    bindMoviePageCommentEvents(movie) {
+    bindMoviePageCommentEvents: movie => {
       syncMovieSocialContextState();
       bindMoviePageCommentEvents(movie);
     },
-    focusMoviePageHashTarget() {
+    focusMoviePageHashTarget: () => {
       syncMovieSocialContextState();
       focusMoviePageHashTarget();
     },
-    renderMoviePageReviewsSection(movie, options = {}) {
+    renderMoviePageReviewsSection: (movie, options = {}) => {
       syncMovieSocialContextState();
       renderMoviePageReviewsSection(movie, options);
     },
-    renderMoviePageCommentsSection(movie) {
+    renderMoviePageCommentsSection: movie => {
       syncMovieSocialContextState();
       renderMoviePageCommentsSection(movie);
     },
-    renderMoviePageReviewsStatus(message) {
+    renderMoviePageReviewsStatus: message => {
       syncMovieSocialContextState();
       renderMoviePageReviewsStatus(message);
     },
-    renderMoviePageCommentsStatus(message) {
+    renderMoviePageCommentsStatus: message => {
       syncMovieSocialContextState();
       renderMoviePageCommentsStatus(message);
     }
