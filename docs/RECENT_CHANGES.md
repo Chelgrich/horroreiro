@@ -12,6 +12,32 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-28 - Extract movie detail social block
+
+- Files:
+  - `app.js`
+  - `movie-social.js`
+  - `_headers`
+  - `functions/app-assets/[version].js`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved movie detail reviews, comments, likes, reply composers, social anchors, and social section rerenders into lazy-loaded `movie-social.js`.
+  - Kept `app.js` as the bridge for shared social arrays, availability flags, session cache, catalog reviewed-state sync, and fallback loading sections.
+  - Added `movie-social.js` to versioned app-assets, cache headers, size reporting, and smoke guards.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-social.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+- Follow-up:
+  - None.
+
 ## 2026-07-28 - Resize director admin avatars proportionally
 
 - Files:

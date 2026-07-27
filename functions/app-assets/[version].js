@@ -8,6 +8,7 @@ const ALLOWED_APP_ASSETS = new Set([
   'custom-select.js',
   'following-page.js',
   'letterboxd-import.js',
+  'movie-social.js',
   'movie-page.css',
   'person-placeholders.js',
   'secondary-pages.css',

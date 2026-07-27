@@ -20,6 +20,7 @@ const lazyJsFiles = [
   'admin-actions.js',
   'following-page.js',
   'letterboxd-import.js',
+  'movie-social.js',
   'person-placeholders.js',
   'assets/directors-admin-app.js'
 ];
@@ -46,6 +47,7 @@ const contextSensitiveExactFiles = new Set([
   'docs/DATA_MODEL.md',
   'following-page.js',
   'letterboxd-import.js',
+  'movie-social.js',
   'movie-page.css',
   'secondary-pages.css',
   'package-lock.json',
@@ -143,6 +145,10 @@ function checkAssetSizeReport() {
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('following-page.js')),
     'asset-size-report.mjs: following-page.js must stay lazy-loaded outside startup profiles'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-social.js')),
+    'asset-size-report.mjs: movie-social.js must stay lazy-loaded outside startup profiles'
   );
 }
 
@@ -370,6 +376,7 @@ async function checkStaticGuards() {
     '/admin-actions.js',
     '/following-page.js',
     '/letterboxd-import.js',
+    '/movie-social.js',
     '/person-placeholders.js',
     '/assets/directors-admin-app.js',
     '/shared-layout.js',
@@ -399,6 +406,7 @@ async function checkStaticGuards() {
     'admin-actions.js',
     'following-page.js',
     'letterboxd-import.js',
+    'movie-social.js',
     'person-placeholders.js',
     'assets/directors-admin-app.js',
     'shared-layout.js',
@@ -416,6 +424,16 @@ async function checkStaticGuards() {
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('following-page.js'))"),
     'app.js: /following page must lazy-load following-page.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('movie-social.js'))"),
+    'app.js: movie detail social block must lazy-load movie-social.js'
+  );
+  assert(
+    !appJs.includes('function getMoviePageReviewFormHtml(') &&
+      !appJs.includes('function setMovieReviewFormMessage(') &&
+      !appJs.includes('async function fetchMovieReviewLikes('),
+    'app.js: movie review/comment implementation should stay in movie-social.js'
   );
   assert(
     !appJs.includes('function renderFollowingPageLoading()'),
@@ -494,7 +512,12 @@ async function checkStaticGuards() {
   assert(await fileExists('docs/DATA_MODEL.md'), 'missing Codex data model context');
   assert(await fileExists(contextJournalFile), 'missing Codex recent changes journal');
 
-  for (const file of clientJsFiles.filter(item => item !== 'custom-select.js')) {
+  const attributeSafetyTargets = [
+    ...clientJsFiles.filter(item => item !== 'custom-select.js'),
+    ...lazyJsFiles
+  ];
+
+  for (const file of attributeSafetyTargets) {
     const text = await readText(file);
     const unsafeAttributeLines = text
       .split(/\r?\n/)

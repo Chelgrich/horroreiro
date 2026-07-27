@@ -91,8 +91,8 @@ All HTML-like app shell responses should be no-store.
 - session-memory public profile and movie-by-id row caches for repeated profile, notification, and rail lookups;
 - catalog state, filters, pagination, URL params, presets;
 - movie modal add/edit;
-- movie detail rendering;
-- ratings/watchlist/reviews/comments;
+- movie detail shell rendering and bridges into lazy detail modules;
+- ratings/watchlist;
 - notifications page and read tracking;
 - user profile pages and rails;
 - people/director detail page;
@@ -128,6 +128,15 @@ All HTML-like app shell responses should be no-store.
 Keep `/editor` page summary logic in `app.js`; keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `person-placeholders.js` is lazy-loaded only for person/director pages and owns the large SVG placeholder silhouettes.
+
+`movie-social.js` is lazy-loaded only for movie detail pages and owns the detail social block:
+
+- reviews and review likes;
+- comments, comment replies, comment likes;
+- review/comment composer state;
+- review rail controls, social anchors, and local social section rerenders.
+
+`app.js` keeps the shared movie review/comment arrays and availability flags because session cache, catalog reviewed-state sync, and notifications also read that state. The movie detail page should call the bridge functions in `app.js`; do not re-add social implementation code there.
 
 ## Framework Island
 
@@ -184,8 +193,8 @@ Movie detail features:
 - aggregator links;
 - ratings/watchlist;
 - manual similar movies;
-- reviews rail;
-- comments tree with spoiler/profanity flags;
+- reviews rail, loaded through `movie-social.js`;
+- comments tree with spoiler/profanity flags, loaded through `movie-social.js`;
 - admin edit/delete actions.
 
 Important risk:
