@@ -420,6 +420,16 @@ async function checkStaticGuards() {
     !appJs.includes('function renderFollowingPageLoading()'),
     'app.js: following page renderer should stay in following-page.js'
   );
+  assert(
+    !appJs.includes('notification_events (*)'),
+    'app.js: notification page should select explicit notification event fields'
+  );
+
+  const catalogSelectMatch = appJs.match(/const MOVIE_CATALOG_SELECT = `([\s\S]*?)`;/);
+  assert(
+    catalogSelectMatch && !catalogSelectMatch[1].includes('tmdb_url'),
+    'app.js: catalog payload must not include detail-only tmdb_url'
+  );
 
   for (const file of activeTextTargets) {
     const text = await readText(file);

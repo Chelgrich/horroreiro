@@ -5,6 +5,14 @@ const EMPTY_FILTERS = Object.freeze({
   missingBirthDate: false,
   missingBirthPlace: false
 });
+const DIRECTOR_STORAGE_BUCKET = 'people';
+const DIRECTOR_STORAGE_PUBLIC_PATH = `/storage/v1/object/public/${DIRECTOR_STORAGE_BUCKET}/`;
+const DIRECTOR_STORAGE_RENDER_PATH = `/storage/v1/render/image/public/${DIRECTOR_STORAGE_BUCKET}/`;
+const DIRECTOR_ADMIN_AVATAR_IMAGE_PRESET = Object.freeze({
+  widths: [96, 144, 192],
+  quality: 90,
+  sizes: '48px'
+});
 
 function normalizeTextKey(value) {
   return String(value || '')
@@ -174,14 +182,109 @@ function DirectorsAdminFilters({ directors, filters, onToggle, onReset }) {
   );
 }
 
+function handleDirectorAvatarError(event) {
+  const image = event.currentTarget;
+  const fallbackSrc = image?.dataset?.posterFallbackSrc;
+
+  if (!image || !fallbackSrc || image.dataset.posterFallbackApplied === 'true') {
+    return;
+  }
+
+  image.dataset.posterFallbackApplied = 'true';
+  image.removeAttribute('srcset');
+  image.removeAttribute('sizes');
+  image.src = fallbackSrc;
+}
+
+function extractDirectorStoragePath(publicUrl) {
+  let parsedUrl = null;
+
+  try {
+    parsedUrl = new URL(String(publicUrl || ''));
+  } catch (error) {
+    return '';
+  }
+
+  const pathname = decodeURIComponent(parsedUrl.pathname || '');
+  const marker = pathname.includes(DIRECTOR_STORAGE_PUBLIC_PATH)
+    ? DIRECTOR_STORAGE_PUBLIC_PATH
+    : DIRECTOR_STORAGE_RENDER_PATH;
+  const markerIndex = pathname.indexOf(marker);
+
+  return markerIndex >= 0
+    ? pathname.slice(markerIndex + marker.length).replace(/^\/+/, '')
+    : '';
+}
+
+function getDirectorAdminAvatarTransformUrl(publicUrl, width) {
+  const storagePath = extractDirectorStoragePath(publicUrl);
+
+  if (!storagePath || !width) {
+    return '';
+  }
+
+  let parsedUrl = null;
+
+  try {
+    parsedUrl = new URL(publicUrl);
+  } catch (error) {
+    return '';
+  }
+
+  const transformedUrl = new URL(`${parsedUrl.origin}${DIRECTOR_STORAGE_RENDER_PATH}${storagePath}`);
+  transformedUrl.searchParams.set('width', String(width));
+  transformedUrl.searchParams.set('height', String(width));
+  transformedUrl.searchParams.set('resize', 'cover');
+  transformedUrl.searchParams.set('quality', String(DIRECTOR_ADMIN_AVATAR_IMAGE_PRESET.quality));
+
+  return transformedUrl.toString();
+}
+
+function getDirectorAdminAvatarImageData(publicUrl) {
+  const originalUrl = String(publicUrl || '').trim();
+
+  if (!originalUrl) {
+    return null;
+  }
+
+  const transformedUrls = DIRECTOR_ADMIN_AVATAR_IMAGE_PRESET.widths
+    .map(width => ({
+      width,
+      url: getDirectorAdminAvatarTransformUrl(originalUrl, width)
+    }))
+    .filter(item => item.url);
+
+  if (transformedUrls.length === 0) {
+    return {
+      src: originalUrl,
+      srcset: '',
+      sizes: '',
+      fallbackSrc: originalUrl
+    };
+  }
+
+  return {
+    src: transformedUrls[0].url,
+    srcset: transformedUrls.map(item => `${item.url} ${item.width}w`).join(', '),
+    sizes: DIRECTOR_ADMIN_AVATAR_IMAGE_PRESET.sizes,
+    fallbackSrc: originalUrl
+  };
+}
+
 function DirectorAvatar({ director, displayName, getPlaceholderSvgHtml }) {
   if (director.photo_url) {
+    const imageData = getDirectorAdminAvatarImageData(director.photo_url);
+
     return (
       <img
-        src={director.photo_url}
+        src={imageData?.src || director.photo_url}
+        srcSet={imageData?.srcset || undefined}
+        sizes={imageData?.sizes || undefined}
+        data-poster-fallback-src={imageData?.fallbackSrc || undefined}
         alt=""
         loading="lazy"
         decoding="async"
+        onError={handleDirectorAvatarError}
       />
     );
   }

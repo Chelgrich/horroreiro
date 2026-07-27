@@ -487,6 +487,7 @@ const CATALOG_URL_VALUE_ALIAS_LOOKUPS = Object.fromEntries(
 let currentUser = null;
 let currentUserRole = null;
 let currentUserProfile = null;
+let publicProfilesByIdCache = new Map();
 let currentUserFollowedProfileIds = new Set();
 let userPageFollowRequestProfileIds = new Set();
 let notificationsUnreadCount = 0;
@@ -5488,6 +5489,7 @@ async function updateCurrentUserDisplayName(nextDisplayName) {
     ...(currentUserProfile || {}),
     display_name: nextDisplayName
   };
+  cachePublicProfileRows([{ id: currentUser.id, ...currentUserProfile }]);
 
   syncDisplayNameButton();
   syncUserPageOwnProfileIdentity();
@@ -5519,6 +5521,24 @@ async function runProfileSelectWithOptionalAvatar(createQuery, selectWithAvatar,
   throwIfSupabaseError(error);
 
   return data || null;
+}
+
+function cachePublicProfileRows(rows = []) {
+  (Array.isArray(rows) ? rows : [rows])
+    .filter(Boolean)
+    .forEach(profile => {
+      const profileId = String(profile?.id || '').trim();
+
+      if (!profileId) {
+        return;
+      }
+
+      publicProfilesByIdCache.set(profileId, {
+        ...(publicProfilesByIdCache.get(profileId) || {}),
+        ...profile,
+        id: profileId
+      });
+    });
 }
 
 function getAvatarFriendlyErrorMessage(error) {
@@ -6062,6 +6082,7 @@ async function deleteCurrentUserAvatar() {
       ...(currentUserProfile || {}),
       avatar_url: null
     };
+    cachePublicProfileRows([{ id: currentUser.id, ...currentUserProfile }]);
 
     syncUserPageOwnProfileIdentity();
     setUserPageAvatarStatus('Аватар удалён.', 'success');
@@ -6110,6 +6131,7 @@ async function saveAvatarCrop() {
       ...(currentUserProfile || {}),
       avatar_url: avatarUrl
     };
+    cachePublicProfileRows([{ id: currentUser.id, ...currentUserProfile }]);
 
     syncUserPageOwnProfileIdentity();
     closeAvatarCropModal({ force: true });
@@ -8885,6 +8907,7 @@ async function loadCurrentUserRole() {
 
     currentUserRole = data?.role || null;
     currentUserProfile = data || null;
+    cachePublicProfileRows([{ id: currentUser.id, ...(data || {}) }]);
   } catch (error) {
     console.error('Ошибка loadCurrentUserRole:', error);
     currentUserRole = null;
@@ -11827,7 +11850,6 @@ const MOVIE_CATALOG_SELECT = `
   letterboxd_url,
   letterboxd_short_url,
   rottentomatoes_url,
-  tmdb_url,
   release_year,
   release_month,
   sort_order,
@@ -12408,14 +12430,7 @@ async function fetchMovieReviews(movieId) {
       fetchMovieReviewLikes(reviewIds)
         .then(likesData => ({ data: likesData, error: null }))
         .catch(error => ({ data: [], error })),
-      runProfileSelectWithOptionalAvatar(
-        selectColumns => supabaseClient
-          .from('profiles')
-          .select(selectColumns)
-          .in('id', uniqueUserIds),
-        'id, display_name, default_display_name, avatar_url',
-        'id, display_name, default_display_name'
-      )
+      fetchPublicProfilesByIds(uniqueUserIds)
         .then(profilesData => ({ data: profilesData, error: null }))
         .catch(error => ({ data: null, error })),
       supabaseClient
@@ -12566,14 +12581,7 @@ async function fetchMovieComments(movieId) {
       fetchMovieCommentLikes(commentIds)
         .then(likesData => ({ data: likesData, error: null }))
         .catch(error => ({ data: [], error })),
-      runProfileSelectWithOptionalAvatar(
-        selectColumns => supabaseClient
-          .from('profiles')
-          .select(selectColumns)
-          .in('id', uniqueUserIds),
-        'id, display_name, default_display_name, avatar_url',
-        'id, display_name, default_display_name'
-      )
+      fetchPublicProfilesByIds(uniqueUserIds)
         .then(profilesData => ({ data: profilesData, error: null }))
         .catch(error => ({ data: null, error }))
     ]);
@@ -16644,8 +16652,7 @@ function hasMovieExternalLinks(movie) {
     getPublicOptionalUrl(movie?.kinopoisk_url) ||
     getPublicOptionalUrl(movie?.imdb_url) ||
     getPublicOptionalUrl(movie?.letterboxd_url) ||
-    getPublicOptionalUrl(movie?.rottentomatoes_url) ||
-    getPublicOptionalUrl(movie?.tmdb_url)
+    getPublicOptionalUrl(movie?.rottentomatoes_url)
   );
 }
 
@@ -19754,14 +19761,24 @@ async function fetchPublicProfilesByIds(profileIds = []) {
     return [];
   }
 
-  return runProfileSelectWithOptionalAvatar(
-    selectColumns => supabaseClient
-      .from('profiles')
-      .select(selectColumns)
-      .in('id', normalizedProfileIds),
-    'id, display_name, default_display_name, avatar_url',
-    'id, display_name, default_display_name'
-  );
+  const missingProfileIds = normalizedProfileIds.filter(profileId => !publicProfilesByIdCache.has(profileId));
+
+  if (missingProfileIds.length > 0) {
+    const profiles = await runProfileSelectWithOptionalAvatar(
+      selectColumns => supabaseClient
+        .from('profiles')
+        .select(selectColumns)
+        .in('id', missingProfileIds),
+      'id, display_name, default_display_name, avatar_url',
+      'id, display_name, default_display_name'
+    );
+
+    cachePublicProfileRows(profiles || []);
+  }
+
+  return normalizedProfileIds
+    .map(profileId => publicProfilesByIdCache.get(profileId))
+    .filter(Boolean);
 }
 
 function getUserPageMovieIds(rows = []) {
@@ -20940,7 +20957,7 @@ async function fetchNotificationsPageRows() {
 
   const { data, error } = await supabaseClient
     .from('notification_deliveries')
-    .select('event_id, read_at, created_at, notification_events (*)')
+    .select('event_id, read_at, created_at, notification_events (id, type, actor_id, movie_id, entity_type, entity_id, payload, created_at)')
     .eq('recipient_id', currentUser.id)
     .order('created_at', { ascending: false })
     .limit(NOTIFICATIONS_PAGE_LIMIT);

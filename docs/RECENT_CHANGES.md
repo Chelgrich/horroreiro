@@ -12,6 +12,31 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-28 - Tighten payloads and director thumbnails
+
+- Files:
+  - `app.js`
+  - `src/directors-admin-app.jsx`
+  - `assets/directors-admin-app.js`
+  - `tools/asset-size-baseline.json`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Removed detail-only `tmdb_url` from the catalog movie payload and aligned catalog external-link detection with the visible aggregator buttons.
+  - Replaced `notification_events (*)` with an explicit notification event select.
+  - Added a session-level public profile cache and reused it for movie reviews/comments, notifications, and followed profiles.
+  - Switched `/directors` admin avatars from original photos to 48px-oriented Supabase transformed thumbnails with original-image fallback.
+  - Added smoke guards for the catalog TMDB payload and notification event wildcard select.
+- Checks:
+  - `npm run build:directors`
+  - `node --check app.js`
+  - `node --check assets\directors-admin-app.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+- Follow-up:
+  - Continue with larger social/detail splitting only after keeping route-level behavior stable.
+
 ## 2026-07-28 - Lazy-load following page
 
 - Files:

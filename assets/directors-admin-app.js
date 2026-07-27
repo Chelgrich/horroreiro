@@ -248,21 +248,21 @@ e = h.slice, t = { __e: function(e, t, n, r) {
 }, O.__r = 0, s = Math.random().toString(8), c = "__d" + s, l = "__a" + s, u = /(PointerCapture)$|Capture$/i, d = 0, f = P(!1), p = P(!0);
 //#endregion
 //#region node_modules/preact/hooks/dist/hooks.module.js
-var R, z, B, V, H = 0, U = [], W = t, G = W.__b, K = W.__r, q = W.diffed, J = W.__c, se = W.unmount, ce = W.__;
-function le(e, t) {
-	W.__h && W.__h(z, e, H || t), H = 0;
+var R, z, B, se, V = 0, H = [], U = t, W = U.__b, G = U.__r, K = U.diffed, q = U.__c, ce = U.unmount, le = U.__;
+function ue(e, t) {
+	U.__h && U.__h(z, e, V || t), V = 0;
 	var n = z.__H ||= {
 		__: [],
 		__h: []
 	};
 	return e >= n.__.length && n.__.push({}), n.__[e];
 }
-function ue(e) {
-	return H = 1, de(ge, e);
+function de(e) {
+	return V = 1, fe(_e, e);
 }
-function de(e, t, n) {
-	var r = le(R++, 2);
-	if (r.t = e, !r.__c && (r.__ = [n ? n(t) : ge(void 0, t), function(e) {
+function fe(e, t, n) {
+	var r = ue(R++, 2);
+	if (r.t = e, !r.__c && (r.__ = [n ? n(t) : _e(void 0, t), function(e) {
 		var t = r.__N ? r.__N[0] : r.__[0], n = r.t(t, e);
 		t !== n && (r.__N = [n, r.__[1]], r.__c.setState({}));
 	}], r.__c = z, !z.__f)) {
@@ -293,87 +293,87 @@ function de(e, t, n) {
 	}
 	return r.__N || r.__;
 }
-function Y(e, t) {
-	var n = le(R++, 7);
-	return he(n.__H, t) && (n.__ = e(), n.__H = t, n.__h = e), n.__;
+function J(e, t) {
+	var n = ue(R++, 7);
+	return ge(n.__H, t) && (n.__ = e(), n.__H = t, n.__h = e), n.__;
 }
-function fe() {
-	for (var e; e = U.shift();) {
+function pe() {
+	for (var e; e = H.shift();) {
 		var t = e.__H;
 		if (e.__P && t) try {
-			t.__h.some(X), t.__h.some(Z), t.__h = [];
+			t.__h.some(Y), t.__h.some(X), t.__h = [];
 		} catch (n) {
-			t.__h = [], W.__e(n, e.__v);
+			t.__h = [], U.__e(n, e.__v);
 		}
 	}
 }
-W.__b = function(e) {
-	z = null, G && G(e);
-}, W.__ = function(e, t) {
-	e && t.__k && t.__k.__m && (e.__m = t.__k.__m), ce && ce(e, t);
-}, W.__r = function(e) {
-	K && K(e), R = 0;
+U.__b = function(e) {
+	z = null, W && W(e);
+}, U.__ = function(e, t) {
+	e && t.__k && t.__k.__m && (e.__m = t.__k.__m), le && le(e, t);
+}, U.__r = function(e) {
+	G && G(e), R = 0;
 	var t = (z = e.__c).__H;
 	t && (B === z ? (t.__h = [], z.__h = [], t.__.some(function(e) {
 		e.__N && (e.__ = e.__N), e.u = e.__N = void 0;
-	})) : (t.__h.some(X), t.__h.some(Z), t.__h = [], R = 0)), B = z;
-}, W.diffed = function(e) {
-	q && q(e);
+	})) : (t.__h.some(Y), t.__h.some(X), t.__h = [], R = 0)), B = z;
+}, U.diffed = function(e) {
+	K && K(e);
 	var t = e.__c;
-	t && t.__H && (t.__H.__h.length && (U.push(t) !== 1 && V === W.requestAnimationFrame || ((V = W.requestAnimationFrame) || me)(fe)), t.__H.__.some(function(e) {
+	t && t.__H && (t.__H.__h.length && (H.push(t) !== 1 && se === U.requestAnimationFrame || ((se = U.requestAnimationFrame) || he)(pe)), t.__H.__.some(function(e) {
 		e.u &&= (e.__H = e.u, void 0);
 	})), B = z = null;
-}, W.__c = function(e, t) {
+}, U.__c = function(e, t) {
 	t.some(function(e) {
 		try {
-			e.__h.some(X), e.__h = e.__h.filter(function(e) {
-				return !e.__ || Z(e);
+			e.__h.some(Y), e.__h = e.__h.filter(function(e) {
+				return !e.__ || X(e);
 			});
 		} catch (n) {
 			t.some(function(e) {
 				e.__h &&= [];
-			}), t = [], W.__e(n, e.__v);
+			}), t = [], U.__e(n, e.__v);
 		}
-	}), J && J(e, t);
-}, W.unmount = function(e) {
-	se && se(e);
+	}), q && q(e, t);
+}, U.unmount = function(e) {
+	ce && ce(e);
 	var t, n = e.__c;
 	n && n.__H && (n.__H.__.some(function(e) {
 		try {
-			X(e);
+			Y(e);
 		} catch (e) {
 			t = e;
 		}
-	}), n.__H = void 0, t && W.__e(t, n.__v));
+	}), n.__H = void 0, t && U.__e(t, n.__v));
 };
-var pe = typeof requestAnimationFrame == "function";
-function me(e) {
+var me = typeof requestAnimationFrame == "function";
+function he(e) {
 	var t, n = function() {
-		clearTimeout(r), pe && cancelAnimationFrame(t), setTimeout(e);
+		clearTimeout(r), me && cancelAnimationFrame(t), setTimeout(e);
 	}, r = setTimeout(n, 35);
-	pe && (t = requestAnimationFrame(n));
+	me && (t = requestAnimationFrame(n));
 }
-function X(e) {
+function Y(e) {
 	var t = z, n = e.__c;
 	typeof n == "function" && (e.__c = void 0, n()), z = t;
 }
-function Z(e) {
+function X(e) {
 	var t = z;
 	e.__c = e.__(), z = t;
 }
-function he(e, t) {
+function ge(e, t) {
 	return !e || e.length !== t.length || t.some(function(t, n) {
 		return t !== e[n];
 	});
 }
-function ge(e, t) {
+function _e(e, t) {
 	return typeof t == "function" ? t(e) : t;
 }
 //#endregion
 //#region node_modules/preact/jsx-runtime/dist/jsxRuntime.module.js
-var _e = 0;
+var ve = 0;
 Array.isArray;
-function Q(e, n, r, i, a, o) {
+function Z(e, n, r, i, a, o) {
 	n ||= {};
 	var s, c, l = n;
 	if ("ref" in l) for (c in l = {}, n) c == "ref" ? s = n[c] : l[c] = n[c];
@@ -388,7 +388,7 @@ function Q(e, n, r, i, a, o) {
 		__e: null,
 		__c: null,
 		constructor: void 0,
-		__v: --_e,
+		__v: --ve,
 		__i: -1,
 		__u: 0,
 		__source: a,
@@ -399,90 +399,98 @@ function Q(e, n, r, i, a, o) {
 }
 //#endregion
 //#region src/directors-admin-app.jsx
-var ve = Object.freeze({
+var ye = Object.freeze({
 	missingBirthDate: !1,
 	missingBirthPlace: !1
+}), be = "people", xe = `/storage/v1/object/public/${be}/`, Se = `/storage/v1/render/image/public/${be}/`, Q = Object.freeze({
+	widths: [
+		96,
+		144,
+		192
+	],
+	quality: 90,
+	sizes: "48px"
 });
-function ye(e) {
+function Ce(e) {
 	return String(e || "").toLocaleLowerCase("ru-RU").trim().replace(/\s+/g, " ");
 }
-function be(e) {
+function we(e) {
 	return !!String(e?.birth_date || "").trim();
 }
-function xe(e) {
+function Te(e) {
 	return !!String(e?.birth_place || "").trim();
 }
-function Se(e = []) {
+function Ee(e = []) {
 	return (Array.isArray(e) ? e : []).reduce((e, t) => {
 		let n = String(t?.person_id || "").trim();
 		return n && e.set(n, (e.get(n) || 0) + 1), e;
 	}, /* @__PURE__ */ new Map());
 }
-function Ce(e = []) {
+function De(e = []) {
 	let t = /* @__PURE__ */ new Map();
 	return e.forEach((e) => {
-		let n = ye(e?.name_ru);
+		let n = Ce(e?.name_ru);
 		n && t.set(n, (t.get(n) || 0) + 1);
 	}), new Set(Array.from(t.entries()).filter(([, e]) => e > 1).map(([e]) => e));
 }
-function we(e = []) {
-	return (Array.isArray(e) ? e : []).reduce((e, t) => (be(t) || (e.missingBirthDate += 1), xe(t) || (e.missingBirthPlace += 1), e), {
+function Oe(e = []) {
+	return (Array.isArray(e) ? e : []).reduce((e, t) => (we(t) || (e.missingBirthDate += 1), Te(t) || (e.missingBirthPlace += 1), e), {
 		missingBirthDate: 0,
 		missingBirthPlace: 0
 	});
 }
-function Te(e, t) {
+function ke(e, t) {
 	let n = Array.isArray(e) ? e : [], r = !!t.missingBirthDate, i = !!t.missingBirthPlace;
-	return !r && !i ? n : n.filter((e) => (!r || !be(e)) && (!i || !xe(e)));
+	return !r && !i ? n : n.filter((e) => (!r || !we(e)) && (!i || !Te(e)));
 }
-function Ee(e) {
+function Ae(e) {
 	return !!(e.missingBirthDate || e.missingBirthPlace);
 }
-function De(e) {
+function je(e) {
 	let t = Math.abs(Number(e) || 0), n = t % 100, r = t % 10;
 	return n >= 11 && n <= 14 ? "фильмов" : r === 1 ? "фильм" : r >= 2 && r <= 4 ? "фильма" : "фильмов";
 }
-function Oe(e) {
+function Me(e) {
 	let t = Math.abs(Number(e) || 0), n = t % 100, r = t % 10;
 	return n >= 11 && n <= 14 ? "режиссёров" : r === 1 ? "режиссёр" : r >= 2 && r <= 4 ? "режиссёра" : "режиссёров";
 }
-function ke({ filterKey: e, label: t, count: n, active: r, onToggle: i }) {
-	return /* @__PURE__ */ Q("button", {
+function Ne({ filterKey: e, label: t, count: n, active: r, onToggle: i }) {
+	return /* @__PURE__ */ Z("button", {
 		type: "button",
 		className: `directors-admin-filter-chip${r ? " is-active" : ""}`,
 		"aria-pressed": r ? "true" : "false",
 		onClick: () => i(e),
-		children: [/* @__PURE__ */ Q("span", { children: t }), /* @__PURE__ */ Q("span", {
+		children: [/* @__PURE__ */ Z("span", { children: t }), /* @__PURE__ */ Z("span", {
 			className: "directors-admin-filter-chip-count",
 			children: n
 		})]
 	});
 }
-function Ae({ directors: e, filters: t, onToggle: n, onReset: r }) {
-	let i = Y(() => we(e), [e]);
-	return /* @__PURE__ */ Q("div", {
+function Pe({ directors: e, filters: t, onToggle: n, onReset: r }) {
+	let i = J(() => Oe(e), [e]);
+	return /* @__PURE__ */ Z("div", {
 		className: "directors-admin-page-filters",
 		"aria-label": "Фильтры заполненности",
 		children: [
-			/* @__PURE__ */ Q("span", {
+			/* @__PURE__ */ Z("span", {
 				className: "directors-admin-page-filters-label",
 				children: "Показать:"
 			}),
-			/* @__PURE__ */ Q(ke, {
+			/* @__PURE__ */ Z(Ne, {
 				filterKey: "missingBirthDate",
 				label: "Без даты рождения",
 				count: i.missingBirthDate,
 				active: t.missingBirthDate,
 				onToggle: n
 			}),
-			/* @__PURE__ */ Q(ke, {
+			/* @__PURE__ */ Z(Ne, {
 				filterKey: "missingBirthPlace",
 				label: "Без места рождения",
 				count: i.missingBirthPlace,
 				active: t.missingBirthPlace,
 				onToggle: n
 			}),
-			Ee(t) ? /* @__PURE__ */ Q("button", {
+			Ae(t) ? /* @__PURE__ */ Z("button", {
 				type: "button",
 				className: "directors-admin-filter-reset",
 				onClick: r,
@@ -491,71 +499,124 @@ function Ae({ directors: e, filters: t, onToggle: n, onReset: r }) {
 		]
 	});
 }
-function je({ director: e, displayName: t, getPlaceholderSvgHtml: n }) {
-	return e.photo_url ? /* @__PURE__ */ Q("img", {
-		src: e.photo_url,
-		alt: "",
-		loading: "lazy",
-		decoding: "async"
-	}) : /* @__PURE__ */ Q("span", {
+function Fe(e) {
+	let t = e.currentTarget, n = t?.dataset?.posterFallbackSrc;
+	!t || !n || t.dataset.posterFallbackApplied === "true" || (t.dataset.posterFallbackApplied = "true", t.removeAttribute("srcset"), t.removeAttribute("sizes"), t.src = n);
+}
+function Ie(e) {
+	let t = null;
+	try {
+		t = new URL(String(e || ""));
+	} catch {
+		return "";
+	}
+	let n = decodeURIComponent(t.pathname || ""), r = n.includes(xe) ? xe : Se, i = n.indexOf(r);
+	return i >= 0 ? n.slice(i + r.length).replace(/^\/+/, "") : "";
+}
+function Le(e, t) {
+	let n = Ie(e);
+	if (!n || !t) return "";
+	let r = null;
+	try {
+		r = new URL(e);
+	} catch {
+		return "";
+	}
+	let i = new URL(`${r.origin}${Se}${n}`);
+	return i.searchParams.set("width", String(t)), i.searchParams.set("height", String(t)), i.searchParams.set("resize", "cover"), i.searchParams.set("quality", String(Q.quality)), i.toString();
+}
+function Re(e) {
+	let t = String(e || "").trim();
+	if (!t) return null;
+	let n = Q.widths.map((e) => ({
+		width: e,
+		url: Le(t, e)
+	})).filter((e) => e.url);
+	return n.length === 0 ? {
+		src: t,
+		srcset: "",
+		sizes: "",
+		fallbackSrc: t
+	} : {
+		src: n[0].url,
+		srcset: n.map((e) => `${e.url} ${e.width}w`).join(", "),
+		sizes: Q.sizes,
+		fallbackSrc: t
+	};
+}
+function ze({ director: e, displayName: t, getPlaceholderSvgHtml: n }) {
+	if (e.photo_url) {
+		let t = Re(e.photo_url);
+		return /* @__PURE__ */ Z("img", {
+			src: t?.src || e.photo_url,
+			srcSet: t?.srcset || void 0,
+			sizes: t?.sizes || void 0,
+			"data-poster-fallback-src": t?.fallbackSrc || void 0,
+			alt: "",
+			loading: "lazy",
+			decoding: "async",
+			onError: Fe
+		});
+	}
+	return /* @__PURE__ */ Z("span", {
 		className: "directors-admin-card-avatar-placeholder",
 		"aria-hidden": "true",
 		dangerouslySetInnerHTML: { __html: n(e, "directors-admin-card-avatar-placeholder-icon", t) }
 	});
 }
-function Me({ director: e, movieCount: t, isDuplicateName: n, actions: r, utils: i }) {
+function Be({ director: e, movieCount: t, isDuplicateName: n, actions: r, utils: i }) {
 	let a = i.getDirectorDisplayName(e), o = i.getDirectorSecondaryName(e), s = i.getDirectorLifeLabel(e), c = !!String(e?.tmdb_url || "").trim();
-	return /* @__PURE__ */ Q("article", {
+	return /* @__PURE__ */ Z("article", {
 		className: `directors-admin-card${c ? "" : " is-missing-tmdb"}`,
-		children: [/* @__PURE__ */ Q("a", {
+		children: [/* @__PURE__ */ Z("a", {
 			className: "directors-admin-card-main",
 			href: i.buildDirectorPageUrl(e),
-			children: [/* @__PURE__ */ Q("div", {
+			children: [/* @__PURE__ */ Z("div", {
 				className: "directors-admin-card-avatar",
-				children: /* @__PURE__ */ Q(je, {
+				children: /* @__PURE__ */ Z(ze, {
 					director: e,
 					displayName: a,
 					getPlaceholderSvgHtml: i.getDirectorPlaceholderSvgHtml
 				})
-			}), /* @__PURE__ */ Q("div", {
+			}), /* @__PURE__ */ Z("div", {
 				className: "directors-admin-card-body",
 				children: [
-					/* @__PURE__ */ Q("div", {
+					/* @__PURE__ */ Z("div", {
 						className: "directors-admin-card-name",
 						children: a
 					}),
-					o ? /* @__PURE__ */ Q("div", {
+					o ? /* @__PURE__ */ Z("div", {
 						className: "directors-admin-card-original",
 						children: o
 					}) : null,
-					s ? /* @__PURE__ */ Q("div", {
+					s ? /* @__PURE__ */ Z("div", {
 						className: "directors-admin-card-meta",
 						children: s
 					}) : null,
-					/* @__PURE__ */ Q("div", {
+					/* @__PURE__ */ Z("div", {
 						className: "directors-admin-card-meta",
 						children: [
 							t,
 							" ",
-							De(t)
+							je(t)
 						]
 					})
 				]
 			})]
-		}), /* @__PURE__ */ Q("div", {
+		}), /* @__PURE__ */ Z("div", {
 			className: "directors-admin-card-actions",
 			children: [
-				n ? /* @__PURE__ */ Q("span", {
+				n ? /* @__PURE__ */ Z("span", {
 					className: "directors-admin-duplicate-badge",
 					title: "Есть режиссёры с таким же именем",
 					children: "Тёзка"
 				}) : null,
-				c ? null : /* @__PURE__ */ Q("span", {
+				c ? null : /* @__PURE__ */ Z("span", {
 					className: "directors-admin-missing-tmdb-badge",
 					title: "Не заполнена ссылка TMDB",
 					children: "Нет TMDB"
 				}),
-				/* @__PURE__ */ Q("button", {
+				/* @__PURE__ */ Z("button", {
 					type: "button",
 					className: "secondary-button secondary-button-compact",
 					onClick: () => r.edit(e.id),
@@ -566,30 +627,30 @@ function Me({ director: e, movieCount: t, isDuplicateName: n, actions: r, utils:
 	});
 }
 function $({ children: e, large: t = !1 }) {
-	return /* @__PURE__ */ Q("div", {
+	return /* @__PURE__ */ Z("div", {
 		className: `directors-admin-page-empty-state${t ? " directors-admin-page-empty-state-large" : ""}`,
 		children: e
 	});
 }
-function Ne({ directors: e, movieDirectorRows: t, actions: n, utils: r }) {
-	let [i, a] = ue(ve), o = Array.isArray(e) ? e : [], s = Y(() => Te(o, i), [o, i]), c = Y(() => Se(t), [t]), l = Y(() => Ce(o), [o]);
-	return /* @__PURE__ */ Q(S, { children: [
-		/* @__PURE__ */ Q("section", {
+function Ve({ directors: e, movieDirectorRows: t, actions: n, utils: r }) {
+	let [i, a] = de(ye), o = Array.isArray(e) ? e : [], s = J(() => ke(o, i), [o, i]), c = J(() => Ee(t), [t]), l = J(() => De(o), [o]);
+	return /* @__PURE__ */ Z(S, { children: [
+		/* @__PURE__ */ Z("section", {
 			className: "directors-admin-page-toolbar",
-			children: [/* @__PURE__ */ Q("div", { children: [/* @__PURE__ */ Q("p", {
+			children: [/* @__PURE__ */ Z("div", { children: [/* @__PURE__ */ Z("p", {
 				className: "directors-admin-page-kicker",
-				children: Ee(i) ? `${s.length} из ${o.length} ${Oe(o.length)}` : `${o.length} ${Oe(o.length)}`
-			}), /* @__PURE__ */ Q("p", {
+				children: Ae(i) ? `${s.length} из ${o.length} ${Me(o.length)}` : `${o.length} ${Me(o.length)}`
+			}), /* @__PURE__ */ Z("p", {
 				className: "directors-admin-page-note",
 				children: "Технический список для быстрого редактирования страниц режиссёров."
-			})] }), /* @__PURE__ */ Q("button", {
+			})] }), /* @__PURE__ */ Z("button", {
 				type: "button",
 				className: "secondary-button",
 				onClick: n.create,
 				children: "Добавить режиссёра"
 			})]
 		}),
-		o.length ? /* @__PURE__ */ Q(Ae, {
+		o.length ? /* @__PURE__ */ Z(Pe, {
 			directors: o,
 			filters: i,
 			onToggle: (e) => {
@@ -598,21 +659,21 @@ function Ne({ directors: e, movieDirectorRows: t, actions: n, utils: r }) {
 					[e]: !t[e]
 				}));
 			},
-			onReset: () => a(ve)
+			onReset: () => a(ye)
 		}) : null,
-		s.length ? /* @__PURE__ */ Q("div", {
+		s.length ? /* @__PURE__ */ Z("div", {
 			className: "directors-admin-grid",
-			children: s.map((e) => /* @__PURE__ */ Q(Me, {
+			children: s.map((e) => /* @__PURE__ */ Z(Be, {
 				director: e,
 				movieCount: c.get(String(e.id)) || 0,
-				isDuplicateName: l.has(ye(e?.name_ru)),
+				isDuplicateName: l.has(Ce(e?.name_ru)),
 				actions: n,
 				utils: r
 			}, e.id))
-		}) : /* @__PURE__ */ Q($, { children: o.length ? "По выбранным фильтрам режиссёров нет." : "Режиссёры пока не созданы." })
+		}) : /* @__PURE__ */ Z($, { children: o.length ? "По выбранным фильтрам режиссёров нет." : "Режиссёры пока не созданы." })
 	] });
 }
-function Pe(e) {
+function He(e) {
 	let { status: t = "loading", directors: n = [], movieDirectorRows: r = [], actions: i = {}, utils: a = {} } = e, o = {
 		login: i.login || (() => {}),
 		refresh: i.refresh || (() => {}),
@@ -625,44 +686,44 @@ function Pe(e) {
 		getDirectorLifeLabel: a.getDirectorLifeLabel || (() => ""),
 		getDirectorPlaceholderSvgHtml: a.getDirectorPlaceholderSvgHtml || (() => "")
 	};
-	return t === "loading" ? /* @__PURE__ */ Q("div", {
+	return t === "loading" ? /* @__PURE__ */ Z("div", {
 		className: "directors-admin-page-loading-state",
 		children: "Загрузка режиссёров..."
-	}) : t === "auth" ? /* @__PURE__ */ Q($, {
+	}) : t === "auth" ? /* @__PURE__ */ Z($, {
 		large: !0,
-		children: [/* @__PURE__ */ Q("p", { children: "Войди под администратором, чтобы открыть список режиссёров." }), /* @__PURE__ */ Q("button", {
+		children: [/* @__PURE__ */ Z("p", { children: "Войди под администратором, чтобы открыть список режиссёров." }), /* @__PURE__ */ Z("button", {
 			type: "button",
 			className: "secondary-button directors-admin-page-login-button",
 			onClick: o.login,
 			children: "Войти"
 		})]
-	}) : t === "forbidden" ? /* @__PURE__ */ Q($, {
+	}) : t === "forbidden" ? /* @__PURE__ */ Z($, {
 		large: !0,
-		children: /* @__PURE__ */ Q("p", { children: "Список режиссёров доступен только администратору." })
-	}) : t === "unavailable" ? /* @__PURE__ */ Q($, {
+		children: /* @__PURE__ */ Z("p", { children: "Список режиссёров доступен только администратору." })
+	}) : t === "unavailable" ? /* @__PURE__ */ Z($, {
 		large: !0,
-		children: /* @__PURE__ */ Q("p", { children: "Таблицы персон пока недоступны: серверный контур персон не подключён." })
-	}) : t === "error" ? /* @__PURE__ */ Q($, {
+		children: /* @__PURE__ */ Z("p", { children: "Таблицы персон пока недоступны: серверный контур персон не подключён." })
+	}) : t === "error" ? /* @__PURE__ */ Z($, {
 		large: !0,
-		children: [/* @__PURE__ */ Q("p", { children: "Не удалось загрузить режиссёров. Попробуй обновить страницу." }), /* @__PURE__ */ Q("button", {
+		children: [/* @__PURE__ */ Z("p", { children: "Не удалось загрузить режиссёров. Попробуй обновить страницу." }), /* @__PURE__ */ Z("button", {
 			type: "button",
 			className: "secondary-button directors-admin-page-login-button",
 			onClick: o.refresh,
 			children: "Повторить"
 		})]
-	}) : /* @__PURE__ */ Q(Ne, {
+	}) : /* @__PURE__ */ Z(Ve, {
 		directors: n,
 		movieDirectorRows: r,
 		actions: o,
 		utils: s
 	});
 }
-function Fe(e, t = {}) {
+function Ue(e, t = {}) {
 	let n = t, r = (t) => {
 		n = {
 			...n,
 			...t
-		}, oe(/* @__PURE__ */ Q(Pe, { ...n }), e);
+		}, oe(/* @__PURE__ */ Z(He, { ...n }), e);
 	};
 	return r(t), {
 		update: r,
@@ -670,4 +731,4 @@ function Fe(e, t = {}) {
 	};
 }
 //#endregion
-export { Fe as mountDirectorsAdminApp };
+export { Ue as mountDirectorsAdminApp };
