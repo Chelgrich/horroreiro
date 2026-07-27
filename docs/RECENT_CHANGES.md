@@ -12,6 +12,20 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-28 - Align directors admin avatars to top
+
+- Files:
+  - `secondary-pages.css`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Restored top alignment for circular person photos/placeholders in `/directors` cards so thumbnails line up with the first text row instead of vertically centering against the full text block.
+- Checks:
+  - `node tools\smoke-check.mjs`
+  - `git diff --check`
+  - `npm run size:compare`
+- Follow-up:
+  - None.
+
 ## 2026-07-28 - Fix notifications avatar helper after following split
 
 - Files:
