@@ -12,6 +12,24 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-28 - Fix notifications avatar helper after following split
+
+- Files:
+  - `app.js`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Restored `/notifications` rendering for authenticated users by replacing the stale `getFollowingPageAvatarHtml` call left after moving `/following` into a lazy module.
+  - Added a smoke guard so `app.js` cannot depend on that following-page local helper again.
+- Checks:
+  - `node --check app.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `node tools\asset-size-report.mjs --save tools\asset-size-baseline.json`
+- Follow-up:
+  - Verify authenticated `/notifications` in browser after deploy.
+
 ## 2026-07-28 - Cache repeated profile and movie lookups
 
 - Files:

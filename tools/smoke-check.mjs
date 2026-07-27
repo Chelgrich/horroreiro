@@ -421,6 +421,10 @@ async function checkStaticGuards() {
     'app.js: following page renderer should stay in following-page.js'
   );
   assert(
+    !appJs.includes('getFollowingPageAvatarHtml('),
+    'app.js: notifications must not call following-page.js local avatar helpers'
+  );
+  assert(
     !appJs.includes('notification_events (*)'),
     'app.js: notification page should select explicit notification event fields'
   );

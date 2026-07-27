@@ -21193,12 +21193,36 @@ function getNotificationMovieLinkHtml(movie, fallbackTitle = 'фильм') {
   return `<a class="notifications-page-movie" href="${escapeHtml(buildMoviePageUrl(movie))}">${escapeHtml(getNotificationMovieDisplayTitle(movie, fallbackTitle))}</a>`;
 }
 
+function getNotificationProfileAvatarHtml(profile, className = 'notifications-page-avatar', size = 'small') {
+  const displayName = getPublicProfileDisplayName(profile);
+  const avatarUrl = getPublicProfileAvatarUrl(profile);
+  const modifierClass = size ? ` ${className}-${size}` : '';
+
+  if (avatarUrl) {
+    return `
+      <img
+        class="${className}${modifierClass}"
+        src="${escapeHtml(avatarUrl)}"
+        alt="Аватар пользователя ${escapeHtml(displayName)}"
+        loading="lazy"
+        decoding="async"
+      >
+    `;
+  }
+
+  return `
+    <span class="${className}${modifierClass}" aria-hidden="true">
+      ${escapeHtml(getUserPageAvatarLetter(displayName))}
+    </span>
+  `;
+}
+
 function getNotificationAvatarHtml(item) {
   if (item.type === 'new_movies_digest') {
     return '<span class="notifications-page-avatar notifications-page-avatar-system" aria-hidden="true">+</span>';
   }
 
-  return getFollowingPageAvatarHtml(
+  return getNotificationProfileAvatarHtml(
     item.actor,
     'notifications-page-avatar',
     'small'
