@@ -18,6 +18,7 @@ const clientJsFiles = [
 ];
 const lazyJsFiles = [
   'admin-actions.js',
+  'following-page.js',
   'letterboxd-import.js',
   'person-placeholders.js',
   'assets/directors-admin-app.js'
@@ -43,6 +44,7 @@ const contextSensitiveExactFiles = new Set([
   'custom-select.js',
   'docs/CODEX_CONTEXT.md',
   'docs/DATA_MODEL.md',
+  'following-page.js',
   'letterboxd-import.js',
   'movie-page.css',
   'secondary-pages.css',
@@ -137,6 +139,10 @@ function checkAssetSizeReport() {
   assert(
     !report.startup?.movie?.files?.includes('custom-select.js'),
     'asset-size-report.mjs: movie startup profile must lazy-load custom-select.js'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('following-page.js')),
+    'asset-size-report.mjs: following-page.js must stay lazy-loaded outside startup profiles'
   );
 }
 
@@ -362,6 +368,7 @@ async function checkStaticGuards() {
     '/custom-select.js',
     '/app-page-runtime.js',
     '/admin-actions.js',
+    '/following-page.js',
     '/letterboxd-import.js',
     '/person-placeholders.js',
     '/assets/directors-admin-app.js',
@@ -390,6 +397,7 @@ async function checkStaticGuards() {
     'directors.html',
     'app.js',
     'admin-actions.js',
+    'following-page.js',
     'letterboxd-import.js',
     'person-placeholders.js',
     'assets/directors-admin-app.js',
@@ -401,6 +409,17 @@ async function checkStaticGuards() {
     'app-page-runtime.js',
     'boot-loader.js'
   ];
+
+  const appJs = await readText('app.js');
+
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('following-page.js'))"),
+    'app.js: /following page must lazy-load following-page.js'
+  );
+  assert(
+    !appJs.includes('function renderFollowingPageLoading()'),
+    'app.js: following page renderer should stay in following-page.js'
+  );
 
   for (const file of activeTextTargets) {
     const text = await readText(file);

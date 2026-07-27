@@ -12,6 +12,34 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-28 - Lazy-load following page
+
+- Files:
+  - `app.js`
+  - `following-page.js`
+  - `_headers`
+  - `functions/app-assets/[version].js`
+  - `tools/asset-size-report.mjs`
+  - `tools/asset-size-baseline.json`
+  - `tools/smoke-check.mjs`
+  - `README.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved `/following` rendering, data loading, notification preference toggles, unfollow actions, and page-local events into lazy-loaded `following-page.js`.
+  - Kept shared auth/profile/Supabase context in `app.js`, reducing startup payload for catalog, movie, profile, notifications, editor, and person pages.
+  - Added cache header, app-assets allowlist, size reporting, and smoke-check coverage for the new lazy module.
+- Checks:
+  - `node --check app.js`
+  - `node --check following-page.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check functions\app-assets\[version].js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+- Follow-up:
+  - Continue route-by-route JS splitting after this first low-risk slice.
+
 ## 2026-07-27 - Combine font stylesheet requests
 
 - Files:

@@ -14,6 +14,7 @@ const assetGroups = {
     'app-page-runtime.js',
     'app.js',
     'admin-actions.js',
+    'following-page.js',
     'letterboxd-import.js',
     'person-placeholders.js',
     'assets/directors-admin-app.js'

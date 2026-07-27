@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-07-26.
+Last updated: 2026-07-28.
 
 ## Purpose
 
@@ -53,7 +53,7 @@ Production asset URL strategy:
 - Core JS/CSS and lazy feature modules use `/app-assets/<APP_BUILD_VERSION>?file=<asset>`.
 - `functions/app-assets/[version].js` allowlists app assets and proxies them from current Pages assets with `no-store`.
 - `_headers` sets core app assets to `public, max-age=0, must-revalidate`.
-- Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `movie-page.css`, `secondary-pages.css`, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, `letterboxd-import.js`, `person-placeholders.js`, or `assets/directors-admin-app.js`.
+- Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `movie-page.css`, `secondary-pages.css`, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, `following-page.js`, `letterboxd-import.js`, `person-placeholders.js`, or `assets/directors-admin-app.js`.
 
 ## Pages
 
@@ -94,7 +94,6 @@ All HTML-like app shell responses should be no-store.
 - ratings/watchlist/reviews/comments;
 - notifications page and read tracking;
 - user profile pages and rails;
-- following page;
 - people/director detail page;
 - bridging legacy app data into the `/directors` Preact island.
 
@@ -113,6 +112,8 @@ All HTML-like app shell responses should be no-store.
 `secondary-pages.css` owns non-catalog/non-movie secondary page styles for following, notifications, editor, public person pages, and the directors admin page. It is loaded only for `data-app-page="following"`, `"notifications"`, `"editor"`, `"director"`, or `"directors"`.
 
 `custom-select.js` owns custom select behavior used by catalog and movie modal selects. It is loaded upfront only for catalog pages; movie detail pages lazy-load it on demand before opening the movie add/edit modal.
+
+`following-page.js` is lazy-loaded only for `/following` and owns followed profile rendering, follow notification toggles, unfollow actions, and that page's auth gate. `app.js` provides shared auth, profile, Supabase, and notification availability context to it.
 
 `letterboxd-import.js` is lazy-loaded only when importing Letterboxd ratings.
 

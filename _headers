@@ -13,6 +13,9 @@
 /letterboxd-import.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/following-page.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /person-placeholders.js
   Cache-Control: public, max-age=0, must-revalidate
 
