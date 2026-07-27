@@ -12,6 +12,31 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-27 - Combine font stylesheet requests
+
+- Files:
+  - `index.html`
+  - `movie.html`
+  - `user.html`
+  - `following.html`
+  - `notifications.html`
+  - `editor.html`
+  - `name.html`
+  - `directors.html`
+  - `tools/asset-size-baseline.json`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Replaced the two Google Fonts stylesheet requests with one combined request for `PT Sans` and `Unbounded` across all page shells.
+  - Added a smoke-check guard to keep future HTML shells on the combined font stylesheet path.
+- Checks:
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `rg -n "fonts.googleapis.com/css2" -g "*.html"`
+- Follow-up:
+  - None.
+
 ## 2026-07-26 - Lazy-load movie modal custom selects
 
 - Files:

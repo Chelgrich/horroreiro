@@ -44,15 +44,15 @@
     },
     {
       "file": "index.html",
-      "raw": 20071,
-      "gzip": 4929,
+      "raw": 19989,
+      "gzip": 4927,
       "brotli": 3872
     },
     {
       "file": "movie.html",
-      "raw": 15108,
-      "gzip": 3493,
-      "brotli": 2737
+      "raw": 15026,
+      "gzip": 3491,
+      "brotli": 2734
     },
     {
       "file": "custom-select.js",
@@ -62,9 +62,9 @@
     },
     {
       "file": "user.html",
-      "raw": 6538,
-      "gzip": 2026,
-      "brotli": 1531
+      "raw": 6456,
+      "gzip": 2024,
+      "brotli": 1540
     },
     {
       "file": "letterboxd-import.js",
@@ -80,39 +80,39 @@
     },
     {
       "file": "notifications.html",
-      "raw": 5576,
-      "gzip": 1922,
-      "brotli": 1456
+      "raw": 5494,
+      "gzip": 1919,
+      "brotli": 1455
     },
     {
       "file": "editor.html",
-      "raw": 5550,
-      "gzip": 1919,
-      "brotli": 1462
+      "raw": 5468,
+      "gzip": 1915,
+      "brotli": 1455
     },
     {
       "file": "directors.html",
-      "raw": 5503,
-      "gzip": 1893,
-      "brotli": 1442
+      "raw": 5421,
+      "gzip": 1892,
+      "brotli": 1437
     },
     {
       "file": "following.html",
-      "raw": 5479,
-      "gzip": 1871,
-      "brotli": 1427
-    },
-    {
-      "file": "name.html",
-      "raw": 5413,
-      "gzip": 1860,
-      "brotli": 1414
+      "raw": 5397,
+      "gzip": 1870,
+      "brotli": 1418
     },
     {
       "file": "boot-loader.js",
       "raw": 5333,
       "gzip": 1474,
       "brotli": 1253
+    },
+    {
+      "file": "name.html",
+      "raw": 5331,
+      "gzip": 1858,
+      "brotli": 1412
     },
     {
       "file": "app-script-loader.js",
@@ -139,9 +139,9 @@
       "brotli": 27886
     },
     "html": {
-      "raw": 69238,
-      "gzip": 19913,
-      "brotli": 15341
+      "raw": 68582,
+      "gzip": 19896,
+      "brotli": 15323
     }
   },
   "startup": {

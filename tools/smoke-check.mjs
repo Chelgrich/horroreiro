@@ -310,6 +310,13 @@ async function checkStaticGuards() {
       html.includes('<script src="/app-script-loader.js'),
       `${file}: missing app-script-loader.js`
     );
+    const googleFontStylesheetMatches = html.match(/href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]+"/g) || [];
+    assert(
+      googleFontStylesheetMatches.length === 1 &&
+        googleFontStylesheetMatches[0].includes('family=PT+Sans') &&
+        googleFontStylesheetMatches[0].includes('family=Unbounded'),
+      `${file}: Google Fonts should be loaded through one combined stylesheet`
+    );
     assert(
       !html.includes('window.__ENV_READY__ = new Promise'),
       `${file}: duplicated inline env boot loader`
