@@ -2,9 +2,9 @@
   "assets": [
     {
       "file": "app.js",
-      "raw": 827594,
-      "gzip": 160285,
-      "brotli": 115314
+      "raw": 827623,
+      "gzip": 160292,
+      "brotli": 115304
     },
     {
       "file": "styles.css",
@@ -135,9 +135,9 @@
   ],
   "groups": {
     "js": {
-      "raw": 960793,
-      "gzip": 194204,
-      "brotli": 144256
+      "raw": 960822,
+      "gzip": 194211,
+      "brotli": 144246
     },
     "css": {
       "raw": 237274,
@@ -160,9 +160,9 @@
         "app-page-runtime.js",
         "app.js"
       ],
-      "raw": 883734,
-      "gzip": 171466,
-      "brotli": 124654
+      "raw": 883763,
+      "gzip": 171473,
+      "brotli": 124644
     },
     "movie": {
       "files": [
@@ -172,9 +172,9 @@
         "app-page-runtime.js",
         "app.js"
       ],
-      "raw": 868913,
-      "gzip": 168595,
-      "brotli": 122158
+      "raw": 868942,
+      "gzip": 168602,
+      "brotli": 122148
     },
     "profile": {
       "files": [
@@ -184,9 +184,9 @@
         "app-page-runtime.js",
         "app.js"
       ],
-      "raw": 868913,
-      "gzip": 168595,
-      "brotli": 122158
+      "raw": 868942,
+      "gzip": 168602,
+      "brotli": 122148
     },
     "notifications": {
       "files": [
@@ -196,9 +196,9 @@
         "app-page-runtime.js",
         "app.js"
       ],
-      "raw": 868913,
-      "gzip": 168595,
-      "brotli": 122158
+      "raw": 868942,
+      "gzip": 168602,
+      "brotli": 122148
     },
     "directors": {
       "files": [
@@ -209,9 +209,9 @@
         "app.js",
         "assets/directors-admin-app.js"
       ],
-      "raw": 897583,
-      "gzip": 178111,
-      "brotli": 130575
+      "raw": 897612,
+      "gzip": 178118,
+      "brotli": 130565
     }
   }
 }

@@ -22,6 +22,7 @@ Format:
   - Added an in-memory movie row cache keyed by select payload for repeated `movies by ids` queries used by profile rails, notifications, and related previews.
   - Added a public profile handle cache on top of the existing public profile id cache.
   - Clear movie row caches on local mutations so edited cards do not keep stale payloads.
+  - Skip the deferred movie detail social/similar refresh when a fresh session-cached detail page is already rendered.
 - Checks:
   - `node --check app.js`
   - `node tools\smoke-check.mjs`

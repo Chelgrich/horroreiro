@@ -26432,6 +26432,8 @@ async function loadMoviePageByRouteParams(routeParams, {
       socialLoading: true,
       similarLoading: true
     });
+  } else {
+    return movie;
   }
 
   await loadDeferredMoviePageSections(movie, { shouldRender: true });
