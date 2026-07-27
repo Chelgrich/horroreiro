@@ -32,9 +32,9 @@
     },
     {
       "file": "assets/directors-admin-app.js",
-      "raw": 28590,
-      "gzip": 9499,
-      "brotli": 8390
+      "raw": 28631,
+      "gzip": 9513,
+      "brotli": 8403
     },
     {
       "file": "admin-actions.js",
@@ -135,9 +135,9 @@
   ],
   "groups": {
     "js": {
-      "raw": 961464,
-      "gzip": 194386,
-      "brotli": 144337
+      "raw": 961505,
+      "gzip": 194400,
+      "brotli": 144350
     },
     "css": {
       "raw": 237292,
@@ -209,9 +209,9 @@
         "app.js",
         "assets/directors-admin-app.js"
       ],
-      "raw": 898254,
-      "gzip": 178293,
-      "brotli": 130656
+      "raw": 898295,
+      "gzip": 178307,
+      "brotli": 130669
     }
   }
 }

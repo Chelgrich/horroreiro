@@ -431,9 +431,10 @@ async function checkStaticGuards() {
   );
   assert(
     directorsAdminSource.includes("transformedUrl.searchParams.set('width'") &&
+      directorsAdminSource.includes("transformedUrl.searchParams.set('resize', 'contain')") &&
       !directorsAdminSource.includes("transformedUrl.searchParams.set('height'") &&
       !directorsAdminSource.includes("transformedUrl.searchParams.set('resize', 'cover')"),
-    'src/directors-admin-app.jsx: director admin avatar transforms must preserve aspect ratio for top crop'
+    'src/directors-admin-app.jsx: director admin avatar transforms must use width + resize=contain without square cover crop'
   );
 
   const catalogSelectMatch = appJs.match(/const MOVIE_CATALOG_SELECT = `([\s\S]*?)`;/);

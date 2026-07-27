@@ -233,6 +233,7 @@ function getDirectorAdminAvatarTransformUrl(publicUrl, width) {
 
   const transformedUrl = new URL(`${parsedUrl.origin}${DIRECTOR_STORAGE_RENDER_PATH}${storagePath}`);
   transformedUrl.searchParams.set('width', String(width));
+  transformedUrl.searchParams.set('resize', 'contain');
   transformedUrl.searchParams.set('quality', String(DIRECTOR_ADMIN_AVATAR_IMAGE_PRESET.quality));
 
   return transformedUrl.toString();

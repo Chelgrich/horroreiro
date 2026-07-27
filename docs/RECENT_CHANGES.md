@@ -12,6 +12,28 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-28 - Resize director admin avatars proportionally
+
+- Files:
+  - `src/directors-admin-app.jsx`
+  - `assets/directors-admin-app.js`
+  - `tools/smoke-check.mjs`
+  - `tools/asset-size-baseline.json`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Changed `/directors` admin avatar transforms to request `width` with `resize=contain`, avoiding both server-side square center-crop and Supabase width-only responses that keep the original image height.
+  - Kept browser-side top cropping inside the circular avatar after the proportional thumbnail resize.
+- Checks:
+  - `npm run build:directors`
+  - `node --check assets\directors-admin-app.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `git diff --check`
+  - `npm run size:compare`
+  - `node tools\asset-size-report.mjs --save tools\asset-size-baseline.json`
+- Follow-up:
+  - None.
+
 ## 2026-07-28 - Preserve director admin avatar aspect before crop
 
 - Files:
