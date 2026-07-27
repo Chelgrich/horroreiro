@@ -12,6 +12,24 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-28 - Cache repeated profile and movie lookups
+
+- Files:
+  - `app.js`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added an in-memory movie row cache keyed by select payload for repeated `movies by ids` queries used by profile rails, notifications, and related previews.
+  - Added a public profile handle cache on top of the existing public profile id cache.
+  - Clear movie row caches on local mutations so edited cards do not keep stale payloads.
+- Checks:
+  - `node --check app.js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `node tools\asset-size-report.mjs --save tools\asset-size-baseline.json`
+- Follow-up:
+  - Keep larger movie social splitting as a separate high-risk contour.
+
 ## 2026-07-28 - Tighten payloads and director thumbnails
 
 - Files:

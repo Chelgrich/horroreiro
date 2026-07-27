@@ -88,6 +88,7 @@ All HTML-like app shell responses should be no-store.
 
 - Supabase client setup;
 - auth/user role/profile loading;
+- session-memory public profile and movie-by-id row caches for repeated profile, notification, and rail lookups;
 - catalog state, filters, pagination, URL params, presets;
 - movie modal add/edit;
 - movie detail rendering;

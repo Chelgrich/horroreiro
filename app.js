@@ -488,6 +488,7 @@ let currentUser = null;
 let currentUserRole = null;
 let currentUserProfile = null;
 let publicProfilesByIdCache = new Map();
+let publicProfileIdsByHandleCache = new Map();
 let currentUserFollowedProfileIds = new Set();
 let userPageFollowRequestProfileIds = new Set();
 let notificationsUnreadCount = 0;
@@ -521,6 +522,7 @@ let areMoviePageEventsBound = false;
 let allMovies = [];
 let catalogMoviesById = new Map();
 let catalogMovieMetaById = new Map();
+let movieSelectRowsBySelectKey = new Map();
 let catalogSortedMoviesByMode = {
   default: [],
   oldest: []
@@ -899,6 +901,51 @@ function getManualSimilarMovieIds(movieId) {
   );
 }
 
+function getMovieSelectRowsCacheKey(selectQuery = MOVIE_CATALOG_SELECT) {
+  return String(selectQuery || MOVIE_CATALOG_SELECT)
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getMovieSelectRowsCacheBucket(selectQuery = MOVIE_CATALOG_SELECT) {
+  const cacheKey = getMovieSelectRowsCacheKey(selectQuery);
+
+  if (!movieSelectRowsBySelectKey.has(cacheKey)) {
+    movieSelectRowsBySelectKey.set(cacheKey, new Map());
+  }
+
+  return movieSelectRowsBySelectKey.get(cacheKey);
+}
+
+function cacheMovieSelectRows(selectQuery = MOVIE_CATALOG_SELECT, movies = []) {
+  const cacheBucket = getMovieSelectRowsCacheBucket(selectQuery);
+
+  (Array.isArray(movies) ? movies : []).forEach(movie => {
+    const movieId = String(movie?.id || '').trim();
+
+    if (movieId) {
+      cacheBucket.set(movieId, movie);
+    }
+  });
+}
+
+function invalidateMovieSelectRowsCache(movieIds = null) {
+  const normalizedMovieIds = Array.isArray(movieIds)
+    ? movieIds.map(movieId => String(movieId || '').trim()).filter(Boolean)
+    : [];
+
+  if (!normalizedMovieIds.length) {
+    movieSelectRowsBySelectKey = new Map();
+    return;
+  }
+
+  movieSelectRowsBySelectKey.forEach(cacheBucket => {
+    normalizedMovieIds.forEach(movieId => {
+      cacheBucket.delete(movieId);
+    });
+  });
+}
+
 function cacheCatalogMovies(movies = []) {
   (Array.isArray(movies) ? movies : []).forEach(movie => {
     if (!movie?.id) {
@@ -910,6 +957,8 @@ function cacheCatalogMovies(movies = []) {
     catalogMoviesById.set(movieId, movie);
     catalogMovieMetaById.set(movieId, buildCatalogMovieMeta(movie));
   });
+
+  cacheMovieSelectRows(MOVIE_CATALOG_SELECT, movies);
 }
 
 async function fetchCatalogMoviesByIds(movieIds = []) {
@@ -946,12 +995,21 @@ async function fetchMoviesByIdsWithSelect(movieIds = [], selectQuery = MOVIE_CAT
     return [];
   }
 
+  const selectCache = getMovieSelectRowsCacheBucket(selectQuery);
+  const missingMovieIds = normalizedMovieIds.filter(movieId => !selectCache.has(String(movieId)));
+
+  if (!missingMovieIds.length) {
+    return normalizedMovieIds
+      .map(movieId => selectCache.get(String(movieId)))
+      .filter(Boolean);
+  }
+
   const { data, error } = await runMovieSelectWithOptionalColumns(
     currentSelectQuery => {
       let query = supabaseClient
         .from('movies')
         .select(currentSelectQuery)
-        .in('id', normalizedMovieIds);
+        .in('id', missingMovieIds);
 
       if (String(currentSelectQuery || '').includes('movie_genres')) {
         query = query.order('position', { foreignTable: 'movie_genres', ascending: true });
@@ -964,7 +1022,9 @@ async function fetchMoviesByIdsWithSelect(movieIds = [], selectQuery = MOVIE_CAT
 
   throwIfSupabaseError(error);
 
-  const moviesById = new Map((data || []).map(movie => [String(movie.id), movie]));
+  cacheMovieSelectRows(selectQuery, data || []);
+
+  const moviesById = getMovieSelectRowsCacheBucket(selectQuery);
 
   return normalizedMovieIds
     .map(movieId => moviesById.get(String(movieId)))
@@ -5538,6 +5598,12 @@ function cachePublicProfileRows(rows = []) {
         ...profile,
         id: profileId
       });
+
+      const profileHandle = String(profile?.default_display_name || '').trim();
+
+      if (profileHandle) {
+        publicProfileIdsByHandleCache.set(profileHandle, profileId);
+      }
     });
 }
 
@@ -6459,6 +6525,8 @@ function getDataMutationStamp() {
 }
 
 function markLocalDataMutation(scope = 'data') {
+  invalidateMovieSelectRowsCache();
+
   try {
     const stamp = `${Date.now().toString(36)}:${String(scope || 'data')}:${Math.random().toString(36).slice(2)}`;
 
@@ -19739,7 +19807,16 @@ async function fetchPublicUserProfileByHandle(handle) {
     return null;
   }
 
-  return runProfileSelectWithOptionalAvatar(
+  const cachedProfileId = publicProfileIdsByHandleCache.get(normalizedHandle);
+  const cachedProfile = cachedProfileId
+    ? publicProfilesByIdCache.get(cachedProfileId)
+    : null;
+
+  if (cachedProfile) {
+    return cachedProfile;
+  }
+
+  const profile = await runProfileSelectWithOptionalAvatar(
     selectColumns => supabaseClient
       .from('profiles')
       .select(selectColumns)
@@ -19748,6 +19825,10 @@ async function fetchPublicUserProfileByHandle(handle) {
     'id, display_name, default_display_name, avatar_url',
     'id, display_name, default_display_name'
   );
+
+  cachePublicProfileRows(profile ? [profile] : []);
+
+  return profile;
 }
 
 async function fetchPublicProfilesByIds(profileIds = []) {
