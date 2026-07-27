@@ -9119,6 +9119,7 @@ const LETTERBOXD_IMPORT_QUERY_CHUNK_SIZE = 200;
 let letterboxdImportToolsPromise = null;
 let adminActionToolsPromise = null;
 let personPlaceholderToolsPromise = null;
+let customSelectScriptPromise = null;
 let personPlaceholderTools = null;
 
 function getLazyFeatureModuleUrl(filename) {
@@ -9140,6 +9141,32 @@ function loadLetterboxdImportTools() {
   }
 
   return letterboxdImportToolsPromise;
+}
+
+function loadCustomSelectScript() {
+  if (typeof createCustomSelectManager === 'function') {
+    return Promise.resolve();
+  }
+
+  if (!customSelectScriptPromise) {
+    customSelectScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+
+      script.src = getLazyFeatureModuleUrl('custom-select.js');
+      script.onload = () => resolve();
+      script.onerror = () => {
+        customSelectScriptPromise = null;
+        reject(new Error('Failed to load custom-select.js'));
+      };
+      document.body.appendChild(script);
+    });
+  }
+
+  return customSelectScriptPromise.then(() => {
+    if (typeof createCustomSelectManager !== 'function') {
+      throw new Error('custom-select.js did not expose createCustomSelectManager');
+    }
+  });
 }
 
 function getAdminActionToolsContext() {
@@ -11225,7 +11252,13 @@ function ensureMovieModalMounted() {
   return Boolean(movieModal && movieForm);
 }
 
-function openMovieModal() {
+async function openMovieModal() {
+  try {
+    await ensureCustomSelectToolsLoaded();
+  } catch (error) {
+    console.warn('Не удалось загрузить кастомные селекты для модалки фильма:', error);
+  }
+
   if (!ensureMovieModalMounted()) {
     return;
   }
@@ -11397,7 +11430,7 @@ function fillFormForEdit(movie) {
 
   refreshCustomSelect(releaseMonthInput);
 
-  openMovieModal();
+  void openMovieModal();
 }
 
 function updateAuthUI() {
@@ -11557,26 +11590,59 @@ const customSelectElements = [
   ...modalCustomSelectElements
 ];
 
-const createCustomSelectManagerSafe = typeof createCustomSelectManager === 'function'
-  ? createCustomSelectManager
-  : () => ({
-      initCustomSelects: () => {},
-      refreshCustomSelect: () => {},
-      closeAllCustomSelects: () => {},
-      bindGlobalEvents: () => {}
-    });
+function createNoopCustomSelectManager() {
+  return {
+    initCustomSelects: () => {},
+    refreshCustomSelect: () => {},
+    closeAllCustomSelects: () => {},
+    bindGlobalEvents: () => {}
+  };
+}
 
-const customSelectManager = createCustomSelectManagerSafe({
-  selectElements: customSelectElements,
-  normalizeSearchText
-});
+function createCurrentCustomSelectManager() {
+  if (typeof createCustomSelectManager !== 'function') {
+    return createNoopCustomSelectManager();
+  }
 
-const {
-  initCustomSelects,
-  refreshCustomSelect,
-  closeAllCustomSelects,
-  bindGlobalEvents: bindCustomSelectGlobalEvents
-} = customSelectManager;
+  return createCustomSelectManager({
+    selectElements: customSelectElements,
+    normalizeSearchText
+  });
+}
+
+let customSelectManager = createCurrentCustomSelectManager();
+let isRealCustomSelectManagerReady = typeof createCustomSelectManager === 'function';
+
+function initCustomSelects() {
+  customSelectManager.initCustomSelects();
+}
+
+function refreshCustomSelect(selectElement) {
+  customSelectManager.refreshCustomSelect(selectElement);
+}
+
+function closeAllCustomSelects(exceptElement = null) {
+  customSelectManager.closeAllCustomSelects(exceptElement);
+}
+
+function bindCustomSelectGlobalEvents() {
+  customSelectManager.bindGlobalEvents();
+}
+
+async function ensureCustomSelectToolsLoaded() {
+  if (isRealCustomSelectManagerReady) {
+    return customSelectManager;
+  }
+
+  await loadCustomSelectScript();
+  customSelectManager = createCurrentCustomSelectManager();
+  isRealCustomSelectManagerReady = typeof createCustomSelectManager === 'function';
+
+  bindCustomSelectGlobalEvents();
+  initCustomSelects();
+
+  return customSelectManager;
+}
 
 function refreshCustomSelectGroup(selectElements) {
   selectElements.forEach(selectElement => {
@@ -18749,7 +18815,7 @@ function bindCatalogPageEvents() {
 
   openAddMovieButton?.addEventListener('click', () => {
     resetFormToCreateMode();
-    openMovieModal();
+    void openMovieModal();
   });
 
   openFiltersButton?.addEventListener('click', () => {

@@ -1,7 +1,7 @@
 (function () {
   const envReadyPromise = window.__ENV_READY__ || Promise.resolve();
   const page = document.body?.dataset?.appPage || '';
-  const needsCustomSelect = page === 'catalog' || page === 'movie';
+  const needsCustomSelect = page === 'catalog';
   let isAppStarted = false;
 
   function getVersionedScriptUrl(src, buildVersion) {

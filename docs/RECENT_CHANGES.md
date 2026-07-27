@@ -12,6 +12,31 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-26 - Lazy-load movie modal custom selects
+
+- Files:
+  - `app.js`
+  - `app-script-loader.js`
+  - `tools/asset-size-report.mjs`
+  - `tools/asset-size-baseline.json`
+  - `tools/smoke-check.mjs`
+  - `README.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Stopped loading `custom-select.js` upfront on movie detail pages; it remains an upfront dependency for catalog filters.
+  - Added on-demand classic-script loading before the movie add/edit modal opens, preserving custom select behavior for admin editing.
+  - Updated startup size reporting and smoke-check guards so movie startup stays free of `custom-select.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check app-script-loader.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+- Follow-up:
+  - None.
+
 ## 2026-07-26 - Split secondary page styles
 
 - Files:

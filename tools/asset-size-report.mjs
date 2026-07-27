@@ -48,7 +48,6 @@ const startupProfiles = {
     'boot-loader.js',
     'app-script-loader.js',
     'shared-layout.js',
-    'custom-select.js',
     'app-page-runtime.js',
     'app.js'
   ],

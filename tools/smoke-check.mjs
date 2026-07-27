@@ -130,6 +130,14 @@ function checkAssetSizeReport() {
   assert(report.groups?.js?.raw > 0, 'asset-size-report.mjs: missing JS total');
   assert(report.groups?.css?.raw > 0, 'asset-size-report.mjs: missing CSS total');
   assert(report.startup?.catalog?.brotli > 0, 'asset-size-report.mjs: missing catalog startup profile');
+  assert(
+    report.startup?.catalog?.files?.includes('custom-select.js'),
+    'asset-size-report.mjs: catalog startup profile must include custom-select.js'
+  );
+  assert(
+    !report.startup?.movie?.files?.includes('custom-select.js'),
+    'asset-size-report.mjs: movie startup profile must lazy-load custom-select.js'
+  );
 }
 
 async function checkNoTemporaryRootArtifacts() {
@@ -318,6 +326,10 @@ async function checkStaticGuards() {
   assert(
     appScriptLoader.includes("loadScript('app-page-runtime.js'"),
     'app-script-loader.js: missing app-page-runtime.js load step'
+  );
+  assert(
+    appScriptLoader.includes("const needsCustomSelect = page === 'catalog'"),
+    'app-script-loader.js: custom-select.js should be an upfront dependency only for catalog'
   );
   assert(
     bootLoader.includes('/app-assets/') && appScriptLoader.includes('/app-assets/'),

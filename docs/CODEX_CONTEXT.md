@@ -39,7 +39,7 @@ Page HTML is static shell plus shared scripts:
   - waits for `window.__ENV_READY__`;
   - loads `shared-layout.js`;
   - mounts shared header, auth modal, display-name modal, footer;
-  - conditionally loads `custom-select.js` for catalog/movie pages;
+  - loads `custom-select.js` upfront only for the catalog page;
   - loads `app-page-runtime.js`;
   - loads `app.js`;
   - starts the page runtime and then marks `app-ready`.
@@ -112,7 +112,7 @@ All HTML-like app shell responses should be no-store.
 
 `secondary-pages.css` owns non-catalog/non-movie secondary page styles for following, notifications, editor, public person pages, and the directors admin page. It is loaded only for `data-app-page="following"`, `"notifications"`, `"editor"`, `"director"`, or `"directors"`.
 
-`custom-select.js` owns custom select behavior used by catalog and movie modal selects.
+`custom-select.js` owns custom select behavior used by catalog and movie modal selects. It is loaded upfront only for catalog pages; movie detail pages lazy-load it on demand before opening the movie add/edit modal.
 
 `letterboxd-import.js` is lazy-loaded only when importing Letterboxd ratings.
 
