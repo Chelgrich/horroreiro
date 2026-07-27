@@ -411,6 +411,7 @@ async function checkStaticGuards() {
   ];
 
   const appJs = await readText('app.js');
+  const directorsAdminSource = await readText('src/directors-admin-app.jsx');
 
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('following-page.js'))"),
@@ -427,6 +428,12 @@ async function checkStaticGuards() {
   assert(
     !appJs.includes('notification_events (*)'),
     'app.js: notification page should select explicit notification event fields'
+  );
+  assert(
+    directorsAdminSource.includes("transformedUrl.searchParams.set('width'") &&
+      !directorsAdminSource.includes("transformedUrl.searchParams.set('height'") &&
+      !directorsAdminSource.includes("transformedUrl.searchParams.set('resize', 'cover')"),
+    'src/directors-admin-app.jsx: director admin avatar transforms must preserve aspect ratio for top crop'
   );
 
   const catalogSelectMatch = appJs.match(/const MOVIE_CATALOG_SELECT = `([\s\S]*?)`;/);

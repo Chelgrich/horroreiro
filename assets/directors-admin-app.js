@@ -523,7 +523,7 @@ function Le(e, t) {
 		return "";
 	}
 	let i = new URL(`${r.origin}${Se}${n}`);
-	return i.searchParams.set("width", String(t)), i.searchParams.set("height", String(t)), i.searchParams.set("resize", "cover"), i.searchParams.set("quality", String(Q.quality)), i.toString();
+	return i.searchParams.set("width", String(t)), i.searchParams.set("quality", String(Q.quality)), i.toString();
 }
 function Re(e) {
 	let t = String(e || "").trim();

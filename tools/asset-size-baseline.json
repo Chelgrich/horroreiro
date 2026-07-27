@@ -20,9 +20,9 @@
     },
     {
       "file": "secondary-pages.css",
-      "raw": 33222,
-      "gzip": 4556,
-      "brotli": 3943
+      "raw": 33240,
+      "gzip": 4588,
+      "brotli": 3975
     },
     {
       "file": "shared-layout.js",
@@ -32,9 +32,9 @@
     },
     {
       "file": "assets/directors-admin-app.js",
-      "raw": 28670,
-      "gzip": 9516,
-      "brotli": 8417
+      "raw": 28590,
+      "gzip": 9499,
+      "brotli": 8390
     },
     {
       "file": "admin-actions.js",
@@ -135,14 +135,14 @@
   ],
   "groups": {
     "js": {
-      "raw": 961544,
-      "gzip": 194403,
-      "brotli": 144364
+      "raw": 961464,
+      "gzip": 194386,
+      "brotli": 144337
     },
     "css": {
-      "raw": 237274,
-      "gzip": 33404,
-      "brotli": 27886
+      "raw": 237292,
+      "gzip": 33436,
+      "brotli": 27918
     },
     "html": {
       "raw": 68582,
@@ -209,9 +209,9 @@
         "app.js",
         "assets/directors-admin-app.js"
       ],
-      "raw": 898334,
-      "gzip": 178310,
-      "brotli": 130683
+      "raw": 898254,
+      "gzip": 178293,
+      "brotli": 130656
     }
   }
 }

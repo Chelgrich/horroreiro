@@ -12,6 +12,28 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-28 - Preserve director admin avatar aspect before crop
+
+- Files:
+  - `src/directors-admin-app.jsx`
+  - `assets/directors-admin-app.js`
+  - `tools/smoke-check.mjs`
+  - `tools/asset-size-baseline.json`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Changed `/directors` admin avatar Supabase image transforms to request width-only thumbnails instead of square `height` + `resize=cover` crops, so the browser can crop photos from the top inside the circular avatar.
+  - Added a smoke guard to keep director admin avatar transforms aspect-ratio preserving.
+- Checks:
+  - `npm run build:directors`
+  - `node --check assets\directors-admin-app.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `git diff --check`
+  - `npm run size:compare`
+  - `node tools\asset-size-report.mjs --save tools\asset-size-baseline.json`
+- Follow-up:
+  - None.
+
 ## 2026-07-28 - Top-align director avatar crops
 
 - Files:
