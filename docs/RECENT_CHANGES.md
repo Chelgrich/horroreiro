@@ -12,6 +12,20 @@ Format:
 - Follow-up:
 ```
 
+## 2026-07-28 - Top-align director avatar crops
+
+- Files:
+  - `secondary-pages.css`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Restored the `/directors` card row alignment and changed circular photo cropping so uploaded person photos anchor to the top inside the avatar circle.
+- Checks:
+  - `node tools\smoke-check.mjs`
+  - `git diff --check`
+  - `npm run size:compare`
+- Follow-up:
+  - None.
+
 ## 2026-07-28 - Align directors admin avatars to top
 
 - Files:
