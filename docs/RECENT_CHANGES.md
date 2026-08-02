@@ -12,6 +12,27 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-03 - Fix review reply button on movie detail
+
+- Files:
+  - `movie-social.js`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved the review reply click handling into the reviews section listener, where the "Ответить" button is actually rendered.
+  - Removed the unreachable review-reply branch from the comments section listener.
+  - Added a smoke guard so review reply buttons cannot drift back to the wrong listener silently.
+- Checks:
+  - `node --check movie-social.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check app.js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+  - Local browser smoke for `/movie/taro-2024`
+- Follow-up:
+  - None.
+
 ## 2026-07-28 - Restore movie detail similar handlers
 
 - Files:

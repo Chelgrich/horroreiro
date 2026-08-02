@@ -2873,6 +2873,33 @@ function restoreMoviePageReviewRailSnapshot(snapshot) {
   });
 }
 
+function handleMovieReviewReplyButtonClick(movie, reviewReplyButton) {
+  if (!reviewReplyButton) {
+    return;
+  }
+
+  if (!areMovieCommentsAvailable) {
+    showAppMessage('Комментарии пока недоступны.', 'info', true);
+    return;
+  }
+
+  if (reviewReplyButton.dataset.movieCommentReplyReviewDisabled === 'true') {
+    showAppMessage('Ответить на рецензию можно только после оценки фильма.', 'info', true);
+    return;
+  }
+
+  if (!currentUser?.id) {
+    openAuthModal();
+    return;
+  }
+
+  const reviewId = reviewReplyButton.dataset.movieCommentReplyReview;
+
+  startMovieCommentReply('review', reviewId);
+  renderMoviePageSocialSections(movie);
+  focusMoviePageReviewReplyComposer();
+}
+
 function bindMoviePageReviewEvents(movie) {
   if (!moviePage || !movie) {
     return;
@@ -2957,6 +2984,13 @@ function bindMoviePageReviewEvents(movie) {
 
       setMovieReviewTextExpandedState(reviewId, shouldExpand);
       renderMoviePageReviewsSection(movie, { preserveReviewId: reviewId });
+      return;
+    }
+
+    const reviewReplyButton = target.closest('[data-movie-comment-reply-review]');
+
+    if (reviewReplyButton && reviewsSection.contains(reviewReplyButton)) {
+      handleMovieReviewReplyButtonClick(movie, reviewReplyButton);
       return;
     }
 
@@ -3337,26 +3371,6 @@ function bindMoviePageCommentEvents(movie) {
       startMovieCommentReply('comment', commentId);
       setMovieCommentThreadExpandedState('comment', commentId, true);
       renderMoviePageSocialSections(movie);
-      return;
-    }
-
-    const reviewReplyButton = target.closest('[data-movie-comment-reply-review]');
-
-    if (reviewReplyButton && commentsSection.contains(reviewReplyButton)) {
-      if (reviewReplyButton.dataset.movieCommentReplyReviewDisabled === 'true') {
-        showAppMessage('Ответить на рецензию можно только после оценки фильма.', 'info', true);
-        return;
-      }
-
-      if (!currentUser?.id) {
-        openAuthModal();
-        return;
-      }
-
-      const reviewId = reviewReplyButton.dataset.movieCommentReplyReview;
-      startMovieCommentReply('review', reviewId);
-      renderMoviePageSocialSections(movie);
-      focusMoviePageReviewReplyComposer();
       return;
     }
 

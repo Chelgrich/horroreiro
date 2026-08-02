@@ -448,6 +448,12 @@ async function checkStaticGuards() {
     'movie-social.js: social render API must call local render functions without recursive method shorthand'
   );
   assert(
+    movieSocialJs.includes('function handleMovieReviewReplyButtonClick(') &&
+      movieSocialJs.includes('reviewReplyButton && reviewsSection.contains(reviewReplyButton)') &&
+      !movieSocialJs.includes('reviewReplyButton && commentsSection.contains(reviewReplyButton)'),
+    'movie-social.js: review reply buttons must be handled by the reviews section listener'
+  );
+  assert(
     !appJs.includes('function getMoviePageReviewFormHtml(') &&
       !appJs.includes('function setMovieReviewFormMessage(') &&
       !appJs.includes('async function fetchMovieReviewLikes('),
