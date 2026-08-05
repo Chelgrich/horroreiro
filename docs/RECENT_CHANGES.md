@@ -12,6 +12,27 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-05 - Show direct comment replies by default
+
+- Files:
+  - `movie-social.js`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Changed the movie detail comment tree so direct replies to top-level comments render immediately by default.
+  - Kept deeper comment branches behind the existing "Раскрыть ветку" toggle.
+  - Added a smoke guard for the direct-reply default visibility rule.
+- Checks:
+  - `node --check movie-social.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check app.js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+  - Browser smoke: `/movie/soulm8yt-2026` rendered without console errors.
+- Follow-up:
+  - None.
+
 ## 2026-08-03 - Fix review reply button on movie detail
 
 - Files:

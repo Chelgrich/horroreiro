@@ -520,6 +520,25 @@ function setMovieCommentThreadExpandedState(type, id, shouldExpand) {
   expandedMovieCommentThreadKeys.delete(threadKey);
 }
 
+function getMovieCommentDepth(comment) {
+  return Math.max(0, Math.min(MOVIE_COMMENT_MAX_DEPTH, Number(comment?.depth || 0)));
+}
+
+function shouldMovieCommentShowChildThreadByDefault(comment) {
+  return getMovieCommentDepth(comment) === 0;
+}
+
+function isMovieCommentChildThreadVisible(comment) {
+  return (
+    shouldMovieCommentShowChildThreadByDefault(comment) ||
+    isMovieCommentThreadExpanded('comment', comment?.id)
+  );
+}
+
+function shouldRenderMovieCommentThreadToggle(comment, childCount) {
+  return childCount > 0 && !shouldMovieCommentShowChildThreadByDefault(comment);
+}
+
 function isMovieCommentSpoilerExpanded(commentId) {
   return expandedSpoilerCommentIds.has(String(commentId));
 }
@@ -1876,6 +1895,7 @@ function getMovieCommentActionsHtml(comment) {
 function getMovieCommentFooterHtml(comment, movie, comments) {
   const childCount = getMovieCommentDescendantCount(comment.id, comments);
   const isThreadExpanded = isMovieCommentThreadExpanded('comment', comment.id);
+  const shouldRenderThreadToggle = shouldRenderMovieCommentThreadToggle(comment, childCount);
   const replyTarget = getMovieCommentReplyTargetForComment(comment);
   const canReply = Boolean(currentUser?.id && !comment.is_deleted);
   const footerStartItems = [];
@@ -1893,7 +1913,7 @@ function getMovieCommentFooterHtml(comment, movie, comments) {
     `);
   }
 
-  if (childCount > 0) {
+  if (shouldRenderThreadToggle) {
     footerStartItems.push(`
       <button
         type="button"
@@ -1984,14 +2004,15 @@ function getMovieCommentCardHtml(comment, movie, comments = allMovieComments) {
   const commentDate = formatMovieCommentDate(comment.updated_at || comment.created_at);
   const isEditing = isMovieCommentEditing(comment.id);
   const childComments = getMovieCommentChildComments(comment.id, comments);
-  const isThreadExpanded = isMovieCommentThreadExpanded('comment', comment.id);
+  const commentDepth = getMovieCommentDepth(comment);
+  const isChildThreadVisible = isMovieCommentChildThreadVisible(comment);
 
   return `
     <article
       class="movie-page-comment-card${comment.is_deleted ? ' is-deleted' : ''}"
       id="${escapeHtml(getMovieCommentAnchorId(comment.id))}"
       data-movie-comment-id="${escapeHtml(String(comment.id))}"
-      style="--comment-depth: ${Math.max(0, Math.min(MOVIE_COMMENT_MAX_DEPTH, Number(comment.depth || 0)))}"
+      style="--comment-depth: ${commentDepth}"
     >
       <div class="movie-page-comment-card-inner">
         <div class="movie-page-comment-card-header">
@@ -2027,7 +2048,7 @@ function getMovieCommentCardHtml(comment, movie, comments = allMovieComments) {
       </div>
 
       ${
-        childComments.length > 0 && isThreadExpanded
+        childComments.length > 0 && isChildThreadVisible
           ? `
             <div class="movie-page-comment-children">
               ${childComments.map(childComment => getMovieCommentCardHtml(childComment, movie, comments)).join('')}

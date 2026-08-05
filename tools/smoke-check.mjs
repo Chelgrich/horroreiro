@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { access, readFile, readdir } from 'node:fs/promises';
 import { dirname, extname, join, normalize } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const host = '127.0.0.1';
@@ -454,6 +454,13 @@ async function checkStaticGuards() {
     'movie-social.js: review reply buttons must be handled by the reviews section listener'
   );
   assert(
+    movieSocialJs.includes('function shouldMovieCommentShowChildThreadByDefault(') &&
+      movieSocialJs.includes('return getMovieCommentDepth(comment) === 0;') &&
+      movieSocialJs.includes('const isChildThreadVisible = isMovieCommentChildThreadVisible(comment);') &&
+      movieSocialJs.includes('childComments.length > 0 && isChildThreadVisible'),
+    'movie-social.js: direct replies to top-level comments must render without manual thread expansion'
+  );
+  assert(
     !appJs.includes('function getMoviePageReviewFormHtml(') &&
       !appJs.includes('function setMovieReviewFormMessage(') &&
       !appJs.includes('async function fetchMovieReviewLikes('),
@@ -584,11 +591,99 @@ async function checkRoutes() {
   }
 }
 
+async function checkMovieCommentThreadRenderingContract() {
+  const comments = [
+    {
+      id: 'root-comment',
+      movie_id: 'movie-1',
+      user_id: 'user-1',
+      parent_comment_id: null,
+      depth: 0,
+      comment_text: 'Root visible comment',
+      created_at: '2026-08-05T12:00:00Z',
+      has_spoilers: false,
+      has_profanity: false,
+      profiles: { display_name: 'Root User', default_display_name: 'Root User', public_handle: 'root' },
+      likes_count: 0,
+      liked_by_current_user: false
+    },
+    {
+      id: 'second-level-comment',
+      movie_id: 'movie-1',
+      user_id: 'user-2',
+      parent_comment_id: 'root-comment',
+      depth: 1,
+      comment_text: 'Direct reply must be visible by default',
+      created_at: '2026-08-05T12:01:00Z',
+      has_spoilers: false,
+      has_profanity: false,
+      profiles: { display_name: 'Reply User', default_display_name: 'Reply User', public_handle: 'reply' },
+      likes_count: 0,
+      liked_by_current_user: false
+    },
+    {
+      id: 'third-level-comment',
+      movie_id: 'movie-1',
+      user_id: 'user-3',
+      parent_comment_id: 'second-level-comment',
+      depth: 2,
+      comment_text: 'Third level stays collapsed',
+      created_at: '2026-08-05T12:02:00Z',
+      has_spoilers: false,
+      has_profanity: false,
+      profiles: { display_name: 'Nested User', default_display_name: 'Nested User', public_handle: 'nested' },
+      likes_count: 0,
+      liked_by_current_user: false
+    }
+  ];
+  const { createMovieSocialController } = await import(
+    `${pathToFileURL(join(rootDir, 'movie-social.js')).href}?smoke=${Date.now()}`
+  );
+  const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[char]));
+  const controller = createMovieSocialController({
+    escapeHtml,
+    getAllMovieComments: () => comments,
+    getAreMovieCommentsAvailable: () => true,
+    getAreMovieCommentLikesAvailable: () => true,
+    getCurrentUser: () => null,
+    getIsAdmin: () => false,
+    getPublicProfileHandle: profile => profile?.public_handle || '',
+    buildUserPageUrl: handle => `/user/${handle}`,
+    getUserPageAvatarLetter: value => String(value || '?').trim().charAt(0).toUpperCase()
+  });
+  const html = controller.getMoviePageCommentsSectionHtml({
+    id: 'movie-1',
+    slug: 'contract-movie',
+    title: 'Contract Movie',
+    year: 2026
+  });
+
+  assert(
+    html.includes('Direct reply must be visible by default'),
+    'movie-social.js: direct replies to top-level comments must be rendered by default'
+  );
+  assert(
+    !html.includes('Third level stays collapsed'),
+    'movie-social.js: third-level comment replies must stay collapsed by default'
+  );
+  assert(
+    html.includes('data-movie-comment-toggle-thread="comment:second-level-comment"'),
+    'movie-social.js: second-level comments with children must expose a deeper-thread toggle'
+  );
+}
+
 checkJavaScriptSyntax();
 checkAssetSizeReport();
 checkContextJournalUpdated();
 await checkNoTemporaryRootArtifacts();
 await checkStaticGuards();
+await checkMovieCommentThreadRenderingContract();
 await checkRoutes();
 
 console.log('Smoke check passed.');
