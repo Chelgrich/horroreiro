@@ -1158,6 +1158,14 @@
   gap: 8px;
 }
 
+.notifications-page-toolbar-actions{
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .notifications-page-filter{
   min-height: 34px;
   padding: 0 12px;
@@ -1204,6 +1212,35 @@
 .notifications-page-read-all-button:hover,
 .notifications-page-read-all-button:focus-visible{
   background: var(--ui-action-bg-hover);
+}
+
+.notifications-page-clear-all-button{
+  gap: 6px;
+  padding: 0 4px;
+  color: var(--color-text-tertiary);
+  background: transparent;
+}
+
+.notifications-page-clear-all-button svg{
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--icon-stroke-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.notifications-page-clear-all-button:hover:not(:disabled),
+.notifications-page-clear-all-button:focus-visible{
+  color: var(--color-danger-text-soft);
+  background: transparent;
+}
+
+.notifications-page-clear-all-button:disabled{
+  opacity: 0.45;
+  cursor: default;
 }
 
 .notifications-page-list{
@@ -1454,6 +1491,15 @@
 .notifications-page-settings-header{
     align-items: flex-start;
     flex-direction: column;
+  }
+
+.notifications-page-toolbar-actions{
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+.notifications-page-clear-all-button{
+    min-height: 32px;
   }
 
 .notifications-page-read-all-button{

@@ -479,6 +479,13 @@ async function checkStaticGuards() {
     'app.js: notification page should select explicit notification event fields'
   );
   assert(
+    appJs.includes('data-notifications-clear-all="true"') &&
+      appJs.includes('async function clearAllNotifications()') &&
+      appJs.includes(".from('notification_deliveries')") &&
+      appJs.includes('.delete()'),
+    'app.js: notifications page must keep the clear-all delivery action wired'
+  );
+  assert(
     directorsAdminSource.includes("transformedUrl.searchParams.set('width'") &&
       directorsAdminSource.includes("transformedUrl.searchParams.set('resize', 'contain')") &&
       !directorsAdminSource.includes("transformedUrl.searchParams.set('height'") &&

@@ -12,6 +12,28 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-06 - Add notifications clear-all action
+
+- Files:
+  - `app.js`
+  - `secondary-pages.css`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a "Очистить всё" ghost action next to "Отметить все прочитанными" on the notifications page.
+  - Clears the current user's notification deliveries after confirmation and resets the unread badge locally.
+  - Kept the new action visually lightweight with a transparent background and inline close icon.
+  - Added a smoke guard for the clear-all notification action wiring.
+- Checks:
+  - `node --check app.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+  - Browser smoke: `/notifications` started without console errors.
+- Follow-up:
+  - None.
+
 ## 2026-08-05 - Show direct comment replies by default
 
 - Files:

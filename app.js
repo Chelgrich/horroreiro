@@ -493,6 +493,7 @@ let areNotificationsUnavailable = false;
 let notificationsPageItems = [];
 let notificationsPageFilter = 'all';
 let isNotificationsPageMarkingAllRead = false;
+let isNotificationsPageClearingAll = false;
 let isNotificationTestRunning = false;
 let notificationsPagePreferences = null;
 let notificationPreferenceRequestKeys = new Set();
@@ -20589,14 +20590,30 @@ function renderNotificationsPageFilters(items = []) {
           `;
         }).join('')}
       </div>
-      <button
-        type="button"
-        class="secondary-button notifications-page-read-all-button"
-        data-notifications-mark-all-read="true"
-        ${isNotificationsPageMarkingAllRead || !items.some(item => !item.readAt) ? 'disabled' : ''}
-      >
-        Отметить все прочитанными
-      </button>
+      <div class="notifications-page-toolbar-actions">
+        <button
+          type="button"
+          class="secondary-button notifications-page-clear-all-button"
+          data-notifications-clear-all="true"
+          aria-label="Очистить все уведомления"
+          title="Очистить всё"
+          ${isNotificationsPageClearingAll || isNotificationsPageMarkingAllRead || !items.length ? 'disabled' : ''}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+          </svg>
+          <span>Очистить всё</span>
+        </button>
+        <button
+          type="button"
+          class="secondary-button notifications-page-read-all-button"
+          data-notifications-mark-all-read="true"
+          ${isNotificationsPageMarkingAllRead || isNotificationsPageClearingAll || !items.some(item => !item.readAt) ? 'disabled' : ''}
+        >
+          Отметить все прочитанными
+        </button>
+      </div>
     </div>
   `;
 }
@@ -20759,12 +20776,21 @@ function getNotificationElementByEventId(eventId) {
 
 function syncNotificationsPageReadAllButtonState() {
   const readAllButton = notificationsPage?.querySelector('[data-notifications-mark-all-read="true"]');
+  const clearAllButton = notificationsPage?.querySelector('[data-notifications-clear-all="true"]');
 
-  if (!readAllButton) {
-    return;
+  if (readAllButton) {
+    readAllButton.disabled =
+      isNotificationsPageMarkingAllRead ||
+      isNotificationsPageClearingAll ||
+      !notificationsPageItems.some(item => !item.readAt);
   }
 
-  readAllButton.disabled = isNotificationsPageMarkingAllRead || !notificationsPageItems.some(item => !item.readAt);
+  if (clearAllButton) {
+    clearAllButton.disabled =
+      isNotificationsPageClearingAll ||
+      isNotificationsPageMarkingAllRead ||
+      notificationsPageItems.length === 0;
+  }
 }
 
 function applyNotificationReadStateToDom(eventId) {
@@ -20965,7 +20991,12 @@ async function markNotificationRead(eventId, { rerender = true } = {}) {
 }
 
 async function markAllNotificationsRead() {
-  if (!shouldUseAuthenticatedUi() || !currentUser?.id || isNotificationsPageMarkingAllRead) {
+  if (
+    !shouldUseAuthenticatedUi() ||
+    !currentUser?.id ||
+    isNotificationsPageMarkingAllRead ||
+    isNotificationsPageClearingAll
+  ) {
     return;
   }
 
@@ -21009,6 +21040,51 @@ async function markAllNotificationsRead() {
   }
 }
 
+async function clearAllNotifications() {
+  if (
+    !shouldUseAuthenticatedUi() ||
+    !currentUser?.id ||
+    isNotificationsPageClearingAll ||
+    isNotificationsPageMarkingAllRead ||
+    !notificationsPageItems.length
+  ) {
+    return;
+  }
+
+  await runConfirmedAction('Очистить все уведомления? Это действие нельзя отменить.', async () => {
+    isNotificationsPageClearingAll = true;
+    renderNotificationsPage();
+
+    try {
+      const { error } = await supabaseClient
+        .from('notification_deliveries')
+        .delete()
+        .eq('recipient_id', currentUser.id);
+
+      if (error) {
+        if (isNotificationsUnavailableError(error)) {
+          areNotificationsUnavailable = true;
+        }
+
+        throw error;
+      }
+
+      clearNotificationReadDwellTimers();
+      notificationsPageItems = [];
+      notificationsUnreadCount = 0;
+      notificationsUnreadUserId = currentUser.id;
+      notificationsUnreadFetchedAt = Date.now();
+      syncNotificationsBadgeUi();
+    } catch (error) {
+      console.error('Ошибка очистки уведомлений:', error);
+      showAppMessage('Не удалось очистить уведомления.', 'error', true);
+    } finally {
+      isNotificationsPageClearingAll = false;
+      renderNotificationsPage();
+    }
+  });
+}
+
 function handleNotificationsPageClick(event) {
   const loginButton = event.target?.closest?.('[data-notifications-login="true"]');
 
@@ -21032,6 +21108,14 @@ function handleNotificationsPageClick(event) {
   if (markAllReadButton) {
     event.preventDefault();
     void markAllNotificationsRead();
+    return true;
+  }
+
+  const clearAllButton = event.target?.closest?.('[data-notifications-clear-all="true"]');
+
+  if (clearAllButton) {
+    event.preventDefault();
+    void clearAllNotifications();
     return true;
   }
 
