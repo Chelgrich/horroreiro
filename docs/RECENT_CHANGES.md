@@ -12,6 +12,47 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-09 - Split lazy page and movie detail modules
+
+- Files:
+  - `app.js`
+  - `notifications-page.js`
+  - `user-page.js`
+  - `movie-editor.js`
+  - `movie-page-shell.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/asset-size-baseline.json`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved `/notifications` rendering, preferences, read/dwell behavior, clear-all, and digest rail logic into lazy `notifications-page.js`.
+  - Moved `/user/*` page data composition, stats/taste calculations, and profile page rendering into lazy `user-page.js`.
+  - Added lazy `movie-editor.js` for movie form draft reading, validation, insert payload building, and update changed-field diffing while keeping Supabase writes in `app.js`.
+  - Added lazy `movie-page-shell.js` for movie detail view-model, header, and skeleton HTML helpers while keeping route loading, poster gallery events, social bridge, and manual similar editor in `app.js`.
+  - Added `MOVIE_SIMILAR_CARD_SELECT` so movie detail similar cards no longer fetch the full catalog payload when the catalog cache is cold.
+  - Registered new lazy assets in the Cloudflare asset allowlist, `_headers`, size report, and smoke checks.
+  - Saved the reduced asset-size baseline after startup JS dropped by about 11.2 KiB brotli across page profiles.
+- Checks:
+  - `node --check app.js`
+  - `node --check notifications-page.js`
+  - `node --check user-page.js`
+  - `node --check movie-editor.js`
+  - `node --check movie-page-shell.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check functions\app-assets\[version].js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `node tools\asset-size-report.mjs --save tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Browser smoke: local catalog, movie detail, user page, and notifications page reached `app-ready` without console errors.
+- Follow-up:
+  - None.
+
 ## 2026-08-06 - Add notifications clear-all action
 
 - Files:

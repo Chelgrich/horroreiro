@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-07-28.
+Last updated: 2026-08-09.
 
 ## Purpose
 
@@ -53,7 +53,7 @@ Production asset URL strategy:
 - Core JS/CSS and lazy feature modules use `/app-assets/<APP_BUILD_VERSION>?file=<asset>`.
 - `functions/app-assets/[version].js` allowlists app assets and proxies them from current Pages assets with `no-store`.
 - `_headers` sets core app assets to `public, max-age=0, must-revalidate`.
-- Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `movie-page.css`, `secondary-pages.css`, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, `following-page.js`, `letterboxd-import.js`, `person-placeholders.js`, or `assets/directors-admin-app.js`.
+- Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `movie-page.css`, `secondary-pages.css`, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, lazy feature modules, or `assets/directors-admin-app.js`.
 
 ## Pages
 
@@ -90,11 +90,11 @@ All HTML-like app shell responses should be no-store.
 - auth/user role/profile loading;
 - session-memory public profile and movie-by-id row caches for repeated profile, notification, and rail lookups;
 - catalog state, filters, pagination, URL params, presets;
-- movie modal add/edit;
-- movie detail shell rendering and bridges into lazy detail modules;
+- movie modal add/edit bridge and Supabase writes;
+- movie detail routing/data loading, gallery events, manual similar editor, and bridges into lazy detail modules;
 - ratings/watchlist;
-- notifications page and read tracking;
-- user profile pages and rails;
+- notifications unread badge and shared notification availability;
+- shared user profile helpers, avatars, settings, follow controls, and reusable profile movie rails;
 - people/director detail page;
 - bridging legacy app data into the `/directors` Preact island.
 
@@ -116,6 +116,10 @@ All HTML-like app shell responses should be no-store.
 
 `following-page.js` is lazy-loaded only for `/following` and owns followed profile rendering, follow notification toggles, unfollow actions, and that page's auth gate. `app.js` provides shared auth, profile, Supabase, and notification availability context to it.
 
+`notifications-page.js` is lazy-loaded only for `/notifications` and owns notification settings/feed rendering, filters, read/dwell handling, clear-all, mark-all-read, and notification digest movie rails. `app.js` keeps the unread badge, account-menu badge, and shared availability/error state.
+
+`user-page.js` is lazy-loaded only for `/user/*` and owns public profile page data composition, rankings/taste stats, and page rendering. `app.js` keeps reusable profile helpers, avatar/settings actions, follow actions, and shared movie rail components because notifications and other surfaces reuse them.
+
 `letterboxd-import.js` is lazy-loaded only when importing Letterboxd ratings.
 
 `admin-actions.js` is lazy-loaded only for rare admin actions:
@@ -128,6 +132,10 @@ All HTML-like app shell responses should be no-store.
 Keep `/editor` page summary logic in `app.js`; keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `person-placeholders.js` is lazy-loaded only for person/director pages and owns the large SVG placeholder silhouettes.
+
+`movie-editor.js` is lazy-loaded by the shared movie add/edit modal and owns form draft reading, validation, insert payload building, and update changed-field diffing. `app.js` keeps the modal DOM bridge, poster/manual-similar editor state, Supabase writes, and post-save page/cache synchronization.
+
+`movie-page-shell.js` is lazy-loaded only for movie detail pages and owns detail view-model/header/skeleton HTML helpers. `app.js` keeps route loading, session cache, poster gallery switching events, manual similar editor, rating/watchlist mutations, and social/similar hydration orchestration.
 
 `movie-social.js` is lazy-loaded only for movie detail pages and owns the detail social block:
 

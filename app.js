@@ -164,13 +164,6 @@ const QUICK_PRESETS_SCROLL_HINT_MEDIA_QUERY = '(max-width: 680px)';
 const QUICK_PRESETS_SCROLL_HINT_DELAY_MS = 650;
 const QUICK_PRESETS_SCROLL_HINT_DISTANCE = 72;
 const QUICK_PRESETS_SCROLL_HINT_DURATION_MS = 420;
-const NOTIFICATIONS_PAGE_LIMIT = 80;
-const NOTIFICATION_READ_DWELL_MS = 1300;
-const NOTIFICATION_READ_VISIBILITY_RATIO = 0.7;
-const NOTIFICATION_CONTEXT_SNIPPET_LABELS = {
-  review: 'Рецензия',
-  comment: 'Комментарий'
-};
 const NOTIFICATIONS_UNREAD_REFRESH_INTERVAL_MS = 60000;
 const NOTIFICATIONS_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 let didPlayQuickPresetsScrollHint = false;
@@ -247,8 +240,6 @@ const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
 const MOVIE_PAGE_SESSION_CACHE_VERSION = 1;
 const MOVIE_PAGE_SESSION_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 const MOVIE_PAGE_SESSION_CACHE_MAX_ENTRIES = 6;
-const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_VERSION = 1;
-const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 const CATALOG_PAGE_SIZE = 40;
 const CATALOG_PAGINATION_PAGE_SLOTS = 6;
 const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
@@ -320,7 +311,6 @@ const CATALOG_STRUCTURED_DATA_SCRIPT_ID = 'catalogItemListStructuredData';
 const AUTH_REQUEST_TIMEOUT_MS = 20000;
 const AUTH_PROFILE_REQUEST_TIMEOUT_MS = 15000;
 const USER_PAGE_PREVIEW_LIMIT = 10;
-const USER_PAGE_ACTIVITY_AGGREGATE_LIMIT = 10000;
 const CATALOG_ROUTE_PRESET_KEYS = new Set([
   'top-rated',
   'low-rated',
@@ -490,16 +480,7 @@ let notificationsUnreadUserId = '';
 let notificationsUnreadRefreshPromise = null;
 let notificationsUnreadFetchedAt = 0;
 let areNotificationsUnavailable = false;
-let notificationsPageItems = [];
-let notificationsPageFilter = 'all';
-let isNotificationsPageMarkingAllRead = false;
-let isNotificationsPageClearingAll = false;
 let isNotificationTestRunning = false;
-let notificationsPagePreferences = null;
-let notificationPreferenceRequestKeys = new Set();
-let notificationReadDwellTimers = new Map();
-let notificationReadObserver = null;
-let areNotificationReadTrackingEventsBound = false;
 let isAdmin = false;
 let isAuthModalOpen = false;
 let isAuthPopoverOpen = false;
@@ -593,7 +574,6 @@ let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
 let allGenreNames = [];
 let allCountryNames = [];
-let userPageActivityAggregateRowsCache = null;
 let lastCatalogAnchorMovieId = null;
 let currentMoviePageMovieId = null;
 let currentMoviePageMovieData = null;
@@ -965,6 +945,28 @@ async function fetchCatalogMoviesByIds(movieIds = []) {
 
   return normalizedMovieIds
     .map(movieId => getCatalogMovieById(movieId))
+    .filter(Boolean);
+}
+
+async function fetchSimilarCardMoviesByIds(movieIds = []) {
+  const normalizedMovieIds = normalizeManualSimilarMovieIds(movieIds);
+
+  if (!normalizedMovieIds.length) {
+    return [];
+  }
+
+  const similarMovieCache = getMovieSelectRowsCacheBucket(MOVIE_SIMILAR_CARD_SELECT);
+  const missingMovieIds = normalizedMovieIds.filter(movieId => (
+    !catalogMoviesById.has(String(movieId)) &&
+    !similarMovieCache.has(String(movieId))
+  ));
+
+  if (missingMovieIds.length > 0) {
+    await fetchMoviesByIdsWithSelect(missingMovieIds, MOVIE_SIMILAR_CARD_SELECT);
+  }
+
+  return normalizedMovieIds
+    .map(movieId => getCatalogMovieById(movieId) || similarMovieCache.get(String(movieId)))
     .filter(Boolean);
 }
 
@@ -1381,9 +1383,8 @@ async function runNotificationTestSuite() {
     showAppMessage(summary, 'success', true);
 
     if (isNotificationsPage()) {
-      const pageData = await fetchNotificationsPageData();
-      await refreshNotificationsUnreadCount({ force: true });
-      renderNotificationsPage(pageData);
+      const controller = await loadNotificationsPageController();
+      await controller.loadNotificationsPage();
     } else {
       window.location.href = buildNotificationsPageUrl();
     }
@@ -9189,9 +9190,13 @@ let letterboxdImportToolsPromise = null;
 let adminActionToolsPromise = null;
 let personPlaceholderToolsPromise = null;
 let movieSocialControllerPromise = null;
+let movieEditorControllerPromise = null;
+let moviePageShellControllerPromise = null;
 let customSelectScriptPromise = null;
 let personPlaceholderTools = null;
 let movieSocialController = null;
+let movieEditorController = null;
+let moviePageShellController = null;
 
 function getLazyFeatureModuleUrl(filename) {
   const isLocalFile = window.location.protocol === 'file:';
@@ -9279,6 +9284,115 @@ function loadPersonPlaceholderTools() {
   }
 
   return personPlaceholderToolsPromise;
+}
+
+function getMovieEditorFormElements() {
+  return {
+    titleInput,
+    originalTitleInput,
+    yearInput,
+    releaseMonthInput,
+    releaseYearInput,
+    sortOrderInput,
+    runtimeMinutesInput,
+    directorInput,
+    productionInput,
+    distributionInput,
+    russianDistributionInput,
+    synopsisInput,
+    kinopoiskUrlInput,
+    imdbUrlInput,
+    letterboxdUrlInput,
+    letterboxdShortUrlInput,
+    rottentomatoesUrlInput,
+    tmdbUrlInput,
+    trailerUrlInput,
+    genresInput,
+    countriesInput,
+    searchAliasesInput
+  };
+}
+
+function getMovieEditorControllerContext() {
+  return {
+    getElements: getMovieEditorFormElements,
+    normalizeOptionalUrl,
+    normalizeLetterboxdShortUrl,
+    parseRuntimeMinutesFormValue,
+    parseLineOrCommaSeparatedValues,
+    parseMultilineValues,
+    normalizeAdditionalGenreNames,
+    getOptionalTextArrayPayload,
+    areStringArraysEqual,
+    normalizeTextArrayField,
+    normalizeRuntimeMinutesValue
+  };
+}
+
+function ensureMovieEditorControllerLoaded() {
+  if (!movieEditorControllerPromise) {
+    movieEditorControllerPromise = import(getLazyFeatureModuleUrl('movie-editor.js'))
+      .then(module => {
+        movieEditorController = module.createMovieEditorController(getMovieEditorControllerContext());
+        return movieEditorController;
+      })
+      .catch(error => {
+        movieEditorControllerPromise = null;
+        throw error;
+      });
+  }
+
+  return movieEditorControllerPromise;
+}
+
+function getMoviePageShellControllerContext() {
+  return {
+    escapeHtml,
+    formatPublicCommaSeparatedValues,
+    formatGenreNamesForPublicDisplay,
+    formatTextArrayForDetail,
+    formatRuntimeMinutes,
+    getMovieAverageRating,
+    getMovieVotesCount,
+    getCurrentUserRating,
+    getCurrentUserMovieState,
+    getMoviePageExternalLinksHtml,
+    getYouTubeTrailerEmbedUrl,
+    getMoviePageReviewsSectionHtml,
+    getMoviePageCommentsSectionHtml,
+    getMoviePosterImages,
+    getPosterImageAttributeHtml,
+    getVotesLabel,
+    getMoviePageDirectorHtml,
+    getCurrentUser: () => currentUser,
+    isMovieRatingBusy: movieId => ratingRequestInFlight.has(String(movieId)),
+    isMovieWatchlistBusy: movieId => watchlistRequestInFlight.has(String(movieId)),
+    getStoredPosterGalleryIndex: movieId => currentMoviePagePosterIndexByMovieId.get(String(movieId || '')) || 0
+  };
+}
+
+function ensureMoviePageShellControllerLoaded() {
+  if (!moviePageShellControllerPromise) {
+    moviePageShellControllerPromise = import(getLazyFeatureModuleUrl('movie-page-shell.js'))
+      .then(module => {
+        moviePageShellController = module.createMoviePageShellController(getMoviePageShellControllerContext());
+        return moviePageShellController;
+      })
+      .catch(error => {
+        moviePageShellControllerPromise = null;
+        throw error;
+      });
+  }
+
+  return moviePageShellControllerPromise;
+}
+
+function getMoviePageShellController() {
+  if (!moviePageShellController) {
+    throw new Error('Movie page shell module is not loaded.');
+  }
+
+  return moviePageShellController;
 }
 
 function reportLetterboxdRatingsImportProgress(options, message) {
@@ -10994,6 +11108,8 @@ function ensureMovieModalMounted() {
 }
 
 async function openMovieModal() {
+  void ensureMovieEditorControllerLoaded();
+
   try {
     await ensureCustomSelectToolsLoaded();
   } catch (error) {
@@ -11595,6 +11711,23 @@ const MOVIE_USER_PAGE_TASTE_SELECT = `
   id,
   year,
   tags_perceived,
+  movie_genres (
+    position,
+    genres (name)
+  ),
+  movie_countries (
+    countries (name)
+  )
+`;
+
+const MOVIE_SIMILAR_CARD_SELECT = `
+  id,
+  slug,
+  title,
+  original_title,
+  year,
+  director,
+  poster_url,
   movie_genres (
     position,
     genres (name)
@@ -13395,39 +13528,12 @@ async function addMovie(event) {
   setMovieFormSubmittingState(true);
   setMovieFormStatus('Сохраняю...');
 
-  const title = titleInput.value.trim();
-  const originalTitle = originalTitleInput.value.trim();
-  const year = yearInput.value.trim();
-  const releaseMonth = releaseMonthInput.value.trim();
-  const releaseYear = releaseYearInput.value.trim();
-  const sortOrder = sortOrderInput.value.trim();
-  const runtimeMinutes = parseRuntimeMinutesFormValue(runtimeMinutesInput?.value || '');
-  const directorNames = parseLineOrCommaSeparatedValues(directorInput.value);
-  const director = directorNames.join(', ');
-  const production = parseMultilineValues(productionInput?.value || '');
-  const distribution = parseMultilineValues(distributionInput?.value || '');
-  const russianDistribution = parseMultilineValues(russianDistributionInput?.value || '');
-  const synopsis = synopsisInput.value.trim();
-  const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value, { preserveIntentionalEmpty: true });
-  const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value, { preserveIntentionalEmpty: true });
-  const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value, { preserveIntentionalEmpty: true });
-  const letterboxdShortUrl = normalizeLetterboxdShortUrl(letterboxdShortUrlInput.value);
-  const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value, { preserveIntentionalEmpty: true });
-  const tmdbUrl = normalizeOptionalUrl(tmdbUrlInput?.value || '', { preserveIntentionalEmpty: true });
-  const trailerUrl = normalizeOptionalUrl(trailerUrlInput?.value || '', { preserveIntentionalEmpty: true });
+  const movieEditor = await ensureMovieEditorControllerLoaded();
+  const formDraft = movieEditor.readMovieFormDraft();
+  const validationMessage = movieEditor.validateMovieFormDraft(formDraft);
 
-  const genreNames = normalizeAdditionalGenreNames(genresInput.value);
-  const countryNames = parseLineOrCommaSeparatedValues(countriesInput.value);
-  const searchAliases = parseMultilineValues(searchAliasesInput.value);
-
-  if (!title) {
-    formMessage.textContent = 'Название обязательно.';
-    setMovieFormSubmittingState(false);
-    return;
-  }
-
-  if (Number.isNaN(runtimeMinutes)) {
-    formMessage.textContent = 'Время должно быть целым числом минут от 1 до 999.';
+  if (validationMessage) {
+    setMovieFormStatus(validationMessage);
     setMovieFormSubmittingState(false);
     return;
   }
@@ -13458,34 +13564,18 @@ async function addMovie(event) {
     const { data: insertedMovie, error: insertMovieError } = await withPendingRequestTimeout(
       supabaseClient
         .from('movies')
-        .insert({
-          title,
-          slug: await buildUniqueMovieSlug(title, year ? Number(year) : null),
-          original_title: originalTitle || null,
-          year: year ? Number(year) : null,
-          director: director || null,
-          production: getOptionalTextArrayPayload(production),
-          distribution: getOptionalTextArrayPayload(distribution),
-          russian_distribution: getOptionalTextArrayPayload(russianDistribution),
-          synopsis: synopsis || null,
-          formats: classificationDraft.formats,
-          tags_perceived: classificationDraft.tagsPerceived,
-          search_aliases: searchAliases,
-          rating: 0,
-          poster_url: finalPosterUrl,
-          kinopoisk_url: kinopoiskUrl || null,
-          imdb_url: imdbUrl || null,
-          letterboxd_url: letterboxdUrl || null,
-          letterboxd_short_url: letterboxdShortUrl || null,
-          rottentomatoes_url: rottentomatoesUrl || null,
-          ...(movieTmdbUrlColumnAvailable ? { tmdb_url: tmdbUrl || null } : {}),
-          ...(trailerUrl ? { trailer_url: trailerUrl } : {}),
-          ...(movieRuntimeMinutesColumnAvailable ? { runtime_minutes: runtimeMinutes } : {}),
-          release_month: releaseMonth ? Number(releaseMonth) : null,
-          release_year: releaseYear ? Number(releaseYear) : null,
-          sort_order: sortOrder ? Number(sortOrder) : null,
-          owner_id: currentUser.id
-        })
+        .insert(movieEditor.buildMovieInsertPayload({
+          draft: formDraft,
+          classificationDraft,
+          finalPosterUrl,
+          slug: await buildUniqueMovieSlug(
+            formDraft.title,
+            formDraft.year ? Number(formDraft.year) : null
+          ),
+          ownerId: currentUser.id,
+          includeRuntimeMinutes: movieRuntimeMinutesColumnAvailable,
+          includeTmdbUrl: movieTmdbUrlColumnAvailable
+        }))
         .select('id, slug') // сразу забираем id и slug созданной записи
         .single(),
       15000,
@@ -13495,15 +13585,15 @@ async function addMovie(event) {
     throwIfSupabaseError(insertMovieError);
 
     await withPendingRequestTimeout(
-      replaceMovieRelations(insertedMovie.id, genreNames, countryNames),
+      replaceMovieRelations(insertedMovie.id, formDraft.genreNames, formDraft.countryNames),
       15000,
       'Превышено время ожидания сохранения жанров и стран.'
     );
 
-    if (directorNames.length > 0) {
+    if (formDraft.directorNames.length > 0) {
       setMovieFormStatus('Сохраняю режиссёров...');
       await withPendingRequestTimeout(
-        replaceMovieDirectors(insertedMovie.id, directorNames),
+        replaceMovieDirectors(insertedMovie.id, formDraft.directorNames),
         15000,
         'Превышено время ожидания сохранения режиссёров.'
       );
@@ -13562,39 +13652,12 @@ async function updateMovie(event) {
   setMovieFormSubmittingState(true);
   setMovieFormStatus('Сохраняю изменения...');
 
-  const title = titleInput.value.trim();
-  const originalTitle = originalTitleInput.value.trim();
-  const year = yearInput.value.trim();
-  const releaseMonth = releaseMonthInput.value.trim();
-  const releaseYear = releaseYearInput.value.trim();
-  const sortOrder = sortOrderInput.value.trim();
-  const runtimeMinutes = parseRuntimeMinutesFormValue(runtimeMinutesInput?.value || '');
-  const directorNames = parseLineOrCommaSeparatedValues(directorInput.value);
-  const director = directorNames.join(', ');
-  const production = parseMultilineValues(productionInput?.value || '');
-  const distribution = parseMultilineValues(distributionInput?.value || '');
-  const russianDistribution = parseMultilineValues(russianDistributionInput?.value || '');
-  const synopsis = synopsisInput.value.trim();
-  const kinopoiskUrl = normalizeOptionalUrl(kinopoiskUrlInput.value, { preserveIntentionalEmpty: true });
-  const imdbUrl = normalizeOptionalUrl(imdbUrlInput.value, { preserveIntentionalEmpty: true });
-  const letterboxdUrl = normalizeOptionalUrl(letterboxdUrlInput.value, { preserveIntentionalEmpty: true });
-  const letterboxdShortUrl = normalizeLetterboxdShortUrl(letterboxdShortUrlInput.value);
-  const rottentomatoesUrl = normalizeOptionalUrl(rottentomatoesUrlInput.value, { preserveIntentionalEmpty: true });
-  const tmdbUrl = normalizeOptionalUrl(tmdbUrlInput?.value || '', { preserveIntentionalEmpty: true });
-  const trailerUrl = normalizeOptionalUrl(trailerUrlInput?.value || '', { preserveIntentionalEmpty: true });
+  const movieEditor = await ensureMovieEditorControllerLoaded();
+  const formDraft = movieEditor.readMovieFormDraft();
+  const validationMessage = movieEditor.validateMovieFormDraft(formDraft);
 
-  const genreNames = normalizeAdditionalGenreNames(genresInput.value);
-  const countryNames = parseLineOrCommaSeparatedValues(countriesInput.value);
-  const searchAliases = parseMultilineValues(searchAliasesInput.value);
-
-  if (!title) {
-    formMessage.textContent = 'Название обязательно.';
-    setMovieFormSubmittingState(false);
-    return;
-  }
-
-  if (Number.isNaN(runtimeMinutes)) {
-    formMessage.textContent = 'Время должно быть целым числом минут от 1 до 999.';
+  if (validationMessage) {
+    setMovieFormStatus(validationMessage);
     setMovieFormSubmittingState(false);
     return;
   }
@@ -13621,10 +13684,10 @@ async function updateMovie(event) {
     .filter(Boolean);
 
   const normalizedExistingGenres = [...existingGenreNames].sort((a, b) => a.localeCompare(b, 'ru'));
-  const normalizedNewGenres = [...genreNames].sort((a, b) => a.localeCompare(b, 'ru'));
+  const normalizedNewGenres = [...formDraft.genreNames].sort((a, b) => a.localeCompare(b, 'ru'));
 
   const normalizedExistingCountries = [...existingCountryNames].sort((a, b) => a.localeCompare(b, 'ru'));
-  const normalizedNewCountries = [...countryNames].sort((a, b) => a.localeCompare(b, 'ru'));
+  const normalizedNewCountries = [...formDraft.countryNames].sort((a, b) => a.localeCompare(b, 'ru'));
   const existingLinkedDirectorNames = getMovieDirectorItems(existingMovie)
     .map(getDirectorDisplayName)
     .filter(Boolean);
@@ -13636,11 +13699,11 @@ async function updateMovie(event) {
     ? existingLinkedDirectorNames
     : parseLineOrCommaSeparatedValues(existingMovie.director || '');
   const shouldRefreshDirectorLinks = (
-    directorNames.length > 0 &&
+    formDraft.directorNames.length > 0 &&
     (!existingDirectorLinksKnown || existingLinkedDirectorNames.length === 0)
   );
   const directorsChanged = (
-    !areStringArraysEqual(existingDirectorNames, directorNames) ||
+    !areStringArraysEqual(existingDirectorNames, formDraft.directorNames) ||
     shouldRefreshDirectorLinks
   );
 
@@ -13683,122 +13746,16 @@ async function updateMovie(event) {
       finalPosterUrls = posterImagesForSave.allUrls;
     }
 
-    const changedFields = {};
-
-    // Передаём в update только реально изменившиеся поля.
-    // Это уменьшает payload и снижает риск зависаний на большом запросе.
-    if (title !== (existingMovie.title ?? '')) {
-      changedFields.title = title;
-    }
-
-    if ((originalTitle || null) !== (existingMovie.original_title ?? null)) {
-      changedFields.original_title = originalTitle || null;
-    }
-
-    if ((year ? Number(year) : null) !== (existingMovie.year ?? null)) {
-      changedFields.year = year ? Number(year) : null;
-    }
-
-    if ((director || null) !== (existingMovie.director ?? null)) {
-      changedFields.director = director || null;
-    }
-
-    if (!areStringArraysEqual(production, normalizeTextArrayField(existingMovie.production))) {
-      changedFields.production = getOptionalTextArrayPayload(production);
-    }
-
-    if (!areStringArraysEqual(distribution, normalizeTextArrayField(existingMovie.distribution))) {
-      changedFields.distribution = getOptionalTextArrayPayload(distribution);
-    }
-
-    if (!areStringArraysEqual(russianDistribution, normalizeTextArrayField(existingMovie.russian_distribution))) {
-      changedFields.russian_distribution = getOptionalTextArrayPayload(russianDistribution);
-    }
-
-    if ((synopsis || null) !== (existingMovie.synopsis ?? null)) {
-      changedFields.synopsis = synopsis || null;
-    }
-
-    if (!areStringArraysEqual(classificationDraft.formats, existingMovie.formats || [])) {
-      changedFields.formats = classificationDraft.formats;
-    }
-
-    if (!areStringArraysEqual(classificationDraft.tagsPerceived, existingMovie.tags_perceived || [])) {
-      changedFields.tags_perceived = classificationDraft.tagsPerceived;
-    }
-
-    const currentYearValue = year ? Number(year) : null;
-    const shouldRegenerateSlug = (
-      !existingMovie.slug ||
-      title !== (existingMovie.title ?? '') ||
-      currentYearValue !== (existingMovie.year ?? null)
-    );
-
-    if (shouldRegenerateSlug) {
-      const nextSlug = await buildUniqueMovieSlug(title, currentYearValue, editingMovieId);
-
-      if (nextSlug !== (existingMovie.slug ?? null)) {
-        changedFields.slug = nextSlug;
-      }
-    }
-
-    if (!areStringArraysEqual(searchAliases, existingMovie.search_aliases || [])) {
-      changedFields.search_aliases = searchAliases;
-    }
-
-    if (finalPosterUrl !== (existingMovie.poster_url ?? null)) {
-      changedFields.poster_url = finalPosterUrl;
-    }
-
-    if ((kinopoiskUrl || null) !== (existingMovie.kinopoisk_url ?? null)) {
-      changedFields.kinopoisk_url = kinopoiskUrl || null;
-    }
-
-    if ((imdbUrl || null) !== (existingMovie.imdb_url ?? null)) {
-      changedFields.imdb_url = imdbUrl || null;
-    }
-
-    if ((letterboxdUrl || null) !== (existingMovie.letterboxd_url ?? null)) {
-      changedFields.letterboxd_url = letterboxdUrl || null;
-    }
-
-    if ((letterboxdShortUrl || null) !== (existingMovie.letterboxd_short_url ?? null)) {
-      changedFields.letterboxd_short_url = letterboxdShortUrl || null;
-    }
-
-    if ((rottentomatoesUrl || null) !== (existingMovie.rottentomatoes_url ?? null)) {
-      changedFields.rottentomatoes_url = rottentomatoesUrl || null;
-    }
-
-    if (
-      movieTmdbUrlColumnAvailable &&
-      (tmdbUrl || null) !== (existingMovie.tmdb_url ?? null)
-    ) {
-      changedFields.tmdb_url = tmdbUrl || null;
-    }
-
-    if ((trailerUrl || null) !== (existingMovie.trailer_url ?? null)) {
-      changedFields.trailer_url = trailerUrl || null;
-    }
-
-    if (
-      movieRuntimeMinutesColumnAvailable &&
-      runtimeMinutes !== normalizeRuntimeMinutesValue(existingMovie.runtime_minutes)
-    ) {
-      changedFields.runtime_minutes = runtimeMinutes;
-    }
-
-    if ((releaseMonth ? Number(releaseMonth) : null) !== (existingMovie.release_month ?? null)) {
-      changedFields.release_month = releaseMonth ? Number(releaseMonth) : null;
-    }
-
-    if ((releaseYear ? Number(releaseYear) : null) !== (existingMovie.release_year ?? null)) {
-      changedFields.release_year = releaseYear ? Number(releaseYear) : null;
-    }
-
-    if ((sortOrder ? Number(sortOrder) : null) !== (existingMovie.sort_order ?? null)) {
-      changedFields.sort_order = sortOrder ? Number(sortOrder) : null;
-    }
+    const changedFields = await movieEditor.buildMovieChangedFields({
+      draft: formDraft,
+      existingMovie,
+      classificationDraft,
+      finalPosterUrl,
+      editingMovieId,
+      buildUniqueMovieSlug,
+      includeRuntimeMinutes: movieRuntimeMinutesColumnAvailable,
+      includeTmdbUrl: movieTmdbUrlColumnAvailable
+    });
 
     if (Object.keys(changedFields).length > 0) {
       setMovieFormStatus('Сохраняю изменения...');
@@ -13817,7 +13774,7 @@ async function updateMovie(event) {
 
     if (relationsChanged) {
       await withPendingRequestTimeout(
-        replaceMovieRelations(editingMovieId, genreNames, countryNames),
+        replaceMovieRelations(editingMovieId, formDraft.genreNames, formDraft.countryNames),
         15000,
         'Превышено время ожидания обновления жанров и стран.'
       );
@@ -13826,7 +13783,7 @@ async function updateMovie(event) {
     if (directorsChanged) {
       setMovieFormStatus('Сохраняю режиссёров...');
       await withPendingRequestTimeout(
-        replaceMovieDirectors(editingMovieId, directorNames),
+        replaceMovieDirectors(editingMovieId, formDraft.directorNames),
         15000,
         'Превышено время ожидания сохранения режиссёров.'
       );
@@ -18917,489 +18874,6 @@ async function fetchPublicProfilesByIds(profileIds = []) {
     .filter(Boolean);
 }
 
-function getUserPageMovieIds(rows = []) {
-  return [...new Set(
-    (Array.isArray(rows) ? rows : [])
-      .map(row => String(row?.movie_id || ''))
-      .filter(Boolean)
-  )];
-}
-
-function getUserPageAverageRating(ratingRows) {
-  const values = (Array.isArray(ratingRows) ? ratingRows : [])
-    .map(row => Number(row.rating))
-    .filter(rating => Number.isFinite(rating) && rating > 0);
-
-  if (!values.length) {
-    return null;
-  }
-
-  return values.reduce((sum, rating) => sum + rating, 0) / values.length;
-}
-
-function getUserPageTopCountItem(counts, options = {}) {
-  const items = Array.from(counts.entries())
-    .filter(([value, count]) => value && Number(count) > 0);
-
-  if (!items.length) {
-    return null;
-  }
-
-  items.sort(([firstValue, firstCount], [secondValue, secondCount]) => {
-    if (firstCount !== secondCount) {
-      return secondCount - firstCount;
-    }
-
-    if (options.numeric) {
-      return Number(secondValue) - Number(firstValue);
-    }
-
-    return String(firstValue).localeCompare(String(secondValue), 'ru');
-  });
-
-  const [label, count] = items[0];
-
-  return {
-    label: String(label),
-    count
-  };
-}
-
-function getUserPageTasteStats(items = []) {
-  const genreCounts = new Map();
-  const subgenreCounts = new Map();
-  const countryCounts = new Map();
-  const yearCounts = new Map();
-
-  (Array.isArray(items) ? items : []).forEach(item => {
-    const movie = item?.movie;
-
-    if (!movie) {
-      return;
-    }
-
-    const meta = getCatalogMovieMeta(movie);
-
-    meta.filterableGenreNames.forEach(genreName => addCount(genreCounts, genreName));
-    meta.subgenreKeys.forEach(subgenreKey => addCount(subgenreCounts, subgenreKey));
-    meta.countryNames.forEach(countryName => addCount(countryCounts, countryName));
-
-    if (movie.year) {
-      addCount(yearCounts, Number(movie.year));
-    }
-  });
-
-  return {
-    extraGenre: getUserPageTopCountItem(genreCounts),
-    subgenre: getUserPageTopCountItem(subgenreCounts),
-    country: getUserPageTopCountItem(countryCounts),
-    year: getUserPageTopCountItem(yearCounts, { numeric: true })
-  };
-}
-
-function getOptionalUserPageAggregateRows(result, label) {
-  if (result?.error) {
-    console.warn(`Не удалось загрузить агрегаты профиля (${label}):`, result.error);
-    return [];
-  }
-
-  return Array.isArray(result?.data) ? result.data : [];
-}
-
-function isUserPageActivityAggregateRowsCacheValid(cache) {
-  if (
-    !cache ||
-    cache.version !== USER_PAGE_ACTIVITY_AGGREGATE_CACHE_VERSION ||
-    cache.buildVersion !== APP_BUILD_VERSION ||
-    cache.mutationStamp !== getDataMutationStamp()
-  ) {
-    return false;
-  }
-
-  const createdAt = Number(cache.createdAt || 0);
-
-  if (!createdAt || Date.now() - createdAt > USER_PAGE_ACTIVITY_AGGREGATE_CACHE_MAX_AGE_MS) {
-    return false;
-  }
-
-  return (
-    Array.isArray(cache.profileRows) &&
-    Array.isArray(cache.ratingRows) &&
-    Array.isArray(cache.watchlistRows) &&
-    Array.isArray(cache.reviewRows)
-  );
-}
-
-function getUserPageActivityAggregateRowsCachePayload(cache) {
-  return {
-    profileRows: cache.profileRows || [],
-    ratingRows: cache.ratingRows || [],
-    watchlistRows: cache.watchlistRows || [],
-    reviewRows: cache.reviewRows || [],
-    hasProfileRows: Boolean(cache.hasProfileRows),
-    hasRatingRows: Boolean(cache.hasRatingRows),
-    hasWatchlistRows: Boolean(cache.hasWatchlistRows),
-    hasReviewRows: Boolean(cache.hasReviewRows)
-  };
-}
-
-function readUserPageActivityAggregateRowsCache() {
-  if (isUserPageActivityAggregateRowsCacheValid(userPageActivityAggregateRowsCache)) {
-    return getUserPageActivityAggregateRowsCachePayload(userPageActivityAggregateRowsCache);
-  }
-
-  try {
-    const rawCache = sessionStorage.getItem(USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY);
-    const parsedCache = rawCache ? JSON.parse(rawCache) : null;
-
-    if (!isUserPageActivityAggregateRowsCacheValid(parsedCache)) {
-      sessionStorage.removeItem(USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY);
-      userPageActivityAggregateRowsCache = null;
-      return null;
-    }
-
-    userPageActivityAggregateRowsCache = parsedCache;
-    return getUserPageActivityAggregateRowsCachePayload(parsedCache);
-  } catch (error) {
-    userPageActivityAggregateRowsCache = null;
-    return null;
-  }
-}
-
-function writeUserPageActivityAggregateRowsCache(payload) {
-  const cache = {
-    version: USER_PAGE_ACTIVITY_AGGREGATE_CACHE_VERSION,
-    buildVersion: APP_BUILD_VERSION,
-    mutationStamp: getDataMutationStamp(),
-    createdAt: Date.now(),
-    profileRows: Array.isArray(payload?.profileRows) ? payload.profileRows : [],
-    ratingRows: Array.isArray(payload?.ratingRows) ? payload.ratingRows : [],
-    watchlistRows: Array.isArray(payload?.watchlistRows) ? payload.watchlistRows : [],
-    reviewRows: Array.isArray(payload?.reviewRows) ? payload.reviewRows : [],
-    hasProfileRows: Boolean(payload?.hasProfileRows),
-    hasRatingRows: Boolean(payload?.hasRatingRows),
-    hasWatchlistRows: Boolean(payload?.hasWatchlistRows),
-    hasReviewRows: Boolean(payload?.hasReviewRows)
-  };
-
-  userPageActivityAggregateRowsCache = cache;
-
-  try {
-    sessionStorage.setItem(USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY, JSON.stringify(cache));
-  } catch (error) {
-    // Session storage can be unavailable or full; in-memory cache is enough as a fallback.
-  }
-}
-
-function invalidateUserPageActivityAggregateRowsCache() {
-  userPageActivityAggregateRowsCache = null;
-
-  try {
-    sessionStorage.removeItem(USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY);
-  } catch (error) {
-    // Ignore storage errors; cache invalidation is best-effort.
-  }
-}
-
-async function fetchUserPageActivityAggregateRows() {
-  const cachedRows = readUserPageActivityAggregateRowsCache();
-
-  if (cachedRows) {
-    return cachedRows;
-  }
-
-  try {
-    const [
-      profilesResult,
-      ratingsResult,
-      watchlistResult,
-      reviewsResult
-    ] = await Promise.all([
-      supabaseClient
-        .from('profiles')
-        .select('id')
-        .limit(USER_PAGE_ACTIVITY_AGGREGATE_LIMIT),
-      supabaseClient
-        .from('movie_ratings')
-        .select('user_id, movie_id')
-        .limit(USER_PAGE_ACTIVITY_AGGREGATE_LIMIT),
-      supabaseClient
-        .from('movie_watchlist')
-        .select('user_id, movie_id')
-        .limit(USER_PAGE_ACTIVITY_AGGREGATE_LIMIT),
-      supabaseClient
-        .from('movie_reviews')
-        .select('user_id')
-        .limit(USER_PAGE_ACTIVITY_AGGREGATE_LIMIT)
-    ]);
-
-    const aggregateRows = {
-      profileRows: getOptionalUserPageAggregateRows(profilesResult, 'profiles'),
-      ratingRows: getOptionalUserPageAggregateRows(ratingsResult, 'movie_ratings'),
-      watchlistRows: getOptionalUserPageAggregateRows(watchlistResult, 'movie_watchlist'),
-      reviewRows: getOptionalUserPageAggregateRows(reviewsResult, 'movie_reviews'),
-      hasProfileRows: !profilesResult.error,
-      hasRatingRows: !ratingsResult.error,
-      hasWatchlistRows: !watchlistResult.error,
-      hasReviewRows: !reviewsResult.error
-    };
-
-    if (
-      aggregateRows.hasProfileRows &&
-      aggregateRows.hasRatingRows &&
-      aggregateRows.hasWatchlistRows &&
-      aggregateRows.hasReviewRows
-    ) {
-      writeUserPageActivityAggregateRowsCache(aggregateRows);
-    }
-
-    return aggregateRows;
-  } catch (error) {
-    console.warn('Не удалось загрузить агрегаты профиля:', error);
-    return {
-      profileRows: [],
-      ratingRows: [],
-      watchlistRows: [],
-      reviewRows: [],
-      hasProfileRows: false,
-      hasRatingRows: false,
-      hasWatchlistRows: false,
-      hasReviewRows: false
-    };
-  }
-}
-
-function normalizeUserPageUserId(userId) {
-  return String(userId || '').trim();
-}
-
-function getUserPageUserMoviePairKey(row) {
-  const userId = normalizeUserPageUserId(row?.user_id);
-  const movieId = String(row?.movie_id || '').trim();
-
-  return userId && movieId ? `${userId}:${movieId}` : '';
-}
-
-function getUserPageUserCountMap(rows = []) {
-  const counts = new Map();
-
-  (Array.isArray(rows) ? rows : []).forEach(row => {
-    addCount(counts, normalizeUserPageUserId(row?.user_id));
-  });
-
-  return counts;
-}
-
-function getUserPageActiveWatchlistCountMap(watchlistRows = [], ratingRows = []) {
-  const ratedMovieUserPairs = new Set(
-    (Array.isArray(ratingRows) ? ratingRows : [])
-      .map(getUserPageUserMoviePairKey)
-      .filter(Boolean)
-  );
-  const counts = new Map();
-
-  (Array.isArray(watchlistRows) ? watchlistRows : []).forEach(row => {
-    const pairKey = getUserPageUserMoviePairKey(row);
-
-    if (!pairKey || ratedMovieUserPairs.has(pairKey)) {
-      return;
-    }
-
-    addCount(counts, normalizeUserPageUserId(row.user_id));
-  });
-
-  return counts;
-}
-
-function getUserPageActivityPopulationIds(aggregateRows, currentUserId, countMaps = []) {
-  const userIds = new Set();
-  const normalizedCurrentUserId = normalizeUserPageUserId(currentUserId);
-
-  (Array.isArray(aggregateRows?.profileRows) ? aggregateRows.profileRows : [])
-    .forEach(row => {
-      const userId = normalizeUserPageUserId(row?.id);
-
-      if (userId) {
-        userIds.add(userId);
-      }
-    });
-
-  countMaps.forEach(counts => {
-    counts.forEach((_, userId) => {
-      if (userId) {
-        userIds.add(userId);
-      }
-    });
-  });
-
-  if (normalizedCurrentUserId) {
-    userIds.add(normalizedCurrentUserId);
-  }
-
-  return userIds;
-}
-
-function getUserPageBetterThanPercent(count, countsByUser, populationUserIds, currentUserId) {
-  const ownCount = Number(count) || 0;
-  const normalizedCurrentUserId = normalizeUserPageUserId(currentUserId);
-
-  if (!ownCount || !normalizedCurrentUserId) {
-    return null;
-  }
-
-  const peerUserIds = Array.from(populationUserIds)
-    .filter(userId => userId && userId !== normalizedCurrentUserId);
-
-  if (!peerUserIds.length) {
-    return null;
-  }
-
-  const lowerCount = peerUserIds.reduce((total, userId) => (
-    total + ((countsByUser.get(userId) || 0) < ownCount ? 1 : 0)
-  ), 0);
-
-  if (!lowerCount) {
-    return null;
-  }
-
-  return Math.min(99, Math.max(1, Math.round((lowerCount / peerUserIds.length) * 100)));
-}
-
-function getUserPageActivityPlace(count, countsByUser, populationUserIds, currentUserId) {
-  const ownCount = Number(count) || 0;
-  const normalizedCurrentUserId = normalizeUserPageUserId(currentUserId);
-
-  if (!ownCount || !normalizedCurrentUserId) {
-    return null;
-  }
-
-  const peerUserIds = Array.from(populationUserIds)
-    .filter(userId => userId && userId !== normalizedCurrentUserId);
-
-  if (!peerUserIds.length) {
-    return null;
-  }
-
-  const higherCount = peerUserIds.reduce((total, userId) => (
-    total + ((countsByUser.get(userId) || 0) > ownCount ? 1 : 0)
-  ), 0);
-
-  return higherCount + 1;
-}
-
-function getUserPageActivityRank(count, countsByUser, populationUserIds, currentUserId) {
-  const place = getUserPageActivityPlace(count, countsByUser, populationUserIds, currentUserId);
-
-  if (!place) {
-    return null;
-  }
-
-  return {
-    place,
-    percent: getUserPageBetterThanPercent(count, countsByUser, populationUserIds, currentUserId)
-  };
-}
-
-function hasUserPageComparableActivityCount(countsByUser, currentUserId, ownCount) {
-  const normalizedCurrentUserId = normalizeUserPageUserId(currentUserId);
-  const expectedCount = Number(ownCount) || 0;
-
-  if (!expectedCount) {
-    return true;
-  }
-
-  return (countsByUser.get(normalizedCurrentUserId) || 0) === expectedCount;
-}
-
-function syncUserPageOwnActivityCount(countsByUser, currentUserId, ownCount) {
-  const normalizedCurrentUserId = normalizeUserPageUserId(currentUserId);
-
-  if (!normalizedCurrentUserId) {
-    return;
-  }
-
-  countsByUser.set(normalizedCurrentUserId, Number(ownCount) || 0);
-}
-
-function getUserPageActivityRanks(userId, aggregateRows = {}, ownCounts = {}) {
-  const ratingCounts = aggregateRows.hasRatingRows
-    ? getUserPageUserCountMap(aggregateRows.ratingRows)
-    : new Map();
-  const watchlistCounts = aggregateRows.hasWatchlistRows && aggregateRows.hasRatingRows
-    ? getUserPageActiveWatchlistCountMap(aggregateRows.watchlistRows, aggregateRows.ratingRows)
-    : new Map();
-  const reviewCounts = aggregateRows.hasReviewRows
-    ? getUserPageUserCountMap(aggregateRows.reviewRows)
-    : new Map();
-
-  syncUserPageOwnActivityCount(ratingCounts, userId, ownCounts.ratings);
-  syncUserPageOwnActivityCount(watchlistCounts, userId, ownCounts.watchlist);
-  syncUserPageOwnActivityCount(reviewCounts, userId, ownCounts.reviews);
-
-  const populationUserIds = getUserPageActivityPopulationIds(
-    aggregateRows,
-    userId,
-    [ratingCounts, watchlistCounts, reviewCounts]
-  );
-  const hasComparableRatings = aggregateRows.hasRatingRows &&
-    hasUserPageComparableActivityCount(ratingCounts, userId, ownCounts.ratings);
-  const hasComparableWatchlist = aggregateRows.hasWatchlistRows && aggregateRows.hasRatingRows &&
-    hasUserPageComparableActivityCount(watchlistCounts, userId, ownCounts.watchlist);
-  const hasComparableReviews = aggregateRows.hasReviewRows &&
-    hasUserPageComparableActivityCount(reviewCounts, userId, ownCounts.reviews);
-
-  return {
-    ratings: hasComparableRatings
-      ? getUserPageActivityRank(ownCounts.ratings, ratingCounts, populationUserIds, userId)
-      : null,
-    watchlist: hasComparableWatchlist
-      ? getUserPageActivityRank(ownCounts.watchlist, watchlistCounts, populationUserIds, userId)
-      : null,
-    reviews: hasComparableReviews
-      ? getUserPageActivityRank(ownCounts.reviews, reviewCounts, populationUserIds, userId)
-      : null
-  };
-}
-
-function sortUserPageMoviesByTitle(firstItem, secondItem) {
-  return getManualSimilarMovieLabel(firstItem.movie).localeCompare(
-    getManualSimilarMovieLabel(secondItem.movie),
-    'ru'
-  );
-}
-
-function getUserPageItemTimestampMs(item, fields) {
-  for (const field of fields) {
-    const timestamp = new Date(item?.[field] || 0).getTime();
-
-    if (Number.isFinite(timestamp) && timestamp > 0) {
-      return timestamp;
-    }
-  }
-
-  return 0;
-}
-
-function sortUserPageItemsByNewestAdded(firstItem, secondItem) {
-  const firstTime = getUserPageItemTimestampMs(firstItem, ['created_at', 'updated_at']);
-  const secondTime = getUserPageItemTimestampMs(secondItem, ['created_at', 'updated_at']);
-
-  return (
-    secondTime - firstTime ||
-    sortUserPageMoviesByTitle(firstItem, secondItem)
-  );
-}
-
-function sortUserPageReviewsByNewestActivity(firstItem, secondItem) {
-  const firstTime = getUserPageItemTimestampMs(firstItem, ['updated_at', 'created_at']);
-  const secondTime = getUserPageItemTimestampMs(secondItem, ['updated_at', 'created_at']);
-
-  return (
-    secondTime - firstTime ||
-    sortUserPageMoviesByTitle(firstItem, secondItem)
-  );
-}
-
 function getUserPageMovieCardHtml(item, getBadgeHtml = null) {
   const movie = item.movie;
   const movieTitle = getManualSimilarMovieLabel(movie);
@@ -19700,145 +19174,6 @@ function getUserPageMovieRailHtml(items, emptyText, getBadgeHtml = null, moreUrl
   `;
 }
 
-function getUserPageStatRankClass(place) {
-  if (place === 1) {
-    return 'user-page-stat-rank-gold';
-  }
-
-  if (place === 2) {
-    return 'user-page-stat-rank-silver';
-  }
-
-  if (place === 3) {
-    return 'user-page-stat-rank-bronze';
-  }
-
-  return 'user-page-stat-rank-regular';
-}
-
-function getUserPageStatRankHtml(rank) {
-  const place = Number(rank?.place);
-
-  if (!Number.isFinite(place) || place <= 0) {
-    return '';
-  }
-
-  const rankClass = getUserPageStatRankClass(place);
-  const percent = Number(rank?.percent);
-  const title = Number.isFinite(percent) && percent > 0
-    ? `Больше, чем у ${percent}% пользователей`
-    : '';
-  const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
-  const tooltipAttrs = title
-    ? ` data-user-page-rank-title="${escapeHtml(title)}" aria-expanded="false" role="button" tabindex="0"`
-    : '';
-  const ariaLabel = title || `${place} место в рейтинге`;
-
-  return `
-    <span class="user-page-stat-rank ${rankClass}"${titleAttr}${tooltipAttrs} aria-label="${escapeHtml(ariaLabel)}">
-      <span class="user-page-stat-rank-number">${escapeHtml(String(place))}</span>
-    </span>
-  `;
-}
-
-function getUserPageStatCardHtml(value, label, rank = null) {
-  return `
-    <div class="user-page-stat">
-      <span class="user-page-stat-value">${escapeHtml(String(value))}</span>
-      <span class="user-page-stat-label">${escapeHtml(label)}</span>
-      ${getUserPageStatRankHtml(rank)}
-    </div>
-  `;
-}
-
-function getUserPageTasteValueHtml(item) {
-  if (!item) {
-    return '<span class="user-page-taste-empty">—</span>';
-  }
-
-  return `
-    <span class="user-page-taste-name" title="${escapeHtml(item.label)}">${escapeHtml(item.label)}</span>
-    <span class="user-page-taste-count">(${escapeHtml(String(item.count))})</span>
-  `;
-}
-
-function getUserPageTasteCardHtml(label, item) {
-  return `
-    <div class="user-page-taste-card">
-      <span class="user-page-taste-label">${escapeHtml(label)}</span>
-      <span class="user-page-taste-value">${getUserPageTasteValueHtml(item)}</span>
-    </div>
-  `;
-}
-
-function getUserPageTasteStatsHtml(tasteStats = {}) {
-  return `
-    <section class="user-page-taste-stats" aria-label="Вкусовая статистика">
-      ${getUserPageTasteCardHtml('Любимый доп. жанр', tasteStats.extraGenre)}
-      ${getUserPageTasteCardHtml('Любимый поджанр', tasteStats.subgenre)}
-      ${getUserPageTasteCardHtml('Любимая страна', tasteStats.country)}
-      ${getUserPageTasteCardHtml('Любимый год', tasteStats.year)}
-    </section>
-  `;
-}
-
-function getUserPageSectionHeaderHtml(title, url) {
-  const normalizedTitle = String(title || '').trim();
-  const normalizedUrl = String(url || '').trim();
-
-  if (!normalizedTitle) {
-    return '';
-  }
-
-  return `
-    <div class="user-page-section-header">
-      <h2>
-        ${
-          normalizedUrl
-            ? `
-              <a class="user-page-section-title-link" href="${escapeHtml(normalizedUrl)}">
-                <span>${escapeHtml(normalizedTitle)}</span>
-                <span class="user-page-section-title-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" focusable="false">
-                    <path d="M7 17 17 7"></path>
-                    <path d="M9 7h8v8"></path>
-                  </svg>
-                </span>
-              </a>
-            `
-            : escapeHtml(normalizedTitle)
-        }
-      </h2>
-    </div>
-  `;
-}
-
-const NOTIFICATIONS_PAGE_FILTERS = [
-  { key: 'all', label: 'Все' },
-  { key: 'social', label: 'Реакции' },
-  { key: 'replies', label: 'Ответы' },
-  { key: 'following', label: 'Отслеживаемые' },
-  { key: 'new-movies', label: 'Новинки' }
-];
-
-const NOTIFICATIONS_DEFAULT_PREFERENCES = {
-  notify_new_movies: true,
-  notify_review_likes: true,
-  notify_comment_likes: true,
-  notify_comment_replies: true,
-  notify_review_comments: true,
-  notify_new_followers: true
-};
-
-const NOTIFICATIONS_PREFERENCE_LABELS = {
-  notify_new_movies: 'Новые фильмы',
-  notify_review_likes: 'Лайки рецензий',
-  notify_comment_likes: 'Лайки комментариев',
-  notify_comment_replies: 'Ответы на комментарии',
-  notify_review_comments: 'Ответы на рецензии',
-  notify_new_followers: 'Новые отслеживания'
-};
-
 function isNotificationsUnavailableError(error) {
   if (!error) {
     return false;
@@ -19951,1319 +19286,103 @@ function scheduleNotificationsUnreadRefresh(options = {}) {
   void refreshNotificationsUnreadCount(options);
 }
 
-function getNotificationEventTimestampMs(item) {
-  const timestamp = new Date(item?.createdAt || item?.deliveryCreatedAt || 0).getTime();
+let notificationsPageControllerPromise = null;
+let notificationsPageController = null;
 
-  return Number.isFinite(timestamp) ? timestamp : 0;
-}
-
-function getNotificationCategory(type) {
-  if (type === 'new_movies_digest') {
-    return 'new-movies';
-  }
-
-  if (type === 'followed_rating' || type === 'followed_watchlist' || type === 'followed_review') {
-    return 'following';
-  }
-
-  if (type === 'comment_reply' || type === 'review_comment') {
-    return 'replies';
-  }
-
-  return 'social';
-}
-
-function getNotificationMovieIdsFromPayload(payload) {
-  const movieIds = Array.isArray(payload?.movie_ids) ? payload.movie_ids : [];
-
-  return [...new Set(
-    movieIds
-      .map(movieId => String(movieId || '').trim())
-      .filter(Boolean)
-  )];
-}
-
-function getNotificationReviewSnippetIds(items = []) {
-  const reviewIds = new Set();
-
-  (Array.isArray(items) ? items : []).forEach(item => {
-    if ((item.type === 'review_liked' || item.type === 'followed_review') && item.entityId) {
-      reviewIds.add(String(item.entityId));
-    }
-  });
-
-  return [...reviewIds];
-}
-
-function getNotificationCommentSnippetIds(items = []) {
-  const commentIds = new Set();
-
-  (Array.isArray(items) ? items : []).forEach(item => {
-    if (
-      (item.type === 'comment_liked' || item.type === 'comment_reply' || item.type === 'review_comment') &&
-      item.entityId
-    ) {
-      commentIds.add(String(item.entityId));
-    }
-  });
-
-  return [...commentIds];
-}
-
-async function fetchNotificationReviewSnippets(reviewIds = []) {
-  const normalizedReviewIds = [...new Set(
-    (Array.isArray(reviewIds) ? reviewIds : [])
-      .map(reviewId => String(reviewId || '').trim())
-      .filter(Boolean)
-  )];
-
-  if (!normalizedReviewIds.length) {
-    return [];
-  }
-
-  const { data, error } = await supabaseClient
-    .from('movie_reviews')
-    .select('id, movie_id, review_text, contains_spoilers, contains_profanity')
-    .in('id', normalizedReviewIds);
-
-  if (error) {
-    console.warn('Ошибка загрузки фрагментов рецензий для уведомлений:', error);
-    return [];
-  }
-
-  return data || [];
-}
-
-async function fetchNotificationCommentSnippets(commentIds = []) {
-  const normalizedCommentIds = [...new Set(
-    (Array.isArray(commentIds) ? commentIds : [])
-      .map(commentId => String(commentId || '').trim())
-      .filter(Boolean)
-  )];
-
-  if (!normalizedCommentIds.length || !areMovieCommentsAvailable) {
-    return [];
-  }
-
-  const { data, error } = await supabaseClient
-    .from('movie_comments')
-    .select('id, movie_id, comment_text, contains_spoilers, contains_profanity, is_deleted')
-    .in('id', normalizedCommentIds);
-
-  if (error) {
-    if (isMovieCommentsTableUnavailableError(error)) {
-      areMovieCommentsAvailable = false;
-    }
-
-    console.warn('Ошибка загрузки фрагментов комментариев для уведомлений:', error);
-    return [];
-  }
-
-  areMovieCommentsAvailable = true;
-  return data || [];
-}
-
-function normalizeNotificationRow(row) {
-  const event = Array.isArray(row?.notification_events)
-    ? row.notification_events[0]
-    : row?.notification_events;
-
-  if (!event?.id) {
-    return null;
-  }
-
+function getNotificationsPageControllerContext() {
   return {
-    id: String(event.id),
-    type: String(event.type || '').trim(),
-    actorId: String(event.actor_id || '').trim(),
-    movieId: String(event.movie_id || '').trim(),
-    entityType: String(event.entity_type || '').trim(),
-    entityId: String(event.entity_id || '').trim(),
-    payload: event.payload && typeof event.payload === 'object' ? event.payload : {},
-    createdAt: event.created_at,
-    deliveryCreatedAt: row?.created_at,
-    readAt: row?.read_at || null
-  };
-}
-
-async function fetchNotificationsPageRows() {
-  if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
-    return [];
-  }
-
-  const { data, error } = await supabaseClient
-    .from('notification_deliveries')
-    .select('event_id, read_at, created_at, notification_events (id, type, actor_id, movie_id, entity_type, entity_id, payload, created_at)')
-    .eq('recipient_id', currentUser.id)
-    .order('created_at', { ascending: false })
-    .limit(NOTIFICATIONS_PAGE_LIMIT);
-
-  if (error) {
-    if (isNotificationsUnavailableError(error)) {
-      areNotificationsUnavailable = true;
-    }
-
-    throw error;
-  }
-
-  return (data || [])
-    .map(normalizeNotificationRow)
-    .filter(Boolean);
-}
-
-async function fetchCurrentNotificationPreferences() {
-  if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
-    return { ...NOTIFICATIONS_DEFAULT_PREFERENCES };
-  }
-
-  const { data, error } = await supabaseClient
-    .from('notification_preferences')
-    .select(Object.keys(NOTIFICATIONS_DEFAULT_PREFERENCES).join(', '))
-    .eq('user_id', currentUser.id)
-    .maybeSingle();
-
-  if (error) {
-    if (isNotificationsUnavailableError(error)) {
-      areNotificationsUnavailable = true;
-      return { ...NOTIFICATIONS_DEFAULT_PREFERENCES };
-    }
-
-    throw error;
-  }
-
-  if (data) {
-    return {
-      ...NOTIFICATIONS_DEFAULT_PREFERENCES,
-      ...Object.fromEntries(
-        Object.keys(NOTIFICATIONS_DEFAULT_PREFERENCES).map(key => [key, Boolean(data[key])])
-      )
-    };
-  }
-
-  const insertPayload = {
-    user_id: currentUser.id,
-    ...NOTIFICATIONS_DEFAULT_PREFERENCES
-  };
-  const { error: insertError } = await supabaseClient
-    .from('notification_preferences')
-    .insert(insertPayload);
-
-  if (insertError && insertError.code !== '23505') {
-    if (isNotificationsUnavailableError(insertError)) {
-      areNotificationsUnavailable = true;
-      return { ...NOTIFICATIONS_DEFAULT_PREFERENCES };
-    }
-
-    throw insertError;
-  }
-
-  return { ...NOTIFICATIONS_DEFAULT_PREFERENCES };
-}
-
-async function fetchNotificationsPageData() {
-  const [notificationRows, preferences] = await Promise.all([
-    fetchNotificationsPageRows(),
-    fetchCurrentNotificationPreferences()
-  ]);
-  const actorIds = [...new Set(
-    notificationRows
-      .map(item => item.actorId)
-      .filter(Boolean)
-  )];
-  const movieIds = [...new Set(
-    notificationRows
-      .flatMap(item => [
-        item.movieId,
-        ...getNotificationMovieIdsFromPayload(item.payload)
-      ])
-      .map(movieId => String(movieId || '').trim())
-      .filter(Boolean)
-  )];
-  const reviewSnippetIds = getNotificationReviewSnippetIds(notificationRows);
-  const commentSnippetIds = getNotificationCommentSnippetIds(notificationRows);
-  const [profiles, movies, reviewSnippets, commentSnippets] = await Promise.all([
-    fetchPublicProfilesByIds(actorIds),
-    fetchMoviesByIdsWithSelect(movieIds, MOVIE_USER_PAGE_CARD_SELECT),
-    fetchNotificationReviewSnippets(reviewSnippetIds),
-    fetchNotificationCommentSnippets(commentSnippetIds)
-  ]);
-  const profilesById = new Map((profiles || []).map(profile => [String(profile.id), profile]));
-  const moviesById = new Map((movies || []).map(movie => [String(movie.id), movie]));
-  const reviewSnippetsById = new Map((reviewSnippets || []).map(review => [String(review.id), review]));
-  const commentSnippetsById = new Map((commentSnippets || []).map(comment => [String(comment.id), comment]));
-
-  notificationsPagePreferences = preferences;
-  notificationsPageItems = notificationRows
-    .map(item => ({
-      ...item,
-      actor: item.actorId ? profilesById.get(item.actorId) : null,
-      movie: item.movieId ? moviesById.get(item.movieId) : null,
-      reviewSnippet: item.entityId ? reviewSnippetsById.get(item.entityId) : null,
-      commentSnippet: item.entityId ? commentSnippetsById.get(item.entityId) : null,
-      digestMovies: getNotificationMovieIdsFromPayload(item.payload)
-        .map(movieId => moviesById.get(movieId))
-        .filter(Boolean)
-    }))
-    .sort((firstItem, secondItem) => (
-      getNotificationEventTimestampMs(secondItem) - getNotificationEventTimestampMs(firstItem)
-    ));
-
-  return {
-    items: notificationsPageItems,
-    preferences
-  };
-}
-
-function getNotificationActorLinkHtml(actor) {
-  if (!actor) {
-    return '<span class="notifications-page-actor">Пользователь</span>';
-  }
-
-  const displayName = getPublicProfileDisplayName(actor);
-  const handle = getPublicProfileHandle(actor);
-
-  return `
-    <a class="notifications-page-actor" href="${escapeHtml(buildUserPageUrl(handle))}">
-      ${escapeHtml(displayName)}
-    </a>
-  `;
-}
-
-function getNotificationMovieDisplayTitle(movie, fallbackTitle = 'фильм') {
-  if (!movie) {
-    return fallbackTitle;
-  }
-
-  const title = String(movie.title || getManualSimilarMovieLabel(movie) || fallbackTitle).trim();
-  const year = Number(movie.year || 0);
-
-  return Number.isFinite(year) && year > 0 ? `${title} (${year})` : title;
-}
-
-function getNotificationMovieLinkHtml(movie, fallbackTitle = 'фильм') {
-  if (!movie) {
-    return `<span class="notifications-page-movie">${escapeHtml(fallbackTitle)}</span>`;
-  }
-
-  return `<a class="notifications-page-movie" href="${escapeHtml(buildMoviePageUrl(movie))}">${escapeHtml(getNotificationMovieDisplayTitle(movie, fallbackTitle))}</a>`;
-}
-
-function getNotificationProfileAvatarHtml(profile, className = 'notifications-page-avatar', size = 'small') {
-  const displayName = getPublicProfileDisplayName(profile);
-  const avatarUrl = getPublicProfileAvatarUrl(profile);
-  const modifierClass = size ? ` ${className}-${size}` : '';
-
-  if (avatarUrl) {
-    return `
-      <img
-        class="${className}${modifierClass}"
-        src="${escapeHtml(avatarUrl)}"
-        alt="Аватар пользователя ${escapeHtml(displayName)}"
-        loading="lazy"
-        decoding="async"
-      >
-    `;
-  }
-
-  return `
-    <span class="${className}${modifierClass}" aria-hidden="true">
-      ${escapeHtml(getUserPageAvatarLetter(displayName))}
-    </span>
-  `;
-}
-
-function getNotificationAvatarHtml(item) {
-  if (item.type === 'new_movies_digest') {
-    return '<span class="notifications-page-avatar notifications-page-avatar-system" aria-hidden="true">+</span>';
-  }
-
-  return getNotificationProfileAvatarHtml(
-    item.actor,
-    'notifications-page-avatar',
-    'small'
-  );
-}
-
-function getNotificationBadgeLabelHtml(item) {
-  if (item.type === 'followed_rating') {
-    const rating = Number(item.payload?.rating || 0);
-
-    return rating
-      ? `Оценка <strong>${escapeHtml(rating)}</strong><span>★</span>`
-      : 'Оценка';
-  }
-
-  if (item.type === 'followed_watchlist') {
-    return 'Смотреть позже';
-  }
-
-  if (item.type === 'followed_review') {
-    return 'Рецензия';
-  }
-
-  if (item.type === 'new_movies_digest') {
-    return 'Новинки';
-  }
-
-  if (item.type === 'review_liked' || item.type === 'comment_liked') {
-    return 'Реакция';
-  }
-
-  if (item.type === 'comment_reply' || item.type === 'review_comment') {
-    return 'Ответ';
-  }
-
-  if (item.type === 'profile_followed') {
-    return 'Новое отслеживание';
-  }
-
-  return '';
-}
-
-function getNotificationBadgeHtml(item) {
-  const labelHtml = getNotificationBadgeLabelHtml(item);
-
-  if (!labelHtml) {
-    return '';
-  }
-
-  return `
-    <span class="notifications-page-type-badge${item.type === 'followed_rating' ? ' is-rating' : ''}">
-      ${labelHtml}
-    </span>
-  `;
-}
-
-function getNotificationContextKind(item) {
-  if (item.type === 'review_liked' || item.type === 'followed_review') {
-    return 'review';
-  }
-
-  if (item.type === 'comment_liked' || item.type === 'comment_reply' || item.type === 'review_comment') {
-    return 'comment';
-  }
-
-  return '';
-}
-
-function getNotificationContextSource(item) {
-  const contextKind = getNotificationContextKind(item);
-
-  if (contextKind === 'review') {
-    return item.reviewSnippet || null;
-  }
-
-  if (contextKind === 'comment') {
-    return item.commentSnippet || null;
-  }
-
-  return null;
-}
-
-function getNotificationContextText(source, contextKind) {
-  if (!source) {
-    return '';
-  }
-
-  const label = NOTIFICATION_CONTEXT_SNIPPET_LABELS[contextKind] || 'Текст';
-
-  if (source.is_deleted) {
-    return `${label} удалён.`;
-  }
-
-  if (source.contains_spoilers || source.contains_profanity) {
-    return getMovieContentWarningCoverText(source, label);
-  }
-
-  const rawText = contextKind === 'review'
-    ? normalizeMovieReviewText(source.review_text || '')
-    : normalizeMovieCommentText(source.comment_text || '');
-
-  return rawText.replace(/\s+/g, ' ').trim();
-}
-
-function getNotificationContextAnchorId(source, contextKind) {
-  if (!source?.id) {
-    return '';
-  }
-
-  return contextKind === 'review'
-    ? getMovieReviewAnchorId(source.id)
-    : getMovieCommentAnchorId(source.id);
-}
-
-function getNotificationContextHtml(item) {
-  const contextKind = getNotificationContextKind(item);
-  const source = getNotificationContextSource(item);
-  const contextText = getNotificationContextText(source, contextKind);
-  const anchorId = getNotificationContextAnchorId(source, contextKind);
-
-  if (!contextKind || !source || !contextText) {
-    return '';
-  }
-
-  const label = NOTIFICATION_CONTEXT_SNIPPET_LABELS[contextKind] || 'Текст';
-  const contextInnerHtml = `
-    <span class="notifications-page-context-label">${escapeHtml(label)}</span>
-    <span class="notifications-page-context-text">${escapeHtml(contextText)}</span>
-  `;
-
-  if (!item.movie || !anchorId) {
-    return `<div class="notifications-page-context">${contextInnerHtml}</div>`;
-  }
-
-  return `
-    <a class="notifications-page-context" href="${escapeHtml(`${buildMoviePageUrl(item.movie)}#${anchorId}`)}">
-      ${contextInnerHtml}
-    </a>
-  `;
-}
-
-function getNotificationMovieCardHtml(movie) {
-  if (!movie) {
-    return '';
-  }
-
-  return getUserPageMovieCardHtml({ movie });
-}
-
-function getNotificationDigestMoviesHtml(item) {
-  const digestMovies = item.digestMovies || [];
-  const digestCount = Math.max(getNotificationMovieIdsFromPayload(item.payload).length, digestMovies.length);
-
-  return `
-    <div class="notifications-page-digest-summary">
-      Добавлены новые фильмы${digestCount ? ` (${digestCount})` : ''}
-    </div>
-    ${
-      digestMovies.length
-        ? `
-          <div class="notifications-page-movie-rail-shell user-page-movie-rail-shell" data-user-page-rail-shell="true">
-            <button
-              class="user-page-rail-button user-page-rail-button-prev notifications-page-movie-rail-button"
-              type="button"
-              data-user-page-rail-prev="true"
-              aria-label="Прокрутить новинки назад"
-              hidden
-            >
-              <span class="user-page-rail-button-icon" aria-hidden="true"></span>
-            </button>
-            <div class="notifications-page-movie-rail user-page-movie-rail" data-user-page-rail="true" tabindex="0">
-              ${digestMovies.map(getNotificationMovieCardHtml).join('')}
-            </div>
-            <button
-              class="user-page-rail-button user-page-rail-button-next notifications-page-movie-rail-button"
-              type="button"
-              data-user-page-rail-next="true"
-              aria-label="Прокрутить новинки вперёд"
-              hidden
-            >
-              <span class="user-page-rail-button-icon" aria-hidden="true"></span>
-            </button>
-          </div>
-        `
-        : ''
-    }
-  `;
-}
-
-function getNotificationBodyHtml(item) {
-  const actorHtml = getNotificationActorLinkHtml(item.actor);
-  const movieHtml = getNotificationMovieLinkHtml(item.movie);
-  let mainHtml = '';
-
-  if (item.type === 'review_liked') {
-    mainHtml = `${actorHtml} оценил(а) вашу рецензию к фильму ${movieHtml}.`;
-  }
-  else if (item.type === 'comment_liked') {
-    mainHtml = `${actorHtml} оценил(а) ваш комментарий к фильму ${movieHtml}.`;
-  }
-  else if (item.type === 'comment_reply') {
-    mainHtml = `${actorHtml} ответил(а) на ваш комментарий к фильму ${movieHtml}.`;
-  }
-  else if (item.type === 'review_comment') {
-    mainHtml = `${actorHtml} оставил(а) комментарий к вашей рецензии к фильму ${movieHtml}.`;
-  }
-  else if (item.type === 'followed_rating') {
-    mainHtml = `${actorHtml} оценил(а) фильм ${movieHtml}.`;
-  }
-  else if (item.type === 'followed_watchlist') {
-    mainHtml = `${actorHtml} добавил(а) фильм ${movieHtml} в «Смотреть позже».`;
-  }
-  else if (item.type === 'followed_review') {
-    mainHtml = `${actorHtml} написал(а) рецензию к фильму ${movieHtml}.`;
-  }
-  else if (item.type === 'profile_followed') {
-    mainHtml = `${actorHtml} начал(а) отслеживать ваш профиль.`;
-  }
-  else if (item.type === 'new_movies_digest') {
-    return getNotificationDigestMoviesHtml(item);
-  }
-  else {
-    mainHtml = 'Новое уведомление.';
-  }
-
-  return `
-    <div class="notifications-page-item-main-text">${mainHtml}</div>
-    ${getNotificationContextHtml(item)}
-  `;
-}
-
-function getNotificationsPageFilterCounts(items = []) {
-  const counts = new Map(NOTIFICATIONS_PAGE_FILTERS.map(filter => [filter.key, 0]));
-
-  for (const item of items) {
-    const category = getNotificationCategory(item.type);
-
-    counts.set('all', (counts.get('all') || 0) + 1);
-    counts.set(category, (counts.get(category) || 0) + 1);
-  }
-
-  return counts;
-}
-
-function renderNotificationsPreferenceToggles(preferences) {
-  return Object.entries(NOTIFICATIONS_PREFERENCE_LABELS)
-    .map(([key, label]) => {
-      const isChecked = Boolean(preferences?.[key]);
-      const isBusy = notificationPreferenceRequestKeys.has(key);
-
-      return `
-        <label class="notifications-page-preference">
-          <input
-            type="checkbox"
-            data-notification-preference-key="${escapeHtml(key)}"
-            ${isChecked ? 'checked' : ''}
-            ${isBusy ? 'disabled' : ''}
-          >
-          <span>${escapeHtml(label)}</span>
-        </label>
-      `;
-    })
-    .join('');
-}
-
-function renderNotificationsPagePreferences(preferences) {
-  return `
-    <section class="notifications-page-settings">
-      <div class="notifications-page-settings-header">
-        <h2>Настройки уведомлений</h2>
-        <a href="${escapeHtml(buildFollowingPageUrl())}" class="notifications-page-settings-action">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M4 7h10"></path>
-            <path d="M18 7h2"></path>
-            <path d="M16 5v4"></path>
-            <path d="M4 17h2"></path>
-            <path d="M10 17h10"></path>
-            <path d="M8 15v4"></path>
-          </svg>
-          <span>Отслеживаемые профили</span>
-        </a>
-      </div>
-      <div class="notifications-page-preferences">
-        ${renderNotificationsPreferenceToggles(preferences)}
-      </div>
-    </section>
-  `;
-}
-
-function renderNotificationsPageFilters(items = []) {
-  const counts = getNotificationsPageFilterCounts(items);
-
-  return `
-    <div class="notifications-page-toolbar">
-      <div class="notifications-page-filter-list" role="tablist" aria-label="Фильтр уведомлений">
-        ${NOTIFICATIONS_PAGE_FILTERS.map(filter => {
-          const count = counts.get(filter.key) || 0;
-          const isActive = notificationsPageFilter === filter.key;
-
-          return `
-            <button
-              type="button"
-              class="notifications-page-filter${isActive ? ' is-active' : ''}"
-              data-notification-filter="${escapeHtml(filter.key)}"
-              aria-pressed="${isActive ? 'true' : 'false'}"
-            >
-              ${escapeHtml(filter.label)}
-              <span>${escapeHtml(count)}</span>
-            </button>
-          `;
-        }).join('')}
-      </div>
-      <div class="notifications-page-toolbar-actions">
-        <button
-          type="button"
-          class="secondary-button notifications-page-clear-all-button"
-          data-notifications-clear-all="true"
-          aria-label="Очистить все уведомления"
-          title="Очистить всё"
-          ${isNotificationsPageClearingAll || isNotificationsPageMarkingAllRead || !items.length ? 'disabled' : ''}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M18 6 6 18"></path>
-            <path d="m6 6 12 12"></path>
-          </svg>
-          <span>Очистить всё</span>
-        </button>
-        <button
-          type="button"
-          class="secondary-button notifications-page-read-all-button"
-          data-notifications-mark-all-read="true"
-          ${isNotificationsPageMarkingAllRead || isNotificationsPageClearingAll || !items.some(item => !item.readAt) ? 'disabled' : ''}
-        >
-          Отметить все прочитанными
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-function renderNotificationsPageItem(item) {
-  const timestampMs = getNotificationEventTimestampMs(item);
-  const dateLabel = formatShortDateTime(timestampMs);
-  const readClass = item.readAt ? ' is-read' : ' is-unread';
-  const actorHandle = item.actor ? getPublicProfileHandle(item.actor) : '';
-  const actorDisplayName = item.actor ? getPublicProfileDisplayName(item.actor) : '';
-  const avatarHtml = getNotificationAvatarHtml(item);
-  const avatarContentHtml = actorHandle
-    ? `
-      <a
-        href="${escapeHtml(buildUserPageUrl(actorHandle))}"
-        class="notifications-page-avatar-link"
-        aria-label="Профиль ${escapeHtml(actorDisplayName)}"
-      >
-        ${avatarHtml}
-      </a>
-    `
-    : avatarHtml;
-
-  return `
-    <article
-      class="notifications-page-item${readClass}"
-      data-notification-event-id="${escapeHtml(item.id)}"
-    >
-      <div class="notifications-page-avatar-shell">
-        ${avatarContentHtml}
-        ${item.readAt ? '' : '<span class="notifications-page-unread-dot" aria-hidden="true"></span>'}
-      </div>
-      <div class="notifications-page-item-body">
-        <div class="notifications-page-item-topline">
-          ${getNotificationBadgeHtml(item)}
-          ${dateLabel ? `<time datetime="${new Date(timestampMs).toISOString()}">${escapeHtml(dateLabel)}</time>` : ''}
-        </div>
-        <div class="notifications-page-item-text">
-          ${getNotificationBodyHtml(item)}
-        </div>
-      </div>
-    </article>
-  `;
-}
-
-function renderNotificationsPageList(items = []) {
-  const filteredItems = notificationsPageFilter === 'all'
-    ? items
-    : items.filter(item => getNotificationCategory(item.type) === notificationsPageFilter);
-
-  if (!items.length) {
-    return '<div class="notifications-page-empty-state">Уведомлений пока нет.</div>';
-  }
-
-  if (!filteredItems.length) {
-    return '<div class="notifications-page-empty-state">В этом разделе пока нет уведомлений.</div>';
-  }
-
-  return `
-    <div class="notifications-page-list">
-      ${filteredItems.map(renderNotificationsPageItem).join('')}
-    </div>
-  `;
-}
-
-function renderNotificationsPageLoading() {
-  if (!notificationsPage) {
-    return;
-  }
-
-  notificationsPage.innerHTML = '<div class="notifications-page-loading-state">Загрузка уведомлений...</div>';
-}
-
-function renderNotificationsPageAuthGate() {
-  if (!notificationsPage) {
-    return;
-  }
-
-  document.title = 'Уведомления — Хоррорейро';
-  notificationsPage.innerHTML = `
-    <div class="notifications-page-empty-state notifications-page-empty-state-large">
-      <p>Войди, чтобы видеть уведомления о реакциях, ответах и отслеживаемых профилях.</p>
-      <button type="button" class="secondary-button notifications-page-login-button" data-notifications-login="true">
-        Войти
-      </button>
-    </div>
-  `;
-}
-
-function renderNotificationsPageUnavailable() {
-  if (!notificationsPage) {
-    return;
-  }
-
-  document.title = 'Уведомления — Хоррорейро';
-  notificationsPage.innerHTML = `
-    <div class="notifications-page-empty-state notifications-page-empty-state-large">
-      Контур уведомлений ещё не подключён. Обнови страницу позже или проверь серверную настройку.
-    </div>
-  `;
-}
-
-function renderNotificationsPageError() {
-  if (!notificationsPage) {
-    return;
-  }
-
-  notificationsPage.innerHTML = `
-    <div class="notifications-page-empty-state notifications-page-empty-state-large">
-      Не удалось загрузить уведомления. Попробуй обновить страницу.
-    </div>
-  `;
-}
-
-function renderNotificationsPage(data = {}) {
-  if (!notificationsPage) {
-    return;
-  }
-
-  clearNotificationReadDwellTimers();
-
-  const items = data.items || notificationsPageItems || [];
-  const preferences = data.preferences || notificationsPagePreferences || NOTIFICATIONS_DEFAULT_PREFERENCES;
-
-  document.title = 'Уведомления — Хоррорейро';
-  notificationsPage.innerHTML = `
-    ${renderNotificationsPagePreferences(preferences)}
-    <section class="notifications-page-feed">
-      <div class="notifications-page-section-header">
-        <h2>Лента уведомлений</h2>
-      </div>
-      ${renderNotificationsPageFilters(items)}
-      ${renderNotificationsPageList(items)}
-    </section>
-  `;
-  bindUserPageRailControls(notificationsPage);
-  bindNotificationsPageReadTracking();
-}
-
-function clearNotificationReadDwellTimers() {
-  notificationReadDwellTimers.forEach(timerId => window.clearTimeout(timerId));
-  notificationReadDwellTimers.clear();
-}
-
-function getNotificationItemByEventId(eventId) {
-  const normalizedEventId = String(eventId || '').trim();
-
-  return notificationsPageItems.find(item => item.id === normalizedEventId) || null;
-}
-
-function getNotificationElementByEventId(eventId) {
-  const normalizedEventId = String(eventId || '').trim();
-
-  if (!notificationsPage || !normalizedEventId) {
-    return null;
-  }
-
-  return notificationsPage.querySelector(`[data-notification-event-id="${CSS.escape(normalizedEventId)}"]`);
-}
-
-function syncNotificationsPageReadAllButtonState() {
-  const readAllButton = notificationsPage?.querySelector('[data-notifications-mark-all-read="true"]');
-  const clearAllButton = notificationsPage?.querySelector('[data-notifications-clear-all="true"]');
-
-  if (readAllButton) {
-    readAllButton.disabled =
-      isNotificationsPageMarkingAllRead ||
-      isNotificationsPageClearingAll ||
-      !notificationsPageItems.some(item => !item.readAt);
-  }
-
-  if (clearAllButton) {
-    clearAllButton.disabled =
-      isNotificationsPageClearingAll ||
-      isNotificationsPageMarkingAllRead ||
-      notificationsPageItems.length === 0;
-  }
-}
-
-function applyNotificationReadStateToDom(eventId) {
-  const notificationElement = getNotificationElementByEventId(eventId);
-
-  if (!notificationElement) {
-    return;
-  }
-
-  notificationElement.classList.remove('is-unread');
-  notificationElement.classList.add('is-read');
-  notificationElement.querySelector('.notifications-page-unread-dot')?.remove();
-  syncNotificationsPageReadAllButtonState();
-}
-
-function clearNotificationReadDwell(eventId) {
-  const normalizedEventId = String(eventId || '').trim();
-  const timerId = notificationReadDwellTimers.get(normalizedEventId);
-
-  if (!timerId) {
-    return;
-  }
-
-  window.clearTimeout(timerId);
-  notificationReadDwellTimers.delete(normalizedEventId);
-}
-
-function startNotificationReadDwell(eventId) {
-  const normalizedEventId = String(eventId || '').trim();
-  const item = getNotificationItemByEventId(normalizedEventId);
-
-  if (!normalizedEventId || !item || item.readAt || notificationReadDwellTimers.has(normalizedEventId)) {
-    return;
-  }
-
-  const timerId = window.setTimeout(() => {
-    notificationReadDwellTimers.delete(normalizedEventId);
-    void markNotificationRead(normalizedEventId, { rerender: false }).catch(error => {
-      console.warn('Ошибка отметки уведомления прочитанным:', error);
-    });
-  }, NOTIFICATION_READ_DWELL_MS);
-
-  notificationReadDwellTimers.set(normalizedEventId, timerId);
-}
-
-function isNotificationVisibilityReadTrackingEnabled() {
-  return Boolean(window.matchMedia?.('(hover: none), (pointer: coarse)').matches);
-}
-
-function observeNotificationsPageVisibleItems() {
-  if (notificationReadObserver) {
-    notificationReadObserver.disconnect();
-    notificationReadObserver = null;
-  }
-
-  if (
-    !notificationsPage ||
-    !isNotificationVisibilityReadTrackingEnabled() ||
-    typeof IntersectionObserver === 'undefined'
-  ) {
-    return;
-  }
-
-  notificationReadObserver = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      const eventId = entry.target?.dataset?.notificationEventId || '';
-
-      if (
-        entry.isIntersecting &&
-        entry.intersectionRatio >= NOTIFICATION_READ_VISIBILITY_RATIO &&
-        document.visibilityState !== 'hidden'
-      ) {
-        startNotificationReadDwell(eventId);
-      } else {
-        clearNotificationReadDwell(eventId);
-      }
-    });
-  }, {
-    threshold: [0, NOTIFICATION_READ_VISIBILITY_RATIO, 1]
-  });
-
-  notificationsPage
-    .querySelectorAll('.notifications-page-item.is-unread[data-notification-event-id]')
-    .forEach(item => notificationReadObserver.observe(item));
-}
-
-function handleNotificationReadPointerOver(event) {
-  if (event.pointerType === 'touch') {
-    return;
-  }
-
-  const notificationElement = event.target?.closest?.('.notifications-page-item[data-notification-event-id]');
-
-  if (!notificationElement || !notificationsPage?.contains(notificationElement)) {
-    return;
-  }
-
-  startNotificationReadDwell(notificationElement.dataset.notificationEventId);
-}
-
-function handleNotificationReadPointerOut(event) {
-  if (event.pointerType === 'touch') {
-    return;
-  }
-
-  const notificationElement = event.target?.closest?.('.notifications-page-item[data-notification-event-id]');
-
-  if (!notificationElement || notificationElement.contains(event.relatedTarget)) {
-    return;
-  }
-
-  clearNotificationReadDwell(notificationElement.dataset.notificationEventId);
-}
-
-function handleNotificationReadFocusIn(event) {
-  const notificationElement = event.target?.closest?.('.notifications-page-item[data-notification-event-id]');
-
-  if (!notificationElement || !notificationsPage?.contains(notificationElement)) {
-    return;
-  }
-
-  startNotificationReadDwell(notificationElement.dataset.notificationEventId);
-}
-
-function handleNotificationReadFocusOut(event) {
-  const notificationElement = event.target?.closest?.('.notifications-page-item[data-notification-event-id]');
-
-  if (!notificationElement || notificationElement.contains(event.relatedTarget)) {
-    return;
-  }
-
-  clearNotificationReadDwell(notificationElement.dataset.notificationEventId);
-}
-
-function bindNotificationsPageReadTracking() {
-  if (!areNotificationReadTrackingEventsBound) {
-    document.addEventListener('pointerover', handleNotificationReadPointerOver);
-    document.addEventListener('pointerout', handleNotificationReadPointerOut);
-    document.addEventListener('focusin', handleNotificationReadFocusIn);
-    document.addEventListener('focusout', handleNotificationReadFocusOut);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        clearNotificationReadDwellTimers();
-        return;
+    notificationsPage,
+    supabaseClient,
+    getCurrentUser: () => currentUser,
+    shouldUseAuthenticatedUi,
+    restoreSession,
+    bindSharedAuthStateListener,
+    openAuthModal,
+    showAppMessage,
+    escapeHtml,
+    buildFollowingPageUrl,
+    buildUserPageUrl,
+    buildMoviePageUrl,
+    getUserPageAvatarLetter,
+    getPublicProfileDisplayName,
+    getPublicProfileAvatarUrl,
+    getPublicProfileHandle,
+    fetchPublicProfilesByIds,
+    fetchMoviesByIdsWithSelect,
+    movieUserPageCardSelect: MOVIE_USER_PAGE_CARD_SELECT,
+    getManualSimilarMovieLabel,
+    normalizeMovieReviewText,
+    normalizeMovieCommentText,
+    getMovieContentWarningCoverText,
+    getMovieReviewAnchorId,
+    getMovieCommentAnchorId,
+    formatShortDateTime,
+    getUserPageMovieCardHtml,
+    bindUserPageRailControls,
+    runConfirmedAction,
+    isNotificationsUnavailableError,
+    isMovieCommentsTableUnavailableError,
+    getAreMovieCommentsAvailable: () => areMovieCommentsAvailable,
+    setAreMovieCommentsAvailable: value => {
+      areMovieCommentsAvailable = Boolean(value);
+    },
+    setNotificationsUnavailable: value => {
+      areNotificationsUnavailable = Boolean(value);
+    },
+    refreshNotificationsUnreadCount,
+    setNotificationsUnreadCount: (count, options = {}) => {
+      notificationsUnreadCount = Math.max(0, Number(count || 0));
+
+      if (Object.prototype.hasOwnProperty.call(options, 'userId')) {
+        notificationsUnreadUserId = String(options.userId || '');
       }
 
-      observeNotificationsPageVisibleItems();
-    });
-    areNotificationReadTrackingEventsBound = true;
-  }
-
-  observeNotificationsPageVisibleItems();
-}
-
-async function markNotificationRead(eventId, { rerender = true } = {}) {
-  const normalizedEventId = String(eventId || '').trim();
-
-  if (!normalizedEventId || !shouldUseAuthenticatedUi() || !currentUser?.id) {
-    return;
-  }
-
-  clearNotificationReadDwell(normalizedEventId);
-
-  const item = getNotificationItemByEventId(normalizedEventId);
-
-  if (item?.readAt) {
-    return;
-  }
-
-  const readAt = new Date().toISOString();
-  const { error } = await supabaseClient
-    .from('notification_deliveries')
-    .update({ read_at: readAt })
-    .eq('recipient_id', currentUser.id)
-    .eq('event_id', normalizedEventId)
-    .is('read_at', null);
-
-  if (error) {
-    if (isNotificationsUnavailableError(error)) {
-      areNotificationsUnavailable = true;
-    }
-
-    throw error;
-  }
-
-  if (item) {
-    item.readAt = readAt;
-  }
-
-  notificationsUnreadCount = Math.max(0, notificationsUnreadCount - 1);
-  syncNotificationsBadgeUi();
-
-  if (notificationsPage && rerender) {
-    renderNotificationsPage();
-  } else if (notificationsPage) {
-    applyNotificationReadStateToDom(normalizedEventId);
-  }
-}
-
-async function markAllNotificationsRead() {
-  if (
-    !shouldUseAuthenticatedUi() ||
-    !currentUser?.id ||
-    isNotificationsPageMarkingAllRead ||
-    isNotificationsPageClearingAll
-  ) {
-    return;
-  }
-
-  const unreadItems = notificationsPageItems.filter(item => !item.readAt);
-
-  if (!unreadItems.length) {
-    return;
-  }
-
-  isNotificationsPageMarkingAllRead = true;
-  renderNotificationsPage();
-
-  try {
-    const readAt = new Date().toISOString();
-    const { error } = await supabaseClient
-      .from('notification_deliveries')
-      .update({ read_at: readAt })
-      .eq('recipient_id', currentUser.id)
-      .is('read_at', null);
-
-    if (error) {
-      if (isNotificationsUnavailableError(error)) {
-        areNotificationsUnavailable = true;
+      if (Object.prototype.hasOwnProperty.call(options, 'fetchedAt')) {
+        notificationsUnreadFetchedAt = Number(options.fetchedAt || 0);
       }
 
-      throw error;
-    }
-
-    notificationsPageItems = notificationsPageItems.map(item => ({
-      ...item,
-      readAt: item.readAt || readAt
-    }));
-    notificationsUnreadCount = 0;
-    syncNotificationsBadgeUi();
-  } catch (error) {
-    console.error('Ошибка отметки уведомлений прочитанными:', error);
-    showAppMessage('Не удалось отметить уведомления прочитанными.', 'error', true);
-  } finally {
-    isNotificationsPageMarkingAllRead = false;
-    renderNotificationsPage();
-  }
-}
-
-async function clearAllNotifications() {
-  if (
-    !shouldUseAuthenticatedUi() ||
-    !currentUser?.id ||
-    isNotificationsPageClearingAll ||
-    isNotificationsPageMarkingAllRead ||
-    !notificationsPageItems.length
-  ) {
-    return;
-  }
-
-  await runConfirmedAction('Очистить все уведомления? Это действие нельзя отменить.', async () => {
-    isNotificationsPageClearingAll = true;
-    renderNotificationsPage();
-
-    try {
-      const { error } = await supabaseClient
-        .from('notification_deliveries')
-        .delete()
-        .eq('recipient_id', currentUser.id);
-
-      if (error) {
-        if (isNotificationsUnavailableError(error)) {
-          areNotificationsUnavailable = true;
-        }
-
-        throw error;
-      }
-
-      clearNotificationReadDwellTimers();
-      notificationsPageItems = [];
-      notificationsUnreadCount = 0;
-      notificationsUnreadUserId = currentUser.id;
-      notificationsUnreadFetchedAt = Date.now();
       syncNotificationsBadgeUi();
-    } catch (error) {
-      console.error('Ошибка очистки уведомлений:', error);
-      showAppMessage('Не удалось очистить уведомления.', 'error', true);
-    } finally {
-      isNotificationsPageClearingAll = false;
-      renderNotificationsPage();
+    },
+    decrementNotificationsUnreadCount: (amount = 1) => {
+      const numericAmount = Math.max(0, Number(amount || 0));
+      notificationsUnreadCount = Math.max(0, notificationsUnreadCount - numericAmount);
+      syncNotificationsBadgeUi();
     }
-  });
+  };
+}
+
+function loadNotificationsPageController() {
+  if (!notificationsPageControllerPromise) {
+    notificationsPageControllerPromise = import(getLazyFeatureModuleUrl('notifications-page.js'))
+      .then(module => {
+        notificationsPageController = module.createNotificationsPageController(getNotificationsPageControllerContext());
+        return notificationsPageController;
+      })
+      .catch(error => {
+        notificationsPageControllerPromise = null;
+        notificationsPageController = null;
+        throw error;
+      });
+  }
+
+  return notificationsPageControllerPromise;
 }
 
 function handleNotificationsPageClick(event) {
-  const loginButton = event.target?.closest?.('[data-notifications-login="true"]');
-
-  if (loginButton) {
-    event.preventDefault();
-    openAuthModal();
-    return true;
-  }
-
-  const filterButton = event.target?.closest?.('[data-notification-filter]');
-
-  if (filterButton) {
-    event.preventDefault();
-    notificationsPageFilter = String(filterButton.dataset.notificationFilter || 'all');
-    renderNotificationsPage();
-    return true;
-  }
-
-  const markAllReadButton = event.target?.closest?.('[data-notifications-mark-all-read="true"]');
-
-  if (markAllReadButton) {
-    event.preventDefault();
-    void markAllNotificationsRead();
-    return true;
-  }
-
-  const clearAllButton = event.target?.closest?.('[data-notifications-clear-all="true"]');
-
-  if (clearAllButton) {
-    event.preventDefault();
-    void clearAllNotifications();
-    return true;
-  }
-
-  const notificationItem = event.target?.closest?.('[data-notification-event-id]');
-
-  if (notificationItem) {
-    const destinationLink = event.target?.closest?.('a[href]');
-    const notificationEventId = notificationItem.dataset.notificationEventId;
-
-    if (!destinationLink) {
-      return false;
-    }
-
-    const shouldOpenNormally = Boolean(
-      (
-        event.metaKey ||
-        event.ctrlKey ||
-        event.shiftKey ||
-        event.altKey ||
-        destinationLink.target === '_blank'
-      )
-    );
-
-    if (!shouldOpenNormally) {
-      event.preventDefault();
-      void markNotificationRead(notificationEventId, { rerender: false })
-        .catch(error => {
-          console.warn('Ошибка отметки уведомления прочитанным:', error);
-        })
-        .finally(() => {
-          window.location.href = destinationLink.href;
-        });
-      return true;
-    }
-
-    void markNotificationRead(notificationEventId, { rerender: false }).catch(error => {
-      console.warn('Ошибка отметки уведомления прочитанным:', error);
-    });
-    return true;
-  }
-
-  return false;
-}
-
-async function updateNotificationPreference(key, value) {
-  const normalizedKey = String(key || '').trim();
-
-  if (!Object.prototype.hasOwnProperty.call(NOTIFICATIONS_DEFAULT_PREFERENCES, normalizedKey)) {
-    return;
-  }
-
-  if (!shouldUseAuthenticatedUi() || !currentUser?.id || notificationPreferenceRequestKeys.has(normalizedKey)) {
-    return;
-  }
-
-  notificationPreferenceRequestKeys.add(normalizedKey);
-  notificationsPagePreferences = {
-    ...(notificationsPagePreferences || NOTIFICATIONS_DEFAULT_PREFERENCES),
-    [normalizedKey]: Boolean(value)
-  };
-  renderNotificationsPage();
-
-  try {
-    const { error } = await supabaseClient
-      .from('notification_preferences')
-      .upsert({
-        user_id: currentUser.id,
-        [normalizedKey]: Boolean(value)
-      }, {
-        onConflict: 'user_id'
-      });
-
-    if (error) {
-      if (isNotificationsUnavailableError(error)) {
-        areNotificationsUnavailable = true;
-      }
-
-      throw error;
-    }
-  } catch (error) {
-    console.error('Ошибка обновления настройки уведомлений:', error);
-    notificationsPagePreferences = {
-      ...(notificationsPagePreferences || NOTIFICATIONS_DEFAULT_PREFERENCES),
-      [normalizedKey]: !Boolean(value)
-    };
-    showAppMessage('Не удалось обновить настройку уведомлений.', 'error', true);
-  } finally {
-    notificationPreferenceRequestKeys.delete(normalizedKey);
-    renderNotificationsPage();
-  }
+  return notificationsPageController?.handleNotificationsPageClick?.(event) || false;
 }
 
 function handleNotificationsPagePreferenceChange(event) {
-  const input = event.target?.closest?.('[data-notification-preference-key]');
-
-  if (!input) {
-    return false;
-  }
-
-  void updateNotificationPreference(input.dataset.notificationPreferenceKey, input.checked);
-  return true;
+  return notificationsPageController?.handleNotificationsPagePreferenceChange?.(event) || false;
 }
 
-async function loadNotificationsPage() {
-  if (!notificationsPage) {
-    return;
-  }
-
-  if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
-    renderNotificationsPageAuthGate();
-    return;
-  }
-
-  renderNotificationsPageLoading();
-
-  try {
-    const data = await fetchNotificationsPageData();
-    await refreshNotificationsUnreadCount({ force: true });
-    renderNotificationsPage(data);
-  } catch (error) {
-    if (isNotificationsUnavailableError(error)) {
-      console.warn('Контур уведомлений пока недоступен:', error);
-      renderNotificationsPageUnavailable();
-      return;
-    }
-
-    console.error('Ошибка загрузки страницы уведомлений:', error);
-    renderNotificationsPageError();
-  }
+function observeNotificationsPageVisibleItems() {
+  notificationsPageController?.observeNotificationsPageVisibleItems?.();
 }
 
 async function initNotificationsPage() {
-  renderNotificationsPageLoading();
-
-  const restoredUser = await restoreSession();
-
-  bindSharedAuthStateListener({
-    onAfterAuthSync: async () => {
-      await loadNotificationsPage();
-    }
-  });
-
-  if (!restoredUser && !shouldUseAuthenticatedUi()) {
-    renderNotificationsPageAuthGate();
-    return;
-  }
-
-  await loadNotificationsPage();
+  const controller = await loadNotificationsPageController();
+  await controller.initNotificationsPage();
 }
 
 let followingPageControllerPromise = null;
@@ -21316,275 +19435,74 @@ async function initFollowingPage() {
   await controller.initFollowingPage();
 }
 
-function renderUserPageLoading() {
-  if (!userPage) {
-    return;
-  }
+let userPageControllerPromise = null;
+let userPageController = null;
 
-  hideUserPageRankTooltip();
-  syncUserPageMainTitle();
-  userPage.innerHTML = '<div class="user-page-loading-state">Загрузка профиля...</div>';
-}
-
-function renderUserPageNotFound() {
-  if (!userPage) {
-    return;
-  }
-
-  hideUserPageRankTooltip();
-  syncUserPageMainTitle();
-  setUserPageDocumentMeta(null);
-  userPage.innerHTML = `
-    <div class="user-page-empty-state user-page-empty-state-large">
-      Пользователь не найден.
-    </div>
-  `;
-}
-
-async function fetchPublicUserPageData(profile) {
-  const userId = profile?.id;
-
-  if (!userId) {
-    return null;
-  }
-
-  const [
-    ratingsResult,
-    watchlistResult,
-    reviewsResult,
-    activityAggregateRows
-  ] = await Promise.all([
-    supabaseClient
-      .from('movie_ratings')
-      .select('movie_id, rating, created_at, updated_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false }),
-    supabaseClient
-      .from('movie_watchlist')
-      .select('movie_id, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false }),
-    supabaseClient
-      .from('movie_reviews')
-      .select('id, movie_id, created_at, updated_at')
-      .eq('user_id', userId)
-      .order('updated_at', { ascending: false }),
-    fetchUserPageActivityAggregateRows()
-  ]);
-
-  throwIfSupabaseError(ratingsResult.error);
-  throwIfSupabaseError(watchlistResult.error);
-  throwIfSupabaseError(reviewsResult.error);
-
-  const ratingRows = ratingsResult.data || [];
-  const watchlistRows = watchlistResult.data || [];
-  const reviewRows = reviewsResult.data || [];
-  const ratedMovieIds = new Set(getUserPageMovieIds(ratingRows));
-  const activeWatchlistRows = watchlistRows.filter(row => (
-    row?.movie_id && !ratedMovieIds.has(String(row.movie_id))
-  ));
-
-  const previewRatingRows = ratingRows.slice(0, USER_PAGE_PREVIEW_LIMIT);
-  const previewWatchlistRows = activeWatchlistRows.slice(0, USER_PAGE_PREVIEW_LIMIT);
-  const previewReviewRows = reviewRows.slice(0, USER_PAGE_PREVIEW_LIMIT);
-  const previewMovieIds = [...new Set([
-    ...getUserPageMovieIds(previewRatingRows),
-    ...getUserPageMovieIds(previewWatchlistRows),
-    ...getUserPageMovieIds(previewReviewRows)
-  ])];
-  const tasteMovieIds = getUserPageMovieIds(ratingRows);
-
-  const [previewMovies, tasteMovies] = await Promise.all([
-    fetchMoviesByIdsWithSelect(previewMovieIds, MOVIE_USER_PAGE_CARD_SELECT),
-    fetchMoviesByIdsWithSelect(tasteMovieIds, MOVIE_USER_PAGE_TASTE_SELECT)
-  ]);
-  const previewMoviesById = new Map(previewMovies.map(movie => [String(movie.id), movie]));
-  const tasteMoviesById = new Map(tasteMovies.map(movie => [String(movie.id), movie]));
-  const ratingItems = previewRatingRows
-    .map(row => ({
-      ...row,
-      movie: previewMoviesById.get(String(row.movie_id))
-    }))
-    .filter(item => item.movie)
-    .sort(sortUserPageItemsByNewestAdded);
-  const watchlistItems = previewWatchlistRows
-    .map(row => ({
-      ...row,
-      movie: previewMoviesById.get(String(row.movie_id))
-    }))
-    .filter(item => item.movie)
-    .sort(sortUserPageItemsByNewestAdded);
-  const reviewItems = previewReviewRows
-    .map(row => ({
-      ...row,
-      movie: previewMoviesById.get(String(row.movie_id))
-    }))
-    .filter(item => item.movie)
-    .sort(sortUserPageReviewsByNewestActivity);
-  const tasteItems = ratingRows
-    .map(row => ({
-      ...row,
-      movie: tasteMoviesById.get(String(row.movie_id))
-    }))
-    .filter(item => item.movie);
-
+function getUserPageControllerContext() {
   return {
-    profile,
-    ratingItems,
-    watchlistItems,
-    reviewItems,
-    ratingCount: ratingRows.length,
-    watchlistCount: activeWatchlistRows.length,
-    reviewCount: reviewRows.length,
-    averageRating: getUserPageAverageRating(ratingRows),
-    tasteStats: getUserPageTasteStats(tasteItems),
-    activityRanks: getUserPageActivityRanks(userId, activityAggregateRows, {
-      ratings: ratingRows.length,
-      watchlist: activeWatchlistRows.length,
-      reviews: reviewRows.length
-    })
+    userPage,
+    supabaseClient,
+    getCurrentUser: () => currentUser,
+    shouldUseAuthenticatedUi,
+    restoreSession,
+    trackEmailConfirmedLoginIfNeeded,
+    bindSharedAuthStateListener,
+    escapeHtml,
+    buildCatalogProfileActivityUrl,
+    getPublicProfileDisplayName,
+    getPublicProfileHandle,
+    fetchPublicUserProfileByHandle,
+    getCatalogMovieMeta,
+    addCount,
+    fetchMoviesByIdsWithSelect,
+    movieUserPageCardSelect: MOVIE_USER_PAGE_CARD_SELECT,
+    movieUserPageTasteSelect: MOVIE_USER_PAGE_TASTE_SELECT,
+    throwIfSupabaseError,
+    getManualSimilarMovieLabel,
+    getUserPageAvatarHtml,
+    getUserPageFollowButtonHtml,
+    getUserPageAdminPasswordPanelHtml,
+    setUserPageDocumentMeta,
+    syncUserPageMainTitle,
+    bindUserPageRailControls,
+    syncUserPageProfileSettingsButton,
+    getUserPageMovieRailHtml,
+    hideUserPageRankTooltip,
+    userPageActivityAggregateCacheKey: USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY,
+    userPagePreviewLimit: USER_PAGE_PREVIEW_LIMIT
   };
 }
 
-function renderUserPage(data) {
-  if (!userPage || !data?.profile) {
-    return;
+function loadUserPageController() {
+  if (!userPageControllerPromise) {
+    userPageControllerPromise = import(getLazyFeatureModuleUrl('user-page.js'))
+      .then(module => {
+        userPageController = module.createUserPageController(getUserPageControllerContext());
+        return userPageController;
+      })
+      .catch(error => {
+        userPageControllerPromise = null;
+        userPageController = null;
+        throw error;
+      });
   }
 
-  hideUserPageRankTooltip();
-  const displayName = getPublicProfileDisplayName(data.profile);
-  const handle = getPublicProfileHandle(data.profile);
-  const averageRating = data.averageRating === null ? '-' : data.averageRating.toFixed(1);
-  const ratingCount = Number(data.ratingCount ?? data.ratingItems.length) || 0;
-  const watchlistCount = Number(data.watchlistCount ?? data.watchlistItems.length) || 0;
-  const reviewCount = Number(data.reviewCount ?? data.reviewItems.length) || 0;
-  const ratingsCatalogUrl = buildCatalogProfileActivityUrl(handle, 'ratings');
-  const watchlistCatalogUrl = buildCatalogProfileActivityUrl(handle, 'watchlist');
-  const reviewsCatalogUrl = buildCatalogProfileActivityUrl(handle, 'reviews');
-  const canEditDisplayName = Boolean(
-    shouldUseAuthenticatedUi() &&
-    currentUser?.id &&
-    String(data.profile.id || '') === String(currentUser.id)
-  );
-  const avatarHtml = getUserPageAvatarHtml(data.profile, displayName, canEditDisplayName);
-  const followButtonHtml = getUserPageFollowButtonHtml(data.profile);
-  const profileSettingsButtonHtml = canEditDisplayName
-    ? `
-      <button
-        type="button"
-        class="user-page-display-name-edit-button user-page-settings-button"
-        data-user-page-profile-settings="true"
-        data-profile-id="${escapeHtml(data.profile.id)}"
-        aria-label="Настройки профиля"
-        title="Настройки профиля"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path class="settings-gear-fill" fill-rule="evenodd" clip-rule="evenodd" d="M10.1 2h3.8l.45 3.02c.55.18 1.08.4 1.58.68l2.47-1.83 2.69 2.69-1.83 2.47c.28.5.5 1.03.68 1.58L22.96 11v3.8l-3.02.45a8.2 8.2 0 0 1-.68 1.58l1.83 2.47-2.69 2.69-2.47-1.83c-.5.28-1.03.5-1.58.68l-.45 3.02h-3.8l-.45-3.02a8.2 8.2 0 0 1-1.58-.68L5.6 21.99 2.91 19.3l1.83-2.47a8.2 8.2 0 0 1-.68-1.58L1.04 14.8V11l3.02-.45c.18-.55.4-1.08.68-1.58L2.91 6.5 5.6 3.81l2.47 1.83c.5-.28 1.03-.5 1.58-.68L10.1 2ZM12 15.45a3.55 3.55 0 1 0 0-7.1 3.55 3.55 0 0 0 0 7.1Z"></path>
-        </svg>
-      </button>
-    `
-    : '';
+  return userPageControllerPromise;
+}
 
-  setUserPageDocumentMeta(data.profile);
-  syncUserPageMainTitle(data.profile);
+function invalidateUserPageActivityAggregateRowsCache() {
+  userPageController?.invalidateUserPageActivityAggregateRowsCache?.();
 
-  userPage.innerHTML = `
-    <div class="user-page-overview">
-      <section class="user-page-hero">
-        ${avatarHtml}
-        <div class="user-page-identity">
-          <div class="user-page-title-row">
-            <div class="user-page-display-name" data-user-page-display-name="true">${escapeHtml(displayName)}</div>
-            ${profileSettingsButtonHtml}
-          </div>
-          <div class="user-page-handle">${escapeHtml(handle)}</div>
-          ${followButtonHtml}
-        </div>
-      </section>
-
-      <section class="user-page-stats" aria-label="Статистика пользователя">
-        ${getUserPageStatCardHtml(ratingCount, 'Оценено', data.activityRanks?.ratings)}
-        ${getUserPageStatCardHtml(averageRating, 'Средняя оценка')}
-        ${getUserPageStatCardHtml(watchlistCount, 'Смотреть позже', data.activityRanks?.watchlist)}
-        ${getUserPageStatCardHtml(reviewCount, 'Рецензии', data.activityRanks?.reviews)}
-      </section>
-    </div>
-
-    ${getUserPageTasteStatsHtml(data.tasteStats)}
-
-    <section class="user-page-section">
-      ${getUserPageSectionHeaderHtml('Оценки и просмотры', ratingsCatalogUrl)}
-      ${getUserPageMovieRailHtml(
-          data.ratingItems,
-          'Пока нет оценённых фильмов.',
-          item => `<span class="user-page-card-badge">★ ${Number(item.rating || 0)}</span>`,
-          ratingsCatalogUrl,
-          ratingCount
-        )}
-    </section>
-
-    <section class="user-page-section">
-      ${getUserPageSectionHeaderHtml('Смотреть позже', watchlistCatalogUrl)}
-      ${getUserPageMovieRailHtml(data.watchlistItems, 'Список просмотра пуст.', null, watchlistCatalogUrl, watchlistCount)}
-    </section>
-
-    <section class="user-page-section">
-      ${getUserPageSectionHeaderHtml('Рецензии', reviewsCatalogUrl)}
-      ${getUserPageMovieRailHtml(
-          data.reviewItems,
-          'Пока нет рецензий.',
-          () => '<span class="user-page-card-badge user-page-card-badge-muted">Рецензия</span>',
-          reviewsCatalogUrl,
-          reviewCount
-        )}
-    </section>
-
-    ${getUserPageAdminPasswordPanelHtml(data.profile)}
-  `;
-
-  bindUserPageRailControls();
-  syncUserPageProfileSettingsButton();
+  try {
+    sessionStorage.removeItem(USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY);
+  } catch (error) {
+    console.warn('?? ??????? ???????? ??? ????????? ???????:', error);
+  }
 }
 
 async function initUserPage() {
-  const handle = getUserPageRouteHandle();
-
-  renderUserPageLoading();
-  await restoreSession();
-  trackEmailConfirmedLoginIfNeeded();
-
-  try {
-    const profile = await fetchPublicUserProfileByHandle(handle);
-
-    if (!profile) {
-      renderUserPageNotFound();
-      return;
-    }
-
-    const data = await fetchPublicUserPageData(profile);
-    renderUserPage(data);
-  } catch (error) {
-    console.error('Ошибка загрузки страницы пользователя:', error);
-    renderUserPageNotFound();
-  }
-
-  bindSharedAuthStateListener({
-    onAfterAuthSync: async () => {
-      try {
-        const profile = await fetchPublicUserProfileByHandle(handle);
-
-        if (!profile) {
-          renderUserPageNotFound();
-          return;
-        }
-
-        const data = await fetchPublicUserPageData(profile);
-        renderUserPage(data);
-      } catch (error) {
-        console.error('Ошибка обновления страницы пользователя после смены auth-состояния:', error);
-      }
-    }
-  });
+  const controller = await loadUserPageController();
+  await controller.initUserPage();
 }
 
 function getMoviePageRouteParams() {
@@ -22448,7 +20366,7 @@ async function saveMoviePageSimilarEditorIds(nextMovieIds, successMessage = 'П�
     await replaceManualSimilarMovies(movieId, normalizedMovieIds);
 
     currentMoviePageSimilarMovieIds = getManualSimilarMovieIds(movieId);
-    currentMoviePageSimilarMovies = await fetchCatalogMoviesByIds(currentMoviePageSimilarMovieIds);
+    currentMoviePageSimilarMovies = await fetchSimilarCardMoviesByIds(currentMoviePageSimilarMovieIds);
     moviePageSimilarEditorSearchQuery = '';
     setMoviePageSimilarEditorStatus(successMessage, 'success');
   } catch (error) {
@@ -22638,7 +20556,7 @@ async function loadMoviePageSimilarMovies(movie, limit = 4, { shouldRender = tru
     const displayMovieIds = isAdmin
       ? similarMovieIds
       : similarMovieIds.slice(0, limit);
-    const similarMovies = await fetchCatalogMoviesByIds(displayMovieIds);
+    const similarMovies = await fetchSimilarCardMoviesByIds(displayMovieIds);
 
     if (
       requestId !== moviePageSimilarRequestId ||
@@ -22718,113 +20636,43 @@ function getMoviePageSimilarCardHtml(movie) {
 }
 
 function getMoviePageSubgenreLabel(movie) {
-  if (!Array.isArray(movie?.tags_perceived) || movie.tags_perceived.length === 0) {
-    return '';
-  }
-
-  return formatPublicCommaSeparatedValues(movie.tags_perceived.slice(0, 2));
+  return getMoviePageShellController().getMoviePageSubgenreLabel(movie);
 }
 
 function getMoviePageFormatsLabel(movie) {
-  if (!Array.isArray(movie?.formats) || movie.formats.length === 0) {
-    return '';
-  }
-
-  return movie.formats
-    .map(format => String(format || '').trim())
-    .filter(Boolean)
-    .join(', ');
+  return getMoviePageShellController().getMoviePageFormatsLabel(movie);
 }
 
-function buildMoviePageViewModel(movie, { includeSocialSections = true } = {}) {
-  const genreNames = movie.movie_genres
-    .map(item => item.genres.name)
-    .filter(Boolean);
-
-  return {
-    genres: formatGenreNamesForPublicDisplay(genreNames),
-    countries: movie.movie_countries.map(item => item.countries.name).join(', '),
-    production: formatTextArrayForDetail(movie.production),
-    distribution: formatTextArrayForDetail(movie.distribution),
-    russianDistribution: formatTextArrayForDetail(movie.russian_distribution),
-    runtimeLabel: formatRuntimeMinutes(movie.runtime_minutes),
-    averageRating: getMovieAverageRating(movie.id),
-    votesCount: getMovieVotesCount(movie.id),
-    currentUserRating: getCurrentUserRating(movie.id),
-    userMovieState: getCurrentUserMovieState(movie.id),
-    primaryPerceivedTagLabel: getMoviePageSubgenreLabel(movie),
-    formatsLabel: getMoviePageFormatsLabel(movie),
-    externalLinksHtml: getMoviePageExternalLinksHtml(movie),
-    trailerEmbedUrl: getYouTubeTrailerEmbedUrl(movie.trailer_url),
-    synopsis: String(movie.synopsis || '').trim(),
-    isRatingBusy: ratingRequestInFlight.has(String(movie.id)),
-    isWatchlistBusy: watchlistRequestInFlight.has(String(movie.id)),
-    reviewsSectionHtml: includeSocialSections ? getMoviePageReviewsSectionHtml(movie) : '',
-    commentsSectionHtml: includeSocialSections ? getMoviePageCommentsSectionHtml(movie) : ''
-  };
+function buildMoviePageViewModel(movie, options = {}) {
+  return getMoviePageShellController().buildMoviePageViewModel(movie, options);
 }
 
 function getMoviePagePosterGalleryImages(movie) {
-  if (!movie?.id) {
-    return [];
-  }
-
-  const uniqueImageUrls = new Set();
-  const images = [];
-
-  const addImage = (imageUrl, label) => {
-    const normalizedImageUrl = String(imageUrl || '').trim();
-
-    if (!normalizedImageUrl || uniqueImageUrls.has(normalizedImageUrl)) {
-      return;
-    }
-
-    uniqueImageUrls.add(normalizedImageUrl);
-    images.push({
-      imageUrl: normalizedImageUrl,
-      label
-    });
-  };
-
-  addImage(movie.poster_url, 'Основной постер');
-  getMoviePosterImages(movie.id).forEach((row, index) => {
-    addImage(row.image_url, `Дополнительное изображение ${index + 1}`);
-  });
-
-  return images;
+  return getMoviePageShellController().getMoviePagePosterGalleryImages(movie);
 }
 
 function getMoviePagePosterGalleryIndex(movieId, imagesCount) {
-  const storedIndex = Number(currentMoviePagePosterIndexByMovieId.get(String(movieId || '')) || 0);
-
-  if (!Number.isFinite(storedIndex) || storedIndex < 0) {
-    return 0;
-  }
-
-  if (storedIndex >= imagesCount) {
-    return Math.max(0, imagesCount - 1);
-  }
-
-  return storedIndex;
+  return getMoviePageShellController().getMoviePagePosterGalleryIndex(movieId, imagesCount);
 }
 
-function getMoviePagePosterGalleryButtonHtml(direction, { isHidden, title }) {
-  const buttonClassName = direction < 0
-    ? 'user-page-rail-button-prev movie-page-poster-gallery-button-prev'
-    : 'user-page-rail-button-next movie-page-poster-gallery-button-next';
+function getMoviePagePosterGalleryButtonHtml(direction, options) {
+  return getMoviePageShellController().getMoviePagePosterGalleryButtonHtml(direction, options);
+}
 
-  return `
-    <button
-      type="button"
-      class="user-page-rail-button ${buttonClassName} movie-page-poster-gallery-button"
-      data-movie-page-poster-gallery-step="${direction}"
-      aria-label="${escapeHtml(title)}"
-      title="${escapeHtml(title)}"
-      ${isHidden ? 'hidden' : ''}
-    >
-      <span class="user-page-rail-button-icon" aria-hidden="true"></span>
-    </button>
-  `;
+function getMoviePagePosterColumnHtml(movie, viewModel) {
+  return getMoviePageShellController().getMoviePagePosterColumnHtml(movie, viewModel);
+}
+
+function getMoviePageMainColumnHtml(movie, viewModel) {
+  return getMoviePageShellController().getMoviePageMainColumnHtml(movie, viewModel);
+}
+
+function getMoviePageHeaderHtml(movie, viewModel) {
+  return getMoviePageShellController().getMoviePageHeaderHtml(movie, viewModel);
+}
+
+function getMoviePageSkeletonHtml() {
+  return getMoviePageShellController().getMoviePageSkeletonHtml();
 }
 
 function applyPosterImageDataToElement(posterImage, publicUrl, presetName = 'detail') {
@@ -22995,303 +20843,6 @@ function bindMoviePagePosterGalleryEvents(movie) {
       Number(wrapper.dataset.moviePagePosterIndex || 0) + Number(button.dataset.moviePagePosterGalleryStep || 0)
     );
   });
-}
-
-function getMoviePagePosterColumnHtml(movie, viewModel) {
-  const {
-    userMovieState,
-    isWatchlistBusy,
-    trailerEmbedUrl
-  } = viewModel;
-  const galleryImages = getMoviePagePosterGalleryImages(movie);
-  const currentGalleryIndex = getMoviePagePosterGalleryIndex(movie.id, galleryImages.length);
-  const currentGalleryImage = galleryImages[currentGalleryIndex] || null;
-
-  return `
-    <div class="movie-page-poster-column">
-      <div
-        class="movie-page-poster-wrapper"
-        data-movie-page-poster-gallery="true"
-        data-movie-page-poster-index="${currentGalleryIndex}"
-      >
-        ${
-          currentGalleryImage
-            ? `
-              <img
-                class="movie-page-poster"
-                data-movie-page-poster-image="true"
-                ${getPosterImageAttributeHtml(currentGalleryImage.imageUrl, 'detail')}
-                alt="${escapeHtml(`${currentGalleryImage.label} фильма ${movie.title}`)}"
-                loading="eager"
-                decoding="async"
-                fetchpriority="high"
-              >
-            `
-            : `<div class="movie-poster-placeholder">Нет постера</div>`
-        }
-
-        ${
-          galleryImages.length > 1
-            ? `
-              ${getMoviePagePosterGalleryButtonHtml(-1, {
-                isHidden: currentGalleryIndex === 0,
-                title: 'Предыдущее изображение'
-              })}
-              ${getMoviePagePosterGalleryButtonHtml(1, {
-                isHidden: currentGalleryIndex >= galleryImages.length - 1,
-                title: 'Следующее изображение'
-              })}
-              <div class="movie-page-poster-gallery-counter" data-movie-page-poster-counter="true">
-                ${currentGalleryIndex + 1} / ${galleryImages.length}
-              </div>
-            `
-            : ''
-        }
-
-        ${
-          currentUser && !userMovieState.isWatched
-            ? `
-              <button
-                type="button"
-                class="movie-page-watchlist-icon ${userMovieState.isInWatchlist ? 'is-active' : ''}"
-                data-movie-page-watchlist-icon-toggle="true"
-                aria-label="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
-                title="${userMovieState.isInWatchlist ? 'Убрать из списка смотреть позже' : 'Добавить в список смотреть позже'}"
-                ${isWatchlistBusy ? 'disabled' : ''}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-              </button>
-            `
-            : ''
-        }
-
-        ${
-          userMovieState.isWatched
-            ? `
-              <div class="movie-page-watched-icon" aria-label="Просмотрено" title="Просмотрено">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M5 12.5L9.5 17L19 7.5"></path>
-                </svg>
-              </div>
-            `
-            : ''
-        }
-        </div>
-        ${
-          trailerEmbedUrl
-            ? `
-              <button
-                type="button"
-                class="secondary-button movie-page-rate-trigger movie-page-trailer-button"
-                data-movie-page-trailer-open="true"
-              >
-                <span class="movie-page-trailer-play-icon" aria-hidden="true"></span>
-                <span>Смотреть трейлер</span>
-              </button>
-            `
-            : ''
-        }
-        </div>
-      `;
-    }
-
-function getMoviePageMainColumnHtml(movie, viewModel) {
-  const {
-    genres,
-    countries,
-    production,
-    distribution,
-    russianDistribution,
-    runtimeLabel,
-    averageRating,
-    votesCount,
-    currentUserRating,
-    primaryPerceivedTagLabel,
-    formatsLabel,
-    externalLinksHtml,
-    synopsis,
-    isRatingBusy
-  } = viewModel;
-
-  return `
-    <div class="movie-page-main-column">
-      <div class="movie-page-title-block">
-      <div class="movie-page-title-row">
-      <div class="movie-page-title-main">
-        <h1 class="movie-page-title">${escapeHtml(movie.title)}</h1>
-
-        ${
-          movie.original_title
-            ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>`
-            : ''
-        }
-      </div>
-
-          <div class="movie-page-summary-panel">
-            <div class="movie-rating-summary movie-page-rating-summary">
-              <div class="movie-rating-summary-main movie-page-rating-summary-main">
-                <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
-                <span class="movie-rating-meta">(${votesCount} ${getVotesLabel(votesCount)})</span>
-              </div>
-            </div>
-
-            ${
-              currentUser
-                ? `
-                  <button
-                    type="button"
-                    class="secondary-button movie-page-rate-trigger"
-                    data-open-mobile-rating="true"
-                    ${isRatingBusy ? 'disabled' : ''}
-                  >
-                    ${
-                      currentUserRating !== null
-                        ? `Изменить <span class="movie-page-rate-value">${currentUserRating}</span><span class="movie-page-rate-trigger-star">★</span>`
-                        : 'Оценить'
-                    }
-                  </button>
-                `
-                : ''
-            }
-          </div>
-        </div>
-
-        <div class="movie-page-meta-list">
-          <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
-          <div class="movie-page-meta-item"><span>Режиссёр:</span> ${getMoviePageDirectorHtml(movie)}</div>
-          <div class="movie-page-meta-item"><span>Жанры:</span> ${genres ? escapeHtml(genres) : '-'}</div>
-          <div class="movie-page-meta-item"><span>Поджанры:</span> ${primaryPerceivedTagLabel ? escapeHtml(primaryPerceivedTagLabel) : '-'}</div>
-          ${
-            formatsLabel
-              ? `<div class="movie-page-meta-item"><span>Формат:</span> ${escapeHtml(formatsLabel)}</div>`
-              : ''
-          }
-          <div class="movie-page-meta-item"><span>Страны:</span> ${countries ? escapeHtml(countries) : '-'}</div>
-          ${
-            production
-              ? `<div class="movie-page-meta-item"><span>Производство:</span> ${escapeHtml(production)}</div>`
-              : ''
-          }
-          ${
-            distribution
-              ? `<div class="movie-page-meta-item"><span>Дистрибуция:</span> ${escapeHtml(distribution)}</div>`
-              : ''
-          }
-          ${
-            russianDistribution
-              ? `<div class="movie-page-meta-item"><span>Дистрибуция в России:</span> ${escapeHtml(russianDistribution)}</div>`
-              : ''
-          }
-          ${
-            runtimeLabel
-              ? `<div class="movie-page-meta-item"><span>Время:</span> ${escapeHtml(runtimeLabel)}</div>`
-              : ''
-          }
-        </div>
-
-        ${
-          synopsis
-            ? `
-              <div class="movie-page-synopsis-block">
-                <div class="movie-page-synopsis-text">${escapeHtml(synopsis)}</div>
-              </div>
-            `
-            : ''
-        }
-
-        ${
-          externalLinksHtml
-            ? `
-              <div class="movie-page-external-links-block">
-                ${externalLinksHtml}
-              </div>
-            `
-            : ''
-        }
-      </div>
-    </div>
-  `;
-}
-
-function getMoviePageHeaderHtml(movie, viewModel) {
-  return `
-    <article class="movie-page-layout" data-movie-id="${escapeHtml(movie.id)}">
-      ${getMoviePagePosterColumnHtml(movie, viewModel)}
-      ${getMoviePageMainColumnHtml(movie, viewModel)}
-    </article>
-  `;
-}
-
-function getMoviePageSkeletonHtml() {
-  const metaLinesHtml = Array.from({ length: 10 }, (_, index) => `
-    <div class="movie-page-skeleton-meta-line">
-      <span class="movie-text-skeleton movie-page-skeleton-label"></span>
-      <span class="movie-text-skeleton movie-page-skeleton-value movie-page-skeleton-value-${index + 1}"></span>
-    </div>
-  `).join('');
-  const externalLinksHtml = [
-    'movie-page-skeleton-link-wide',
-    'movie-page-skeleton-link-wide',
-    'movie-page-skeleton-link-icon',
-    'movie-page-skeleton-link-icon',
-  ].map((className) => `<span class="movie-text-skeleton movie-page-skeleton-link ${className}"></span>`).join('');
-
-  return `
-    <div class="movie-page-stack movie-page-stack-skeleton" aria-busy="true" aria-live="polite">
-      <span class="movie-page-skeleton-status">Загружаем фильм...</span>
-      <article class="movie-page-layout movie-page-layout-skeleton" aria-hidden="true">
-        <div class="movie-page-poster-column">
-          <div class="movie-page-poster-wrapper movie-poster-wrapper-skeleton">
-            <div class="movie-poster-skeleton" aria-hidden="true"></div>
-          </div>
-          <span class="movie-text-skeleton movie-page-skeleton-action"></span>
-        </div>
-
-        <div class="movie-page-main-column">
-          <div class="movie-page-title-block">
-            <div class="movie-page-title-row">
-              <div class="movie-page-title-main">
-                <span class="movie-text-skeleton movie-page-skeleton-title"></span>
-                <span class="movie-text-skeleton movie-page-skeleton-original-title"></span>
-              </div>
-
-              <div class="movie-page-summary-panel movie-page-skeleton-summary">
-                <span class="movie-text-skeleton movie-page-skeleton-rating"></span>
-                <span class="movie-text-skeleton movie-page-skeleton-rate-button"></span>
-              </div>
-            </div>
-
-            <div class="movie-page-meta-list movie-page-skeleton-meta-list">
-              ${metaLinesHtml}
-            </div>
-
-            <div class="movie-page-synopsis-block movie-page-skeleton-synopsis">
-              <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-1"></span>
-              <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-2"></span>
-              <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-3"></span>
-            </div>
-
-            <div class="movie-page-external-links-block movie-page-skeleton-links">
-              ${externalLinksHtml}
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <section class="movie-page-reviews-block movie-page-skeleton-section" aria-hidden="true">
-        <span class="movie-text-skeleton movie-page-skeleton-section-title"></span>
-        <div class="movie-page-skeleton-panel"></div>
-      </section>
-
-      <section class="movie-page-comments-block movie-page-skeleton-section" aria-hidden="true">
-        <span class="movie-text-skeleton movie-page-skeleton-section-title"></span>
-        <div class="movie-page-skeleton-panel movie-page-skeleton-panel-short"></div>
-      </section>
-    </div>
-  `;
 }
 
 function renderMoviePageSkeleton() {
@@ -23559,6 +21110,7 @@ async function initMoviePage() {
 
   await restoreSession();
   trackEmailConfirmedLoginIfNeeded();
+  await ensureMoviePageShellControllerLoaded();
   const restoredMovie = restoreMoviePageFromSessionCache(routeParams);
   const warmMovie = restoredMovie ? null : hydrateMoviePageFromCatalogSnapshot(routeParams);
 

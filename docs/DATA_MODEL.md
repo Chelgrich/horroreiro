@@ -1,6 +1,6 @@
 # Horroreiro Data Model Context
 
-Last updated: 2026-07-16.
+Last updated: 2026-08-09.
 
 This document describes the client-visible data model and operational assumptions. Supabase schema SQL has often been applied manually through the Supabase UI; do not assume old setup SQL files exist or are still authoritative.
 
@@ -32,6 +32,14 @@ Related movie data:
 - `countries`
 - poster gallery rows, used by detail gallery and admin poster editor;
 - manual similar movie rows.
+
+Client movie select profiles:
+
+- `MOVIE_CATALOG_SELECT`: catalog cards and full catalog cache.
+- `MOVIE_BASE_SELECT`: movie detail fallback/admin edit payload.
+- `MOVIE_USER_PAGE_CARD_SELECT`: profile rails and notification movie digests.
+- `MOVIE_USER_PAGE_TASTE_SELECT`: profile taste statistics.
+- `MOVIE_SIMILAR_CARD_SELECT`: movie detail manual similar cards; use this instead of full catalog payload when only similar-card fields are needed.
 
 Runtime display:
 
@@ -197,6 +205,8 @@ Client code must not use service role secrets. Storage writes should follow exis
 Known RPC:
 
 - `create_notification_test_suite`, admin/test utility for generating notification test data.
+- `get_movie_page_payload`, movie detail payload with rating/watchlist/poster data where available; client falls back to separate `MOVIE_BASE_SELECT` queries.
+- `get_person_page_payload`, public person/director page payload where available; client falls back to legacy director-name matching.
 
 Cloudflare Functions:
 

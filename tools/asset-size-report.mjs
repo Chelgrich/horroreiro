@@ -16,8 +16,12 @@ const assetGroups = {
     'admin-actions.js',
     'following-page.js',
     'letterboxd-import.js',
+    'movie-editor.js',
+    'movie-page-shell.js',
     'movie-social.js',
+    'notifications-page.js',
     'person-placeholders.js',
+    'user-page.js',
     'assets/directors-admin-app.js'
   ],
   css: [

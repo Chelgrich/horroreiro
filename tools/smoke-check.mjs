@@ -20,8 +20,12 @@ const lazyJsFiles = [
   'admin-actions.js',
   'following-page.js',
   'letterboxd-import.js',
+  'movie-editor.js',
+  'movie-page-shell.js',
   'movie-social.js',
+  'notifications-page.js',
   'person-placeholders.js',
+  'user-page.js',
   'assets/directors-admin-app.js'
 ];
 const syntaxFiles = [
@@ -47,7 +51,10 @@ const contextSensitiveExactFiles = new Set([
   'docs/DATA_MODEL.md',
   'following-page.js',
   'letterboxd-import.js',
+  'movie-editor.js',
+  'movie-page-shell.js',
   'movie-social.js',
+  'notifications-page.js',
   'movie-page.css',
   'secondary-pages.css',
   'package-lock.json',
@@ -55,6 +62,7 @@ const contextSensitiveExactFiles = new Set([
   'person-placeholders.js',
   'shared-layout.js',
   'styles.css',
+  'user-page.js',
   'vite.config.mjs'
 ]);
 const contextSensitivePrefixes = [
@@ -149,6 +157,22 @@ function checkAssetSizeReport() {
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-social.js')),
     'asset-size-report.mjs: movie-social.js must stay lazy-loaded outside startup profiles'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-editor.js')),
+    'asset-size-report.mjs: movie-editor.js must stay lazy-loaded outside startup profiles'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-page-shell.js')),
+    'asset-size-report.mjs: movie-page-shell.js must stay lazy-loaded outside startup profiles'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('notifications-page.js')),
+    'asset-size-report.mjs: notifications-page.js must stay lazy-loaded outside startup profiles'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('user-page.js')),
+    'asset-size-report.mjs: user-page.js must stay lazy-loaded outside startup profiles'
   );
 }
 
@@ -376,8 +400,12 @@ async function checkStaticGuards() {
     '/admin-actions.js',
     '/following-page.js',
     '/letterboxd-import.js',
+    '/movie-editor.js',
+    '/movie-page-shell.js',
     '/movie-social.js',
+    '/notifications-page.js',
     '/person-placeholders.js',
+    '/user-page.js',
     '/assets/directors-admin-app.js',
     '/shared-layout.js',
     '/styles.css',
@@ -406,8 +434,12 @@ async function checkStaticGuards() {
     'admin-actions.js',
     'following-page.js',
     'letterboxd-import.js',
+    'movie-editor.js',
+    'movie-page-shell.js',
     'movie-social.js',
+    'notifications-page.js',
     'person-placeholders.js',
+    'user-page.js',
     'assets/directors-admin-app.js',
     'shared-layout.js',
     'styles.css',
@@ -419,7 +451,11 @@ async function checkStaticGuards() {
   ];
 
   const appJs = await readText('app.js');
+  const movieEditorJs = await readText('movie-editor.js');
+  const moviePageShellJs = await readText('movie-page-shell.js');
   const movieSocialJs = await readText('movie-social.js');
+  const notificationsPageJs = await readText('notifications-page.js');
+  const userPageJs = await readText('user-page.js');
   const directorsAdminSource = await readText('src/directors-admin-app.jsx');
 
   assert(
@@ -429,6 +465,32 @@ async function checkStaticGuards() {
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('movie-social.js'))"),
     'app.js: movie detail social block must lazy-load movie-social.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('movie-editor.js'))"),
+    'app.js: movie editor helpers must lazy-load movie-editor.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('movie-page-shell.js'))"),
+    'app.js: movie detail shell must lazy-load movie-page-shell.js'
+  );
+  assert(
+    moviePageShellJs.includes('function getMoviePageHeaderHtml(') &&
+      !appJs.includes('function getMoviePageHeaderHtml(movie, viewModel) {\\n  return `'),
+    'movie-page-shell.js: movie page header renderer must stay outside app.js'
+  );
+  assert(
+    movieEditorJs.includes('function buildMovieChangedFields(') &&
+      !appJs.includes('function buildMovieChangedFields('),
+    'movie-editor.js: movie update diff helper must stay outside app.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('notifications-page.js'))"),
+    'app.js: /notifications page must lazy-load notifications-page.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('user-page.js'))"),
+    'app.js: /user page must lazy-load user-page.js'
   );
   assert(
     appJs.includes('function getMoviePageSimilarSectionHtml(') &&
@@ -471,6 +533,16 @@ async function checkStaticGuards() {
     'app.js: following page renderer should stay in following-page.js'
   );
   assert(
+    !appJs.includes('function renderNotificationsPageLoading()') &&
+      notificationsPageJs.includes('function renderNotificationsPageLoading()'),
+    'app.js: notifications page renderer should stay in notifications-page.js'
+  );
+  assert(
+    !appJs.includes('function renderUserPageLoading()') &&
+      userPageJs.includes('function renderUserPageLoading()'),
+    'app.js: user page renderer should stay in user-page.js'
+  );
+  assert(
     !appJs.includes('getFollowingPageAvatarHtml('),
     'app.js: notifications must not call following-page.js local avatar helpers'
   );
@@ -479,11 +551,11 @@ async function checkStaticGuards() {
     'app.js: notification page should select explicit notification event fields'
   );
   assert(
-    appJs.includes('data-notifications-clear-all="true"') &&
-      appJs.includes('async function clearAllNotifications()') &&
-      appJs.includes(".from('notification_deliveries')") &&
-      appJs.includes('.delete()'),
-    'app.js: notifications page must keep the clear-all delivery action wired'
+    notificationsPageJs.includes('data-notifications-clear-all="true"') &&
+      notificationsPageJs.includes('async function clearAllNotifications()') &&
+      notificationsPageJs.includes(".from('notification_deliveries')") &&
+      notificationsPageJs.includes('.delete()'),
+    'notifications-page.js: notifications page must keep the clear-all delivery action wired'
   );
   assert(
     directorsAdminSource.includes("transformedUrl.searchParams.set('width'") &&

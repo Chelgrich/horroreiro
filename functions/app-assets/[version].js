@@ -8,12 +8,16 @@ const ALLOWED_APP_ASSETS = new Set([
   'custom-select.js',
   'following-page.js',
   'letterboxd-import.js',
+  'movie-editor.js',
+  'movie-page-shell.js',
   'movie-social.js',
+  'notifications-page.js',
   'movie-page.css',
   'person-placeholders.js',
   'secondary-pages.css',
   'shared-layout.js',
-  'styles.css'
+  'styles.css',
+  'user-page.js'
 ]);
 
 export async function onRequestGet(context) {

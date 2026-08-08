@@ -13,13 +13,25 @@
 /letterboxd-import.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/movie-editor.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/movie-page-shell.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /movie-social.js
   Cache-Control: public, max-age=0, must-revalidate
 
 /following-page.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/notifications-page.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /person-placeholders.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/user-page.js
   Cache-Control: public, max-age=0, must-revalidate
 
 /assets/directors-admin-app.js
