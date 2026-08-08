@@ -12,6 +12,36 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-09 - Add Russian poster preference
+
+- Files:
+  - `app.js`
+  - `shared-layout.js`
+  - `styles.css`
+  - `movie-page-shell.js`
+  - `user-page.js`
+  - `notifications-page.js`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a profile settings checkbox for "Русские постеры", stored in `profiles.prefer_russian_posters`.
+  - Added shared poster selection helpers so catalog cards, detail poster gallery, similar cards, profile rails, notification digest rails, and person film grids use the second uploaded poster as primary when the setting is enabled.
+  - Added batch loading of `movie_poster_images` only when the preference is enabled, plus snapshot invalidation by poster preference to avoid restoring stale catalog DOM.
+  - Kept the movie editor order unchanged; after editing a movie poster gallery, the updated second poster is picked up from the existing poster-image cache/reload path.
+- Checks:
+  - `node --check app.js`
+  - `node --check shared-layout.js`
+  - `node --check user-page.js`
+  - `node --check notifications-page.js`
+  - `node --check movie-page-shell.js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+  - Browser smoke: local catalog, movie detail fallback, and notifications page reached `app-ready`; the profile settings modal included the Russian posters checkbox; no app console errors were reported.
+- Follow-up:
+  - Apply `alter table public.profiles add column if not exists prefer_russian_posters boolean not null default false;` in Supabase before using the setting.
+
 ## 2026-08-09 - Split lazy page and movie detail modules
 
 - Files:

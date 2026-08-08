@@ -95,6 +95,7 @@ All HTML-like app shell responses should be no-store.
 - ratings/watchlist;
 - notifications unread badge and shared notification availability;
 - shared user profile helpers, avatars, settings, follow controls, and reusable profile movie rails;
+- shared movie poster display preference helpers, including the profile-level "Русские постеры" mode that treats the second uploaded poster as primary when available;
 - people/director detail page;
 - bridging legacy app data into the `/directors` Preact island.
 
@@ -197,6 +198,7 @@ Movie detail features:
 - detail skeleton while first load is incomplete;
 - progressive detail loading: primary movie data renders before lower social/similar sections finish;
 - poster gallery with ordering/deletion;
+- profile-level Russian poster display mode reorders gallery display only, not the stored movie poster order;
 - trailer modal;
 - aggregator links;
 - ratings/watchlist;

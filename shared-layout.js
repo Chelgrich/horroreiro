@@ -297,6 +297,21 @@
                   <p class="user-page-avatar-status profile-settings-message" data-user-page-avatar-status="true" aria-live="polite" hidden></p>
                 </section>
 
+                <section class="profile-settings-section" aria-labelledby="profileSettingsPostersTitle">
+                  <h3 id="profileSettingsPostersTitle" class="profile-settings-section-title">Постеры</h3>
+                  <form id="profilePosterPreferenceForm" class="profile-settings-form profile-settings-poster-form">
+                    <label class="profile-settings-checkbox-label" for="profileRussianPostersInput">
+                      <input type="checkbox" id="profileRussianPostersInput">
+                      <span>Русские постеры</span>
+                    </label>
+                    <p class="profile-settings-description">Если у фильма есть второй загруженный постер, он будет показываться основным.</p>
+                    <div class="profile-settings-form-actions">
+                      <button type="submit" id="saveProfilePosterPreferenceButton">Сохранить</button>
+                    </div>
+                  </form>
+                  <p id="profilePosterPreferenceMessage" class="display-name-message profile-settings-message"></p>
+                </section>
+
                 <section class="profile-settings-section" aria-labelledby="profileSettingsPasswordTitle">
                   <h3 id="profileSettingsPasswordTitle" class="profile-settings-section-title">Пароль</h3>
                   <form id="profilePasswordForm" class="profile-settings-form profile-settings-password-form">

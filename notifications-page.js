@@ -52,6 +52,7 @@ export function createNotificationsPageController(context = {}) {
     getPublicProfileHandle = () => '',
     fetchPublicProfilesByIds = async () => [],
     fetchMoviesByIdsWithSelect = async () => [],
+    ensurePreferredPosterImagesForMovies = async () => {},
     movieUserPageCardSelect = '',
     getManualSimilarMovieLabel = () => '',
     normalizeMovieReviewText = value => String(value || ''),
@@ -326,6 +327,7 @@ export function createNotificationsPageController(context = {}) {
       fetchNotificationReviewSnippets(reviewSnippetIds),
       fetchNotificationCommentSnippets(commentSnippetIds)
     ]);
+    await ensurePreferredPosterImagesForMovies(movies);
     const profilesById = new Map((profiles || []).map(profile => [String(profile.id), profile]));
     const moviesById = new Map((movies || []).map(movie => [String(movie.id), movie]));
     const reviewSnippetsById = new Map((reviewSnippets || []).map(review => [String(review.id), review]));

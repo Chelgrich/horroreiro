@@ -17,6 +17,7 @@ export function createMoviePageShellController(context = {}) {
     getMoviePageReviewsSectionHtml = () => '',
     getMoviePageCommentsSectionHtml = () => '',
     getMoviePosterImages = () => [],
+    getMovieDisplayPosterGalleryImages = null,
     getPosterImageAttributeHtml = (imageUrl) => `src="${escapeHtml(imageUrl)}"`,
     getVotesLabel = () => 'оценок',
     getMoviePageDirectorHtml = () => '-',
@@ -77,6 +78,10 @@ export function createMoviePageShellController(context = {}) {
   }
 
   function getMoviePagePosterGalleryImages(movie) {
+    if (typeof getMovieDisplayPosterGalleryImages === 'function') {
+      return getMovieDisplayPosterGalleryImages(movie);
+    }
+
     if (!movie?.id) {
       return [];
     }

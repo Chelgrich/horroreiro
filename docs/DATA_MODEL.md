@@ -45,6 +45,7 @@ Runtime display:
 
 - Runtime is displayed as compact time in public UI, not raw minutes.
 - Additional genres/subgenres are normalized to lowercase after the first displayed value where needed.
+- If the current profile has `prefer_russian_posters = true`, public poster displays treat the first `movie_poster_images` row as the primary poster when it exists; otherwise they fall back to `movies.poster_url`. Stored poster order is not rewritten by this display preference.
 
 Movie data enrichment:
 
@@ -115,6 +116,7 @@ Important profile fields:
 - `default_display_name`
 - display name / nickname
 - avatar
+- `prefer_russian_posters`, default `false`, controls whether the second uploaded movie poster is displayed as primary for that user when available;
 - role/admin status
 
 Profile page uses:

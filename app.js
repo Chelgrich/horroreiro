@@ -20,6 +20,10 @@ const profilePasswordNewInput = document.getElementById('profilePasswordNew');
 const profilePasswordConfirmInput = document.getElementById('profilePasswordConfirm');
 const saveProfilePasswordButton = document.getElementById('saveProfilePasswordButton');
 const profilePasswordMessage = document.getElementById('profilePasswordMessage');
+const profilePosterPreferenceForm = document.getElementById('profilePosterPreferenceForm');
+const profileRussianPostersInput = document.getElementById('profileRussianPostersInput');
+const saveProfilePosterPreferenceButton = document.getElementById('saveProfilePosterPreferenceButton');
+const profilePosterPreferenceMessage = document.getElementById('profilePosterPreferenceMessage');
 const profileSummaryButton = document.getElementById('profileSummaryButton');
 const notificationsSummaryButton = document.getElementById('notificationsSummaryButton');
 const notificationsMenuBadge = document.getElementById('notificationsMenuBadge');
@@ -234,7 +238,7 @@ const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
 const MOVIE_PAGE_SESSION_CACHE_KEY = 'horroreiro_movie_page_session_cache';
 const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY = 'horroreiro_user_page_activity_aggregate_cache';
 const DATA_MUTATION_STAMP_KEY = 'horroreiro_data_mutation_stamp';
-const CATALOG_SESSION_SNAPSHOT_VERSION = 6;
+const CATALOG_SESSION_SNAPSHOT_VERSION = 7;
 const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
 const MOVIE_PAGE_SESSION_CACHE_VERSION = 1;
@@ -486,6 +490,8 @@ let isAuthModalOpen = false;
 let isAuthPopoverOpen = false;
 let isDisplayNameModalOpen = false;
 let isDisplayNameSubmitting = false;
+let isProfilePosterPreferenceSubmitting = false;
+let profileRussianPostersColumnAvailable = true;
 let isAuthRegisterMode = false;
 let isPasswordRecoveryMode = false;
 let isPasswordRecoveryEntryPage = false;
@@ -965,9 +971,12 @@ async function fetchSimilarCardMoviesByIds(movieIds = []) {
     await fetchMoviesByIdsWithSelect(missingMovieIds, MOVIE_SIMILAR_CARD_SELECT);
   }
 
-  return normalizedMovieIds
+  const movies = normalizedMovieIds
     .map(movieId => getCatalogMovieById(movieId) || similarMovieCache.get(String(movieId)))
     .filter(Boolean);
+
+  await ensurePreferredPosterImagesForMovies(movies);
+  return movies;
 }
 
 async function fetchMoviesByIdsWithSelect(movieIds = [], selectQuery = MOVIE_CATALOG_SELECT) {
@@ -2179,6 +2188,7 @@ async function fetchDirectorMovies(directorId) {
     .map(row => moviesById.get(String(row.movie_id || '')))
     .filter(Boolean);
 
+  await ensurePreferredPosterImagesForMovies(orderedMovies);
   return getSortedMoviesCopy(orderedMovies, 'default');
 }
 
@@ -2258,6 +2268,7 @@ async function fetchLegacyDirectorMovieMatches({ slug = '', nameRu = '' } = {}) 
     return Boolean(matchedName);
   });
 
+  await ensurePreferredPosterImagesForMovies(matchingMovies);
   cacheCatalogMovies(matchingMovies);
 
   return {
@@ -2313,6 +2324,7 @@ async function fetchDirectorPagePayloadViaRpc(slug) {
   const director = normalizeDirectorRow(data.director);
   const movies = getSortedMoviesCopy(Array.isArray(data.movies) ? data.movies : [], 'default');
 
+  await ensurePreferredPosterImagesForMovies(movies);
   cacheCatalogMovies(movies);
 
   return {
@@ -2568,7 +2580,7 @@ function renderDirectorMoviesGrid(movies) {
     const renderContext = createMovieCardRenderContext('');
     let priorityPosterSlotsRemaining = CATALOG_PRIORITY_POSTER_COUNT;
     const getPriorityPosterOptions = movie => {
-      const isPriorityPoster = priorityPosterSlotsRemaining > 0 && Boolean(movie?.poster_url);
+      const isPriorityPoster = priorityPosterSlotsRemaining > 0 && Boolean(getMoviePreferredPosterUrl(movie));
 
       if (isPriorityPoster) {
         priorityPosterSlotsRemaining = Math.max(0, priorityPosterSlotsRemaining - 1);
@@ -4350,6 +4362,14 @@ function getMoviePosterImages(movieId) {
   return moviePosterImagesByMovieId.get(String(movieId)) || [];
 }
 
+function getNormalizedMovieIdsFromMovies(movies = []) {
+  return [...new Set(
+    (Array.isArray(movies) ? movies : [])
+      .map(movie => String(movie?.id || '').trim())
+      .filter(Boolean)
+  )];
+}
+
 async function fetchMoviePosterImagesForMovie(movieId, { force = false } = {}) {
   const normalizedMovieId = String(movieId || '').trim();
 
@@ -4403,6 +4423,150 @@ async function fetchMoviePosterImagesForMovieSafe(movieId, options = {}) {
     console.warn('Не удалось загрузить галерею постеров:', error);
     return getMoviePosterImages(movieId);
   }
+}
+
+async function fetchMoviePosterImagesForMovies(movieIds = [], { force = false } = {}) {
+  const normalizedMovieIds = [...new Set(
+    (Array.isArray(movieIds) ? movieIds : [])
+      .map(movieId => String(movieId || '').trim())
+      .filter(Boolean)
+  )];
+
+  if (!normalizedMovieIds.length) {
+    return new Map();
+  }
+
+  if (!moviePosterImagesTableAvailable) {
+    normalizedMovieIds.forEach(movieId => setMoviePosterImagesCache(movieId, []));
+    return new Map(normalizedMovieIds.map(movieId => [movieId, []]));
+  }
+
+  const movieIdsToFetch = normalizedMovieIds.filter(movieId =>
+    force || !moviePosterImagesLoadedByMovieId.has(movieId)
+  );
+
+  if (!movieIdsToFetch.length) {
+    return new Map(normalizedMovieIds.map(movieId => [movieId, getMoviePosterImages(movieId)]));
+  }
+
+  const rowsByMovieId = new Map(movieIdsToFetch.map(movieId => [movieId, []]));
+  const chunkSize = 200;
+
+  for (let index = 0; index < movieIdsToFetch.length; index += chunkSize) {
+    const chunkMovieIds = movieIdsToFetch.slice(index, index + chunkSize);
+    const { data, error } = await supabaseClient
+      .from('movie_poster_images')
+      .select('id, movie_id, image_url, position')
+      .in('movie_id', chunkMovieIds)
+      .order('movie_id', { ascending: true })
+      .order('position', { ascending: true });
+
+    if (error) {
+      if (isMoviePosterImagesTableUnavailableError(error)) {
+        moviePosterImagesTableAvailable = false;
+        normalizedMovieIds.forEach(movieId => setMoviePosterImagesCache(movieId, []));
+        return new Map(normalizedMovieIds.map(movieId => [movieId, []]));
+      }
+
+      throw error;
+    }
+
+    (data || []).forEach(row => {
+      const movieId = String(row?.movie_id || '').trim();
+
+      if (!rowsByMovieId.has(movieId)) {
+        rowsByMovieId.set(movieId, []);
+      }
+
+      rowsByMovieId.get(movieId).push(row);
+    });
+  }
+
+  movieIdsToFetch.forEach(movieId => {
+    setMoviePosterImagesCache(movieId, rowsByMovieId.get(movieId) || []);
+  });
+
+  return new Map(normalizedMovieIds.map(movieId => [movieId, getMoviePosterImages(movieId)]));
+}
+
+async function fetchMoviePosterImagesForMoviesSafe(movieIds = [], options = {}) {
+  try {
+    return await fetchMoviePosterImagesForMovies(movieIds, options);
+  } catch (error) {
+    console.warn('Не удалось загрузить галереи постеров:', error);
+    return new Map(
+      (Array.isArray(movieIds) ? movieIds : [])
+        .map(movieId => String(movieId || '').trim())
+        .filter(Boolean)
+        .map(movieId => [movieId, getMoviePosterImages(movieId)])
+    );
+  }
+}
+
+async function ensurePreferredPosterImagesForMovies(movies = [], options = {}) {
+  if (!options.force && !shouldPreferRussianPosters()) {
+    return new Map();
+  }
+
+  return fetchMoviePosterImagesForMoviesSafe(getNormalizedMovieIdsFromMovies(movies), options);
+}
+
+function getMoviePreferredPosterUrl(movie) {
+  const primaryPosterUrl = String(movie?.poster_url || '').trim();
+
+  if (!movie?.id || !shouldPreferRussianPosters()) {
+    return primaryPosterUrl;
+  }
+
+  const [firstAdditionalPoster] = getMoviePosterImages(movie.id);
+  const russianPosterUrl = String(firstAdditionalPoster?.image_url || '').trim();
+
+  return russianPosterUrl || primaryPosterUrl;
+}
+
+function getMovieDisplayPosterGalleryImages(movie) {
+  if (!movie?.id) {
+    return [];
+  }
+
+  const uniqueImageUrls = new Set();
+  const primaryPosterUrl = String(movie?.poster_url || '').trim();
+  const additionalPosterRows = getMoviePosterImages(movie.id);
+  const orderedImageEntries = [
+    {
+      imageUrl: primaryPosterUrl,
+      label: 'Основной постер'
+    },
+    ...additionalPosterRows.map((row, index) => ({
+      imageUrl: row.image_url,
+      label: `Дополнительное изображение ${index + 1}`
+    }))
+  ];
+
+  if (shouldPreferRussianPosters() && orderedImageEntries.length > 1) {
+    const [primaryEntry, russianEntry, ...restEntries] = orderedImageEntries;
+    orderedImageEntries.splice(
+      0,
+      orderedImageEntries.length,
+      { ...russianEntry, label: 'Основной постер' },
+      { ...primaryEntry, label: 'Дополнительное изображение 1' },
+      ...restEntries
+    );
+  }
+
+  return orderedImageEntries
+    .map(entry => ({
+      ...entry,
+      imageUrl: String(entry.imageUrl || '').trim()
+    }))
+    .filter(entry => {
+      if (!entry.imageUrl || uniqueImageUrls.has(entry.imageUrl)) {
+        return false;
+      }
+
+      uniqueImageUrls.add(entry.imageUrl);
+      return true;
+    });
 }
 
 function createMoviePosterImageDraftEntryId(prefix = 'poster') {
@@ -5315,6 +5479,35 @@ function getCurrentUserPublicHandle() {
   ).trim();
 }
 
+function doesProfilePreferRussianPosters(profile = currentUserProfile) {
+  return Boolean(profile?.prefer_russian_posters);
+}
+
+function shouldPreferRussianPosters() {
+  return Boolean(shouldUseAuthenticatedUi() && doesProfilePreferRussianPosters());
+}
+
+function syncProfilePosterPreferenceControls(profile = currentUserProfile) {
+  if (!profileRussianPostersInput && !saveProfilePosterPreferenceButton) {
+    return;
+  }
+
+  const shouldDisable = !shouldUseAuthenticatedUi() || !profileRussianPostersColumnAvailable || isProfilePosterPreferenceSubmitting;
+
+  if (profileRussianPostersInput) {
+    profileRussianPostersInput.checked = doesProfilePreferRussianPosters(profile);
+    profileRussianPostersInput.disabled = shouldDisable;
+  }
+
+  if (saveProfilePosterPreferenceButton) {
+    saveProfilePosterPreferenceButton.disabled = shouldDisable;
+  }
+
+  if (!profileRussianPostersColumnAvailable) {
+    setProfilePosterPreferenceMessage('Нужно добавить колонку prefer_russian_posters в profiles и повторить попытку.', 'error');
+  }
+}
+
 function syncAuthPopoverNavigationLink(linkElement, href, shouldShow) {
   if (!linkElement) {
     return;
@@ -5384,6 +5577,19 @@ function setProfilePasswordMessage(message = '', type = '') {
   }
 }
 
+function setProfilePosterPreferenceMessage(message = '', type = '') {
+  if (!profilePosterPreferenceMessage) {
+    return;
+  }
+
+  profilePosterPreferenceMessage.textContent = message;
+  profilePosterPreferenceMessage.classList.remove('is-error', 'is-success');
+
+  if (type) {
+    profilePosterPreferenceMessage.classList.add(`is-${type}`);
+  }
+}
+
 function clearProfileSettingsPasswordFields() {
   [
     profilePasswordCurrentInput,
@@ -5439,6 +5645,7 @@ function closeDisplayNameModal() {
   displayNameButton?.setAttribute('aria-expanded', 'false');
   setDisplayNameMessage();
   setProfilePasswordMessage();
+  setProfilePosterPreferenceMessage();
   clearProfileSettingsPasswordFields();
   syncBodyScrollLock();
 }
@@ -5453,8 +5660,12 @@ function openDisplayNameModal() {
   displayNameInput.value = getCurrentDisplayName();
   syncProfileSettingsAvatarPreview(currentUserProfile);
   syncUserPageAvatarControls(currentUserProfile);
+  syncProfilePosterPreferenceControls(currentUserProfile);
   setDisplayNameMessage();
   setProfilePasswordMessage();
+  if (profileRussianPostersColumnAvailable) {
+    setProfilePosterPreferenceMessage();
+  }
   clearProfileSettingsPasswordFields();
   displayNameModal.classList.add('is-open');
   isDisplayNameModalOpen = true;
@@ -5537,31 +5748,88 @@ async function updateCurrentUserDisplayName(nextDisplayName) {
   updateAuthUI();
 }
 
-function isMissingAvatarColumnError(error) {
+function isMissingProfileOptionalColumnError(error) {
   const message = String(error?.message || '').toLowerCase();
 
   return (
     error?.code === '42703' ||
     error?.code === 'PGRST204' ||
-    message.includes('avatar_url') ||
     message.includes('column') && message.includes('schema cache')
   );
 }
 
-async function runProfileSelectWithOptionalAvatar(createQuery, selectWithAvatar, selectWithoutAvatar) {
-  const { data, error } = await createQuery(selectWithAvatar);
+function getMissingProfileOptionalColumnName(error, optionalColumns = []) {
+  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+  const normalizedOptionalColumns = optionalColumns
+    .map(columnName => String(columnName || '').trim())
+    .filter(Boolean);
+  const explicitMissingColumn = normalizedOptionalColumns.find(columnName =>
+    message.includes(columnName.toLowerCase())
+  );
 
-  if (error && isMissingAvatarColumnError(error)) {
-    const fallbackResult = await createQuery(selectWithoutAvatar);
-
-    throwIfSupabaseError(fallbackResult.error);
-
-    return fallbackResult.data || null;
+  if (explicitMissingColumn) {
+    return explicitMissingColumn;
   }
 
-  throwIfSupabaseError(error);
+  if (!isMissingProfileOptionalColumnError(error)) {
+    return '';
+  }
 
-  return data || null;
+  if (error?.code === '42703' || error?.code === 'PGRST204') {
+    return normalizedOptionalColumns[normalizedOptionalColumns.length - 1] || '';
+  }
+
+  return '';
+}
+
+function markMissingProfileOptionalColumn(columnName) {
+  if (columnName === 'prefer_russian_posters') {
+    profileRussianPostersColumnAvailable = false;
+  }
+}
+
+function isMissingAvatarColumnError(error) {
+  return getMissingProfileOptionalColumnName(error, ['avatar_url']) === 'avatar_url';
+}
+
+async function runProfileSelectWithOptionalColumns(createQuery, requiredSelectColumns, optionalColumns = []) {
+  let activeOptionalColumns = optionalColumns
+    .map(columnName => String(columnName || '').trim())
+    .filter(Boolean);
+
+  while (true) {
+    const selectColumns = [
+      String(requiredSelectColumns || '').trim(),
+      ...activeOptionalColumns
+    ].filter(Boolean).join(', ');
+    const { data, error } = await createQuery(selectColumns);
+
+    if (!error) {
+      return data || null;
+    }
+
+    const missingColumn = getMissingProfileOptionalColumnName(error, activeOptionalColumns);
+
+    if (!missingColumn) {
+      throwIfSupabaseError(error);
+      return data || null;
+    }
+
+    markMissingProfileOptionalColumn(missingColumn);
+    activeOptionalColumns = activeOptionalColumns.filter(columnName => columnName !== missingColumn);
+  }
+}
+
+async function runProfileSelectWithOptionalAvatar(createQuery, selectWithAvatar, selectWithoutAvatar) {
+  return runProfileSelectWithOptionalColumns(createQuery, selectWithoutAvatar, ['avatar_url']);
+}
+
+async function runCurrentUserProfileSelect(createQuery) {
+  return runProfileSelectWithOptionalColumns(
+    createQuery,
+    'role, display_name, default_display_name',
+    ['avatar_url', 'prefer_russian_posters']
+  );
 }
 
 function cachePublicProfileRows(rows = []) {
@@ -6447,12 +6715,17 @@ function createCatalogSessionSnapshotPayload() {
     dataMutationStamp: getDataMutationStamp(),
     savedAt: Date.now(),
     userId: currentUser?.id || null,
+    preferRussianPosters: shouldPreferRussianPosters(),
     movies: allMovies,
     movieRatings: getCurrentUserMovieRatingSnapshotRows(),
     movieRatingStats: getMovieRatingStatsSnapshotRows(),
     movieWatchlist: allMovieWatchlist,
     reviewedMovieIds: Array.from(catalogReviewedMovieIds)
   };
+}
+
+function canUseCatalogSnapshotForPosterPreference(snapshot) {
+  return Boolean(snapshot?.preferRussianPosters) === shouldPreferRussianPosters();
 }
 
 function getCatalogSessionSnapshotSignature(snapshot) {
@@ -6964,6 +7237,7 @@ function createCatalogDomSnapshotPayload(sessionSnapshot = createCatalogSessionS
     buildVersion: APP_BUILD_VERSION,
     savedAt: Date.now(),
     userId: currentUser?.id || null,
+    preferRussianPosters: shouldPreferRussianPosters(),
     viewMode: 'list',
     renderStateSignature: getCatalogRenderStateSignature(),
     dataSignatureHash: getCatalogDataSignatureHash(sessionSnapshot),
@@ -7081,7 +7355,7 @@ function persistCatalogSessionSnapshot({ persistDomSnapshotImmediately = false }
 }
 
 function hydrateCatalogFromSessionSnapshot(snapshot = readCatalogSessionSnapshot()) {
-  if (!snapshot) {
+  if (!snapshot || !canUseCatalogSnapshotForPosterPreference(snapshot)) {
     return false;
   }
 
@@ -7287,10 +7561,11 @@ function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
   }
 
   const isSameUser = (domSnapshot.userId || null) === (currentUser?.id || null);
+  const hasSamePosterPreference = canUseCatalogSnapshotForPosterPreference(domSnapshot);
   const hasSameData = domSnapshot.dataSignatureHash === getCatalogDataSignatureHash(sessionSnapshot);
   const hasSameRenderState = domSnapshot.renderStateSignature === getCatalogRenderStateSignature();
 
-  if (!isSameUser || !hasSameData || !hasSameRenderState) {
+  if (!isSameUser || !hasSamePosterPreference || !hasSameData || !hasSameRenderState) {
     return false;
   }
 
@@ -8942,14 +9217,12 @@ async function loadCurrentUserRole() {
 
   try {
     const data = await withAuthProfileRequestTimeout(
-      runProfileSelectWithOptionalAvatar(
+      runCurrentUserProfileSelect(
         selectColumns => supabaseClient
           .from('profiles')
           .select(selectColumns)
           .eq('id', currentUser.id)
-          .single(),
-        'role, display_name, default_display_name, avatar_url',
-        'role, display_name, default_display_name'
+          .single()
       ),
       'Не удалось загрузить профиль пользователя. Проверь соединение и попробуй обновить страницу.'
     );
@@ -9361,6 +9634,7 @@ function getMoviePageShellControllerContext() {
     getMoviePageReviewsSectionHtml,
     getMoviePageCommentsSectionHtml,
     getMoviePosterImages,
+    getMovieDisplayPosterGalleryImages,
     getPosterImageAttributeHtml,
     getVotesLabel,
     getMoviePageDirectorHtml,
@@ -10353,7 +10627,7 @@ function buildCatalogMovieCardRenderMeta(movie, genresText, countriesText) {
     titleText,
     originalTitleText,
     directorText,
-    posterUrl: movie?.poster_url || '',
+    posterUrl: getMoviePreferredPosterUrl(movie),
     pageUrl,
     escapedPageUrl,
     escapedTitle,
@@ -11295,6 +11569,7 @@ function updateAuthUI() {
 
   syncAuthIconButtonState();
   syncDisplayNameButton();
+  syncProfilePosterPreferenceControls(currentUserProfile);
   syncUserPageProfileSettingsButton();
 
   if (!shouldShowAuthenticatedUi) {
@@ -11853,6 +12128,7 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
   }
 
   allMovies = data || [];
+  await ensurePreferredPosterImagesForMovies(allMovies);
   rebuildCatalogMovieMeta();
   moviesLoadedSuccessfully = true;
   markCatalogDataChanged();
@@ -14153,6 +14429,120 @@ async function saveDisplayName(event) {
   }
 }
 
+function setProfilePosterPreferenceSubmitting(isSubmitting) {
+  isProfilePosterPreferenceSubmitting = isSubmitting;
+
+  if (profileRussianPostersInput) {
+    profileRussianPostersInput.disabled = isSubmitting || !profileRussianPostersColumnAvailable;
+  }
+
+  if (saveProfilePosterPreferenceButton) {
+    saveProfilePosterPreferenceButton.disabled = isSubmitting || !profileRussianPostersColumnAvailable;
+    saveProfilePosterPreferenceButton.textContent = isSubmitting ? 'Сохраняю...' : 'Сохранить';
+  }
+}
+
+async function refreshPosterPreferenceDependentUi({ forcePosterImages = false } = {}) {
+  const moviesToPrepare = [
+    ...(Array.isArray(allMovies) ? allMovies : []),
+    ...(currentMoviePageMovieData ? [currentMoviePageMovieData] : []),
+    ...(Array.isArray(currentMoviePageSimilarMovies) ? currentMoviePageSimilarMovies : []),
+    ...(Array.isArray(currentDirectorPageData?.movies) ? currentDirectorPageData.movies : [])
+  ];
+
+  await ensurePreferredPosterImagesForMovies(moviesToPrepare, { force: forcePosterImages });
+
+  if (isCatalogPage() && container) {
+    rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.preserveScrollOnly);
+    persistCatalogSessionSnapshot({ persistDomSnapshotImmediately: true });
+  }
+
+  if (isMoviePage() && currentMoviePageMovieData) {
+    renderMoviePageHeaderSection(currentMoviePageMovieData);
+
+    if (currentMoviePageSimilarMovieId) {
+      renderMoviePageSimilarSection(currentMoviePageSimilarMovieId);
+    }
+
+    persistCurrentMoviePageSessionCache();
+  }
+
+  if (isDirectorPage() && currentDirectorPageData?.director) {
+    renderDirectorPage(currentDirectorPageData);
+  }
+
+  if (isUserPage() && userPageController?.reloadUserPage) {
+    await userPageController.reloadUserPage();
+  }
+
+  if (isNotificationsPage() && notificationsPageController?.loadNotificationsPage) {
+    await notificationsPageController.loadNotificationsPage();
+  }
+}
+
+async function saveProfilePosterPreference(event) {
+  event?.preventDefault();
+
+  if (
+    !currentUser ||
+    isProfilePosterPreferenceSubmitting ||
+    !profileRussianPostersInput ||
+    !profileRussianPostersColumnAvailable
+  ) {
+    return;
+  }
+
+  const nextPreferRussianPosters = Boolean(profileRussianPostersInput.checked);
+  const previousPreferRussianPosters = doesProfilePreferRussianPosters(currentUserProfile);
+
+  if (nextPreferRussianPosters === previousPreferRussianPosters) {
+    setProfilePosterPreferenceMessage('Настройка уже актуальна.', 'success');
+    return;
+  }
+
+  setProfilePosterPreferenceSubmitting(true);
+  setProfilePosterPreferenceMessage('Сохраняю...');
+
+  try {
+    ensureActiveSessionForWrite();
+
+    const { error } = await withAuthProfileRequestTimeout(
+      supabaseClient
+        .from('profiles')
+        .update({ prefer_russian_posters: nextPreferRussianPosters })
+        .eq('id', currentUser.id),
+      'Не удалось сохранить настройку постеров. Проверь соединение и попробуй снова.'
+    );
+
+    if (error) {
+      if (getMissingProfileOptionalColumnName(error, ['prefer_russian_posters']) === 'prefer_russian_posters') {
+        markMissingProfileOptionalColumn('prefer_russian_posters');
+        syncProfilePosterPreferenceControls(currentUserProfile);
+        return;
+      }
+
+      throw error;
+    }
+
+    currentUserProfile = {
+      ...(currentUserProfile || {}),
+      prefer_russian_posters: nextPreferRussianPosters
+    };
+    cachePublicProfileRows([{ id: currentUser.id, ...currentUserProfile }]);
+    syncProfilePosterPreferenceControls(currentUserProfile);
+    setProfilePosterPreferenceMessage('Настройка сохранена.', 'success');
+
+    await refreshPosterPreferenceDependentUi({
+      forcePosterImages: nextPreferRussianPosters
+    });
+  } catch (error) {
+    console.error('Ошибка сохранения настройки постеров:', error);
+    setProfilePosterPreferenceMessage(error?.message || 'Не удалось сохранить настройку постеров. Попробуйте ещё раз.', 'error');
+  } finally {
+    setProfilePosterPreferenceSubmitting(false);
+  }
+}
+
 async function sendPasswordResetEmail() {
   if (isAuthSubmitting) {
     return;
@@ -16158,7 +16548,7 @@ function getPosterHtml(
   cardRenderMeta = getCatalogMovieMeta(movie).cardRender,
   renderOptions = {}
 ) {
-  const posterUrl = cardRenderMeta.posterUrl;
+  const posterUrl = getMoviePreferredPosterUrl(movie);
   const isPosterLoaded = posterUrl && loadedPosterUrls.has(posterUrl);
   const isPriorityPoster = Boolean(renderOptions.isPriorityPoster);
   const matchedSearchAliasHtml = matchedSearchAlias
@@ -17552,7 +17942,7 @@ function renderMovies() {
 
   let priorityPosterSlotsRemaining = CATALOG_PRIORITY_POSTER_COUNT;
   const getPriorityPosterOptions = movie => {
-    const isPriorityPoster = priorityPosterSlotsRemaining > 0 && Boolean(movie?.poster_url);
+    const isPriorityPoster = priorityPosterSlotsRemaining > 0 && Boolean(getMoviePreferredPosterUrl(movie));
 
     if (isPriorityPoster) {
       priorityPosterSlotsRemaining = Math.max(0, priorityPosterSlotsRemaining - 1);
@@ -17731,6 +18121,12 @@ function bindSharedUiEvents() {
   }
 
   displayNameForm?.addEventListener('submit', saveDisplayName);
+  profilePosterPreferenceForm?.addEventListener('submit', saveProfilePosterPreference);
+  profileRussianPostersInput?.addEventListener('change', () => {
+    if (profileRussianPostersColumnAvailable) {
+      setProfilePosterPreferenceMessage();
+    }
+  });
   profilePasswordForm?.addEventListener('submit', saveProfilePassword);
   document.addEventListener('submit', event => {
     handleUserPageAdminPasswordSubmit(event);
@@ -18880,16 +19276,17 @@ function getUserPageMovieCardHtml(item, getBadgeHtml = null) {
   const originalTitle = String(movie?.original_title || '').trim();
   const year = movie?.year ? String(movie.year) : '';
   const badgeHtml = getBadgeHtml ? getBadgeHtml(item) : '';
+  const posterUrl = getMoviePreferredPosterUrl(movie);
 
   return `
     <a href="${escapeHtml(buildMoviePageUrl(movie))}" class="user-page-movie-card" aria-label="Перейти к фильму ${escapeHtml(movieTitle)}">
       <div class="user-page-movie-poster-wrapper">
         ${
-          movie.poster_url
+          posterUrl
             ? `
               <img
                 class="user-page-movie-poster"
-                ${getPosterImageAttributeHtml(movie.poster_url, 'similar')}
+                ${getPosterImageAttributeHtml(posterUrl, 'similar')}
                 alt="Постер фильма ${escapeHtml(movieTitle)}"
                 loading="lazy"
                 decoding="async"
@@ -19309,6 +19706,7 @@ function getNotificationsPageControllerContext() {
     getPublicProfileHandle,
     fetchPublicProfilesByIds,
     fetchMoviesByIdsWithSelect,
+    ensurePreferredPosterImagesForMovies,
     movieUserPageCardSelect: MOVIE_USER_PAGE_CARD_SELECT,
     getManualSimilarMovieLabel,
     normalizeMovieReviewText,
@@ -19455,6 +19853,7 @@ function getUserPageControllerContext() {
     getCatalogMovieMeta,
     addCount,
     fetchMoviesByIdsWithSelect,
+    ensurePreferredPosterImagesForMovies,
     movieUserPageCardSelect: MOVIE_USER_PAGE_CARD_SELECT,
     movieUserPageTasteSelect: MOVIE_USER_PAGE_TASTE_SELECT,
     throwIfSupabaseError,
@@ -20587,17 +20986,18 @@ function getMoviePageSimilarCardHtml(movie) {
   const countries = meta.countriesText;
   const averageRating = getMovieAverageRating(movie.id);
   const votesCount = getMovieVotesCount(movie.id);
+  const posterUrl = getMoviePreferredPosterUrl(movie);
 
   return `
     <article class="movie-page-similar-card" data-movie-id="${escapeHtml(movie.id)}">
       <a href="${escapeHtml(buildMoviePageUrl(movie))}" class="movie-page-similar-poster-link" aria-label="Перейти к фильму ${escapeHtml(movie.title)}">
         <div class="movie-page-similar-poster-wrapper">
           ${
-            movie.poster_url
+            posterUrl
               ? `
                 <img
                   class="movie-page-similar-poster"
-                  ${getPosterImageAttributeHtml(movie.poster_url, 'similar')}
+                  ${getPosterImageAttributeHtml(posterUrl, 'similar')}
                   alt="Постер фильма ${escapeHtml(movie.title)}"
                   loading="lazy"
                   decoding="async"

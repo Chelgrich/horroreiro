@@ -19,6 +19,7 @@ export function createUserPageController(context = {}) {
     getCatalogMovieMeta = () => ({ filterableGenreNames: [], subgenreKeys: [], countryNames: [] }),
     addCount = () => {},
     fetchMoviesByIdsWithSelect = async () => [],
+    ensurePreferredPosterImagesForMovies = async () => {},
     movieUserPageCardSelect = '',
     movieUserPageTasteSelect = '',
     throwIfSupabaseError = error => {
@@ -720,6 +721,7 @@ export function createUserPageController(context = {}) {
       fetchMoviesByIdsWithSelect(previewMovieIds, movieUserPageCardSelect),
       fetchMoviesByIdsWithSelect(tasteMovieIds, movieUserPageTasteSelect)
     ]);
+    await ensurePreferredPosterImagesForMovies(previewMovies);
     const previewMoviesById = new Map(previewMovies.map(movie => [String(movie.id), movie]));
     const tasteMoviesById = new Map(tasteMovies.map(movie => [String(movie.id), movie]));
     const ratingItems = previewRatingRows
@@ -875,6 +877,39 @@ export function createUserPageController(context = {}) {
     await restoreSession();
     trackEmailConfirmedLoginIfNeeded();
 
+    async function loadUserPage() {
+      const profile = await fetchPublicUserProfileByHandle(handle);
+
+      if (!profile) {
+        renderUserPageNotFound();
+        return;
+      }
+
+      const data = await fetchPublicUserPageData(profile);
+      renderUserPage(data);
+    }
+
+    try {
+      await loadUserPage();
+    } catch (error) {
+      console.error('Ошибка загрузки страницы пользователя:', error);
+      renderUserPageNotFound();
+    }
+
+    bindSharedAuthStateListener({
+      onAfterAuthSync: async () => {
+        try {
+          await loadUserPage();
+        } catch (error) {
+          console.error('Ошибка обновления страницы пользователя после смены auth-состояния:', error);
+        }
+      }
+    });
+  }
+
+  async function reloadUserPage() {
+    const handle = getUserPageRouteHandle();
+
     try {
       const profile = await fetchPublicUserProfileByHandle(handle);
 
@@ -886,31 +921,13 @@ export function createUserPageController(context = {}) {
       const data = await fetchPublicUserPageData(profile);
       renderUserPage(data);
     } catch (error) {
-      console.error('Ошибка загрузки страницы пользователя:', error);
-      renderUserPageNotFound();
+      console.error('Ошибка обновления страницы пользователя:', error);
     }
-
-    bindSharedAuthStateListener({
-      onAfterAuthSync: async () => {
-        try {
-          const profile = await fetchPublicUserProfileByHandle(handle);
-
-          if (!profile) {
-            renderUserPageNotFound();
-            return;
-          }
-
-          const data = await fetchPublicUserPageData(profile);
-          renderUserPage(data);
-        } catch (error) {
-          console.error('Ошибка обновления страницы пользователя после смены auth-состояния:', error);
-        }
-      }
-    });
   }
 
   return {
     initUserPage,
+    reloadUserPage,
     invalidateUserPageActivityAggregateRowsCache
   };
 }
