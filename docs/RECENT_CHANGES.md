@@ -12,6 +12,24 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-09 - Prevent catalog poster preference flash
+
+- Files:
+  - `app.js`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Prevented the catalog from hydrating an anonymous DOM/session snapshot before Supabase session restoration when an auth token is present in local storage.
+  - Bumped the catalog snapshot version so older snapshots with default posters are discarded after deployment.
+  - This keeps the first visible catalog render aligned with the current user's `prefer_russian_posters` setting instead of briefly showing default posters and then swapping them.
+- Checks:
+  - `node --check app.js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+  - Browser smoke: local catalog reached `app-ready`, rendered 40 cards after data load, and reported no app console errors.
+- Follow-up:
+  - None.
+
 ## 2026-08-09 - Add Russian poster preference
 
 - Files:

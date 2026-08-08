@@ -215,6 +215,16 @@ let manualSimilarMoviesList = document.getElementById('manualSimilarMoviesList')
 const SUPABASE_URL = window.__ENV__?.SUPABASE_URL;
 const SUPABASE_ANON_KEY = window.__ENV__?.SUPABASE_ANON_KEY;
 const APP_BUILD_VERSION = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+const SUPABASE_PROJECT_REF = (() => {
+  try {
+    return new URL(SUPABASE_URL).hostname.split('.')[0] || '';
+  } catch (error) {
+    return '';
+  }
+})();
+const SUPABASE_AUTH_STORAGE_KEY = SUPABASE_PROJECT_REF
+  ? `sb-${SUPABASE_PROJECT_REF}-auth-token`
+  : '';
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error('Не заданы переменные окружения SUPABASE_URL и SUPABASE_ANON_KEY');
@@ -238,7 +248,7 @@ const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
 const MOVIE_PAGE_SESSION_CACHE_KEY = 'horroreiro_movie_page_session_cache';
 const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY = 'horroreiro_user_page_activity_aggregate_cache';
 const DATA_MUTATION_STAMP_KEY = 'horroreiro_data_mutation_stamp';
-const CATALOG_SESSION_SNAPSHOT_VERSION = 7;
+const CATALOG_SESSION_SNAPSHOT_VERSION = 8;
 const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
 const MOVIE_PAGE_SESSION_CACHE_VERSION = 1;
@@ -641,6 +651,37 @@ let catalogDerivedStateCache = null;
 let lastCatalogDomRenderSignature = '';
 const userRatingControlsHtmlCache = new Map();
 const catalogSessionSnapshotDataHashCache = new WeakMap();
+
+function hasStoredSupabaseAuthSession() {
+  try {
+    const authStorageKeys = Array.from(new Set([
+      SUPABASE_AUTH_STORAGE_KEY,
+      ...Object.keys(localStorage).filter(key => /^sb-.+-auth-token$/.test(key))
+    ].filter(Boolean)));
+
+    return authStorageKeys.some(key => {
+      const rawValue = localStorage.getItem(key);
+
+      if (!rawValue || rawValue === 'null' || rawValue === 'undefined') {
+        return false;
+      }
+
+      try {
+        const parsedValue = JSON.parse(rawValue);
+
+        return Boolean(
+          parsedValue?.access_token ||
+          parsedValue?.currentSession?.access_token ||
+          parsedValue?.user?.id
+        );
+      } catch (error) {
+        return true;
+      }
+    });
+  } catch (error) {
+    return false;
+  }
+}
 
 function applyBuildVersionSoftResetIfNeeded() {
   const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
@@ -18650,7 +18691,14 @@ async function initCatalogPage() {
   );
   const hydratedSnapshot = shouldSkipSnapshotForProfileActivity ? null : readCatalogSessionSnapshot();
   const preAuthUserId = currentUser?.id || null;
-  const shouldWaitForSessionBeforeHydration = Boolean(hydratedSnapshot?.userId && !preAuthUserId);
+  const shouldWaitForSessionBeforeHydration = Boolean(
+    hydratedSnapshot &&
+    !preAuthUserId &&
+    (
+      hydratedSnapshot.userId ||
+      hasStoredSupabaseAuthSession()
+    )
+  );
   let hydrationState = {
     didHydrateCatalogFromSnapshot: false,
     didHydrateCatalogDomFromSnapshot: false,
