@@ -14,6 +14,7 @@ const assetGroups = {
     'app-page-runtime.js',
     'app.js',
     'admin-actions.js',
+    'editor-page.js',
     'following-page.js',
     'letterboxd-import.js',
     'movie-editor.js',

@@ -12,6 +12,34 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-09 - Lazy-load editor center page
+
+- Files:
+  - `app.js`
+  - `editor-page.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved `/editor` completeness summary rendering, auth states, and toolbar click handling out of startup `app.js` into lazy `editor-page.js`.
+  - Kept shared admin data fetchers and export/audit actions in `app.js`, passed to the editor controller through a small context.
+  - Registered the new lazy asset in the Cloudflare asset allowlist, cache headers, size report, and smoke checks.
+- Checks:
+  - `node --check app.js`
+  - `node --check editor-page.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check functions\app-assets\[version].js`
+  - `node tools\smoke-check.mjs`
+  - `npm run size:compare`
+  - `git diff --check`
+  - Browser smoke: local `/editor.html` reached `app-ready`, showed the editor auth gate, and reported no app console errors.
+- Follow-up:
+  - None.
+
 ## 2026-08-09 - Prevent catalog poster preference flash
 
 - Files:

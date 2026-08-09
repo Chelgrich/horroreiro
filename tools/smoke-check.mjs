@@ -18,6 +18,7 @@ const clientJsFiles = [
 ];
 const lazyJsFiles = [
   'admin-actions.js',
+  'editor-page.js',
   'following-page.js',
   'letterboxd-import.js',
   'movie-editor.js',
@@ -49,6 +50,7 @@ const contextSensitiveExactFiles = new Set([
   'custom-select.js',
   'docs/CODEX_CONTEXT.md',
   'docs/DATA_MODEL.md',
+  'editor-page.js',
   'following-page.js',
   'letterboxd-import.js',
   'movie-editor.js',

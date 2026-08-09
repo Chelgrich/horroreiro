@@ -4,6 +4,9 @@
 /custom-select.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/editor-page.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /app-page-runtime.js
   Cache-Control: public, max-age=0, must-revalidate
 

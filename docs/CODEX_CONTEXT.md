@@ -123,6 +123,8 @@ All HTML-like app shell responses should be no-store.
 
 `letterboxd-import.js` is lazy-loaded only when importing Letterboxd ratings.
 
+`editor-page.js` is lazy-loaded only for `/editor` and owns editor-center completeness summary rendering, auth/forbidden/loading states, and page toolbar click handling. `app.js` provides shared auth, admin state, completeness data fetchers, and download actions.
+
 `admin-actions.js` is lazy-loaded only for rare admin actions:
 
 - manual similar audit;
