@@ -652,6 +652,7 @@ async function checkStaticGuards() {
     '/',
     '/index.html',
     '/app-assets/*',
+    '/profile-activity-ranks/*',
     '/movie/*',
     '/movie.html',
     '/user/*',

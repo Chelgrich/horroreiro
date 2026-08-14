@@ -17,6 +17,7 @@ export function createUserPageController(context = {}) {
     getPublicProfileHandle = profile => String(profile?.default_display_name || ''),
     fetchPublicUserProfileByHandle = async () => null,
     fetchUserPageActivityRanks = async () => null,
+    isUserPageActivityRankFallbackEnabled = () => true,
     getCatalogMovieMeta = () => ({ filterableGenreNames: [], subgenreKeys: [], countryNames: [] }),
     addCount = () => {},
     fetchMoviesByIdsWithSelect = async () => [],
@@ -750,7 +751,7 @@ export function createUserPageController(context = {}) {
     };
     let activityRanks = normalizeUserPageServerActivityRanks(serverActivityRanksResult);
 
-    if (!activityRanks) {
+    if (!activityRanks && isUserPageActivityRankFallbackEnabled()) {
       const activityAggregateRows = await fetchUserPageActivityAggregateRows();
       activityRanks = getUserPageActivityRanks(userId, activityAggregateRows, ownActivityCounts);
     }

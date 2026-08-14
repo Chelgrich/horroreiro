@@ -15,7 +15,9 @@ Format:
 ## 2026-08-15 - Server profile activity ranks
 
 - Files:
+  - `_routes.json`
   - `app.js`
+  - `docs/CODEX_CONTEXT.md`
   - `user-page.js`
   - `functions/profile-activity-ranks/[userId].js`
   - `tools/smoke-check.mjs`
@@ -26,6 +28,9 @@ Format:
   - Added a Cloudflare Function that calculates public profile activity medal ranks server-side with the Supabase service role and returns only aggregate counts/ranks for the requested profile.
   - Updated profile pages to use the server rank endpoint first and keep the old client aggregate rank calculation only as a fallback.
   - Documented why profile ranks must not depend on client-readable raw activity aggregates: RLS can make other users invisible and incorrectly show multiple profiles as first place.
+  - Added `/profile-activity-ranks/*` to Cloudflare `_routes.json`; without this include, dev/prod returned the catalog shell instead of the endpoint JSON.
+  - Limited the old client aggregate fallback to local development so dev/prod do not show potentially false rank medals when the server endpoint is unavailable.
+  - Documented the local PowerShell `&&` separator trap after hitting it during commit preparation.
 - Checks:
   - `node --check app.js`
   - `node --check user-page.js`

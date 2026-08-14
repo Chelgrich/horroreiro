@@ -5,6 +5,7 @@
     "/index.html",
     "/env",
     "/app-assets/*",
+    "/profile-activity-ranks/*",
     "/editor",
     "/editor.html",
     "/directors",

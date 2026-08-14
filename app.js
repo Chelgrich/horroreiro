@@ -18335,9 +18335,17 @@ async function fetchUserPageActivityRanks(profileId) {
       },
       credentials: 'same-origin'
     });
+    const contentType = response.headers.get('Content-Type') || '';
+
+    if (!contentType.toLowerCase().includes('application/json')) {
+      console.warn('Profile activity ranks endpoint returned a non-JSON response.');
+      return null;
+    }
+
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok || !payload?.ok || !payload.ranks) {
+      console.warn('Profile activity ranks endpoint returned an error:', payload?.message || response.status);
       return null;
     }
 
@@ -19003,6 +19011,7 @@ function getUserPageControllerContext() {
     getUserPageAdminPasswordPanelHtml,
     setUserPageDocumentMeta,
     fetchUserPageActivityRanks,
+    isUserPageActivityRankFallbackEnabled: isLocalDevRouteHost,
     syncUserPageMainTitle,
     bindUserPageRailControls,
     syncUserPageProfileSettingsButton,
