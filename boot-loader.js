@@ -76,13 +76,20 @@
     function getPageStylesheetAssets() {
       const page = getCurrentAppPage();
       const assets = ['styles.css'];
+      const secondaryPageStylesheets = {
+        following: ['secondary-pages.css', 'following-page.css'],
+        notifications: ['secondary-pages.css', 'notifications-page.css'],
+        editor: ['secondary-pages.css', 'editor-page.css'],
+        director: ['secondary-pages.css', 'director-page.css', 'director-form.css'],
+        directors: ['secondary-pages.css', 'directors-admin-page.css', 'director-form.css']
+      };
 
       if (page === 'movie') {
         assets.push('movie-page.css');
       }
 
-      if (['following', 'notifications', 'editor', 'director', 'directors'].includes(page)) {
-        assets.push('secondary-pages.css');
+      if (secondaryPageStylesheets[page]) {
+        assets.push(...secondaryPageStylesheets[page]);
       }
 
       return assets;

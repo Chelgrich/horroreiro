@@ -12,6 +12,40 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-14 - Split secondary page styles
+
+- Files:
+  - `boot-loader.js`
+  - `secondary-pages.css`
+  - `following-page.css`
+  - `notifications-page.css`
+  - `editor-page.css`
+  - `director-page.css`
+  - `directors-admin-page.css`
+  - `director-form.css`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Split the monolithic `secondary-pages.css` into a shared secondary-page base plus page-only CSS for following, notifications, editor, public person pages, directors admin, and the shared person edit modal.
+  - Updated `boot-loader.js` so secondary pages load only the CSS needed by the current shell before app startup.
+  - Registered the new CSS files in the Cloudflare app-assets allowlist, cache headers, asset-size report, and smoke guards.
+- Checks:
+  - `node --check boot-loader.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check functions\app-assets\[version].js`
+  - CSS brace-balance check for `secondary-pages.css`, `following-page.css`, `notifications-page.css`, `editor-page.css`, `director-page.css`, `directors-admin-page.css`, and `director-form.css`.
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Browser smoke: local `/following.html`, `/notifications.html`, `/editor.html`, `/name.html?slug=test-director`, and `/directors.html` reached `app-ready`, loaded their expected CSS files, and had no app console errors.
+- Follow-up:
+  - Continue with the next approved optimization item after this split is verified and pushed.
+
 ## 2026-08-14 - Lazy-load movie detail interactions
 
 - Files:

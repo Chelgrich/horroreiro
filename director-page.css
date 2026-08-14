@@ -1,0 +1,156 @@
+.director-page-layout{
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.director-page-photo-column,
+.director-page-main-column,
+.director-page-title-block{
+  min-width: 0;
+}
+
+.director-page-photo-wrapper{
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
+  background: var(--surface-card);
+  border: 1px solid var(--content-card-border);
+  border-radius: 8px;
+}
+
+.director-page-photo,
+.director-page-photo-placeholder{
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.director-page-photo{
+  object-fit: cover;
+}
+
+.director-page-photo-wrapper.is-deceased .director-page-photo,
+.director-page-photo-wrapper.is-deceased .director-page-photo-placeholder{
+  filter: grayscale(1);
+}
+
+.director-page-photo-placeholder{
+  display: grid;
+  place-items: center;
+  color: var(--accent-soft-text);
+  background:
+    radial-gradient(circle at 50% 35%, var(--accent-alpha-18), transparent 48%),
+    var(--surface-control);
+}
+
+.director-page-photo-placeholder-icon{
+  width: clamp(72px, 42%, 128px);
+  height: auto;
+  opacity: 0.72;
+}
+
+.director-page-title-block{
+  display: grid;
+  gap: 14px;
+}
+
+.director-page-title{
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-display-sm);
+  line-height: var(--line-height-heading-tight);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.director-page-original-name{
+  color: var(--color-text-muted);
+  font-size: var(--font-size-title-sm);
+  line-height: var(--line-height-snug);
+}
+
+.director-page-meta-list{
+  display: grid;
+  gap: 10px;
+}
+
+.director-page-meta-item{
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-normal);
+}
+
+.director-page-meta-item span{
+  color: var(--color-text-muted);
+}
+
+.director-page-edit-button{
+  width: fit-content;
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+}
+
+.director-page-edit-button:hover,
+.director-page-edit-button:focus-visible{
+  background: var(--ui-action-bg-hover);
+}
+
+.director-page-movies-section{
+  margin-top: 34px;
+}
+
+.director-page-section-header{
+  margin-bottom: 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.director-page-section-header h2{
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-title-sm);
+  line-height: var(--line-height-snug);
+}
+
+.director-page-section-header span{
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-snug);
+}
+
+.director-page-movies-grid{
+  display: grid;
+  grid-template-columns: repeat(var(--catalog-columns), minmax(0, 1fr));
+  gap: var(--catalog-grid-gap);
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .director-page-layout{
+    grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .director-page-title{
+    font-size: var(--font-size-title-xl);
+  }
+
+  .director-page-layout{
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .director-page-photo-wrapper{
+    width: min(240px, 100%);
+  }
+}
+
+@media (max-width: 480px) {
+  .director-page-title{
+    font-size: var(--font-size-title-lg);
+  }
+}

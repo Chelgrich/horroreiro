@@ -52,14 +52,20 @@ const contextSensitiveExactFiles = new Set([
   'custom-select.js',
   'docs/CODEX_CONTEXT.md',
   'docs/DATA_MODEL.md',
+  'director-form.css',
   'director-page.js',
+  'director-page.css',
+  'directors-admin-page.css',
+  'editor-page.css',
   'editor-page.js',
+  'following-page.css',
   'following-page.js',
   'letterboxd-import.js',
   'movie-editor.js',
   'movie-page-interactions.js',
   'movie-page-shell.js',
   'movie-social.js',
+  'notifications-page.css',
   'notifications-page.js',
   'movie-page.css',
   'secondary-pages.css',
@@ -400,9 +406,14 @@ async function checkStaticGuards() {
     'boot-loader.js: movie page stylesheet must be selected before body is parsed'
   );
   assert(
-    bootLoader.includes("['following', 'notifications', 'editor', 'director', 'directors'].includes(page)") &&
-      bootLoader.includes("assets.push('secondary-pages.css')"),
-    'boot-loader.js: secondary page stylesheet must be selected by page type'
+    bootLoader.includes('const secondaryPageStylesheets = {') &&
+      bootLoader.includes("following: ['secondary-pages.css', 'following-page.css']") &&
+      bootLoader.includes("notifications: ['secondary-pages.css', 'notifications-page.css']") &&
+      bootLoader.includes("editor: ['secondary-pages.css', 'editor-page.css']") &&
+      bootLoader.includes("director: ['secondary-pages.css', 'director-page.css', 'director-form.css']") &&
+      bootLoader.includes("directors: ['secondary-pages.css', 'directors-admin-page.css', 'director-form.css']") &&
+      bootLoader.includes('assets.push(...secondaryPageStylesheets[page])'),
+    'boot-loader.js: secondary page stylesheets must be selected by page type'
   );
 
   const headersText = await readText('_headers');
@@ -410,15 +421,21 @@ async function checkStaticGuards() {
   [
     '/app.js',
     '/custom-select.js',
+    '/director-form.css',
     '/director-page.js',
+    '/director-page.css',
+    '/directors-admin-page.css',
     '/app-page-runtime.js',
     '/admin-actions.js',
+    '/editor-page.css',
     '/following-page.js',
+    '/following-page.css',
     '/letterboxd-import.js',
     '/movie-editor.js',
     '/movie-page-interactions.js',
     '/movie-page-shell.js',
     '/movie-social.js',
+    '/notifications-page.css',
     '/notifications-page.js',
     '/person-placeholders.js',
     '/user-page.js',
@@ -448,13 +465,19 @@ async function checkStaticGuards() {
     'directors.html',
     'app.js',
     'admin-actions.js',
+    'director-form.css',
     'director-page.js',
+    'director-page.css',
+    'directors-admin-page.css',
+    'editor-page.css',
     'following-page.js',
+    'following-page.css',
     'letterboxd-import.js',
     'movie-editor.js',
     'movie-page-interactions.js',
     'movie-page-shell.js',
     'movie-social.js',
+    'notifications-page.css',
     'notifications-page.js',
     'person-placeholders.js',
     'user-page.js',

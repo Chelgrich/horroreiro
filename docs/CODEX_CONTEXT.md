@@ -41,7 +41,7 @@ Page HTML is static shell plus shared scripts:
   - loads `/env`;
   - creates `window.__ENV__`;
   - loads versioned `styles.css`;
-  - loads page-specific CSS such as `movie-page.css` and `secondary-pages.css` before app startup when the current shell needs it;
+  - loads page-specific CSS such as `movie-page.css`, shared `secondary-pages.css`, and secondary page-only CSS before app startup when the current shell needs it;
   - marks `app-styles-ready` or `app-load-failed`.
 - `app-script-loader.js`
   - waits for `window.__ENV_READY__`;
@@ -61,7 +61,7 @@ Production asset URL strategy:
 - Core JS/CSS and lazy feature modules use `/app-assets/<APP_BUILD_VERSION>?file=<asset>`.
 - `functions/app-assets/[version].js` allowlists app assets and proxies them from current Pages assets with `no-store`.
 - `_headers` sets core app assets to `public, max-age=0, must-revalidate`.
-- Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `movie-page.css`, `secondary-pages.css`, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, lazy feature modules, or `assets/directors-admin-app.js`.
+- Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `movie-page.css`, `secondary-pages.css`, secondary page-only CSS, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, lazy feature modules, or `assets/directors-admin-app.js`.
 
 ## Pages
 
@@ -118,7 +118,16 @@ All HTML-like app shell responses should be no-store.
 
 `movie-page.css` owns movie detail-only styles and is loaded by `boot-loader.js` only for `data-app-page="movie"`.
 
-`secondary-pages.css` owns non-catalog/non-movie secondary page styles for following, notifications, editor, public person pages, and the directors admin page. It is loaded only for `data-app-page="following"`, `"notifications"`, `"editor"`, `"director"`, or `"directors"`.
+`secondary-pages.css` owns shared non-catalog/non-movie secondary page shell styles: content shells, loading/empty states, login buttons, and shared title scale rules.
+
+Secondary page-only CSS is loaded by `boot-loader.js` only for the matching shell:
+
+- `following-page.css`: `/following` profile grid, follow cards, and responsive layout.
+- `notifications-page.css`: `/notifications` notification settings, feed cards, filters, digest rails, and responsive layout.
+- `editor-page.css`: `/editor` admin completeness dashboard.
+- `director-page.css`: `/name/*` public person/director page.
+- `directors-admin-page.css`: `/directors` admin people list.
+- `director-form.css`: shared person edit modal styles used by `/name/*` and `/directors`.
 
 `custom-select.js` owns custom select behavior used by catalog and movie modal selects. It is loaded upfront only for catalog pages; movie detail pages lazy-load it on demand before opening the movie add/edit modal.
 

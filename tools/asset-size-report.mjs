@@ -30,7 +30,13 @@ const assetGroups = {
   css: [
     'styles.css',
     'movie-page.css',
-    'secondary-pages.css'
+    'secondary-pages.css',
+    'following-page.css',
+    'notifications-page.css',
+    'editor-page.css',
+    'director-page.css',
+    'directors-admin-page.css',
+    'director-form.css'
   ],
   html: [
     'index.html',

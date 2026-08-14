@@ -1,0 +1,108 @@
+.director-form{
+  display: grid;
+  gap: 14px;
+}
+
+.director-form select{
+  appearance: none;
+  -webkit-appearance: none;
+  height: var(--control-height-md);
+  padding: 0 38px 0 12px;
+  line-height: var(--line-height-none);
+  background-image: url("data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6 9 6 6 6-6' stroke='%239AA3AD' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px 18px;
+}
+
+.director-form input[type="date"]{
+  padding-right: 38px;
+  background-image: url("data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 2v4M16 2v4M3 10h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z' stroke='%23DBE2EA' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px 18px;
+}
+
+.director-form input[type="date"]::-webkit-calendar-picker-indicator{
+  width: 38px;
+  height: 100%;
+  margin: 0 -12px 0 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.director-form-photo-row{
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.director-form-photo-preview{
+  width: 112px;
+  aspect-ratio: 2 / 3;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--accent-soft-text);
+  background: var(--surface-control);
+  border-radius: 8px;
+  font-size: var(--font-size-base);
+  font-weight: 800;
+}
+
+.director-form-photo-preview img{
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.director-form-photo-actions{
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.director-form-photo-upload{
+  position: relative;
+  overflow: hidden;
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+}
+
+.director-form-photo-upload:hover,
+.director-form-photo-upload:focus-within{
+  background: var(--ui-action-bg-hover);
+}
+
+.director-form-photo-upload input{
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.director-form-photo-name{
+  min-width: 0;
+  flex: 1 1 140px;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+  .director-form-photo-row{
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+
+  .director-form-photo-preview{
+    width: 88px;
+  }
+}

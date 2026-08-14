@@ -7,7 +7,19 @@
 /director-page.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/director-form.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/director-page.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/directors-admin-page.css
+  Cache-Control: public, max-age=0, must-revalidate
+
 /editor-page.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/editor-page.css
   Cache-Control: public, max-age=0, must-revalidate
 
 /app-page-runtime.js
@@ -34,7 +46,13 @@
 /following-page.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/following-page.css
+  Cache-Control: public, max-age=0, must-revalidate
+
 /notifications-page.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/notifications-page.css
   Cache-Control: public, max-age=0, must-revalidate
 
 /person-placeholders.js
