@@ -12,6 +12,34 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-14 - Lazy-load public person page
+
+- Files:
+  - `app.js`
+  - `director-page.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved `/name/*` public person/director page route parsing, Supabase payload loading, legacy director fallback, rendering, photo transforms, and movie-grid binding out of startup `app.js` into lazy `director-page.js`.
+  - Left shared people helpers, director add/edit modal, movie-card helpers, and `/directors` admin bridge in `app.js`.
+  - Registered the new lazy asset in Cloudflare app-assets, cache headers, asset-size reporting, and smoke checks.
+- Checks:
+  - `node --check app.js`
+  - `node --check director-page.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check functions\app-assets\[version].js`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Browser smoke: local `/name.html?slug=test-director` and `/name.html?slug=noy-lyuk` reached `app-ready`, loaded without app console errors, and rendered the expected not-found/real director states.
+- Follow-up:
+  - None.
+
 ## 2026-08-09 - Lazy-load editor center page
 
 - Files:

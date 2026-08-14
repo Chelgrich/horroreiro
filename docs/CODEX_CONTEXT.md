@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-08-09.
+Last updated: 2026-08-14.
 
 ## Purpose
 
@@ -96,7 +96,6 @@ All HTML-like app shell responses should be no-store.
 - notifications unread badge and shared notification availability;
 - shared user profile helpers, avatars, settings, follow controls, and reusable profile movie rails;
 - shared movie poster display preference helpers, including the profile-level "Русские постеры" mode that treats the second uploaded poster as primary when available;
-- people/director detail page;
 - bridging legacy app data into the `/directors` Preact island.
 
 `shared-layout.js` owns reusable DOM shells:
@@ -125,6 +124,8 @@ All HTML-like app shell responses should be no-store.
 
 `editor-page.js` is lazy-loaded only for `/editor` and owns editor-center completeness summary rendering, auth/forbidden/loading states, and page toolbar click handling. `app.js` provides shared auth, admin state, completeness data fetchers, and download actions.
 
+`director-page.js` is lazy-loaded only for `/name/*` and owns public person/director page route parsing, person-page data fetching, legacy director fallback matching, page rendering, photo transforms, and the director movie grid. `app.js` keeps shared people helpers, movie-card helpers, the director add/edit modal, and `/directors` admin bridge.
+
 `admin-actions.js` is lazy-loaded only for rare admin actions:
 
 - manual similar audit;
@@ -132,7 +133,7 @@ All HTML-like app shell responses should be no-store.
 - full database JSON export;
 - notification test-suite error classification.
 
-Keep `/editor` page summary logic in `app.js`; keep downloadable/report-heavy builders in `admin-actions.js`.
+Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `person-placeholders.js` is lazy-loaded only for person/director pages and owns the large SVG placeholder silhouettes.
 

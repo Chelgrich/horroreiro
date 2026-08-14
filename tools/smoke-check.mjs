@@ -18,6 +18,7 @@ const clientJsFiles = [
 ];
 const lazyJsFiles = [
   'admin-actions.js',
+  'director-page.js',
   'editor-page.js',
   'following-page.js',
   'letterboxd-import.js',
@@ -50,6 +51,7 @@ const contextSensitiveExactFiles = new Set([
   'custom-select.js',
   'docs/CODEX_CONTEXT.md',
   'docs/DATA_MODEL.md',
+  'director-page.js',
   'editor-page.js',
   'following-page.js',
   'letterboxd-import.js',
@@ -151,6 +153,10 @@ function checkAssetSizeReport() {
   assert(
     !report.startup?.movie?.files?.includes('custom-select.js'),
     'asset-size-report.mjs: movie startup profile must lazy-load custom-select.js'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('director-page.js')),
+    'asset-size-report.mjs: director-page.js must stay lazy-loaded outside startup profiles'
   );
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('following-page.js')),
@@ -398,6 +404,7 @@ async function checkStaticGuards() {
   [
     '/app.js',
     '/custom-select.js',
+    '/director-page.js',
     '/app-page-runtime.js',
     '/admin-actions.js',
     '/following-page.js',
@@ -434,6 +441,7 @@ async function checkStaticGuards() {
     'directors.html',
     'app.js',
     'admin-actions.js',
+    'director-page.js',
     'following-page.js',
     'letterboxd-import.js',
     'movie-editor.js',
@@ -454,6 +462,7 @@ async function checkStaticGuards() {
 
   const appJs = await readText('app.js');
   const movieEditorJs = await readText('movie-editor.js');
+  const directorPageJs = await readText('director-page.js');
   const moviePageShellJs = await readText('movie-page-shell.js');
   const movieSocialJs = await readText('movie-social.js');
   const notificationsPageJs = await readText('notifications-page.js');
@@ -475,6 +484,17 @@ async function checkStaticGuards() {
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('movie-page-shell.js'))"),
     'app.js: movie detail shell must lazy-load movie-page-shell.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('director-page.js'))"),
+    'app.js: /name page must lazy-load director-page.js'
+  );
+  assert(
+    !appJs.includes('async function fetchDirectorPageData(') &&
+      !appJs.includes('function renderDirectorMoviesGrid(') &&
+      directorPageJs.includes('async function fetchDirectorPageData(') &&
+      directorPageJs.includes('function renderDirectorMoviesGrid('),
+    'director-page.js: public person page data/rendering must stay outside app.js'
   );
   assert(
     moviePageShellJs.includes('function getMoviePageHeaderHtml(') &&
