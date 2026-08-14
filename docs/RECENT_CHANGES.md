@@ -12,6 +12,24 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-15 - Cache poster image attributes
+
+- Files:
+  - `app.js`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added bounded in-memory caches for Supabase poster transform URLs, poster image data, and generated poster image attribute HTML.
+  - Reduced repeated URL parsing, `srcset` assembly, and escaping on hot render paths for catalog cards, profile rails, similar movies, and movie detail gallery switches.
+  - Kept the existing poster quality floor and fallback behavior unchanged.
+- Checks:
+  - `node --check app.js`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - Poster cache guard: confirmed `POSTER_IMAGE_MIN_QUALITY` still floors transformed poster quality at 90 and the new poster caches are bounded.
+  - `git diff --check`
+- Follow-up:
+  - Continue with the next optimization layer after this hot-path cache is verified and pushed.
+
 ## 2026-08-14 - Split secondary page styles
 
 - Files:

@@ -303,6 +303,10 @@ const POSTER_IMAGE_PRESETS = {
     sizes: '(max-width: 680px) calc(100vw - 64px), (max-width: 900px) 232px, 320px'
   }
 };
+const POSTER_IMAGE_CACHE_MAX_ENTRIES = 1500;
+const posterTransformUrlCache = new Map();
+const posterImageDataCache = new Map();
+const posterImageAttributeHtmlCache = new Map();
 const DIRECTOR_IMAGE_PRESET = {
   widths: [320, 480, 640],
   quality: POSTER_IMAGE_MIN_QUALITY,
@@ -12687,42 +12691,80 @@ function extractPosterStoragePath(publicUrl) {
   return path || null;
 }
 
-function getPosterTransformUrl(publicUrl, { width, quality, resize = 'cover' } = {}) {
-  const storagePath = extractPosterStoragePath(publicUrl);
+function setBoundedPosterImageCacheEntry(cache, key, value) {
+  if (!cache || !key) {
+    return;
+  }
 
-  if (!storagePath || !width) {
+  if (cache.has(key)) {
+    cache.delete(key);
+  }
+
+  cache.set(key, value);
+
+  while (cache.size > POSTER_IMAGE_CACHE_MAX_ENTRIES) {
+    const oldestKey = cache.keys().next().value;
+    cache.delete(oldestKey);
+  }
+}
+
+function getPosterTransformUrl(publicUrl, { width, quality, resize = 'cover' } = {}) {
+  const originalUrl = String(publicUrl || '').trim();
+  const rawWidth = Number(width) || 0;
+  const normalizedWidth = rawWidth > 0
+    ? Math.max(1, Math.min(2500, rawWidth))
+    : 0;
+  const normalizedQuality = quality !== undefined && quality !== null && quality !== ''
+    ? Math.round(Math.max(POSTER_IMAGE_MIN_QUALITY, Math.min(100, Number(quality) || POSTER_IMAGE_MIN_QUALITY)))
+    : '';
+  const cacheKey = `${originalUrl}|${normalizedWidth}|${normalizedQuality}|${resize}`;
+  const cachedUrl = posterTransformUrlCache.get(cacheKey);
+
+  if (cachedUrl !== undefined) {
+    return cachedUrl;
+  }
+
+  const storagePath = extractPosterStoragePath(originalUrl);
+
+  if (!storagePath || !normalizedWidth) {
+    setBoundedPosterImageCacheEntry(posterTransformUrlCache, cacheKey, null);
     return null;
   }
 
   let parsedUrl = null;
 
   try {
-    parsedUrl = new URL(publicUrl);
+    parsedUrl = new URL(originalUrl);
   } catch (error) {
+    setBoundedPosterImageCacheEntry(posterTransformUrlCache, cacheKey, null);
     return null;
   }
 
   const transformedUrl = new URL(`${parsedUrl.origin}${POSTER_STORAGE_RENDER_PATH}${storagePath}`);
-  const normalizedWidth = Math.max(1, Math.min(2500, Number(width) || 0));
   const normalizedHeight = Math.round(normalizedWidth * 1.5);
 
   transformedUrl.searchParams.set('width', String(normalizedWidth));
   transformedUrl.searchParams.set('height', String(normalizedHeight));
   transformedUrl.searchParams.set('resize', resize);
 
-  if (quality !== undefined && quality !== null && quality !== '') {
-    const normalizedQuality = Math.round(
-      Math.max(POSTER_IMAGE_MIN_QUALITY, Math.min(100, Number(quality) || POSTER_IMAGE_MIN_QUALITY))
-    );
+  if (normalizedQuality !== '') {
     transformedUrl.searchParams.set('quality', String(normalizedQuality));
   }
 
-  return transformedUrl.toString();
+  const transformedUrlString = transformedUrl.toString();
+  setBoundedPosterImageCacheEntry(posterTransformUrlCache, cacheKey, transformedUrlString);
+  return transformedUrlString;
 }
 
 function getPosterImageData(publicUrl, presetName = 'catalog') {
   const originalUrl = String(publicUrl || '').trim();
   const preset = POSTER_IMAGE_PRESETS[presetName] || POSTER_IMAGE_PRESETS.catalog;
+  const cacheKey = `${originalUrl}|${presetName}`;
+  const cachedImageData = posterImageDataCache.get(cacheKey);
+
+  if (cachedImageData) {
+    return cachedImageData;
+  }
 
   if (!originalUrl) {
     return {
@@ -12745,35 +12787,50 @@ function getPosterImageData(publicUrl, presetName = 'catalog') {
     .filter(item => item.url);
 
   if (transformedUrls.length === 0) {
-    return {
+    const fallbackImageData = {
       src: originalUrl,
       srcset: '',
       sizes: '',
       fallbackSrc: '',
       originalSrc: originalUrl
     };
+
+    setBoundedPosterImageCacheEntry(posterImageDataCache, cacheKey, fallbackImageData);
+    return fallbackImageData;
   }
 
-  return {
+  const imageData = {
     src: transformedUrls[0].url,
     srcset: transformedUrls.map(item => `${item.url} ${item.width}w`).join(', '),
     sizes: preset.sizes,
     fallbackSrc: originalUrl,
     originalSrc: originalUrl
   };
+
+  setBoundedPosterImageCacheEntry(posterImageDataCache, cacheKey, imageData);
+  return imageData;
 }
 
 function getPosterImageAttributeHtml(publicUrl, presetName = 'catalog') {
-  const imageData = getPosterImageData(publicUrl, presetName);
+  const originalUrl = String(publicUrl || '').trim();
+  const cacheKey = `${originalUrl}|${presetName}`;
+  const cachedAttributeHtml = posterImageAttributeHtmlCache.get(cacheKey);
+
+  if (cachedAttributeHtml !== undefined) {
+    return cachedAttributeHtml;
+  }
+
+  const imageData = getPosterImageData(originalUrl, presetName);
   const preset = POSTER_IMAGE_PRESETS[presetName] || POSTER_IMAGE_PRESETS.catalog;
   const intrinsicWidth = Number(preset.widths?.[0] || 0);
   const intrinsicHeight = intrinsicWidth > 0 ? Math.round(intrinsicWidth * 1.5) : 0;
 
   if (!imageData.src) {
+    setBoundedPosterImageCacheEntry(posterImageAttributeHtmlCache, cacheKey, '');
     return '';
   }
 
-  return [
+  const attributeHtml = [
     `src="${escapeHtml(imageData.src)}"`,
     intrinsicWidth ? `width="${intrinsicWidth}"` : '',
     intrinsicHeight ? `height="${intrinsicHeight}"` : '',
@@ -12782,6 +12839,9 @@ function getPosterImageAttributeHtml(publicUrl, presetName = 'catalog') {
     imageData.fallbackSrc ? `data-poster-fallback-src="${escapeHtml(imageData.fallbackSrc)}"` : '',
     imageData.originalSrc ? `data-original-poster-src="${escapeHtml(imageData.originalSrc)}"` : ''
   ].filter(Boolean).join('\n                  ');
+
+  setBoundedPosterImageCacheEntry(posterImageAttributeHtmlCache, cacheKey, attributeHtml);
+  return attributeHtml;
 }
 
 function restorePosterFallbackSource(posterImage) {
