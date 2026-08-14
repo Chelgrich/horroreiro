@@ -130,7 +130,7 @@ Profile page uses:
 Profile activity ranks:
 
 - Displayed medal places for ratings/watchlist/reviews should come from `/profile-activity-ranks/:userId` when available.
-- The endpoint uses the service role server-side and returns only aggregate counts/ranks for the target profile.
+- The endpoint calculates ranks server-side and returns only aggregate counts/ranks for the target profile. It prefers the service role key and falls back to the publishable/anon key if the environment has no server secret and public activity rows are RLS-readable.
 - Client-side aggregate rank calculation is a fallback only; RLS can hide other users' activity rows from the browser and make fallback ranks incomplete.
 
 Admin-only server operation:
@@ -220,7 +220,7 @@ Cloudflare Functions:
 
 - `/env`: exposes public Supabase URL/anon key and `APP_BUILD_VERSION`.
 - `/app-assets/:version`: allowlisted current-deploy asset proxy with no-store cache headers.
-- `/profile-activity-ranks/:userId`: public aggregate helper for profile medal ranks; uses service role server-side and does not expose raw rating/watchlist/review rows.
+- `/profile-activity-ranks/:userId`: public aggregate helper for profile medal ranks; calculates server-side and does not expose raw rating/watchlist/review rows.
 - `/admin/users/:userId/password`: admin password set endpoint.
 - dynamic route functions for app pages and SEO/sitemap.
 

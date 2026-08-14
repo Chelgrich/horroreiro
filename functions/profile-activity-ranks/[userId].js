@@ -20,6 +20,10 @@ function getServiceRoleKey(env) {
   return env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '';
 }
 
+function getSupabaseReadKey(env) {
+  return getServiceRoleKey(env) || env.SUPABASE_ANON_KEY || '';
+}
+
 function normalizeUserId(userId) {
   return String(userId || '').trim();
 }
@@ -164,14 +168,14 @@ async function readSupabaseJson(response) {
   }
 }
 
-async function fetchSupabaseRowsPage(supabaseUrl, serviceRoleKey, tableName, selectColumns, from, to) {
+async function fetchSupabaseRowsPage(supabaseUrl, supabaseReadKey, tableName, selectColumns, from, to) {
   const url = new URL(`${supabaseUrl}/rest/v1/${tableName}`);
   url.searchParams.set('select', selectColumns);
 
   const response = await fetch(url.toString(), {
     headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
+      apikey: supabaseReadKey,
+      Authorization: `Bearer ${supabaseReadKey}`,
       Range: `${from}-${to}`,
       Prefer: 'count=exact'
     }
@@ -188,14 +192,14 @@ async function fetchSupabaseRowsPage(supabaseUrl, serviceRoleKey, tableName, sel
   };
 }
 
-async function fetchAllSupabaseRows(supabaseUrl, serviceRoleKey, tableName, selectColumns) {
+async function fetchAllSupabaseRows(supabaseUrl, supabaseReadKey, tableName, selectColumns) {
   const rows = [];
 
   for (let from = 0; from < SUPABASE_MAX_ROWS_PER_TABLE; from += SUPABASE_PAGE_SIZE) {
     const to = from + SUPABASE_PAGE_SIZE - 1;
     const page = await fetchSupabaseRowsPage(
       supabaseUrl,
-      serviceRoleKey,
+      supabaseReadKey,
       tableName,
       selectColumns,
       from,
@@ -220,10 +224,10 @@ async function fetchAllSupabaseRows(supabaseUrl, serviceRoleKey, tableName, sele
 export async function onRequestGet(context) {
   const { env, params } = context;
   const supabaseUrl = getSupabaseBaseUrl(env);
-  const serviceRoleKey = getServiceRoleKey(env);
+  const supabaseReadKey = getSupabaseReadKey(env);
   const targetUserId = normalizeUserId(params.userId);
 
-  if (!supabaseUrl || !serviceRoleKey) {
+  if (!supabaseUrl || !supabaseReadKey) {
     return jsonResponse(503, {
       ok: false,
       message: 'Profile activity ranks are not configured.'
@@ -244,10 +248,10 @@ export async function onRequestGet(context) {
       watchlistRows,
       reviewRows
     ] = await Promise.all([
-      fetchAllSupabaseRows(supabaseUrl, serviceRoleKey, 'profiles', 'id'),
-      fetchAllSupabaseRows(supabaseUrl, serviceRoleKey, 'movie_ratings', 'user_id,movie_id'),
-      fetchAllSupabaseRows(supabaseUrl, serviceRoleKey, 'movie_watchlist', 'user_id,movie_id'),
-      fetchAllSupabaseRows(supabaseUrl, serviceRoleKey, 'movie_reviews', 'user_id')
+      fetchAllSupabaseRows(supabaseUrl, supabaseReadKey, 'profiles', 'id'),
+      fetchAllSupabaseRows(supabaseUrl, supabaseReadKey, 'movie_ratings', 'user_id,movie_id'),
+      fetchAllSupabaseRows(supabaseUrl, supabaseReadKey, 'movie_watchlist', 'user_id,movie_id'),
+      fetchAllSupabaseRows(supabaseUrl, supabaseReadKey, 'movie_reviews', 'user_id')
     ]);
 
     const ratingCounts = getUserCountMap(ratingRows);

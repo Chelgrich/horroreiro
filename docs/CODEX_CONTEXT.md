@@ -199,7 +199,7 @@ After editing `src/directors-admin-app.jsx`, run `npm run build:directors` and c
 Server-only admin operation:
 
 - `functions/admin/users/[userId]/password.js` sets a user's password through Supabase Auth Admin API and requires server-side service role.
-- `functions/profile-activity-ranks/[userId].js` calculates public profile activity ranks server-side with service role and returns only target-user counts/ranks, not raw activity rows.
+- `functions/profile-activity-ranks/[userId].js` calculates public profile activity ranks server-side and returns only target-user counts/ranks, not raw activity rows. It prefers the service role key when configured and falls back to the publishable/anon key for environments where public activity rows are RLS-readable but no server secret is present.
 
 ## Catalog
 

@@ -30,6 +30,7 @@ Format:
   - Documented why profile ranks must not depend on client-readable raw activity aggregates: RLS can make other users invisible and incorrectly show multiple profiles as first place.
   - Added `/profile-activity-ranks/*` to Cloudflare `_routes.json`; without this include, dev/prod returned the catalog shell instead of the endpoint JSON.
   - Limited the old client aggregate fallback to local development so dev/prod do not show potentially false rank medals when the server endpoint is unavailable.
+  - Let the rank endpoint fall back from service role to `SUPABASE_ANON_KEY` for dev environments where public activity rows are RLS-readable but no server secret is configured.
   - Documented the local PowerShell `&&` separator trap after hitting it during commit preparation.
 - Checks:
   - `node --check app.js`
@@ -39,6 +40,7 @@ Format:
   - `node tools\smoke-check.mjs`
   - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
   - Mock endpoint rank check: user with 1 action ranks `2`, user with 2 actions ranks `1`.
+  - Real Supabase rank check with publishable key: `profile000` ratings `177` => place `2`; `profile001` ratings `212` => place `1`.
   - `git diff --check`
 - Follow-up:
   - Verify on dev that `profile001` ranks above `profile000` for watched/rated count after deploy.
