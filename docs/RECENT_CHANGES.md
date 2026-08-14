@@ -12,6 +12,33 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-14 - Lazy-load movie detail interactions
+
+- Files:
+  - `app.js`
+  - `movie-page-interactions.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved movie detail trailer modal rendering/open-close behavior and poster gallery switching/load animation out of startup `app.js` into lazy `movie-page-interactions.js`.
+  - Kept `app.js` as the movie-page orchestrator: it now lazy-loads the interactions controller, passes narrow dependencies, and asks it to bind detail header events.
+  - Registered the new lazy asset in Cloudflare app-assets, cache headers, asset-size reporting, and smoke guards.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-page-interactions.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check functions\app-assets\[version].js`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+- Follow-up:
+  - Continue the next optimization layer with careful, smaller moves around remaining movie detail helpers.
+
 ## 2026-08-14 - Document local workflow traps
 
 - Files:

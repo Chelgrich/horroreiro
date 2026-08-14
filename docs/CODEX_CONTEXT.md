@@ -147,7 +147,9 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `movie-editor.js` is lazy-loaded by the shared movie add/edit modal and owns form draft reading, validation, insert payload building, and update changed-field diffing. `app.js` keeps the modal DOM bridge, poster/manual-similar editor state, Supabase writes, and post-save page/cache synchronization.
 
-`movie-page-shell.js` is lazy-loaded only for movie detail pages and owns detail view-model/header/skeleton HTML helpers. `app.js` keeps route loading, session cache, poster gallery switching events, manual similar editor, rating/watchlist mutations, and social/similar hydration orchestration.
+`movie-page-shell.js` is lazy-loaded only for movie detail pages and owns detail view-model/header/skeleton HTML helpers.
+
+`movie-page-interactions.js` is lazy-loaded only for movie detail pages and owns trailer modal rendering/open-close behavior, poster gallery switching/load animation, and detail header event binding for watchlist, mobile rating, and trailer controls. `app.js` keeps route loading, session cache, manual similar editor, rating/watchlist mutations, and social/similar hydration orchestration.
 
 `movie-social.js` is lazy-loaded only for movie detail pages and owns the detail social block:
 

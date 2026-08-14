@@ -23,6 +23,7 @@ const lazyJsFiles = [
   'following-page.js',
   'letterboxd-import.js',
   'movie-editor.js',
+  'movie-page-interactions.js',
   'movie-page-shell.js',
   'movie-social.js',
   'notifications-page.js',
@@ -56,6 +57,7 @@ const contextSensitiveExactFiles = new Set([
   'following-page.js',
   'letterboxd-import.js',
   'movie-editor.js',
+  'movie-page-interactions.js',
   'movie-page-shell.js',
   'movie-social.js',
   'notifications-page.js',
@@ -169,6 +171,10 @@ function checkAssetSizeReport() {
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-editor.js')),
     'asset-size-report.mjs: movie-editor.js must stay lazy-loaded outside startup profiles'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-page-interactions.js')),
+    'asset-size-report.mjs: movie-page-interactions.js must stay lazy-loaded outside startup profiles'
   );
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-page-shell.js')),
@@ -410,6 +416,7 @@ async function checkStaticGuards() {
     '/following-page.js',
     '/letterboxd-import.js',
     '/movie-editor.js',
+    '/movie-page-interactions.js',
     '/movie-page-shell.js',
     '/movie-social.js',
     '/notifications-page.js',
@@ -445,6 +452,7 @@ async function checkStaticGuards() {
     'following-page.js',
     'letterboxd-import.js',
     'movie-editor.js',
+    'movie-page-interactions.js',
     'movie-page-shell.js',
     'movie-social.js',
     'notifications-page.js',
@@ -463,6 +471,7 @@ async function checkStaticGuards() {
   const appJs = await readText('app.js');
   const movieEditorJs = await readText('movie-editor.js');
   const directorPageJs = await readText('director-page.js');
+  const moviePageInteractionsJs = await readText('movie-page-interactions.js');
   const moviePageShellJs = await readText('movie-page-shell.js');
   const movieSocialJs = await readText('movie-social.js');
   const notificationsPageJs = await readText('notifications-page.js');
@@ -486,6 +495,10 @@ async function checkStaticGuards() {
     'app.js: movie detail shell must lazy-load movie-page-shell.js'
   );
   assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('movie-page-interactions.js'))"),
+    'app.js: movie detail interactions must lazy-load movie-page-interactions.js'
+  );
+  assert(
     appJs.includes("import(getLazyFeatureModuleUrl('director-page.js'))"),
     'app.js: /name page must lazy-load director-page.js'
   );
@@ -505,6 +518,13 @@ async function checkStaticGuards() {
     movieEditorJs.includes('function buildMovieChangedFields(') &&
       !appJs.includes('function buildMovieChangedFields('),
     'movie-editor.js: movie update diff helper must stay outside app.js'
+  );
+  assert(
+    moviePageInteractionsJs.includes('function openMovieTrailerModal(') &&
+      moviePageInteractionsJs.includes('function updateMoviePagePosterGallery(') &&
+      !appJs.includes('function openMovieTrailerModal(') &&
+      !appJs.includes('function updateMoviePagePosterGallery('),
+    'movie-page-interactions.js: movie detail trailer and poster gallery handlers must stay outside app.js'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('notifications-page.js'))"),

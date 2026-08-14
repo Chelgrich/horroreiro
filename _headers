@@ -22,6 +22,9 @@
 /movie-editor.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/movie-page-interactions.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /movie-page-shell.js
   Cache-Control: public, max-age=0, must-revalidate
 
