@@ -14,6 +14,14 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 4. `docs/DATA_MODEL.md`
 5. Exact source files for the requested feature.
 
+## Local Workflow Traps
+
+- PowerShell output can show UTF-8 Russian text from `app.js`/docs as mojibake even when the files are valid. Do not retype long Russian strings from garbled terminal output; use `node -e "fs.readFileSync(..., 'utf8')"` for exact text checks or move existing source blocks mechanically.
+- Prefer `apply_patch` for edits. For long diagnostic snippets, keep shell commands small or split them into separate `multi_tool_use.parallel` calls instead of relying on large pasted multiline commands.
+- Paths containing square brackets are globbed by PowerShell. Use `Get-Content -LiteralPath functions\app-assets\[version].js` and quote the path for Node checks, for example `node --check "functions/app-assets/[version].js"`.
+- Do not pass bare `*.js` path globs to `rg` in PowerShell. Use exact files or `rg "pattern" -g "*.js"` to avoid path syntax errors.
+- When a browser-console command is needed for the user, prefer a compact single-line IIFE or clear snippet instructions; if clipboard/browser focus blocks access, switch to a textarea/manual-paste path instead of retrying the same command.
+
 ## Branches And Deploy
 
 - Active working branch: `dev`.

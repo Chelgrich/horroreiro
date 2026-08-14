@@ -12,6 +12,18 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-14 - Document local workflow traps
+
+- Files:
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a local workflow traps section for recurring Codex/PowerShell issues: mojibake in terminal output, safer handling of long multiline commands, `-LiteralPath` for paths with square brackets, `rg -g "*.js"` instead of bare globs, and browser-console fallback guidance.
+- Checks:
+  - `git diff --check`
+- Follow-up:
+  - Add future recurring trap resolutions here as soon as they are discovered.
+
 ## 2026-08-14 - Lazy-load public person page
 
 - Files:
