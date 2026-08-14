@@ -12,6 +12,32 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-15 - Server profile activity ranks
+
+- Files:
+  - `app.js`
+  - `user-page.js`
+  - `functions/profile-activity-ranks/[userId].js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a Cloudflare Function that calculates public profile activity medal ranks server-side with the Supabase service role and returns only aggregate counts/ranks for the requested profile.
+  - Updated profile pages to use the server rank endpoint first and keep the old client aggregate rank calculation only as a fallback.
+  - Documented why profile ranks must not depend on client-readable raw activity aggregates: RLS can make other users invisible and incorrectly show multiple profiles as first place.
+- Checks:
+  - `node --check app.js`
+  - `node --check user-page.js`
+  - `node --check "functions/profile-activity-ranks/[userId].js"`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - Mock endpoint rank check: user with 1 action ranks `2`, user with 2 actions ranks `1`.
+  - `git diff --check`
+- Follow-up:
+  - Verify on dev that `profile001` ranks above `profile000` for watched/rated count after deploy.
+
 ## 2026-08-15 - Cache poster image attributes
 
 - Files:

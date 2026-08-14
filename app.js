@@ -18321,6 +18321,33 @@ function setUserPageDocumentMeta(profile) {
   removeStructuredDataScript(CATALOG_STRUCTURED_DATA_SCRIPT_ID);
 }
 
+async function fetchUserPageActivityRanks(profileId) {
+  const normalizedProfileId = String(profileId || '').trim();
+
+  if (!normalizedProfileId) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`/profile-activity-ranks/${encodeURIComponent(normalizedProfileId)}`, {
+      headers: {
+        Accept: 'application/json'
+      },
+      credentials: 'same-origin'
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok || !payload?.ok || !payload.ranks) {
+      return null;
+    }
+
+    return payload.ranks;
+  } catch (error) {
+    console.warn('Profile activity ranks endpoint is unavailable:', error);
+    return null;
+  }
+}
+
 async function fetchPublicUserProfileByHandle(handle) {
   const normalizedHandle = String(handle || '').trim();
 
@@ -18975,6 +19002,7 @@ function getUserPageControllerContext() {
     getUserPageFollowButtonHtml,
     getUserPageAdminPasswordPanelHtml,
     setUserPageDocumentMeta,
+    fetchUserPageActivityRanks,
     syncUserPageMainTitle,
     bindUserPageRailControls,
     syncUserPageProfileSettingsButton,

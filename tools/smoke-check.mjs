@@ -36,6 +36,7 @@ const syntaxFiles = [
   ...lazyJsFiles,
   'vite.config.mjs',
   'functions/app-assets/[version].js',
+  'functions/profile-activity-ranks/[userId].js',
   'tools/asset-size-report.mjs'
 ];
 

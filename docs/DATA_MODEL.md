@@ -127,6 +127,12 @@ Profile page uses:
 - rails for ratings/watchlist/reviews;
 - profile-filtered catalog URLs: `profile=<handle>&activity=ratings|watchlist|reviews`.
 
+Profile activity ranks:
+
+- Displayed medal places for ratings/watchlist/reviews should come from `/profile-activity-ranks/:userId` when available.
+- The endpoint uses the service role server-side and returns only aggregate counts/ranks for the target profile.
+- Client-side aggregate rank calculation is a fallback only; RLS can hide other users' activity rows from the browser and make fallback ranks incomplete.
+
 Admin-only server operation:
 
 - `functions/admin/users/[userId]/password.js` can set a user password with service role.
@@ -214,6 +220,7 @@ Cloudflare Functions:
 
 - `/env`: exposes public Supabase URL/anon key and `APP_BUILD_VERSION`.
 - `/app-assets/:version`: allowlisted current-deploy asset proxy with no-store cache headers.
+- `/profile-activity-ranks/:userId`: public aggregate helper for profile medal ranks; uses service role server-side and does not expose raw rating/watchlist/review rows.
 - `/admin/users/:userId/password`: admin password set endpoint.
 - dynamic route functions for app pages and SEO/sitemap.
 

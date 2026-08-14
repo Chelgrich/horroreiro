@@ -16,6 +16,7 @@ export function createUserPageController(context = {}) {
     getPublicProfileDisplayName = profile => String(profile?.display_name || profile?.default_display_name || 'Пользователь'),
     getPublicProfileHandle = profile => String(profile?.default_display_name || ''),
     fetchPublicUserProfileByHandle = async () => null,
+    fetchUserPageActivityRanks = async () => null,
     getCatalogMovieMeta = () => ({ filterableGenreNames: [], subgenreKeys: [], countryNames: [] }),
     addCount = () => {},
     fetchMoviesByIdsWithSelect = async () => [],
@@ -487,6 +488,32 @@ export function createUserPageController(context = {}) {
     };
   }
 
+  function normalizeUserPageServerActivityRank(rank) {
+    const place = Number(rank?.place);
+    const percent = Number(rank?.percent);
+
+    if (!Number.isFinite(place) || place <= 0) {
+      return null;
+    }
+
+    return {
+      place,
+      percent: Number.isFinite(percent) && percent > 0 ? percent : null
+    };
+  }
+
+  function normalizeUserPageServerActivityRanks(ranks) {
+    if (!ranks || typeof ranks !== 'object') {
+      return null;
+    }
+
+    return {
+      ratings: normalizeUserPageServerActivityRank(ranks.ratings),
+      watchlist: normalizeUserPageServerActivityRank(ranks.watchlist),
+      reviews: normalizeUserPageServerActivityRank(ranks.reviews)
+    };
+  }
+
   function sortUserPageMoviesByTitle(firstItem, secondItem) {
     return getManualSimilarMovieLabel(firstItem.movie).localeCompare(
       getManualSimilarMovieLabel(secondItem.movie),
@@ -675,7 +702,7 @@ export function createUserPageController(context = {}) {
       ratingsResult,
       watchlistResult,
       reviewsResult,
-      activityAggregateRows
+      serverActivityRanksResult
     ] = await Promise.all([
       supabaseClient
         .from('movie_ratings')
@@ -692,7 +719,7 @@ export function createUserPageController(context = {}) {
         .select('id, movie_id, created_at, updated_at')
         .eq('user_id', userId)
         .order('updated_at', { ascending: false }),
-      fetchUserPageActivityAggregateRows()
+      fetchUserPageActivityRanks(userId)
     ]);
 
     throwIfSupabaseError(ratingsResult.error);
@@ -716,6 +743,17 @@ export function createUserPageController(context = {}) {
       ...getUserPageMovieIds(previewReviewRows)
     ])];
     const tasteMovieIds = getUserPageMovieIds(ratingRows);
+    const ownActivityCounts = {
+      ratings: ratingRows.length,
+      watchlist: activeWatchlistRows.length,
+      reviews: reviewRows.length
+    };
+    let activityRanks = normalizeUserPageServerActivityRanks(serverActivityRanksResult);
+
+    if (!activityRanks) {
+      const activityAggregateRows = await fetchUserPageActivityAggregateRows();
+      activityRanks = getUserPageActivityRanks(userId, activityAggregateRows, ownActivityCounts);
+    }
 
     const [previewMovies, tasteMovies] = await Promise.all([
       fetchMoviesByIdsWithSelect(previewMovieIds, movieUserPageCardSelect),
@@ -762,11 +800,7 @@ export function createUserPageController(context = {}) {
       reviewCount: reviewRows.length,
       averageRating: getUserPageAverageRating(ratingRows),
       tasteStats: getUserPageTasteStats(tasteItems),
-      activityRanks: getUserPageActivityRanks(userId, activityAggregateRows, {
-        ratings: ratingRows.length,
-        watchlist: activeWatchlistRows.length,
-        reviews: reviewRows.length
-      })
+      activityRanks
     };
   }
 

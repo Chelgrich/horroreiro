@@ -135,7 +135,11 @@ Secondary page-only CSS is loaded by `boot-loader.js` only for the matching shel
 
 `notifications-page.js` is lazy-loaded only for `/notifications` and owns notification settings/feed rendering, filters, read/dwell handling, clear-all, mark-all-read, and notification digest movie rails. `app.js` keeps the unread badge, account-menu badge, and shared availability/error state.
 
-`user-page.js` is lazy-loaded only for `/user/*` and owns public profile page data composition, rankings/taste stats, and page rendering. `app.js` keeps reusable profile helpers, avatar/settings actions, follow actions, and shared movie rail components because notifications and other surfaces reuse them.
+`user-page.js` is lazy-loaded only for `/user/*` and owns public profile page data composition, rankings/taste stats, and page rendering. `app.js` keeps reusable profile helpers, avatar/settings actions, follow actions, shared movie rail components, and the `/profile-activity-ranks/:userId` fetch bridge because notifications and other surfaces reuse nearby profile helpers.
+
+Profile ranking note:
+
+- Do not calculate public activity medal places only from client-readable `movie_ratings`, `movie_watchlist`, or `movie_reviews` aggregate rows. RLS can make that aggregate incomplete for other profiles, causing multiple users to show as `#1`. Use the server aggregate endpoint first and keep the old client aggregate only as a local/fallback path.
 
 `letterboxd-import.js` is lazy-loaded only when importing Letterboxd ratings.
 
@@ -194,6 +198,7 @@ After editing `src/directors-admin-app.jsx`, run `npm run build:directors` and c
 Server-only admin operation:
 
 - `functions/admin/users/[userId]/password.js` sets a user's password through Supabase Auth Admin API and requires server-side service role.
+- `functions/profile-activity-ranks/[userId].js` calculates public profile activity ranks server-side with service role and returns only target-user counts/ranks, not raw activity rows.
 
 ## Catalog
 
