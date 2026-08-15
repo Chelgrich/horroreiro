@@ -36,7 +36,8 @@ Related movie data:
 Client movie select profiles:
 
 - `MOVIE_CATALOG_SELECT`: catalog cards and full catalog cache.
-- `MOVIE_BASE_SELECT`: movie detail fallback/admin edit payload.
+- `MOVIE_DETAIL_SELECT`: public movie detail fallback payload.
+- `MOVIE_EDITOR_SELECT`: admin movie add/edit modal payload.
 - `MOVIE_USER_PAGE_CARD_SELECT`: profile rails and notification movie digests.
 - `MOVIE_USER_PAGE_TASTE_SELECT`: profile taste statistics.
 - `MOVIE_SIMILAR_CARD_SELECT`: movie detail manual similar cards; use this instead of full catalog payload when only similar-card fields are needed.
@@ -213,7 +214,7 @@ Client code must not use service role secrets. Storage writes should follow exis
 Known RPC:
 
 - `create_notification_test_suite`, admin/test utility for generating notification test data.
-- `get_movie_page_payload`, movie detail payload with rating/watchlist/poster data where available; client falls back to separate `MOVIE_BASE_SELECT` queries.
+- `get_movie_page_payload`, movie detail payload with rating/watchlist/poster data where available; client falls back to separate `MOVIE_DETAIL_SELECT` queries for public detail pages. The admin edit modal uses `MOVIE_EDITOR_SELECT`.
 - `get_person_page_payload`, public person/director page payload where available; client falls back to legacy director-name matching.
 
 Cloudflare Functions:

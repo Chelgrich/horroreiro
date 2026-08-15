@@ -12,6 +12,36 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-16 - Split movie detail cache and selects
+
+- Files:
+  - `app.js`
+  - `movie-detail-cache.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added lazy `movie-detail-cache.js` for movie detail session-cache keys, signatures, entry creation, read/write, expiry, and removal.
+  - Kept shared state restoration in `app.js`, where rating/watchlist/review/comment/similar arrays still live.
+  - Split the old combined movie detail/admin edit select into `MOVIE_DETAIL_SELECT` for public detail fallback loading and `MOVIE_EDITOR_SELECT` for the admin movie modal.
+  - Registered the new lazy module in versioned app assets, cache headers, asset-size reporting, and smoke guards.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-detail-cache.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles decreased by about `18.2 KiB` raw / `2.7 KiB` brotli.
+- Follow-up:
+  - Continue with the manual-similar editor/orchestration slice after verifying this cache/select split on dev.
+
 ## 2026-08-16 - Move poster draft helpers to movie editor
 
 - Files:

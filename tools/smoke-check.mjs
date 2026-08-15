@@ -23,6 +23,7 @@ const lazyJsFiles = [
   'following-page.js',
   'letterboxd-import.js',
   'movie-editor.js',
+  'movie-detail-cache.js',
   'movie-page-interactions.js',
   'movie-page-shell.js',
   'movie-social.js',
@@ -63,6 +64,7 @@ const contextSensitiveExactFiles = new Set([
   'following-page.js',
   'letterboxd-import.js',
   'movie-editor.js',
+  'movie-detail-cache.js',
   'movie-page-interactions.js',
   'movie-page-shell.js',
   'movie-social.js',
@@ -178,6 +180,10 @@ function checkAssetSizeReport() {
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-editor.js')),
     'asset-size-report.mjs: movie-editor.js must stay lazy-loaded outside startup profiles'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-detail-cache.js')),
+    'asset-size-report.mjs: movie-detail-cache.js must stay lazy-loaded outside startup profiles'
   );
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-page-interactions.js')),
@@ -433,6 +439,7 @@ async function checkStaticGuards() {
     '/following-page.css',
     '/letterboxd-import.js',
     '/movie-editor.js',
+    '/movie-detail-cache.js',
     '/movie-page-interactions.js',
     '/movie-page-shell.js',
     '/movie-social.js',
@@ -475,6 +482,7 @@ async function checkStaticGuards() {
     'following-page.css',
     'letterboxd-import.js',
     'movie-editor.js',
+    'movie-detail-cache.js',
     'movie-page-interactions.js',
     'movie-page-shell.js',
     'movie-social.js',
@@ -494,6 +502,7 @@ async function checkStaticGuards() {
 
   const appJs = await readText('app.js');
   const movieEditorJs = await readText('movie-editor.js');
+  const movieDetailCacheJs = await readText('movie-detail-cache.js');
   const directorPageJs = await readText('director-page.js');
   const moviePageInteractionsJs = await readText('movie-page-interactions.js');
   const moviePageShellJs = await readText('movie-page-shell.js');
@@ -513,6 +522,17 @@ async function checkStaticGuards() {
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('movie-editor.js'))"),
     'app.js: movie editor helpers must lazy-load movie-editor.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('movie-detail-cache.js'))"),
+    'app.js: movie detail cache helpers must lazy-load movie-detail-cache.js'
+  );
+  assert(
+    appJs.includes('const MOVIE_DETAIL_SELECT = `') &&
+      appJs.includes('const MOVIE_EDITOR_SELECT = `') &&
+      !appJs.includes('const MOVIE_BASE_SELECT = `') &&
+      appJs.includes('return fetchMovieById(movieId, MOVIE_EDITOR_SELECT)'),
+    'app.js: public movie detail select and admin movie editor select must stay split'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('movie-page-shell.js'))"),
@@ -551,6 +571,14 @@ async function checkStaticGuards() {
       !appJs.includes('function resolveMoviePosterImageDraftEntries(') &&
       !appJs.includes('function splitMoviePosterImageEntriesForSave('),
     'movie-editor.js: movie poster draft order/save helpers must stay outside app.js'
+  );
+  assert(
+    movieDetailCacheJs.includes('function readCache(') &&
+      movieDetailCacheJs.includes('function writeEntry(') &&
+      movieDetailCacheJs.includes('function getEntrySignature(') &&
+      !appJs.includes('function readMoviePageSessionCache(') &&
+      !appJs.includes('function getMoviePageSessionCacheSignature('),
+    'movie-detail-cache.js: movie detail session cache read/write/signature helpers must stay outside app.js'
   );
   assert(
     moviePageInteractionsJs.includes('function openMovieTrailerModal(') &&

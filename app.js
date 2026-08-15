@@ -5929,210 +5929,20 @@ function writeCatalogSessionSnapshot(snapshot) {
   }
 }
 
-function getMoviePageRouteCacheKey(routeParams) {
-  if (!routeParams) {
-    return '';
-  }
-
-  if (routeParams.slug) {
-    return `slug:${String(routeParams.slug)}`;
-  }
-
-  if (routeParams.id) {
-    return `id:${String(routeParams.id)}`;
-  }
-
-  return '';
-}
-
-function getMoviePageMovieCacheKeys(movie) {
-  const keys = [];
-
-  if (movie?.slug) {
-    keys.push(`slug:${String(movie.slug)}`);
-  }
-
-  if (movie?.id) {
-    keys.push(`id:${String(movie.id)}`);
-  }
-
-  return [...new Set(keys)];
-}
-
-function readMoviePageSessionCache() {
-  try {
-    const rawCache = sessionStorage.getItem(MOVIE_PAGE_SESSION_CACHE_KEY);
-
-    if (!rawCache) {
-      return null;
-    }
-
-    const cache = JSON.parse(rawCache);
-
-    if (
-      cache?.version !== MOVIE_PAGE_SESSION_CACHE_VERSION ||
-      cache?.buildVersion !== APP_BUILD_VERSION ||
-      !cache?.entries ||
-      typeof cache.entries !== 'object'
-    ) {
-      sessionStorage.removeItem(MOVIE_PAGE_SESSION_CACHE_KEY);
-      return null;
-    }
-
-    return cache;
-  } catch (error) {
-    console.warn('Error reading movie page session cache:', error);
-    sessionStorage.removeItem(MOVIE_PAGE_SESSION_CACHE_KEY);
-    return null;
-  }
-}
-
-function getMoviePageSessionCacheSignature(entry) {
-  if (!entry) {
-    return '';
-  }
-
-  const signature = JSON.stringify({
-    version: entry.version,
-    buildVersion: entry.buildVersion,
-    dataMutationStamp: entry.dataMutationStamp || '',
-    userId: entry.userId || null,
-    isAdmin: Boolean(entry.isAdmin),
-    movie: entry.movie || null,
-    movieRatingStats: entry.movieRatingStats || null,
-    movieRatings: entry.movieRatings || [],
-    movieWatchlist: entry.movieWatchlist || [],
-    movieReviews: entry.movieReviews || [],
-    movieComments: entry.movieComments || [],
-    posterImages: entry.posterImages || [],
-    similarMovieId: entry.similarMovieId || '',
-    similarMovieIds: entry.similarMovieIds || [],
-    similarMovies: entry.similarMovies || []
-  });
-
-  return `${signature.length}:${getStableStringHash(signature)}`;
-}
-
 function createMoviePageSessionCacheEntry(movie) {
-  if (!movie?.id) {
-    return null;
-  }
-
-  const movieId = String(movie.id);
-  const movieRatingStats = movieRatingStatsByMovieId.get(movieId);
-  const entry = {
-    version: MOVIE_PAGE_SESSION_CACHE_VERSION,
-    buildVersion: APP_BUILD_VERSION,
-    dataMutationStamp: getDataMutationStamp(),
-    savedAt: Date.now(),
-    userId: currentUser?.id || null,
-    isAdmin: Boolean(isAdmin),
-    movie,
-    movieRatingStats: movieRatingStats
-      ? {
-        movie_id: movieId,
-        votes_count: movieRatingStats.count,
-        rating_sum: movieRatingStats.sum,
-        average_rating: movieRatingStats.average
-      }
-      : null,
-    movieRatings: allMovieRatings.filter(row => String(row?.movie_id || '') === movieId),
-    movieWatchlist: allMovieWatchlist.filter(row => String(row?.movie_id || '') === movieId),
-    movieReviews: allMovieReviews.filter(review => String(review?.movie_id || '') === movieId),
-    movieComments: allMovieComments.filter(comment => String(comment?.movie_id || '') === movieId),
-    posterImages: getMoviePosterImages(movieId),
-    similarMovieId: String(currentMoviePageSimilarMovieId || ''),
-    similarMovieIds: String(currentMoviePageSimilarMovieId || '') === movieId
-      ? currentMoviePageSimilarMovieIds
-      : [],
-    similarMovies: String(currentMoviePageSimilarMovieId || '') === movieId
-      ? currentMoviePageSimilarMovies
-      : []
-  };
-
-  entry.signature = getMoviePageSessionCacheSignature(entry);
-  return entry;
+  return movieDetailCacheController?.createEntry(movie) || null;
 }
 
 function writeMoviePageSessionCacheEntry(entry) {
-  try {
-    if (!entry?.movie?.id) {
-      return '';
-    }
-
-    const cache = readMoviePageSessionCache() || {
-      version: MOVIE_PAGE_SESSION_CACHE_VERSION,
-      buildVersion: APP_BUILD_VERSION,
-      entries: {}
-    };
-    const nextEntry = {
-      ...entry,
-      savedAt: Date.now(),
-      signature: entry.signature || getMoviePageSessionCacheSignature(entry)
-    };
-
-    getMoviePageMovieCacheKeys(entry.movie).forEach(key => {
-      cache.entries[key] = nextEntry;
-    });
-
-    const sortedEntries = Object.entries(cache.entries)
-      .sort((firstEntry, secondEntry) =>
-        Number(secondEntry[1]?.savedAt || 0) - Number(firstEntry[1]?.savedAt || 0)
-      );
-
-    cache.entries = Object.fromEntries(sortedEntries.slice(0, MOVIE_PAGE_SESSION_CACHE_MAX_ENTRIES));
-
-    sessionStorage.setItem(
-      MOVIE_PAGE_SESSION_CACHE_KEY,
-      JSON.stringify({
-        version: MOVIE_PAGE_SESSION_CACHE_VERSION,
-        buildVersion: APP_BUILD_VERSION,
-        entries: cache.entries
-      })
-    );
-
-    return nextEntry.signature;
-  } catch (error) {
-    console.warn('Error saving movie page session cache:', error);
-    return '';
-  }
+  return movieDetailCacheController?.writeEntry(entry) || '';
 }
 
 function removeMoviePageSessionCacheForMovie(movie) {
-  try {
-    const cache = readMoviePageSessionCache();
-
-    if (!cache) {
-      return;
-    }
-
-    getMoviePageMovieCacheKeys(movie).forEach(key => {
-      delete cache.entries[key];
-    });
-
-    sessionStorage.setItem(MOVIE_PAGE_SESSION_CACHE_KEY, JSON.stringify(cache));
-  } catch (error) {
-    console.warn('Error clearing movie page session cache:', error);
-  }
+  movieDetailCacheController?.removeForMovie(movie);
 }
 
 function getMoviePageSessionCacheEntry(routeParams) {
-  const cacheKey = getMoviePageRouteCacheKey(routeParams);
-  const cache = readMoviePageSessionCache();
-  const entry = cacheKey ? cache?.entries?.[cacheKey] : null;
-  const entryAge = Date.now() - Number(entry?.savedAt || 0);
-
-  if (
-    !entry?.movie?.id ||
-    !isDataMutationStampFresh(entry.dataMutationStamp) ||
-    entryAge > MOVIE_PAGE_SESSION_CACHE_MAX_AGE_MS ||
-    String(entry.userId || '') !== String(currentUser?.id || '') ||
-    Boolean(entry.isAdmin) !== Boolean(isAdmin)
-  ) {
-    return null;
-  }
-
-  return entry;
+  return movieDetailCacheController?.getEntry(routeParams) || null;
 }
 
 function applyMoviePageSessionCacheEntry(entry) {
@@ -6170,7 +5980,9 @@ function applyMoviePageSessionCacheEntry(entry) {
   currentMoviePageSimilarMovieId = String(entry.similarMovieId || movieId);
   currentMoviePageSimilarMovieIds = Array.isArray(entry.similarMovieIds) ? entry.similarMovieIds : [];
   currentMoviePageSimilarMovies = Array.isArray(entry.similarMovies) ? entry.similarMovies : [];
-  activeMoviePageSessionCacheSignature = entry.signature || getMoviePageSessionCacheSignature(entry);
+  activeMoviePageSessionCacheSignature = entry.signature ||
+    movieDetailCacheController?.getEntrySignature(entry) ||
+    '';
 
   renderMoviePage(movie);
   return movie;
@@ -8502,12 +8314,14 @@ let adminActionToolsPromise = null;
 let personPlaceholderToolsPromise = null;
 let movieSocialControllerPromise = null;
 let movieEditorControllerPromise = null;
+let movieDetailCacheControllerPromise = null;
 let moviePageShellControllerPromise = null;
 let moviePageInteractionsControllerPromise = null;
 let customSelectScriptPromise = null;
 let personPlaceholderTools = null;
 let movieSocialController = null;
 let movieEditorController = null;
+let movieDetailCacheController = null;
 let moviePageShellController = null;
 let moviePageInteractionsController = null;
 
@@ -8657,6 +8471,77 @@ function ensureMovieEditorControllerLoaded() {
   }
 
   return movieEditorControllerPromise;
+}
+
+function getMoviePageSessionSnapshot(movie) {
+  if (!movie?.id) {
+    return {};
+  }
+
+  const movieId = String(movie.id);
+  const movieRatingStats = movieRatingStatsByMovieId.get(movieId);
+
+  return {
+    movieRatingStats: movieRatingStats
+      ? {
+        movie_id: movieId,
+        votes_count: movieRatingStats.count,
+        rating_sum: movieRatingStats.sum,
+        average_rating: movieRatingStats.average
+      }
+      : null,
+    movieRatings: allMovieRatings.filter(row => String(row?.movie_id || '') === movieId),
+    movieWatchlist: allMovieWatchlist.filter(row => String(row?.movie_id || '') === movieId),
+    movieReviews: allMovieReviews.filter(review => String(review?.movie_id || '') === movieId),
+    movieComments: allMovieComments.filter(comment => String(comment?.movie_id || '') === movieId),
+    posterImages: getMoviePosterImages(movieId),
+    similarMovieId: String(currentMoviePageSimilarMovieId || ''),
+    similarMovieIds: String(currentMoviePageSimilarMovieId || '') === movieId
+      ? currentMoviePageSimilarMovieIds
+      : [],
+    similarMovies: String(currentMoviePageSimilarMovieId || '') === movieId
+      ? currentMoviePageSimilarMovies
+      : []
+  };
+}
+
+function getMovieDetailCacheControllerContext() {
+  return {
+    storage: sessionStorage,
+    cacheKey: MOVIE_PAGE_SESSION_CACHE_KEY,
+    version: MOVIE_PAGE_SESSION_CACHE_VERSION,
+    buildVersion: APP_BUILD_VERSION,
+    maxAgeMs: MOVIE_PAGE_SESSION_CACHE_MAX_AGE_MS,
+    maxEntries: MOVIE_PAGE_SESSION_CACHE_MAX_ENTRIES,
+    getDataMutationStamp,
+    isDataMutationStampFresh,
+    getStableStringHash,
+    getCurrentUserId: () => currentUser?.id || null,
+    getIsAdmin: () => Boolean(isAdmin),
+    getMovieStateSnapshot: getMoviePageSessionSnapshot,
+    onCacheError: (action, error) => {
+      console.warn(`Error during movie page session cache ${action}:`, error);
+    }
+  };
+}
+
+function ensureMovieDetailCacheControllerLoaded() {
+  if (!movieDetailCacheControllerPromise) {
+    movieDetailCacheControllerPromise = import(getLazyFeatureModuleUrl('movie-detail-cache.js'))
+      .then(module => {
+        movieDetailCacheController = module.createMovieDetailCacheController(
+          getMovieDetailCacheControllerContext()
+        );
+        return movieDetailCacheController;
+      })
+      .catch(error => {
+        movieDetailCacheControllerPromise = null;
+        movieDetailCacheController = null;
+        throw error;
+      });
+  }
+
+  return movieDetailCacheControllerPromise;
 }
 
 function getMoviePageInteractionsControllerContext() {
@@ -11005,7 +10890,39 @@ function refreshCountryFilterOptions(countryCounts = new Map()) {
   refreshCustomSelect(countryFilter);
 }
 
-const MOVIE_BASE_SELECT = `
+const MOVIE_DETAIL_SELECT = `
+  id,
+  slug,
+  title,
+  original_title,
+  year,
+  runtime_minutes,
+  director,
+  production,
+  distribution,
+  russian_distribution,
+  synopsis,
+  formats,
+  tags_perceived,
+  poster_url,
+  kinopoisk_url,
+  imdb_url,
+  letterboxd_url,
+  rottentomatoes_url,
+  tmdb_url,
+  trailer_url,
+  release_year,
+  release_month,
+  movie_genres (
+    position,
+    genres (name)
+  ),
+  movie_countries (
+    countries (name)
+  )
+`;
+
+const MOVIE_EDITOR_SELECT = `
   id,
   slug,
   title,
@@ -11111,7 +11028,7 @@ const MOVIE_SIMILAR_CARD_SELECT = `
 
 function getMovieSelectByPurpose(purpose = 'catalog') {
   if (purpose === 'detail') {
-    return MOVIE_BASE_SELECT;
+    return MOVIE_DETAIL_SELECT;
   }
 
   return MOVIE_CATALOG_SELECT;
@@ -11195,6 +11112,15 @@ function hasMovieDetailPayload(movie) {
     movie &&
     Object.prototype.hasOwnProperty.call(movie, 'synopsis') &&
     Object.prototype.hasOwnProperty.call(movie, 'tags_perceived')
+  );
+}
+
+function hasMovieEditorPayload(movie) {
+  return Boolean(
+    hasMovieDetailPayload(movie) &&
+    Object.prototype.hasOwnProperty.call(movie, 'search_aliases') &&
+    Object.prototype.hasOwnProperty.call(movie, 'sort_order') &&
+    Object.prototype.hasOwnProperty.call(movie, 'letterboxd_short_url')
   );
 }
 
@@ -19017,15 +18943,15 @@ function getMoviePageRouteParams() {
   return null;
 }
 
-async function fetchMovieById(movieId) {
+async function fetchMovieById(movieId, selectQuery = MOVIE_DETAIL_SELECT) {
   const { data, error } = await runMovieSelectWithOptionalColumns(
-    selectQuery => supabaseClient
+    currentSelectQuery => supabaseClient
       .from('movies')
-      .select(selectQuery)
+      .select(currentSelectQuery)
       .eq('id', movieId)
       .order('position', { foreignTable: 'movie_genres', ascending: true })
       .single(),
-    MOVIE_BASE_SELECT
+    selectQuery
   );
 
   if (error) {
@@ -19038,11 +18964,11 @@ async function fetchMovieById(movieId) {
 async function getMovieForAdminEdit(movieId, fallbackMovie = null) {
   const candidateMovie = fallbackMovie || getCatalogMovieById(movieId);
 
-  if (hasMovieDetailPayload(candidateMovie)) {
+  if (hasMovieEditorPayload(candidateMovie)) {
     return candidateMovie;
   }
 
-  return fetchMovieById(movieId);
+  return fetchMovieById(movieId, MOVIE_EDITOR_SELECT);
 }
 
 async function fetchMovieByRouteParams(routeParams) {
@@ -19058,7 +18984,7 @@ async function fetchMovieByRouteParams(routeParams) {
         .eq('slug', routeParams.slug)
         .order('position', { foreignTable: 'movie_genres', ascending: true })
         .maybeSingle(),
-      MOVIE_BASE_SELECT
+      MOVIE_DETAIL_SELECT
     );
 
     if (error) {
@@ -20420,6 +20346,7 @@ async function initMoviePage() {
   await restoreSession();
   trackEmailConfirmedLoginIfNeeded();
   await Promise.all([
+    ensureMovieDetailCacheControllerLoaded(),
     ensureMoviePageShellControllerLoaded(),
     ensureMoviePageInteractionsControllerLoaded()
   ]);
