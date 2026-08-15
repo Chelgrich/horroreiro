@@ -544,6 +544,15 @@ async function checkStaticGuards() {
     'movie-editor.js: movie update diff helper must stay outside app.js'
   );
   assert(
+    movieEditorJs.includes('function getMoviePosterImagesDraftAfterDrop(') &&
+      movieEditorJs.includes('function resolveMoviePosterImageDraftEntries(') &&
+      movieEditorJs.includes('function splitMoviePosterImageEntriesForSave(') &&
+      !appJs.includes('function getMoviePosterImagesDraftAfterDrop(') &&
+      !appJs.includes('function resolveMoviePosterImageDraftEntries(') &&
+      !appJs.includes('function splitMoviePosterImageEntriesForSave('),
+    'movie-editor.js: movie poster draft order/save helpers must stay outside app.js'
+  );
+  assert(
     moviePageInteractionsJs.includes('function openMovieTrailerModal(') &&
       moviePageInteractionsJs.includes('function updateMoviePagePosterGallery(') &&
       !appJs.includes('function openMovieTrailerModal(') &&

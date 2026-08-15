@@ -12,6 +12,30 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-16 - Move poster draft helpers to movie editor
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved movie poster draft ordering, save-entry cloning, pending poster upload resolution, and primary/additional poster split helpers from `app.js` into the lazy movie editor controller.
+  - Kept the movie modal DOM bridge, poster draft rendering state, Supabase writes, and post-save cache synchronization in `app.js`.
+  - Made movie modal opening await the lazy editor controller so poster drag/drop handlers can rely on the controller being present.
+  - Added a smoke guard that prevents these poster draft order/save helpers from drifting back into `app.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles decreased by about `16.1 KiB` raw / `2.5 KiB` brotli.
+- Follow-up:
+  - Continue moving low-risk movie editor helpers out of `app.js` in small slices.
+
 ## 2026-08-15 - Server profile activity ranks
 
 - Files:

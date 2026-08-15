@@ -3936,26 +3936,6 @@ function removeMoviePosterImageDraftEntry(entryId) {
   renderMoviePosterImagesDraftList();
 }
 
-function getMoviePosterImagesDraftAfterDrop(sourceEntryId, targetEntryId, shouldPlaceAfter = false) {
-  const sourceId = String(sourceEntryId || '');
-  const targetId = String(targetEntryId || '');
-
-  if (!sourceId || !targetId || sourceId === targetId) {
-    return moviePosterImagesDraft;
-  }
-
-  const sourceEntry = moviePosterImagesDraft.find(entry => entry.entryId === sourceId);
-  const nextEntries = moviePosterImagesDraft.filter(entry => entry.entryId !== sourceId);
-  const targetIndex = nextEntries.findIndex(entry => entry.entryId === targetId);
-
-  if (!sourceEntry || targetIndex < 0) {
-    return moviePosterImagesDraft;
-  }
-
-  nextEntries.splice(targetIndex + (shouldPlaceAfter ? 1 : 0), 0, sourceEntry);
-  return nextEntries;
-}
-
 function handleMoviePosterImagesDraftClick(event) {
   const removeButton = event.target.closest('[data-movie-poster-image-remove]');
   const moveButton = event.target.closest('[data-movie-poster-image-move]');
@@ -4019,12 +3999,17 @@ function handleMoviePosterImagesDraftDrop(event) {
     return;
   }
 
+  if (!movieEditorController) {
+    return;
+  }
+
   event.preventDefault();
 
   const targetRect = targetItem.getBoundingClientRect();
   const shouldPlaceAfter = event.clientY > targetRect.top + (targetRect.height / 2);
 
-  moviePosterImagesDraft = getMoviePosterImagesDraftAfterDrop(
+  moviePosterImagesDraft = movieEditorController.getMoviePosterImagesDraftAfterDrop(
+    moviePosterImagesDraft,
     sourceEntryId,
     targetEntryId,
     shouldPlaceAfter
@@ -4032,58 +4017,6 @@ function handleMoviePosterImagesDraftDrop(event) {
   moviePosterImagesDraftDirty = true;
   moviePosterImagesDraftDraggedEntryId = null;
   renderMoviePosterImagesDraftList();
-}
-
-function getMoviePosterImagesDraftEntriesForSave() {
-  return moviePosterImagesDraft
-    .map(entry => ({ ...entry }));
-}
-
-async function resolveMoviePosterImageDraftEntries(draftEntries = []) {
-  const resolvedEntries = [];
-  const usedImageUrls = new Set();
-  const uploadedUrls = [];
-
-  for (const entry of draftEntries) {
-    let imageUrl = String(entry?.imageUrl || '').trim();
-
-    if (entry?.type === 'pending' && entry.file) {
-      imageUrl = await uploadPosterFile(entry.file);
-      uploadedUrls.push(imageUrl);
-    }
-
-    if (!imageUrl || usedImageUrls.has(imageUrl)) {
-      continue;
-    }
-
-    usedImageUrls.add(imageUrl);
-    resolvedEntries.push({
-      ...entry,
-      type: 'resolved',
-      imageUrl
-    });
-  }
-
-  return {
-    resolvedEntries,
-    uploadedUrls
-  };
-}
-
-function splitMoviePosterImageEntriesForSave(resolvedEntries = []) {
-  const primaryUrl = String(resolvedEntries[0]?.imageUrl || '').trim() || null;
-  const additionalEntries = resolvedEntries.slice(1);
-  const allUrls = new Set(
-    resolvedEntries
-      .map(entry => String(entry?.imageUrl || '').trim())
-      .filter(Boolean)
-  );
-
-  return {
-    primaryUrl,
-    additionalEntries,
-    allUrls
-  };
 }
 
 async function replaceMoviePosterImages(movieId, draftEntries = [], { preservedUrls = [] } = {}) {
@@ -8702,6 +8635,7 @@ function getMovieEditorControllerContext() {
     parseLineOrCommaSeparatedValues,
     parseMultilineValues,
     normalizeAdditionalGenreNames,
+    uploadPosterFile,
     getOptionalTextArrayPayload,
     areStringArraysEqual,
     normalizeTextArrayField,
@@ -10541,7 +10475,11 @@ function ensureMovieModalMounted() {
 }
 
 async function openMovieModal() {
-  void ensureMovieEditorControllerLoaded();
+  try {
+    await ensureMovieEditorControllerLoaded();
+  } catch (error) {
+    console.warn('Не удалось загрузить редактор фильма:', error);
+  }
 
   try {
     await ensureCustomSelectToolsLoaded();
@@ -13034,21 +12972,21 @@ async function addMovie(event) {
 
     const classificationDraft = buildMovieClassificationDraftFromForm();
     const manualSimilarMovieIds = normalizeManualSimilarMovieIds(manualSimilarMovieIdsDraft);
-    const posterDraftEntries = getMoviePosterImagesDraftEntriesForSave();
+    const posterDraftEntries = movieEditor.getMoviePosterImagesDraftEntriesForSave(moviePosterImagesDraft);
 
     if (posterDraftEntries.some(entry => entry.type === 'pending')) {
       setMovieFormStatus('Загружаю постеры...');
     }
 
     const resolvedPosterImages = await withPendingRequestTimeout(
-      resolveMoviePosterImageDraftEntries(posterDraftEntries),
+      movieEditor.resolveMoviePosterImageDraftEntries(posterDraftEntries),
       30000,
       'Превышено время ожидания загрузки постеров.'
     );
     const {
       primaryUrl: finalPosterUrl,
       additionalEntries: additionalPosterEntriesForSave
-    } = splitMoviePosterImageEntriesForSave(resolvedPosterImages.resolvedEntries);
+    } = movieEditor.splitMoviePosterImageEntriesForSave(resolvedPosterImages.resolvedEntries);
 
     setMovieFormStatus('Сохраняю...');
 
@@ -13219,18 +13157,18 @@ async function updateMovie(event) {
     let finalPosterUrls = new Set([finalPosterUrl].filter(Boolean));
 
     if (posterImagesChanged) {
-      const posterDraftEntries = getMoviePosterImagesDraftEntriesForSave();
+      const posterDraftEntries = movieEditor.getMoviePosterImagesDraftEntriesForSave(moviePosterImagesDraft);
 
       if (posterDraftEntries.some(entry => entry.type === 'pending')) {
         setMovieFormStatus('Загружаю постеры...');
       }
 
       const resolvedPosterImages = await withPendingRequestTimeout(
-        resolveMoviePosterImageDraftEntries(posterDraftEntries),
+        movieEditor.resolveMoviePosterImageDraftEntries(posterDraftEntries),
         30000,
         'Превышено время ожидания загрузки постеров.'
       );
-      const posterImagesForSave = splitMoviePosterImageEntriesForSave(resolvedPosterImages.resolvedEntries);
+      const posterImagesForSave = movieEditor.splitMoviePosterImageEntriesForSave(resolvedPosterImages.resolvedEntries);
 
       finalPosterUrl = posterImagesForSave.primaryUrl;
       additionalPosterEntriesForSave = posterImagesForSave.additionalEntries;

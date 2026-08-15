@@ -27,7 +27,8 @@ export function createMovieEditorController(context = {}) {
     normalizeRuntimeMinutesValue = value => {
       const numericValue = Number(value);
       return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null;
-    }
+    },
+    uploadPosterFile = async () => ''
   } = context;
 
   const getInputValue = inputElement => String(inputElement?.value || '').trim();
@@ -246,10 +247,90 @@ export function createMovieEditorController(context = {}) {
     return changedFields;
   }
 
+  function getMoviePosterImagesDraftAfterDrop(
+    draftEntries = [],
+    sourceEntryId,
+    targetEntryId,
+    shouldPlaceAfter = false
+  ) {
+    const sourceId = String(sourceEntryId || '');
+    const targetId = String(targetEntryId || '');
+
+    if (!sourceId || !targetId || sourceId === targetId) {
+      return draftEntries;
+    }
+
+    const sourceEntry = draftEntries.find(entry => entry.entryId === sourceId);
+    const nextEntries = draftEntries.filter(entry => entry.entryId !== sourceId);
+    const targetIndex = nextEntries.findIndex(entry => entry.entryId === targetId);
+
+    if (!sourceEntry || targetIndex < 0) {
+      return draftEntries;
+    }
+
+    nextEntries.splice(targetIndex + (shouldPlaceAfter ? 1 : 0), 0, sourceEntry);
+    return nextEntries;
+  }
+
+  function getMoviePosterImagesDraftEntriesForSave(draftEntries = []) {
+    return draftEntries.map(entry => ({ ...entry }));
+  }
+
+  async function resolveMoviePosterImageDraftEntries(draftEntries = []) {
+    const resolvedEntries = [];
+    const usedImageUrls = new Set();
+    const uploadedUrls = [];
+
+    for (const entry of draftEntries) {
+      let imageUrl = String(entry?.imageUrl || '').trim();
+
+      if (entry?.type === 'pending' && entry.file) {
+        imageUrl = await uploadPosterFile(entry.file);
+        uploadedUrls.push(imageUrl);
+      }
+
+      if (!imageUrl || usedImageUrls.has(imageUrl)) {
+        continue;
+      }
+
+      usedImageUrls.add(imageUrl);
+      resolvedEntries.push({
+        ...entry,
+        type: 'resolved',
+        imageUrl
+      });
+    }
+
+    return {
+      resolvedEntries,
+      uploadedUrls
+    };
+  }
+
+  function splitMoviePosterImageEntriesForSave(resolvedEntries = []) {
+    const primaryUrl = String(resolvedEntries[0]?.imageUrl || '').trim() || null;
+    const additionalEntries = resolvedEntries.slice(1);
+    const allUrls = new Set(
+      resolvedEntries
+        .map(entry => String(entry?.imageUrl || '').trim())
+        .filter(Boolean)
+    );
+
+    return {
+      primaryUrl,
+      additionalEntries,
+      allUrls
+    };
+  }
+
   return {
     readMovieFormDraft,
     validateMovieFormDraft,
     buildMovieInsertPayload,
-    buildMovieChangedFields
+    buildMovieChangedFields,
+    getMoviePosterImagesDraftAfterDrop,
+    getMoviePosterImagesDraftEntriesForSave,
+    resolveMoviePosterImageDraftEntries,
+    splitMoviePosterImageEntriesForSave
   };
 }

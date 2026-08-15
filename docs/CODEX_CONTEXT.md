@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-08-14.
+Last updated: 2026-08-16.
 
 ## Purpose
 
@@ -159,7 +159,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `person-placeholders.js` is lazy-loaded only for person/director pages and owns the large SVG placeholder silhouettes.
 
-`movie-editor.js` is lazy-loaded by the shared movie add/edit modal and owns form draft reading, validation, insert payload building, and update changed-field diffing. `app.js` keeps the modal DOM bridge, poster/manual-similar editor state, Supabase writes, and post-save page/cache synchronization.
+`movie-editor.js` is lazy-loaded by the shared movie add/edit modal and owns form draft reading, validation, insert payload building, update changed-field diffing, and poster draft order/save helpers. `app.js` keeps the modal DOM bridge, poster/manual-similar editor UI state/rendering, Supabase writes, and post-save page/cache synchronization.
 
 `movie-page-shell.js` is lazy-loaded only for movie detail pages and owns detail view-model/header/skeleton HTML helpers.
 
