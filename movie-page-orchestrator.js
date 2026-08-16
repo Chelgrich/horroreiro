@@ -92,8 +92,104 @@ export function createMoviePageOrchestratorController(context = {}) {
     }
   }
 
+  async function loadMoviePageByRouteParams(routeParams, bindings = {}, {
+    warmMovie = null,
+    skipUserStateFetch = false,
+    skipRenderIfCacheFresh = false
+  } = {}) {
+    let movie = typeof bindings.fetchPayloadByRouteParams === 'function'
+      ? await bindings.fetchPayloadByRouteParams(routeParams, { skipUserStateFetch })
+      : null;
+    const isMoviePayloadLoadedByRpc = Boolean(movie);
+
+    if (!movie && typeof bindings.fetchMovieByRouteParams === 'function') {
+      movie = await bindings.fetchMovieByRouteParams(routeParams);
+    }
+
+    if (!movie) {
+      if (warmMovie) {
+        bindings.removeMovieFromCatalogSnapshot?.(warmMovie.id);
+      }
+
+      bindings.removeSessionCacheForMovie?.(bindings.getCurrentMovie?.() || warmMovie);
+      bindings.renderNotFound?.();
+      return null;
+    }
+
+    const loadTasks = [];
+
+    if (
+      bindings.getAreDirectorsAvailable?.() !== false &&
+      !Array.isArray(movie.movie_people) &&
+      typeof bindings.ensureDirectorItemsLoaded === 'function'
+    ) {
+      loadTasks.push(bindings.ensureDirectorItemsLoaded(movie));
+    }
+
+    if (!isMoviePayloadLoadedByRpc) {
+      if (typeof bindings.fetchRatingStats === 'function') {
+        loadTasks.push(bindings.fetchRatingStats(movie.id));
+      }
+
+      if (typeof bindings.fetchPosterImages === 'function') {
+        loadTasks.push(bindings.fetchPosterImages(movie.id));
+      }
+    }
+
+    if (!isMoviePayloadLoadedByRpc && !skipUserStateFetch) {
+      if (typeof bindings.fetchCurrentUserRating === 'function') {
+        loadTasks.push(bindings.fetchCurrentUserRating(movie.id));
+      }
+
+      if (typeof bindings.fetchCurrentUserWatchlist === 'function') {
+        loadTasks.push(bindings.fetchCurrentUserWatchlist(movie.id));
+      }
+    }
+
+    if (String(bindings.getCurrentMovieId?.() || '') !== String(movie.id || '')) {
+      bindings.resetComposerState?.();
+    }
+
+    bindings.setCurrentMovie?.(movie);
+
+    await Promise.all(loadTasks);
+
+    const cacheEntry = typeof bindings.createSessionCacheEntry === 'function'
+      ? bindings.createSessionCacheEntry(movie)
+      : null;
+    const cacheSignature = cacheEntry?.signature || '';
+    const activeCacheSignature = String(bindings.getActiveSessionCacheSignature?.() || '');
+    const shouldSkipRender = Boolean(
+      skipRenderIfCacheFresh &&
+      activeCacheSignature &&
+      cacheSignature &&
+      activeCacheSignature === cacheSignature &&
+      bindings.hasRenderedMoviePage?.()
+    );
+
+    if (cacheSignature || activeCacheSignature) {
+      bindings.setActiveSessionCacheSignature?.(cacheSignature || activeCacheSignature);
+    }
+
+    if (!shouldSkipRender) {
+      bindings.renderMoviePage?.(movie, {
+        socialLoading: true,
+        similarLoading: true
+      });
+    } else {
+      return movie;
+    }
+
+    if (typeof bindings.loadDeferredSections === 'function') {
+      await bindings.loadDeferredSections(movie, { shouldRender: true });
+    }
+
+    return movie;
+  }
+
   return {
     getMoviePageRouteParams,
+    loadMoviePageByRouteParams,
     loadDeferredMoviePageSections
   };
 }

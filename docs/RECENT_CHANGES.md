@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-16 - Move movie detail page-load decision tree to orchestrator
+
+- Files:
+  - `app.js`
+  - `movie-page-orchestrator.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved the movie detail load decision tree into lazy `movie-page-orchestrator.js`: RPC/fallback selection, auxiliary load task selection, cache-signature skip-render decisions, and deferred-section kickoff.
+  - Kept `app.js` as a callback bridge for Supabase fetchers, current movie state, cache read/write, and render/status functions.
+  - Tightened smoke guards so the page-load orchestration does not drift back into `app.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-page-orchestrator.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `34.7 KiB` raw / `4.4 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue the movie detail orchestration contour with init/auth fallback handling or rating/watchlist mutations in a later pass.
+
 ## 2026-08-16 - Move movie page route and deferred orchestration to lazy module
 
 - Files:

@@ -19775,75 +19775,40 @@ async function loadMoviePageByRouteParams(routeParams, {
   skipUserStateFetch = false,
   skipRenderIfCacheFresh = false
 } = {}) {
-  let movie = await fetchMoviePagePayloadByRouteParams(routeParams, { skipUserStateFetch });
-  const isMoviePayloadLoadedByRpc = Boolean(movie);
-
-  if (!movie) {
-    movie = await fetchMovieByRouteParams(routeParams);
-  }
-
-  if (!movie) {
-    if (warmMovie) {
-      removeMovieFromCatalogSessionSnapshot(warmMovie.id);
-    }
-
-    removeMoviePageSessionCacheForMovie(currentMoviePageMovieData || warmMovie);
-    renderMoviePageNotFound();
-    return null;
-  }
-
-  const loadTasks = [];
-
-  if (areDirectorsAvailable && !Array.isArray(movie.movie_people)) {
-    loadTasks.push(ensureMovieDirectorItemsLoaded(movie));
-  }
-
-  if (!isMoviePayloadLoadedByRpc) {
-    loadTasks.push(
-      fetchMovieRatingStatsForMovie(movie.id),
-      fetchMoviePosterImagesForMovieSafe(movie.id)
-    );
-  }
-
-  if (!isMoviePayloadLoadedByRpc && !skipUserStateFetch) {
-    loadTasks.push(
-      fetchCurrentUserRatingForMovie(movie.id),
-      fetchMovieWatchlistForCurrentUser(movie.id)
-    );
-  }
-
-  if (String(currentMoviePageMovieId || '') !== String(movie.id || '')) {
-    resetMoviePageComposerState();
-  }
-
-  currentMoviePageMovieId = movie.id;
-  currentMoviePageMovieData = movie;
-
-  await Promise.all(loadTasks);
-  const cacheEntry = createMoviePageSessionCacheEntry(movie);
-  const cacheSignature = cacheEntry?.signature || '';
-  const shouldSkipRender = (
-    skipRenderIfCacheFresh &&
-    activeMoviePageSessionCacheSignature &&
-    cacheSignature &&
-    activeMoviePageSessionCacheSignature === cacheSignature &&
-    moviePage?.querySelector('.movie-page-stack:not(.movie-page-stack-skeleton)')
-  );
-
-  activeMoviePageSessionCacheSignature = cacheSignature || activeMoviePageSessionCacheSignature;
-
-  if (!shouldSkipRender) {
-    renderMoviePage(movie, {
-      socialLoading: true,
-      similarLoading: true
-    });
-  } else {
-    return movie;
-  }
-
-  await loadDeferredMoviePageSections(movie, { shouldRender: true });
-
-  return movie;
+  return getMoviePageOrchestratorController().loadMoviePageByRouteParams(routeParams, {
+    fetchPayloadByRouteParams: fetchMoviePagePayloadByRouteParams,
+    fetchMovieByRouteParams,
+    getAreDirectorsAvailable: () => areDirectorsAvailable,
+    ensureDirectorItemsLoaded: ensureMovieDirectorItemsLoaded,
+    fetchRatingStats: fetchMovieRatingStatsForMovie,
+    fetchPosterImages: fetchMoviePosterImagesForMovieSafe,
+    fetchCurrentUserRating: fetchCurrentUserRatingForMovie,
+    fetchCurrentUserWatchlist: fetchMovieWatchlistForCurrentUser,
+    getCurrentMovieId: () => currentMoviePageMovieId,
+    getCurrentMovie: () => currentMoviePageMovieData,
+    setCurrentMovie: movie => {
+      currentMoviePageMovieId = movie?.id || null;
+      currentMoviePageMovieData = movie || null;
+    },
+    resetComposerState: resetMoviePageComposerState,
+    createSessionCacheEntry: createMoviePageSessionCacheEntry,
+    getActiveSessionCacheSignature: () => activeMoviePageSessionCacheSignature,
+    setActiveSessionCacheSignature: signature => {
+      activeMoviePageSessionCacheSignature = signature || activeMoviePageSessionCacheSignature;
+    },
+    hasRenderedMoviePage: () => Boolean(
+      moviePage?.querySelector('.movie-page-stack:not(.movie-page-stack-skeleton)')
+    ),
+    renderMoviePage,
+    loadDeferredSections: loadDeferredMoviePageSections,
+    removeMovieFromCatalogSnapshot: removeMovieFromCatalogSessionSnapshot,
+    removeSessionCacheForMovie: removeMoviePageSessionCacheForMovie,
+    renderNotFound: renderMoviePageNotFound
+  }, {
+    warmMovie,
+    skipUserStateFetch,
+    skipRenderIfCacheFresh
+  });
 }
 
 async function initMoviePage() {

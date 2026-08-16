@@ -615,10 +615,13 @@ async function checkStaticGuards() {
   );
   assert(
     moviePageOrchestratorJs.includes('function getMoviePageRouteParams(') &&
+      moviePageOrchestratorJs.includes('async function loadMoviePageByRouteParams(') &&
       moviePageOrchestratorJs.includes('async function loadDeferredMoviePageSections(') &&
       !appJs.includes('const pathSlugMatch = window.location.pathname.match') &&
+      !appJs.includes('const isMoviePayloadLoadedByRpc = Boolean(movie)') &&
+      !appJs.includes('const shouldSkipRender = (') &&
       !appJs.includes('Promise.allSettled(deferredTasks)'),
-    'movie-page-orchestrator.js: movie detail route parsing and deferred section loading must stay outside app.js'
+    'movie-page-orchestrator.js: movie detail route parsing, page-load decision tree, and deferred section loading must stay outside app.js'
   );
   assert(
     moviePageSimilarJs.includes('function getMoviePageSimilarIdsAfterMove(') &&
