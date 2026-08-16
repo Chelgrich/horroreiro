@@ -25,6 +25,7 @@ const assetGroups = {
     'movie-page-similar.js',
     'movie-page-shell.js',
     'movie-social.js',
+    'movie-user-state.js',
     'notifications-page.js',
     'person-placeholders.js',
     'user-page.js',

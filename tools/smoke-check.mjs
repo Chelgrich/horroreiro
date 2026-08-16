@@ -29,6 +29,7 @@ const lazyJsFiles = [
   'movie-page-similar.js',
   'movie-page-shell.js',
   'movie-social.js',
+  'movie-user-state.js',
   'notifications-page.js',
   'person-placeholders.js',
   'user-page.js',
@@ -72,6 +73,7 @@ const contextSensitiveExactFiles = new Set([
   'movie-page-similar.js',
   'movie-page-shell.js',
   'movie-social.js',
+  'movie-user-state.js',
   'notifications-page.css',
   'notifications-page.js',
   'movie-page.css',
@@ -180,6 +182,10 @@ function checkAssetSizeReport() {
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-social.js')),
     'asset-size-report.mjs: movie-social.js must stay lazy-loaded outside startup profiles'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-user-state.js')),
+    'asset-size-report.mjs: movie-user-state.js must stay lazy-loaded outside startup profiles'
   );
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-editor.js')),
@@ -457,6 +463,7 @@ async function checkStaticGuards() {
     '/movie-page-similar.js',
     '/movie-page-shell.js',
     '/movie-social.js',
+    '/movie-user-state.js',
     '/notifications-page.css',
     '/notifications-page.js',
     '/person-placeholders.js',
@@ -502,6 +509,7 @@ async function checkStaticGuards() {
     'movie-page-similar.js',
     'movie-page-shell.js',
     'movie-social.js',
+    'movie-user-state.js',
     'notifications-page.css',
     'notifications-page.js',
     'person-placeholders.js',
@@ -525,6 +533,7 @@ async function checkStaticGuards() {
   const moviePageSimilarJs = await readText('movie-page-similar.js');
   const moviePageShellJs = await readText('movie-page-shell.js');
   const movieSocialJs = await readText('movie-social.js');
+  const movieUserStateJs = await readText('movie-user-state.js');
   const notificationsPageJs = await readText('notifications-page.js');
   const userPageJs = await readText('user-page.js');
   const directorsAdminSource = await readText('src/directors-admin-app.jsx');
@@ -536,6 +545,10 @@ async function checkStaticGuards() {
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('movie-social.js'))"),
     'app.js: movie detail social block must lazy-load movie-social.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('movie-user-state.js'))"),
+    'app.js: movie user state mutations must lazy-load movie-user-state.js'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('movie-editor.js'))"),
@@ -644,6 +657,16 @@ async function checkStaticGuards() {
       !appJs.includes('function focusMoviePageSimilarSearch(') &&
       !appJs.includes('function getMoviePageSimilarIdsAfterMove('),
     'movie-page-similar.js: manual similar search/order/render/event/load/save helpers must stay outside app.js'
+  );
+  assert(
+    movieUserStateJs.includes('async function runMovieMutationWithUiSync(') &&
+      movieUserStateJs.includes('async function toggleMovieWatchlist(') &&
+      movieUserStateJs.includes('async function removeUserMovieRating(') &&
+      movieUserStateJs.includes('async function saveUserMovieRating(') &&
+      !appJs.includes('async function runMovieMutationWithUiSync(') &&
+      !appJs.includes('const shouldRemoveFromWatchlist = hasMovieWatchlistRecord(movieId);') &&
+      !appJs.includes('const normalizedRating = Number(ratingValue);'),
+    'movie-user-state.js: movie rating/watchlist mutation orchestration must stay outside app.js'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('notifications-page.js'))"),

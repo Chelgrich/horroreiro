@@ -12,6 +12,34 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-16 - Move movie user-state mutation orchestration to lazy module
+
+- Files:
+  - `_headers`
+  - `app.js`
+  - `movie-user-state.js`
+  - `functions/app-assets/[version].js`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added lazy `movie-user-state.js` for rating/watchlist mutation orchestration: duplicate-request guards, rating validation, watchlist add/remove branching, local mutation stamp/snapshot sync, rerender callbacks, feedback callbacks, and optional scroll preservation.
+  - Kept `app.js` as the shared data bridge for rating/watchlist request sets, Supabase writes, local rating/watchlist arrays, index/stat updates, and catalog/detail rerenders.
+  - Registered the module in versioned app assets, cache headers, asset-size reporting, and smoke guards.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-user-state.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `36.3 KiB` raw / `4.5 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue the movie detail orchestration contour with final detail bridge cleanup before moving to the movie editor contour.
+
 ## 2026-08-16 - Move movie detail init flow to orchestrator
 
 - Files:

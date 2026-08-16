@@ -8320,6 +8320,7 @@ let movieDetailCacheControllerPromise = null;
 let moviePageOrchestratorControllerPromise = null;
 let moviePageShellControllerPromise = null;
 let moviePageInteractionsControllerPromise = null;
+let movieUserStateControllerPromise = null;
 let customSelectScriptPromise = null;
 let personPlaceholderTools = null;
 let movieSocialController = null;
@@ -8328,6 +8329,7 @@ let movieDetailCacheController = null;
 let moviePageOrchestratorController = null;
 let moviePageShellController = null;
 let moviePageInteractionsController = null;
+let movieUserStateController = null;
 
 function getLazyFeatureModuleUrl(filename) {
   const isLocalFile = window.location.protocol === 'file:';
@@ -8374,6 +8376,60 @@ function loadCustomSelectScript() {
       throw new Error('custom-select.js did not expose createCustomSelectManager');
     }
   });
+}
+
+function getMovieUserStateControllerContext() {
+  return {
+    window,
+    getCurrentUser: () => currentUser,
+    getRatingRequestSet: () => ratingRequestInFlight,
+    getWatchlistRequestSet: () => watchlistRequestInFlight,
+    markLocalDataMutation,
+    syncCatalogSnapshot: syncCatalogSessionSnapshotMovieState,
+    isMovieWatchedByCurrentUser,
+    hasMovieWatchlistRecord,
+    getCurrentUserRating,
+    addToWatchlist: addMovieToWatchlist,
+    removeFromWatchlist: removeMovieFromWatchlist,
+    deleteRating: deleteCurrentUserMovieRating,
+    upsertRating: upsertCurrentUserMovieRating,
+    rerenderWatchlistToggle: movieId => {
+      MOVIE_MUTATION_RERENDER_PRESETS.watchlistToggle(movieId);
+    },
+    rerenderRatingChange: movieId => {
+      MOVIE_MUTATION_RERENDER_PRESETS.ratingChange(movieId);
+    },
+    showRatingFeedback: showMovieRatingFeedback,
+    showWatchlistFeedback: showMovieWatchlistFeedback,
+    onWatchlistToggleError: error => {
+      console.error('Ошибка переключения watchlist:', error);
+    },
+    onRemoveRatingError: error => {
+      console.error('Ошибка удаления оценки фильма:', error);
+    },
+    onSaveRatingError: error => {
+      console.error('Ошибка сохранения оценки фильма:', error);
+    }
+  };
+}
+
+function ensureMovieUserStateControllerLoaded() {
+  if (!movieUserStateControllerPromise) {
+    movieUserStateControllerPromise = import(getLazyFeatureModuleUrl('movie-user-state.js'))
+      .then(module => {
+        movieUserStateController = module.createMovieUserStateController(
+          getMovieUserStateControllerContext()
+        );
+        return movieUserStateController;
+      })
+      .catch(error => {
+        movieUserStateControllerPromise = null;
+        movieUserStateController = null;
+        throw error;
+      });
+  }
+
+  return movieUserStateControllerPromise;
 }
 
 function getAdminActionToolsContext() {
@@ -14208,59 +14264,6 @@ async function armDeleteMovieButton(buttonElement, onConfirm, confirmMessage = '
   await runConfirmedAction(confirmMessage, onConfirm);
 }
 
-async function runMovieMutationWithUiSync({
-  movieId,
-  requestSet,
-  mutation,
-  rerender,
-  onSuccess,
-  onError,
-  preserveWindowScroll = false
-}) {
-  const scrollYBeforeMutation = window.scrollY;
-
-  if (requestSet.has(String(movieId))) {
-    return;
-  }
-
-  requestSet.add(String(movieId));
-
-  let actionSucceeded = false;
-
-  try {
-    await mutation();
-    actionSucceeded = true;
-  } catch (error) {
-    if (typeof onError === 'function') {
-      onError(error);
-      return;
-    }
-
-    throw error;
-  } finally {
-    requestSet.delete(String(movieId));
-
-    if (actionSucceeded) {
-      markLocalDataMutation(`movie-user-state:${movieId}`);
-      syncCatalogSessionSnapshotMovieState(movieId);
-      rerender();
-
-      if (typeof onSuccess === 'function') {
-        onSuccess();
-      }
-
-      if (preserveWindowScroll) {
-        requestAnimationFrame(() => {
-          window.scrollTo({
-            top: scrollYBeforeMutation,
-            behavior: 'auto'
-          });
-        });
-      }
-    }
-  }
-}
-
 function rerenderCatalogWithFallback(
   movieId,
   shouldRenderFullCatalog,
@@ -14329,80 +14332,38 @@ async function removeMovieFromWatchlist(movieId) {
 }
 
 async function toggleMovieWatchlist(movieId) {
+  const controller = await ensureMovieUserStateControllerLoaded();
+
+  return controller.toggleMovieWatchlist(movieId);
+}
+
+async function deleteCurrentUserMovieRating(movieId, previousRating) {
   if (!currentUser) {
     return;
   }
 
-  if (isMovieWatchedByCurrentUser(movieId)) {
-    return;
+  const { error } = await supabaseClient
+    .from('movie_ratings')
+    .delete()
+    .eq('movie_id', movieId)
+    .eq('user_id', currentUser.id);
+
+  if (error) {
+    throw error;
   }
 
-  const shouldRemoveFromWatchlist = hasMovieWatchlistRecord(movieId);
-
-  await runMovieMutationWithUiSync({
-    movieId,
-    requestSet: watchlistRequestInFlight,
-    mutation: async () => {
-      if (shouldRemoveFromWatchlist) {
-        await removeMovieFromWatchlist(movieId);
-      } else {
-        await addMovieToWatchlist(movieId);
-      }
-    },
-    rerender: () => {
-      MOVIE_MUTATION_RERENDER_PRESETS.watchlistToggle(movieId);
-    },
-    onSuccess: () => {
-      if (shouldRemoveFromWatchlist) {
-        showMovieWatchlistFeedback(movieId, 'remove');
-      } else {
-        showMovieWatchlistFeedback(movieId);
-      }
-    },
-    onError: error => {
-      console.error('Ошибка переключения watchlist:', error);
-    }
-  });
+  allMovieRatings = allMovieRatings.filter(item => !(
+    String(item.movie_id) === String(movieId) &&
+    String(item.user_id) === String(currentUser.id)
+  ));
+  rebuildMovieRatingIndexes();
+  updateLocalMovieRatingStats(movieId, null, previousRating);
 }
 
 async function removeUserMovieRating(movieId) {
-  if (!currentUser) {
-    return;
-  }
+  const controller = await ensureMovieUserStateControllerLoaded();
 
-  const previousRating = getCurrentUserRating(movieId);
-
-  await runMovieMutationWithUiSync({
-    movieId,
-    requestSet: ratingRequestInFlight,
-    mutation: async () => {
-      const { error } = await supabaseClient
-        .from('movie_ratings')
-        .delete()
-        .eq('movie_id', movieId)
-        .eq('user_id', currentUser.id);
-
-      if (error) {
-        throw error;
-      }
-
-      allMovieRatings = allMovieRatings.filter(item => !(
-        String(item.movie_id) === String(movieId) &&
-        String(item.user_id) === String(currentUser.id)
-      ));
-      rebuildMovieRatingIndexes();
-      updateLocalMovieRatingStats(movieId, null, previousRating);
-    },
-    rerender: () => {
-      MOVIE_MUTATION_RERENDER_PRESETS.ratingChange(movieId);
-    },
-    onSuccess: () => {
-      showMovieRatingFeedback(movieId, 'remove');
-    },
-    onError: error => {
-      console.error('Ошибка удаления оценки фильма:', error);
-    }
-  });
+  return controller.removeUserMovieRating(movieId);
 }
 
 function ensureMobileRatingModal() {
@@ -14589,78 +14550,55 @@ function openMobileRatingModal(movie) {
   });
 }
 
-async function saveUserMovieRating(movieId, ratingValue) {
+async function upsertCurrentUserMovieRating(movieId, normalizedRating, previousRating) {
   if (!currentUser) {
     return;
   }
 
-  // Оценка переводит фильм в просмотренные, но не удаляет саму
-  // watchlist-запись: при снятии оценки фильм должен вернуться туда.
-  const normalizedRating = Number(ratingValue);
-
-  if (
-    !Number.isInteger(normalizedRating) ||
-    normalizedRating < 1 ||
-    normalizedRating > 10
-  ) {
-    return;
-  }
-
-  const previousRating = getCurrentUserRating(movieId);
-
-  await runMovieMutationWithUiSync({
-    movieId,
-    requestSet: ratingRequestInFlight,
-    mutation: async () => {
-      const { error } = await supabaseClient
-        .from('movie_ratings')
-        .upsert(
-          {
-            movie_id: movieId,
-            user_id: currentUser.id,
-            rating: normalizedRating
-          },
-          {
-            onConflict: 'movie_id,user_id'
-          }
-        );
-
-      if (error) {
-        throw error;
-      }
-
-      allMovieRatings = allMovieRatings.filter(item => !(
-        String(item.movie_id) === String(movieId) &&
-        String(item.user_id) === String(currentUser.id)
-      ));
-
-      allMovieRatings.push({
+  const { error } = await supabaseClient
+    .from('movie_ratings')
+    .upsert(
+      {
         movie_id: movieId,
         user_id: currentUser.id,
         rating: normalizedRating
-      });
-      rebuildMovieRatingIndexes();
-      updateLocalMovieRatingStats(movieId, normalizedRating, previousRating);
-
-      if (typeof ym === 'function') {
-        const lastRatedMovie = sessionStorage.getItem('last_rated_movie');
-
-        if (lastRatedMovie !== String(movieId)) {
-          ym(108369182, 'reachGoal', 'rate_movie');
-          sessionStorage.setItem('last_rated_movie', String(movieId));
-        }
+      },
+      {
+        onConflict: 'movie_id,user_id'
       }
-    },
-    rerender: () => {
-      MOVIE_MUTATION_RERENDER_PRESETS.ratingChange(movieId);
-    },
-    onSuccess: () => {
-      showMovieRatingFeedback(movieId);
-    },
-    onError: error => {
-      console.error('Ошибка сохранения оценки фильма:', error);
-    }
+    );
+
+  if (error) {
+    throw error;
+  }
+
+  allMovieRatings = allMovieRatings.filter(item => !(
+    String(item.movie_id) === String(movieId) &&
+    String(item.user_id) === String(currentUser.id)
+  ));
+
+  allMovieRatings.push({
+    movie_id: movieId,
+    user_id: currentUser.id,
+    rating: normalizedRating
   });
+  rebuildMovieRatingIndexes();
+  updateLocalMovieRatingStats(movieId, normalizedRating, previousRating);
+
+  if (typeof ym === 'function') {
+    const lastRatedMovie = sessionStorage.getItem('last_rated_movie');
+
+    if (lastRatedMovie !== String(movieId)) {
+      ym(108369182, 'reachGoal', 'rate_movie');
+      sessionStorage.setItem('last_rated_movie', String(movieId));
+    }
+  }
+}
+
+async function saveUserMovieRating(movieId, ratingValue) {
+  const controller = await ensureMovieUserStateControllerLoaded();
+
+  return controller.saveUserMovieRating(movieId, ratingValue);
 }
 
 function getCatalogPaginationContainers() {
