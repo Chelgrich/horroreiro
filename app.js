@@ -19814,59 +19814,31 @@ async function loadMoviePageByRouteParams(routeParams, {
 async function initMoviePage() {
   await ensureMoviePageOrchestratorControllerLoaded();
 
-  const routeParams = getMoviePageRouteParams();
-
-  if (!routeParams) {
-    renderMoviePageNotFound();
-    return;
-  }
-
-  await restoreSession();
-  trackEmailConfirmedLoginIfNeeded();
-  await Promise.all([
-    ensureMovieDetailCacheControllerLoaded(),
-    ensureMoviePageShellControllerLoaded(),
-    ensureMoviePageInteractionsControllerLoaded(),
-    ensureMoviePageSimilarControllerLoaded()
-  ]);
-  const restoredMovie = restoreMoviePageFromSessionCache(routeParams);
-  const warmMovie = restoredMovie ? null : hydrateMoviePageFromCatalogSnapshot(routeParams);
-
-  if (!restoredMovie) {
-    renderMoviePageSkeleton();
-  }
-
-  try {
-    await loadMoviePageByRouteParams(routeParams, {
-      warmMovie,
-      skipRenderIfCacheFresh: Boolean(restoredMovie)
-    });
-  } catch (error) {
-    console.error('Ошибка загрузки страницы фильма:', error);
-
-    const fallbackMovie = currentMoviePageMovieData || warmMovie;
-
-    if (!fallbackMovie) {
-      renderMoviePageNotFound();
-      return;
-    }
-
-    renderMoviePage(fallbackMovie);
-    renderMoviePageReviewsStatus('Не удалось обновить рецензии. Попробуй обновить страницу.');
-    renderMoviePageCommentsStatus('Не удалось обновить комментарии. Попробуй обновить страницу.');
-  }
-
-  bindSharedAuthStateListener({
-    onAfterAuthSync: async () => {
-      try {
-        await loadMoviePageByRouteParams(routeParams, {
-          skipUserStateFetch: true,
-          skipRenderIfCacheFresh: true
-        });
-      } catch (error) {
-        console.error('Ошибка синхронизации страницы фильма после auth:', error);
-        renderMoviePageNotFound();
-      }
+  return getMoviePageOrchestratorController().initMoviePage({
+    getRouteParams: getMoviePageRouteParams,
+    renderNotFound: renderMoviePageNotFound,
+    restoreSession,
+    trackEmailConfirmedLoginIfNeeded,
+    ensureDetailModulesLoaded: () => Promise.all([
+      ensureMovieDetailCacheControllerLoaded(),
+      ensureMoviePageShellControllerLoaded(),
+      ensureMoviePageInteractionsControllerLoaded(),
+      ensureMoviePageSimilarControllerLoaded()
+    ]),
+    restoreFromSessionCache: restoreMoviePageFromSessionCache,
+    hydrateFromCatalogSnapshot: hydrateMoviePageFromCatalogSnapshot,
+    renderSkeleton: renderMoviePageSkeleton,
+    loadByRouteParams: loadMoviePageByRouteParams,
+    getCurrentMovie: () => currentMoviePageMovieData,
+    renderMoviePage,
+    renderReviewsStatus: renderMoviePageReviewsStatus,
+    renderCommentsStatus: renderMoviePageCommentsStatus,
+    bindSharedAuthStateListener,
+    onLoadError: error => {
+      console.error('Ошибка загрузки страницы фильма:', error);
+    },
+    onAuthSyncError: error => {
+      console.error('Ошибка синхронизации страницы фильма после auth:', error);
     }
   });
 }

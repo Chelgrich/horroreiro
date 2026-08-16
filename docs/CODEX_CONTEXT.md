@@ -167,7 +167,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `movie-page-interactions.js` is lazy-loaded only for movie detail pages and owns trailer modal rendering/open-close behavior, poster gallery switching/load animation, and detail header event binding for watchlist, mobile rating, and trailer controls. `app.js` keeps payload loading, shared state restoration, rating/watchlist mutations, and detail-module callbacks.
 
-`movie-page-orchestrator.js` is lazy-loaded only for movie detail pages and owns route-param parsing, the movie detail page-load decision tree, cache-signature render skipping decisions, and deferred detail-section loading orchestration for similar, reviews, and comments. `app.js` keeps Supabase payload fetchers, current movie state storage, cache read/write callbacks, and render/status callbacks passed into the orchestrator.
+`movie-page-orchestrator.js` is lazy-loaded only for movie detail pages and owns movie detail init/auth-sync orchestration, route-param parsing, restore/skeleton/warm-cache startup flow, the movie detail page-load decision tree, cache-signature render skipping decisions, and deferred detail-section loading orchestration for similar, reviews, and comments. `app.js` keeps Supabase payload fetchers, current movie state storage, cache read/write callbacks, and render/status callbacks passed into the orchestrator.
 
 `movie-page-similar.js` is lazy-loaded only for movie detail pages and owns manual-similar search/order helpers, similar section/editor/card HTML rendering, editor DOM event binding, deferred similar loading, and optimistic save/status/rollback orchestration. `app.js` keeps manual similar state storage, the section wrapper, and Supabase/data callbacks.
 

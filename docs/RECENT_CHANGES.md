@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-16 - Move movie detail init flow to orchestrator
+
+- Files:
+  - `app.js`
+  - `movie-page-orchestrator.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved movie detail init/auth-sync orchestration into lazy `movie-page-orchestrator.js`, including session restore handoff, detail-module warmup, session/catalog cache restore, skeleton display, load-error fallback, and auth-sync reload handling.
+  - Kept `app.js` as the bridge for lazy module loading, current movie state, render/status callbacks, cache helpers, and Supabase/data callbacks.
+  - Tightened smoke guards so init/startup orchestration stays out of `app.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-page-orchestrator.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `35.3 KiB` raw / `4.4 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue the movie detail orchestration contour with rating/watchlist mutations, then final bridge cleanup.
+
 ## 2026-08-16 - Move movie detail page-load decision tree to orchestrator
 
 - Files:

@@ -28,6 +28,72 @@ export function createMoviePageOrchestratorController(context = {}) {
     return null;
   }
 
+  async function initMoviePage(bindings = {}) {
+    const routeParams = typeof bindings.getRouteParams === 'function'
+      ? bindings.getRouteParams()
+      : getMoviePageRouteParams();
+
+    if (!routeParams) {
+      bindings.renderNotFound?.();
+      return;
+    }
+
+    if (typeof bindings.restoreSession === 'function') {
+      await bindings.restoreSession();
+    }
+
+    bindings.trackEmailConfirmedLoginIfNeeded?.();
+
+    if (typeof bindings.ensureDetailModulesLoaded === 'function') {
+      await bindings.ensureDetailModulesLoaded();
+    }
+
+    const restoredMovie = typeof bindings.restoreFromSessionCache === 'function'
+      ? bindings.restoreFromSessionCache(routeParams)
+      : null;
+    const warmMovie = restoredMovie
+      ? null
+      : bindings.hydrateFromCatalogSnapshot?.(routeParams) || null;
+
+    if (!restoredMovie) {
+      bindings.renderSkeleton?.();
+    }
+
+    try {
+      await bindings.loadByRouteParams?.(routeParams, {
+        warmMovie,
+        skipRenderIfCacheFresh: Boolean(restoredMovie)
+      });
+    } catch (error) {
+      bindings.onLoadError?.(error);
+
+      const fallbackMovie = bindings.getCurrentMovie?.() || warmMovie;
+
+      if (!fallbackMovie) {
+        bindings.renderNotFound?.();
+        return;
+      }
+
+      bindings.renderMoviePage?.(fallbackMovie);
+      bindings.renderReviewsStatus?.('Не удалось обновить рецензии. Попробуй обновить страницу.');
+      bindings.renderCommentsStatus?.('Не удалось обновить комментарии. Попробуй обновить страницу.');
+    }
+
+    bindings.bindSharedAuthStateListener?.({
+      onAfterAuthSync: async () => {
+        try {
+          await bindings.loadByRouteParams?.(routeParams, {
+            skipUserStateFetch: true,
+            skipRenderIfCacheFresh: true
+          });
+        } catch (error) {
+          bindings.onAuthSyncError?.(error);
+          bindings.renderNotFound?.();
+        }
+      }
+    });
+  }
+
   async function loadDeferredMoviePageSections(movie, bindings = {}, { shouldRender = true } = {}) {
     if (!movie?.id) {
       return;
@@ -189,6 +255,7 @@ export function createMoviePageOrchestratorController(context = {}) {
 
   return {
     getMoviePageRouteParams,
+    initMoviePage,
     loadMoviePageByRouteParams,
     loadDeferredMoviePageSections
   };
