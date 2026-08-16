@@ -8317,6 +8317,7 @@ let personPlaceholderToolsPromise = null;
 let movieSocialControllerPromise = null;
 let movieEditorControllerPromise = null;
 let movieDetailCacheControllerPromise = null;
+let moviePageOrchestratorControllerPromise = null;
 let moviePageShellControllerPromise = null;
 let moviePageInteractionsControllerPromise = null;
 let customSelectScriptPromise = null;
@@ -8324,6 +8325,7 @@ let personPlaceholderTools = null;
 let movieSocialController = null;
 let movieEditorController = null;
 let movieDetailCacheController = null;
+let moviePageOrchestratorController = null;
 let moviePageShellController = null;
 let moviePageInteractionsController = null;
 
@@ -8544,6 +8546,39 @@ function ensureMovieDetailCacheControllerLoaded() {
   }
 
   return movieDetailCacheControllerPromise;
+}
+
+function getMoviePageOrchestratorControllerContext() {
+  return {
+    location: window.location
+  };
+}
+
+function ensureMoviePageOrchestratorControllerLoaded() {
+  if (!moviePageOrchestratorControllerPromise) {
+    moviePageOrchestratorControllerPromise = import(getLazyFeatureModuleUrl('movie-page-orchestrator.js'))
+      .then(module => {
+        moviePageOrchestratorController = module.createMoviePageOrchestratorController(
+          getMoviePageOrchestratorControllerContext()
+        );
+        return moviePageOrchestratorController;
+      })
+      .catch(error => {
+        moviePageOrchestratorControllerPromise = null;
+        moviePageOrchestratorController = null;
+        throw error;
+      });
+  }
+
+  return moviePageOrchestratorControllerPromise;
+}
+
+function getMoviePageOrchestratorController() {
+  if (!moviePageOrchestratorController) {
+    throw new Error('Movie page orchestrator module is not loaded.');
+  }
+
+  return moviePageOrchestratorController;
 }
 
 function getMoviePageInteractionsControllerContext() {
@@ -18965,28 +19000,7 @@ async function initUserPage() {
 }
 
 function getMoviePageRouteParams() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const pathSlugMatch = window.location.pathname.match(/\/movie\/([^/]+)\/?$/);
-  const pathMovieSlug = pathSlugMatch ? decodeURIComponent(pathSlugMatch[1] || '').trim() : '';
-  const rawMovieSlug = searchParams.get('slug');
-  const rawMovieId = searchParams.get('id');
-
-  const movieSlug = String(rawMovieSlug || '').trim();
-  const movieId = String(rawMovieId || '').trim();
-
-  if (pathMovieSlug) {
-    return { slug: pathMovieSlug, id: null };
-  }
-
-  if (movieSlug) {
-    return { slug: movieSlug, id: null };
-  }
-
-  if (movieId) {
-    return { slug: null, id: movieId };
-  }
-
-  return null;
+  return getMoviePageOrchestratorController().getMoviePageRouteParams();
 }
 
 async function fetchMovieById(movieId, selectQuery = MOVIE_DETAIL_SELECT) {
@@ -19736,57 +19750,24 @@ async function deleteMovieFromMoviePage(movieId, movieTitle) {
 }
 
 async function loadDeferredMoviePageSections(movie, { shouldRender = true } = {}) {
-  if (!movie?.id) {
-    return;
-  }
-
-  const movieId = String(movie.id);
-  const shouldKeepRendering = () => String(currentMoviePageMovieId || '') === movieId;
-  const deferredTasks = [
-    loadMoviePageSimilarMovies(movie, 4, { shouldRender })
-  ];
-
-  deferredTasks.push(
-    fetchMovieReviews(movie.id)
-      .then(() => {
-        if (shouldRender && shouldKeepRendering()) {
-          renderMoviePageReviewsSection(movie);
-        }
-      })
-      .catch(error => {
-        console.error('Ошибка загрузки рецензий на деталке:', error);
-
-        if (shouldRender && shouldKeepRendering()) {
-          renderMoviePageReviewsStatus('Не удалось обновить рецензии. Попробуй обновить страницу.');
-        }
-      })
-  );
-
-  deferredTasks.push(
-    fetchMovieComments(movie.id)
-      .then(() => {
-        if (shouldRender && shouldKeepRendering()) {
-          renderMoviePageCommentsSection(movie);
-        }
-      })
-      .catch(error => {
-        console.error('Ошибка загрузки комментариев на деталке:', error);
-
-        if (shouldRender && shouldKeepRendering()) {
-          renderMoviePageCommentsStatus('Не удалось обновить комментарии. Попробуй обновить страницу.');
-        }
-      })
-  );
-
-  await Promise.allSettled(deferredTasks);
-
-  if (shouldKeepRendering()) {
-    syncCatalogSessionSnapshotMovieState(movie.id, {
-      syncReviews: true,
-      syncMovie: movie
-    });
-    persistCurrentMoviePageSessionCache();
-  }
+  return getMoviePageOrchestratorController().loadDeferredMoviePageSections(movie, {
+    getCurrentMovieId: () => currentMoviePageMovieId,
+    loadSimilarMovies: loadMoviePageSimilarMovies,
+    fetchReviews: fetchMovieReviews,
+    renderReviewsSection: renderMoviePageReviewsSection,
+    renderReviewsStatus: renderMoviePageReviewsStatus,
+    onReviewsLoadError: error => {
+      console.error('Ошибка загрузки рецензий на деталке:', error);
+    },
+    fetchComments: fetchMovieComments,
+    renderCommentsSection: renderMoviePageCommentsSection,
+    renderCommentsStatus: renderMoviePageCommentsStatus,
+    onCommentsLoadError: error => {
+      console.error('Ошибка загрузки комментариев на деталке:', error);
+    },
+    syncCatalogSnapshot: syncCatalogSessionSnapshotMovieState,
+    persistSessionCache: persistCurrentMoviePageSessionCache
+  }, { shouldRender });
 }
 
 async function loadMoviePageByRouteParams(routeParams, {
@@ -19866,6 +19847,8 @@ async function loadMoviePageByRouteParams(routeParams, {
 }
 
 async function initMoviePage() {
+  await ensureMoviePageOrchestratorControllerLoaded();
+
   const routeParams = getMoviePageRouteParams();
 
   if (!routeParams) {

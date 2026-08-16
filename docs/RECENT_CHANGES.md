@@ -12,6 +12,33 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-16 - Move movie page route and deferred orchestration to lazy module
+
+- Files:
+  - `app.js`
+  - `movie-page-orchestrator.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added lazy `movie-page-orchestrator.js` for movie detail route-param parsing and deferred section orchestration.
+  - Moved similar/review/comment deferred loading coordination out of `app.js` while keeping Supabase fetchers, state, cache persistence, and render/status callbacks there.
+  - Registered the module in versioned app assets, cache headers, asset-size reporting, and smoke guards.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-page-orchestrator.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `34.3 KiB` raw / `4.3 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue the movie detail orchestration contour with the main route/data load bridge or rating/watchlist mutations in a later pass.
+
 ## 2026-08-16 - Move movie similar loading to lazy module
 
 - Files:

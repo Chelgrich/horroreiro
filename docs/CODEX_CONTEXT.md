@@ -100,7 +100,7 @@ All HTML-like app shell responses should be no-store.
 - session-memory public profile and movie-by-id row caches for repeated profile, notification, and rail lookups;
 - catalog state, filters, pagination, URL params, presets;
 - movie modal add/edit bridge and Supabase writes;
-- movie detail routing/data loading, gallery events, manual similar editor, and bridges into lazy detail modules;
+- movie detail data loading, cache/state bridges, and callbacks into lazy detail modules;
 - ratings/watchlist;
 - notifications unread badge and shared notification availability;
 - shared user profile helpers, avatars, settings, follow controls, and reusable profile movie rails;
@@ -165,7 +165,9 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `movie-page-shell.js` is lazy-loaded only for movie detail pages and owns detail view-model/header/skeleton HTML helpers.
 
-`movie-page-interactions.js` is lazy-loaded only for movie detail pages and owns trailer modal rendering/open-close behavior, poster gallery switching/load animation, and detail header event binding for watchlist, mobile rating, and trailer controls. `app.js` keeps route loading, shared state restoration, manual similar editor, rating/watchlist mutations, and social/similar hydration orchestration.
+`movie-page-interactions.js` is lazy-loaded only for movie detail pages and owns trailer modal rendering/open-close behavior, poster gallery switching/load animation, and detail header event binding for watchlist, mobile rating, and trailer controls. `app.js` keeps payload loading, shared state restoration, rating/watchlist mutations, and detail-module callbacks.
+
+`movie-page-orchestrator.js` is lazy-loaded only for movie detail pages and owns route-param parsing plus deferred detail-section loading orchestration for similar, reviews, and comments. `app.js` keeps Supabase payload fetching, current movie state, cache writes, and the render/status callbacks passed into the orchestrator.
 
 `movie-page-similar.js` is lazy-loaded only for movie detail pages and owns manual-similar search/order helpers, similar section/editor/card HTML rendering, editor DOM event binding, deferred similar loading, and optimistic save/status/rollback orchestration. `app.js` keeps manual similar state storage, the section wrapper, and Supabase/data callbacks.
 

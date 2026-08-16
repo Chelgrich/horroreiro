@@ -18,6 +18,7 @@ const ALLOWED_APP_ASSETS = new Set([
   'movie-editor.js',
   'movie-detail-cache.js',
   'movie-page-interactions.js',
+  'movie-page-orchestrator.js',
   'movie-page-similar.js',
   'movie-page-shell.js',
   'movie-social.js',
