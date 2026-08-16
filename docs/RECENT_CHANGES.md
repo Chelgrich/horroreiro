@@ -12,6 +12,34 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-16 - Move movie similar helpers to lazy module
+
+- Files:
+  - `app.js`
+  - `movie-page-similar.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added lazy `movie-page-similar.js` for pure manual-similar search suggestions and selected-movie ordering helpers.
+  - Kept manual similar editor HTML, DOM events, Supabase writes, and section rendering in `app.js`.
+  - Registered the new lazy module in versioned app assets, cache headers, asset-size reporting, and smoke guards.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-page-similar.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: `movie-page-similar.js` stays outside startup profiles; current startup profiles remain about `18.9 KiB` raw / `2.7 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue with the remaining movie detail orchestration after this smaller similar-helper split is verified.
+
 ## 2026-08-16 - Split movie detail cache and selects
 
 - Files:

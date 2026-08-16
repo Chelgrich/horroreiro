@@ -21,6 +21,7 @@ const assetGroups = {
     'movie-editor.js',
     'movie-detail-cache.js',
     'movie-page-interactions.js',
+    'movie-page-similar.js',
     'movie-page-shell.js',
     'movie-social.js',
     'notifications-page.js',

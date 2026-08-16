@@ -25,6 +25,7 @@ const lazyJsFiles = [
   'movie-editor.js',
   'movie-detail-cache.js',
   'movie-page-interactions.js',
+  'movie-page-similar.js',
   'movie-page-shell.js',
   'movie-social.js',
   'notifications-page.js',
@@ -66,6 +67,7 @@ const contextSensitiveExactFiles = new Set([
   'movie-editor.js',
   'movie-detail-cache.js',
   'movie-page-interactions.js',
+  'movie-page-similar.js',
   'movie-page-shell.js',
   'movie-social.js',
   'notifications-page.css',
@@ -188,6 +190,10 @@ function checkAssetSizeReport() {
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-page-interactions.js')),
     'asset-size-report.mjs: movie-page-interactions.js must stay lazy-loaded outside startup profiles'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-page-similar.js')),
+    'asset-size-report.mjs: movie-page-similar.js must stay lazy-loaded outside startup profiles'
   );
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('movie-page-shell.js')),
@@ -441,6 +447,7 @@ async function checkStaticGuards() {
     '/movie-editor.js',
     '/movie-detail-cache.js',
     '/movie-page-interactions.js',
+    '/movie-page-similar.js',
     '/movie-page-shell.js',
     '/movie-social.js',
     '/notifications-page.css',
@@ -484,6 +491,7 @@ async function checkStaticGuards() {
     'movie-editor.js',
     'movie-detail-cache.js',
     'movie-page-interactions.js',
+    'movie-page-similar.js',
     'movie-page-shell.js',
     'movie-social.js',
     'notifications-page.css',
@@ -505,6 +513,7 @@ async function checkStaticGuards() {
   const movieDetailCacheJs = await readText('movie-detail-cache.js');
   const directorPageJs = await readText('director-page.js');
   const moviePageInteractionsJs = await readText('movie-page-interactions.js');
+  const moviePageSimilarJs = await readText('movie-page-similar.js');
   const moviePageShellJs = await readText('movie-page-shell.js');
   const movieSocialJs = await readText('movie-social.js');
   const notificationsPageJs = await readText('notifications-page.js');
@@ -541,6 +550,10 @@ async function checkStaticGuards() {
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('movie-page-interactions.js'))"),
     'app.js: movie detail interactions must lazy-load movie-page-interactions.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('movie-page-similar.js'))"),
+    'app.js: movie detail similar helpers must lazy-load movie-page-similar.js'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('director-page.js'))"),
@@ -586,6 +599,13 @@ async function checkStaticGuards() {
       !appJs.includes('function openMovieTrailerModal(') &&
       !appJs.includes('function updateMoviePagePosterGallery('),
     'movie-page-interactions.js: movie detail trailer and poster gallery handlers must stay outside app.js'
+  );
+  assert(
+    moviePageSimilarJs.includes('function getMoviePageSimilarIdsAfterMove(') &&
+      moviePageSimilarJs.includes('function getMoviePageSimilarSearchSuggestions(') &&
+      !appJs.includes('function doesMovieMatchManualSimilarSearch(') &&
+      !appJs.includes('function getMoviePageSimilarIdsAfterMove(movieId, direction) {\n  const normalizedMovieId'),
+    'movie-page-similar.js: manual similar pure search/order helpers must stay outside app.js'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('notifications-page.js'))"),

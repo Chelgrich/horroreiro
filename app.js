@@ -604,6 +604,8 @@ let directorPageControllerPromise = null;
 let directorPageController = null;
 let directorsAdminFrameworkAppPromise = null;
 let directorsAdminFrameworkApp = null;
+let moviePageSimilarControllerPromise = null;
+let moviePageSimilarController = null;
 let directorModal = null;
 let directorForm = null;
 let directorModalTitle = null;
@@ -8645,6 +8647,41 @@ function getMoviePageShellController() {
   }
 
   return moviePageShellController;
+}
+
+function getMoviePageSimilarControllerContext() {
+  return {
+    normalizeManualSimilarMovieIds,
+    normalizeSearchText,
+    getManualSimilarMovieLabel
+  };
+}
+
+function ensureMoviePageSimilarControllerLoaded() {
+  if (!moviePageSimilarControllerPromise) {
+    moviePageSimilarControllerPromise = import(getLazyFeatureModuleUrl('movie-page-similar.js'))
+      .then(module => {
+        moviePageSimilarController = module.createMoviePageSimilarController(
+          getMoviePageSimilarControllerContext()
+        );
+        return moviePageSimilarController;
+      })
+      .catch(error => {
+        moviePageSimilarControllerPromise = null;
+        moviePageSimilarController = null;
+        throw error;
+      });
+  }
+
+  return moviePageSimilarControllerPromise;
+}
+
+function getMoviePageSimilarController() {
+  if (!moviePageSimilarController) {
+    throw new Error('Movie page similar module is not loaded.');
+  }
+
+  return moviePageSimilarController;
 }
 
 function reportLetterboxdRatingsImportProgress(options, message) {
@@ -19421,48 +19458,14 @@ function getMoviePageSimilarSelectedMovies() {
     .filter(Boolean);
 }
 
-function doesMovieMatchManualSimilarSearch(movie, normalizedQuery) {
-  if (!normalizedQuery) {
-    return false;
-  }
-
-  const searchValues = [
-    getManualSimilarMovieLabel(movie),
-    movie?.original_title,
-    movie?.director,
-    movie?.year,
-    ...(Array.isArray(movie?.search_aliases) ? movie.search_aliases : [])
-  ];
-
-  return searchValues.some(value => normalizeSearchText(value).includes(normalizedQuery));
-}
-
 function getMoviePageSimilarSearchSuggestions(movie, limit = 8) {
-  const normalizedQuery = normalizeSearchText(moviePageSimilarEditorSearchQuery);
-
-  if (!normalizedQuery || !Array.isArray(allMovies) || allMovies.length === 0) {
-    return [];
-  }
-
-  const excludedMovieIds = new Set([
-    String(movie?.id || ''),
-    ...currentMoviePageSimilarMovieIds.map(movieId => String(movieId))
-  ].filter(Boolean));
-
-  return allMovies
-    .filter(item => (
-      item?.id &&
-      !excludedMovieIds.has(String(item.id)) &&
-      doesMovieMatchManualSimilarSearch(item, normalizedQuery)
-    ))
-    .slice()
-    .sort((firstMovie, secondMovie) => (
-      getManualSimilarMovieLabel(firstMovie).localeCompare(
-        getManualSimilarMovieLabel(secondMovie),
-        'ru'
-      )
-    ))
-    .slice(0, limit);
+  return getMoviePageSimilarController().getMoviePageSimilarSearchSuggestions({
+    movie,
+    movies: allMovies,
+    selectedMovieIds: currentMoviePageSimilarMovieIds,
+    query: moviePageSimilarEditorSearchQuery,
+    limit
+  });
 }
 
 function getMoviePageSimilarEditorStatusHtml() {
@@ -19698,42 +19701,20 @@ function getMoviePageSimilarSectionHtml(similarMovies, movie = currentMoviePageM
 }
 
 function getMoviePageSimilarIdsAfterMove(movieId, direction) {
-  const normalizedMovieId = String(movieId || '');
-  const currentIndex = currentMoviePageSimilarMovieIds.indexOf(normalizedMovieId);
-  const nextIndex = currentIndex + Number(direction || 0);
-
-  if (
-    currentIndex < 0 ||
-    nextIndex < 0 ||
-    nextIndex >= currentMoviePageSimilarMovieIds.length
-  ) {
-    return currentMoviePageSimilarMovieIds;
-  }
-
-  const nextMovieIds = currentMoviePageSimilarMovieIds.slice();
-  const [movedMovieId] = nextMovieIds.splice(currentIndex, 1);
-
-  nextMovieIds.splice(nextIndex, 0, movedMovieId);
-  return nextMovieIds;
+  return getMoviePageSimilarController().getMoviePageSimilarIdsAfterMove(
+    currentMoviePageSimilarMovieIds,
+    movieId,
+    direction
+  );
 }
 
 function getMoviePageSimilarIdsAfterDrop(sourceMovieId, targetMovieId, shouldPlaceAfter = false) {
-  const sourceId = String(sourceMovieId || '');
-  const targetId = String(targetMovieId || '');
-
-  if (!sourceId || !targetId || sourceId === targetId) {
-    return currentMoviePageSimilarMovieIds;
-  }
-
-  const nextMovieIds = currentMoviePageSimilarMovieIds.filter(movieId => String(movieId) !== sourceId);
-  const targetIndex = nextMovieIds.indexOf(targetId);
-
-  if (targetIndex < 0) {
-    return currentMoviePageSimilarMovieIds;
-  }
-
-  nextMovieIds.splice(targetIndex + (shouldPlaceAfter ? 1 : 0), 0, sourceId);
-  return nextMovieIds;
+  return getMoviePageSimilarController().getMoviePageSimilarIdsAfterDrop(
+    currentMoviePageSimilarMovieIds,
+    sourceMovieId,
+    targetMovieId,
+    shouldPlaceAfter
+  );
 }
 
 function focusMoviePageSimilarSearch(selectionStart = null) {
@@ -20348,7 +20329,8 @@ async function initMoviePage() {
   await Promise.all([
     ensureMovieDetailCacheControllerLoaded(),
     ensureMoviePageShellControllerLoaded(),
-    ensureMoviePageInteractionsControllerLoaded()
+    ensureMoviePageInteractionsControllerLoaded(),
+    ensureMoviePageSimilarControllerLoaded()
   ]);
   const restoredMovie = restoreMoviePageFromSessionCache(routeParams);
   const warmMovie = restoredMovie ? null : hydrateMoviePageFromCatalogSnapshot(routeParams);
