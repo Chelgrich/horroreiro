@@ -19531,44 +19531,8 @@ async function loadMoviePageSimilarMovies(movie, limit = 4, { shouldRender = tru
   }, limit, { shouldRender });
 }
 
-function getMoviePageSubgenreLabel(movie) {
-  return getMoviePageShellController().getMoviePageSubgenreLabel(movie);
-}
-
-function getMoviePageFormatsLabel(movie) {
-  return getMoviePageShellController().getMoviePageFormatsLabel(movie);
-}
-
-function buildMoviePageViewModel(movie, options = {}) {
-  return getMoviePageShellController().buildMoviePageViewModel(movie, options);
-}
-
 function getMoviePagePosterGalleryImages(movie) {
   return getMoviePageShellController().getMoviePagePosterGalleryImages(movie);
-}
-
-function getMoviePagePosterGalleryIndex(movieId, imagesCount) {
-  return getMoviePageShellController().getMoviePagePosterGalleryIndex(movieId, imagesCount);
-}
-
-function getMoviePagePosterGalleryButtonHtml(direction, options) {
-  return getMoviePageShellController().getMoviePagePosterGalleryButtonHtml(direction, options);
-}
-
-function getMoviePagePosterColumnHtml(movie, viewModel) {
-  return getMoviePageShellController().getMoviePagePosterColumnHtml(movie, viewModel);
-}
-
-function getMoviePageMainColumnHtml(movie, viewModel) {
-  return getMoviePageShellController().getMoviePageMainColumnHtml(movie, viewModel);
-}
-
-function getMoviePageHeaderHtml(movie, viewModel) {
-  return getMoviePageShellController().getMoviePageHeaderHtml(movie, viewModel);
-}
-
-function getMoviePageSkeletonHtml() {
-  return getMoviePageShellController().getMoviePageSkeletonHtml();
 }
 
 function renderMoviePageSkeleton() {
@@ -19577,7 +19541,7 @@ function renderMoviePageSkeleton() {
   }
 
   document.documentElement.classList.remove('movie-page-rendered');
-  moviePage.innerHTML = getMoviePageSkeletonHtml();
+  moviePage.innerHTML = getMoviePageShellController().getMoviePageSkeletonHtml();
 }
 
 function bindMoviePageHeaderEvents(movie, rootElement = moviePage) {
@@ -19617,9 +19581,11 @@ function renderMoviePageHeaderSection(movie) {
   currentMoviePageMovieId = movie.id;
   currentMoviePageMovieData = movie;
 
-  const viewModel = buildMoviePageViewModel(movie, { includeSocialSections: false });
+  const viewModel = getMoviePageShellController().buildMoviePageViewModel(movie, {
+    includeSocialSections: false
+  });
 
-  headerElement.outerHTML = getMoviePageHeaderHtml(movie, viewModel);
+  headerElement.outerHTML = getMoviePageShellController().getMoviePageHeaderHtml(movie, viewModel);
   bindMoviePageHeaderEvents(movie);
   document.documentElement.classList.add('movie-page-rendered');
 }
@@ -19636,7 +19602,7 @@ function renderMoviePage(movie, { socialLoading = false, similarLoading = false 
   currentMoviePageMovieId = movie.id;
   currentMoviePageMovieData = movie;
 
-  const viewModel = buildMoviePageViewModel(movie, {
+  const viewModel = getMoviePageShellController().buildMoviePageViewModel(movie, {
     includeSocialSections: !socialLoading
   });
   const reviewsSectionHtml = socialLoading
@@ -19655,7 +19621,7 @@ function renderMoviePage(movie, { socialLoading = false, similarLoading = false 
 
   moviePage.innerHTML = `
     <div class="movie-page-stack">
-      ${getMoviePageHeaderHtml(movie, viewModel)}
+      ${getMoviePageShellController().getMoviePageHeaderHtml(movie, viewModel)}
 
       ${reviewsSectionHtml}
       ${commentsSectionHtml}

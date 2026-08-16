@@ -12,6 +12,27 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-16 - Close movie detail orchestration backlog
+
+- Files:
+  - `app.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Removed remaining unused movie-page shell wrapper functions from `app.js`.
+  - Switched movie detail skeleton/header/view-model rendering calls to use the lazy shell controller directly while keeping the poster-gallery callback bridge needed by interactions.
+  - Tightened smoke guards and marked the movie detail orchestration backlog item as completed/maintenance-only.
+- Checks:
+  - `node --check app.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `4.6 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Start backlog item 2: movie editor module/orchestration cleanup.
+
 ## 2026-08-16 - Move movie user-state mutation orchestration to lazy module
 
 - Files:

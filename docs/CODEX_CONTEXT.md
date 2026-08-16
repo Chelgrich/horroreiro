@@ -165,7 +165,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `movie-page-shell.js` is lazy-loaded only for movie detail pages and owns detail view-model/header/skeleton HTML helpers.
 
-`movie-page-interactions.js` is lazy-loaded only for movie detail pages and owns trailer modal rendering/open-close behavior, poster gallery switching/load animation, and detail header event binding for watchlist, mobile rating, and trailer controls. `app.js` keeps payload loading, shared state restoration, rating/watchlist mutations, and detail-module callbacks.
+`movie-page-interactions.js` is lazy-loaded only for movie detail pages and owns trailer modal rendering/open-close behavior, poster gallery switching/load animation, and detail header event binding for watchlist, mobile rating, and trailer controls. `app.js` keeps payload loading, shared state restoration, user-state mutation bridges, and detail-module callbacks.
 
 `movie-page-orchestrator.js` is lazy-loaded only for movie detail pages and owns movie detail init/auth-sync orchestration, route-param parsing, restore/skeleton/warm-cache startup flow, the movie detail page-load decision tree, cache-signature render skipping decisions, and deferred detail-section loading orchestration for similar, reviews, and comments. `app.js` keeps Supabase payload fetchers, current movie state storage, cache read/write callbacks, and render/status callbacks passed into the orchestrator.
 
@@ -186,7 +186,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 Work through this backlog one contour per pass unless the user explicitly changes the order:
 
-1. Movie detail orchestration: continue moving remaining detail bridges and low-risk rating/watchlist callbacks out of `app.js` in small safe slices after the current route/load/similar/user-state orchestration split.
+1. Movie detail orchestration: completed; keep route/load/init/similar/social/interactions/shell/user-state orchestration in lazy modules. `app.js` should remain a data/state bridge here, with only small maintenance cleanup expected.
 2. Movie editor: continue moving modal orchestration, DOM bridge, Supabase insert/update, and post-save synchronization out of `app.js` after the lower-risk helper moves.
 3. Supabase payload/select audit: review catalog, profile rails/taste, notifications, person/director payload, and movie detail RPC fallback so each page fetches only fields it actually needs.
 4. Catalog module split: move filters, presets, URL params, pagination, card rendering, and catalog return-state cache out of `app.js` after detail/editor boundaries are steadier.

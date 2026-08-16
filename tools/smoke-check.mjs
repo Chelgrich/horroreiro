@@ -594,7 +594,17 @@ async function checkStaticGuards() {
   );
   assert(
     moviePageShellJs.includes('function getMoviePageHeaderHtml(') &&
-      !appJs.includes('function getMoviePageHeaderHtml(movie, viewModel) {\\n  return `'),
+      moviePageShellJs.includes('function getMoviePageSkeletonHtml(') &&
+      moviePageShellJs.includes('function buildMoviePageViewModel(') &&
+      !appJs.includes('function getMoviePageSubgenreLabel(') &&
+      !appJs.includes('function getMoviePageFormatsLabel(') &&
+      !appJs.includes('function buildMoviePageViewModel(') &&
+      !appJs.includes('function getMoviePagePosterGalleryIndex(') &&
+      !appJs.includes('function getMoviePagePosterGalleryButtonHtml(') &&
+      !appJs.includes('function getMoviePagePosterColumnHtml(') &&
+      !appJs.includes('function getMoviePageMainColumnHtml(') &&
+      !appJs.includes('function getMoviePageHeaderHtml(') &&
+      !appJs.includes('function getMoviePageSkeletonHtml('),
     'movie-page-shell.js: movie page header renderer must stay outside app.js'
   );
   assert(
