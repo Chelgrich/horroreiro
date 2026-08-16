@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-16 - Move movie similar save orchestration to lazy module
+
+- Files:
+  - `app.js`
+  - `movie-page-similar.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved manual similar optimistic save, status, rollback, and final rerender orchestration into lazy `movie-page-similar.js`.
+  - Kept manual similar state storage, the section wrapper, and the Supabase write callback in `app.js`.
+  - Tightened smoke guards so manual similar save orchestration stays out of `app.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-page-similar.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `33.9 KiB` raw / `4.2 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue the movie detail orchestration contour with the remaining similar load/state bridge or route/data orchestration in a later pass.
+
 ## 2026-08-16 - Move movie similar editor events to lazy module
 
 - Files:

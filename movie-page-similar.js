@@ -471,14 +471,142 @@ export function createMoviePageSimilarController(context = {}) {
     return Boolean(bindings.isSaving);
   }
 
+  function getBindingMovie(bindings = {}) {
+    if (typeof bindings.getMovie === 'function') {
+      return bindings.getMovie();
+    }
+
+    return bindings.movie || null;
+  }
+
+  function isBindingAdmin(bindings = {}) {
+    if (typeof bindings.getIsAdmin === 'function') {
+      return Boolean(bindings.getIsAdmin());
+    }
+
+    return Boolean(bindings.isAdmin);
+  }
+
+  function getBindingSelectedMovies(bindings = {}) {
+    if (typeof bindings.getSelectedMovies === 'function') {
+      const selectedMovies = bindings.getSelectedMovies();
+      return Array.isArray(selectedMovies) ? selectedMovies : [];
+    }
+
+    return Array.isArray(bindings.selectedMovies) ? bindings.selectedMovies : [];
+  }
+
+  function setBindingSelectedMovieIds(bindings = {}, movieIds = []) {
+    if (typeof bindings.setSelectedMovieIds === 'function') {
+      bindings.setSelectedMovieIds(normalizeManualSimilarMovieIds(movieIds));
+    }
+  }
+
+  function setBindingSelectedMovies(bindings = {}, movies = []) {
+    if (typeof bindings.setSelectedMovies === 'function') {
+      bindings.setSelectedMovies(Array.isArray(movies) ? movies : []);
+    }
+  }
+
+  function setBindingSaving(bindings = {}, isSaving = false) {
+    if (typeof bindings.setIsSaving === 'function') {
+      bindings.setIsSaving(Boolean(isSaving));
+    }
+  }
+
+  function setBindingQuery(bindings = {}, query = '') {
+    if (typeof bindings.setQuery === 'function') {
+      bindings.setQuery(String(query || ''));
+    }
+  }
+
+  function setBindingStatus(bindings = {}, message = '', type = '') {
+    if (typeof bindings.setStatus === 'function') {
+      bindings.setStatus(message, type);
+    }
+  }
+
+  function setBindingDraggedMovieId(bindings = {}, movieId = null) {
+    if (typeof bindings.onDraggedMovieIdChange === 'function') {
+      bindings.onDraggedMovieIdChange(movieId);
+    }
+  }
+
+  function renderBindingSection(bindings = {}, movieId = '') {
+    if (typeof bindings.renderSection === 'function') {
+      bindings.renderSection(movieId);
+    }
+  }
+
+  async function saveMoviePageSimilarEditorIds(
+    nextMovieIds,
+    bindings = {},
+    successMessage = 'Похожие фильмы сохранены.'
+  ) {
+    const movie = getBindingMovie(bindings);
+    const movieId = String(movie?.id || '');
+
+    if (!isBindingAdmin(bindings) || !movieId || isBindingSaving(bindings)) {
+      return;
+    }
+
+    const normalizedMovieIds = normalizeManualSimilarMovieIds(nextMovieIds, movieId);
+    const previousMovieIds = getBindingSelectedMovieIds(bindings);
+    const previousMovies = getBindingSelectedMovies(bindings);
+
+    setBindingSelectedMovieIds(bindings, normalizedMovieIds);
+    setBindingSelectedMovies(
+      bindings,
+      normalizedMovieIds
+        .map(similarMovieId => getCatalogMovieById(similarMovieId))
+        .filter(Boolean)
+    );
+    setBindingSaving(bindings, true);
+    setBindingStatus(bindings, 'Сохраняю похожие фильмы...');
+    renderBindingSection(bindings, movieId);
+
+    try {
+      if (typeof bindings.replaceManualSimilarMovies !== 'function') {
+        throw new Error('Не удалось сохранить похожие фильмы.');
+      }
+
+      await bindings.replaceManualSimilarMovies(movieId, normalizedMovieIds);
+
+      const savedMovieIds = typeof bindings.getManualSimilarMovieIds === 'function'
+        ? normalizeManualSimilarMovieIds(bindings.getManualSimilarMovieIds(movieId), movieId)
+        : normalizedMovieIds;
+      const savedMovies = typeof bindings.fetchSimilarCardMoviesByIds === 'function'
+        ? await bindings.fetchSimilarCardMoviesByIds(savedMovieIds)
+        : savedMovieIds
+          .map(similarMovieId => getCatalogMovieById(similarMovieId))
+          .filter(Boolean);
+
+      setBindingSelectedMovieIds(bindings, savedMovieIds);
+      setBindingSelectedMovies(bindings, savedMovies);
+      setBindingQuery(bindings, '');
+      setBindingStatus(bindings, successMessage, 'success');
+    } catch (error) {
+      if (typeof bindings.onSaveError === 'function') {
+        bindings.onSaveError(error);
+      }
+
+      setBindingSelectedMovieIds(bindings, previousMovieIds);
+      setBindingSelectedMovies(bindings, previousMovies);
+      setBindingStatus(
+        bindings,
+        error?.message || 'Не удалось сохранить похожие фильмы.',
+        'error'
+      );
+    } finally {
+      setBindingSaving(bindings, false);
+      setBindingDraggedMovieId(bindings, null);
+      renderBindingSection(bindings, movieId);
+    }
+  }
+
   function bindMoviePageSimilarEditorEvents(movie, bindings = {}) {
     const {
-      rootElement = null,
-      onSearchQueryChange = () => {},
-      onStatusClear = () => {},
-      onRenderSection = () => {},
-      onSaveMovieIds = () => {},
-      onDraggedMovieIdChange = () => {}
+      rootElement = null
     } = bindings;
     const editor = rootElement?.querySelector('[data-movie-page-similar-editor="true"]');
 
@@ -486,19 +614,15 @@ export function createMoviePageSimilarController(context = {}) {
       return;
     }
 
-    const saveMovieIds = (nextMovieIds, successMessage) => {
-      onSaveMovieIds(nextMovieIds, successMessage);
-    };
-
     editor
       .querySelector('[data-movie-page-similar-search="true"]')
       ?.addEventListener('input', event => {
         const searchInputElement = event.currentTarget;
         const selectionStart = searchInputElement.selectionStart;
 
-        onSearchQueryChange(searchInputElement.value);
-        onStatusClear();
-        onRenderSection(movie.id);
+        setBindingQuery(bindings, searchInputElement.value);
+        setBindingStatus(bindings);
+        renderBindingSection(bindings, movie.id);
         focusMoviePageSimilarSearch(rootElement, selectionStart);
       });
 
@@ -508,8 +632,9 @@ export function createMoviePageSimilarController(context = {}) {
       const moveButton = event.target.closest('[data-movie-page-similar-move]');
 
       if (addButton) {
-        saveMovieIds(
+        saveMoviePageSimilarEditorIds(
           [...getBindingSelectedMovieIds(bindings), addButton.dataset.moviePageSimilarAdd],
+          bindings,
           'Похожий фильм добавлен.'
         );
         return;
@@ -518,21 +643,23 @@ export function createMoviePageSimilarController(context = {}) {
       if (removeButton) {
         const movieId = removeButton.dataset.moviePageSimilarRemove;
 
-        saveMovieIds(
+        saveMoviePageSimilarEditorIds(
           getBindingSelectedMovieIds(bindings)
             .filter(similarMovieId => String(similarMovieId) !== String(movieId)),
+          bindings,
           'Похожий фильм убран.'
         );
         return;
       }
 
       if (moveButton) {
-        saveMovieIds(
+        saveMoviePageSimilarEditorIds(
           getMoviePageSimilarIdsAfterMove(
             getBindingSelectedMovieIds(bindings),
             moveButton.dataset.moviePageSimilarMove,
             Number(moveButton.dataset.moviePageSimilarDirection || 0)
           ),
+          bindings,
           'Порядок похожих обновлён.'
         );
       }
@@ -548,7 +675,7 @@ export function createMoviePageSimilarController(context = {}) {
 
       const draggedMovieId = item.dataset.moviePageSimilarEditorItem;
 
-      onDraggedMovieIdChange(draggedMovieId);
+      setBindingDraggedMovieId(bindings, draggedMovieId);
 
       if (event.dataTransfer) {
         event.dataTransfer.effectAllowed = 'move';
@@ -562,7 +689,7 @@ export function createMoviePageSimilarController(context = {}) {
       event.target
         .closest('[data-movie-page-similar-editor-item]')
         ?.classList.remove('is-dragging');
-      onDraggedMovieIdChange(null);
+      setBindingDraggedMovieId(bindings, null);
     });
 
     editor.addEventListener('dragover', event => {
@@ -598,13 +725,14 @@ export function createMoviePageSimilarController(context = {}) {
       const targetRect = targetItem.getBoundingClientRect();
       const shouldPlaceAfter = event.clientY > targetRect.top + (targetRect.height / 2);
 
-      saveMovieIds(
+      saveMoviePageSimilarEditorIds(
         getMoviePageSimilarIdsAfterDrop(
           getBindingSelectedMovieIds(bindings),
           sourceMovieId,
           targetMovieId,
           shouldPlaceAfter
         ),
+        bindings,
         'Порядок похожих обновлён.'
       );
     });
@@ -622,6 +750,7 @@ export function createMoviePageSimilarController(context = {}) {
     getMoviePageSimilarCardHtml,
     getMoviePageSimilarIdsAfterMove,
     getMoviePageSimilarIdsAfterDrop,
+    saveMoviePageSimilarEditorIds,
     focusMoviePageSimilarSearch,
     bindMoviePageSimilarEditorEvents
   };

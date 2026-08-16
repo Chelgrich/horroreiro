@@ -19484,64 +19484,37 @@ function getMoviePageSimilarSectionHtml(similarMovies, movie = currentMoviePageM
   );
 }
 
-async function saveMoviePageSimilarEditorIds(nextMovieIds, successMessage = 'Похожие фильмы сохранены.') {
-  const movie = currentMoviePageMovieData;
-  const movieId = String(movie?.id || '');
-
-  if (!isAdmin || !movieId || isMoviePageSimilarEditorSaving) {
-    return;
-  }
-
-  const normalizedMovieIds = normalizeManualSimilarMovieIds(nextMovieIds, movieId);
-  const previousMovieIds = currentMoviePageSimilarMovieIds.slice();
-  const previousMovies = currentMoviePageSimilarMovies.slice();
-
-  currentMoviePageSimilarMovieIds = normalizedMovieIds;
-  currentMoviePageSimilarMovies = normalizedMovieIds
-    .map(similarMovieId => getCatalogMovieById(similarMovieId))
-    .filter(Boolean);
-  isMoviePageSimilarEditorSaving = true;
-  setMoviePageSimilarEditorStatus('Сохраняю похожие фильмы...');
-  renderMoviePageSimilarSection(movieId);
-
-  try {
-    await replaceManualSimilarMovies(movieId, normalizedMovieIds);
-
-    currentMoviePageSimilarMovieIds = getManualSimilarMovieIds(movieId);
-    currentMoviePageSimilarMovies = await fetchSimilarCardMoviesByIds(currentMoviePageSimilarMovieIds);
-    moviePageSimilarEditorSearchQuery = '';
-    setMoviePageSimilarEditorStatus(successMessage, 'success');
-  } catch (error) {
-    console.error('Ошибка сохранения похожих на деталке:', error);
-    currentMoviePageSimilarMovieIds = previousMovieIds;
-    currentMoviePageSimilarMovies = previousMovies;
-    setMoviePageSimilarEditorStatus(
-      error?.message || 'Не удалось сохранить похожие фильмы.',
-      'error'
-    );
-  } finally {
-    isMoviePageSimilarEditorSaving = false;
-    moviePageSimilarEditorDraggedMovieId = null;
-    renderMoviePageSimilarSection(movieId);
-  }
-}
-
 function bindMoviePageSimilarEditorEvents(movie) {
   getMoviePageSimilarController().bindMoviePageSimilarEditorEvents(movie, {
     rootElement: moviePage,
+    getMovie: () => currentMoviePageMovieData,
+    getIsAdmin: () => isAdmin,
     getSelectedMovieIds: () => currentMoviePageSimilarMovieIds,
+    getSelectedMovies: () => currentMoviePageSimilarMovies,
     getDraggedMovieId: () => moviePageSimilarEditorDraggedMovieId,
     getIsSaving: () => isMoviePageSimilarEditorSaving,
-    onSearchQueryChange: value => {
+    setSelectedMovieIds: movieIds => {
+      currentMoviePageSimilarMovieIds = movieIds;
+    },
+    setSelectedMovies: movies => {
+      currentMoviePageSimilarMovies = movies;
+    },
+    setIsSaving: isSaving => {
+      isMoviePageSimilarEditorSaving = isSaving;
+    },
+    setQuery: value => {
       moviePageSimilarEditorSearchQuery = value;
     },
-    onStatusClear: () => {
-      setMoviePageSimilarEditorStatus();
-    },
-    onRenderSection: movieId => {
+    setStatus: setMoviePageSimilarEditorStatus,
+    renderSection: movieId => {
       renderMoviePageSimilarSection(movieId);
     },
-    onSaveMovieIds: saveMoviePageSimilarEditorIds,
+    replaceManualSimilarMovies,
+    getManualSimilarMovieIds,
+    fetchSimilarCardMoviesByIds,
+    onSaveError: error => {
+      console.error('Ошибка сохранения похожих на деталке:', error);
+    },
     onDraggedMovieIdChange: movieId => {
       moviePageSimilarEditorDraggedMovieId = movieId;
     }
