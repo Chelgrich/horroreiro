@@ -8651,6 +8651,15 @@ function getMoviePageShellController() {
 
 function getMoviePageSimilarControllerContext() {
   return {
+    escapeHtml,
+    buildMoviePageUrl,
+    getCatalogMovieById,
+    getCatalogMovieMeta,
+    getMovieAverageRating,
+    getMovieVotesCount,
+    getMoviePreferredPosterUrl,
+    getPosterImageAttributeHtml,
+    getVotesLabel,
     normalizeManualSimilarMovieIds,
     normalizeSearchText,
     getManualSimilarMovieLabel
@@ -19452,252 +19461,27 @@ function setMoviePageSimilarEditorStatus(message = '', type = '') {
   moviePageSimilarEditorStatusType = type;
 }
 
-function getMoviePageSimilarSelectedMovies() {
-  return currentMoviePageSimilarMovieIds
-    .map(movieId => getCatalogMovieById(movieId))
-    .filter(Boolean);
-}
-
-function getMoviePageSimilarSearchSuggestions(movie, limit = 8) {
-  return getMoviePageSimilarController().getMoviePageSimilarSearchSuggestions({
-    movie,
+function getMoviePageSimilarRenderState(overrides = {}) {
+  return {
     movies: allMovies,
     selectedMovieIds: currentMoviePageSimilarMovieIds,
     query: moviePageSimilarEditorSearchQuery,
-    limit
-  });
-}
-
-function getMoviePageSimilarEditorStatusHtml() {
-  if (!moviePageSimilarEditorStatus) {
-    return '';
-  }
-
-  const statusClassName = moviePageSimilarEditorStatusType
-    ? ` is-${moviePageSimilarEditorStatusType}`
-    : '';
-
-  return `
-    <div class="movie-page-similar-editor-status${statusClassName}" aria-live="polite">
-      ${escapeHtml(moviePageSimilarEditorStatus)}
-    </div>
-  `;
-}
-
-function getMoviePageSimilarEditorSuggestionsHtml(movie) {
-  const query = moviePageSimilarEditorSearchQuery.trim();
-
-  if (!query) {
-    return `
-      <div class="movie-page-similar-editor-hint">
-        Начни вводить название, оригинальное название или режиссёра.
-      </div>
-    `;
-  }
-
-  if (!Array.isArray(allMovies) || allMovies.length === 0) {
-    return `
-      <div class="movie-page-similar-editor-hint">
-        Загружаю каталог для поиска...
-      </div>
-    `;
-  }
-
-  const suggestions = getMoviePageSimilarSearchSuggestions(movie);
-
-  if (suggestions.length === 0) {
-    return `
-      <div class="movie-page-similar-editor-hint">
-        Ничего не найдено.
-      </div>
-    `;
-  }
-
-  return `
-    <div class="movie-page-similar-editor-suggestions" role="listbox" aria-label="Найденные фильмы">
-      ${suggestions.map(suggestion => `
-        <button
-          type="button"
-          class="movie-page-similar-suggestion"
-          data-movie-page-similar-add="${escapeHtml(suggestion.id)}"
-          role="option"
-          ${isMoviePageSimilarEditorSaving ? 'disabled' : ''}
-        >
-          ${escapeHtml(getManualSimilarMovieLabel(suggestion))}
-        </button>
-      `).join('')}
-    </div>
-  `;
-}
-
-function getMoviePageSimilarEditorListHtml() {
-  const selectedMovies = getMoviePageSimilarSelectedMovies();
-
-  if (selectedMovies.length === 0) {
-    return `
-      <div class="movie-page-similar-editor-empty">
-        Похожие фильмы пока не выбраны.
-      </div>
-    `;
-  }
-
-  return `
-    <div class="movie-page-similar-editor-list" data-movie-page-similar-editor-list="true">
-      ${selectedMovies.map((movie, index) => {
-        const movieId = String(movie.id);
-        const isFirst = index === 0;
-        const isLast = index === selectedMovies.length - 1;
-        const isDragging = moviePageSimilarEditorDraggedMovieId === movieId;
-
-        return `
-          <div
-            class="movie-page-similar-editor-item${isDragging ? ' is-dragging' : ''}"
-            data-movie-page-similar-editor-item="${escapeHtml(movieId)}"
-            draggable="${isMoviePageSimilarEditorSaving ? 'false' : 'true'}"
-          >
-            <button
-              type="button"
-              class="movie-page-similar-drag-handle"
-              aria-label="Перетащить ${escapeHtml(getManualSimilarMovieLabel(movie))}"
-              title="Перетащить"
-              ${isMoviePageSimilarEditorSaving ? 'disabled' : ''}
-            >
-              ≡
-            </button>
-
-            <div class="movie-page-similar-editor-item-main">
-              <div class="movie-page-similar-editor-item-title">
-                ${escapeHtml(movie.title || getManualSimilarMovieLabel(movie))}
-              </div>
-              <div class="movie-page-similar-editor-item-meta">
-                ${escapeHtml([movie.original_title, movie.year].filter(Boolean).join(' · '))}
-              </div>
-            </div>
-
-            <div class="movie-page-similar-editor-item-actions">
-              <button
-                type="button"
-                class="movie-page-similar-editor-icon-button"
-                data-movie-page-similar-move="${escapeHtml(movieId)}"
-                data-movie-page-similar-direction="-1"
-                aria-label="Поднять выше"
-                title="Поднять выше"
-                ${isFirst || isMoviePageSimilarEditorSaving ? 'disabled' : ''}
-              >
-                ↑
-              </button>
-              <button
-                type="button"
-                class="movie-page-similar-editor-icon-button"
-                data-movie-page-similar-move="${escapeHtml(movieId)}"
-                data-movie-page-similar-direction="1"
-                aria-label="Опустить ниже"
-                title="Опустить ниже"
-                ${isLast || isMoviePageSimilarEditorSaving ? 'disabled' : ''}
-              >
-                ↓
-              </button>
-              <button
-                type="button"
-                class="movie-page-similar-editor-icon-button movie-page-similar-editor-remove-button"
-                data-movie-page-similar-remove="${escapeHtml(movieId)}"
-                aria-label="Убрать из похожих"
-                title="Убрать"
-                ${isMoviePageSimilarEditorSaving ? 'disabled' : ''}
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-}
-
-function getMoviePageSimilarEditorHtml(movie) {
-  if (!isAdmin || !movie?.id) {
-    return '';
-  }
-
-  if (!manualSimilarTableAvailable) {
-    return `
-      <div class="movie-page-similar-editor">
-        <div class="movie-page-similar-editor-hint">
-          Таблица ручных похожих недоступна.
-        </div>
-      </div>
-    `;
-  }
-
-  return `
-    <div class="movie-page-similar-editor" data-movie-page-similar-editor="true">
-      <div class="movie-page-similar-editor-search">
-        <label class="movie-page-similar-editor-label" for="moviePageSimilarSearch">
-          Быстро добавить
-        </label>
-        <input
-          id="moviePageSimilarSearch"
-          type="search"
-          class="movie-page-similar-editor-input"
-          placeholder="Название, оригинальное название, режиссёр"
-          value="${escapeHtml(moviePageSimilarEditorSearchQuery)}"
-          autocomplete="off"
-          spellcheck="false"
-          data-movie-page-similar-search="true"
-          ${isMoviePageSimilarEditorSaving ? 'disabled' : ''}
-        >
-        ${getMoviePageSimilarEditorSuggestionsHtml(movie)}
-      </div>
-
-      <div class="movie-page-similar-editor-selected">
-        <div class="movie-page-similar-editor-label">Порядок похожих</div>
-        ${getMoviePageSimilarEditorListHtml()}
-      </div>
-
-      ${getMoviePageSimilarEditorStatusHtml()}
-    </div>
-  `;
+    isSaving: isMoviePageSimilarEditorSaving,
+    status: moviePageSimilarEditorStatus,
+    statusType: moviePageSimilarEditorStatusType,
+    draggedMovieId: moviePageSimilarEditorDraggedMovieId,
+    isAdmin,
+    isManualSimilarAvailable: manualSimilarTableAvailable,
+    ...overrides
+  };
 }
 
 function getMoviePageSimilarSectionHtml(similarMovies, movie = currentMoviePageMovieData, { isLoading = false } = {}) {
-  const hasSimilarMovies = Array.isArray(similarMovies) && similarMovies.length > 0;
-  const editorHtml = isLoading ? '' : getMoviePageSimilarEditorHtml(movie);
-
-  if (!hasSimilarMovies && !editorHtml) {
-    if (isLoading) {
-      return `
-  <section class="movie-page-similar-block" aria-labelledby="moviePageSimilarTitle">
-    <h2 id="moviePageSimilarTitle" class="movie-page-subtitle">Похожие фильмы</h2>
-    <div class="movie-page-similar-empty-state">
-      Загружаю похожие фильмы...
-    </div>
-  </section>
-      `;
-    }
-
-    return '';
-  }
-
-  return `
-  <section class="movie-page-similar-block" aria-labelledby="moviePageSimilarTitle">
-  <h2 id="moviePageSimilarTitle" class="movie-page-subtitle">Похожие фильмы</h2>
-  ${editorHtml}
-  ${
-    hasSimilarMovies
-      ? `
-        <div class="movie-page-similar-grid">
-          ${similarMovies.map(similarMovie => getMoviePageSimilarCardHtml(similarMovie)).join('')}
-        </div>
-      `
-      : `
-        <div class="movie-page-similar-empty-state">
-          Похожие фильмы пока не выбраны.
-        </div>
-      `
-  }
-    </section>
-  `;
+  return getMoviePageSimilarController().getMoviePageSimilarSectionHtml(
+    similarMovies,
+    movie,
+    getMoviePageSimilarRenderState({ isLoading })
+  );
 }
 
 function getMoviePageSimilarIdsAfterMove(movieId, direction) {
@@ -19973,61 +19757,6 @@ async function loadMoviePageSimilarMovies(movie, limit = 4, { shouldRender = tru
   } catch (error) {
     console.error('Ошибка загрузки похожих фильмов:', error);
   }
-}
-
-function getMoviePageSimilarCardHtml(movie) {
-  const meta = getCatalogMovieMeta(movie);
-  const genres = meta.genresText;
-  const countries = meta.countriesText;
-  const averageRating = getMovieAverageRating(movie.id);
-  const votesCount = getMovieVotesCount(movie.id);
-  const posterUrl = getMoviePreferredPosterUrl(movie);
-
-  return `
-    <article class="movie-page-similar-card" data-movie-id="${escapeHtml(movie.id)}">
-      <a href="${escapeHtml(buildMoviePageUrl(movie))}" class="movie-page-similar-poster-link" aria-label="Перейти к фильму ${escapeHtml(movie.title)}">
-        <div class="movie-page-similar-poster-wrapper">
-          ${
-            posterUrl
-              ? `
-                <img
-                  class="movie-page-similar-poster"
-                  ${getPosterImageAttributeHtml(posterUrl, 'similar')}
-                  alt="Постер фильма ${escapeHtml(movie.title)}"
-                  loading="lazy"
-                  decoding="async"
-                >
-              `
-              : `<div class="movie-poster-placeholder">Нет постера</div>`
-          }
-        </div>
-      </a>
-
-      <div class="movie-page-similar-content">
-        <h3 class="movie-page-similar-title">
-          <a href="${escapeHtml(buildMoviePageUrl(movie))}" class="movie-title-link">${escapeHtml(movie.title)}</a>
-        </h3>
-
-        ${
-          movie.original_title
-            ? `<div class="movie-page-similar-original-title">${escapeHtml(movie.original_title)}</div>`
-            : ''
-        }
-
-        <div class="movie-page-similar-meta">Год: ${movie.year ?? '-'}</div>
-        <div class="movie-page-similar-meta">Режиссёр: ${movie.director ? escapeHtml(movie.director) : '-'}</div>
-        <div class="movie-page-similar-meta">Жанры: ${genres ? escapeHtml(genres) : '-'}</div>
-        <div class="movie-page-similar-meta">Страны: ${countries ? escapeHtml(countries) : '-'}</div>
-
-        <div class="movie-rating-summary movie-page-similar-rating-summary">
-          <div class="movie-rating-summary-main">
-            <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
-            <span class="movie-rating-meta">(${votesCount} ${getVotesLabel(votesCount)})</span>
-          </div>
-        </div>
-      </div>
-    </article>
-  `;
 }
 
 function getMoviePageSubgenreLabel(movie) {

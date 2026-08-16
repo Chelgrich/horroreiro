@@ -603,9 +603,13 @@ async function checkStaticGuards() {
   assert(
     moviePageSimilarJs.includes('function getMoviePageSimilarIdsAfterMove(') &&
       moviePageSimilarJs.includes('function getMoviePageSimilarSearchSuggestions(') &&
+      moviePageSimilarJs.includes('function getMoviePageSimilarEditorHtml(') &&
+      moviePageSimilarJs.includes('function getMoviePageSimilarCardHtml(') &&
       !appJs.includes('function doesMovieMatchManualSimilarSearch(') &&
+      !appJs.includes('function getMoviePageSimilarEditorHtml(') &&
+      !appJs.includes('function getMoviePageSimilarCardHtml(') &&
       !appJs.includes('function getMoviePageSimilarIdsAfterMove(movieId, direction) {\n  const normalizedMovieId'),
-    'movie-page-similar.js: manual similar pure search/order helpers must stay outside app.js'
+    'movie-page-similar.js: manual similar search/order and render helpers must stay outside app.js'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('notifications-page.js'))"),
@@ -617,13 +621,14 @@ async function checkStaticGuards() {
   );
   assert(
     appJs.includes('function getMoviePageSimilarSectionHtml(') &&
+      appJs.includes('async function saveMoviePageSimilarEditorIds(') &&
       appJs.includes('function bindMoviePageSimilarEditorEvents('),
-    'app.js: movie detail manual similar section/editor handlers must stay in app.js'
+    'app.js: movie detail manual similar section wrapper, saves, and DOM handlers must stay in app.js for now'
   );
   assert(
     !movieSocialJs.includes('getMoviePageSimilar') &&
       !movieSocialJs.includes('moviePageSimilar'),
-    'movie-social.js: manual similar implementation should stay in app.js'
+    'movie-social.js: manual similar implementation should stay outside movie-social.js'
   );
   assert(
     movieSocialJs.includes('function renderMoviePageReviewsSection(') &&

@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-16 - Move movie similar rendering to lazy module
+
+- Files:
+  - `app.js`
+  - `movie-page-similar.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved manual similar editor/status/suggestions/list HTML, similar section HTML, and similar card HTML into lazy `movie-page-similar.js`.
+  - Left the section wrapper, drag/search/click DOM handlers, and Supabase save path in `app.js` as the next safe orchestration boundary.
+  - Tightened smoke guards so similar render helpers stay out of `app.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-page-similar.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `28.5 KiB` raw / `3.7 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue the movie detail orchestration contour with manual-similar save/events or route/data orchestration in a later pass.
+
 ## 2026-08-16 - Record optimization backlog
 
 - Files:
