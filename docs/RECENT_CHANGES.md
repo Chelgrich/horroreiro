@@ -12,6 +12,20 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-16 - Record optimization backlog
+
+- Files:
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added the six open optimization contours to the architecture context as the active backlog.
+  - Captured the working rule that future passes should close one contour at a time unless the user changes the order.
+- Checks:
+  - `node tools\smoke-check.mjs`
+  - `git diff --check`
+- Follow-up:
+  - Start with the first backlog item, movie detail orchestration, on the next implementation pass.
+
 ## 2026-08-16 - Move movie similar helpers to lazy module
 
 - Files:

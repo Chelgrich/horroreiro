@@ -178,6 +178,17 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `app.js` keeps the shared movie review/comment arrays and availability flags because session cache, catalog reviewed-state sync, and notifications also read that state. The movie detail page should call the bridge functions in `app.js`; do not re-add social implementation code there.
 
+## Active Optimization Backlog
+
+Work through this backlog one contour per pass unless the user explicitly changes the order:
+
+1. Movie detail orchestration: continue moving route/data/render orchestration, rating/watchlist mutations, and manual-similar UI/save logic out of `app.js` in small safe slices.
+2. Movie editor: continue moving modal orchestration, DOM bridge, Supabase insert/update, and post-save synchronization out of `app.js` after the lower-risk helper moves.
+3. Supabase payload/select audit: review catalog, profile rails/taste, notifications, person/director payload, and movie detail RPC fallback so each page fetches only fields it actually needs.
+4. Catalog module split: move filters, presets, URL params, pagination, card rendering, and catalog return-state cache out of `app.js` after detail/editor boundaries are steadier.
+5. Shared profile/auth helpers: extract reusable profile helpers, avatar/settings actions, follow actions, and poster preference helpers into a shared profile module.
+6. CSS: after JS boundaries are cleaner, split or tighten remaining global `styles.css`, especially catalog-only styles and repeated shared values.
+
 ## Framework Island
 
 The only current framework island is `/directors`:
