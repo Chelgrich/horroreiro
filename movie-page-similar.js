@@ -428,6 +428,188 @@ export function createMoviePageSimilarController(context = {}) {
     return nextMovieIds;
   }
 
+  function focusMoviePageSimilarSearch(rootElement, selectionStart = null) {
+    requestAnimationFrame(() => {
+      const searchInputElement = rootElement?.querySelector('[data-movie-page-similar-search="true"]');
+
+      if (!searchInputElement) {
+        return;
+      }
+
+      searchInputElement.focus();
+
+      if (
+        Number.isFinite(selectionStart) &&
+        typeof searchInputElement.setSelectionRange === 'function'
+      ) {
+        searchInputElement.setSelectionRange(selectionStart, selectionStart);
+      }
+    });
+  }
+
+  function getBindingSelectedMovieIds(bindings = {}) {
+    const selectedMovieIds = typeof bindings.getSelectedMovieIds === 'function'
+      ? bindings.getSelectedMovieIds()
+      : bindings.selectedMovieIds;
+
+    return normalizeManualSimilarMovieIds(selectedMovieIds);
+  }
+
+  function getBindingDraggedMovieId(bindings = {}) {
+    if (typeof bindings.getDraggedMovieId === 'function') {
+      return String(bindings.getDraggedMovieId() || '');
+    }
+
+    return String(bindings.draggedMovieId || '');
+  }
+
+  function isBindingSaving(bindings = {}) {
+    if (typeof bindings.getIsSaving === 'function') {
+      return Boolean(bindings.getIsSaving());
+    }
+
+    return Boolean(bindings.isSaving);
+  }
+
+  function bindMoviePageSimilarEditorEvents(movie, bindings = {}) {
+    const {
+      rootElement = null,
+      onSearchQueryChange = () => {},
+      onStatusClear = () => {},
+      onRenderSection = () => {},
+      onSaveMovieIds = () => {},
+      onDraggedMovieIdChange = () => {}
+    } = bindings;
+    const editor = rootElement?.querySelector('[data-movie-page-similar-editor="true"]');
+
+    if (!editor || !movie?.id) {
+      return;
+    }
+
+    const saveMovieIds = (nextMovieIds, successMessage) => {
+      onSaveMovieIds(nextMovieIds, successMessage);
+    };
+
+    editor
+      .querySelector('[data-movie-page-similar-search="true"]')
+      ?.addEventListener('input', event => {
+        const searchInputElement = event.currentTarget;
+        const selectionStart = searchInputElement.selectionStart;
+
+        onSearchQueryChange(searchInputElement.value);
+        onStatusClear();
+        onRenderSection(movie.id);
+        focusMoviePageSimilarSearch(rootElement, selectionStart);
+      });
+
+    editor.addEventListener('click', event => {
+      const addButton = event.target.closest('[data-movie-page-similar-add]');
+      const removeButton = event.target.closest('[data-movie-page-similar-remove]');
+      const moveButton = event.target.closest('[data-movie-page-similar-move]');
+
+      if (addButton) {
+        saveMovieIds(
+          [...getBindingSelectedMovieIds(bindings), addButton.dataset.moviePageSimilarAdd],
+          'Похожий фильм добавлен.'
+        );
+        return;
+      }
+
+      if (removeButton) {
+        const movieId = removeButton.dataset.moviePageSimilarRemove;
+
+        saveMovieIds(
+          getBindingSelectedMovieIds(bindings)
+            .filter(similarMovieId => String(similarMovieId) !== String(movieId)),
+          'Похожий фильм убран.'
+        );
+        return;
+      }
+
+      if (moveButton) {
+        saveMovieIds(
+          getMoviePageSimilarIdsAfterMove(
+            getBindingSelectedMovieIds(bindings),
+            moveButton.dataset.moviePageSimilarMove,
+            Number(moveButton.dataset.moviePageSimilarDirection || 0)
+          ),
+          'Порядок похожих обновлён.'
+        );
+      }
+    });
+
+    editor.addEventListener('dragstart', event => {
+      const item = event.target.closest('[data-movie-page-similar-editor-item]');
+
+      if (!item || isBindingSaving(bindings)) {
+        event.preventDefault();
+        return;
+      }
+
+      const draggedMovieId = item.dataset.moviePageSimilarEditorItem;
+
+      onDraggedMovieIdChange(draggedMovieId);
+
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', draggedMovieId);
+      }
+
+      item.classList.add('is-dragging');
+    });
+
+    editor.addEventListener('dragend', event => {
+      event.target
+        .closest('[data-movie-page-similar-editor-item]')
+        ?.classList.remove('is-dragging');
+      onDraggedMovieIdChange(null);
+    });
+
+    editor.addEventListener('dragover', event => {
+      if (!getBindingDraggedMovieId(bindings)) {
+        return;
+      }
+
+      const item = event.target.closest('[data-movie-page-similar-editor-item]');
+
+      if (!item) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+      }
+    });
+
+    editor.addEventListener('drop', event => {
+      const targetItem = event.target.closest('[data-movie-page-similar-editor-item]');
+      const sourceMovieId = getBindingDraggedMovieId(bindings) ||
+        event.dataTransfer?.getData('text/plain');
+      const targetMovieId = targetItem?.dataset.moviePageSimilarEditorItem;
+
+      if (!sourceMovieId || !targetMovieId || sourceMovieId === targetMovieId) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const targetRect = targetItem.getBoundingClientRect();
+      const shouldPlaceAfter = event.clientY > targetRect.top + (targetRect.height / 2);
+
+      saveMovieIds(
+        getMoviePageSimilarIdsAfterDrop(
+          getBindingSelectedMovieIds(bindings),
+          sourceMovieId,
+          targetMovieId,
+          shouldPlaceAfter
+        ),
+        'Порядок похожих обновлён.'
+      );
+    });
+  }
+
   return {
     doesMovieMatchManualSimilarSearch,
     getMoviePageSimilarSearchSuggestions,
@@ -439,6 +621,8 @@ export function createMoviePageSimilarController(context = {}) {
     getMoviePageSimilarSectionHtml,
     getMoviePageSimilarCardHtml,
     getMoviePageSimilarIdsAfterMove,
-    getMoviePageSimilarIdsAfterDrop
+    getMoviePageSimilarIdsAfterDrop,
+    focusMoviePageSimilarSearch,
+    bindMoviePageSimilarEditorEvents
   };
 }

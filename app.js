@@ -19484,42 +19484,6 @@ function getMoviePageSimilarSectionHtml(similarMovies, movie = currentMoviePageM
   );
 }
 
-function getMoviePageSimilarIdsAfterMove(movieId, direction) {
-  return getMoviePageSimilarController().getMoviePageSimilarIdsAfterMove(
-    currentMoviePageSimilarMovieIds,
-    movieId,
-    direction
-  );
-}
-
-function getMoviePageSimilarIdsAfterDrop(sourceMovieId, targetMovieId, shouldPlaceAfter = false) {
-  return getMoviePageSimilarController().getMoviePageSimilarIdsAfterDrop(
-    currentMoviePageSimilarMovieIds,
-    sourceMovieId,
-    targetMovieId,
-    shouldPlaceAfter
-  );
-}
-
-function focusMoviePageSimilarSearch(selectionStart = null) {
-  requestAnimationFrame(() => {
-    const searchInputElement = moviePage?.querySelector('[data-movie-page-similar-search="true"]');
-
-    if (!searchInputElement) {
-      return;
-    }
-
-    searchInputElement.focus();
-
-    if (
-      Number.isFinite(selectionStart) &&
-      typeof searchInputElement.setSelectionRange === 'function'
-    ) {
-      searchInputElement.setSelectionRange(selectionStart, selectionStart);
-    }
-  });
-}
-
 async function saveMoviePageSimilarEditorIds(nextMovieIds, successMessage = 'Похожие фильмы сохранены.') {
   const movie = currentMoviePageMovieData;
   const movieId = String(movie?.id || '');
@@ -19562,125 +19526,26 @@ async function saveMoviePageSimilarEditorIds(nextMovieIds, successMessage = 'П�
   }
 }
 
-function handleMoviePageSimilarSearchInput(event, movie) {
-  const searchInputElement = event.currentTarget;
-  const selectionStart = searchInputElement.selectionStart;
-
-  moviePageSimilarEditorSearchQuery = searchInputElement.value;
-  setMoviePageSimilarEditorStatus();
-  renderMoviePageSimilarSection(movie.id);
-  focusMoviePageSimilarSearch(selectionStart);
-}
-
-function handleMoviePageSimilarEditorClick(event) {
-  const addButton = event.target.closest('[data-movie-page-similar-add]');
-  const removeButton = event.target.closest('[data-movie-page-similar-remove]');
-  const moveButton = event.target.closest('[data-movie-page-similar-move]');
-
-  if (addButton) {
-    saveMoviePageSimilarEditorIds(
-      [...currentMoviePageSimilarMovieIds, addButton.dataset.moviePageSimilarAdd],
-      'Похожий фильм добавлен.'
-    );
-    return;
-  }
-
-  if (removeButton) {
-    const movieId = removeButton.dataset.moviePageSimilarRemove;
-
-    saveMoviePageSimilarEditorIds(
-      currentMoviePageSimilarMovieIds.filter(similarMovieId => String(similarMovieId) !== String(movieId)),
-      'Похожий фильм убран.'
-    );
-    return;
-  }
-
-  if (moveButton) {
-    saveMoviePageSimilarEditorIds(
-      getMoviePageSimilarIdsAfterMove(
-        moveButton.dataset.moviePageSimilarMove,
-        Number(moveButton.dataset.moviePageSimilarDirection || 0)
-      ),
-      'Порядок похожих обновлён.'
-    );
-  }
-}
-
-function handleMoviePageSimilarDragStart(event) {
-  const item = event.target.closest('[data-movie-page-similar-editor-item]');
-
-  if (!item || isMoviePageSimilarEditorSaving) {
-    event.preventDefault();
-    return;
-  }
-
-  moviePageSimilarEditorDraggedMovieId = item.dataset.moviePageSimilarEditorItem;
-  event.dataTransfer.effectAllowed = 'move';
-  event.dataTransfer.setData('text/plain', moviePageSimilarEditorDraggedMovieId);
-  item.classList.add('is-dragging');
-}
-
-function handleMoviePageSimilarDragEnd(event) {
-  event.target
-    .closest('[data-movie-page-similar-editor-item]')
-    ?.classList.remove('is-dragging');
-  moviePageSimilarEditorDraggedMovieId = null;
-}
-
-function handleMoviePageSimilarDragOver(event) {
-  if (!moviePageSimilarEditorDraggedMovieId) {
-    return;
-  }
-
-  const item = event.target.closest('[data-movie-page-similar-editor-item]');
-
-  if (!item) {
-    return;
-  }
-
-  event.preventDefault();
-  event.dataTransfer.dropEffect = 'move';
-}
-
-function handleMoviePageSimilarDrop(event) {
-  const targetItem = event.target.closest('[data-movie-page-similar-editor-item]');
-  const sourceMovieId = moviePageSimilarEditorDraggedMovieId ||
-    event.dataTransfer.getData('text/plain');
-  const targetMovieId = targetItem?.dataset.moviePageSimilarEditorItem;
-
-  if (!sourceMovieId || !targetMovieId || sourceMovieId === targetMovieId) {
-    return;
-  }
-
-  event.preventDefault();
-
-  const targetRect = targetItem.getBoundingClientRect();
-  const shouldPlaceAfter = event.clientY > targetRect.top + (targetRect.height / 2);
-
-  saveMoviePageSimilarEditorIds(
-    getMoviePageSimilarIdsAfterDrop(sourceMovieId, targetMovieId, shouldPlaceAfter),
-    'Порядок похожих обновлён.'
-  );
-}
-
 function bindMoviePageSimilarEditorEvents(movie) {
-  const editor = moviePage?.querySelector('[data-movie-page-similar-editor="true"]');
-
-  if (!editor || !movie?.id) {
-    return;
-  }
-
-  editor
-    .querySelector('[data-movie-page-similar-search="true"]')
-    ?.addEventListener('input', event => {
-      handleMoviePageSimilarSearchInput(event, movie);
-    });
-
-  editor.addEventListener('click', handleMoviePageSimilarEditorClick);
-  editor.addEventListener('dragstart', handleMoviePageSimilarDragStart);
-  editor.addEventListener('dragend', handleMoviePageSimilarDragEnd);
-  editor.addEventListener('dragover', handleMoviePageSimilarDragOver);
-  editor.addEventListener('drop', handleMoviePageSimilarDrop);
+  getMoviePageSimilarController().bindMoviePageSimilarEditorEvents(movie, {
+    rootElement: moviePage,
+    getSelectedMovieIds: () => currentMoviePageSimilarMovieIds,
+    getDraggedMovieId: () => moviePageSimilarEditorDraggedMovieId,
+    getIsSaving: () => isMoviePageSimilarEditorSaving,
+    onSearchQueryChange: value => {
+      moviePageSimilarEditorSearchQuery = value;
+    },
+    onStatusClear: () => {
+      setMoviePageSimilarEditorStatus();
+    },
+    onRenderSection: movieId => {
+      renderMoviePageSimilarSection(movieId);
+    },
+    onSaveMovieIds: saveMoviePageSimilarEditorIds,
+    onDraggedMovieIdChange: movieId => {
+      moviePageSimilarEditorDraggedMovieId = movieId;
+    }
+  });
 }
 
 function renderMoviePageSimilarSection(movieId) {

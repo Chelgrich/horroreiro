@@ -167,7 +167,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `movie-page-interactions.js` is lazy-loaded only for movie detail pages and owns trailer modal rendering/open-close behavior, poster gallery switching/load animation, and detail header event binding for watchlist, mobile rating, and trailer controls. `app.js` keeps route loading, shared state restoration, manual similar editor, rating/watchlist mutations, and social/similar hydration orchestration.
 
-`movie-page-similar.js` is lazy-loaded only for movie detail pages and owns manual-similar search/order helpers plus similar section, editor, and card HTML rendering. `app.js` keeps the manual similar section wrapper, DOM events, and Supabase writes.
+`movie-page-similar.js` is lazy-loaded only for movie detail pages and owns manual-similar search/order helpers, similar section/editor/card HTML rendering, and editor DOM event binding. `app.js` keeps the manual similar state bridge, section wrapper, and Supabase writes.
 
 `movie-social.js` is lazy-loaded only for movie detail pages and owns the detail social block:
 
