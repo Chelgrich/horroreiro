@@ -19539,62 +19539,44 @@ function renderMoviePageSimilarSection(movieId) {
 }
 
 async function loadMoviePageSimilarMovies(movie, limit = 4, { shouldRender = true } = {}) {
-  if (!movie || !moviePage) {
-    return;
-  }
-
-  const requestId = ++moviePageSimilarRequestId;
-  const movieId = String(movie.id);
-
-  if (String(currentMoviePageSimilarMovieId || '') !== movieId) {
-    moviePageSimilarEditorSearchQuery = '';
-    setMoviePageSimilarEditorStatus();
-  }
-
-  currentMoviePageSimilarMovieId = movieId;
-  currentMoviePageSimilarMovieIds = [];
-  currentMoviePageSimilarMovies = [];
-
-  if (shouldRender) {
-    renderMoviePageSimilarSection(movieId);
-  }
-
-  try {
-    let similarMovieIds = [];
-
-    if (isAdmin) {
-      await ensureManualSimilarDataLoaded({ ensureMovies: true });
-      similarMovieIds = getManualSimilarMovieIds(movieId);
-    } else {
-      similarMovieIds = await fetchManualSimilarMovieIdsForMovie(movieId, limit);
-    }
-
-    const displayMovieIds = isAdmin
-      ? similarMovieIds
-      : similarMovieIds.slice(0, limit);
-    const similarMovies = await fetchSimilarCardMoviesByIds(displayMovieIds);
-
-    if (
-      requestId !== moviePageSimilarRequestId ||
-      String(currentMoviePageMovieId) !== movieId
-    ) {
-      return;
-    }
-
-    if (shouldRender && !moviePage.querySelector('[data-movie-page-similar-mount="true"]')) {
-      renderMoviePage(movie);
-    }
-
-    currentMoviePageSimilarMovieIds = similarMovieIds;
-    currentMoviePageSimilarMovies = similarMovies;
-
-    if (shouldRender) {
+  return getMoviePageSimilarController().loadMoviePageSimilarMovies(movie, {
+    rootElement: moviePage,
+    getCurrentMovieId: () => currentMoviePageMovieId,
+    getSimilarMovieId: () => currentMoviePageSimilarMovieId,
+    createRequestId: () => {
+      moviePageSimilarRequestId += 1;
+      return moviePageSimilarRequestId;
+    },
+    getRequestId: () => moviePageSimilarRequestId,
+    getIsAdmin: () => isAdmin,
+    setSimilarMovieId: movieId => {
+      currentMoviePageSimilarMovieId = movieId;
+    },
+    setSelectedMovieIds: movieIds => {
+      currentMoviePageSimilarMovieIds = movieIds;
+    },
+    setSelectedMovies: movies => {
+      currentMoviePageSimilarMovies = movies;
+    },
+    setQuery: value => {
+      moviePageSimilarEditorSearchQuery = value;
+    },
+    setStatus: setMoviePageSimilarEditorStatus,
+    renderSection: movieId => {
       renderMoviePageSimilarSection(movieId);
-      persistCurrentMoviePageSessionCache();
+    },
+    renderMoviePage,
+    ensureAdminSimilarDataLoaded: () => ensureManualSimilarDataLoaded({ ensureMovies: true }),
+    getManualSimilarMovieIds,
+    fetchPublicSimilarMovieIds: (movieId, publicLimit) => (
+      fetchManualSimilarMovieIdsForMovie(movieId, publicLimit)
+    ),
+    fetchSimilarCardMoviesByIds,
+    persistSessionCache: persistCurrentMoviePageSessionCache,
+    onLoadError: error => {
+      console.error('Ошибка загрузки похожих фильмов:', error);
     }
-  } catch (error) {
-    console.error('Ошибка загрузки похожих фильмов:', error);
-  }
+  }, limit, { shouldRender });
 }
 
 function getMoviePageSubgenreLabel(movie) {

@@ -455,6 +455,14 @@ export function createMoviePageSimilarController(context = {}) {
     return normalizeManualSimilarMovieIds(selectedMovieIds);
   }
 
+  function getBindingRootElement(bindings = {}) {
+    if (typeof bindings.getRootElement === 'function') {
+      return bindings.getRootElement();
+    }
+
+    return bindings.rootElement || null;
+  }
+
   function getBindingDraggedMovieId(bindings = {}) {
     if (typeof bindings.getDraggedMovieId === 'function') {
       return String(bindings.getDraggedMovieId() || '');
@@ -487,6 +495,39 @@ export function createMoviePageSimilarController(context = {}) {
     return Boolean(bindings.isAdmin);
   }
 
+  function getBindingSimilarMovieId(bindings = {}) {
+    if (typeof bindings.getSimilarMovieId === 'function') {
+      return String(bindings.getSimilarMovieId() || '');
+    }
+
+    return String(bindings.similarMovieId || '');
+  }
+
+  function getBindingCurrentMovieId(bindings = {}) {
+    if (typeof bindings.getCurrentMovieId === 'function') {
+      return String(bindings.getCurrentMovieId() || '');
+    }
+
+    const movie = getBindingMovie(bindings);
+    return String(movie?.id || '');
+  }
+
+  function createBindingRequestId(bindings = {}) {
+    if (typeof bindings.createRequestId === 'function') {
+      return bindings.createRequestId();
+    }
+
+    return Date.now();
+  }
+
+  function getBindingRequestId(bindings = {}) {
+    if (typeof bindings.getRequestId === 'function') {
+      return bindings.getRequestId();
+    }
+
+    return null;
+  }
+
   function getBindingSelectedMovies(bindings = {}) {
     if (typeof bindings.getSelectedMovies === 'function') {
       const selectedMovies = bindings.getSelectedMovies();
@@ -494,6 +535,12 @@ export function createMoviePageSimilarController(context = {}) {
     }
 
     return Array.isArray(bindings.selectedMovies) ? bindings.selectedMovies : [];
+  }
+
+  function setBindingSimilarMovieId(bindings = {}, movieId = '') {
+    if (typeof bindings.setSimilarMovieId === 'function') {
+      bindings.setSimilarMovieId(String(movieId || ''));
+    }
   }
 
   function setBindingSelectedMovieIds(bindings = {}, movieIds = []) {
@@ -535,6 +582,119 @@ export function createMoviePageSimilarController(context = {}) {
   function renderBindingSection(bindings = {}, movieId = '') {
     if (typeof bindings.renderSection === 'function') {
       bindings.renderSection(movieId);
+    }
+  }
+
+  function renderBindingMoviePage(bindings = {}, movie = null) {
+    if (typeof bindings.renderMoviePage === 'function') {
+      bindings.renderMoviePage(movie);
+    }
+  }
+
+  function persistBindingSessionCache(bindings = {}) {
+    if (typeof bindings.persistSessionCache === 'function') {
+      bindings.persistSessionCache();
+    }
+  }
+
+  function reportBindingLoadError(bindings = {}, error) {
+    if (typeof bindings.onLoadError === 'function') {
+      bindings.onLoadError(error);
+    }
+  }
+
+  async function getBindingSimilarMovieIdsForMovie(bindings = {}, movieId, limit = 4) {
+    if (isBindingAdmin(bindings)) {
+      if (typeof bindings.ensureAdminSimilarDataLoaded === 'function') {
+        await bindings.ensureAdminSimilarDataLoaded();
+      }
+
+      return typeof bindings.getManualSimilarMovieIds === 'function'
+        ? normalizeManualSimilarMovieIds(bindings.getManualSimilarMovieIds(movieId), movieId)
+        : [];
+    }
+
+    if (typeof bindings.fetchPublicSimilarMovieIds === 'function') {
+      return normalizeManualSimilarMovieIds(
+        await bindings.fetchPublicSimilarMovieIds(movieId, limit),
+        movieId
+      );
+    }
+
+    return [];
+  }
+
+  async function getBindingSimilarMoviesByIds(bindings = {}, movieIds = []) {
+    const normalizedMovieIds = normalizeManualSimilarMovieIds(movieIds);
+
+    if (typeof bindings.fetchSimilarCardMoviesByIds === 'function') {
+      return bindings.fetchSimilarCardMoviesByIds(normalizedMovieIds);
+    }
+
+    return normalizedMovieIds
+      .map(similarMovieId => getCatalogMovieById(similarMovieId))
+      .filter(Boolean);
+  }
+
+  async function loadMoviePageSimilarMovies(
+    movie,
+    bindings = {},
+    limit = 4,
+    { shouldRender = true } = {}
+  ) {
+    const rootElement = getBindingRootElement(bindings);
+
+    if (!movie || !rootElement) {
+      return;
+    }
+
+    const requestId = createBindingRequestId(bindings);
+    const movieId = String(movie.id);
+
+    if (getBindingSimilarMovieId(bindings) !== movieId) {
+      setBindingQuery(bindings, '');
+      setBindingStatus(bindings);
+    }
+
+    setBindingSimilarMovieId(bindings, movieId);
+    setBindingSelectedMovieIds(bindings, []);
+    setBindingSelectedMovies(bindings, []);
+
+    if (shouldRender) {
+      renderBindingSection(bindings, movieId);
+    }
+
+    try {
+      const similarMovieIds = await getBindingSimilarMovieIdsForMovie(bindings, movieId, limit);
+      const displayMovieIds = isBindingAdmin(bindings)
+        ? similarMovieIds
+        : similarMovieIds.slice(0, limit);
+      const similarMovies = await getBindingSimilarMoviesByIds(bindings, displayMovieIds);
+      const activeRequestId = getBindingRequestId(bindings);
+
+      if (
+        (activeRequestId !== null && requestId !== activeRequestId) ||
+        getBindingCurrentMovieId(bindings) !== movieId
+      ) {
+        return;
+      }
+
+      if (
+        shouldRender &&
+        !rootElement.querySelector('[data-movie-page-similar-mount="true"]')
+      ) {
+        renderBindingMoviePage(bindings, movie);
+      }
+
+      setBindingSelectedMovieIds(bindings, similarMovieIds);
+      setBindingSelectedMovies(bindings, similarMovies);
+
+      if (shouldRender) {
+        renderBindingSection(bindings, movieId);
+        persistBindingSessionCache(bindings);
+      }
+    } catch (error) {
+      reportBindingLoadError(bindings, error);
     }
   }
 
@@ -750,6 +910,7 @@ export function createMoviePageSimilarController(context = {}) {
     getMoviePageSimilarCardHtml,
     getMoviePageSimilarIdsAfterMove,
     getMoviePageSimilarIdsAfterDrop,
+    loadMoviePageSimilarMovies,
     saveMoviePageSimilarEditorIds,
     focusMoviePageSimilarSearch,
     bindMoviePageSimilarEditorEvents

@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-16 - Move movie similar loading to lazy module
+
+- Files:
+  - `app.js`
+  - `movie-page-similar.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved deferred manual similar loading, stale-request protection, admin/public branching, and section rerender orchestration into lazy `movie-page-similar.js`.
+  - Kept `app.js` as a thin bridge for movie-page state, Supabase/data fetch callbacks, and session-cache persistence.
+  - Tightened smoke guards so similar loading orchestration does not drift back into `app.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-page-similar.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `34.1 KiB` raw / `4.3 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue the movie detail orchestration contour with route/data rendering or rating/watchlist mutations in a later pass.
+
 ## 2026-08-16 - Move movie similar save orchestration to lazy module
 
 - Files:
