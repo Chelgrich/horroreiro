@@ -28,6 +28,28 @@ export function createMovieEditorController(context = {}) {
       const numericValue = Number(value);
       return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null;
     },
+    normalizeManualSimilarMovieIds = (movieIds = [], ownerMovieId = null) => {
+      const ownerId = ownerMovieId ? String(ownerMovieId) : '';
+      const uniqueMovieIds = new Set();
+      const normalizedMovieIds = [];
+
+      (movieIds || []).forEach(movieId => {
+        const normalizedMovieId = String(movieId || '').trim();
+
+        if (
+          !normalizedMovieId ||
+          normalizedMovieId === ownerId ||
+          uniqueMovieIds.has(normalizedMovieId)
+        ) {
+          return;
+        }
+
+        uniqueMovieIds.add(normalizedMovieId);
+        normalizedMovieIds.push(normalizedMovieId);
+      });
+
+      return normalizedMovieIds;
+    },
     normalizeMoviePosterImageRows = rows => (Array.isArray(rows) ? rows : [])
       .map(row => ({
         id: row?.id ? String(row.id) : '',
@@ -54,6 +76,109 @@ export function createMovieEditorController(context = {}) {
   } = context;
 
   const getInputValue = inputElement => String(inputElement?.value || '').trim();
+
+  function getManualSimilarFallbackMovieLabel(movie) {
+    const title = String(movie?.title || '').trim();
+    const year = movie?.year ? ` (${movie.year})` : '';
+
+    return title ? `${title}${year}` : String(movie?.id || '').trim();
+  }
+
+  function getManualSimilarDraftAfterSet(movieIds = [], ownerMovieId = null) {
+    return normalizeManualSimilarMovieIds(movieIds, ownerMovieId);
+  }
+
+  function getManualSimilarDraftAfterAdd(draftMovieIds = [], movieId, ownerMovieId = null) {
+    return normalizeManualSimilarMovieIds(
+      [...(Array.isArray(draftMovieIds) ? draftMovieIds : []), movieId],
+      ownerMovieId
+    );
+  }
+
+  function getManualSimilarDraftAfterRemove(draftMovieIds = [], movieId, ownerMovieId = null) {
+    const removingMovieId = String(movieId || '');
+
+    return normalizeManualSimilarMovieIds(
+      (Array.isArray(draftMovieIds) ? draftMovieIds : [])
+        .filter(similarMovieId => String(similarMovieId) !== removingMovieId),
+      ownerMovieId
+    );
+  }
+
+  function getManualSimilarSelectableMovies({
+    movies = [],
+    ownerMovieId = null,
+    draftMovieIds = [],
+    getMovieLabel = getManualSimilarFallbackMovieLabel
+  } = {}) {
+    const excludedMovieIds = new Set([
+      ownerMovieId ? String(ownerMovieId) : '',
+      ...normalizeManualSimilarMovieIds(draftMovieIds).map(movieId => String(movieId))
+    ].filter(Boolean));
+
+    return (Array.isArray(movies) ? movies : [])
+      .filter(movie => movie?.id && !excludedMovieIds.has(String(movie.id)))
+      .slice()
+      .sort((firstMovie, secondMovie) =>
+        getMovieLabel(firstMovie).localeCompare(getMovieLabel(secondMovie), 'ru')
+      );
+  }
+
+  function getManualSimilarSelectedMovies({
+    movieIds = [],
+    ownerMovieId = null,
+    getMovieById = () => null
+  } = {}) {
+    return normalizeManualSimilarMovieIds(movieIds, ownerMovieId)
+      .map(movieId => getMovieById(movieId))
+      .filter(Boolean);
+  }
+
+  function getManualSimilarMovieOptionsHtml({
+    selectableMovies = [],
+    getMovieLabel = getManualSimilarFallbackMovieLabel,
+    escapeHtml = value => String(value ?? ''),
+    placeholderLabel = 'Выбрать фильм'
+  } = {}) {
+    return [
+      `<option value="">${escapeHtml(placeholderLabel)}</option>`,
+      ...(Array.isArray(selectableMovies) ? selectableMovies : []).map(movie => (
+        `<option value="${escapeHtml(movie.id)}">${escapeHtml(getMovieLabel(movie))}</option>`
+      ))
+    ].join('');
+  }
+
+  function getManualSimilarMoviesListHtml({
+    selectedMovies = [],
+    getMovieLabel = getManualSimilarFallbackMovieLabel,
+    escapeHtml = value => String(value ?? ''),
+    emptyHtml = '<div class="manual-similar-empty">Похожие фильмы не выбраны.</div>'
+  } = {}) {
+    const movies = Array.isArray(selectedMovies) ? selectedMovies : [];
+
+    if (movies.length === 0) {
+      return emptyHtml;
+    }
+
+    return movies.map(movie => {
+      const movieLabel = getMovieLabel(movie);
+
+      return `
+        <div class="manual-similar-item" data-manual-similar-movie-id="${escapeHtml(movie.id)}">
+          <span class="manual-similar-item-title">${escapeHtml(movieLabel)}</span>
+          <button
+            type="button"
+            class="manual-similar-remove-button"
+            data-remove-manual-similar="${escapeHtml(movie.id)}"
+            aria-label="Убрать фильм ${escapeHtml(movieLabel)} из похожих"
+            title="Убрать"
+          >
+            ×
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
 
   function createMoviePosterImageDraftEntryId(prefix = 'poster') {
     if (window.crypto?.randomUUID) {
@@ -1115,6 +1240,13 @@ export function createMovieEditorController(context = {}) {
     buildMovieInsertPayload,
     buildMovieChangedFields,
     getMovieUpdateRelationState,
+    getManualSimilarDraftAfterSet,
+    getManualSimilarDraftAfterAdd,
+    getManualSimilarDraftAfterRemove,
+    getManualSimilarSelectableMovies,
+    getManualSimilarSelectedMovies,
+    getManualSimilarMovieOptionsHtml,
+    getManualSimilarMoviesListHtml,
     createMoviePosterImageDraftEntriesFromMovie,
     createMoviePosterImageDraftEntriesFromFiles,
     getMoviePosterImageDraftPreviewUrl,

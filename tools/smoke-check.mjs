@@ -659,6 +659,17 @@ async function checkStaticGuards() {
     'movie-editor.js: movie poster draft order/resolve/save helpers must stay outside app.js'
   );
   assert(
+    movieEditorJs.includes('function getManualSimilarDraftAfterSet(') &&
+      movieEditorJs.includes('function getManualSimilarDraftAfterAdd(') &&
+      movieEditorJs.includes('function getManualSimilarDraftAfterRemove(') &&
+      movieEditorJs.includes('function getManualSimilarSelectableMovies(') &&
+      movieEditorJs.includes('function getManualSimilarMoviesListHtml(') &&
+      appJs.includes('movieEditorController?.getManualSimilarSelectableMovies(') &&
+      !appJs.includes('function getManualSimilarDraftAfterSet(') &&
+      !appJs.includes('function getManualSimilarMoviesListHtml('),
+    'movie-editor.js: movie modal manual-similar draft/render helpers must stay outside app.js'
+  );
+  assert(
     movieDetailCacheJs.includes('function readCache(') &&
       movieDetailCacheJs.includes('function writeEntry(') &&
       movieDetailCacheJs.includes('function getEntrySignature(') &&

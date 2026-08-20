@@ -3143,20 +3143,12 @@ async function replaceMovieDirectorsClientFallback(movieId, directorNames = []) 
 }
 
 function getManualSimilarSelectableMovies() {
-  const excludedMovieIds = new Set([
-    editingMovieId ? String(editingMovieId) : '',
-    ...manualSimilarMovieIdsDraft.map(movieId => String(movieId))
-  ].filter(Boolean));
-
-  return (Array.isArray(allMovies) ? allMovies : [])
-    .filter(movie => movie?.id && !excludedMovieIds.has(String(movie.id)))
-    .slice()
-    .sort((firstMovie, secondMovie) =>
-      getManualSimilarMovieLabel(firstMovie).localeCompare(
-        getManualSimilarMovieLabel(secondMovie),
-        'ru'
-      )
-    );
+  return movieEditorController?.getManualSimilarSelectableMovies({
+    movies: allMovies,
+    ownerMovieId: editingMovieId,
+    draftMovieIds: manualSimilarMovieIdsDraft,
+    getMovieLabel: getManualSimilarMovieLabel
+  }) || [];
 }
 
 function renderManualSimilarMovieOptions() {
@@ -3166,12 +3158,11 @@ function renderManualSimilarMovieOptions() {
 
   const selectableMovies = getManualSimilarSelectableMovies();
 
-  manualSimilarMovieSelect.innerHTML = [
-    '<option value="">Выбрать фильм</option>',
-    ...selectableMovies.map(movie => (
-      `<option value="${escapeHtml(movie.id)}">${escapeHtml(getManualSimilarMovieLabel(movie))}</option>`
-    ))
-  ].join('');
+  manualSimilarMovieSelect.innerHTML = movieEditorController?.getManualSimilarMovieOptionsHtml({
+    selectableMovies,
+    getMovieLabel: getManualSimilarMovieLabel,
+    escapeHtml
+  }) || '<option value="">Выбрать фильм</option>';
   manualSimilarMovieSelect.value = '';
   refreshCustomSelect(manualSimilarMovieSelect);
 
@@ -3186,36 +3177,26 @@ function renderManualSimilarMoviesList() {
     return;
   }
 
-  const selectedMovies = manualSimilarMovieIdsDraft
-    .map(movieId => getCatalogMovieById(movieId))
-    .filter(Boolean);
+  const selectedMovies = movieEditorController?.getManualSimilarSelectedMovies({
+    movieIds: manualSimilarMovieIdsDraft,
+    ownerMovieId: editingMovieId,
+    getMovieById: getCatalogMovieById
+  }) || [];
 
-  if (selectedMovies.length === 0) {
-    manualSimilarMoviesList.innerHTML = '<div class="manual-similar-empty">Похожие фильмы не выбраны.</div>';
-    renderManualSimilarMovieOptions();
-    return;
-  }
-
-  manualSimilarMoviesList.innerHTML = selectedMovies.map(movie => `
-    <div class="manual-similar-item" data-manual-similar-movie-id="${escapeHtml(movie.id)}">
-      <span class="manual-similar-item-title">${escapeHtml(getManualSimilarMovieLabel(movie))}</span>
-      <button
-        type="button"
-        class="manual-similar-remove-button"
-        data-remove-manual-similar="${escapeHtml(movie.id)}"
-        aria-label="Убрать фильм ${escapeHtml(getManualSimilarMovieLabel(movie))} из похожих"
-        title="Убрать"
-      >
-        ×
-      </button>
-    </div>
-  `).join('');
+  manualSimilarMoviesList.innerHTML = movieEditorController?.getManualSimilarMoviesListHtml({
+    selectedMovies,
+    getMovieLabel: getManualSimilarMovieLabel,
+    escapeHtml
+  }) || '<div class="manual-similar-empty">Похожие фильмы не выбраны.</div>';
 
   renderManualSimilarMovieOptions();
 }
 
 function setManualSimilarDraft(movieIds = [], { markDirty = false } = {}) {
-  manualSimilarMovieIdsDraft = normalizeManualSimilarMovieIds(movieIds, editingMovieId);
+  manualSimilarMovieIdsDraft = movieEditorController?.getManualSimilarDraftAfterSet(
+    movieIds,
+    editingMovieId
+  ) || normalizeManualSimilarMovieIds(movieIds, editingMovieId);
   manualSimilarDraftDirty = Boolean(markDirty);
   renderManualSimilarMoviesList();
 }
@@ -3226,14 +3207,28 @@ function addManualSimilarMovieFromSelect() {
   }
 
   setManualSimilarDraft(
-    [...manualSimilarMovieIdsDraft, manualSimilarMovieSelect.value],
+    movieEditorController?.getManualSimilarDraftAfterAdd(
+      manualSimilarMovieIdsDraft,
+      manualSimilarMovieSelect.value,
+      editingMovieId
+    ) || normalizeManualSimilarMovieIds(
+      [...manualSimilarMovieIdsDraft, manualSimilarMovieSelect.value],
+      editingMovieId
+    ),
     { markDirty: true }
   );
 }
 
 function removeManualSimilarMovieFromDraft(movieId) {
   setManualSimilarDraft(
-    manualSimilarMovieIdsDraft.filter(similarMovieId => String(similarMovieId) !== String(movieId)),
+    movieEditorController?.getManualSimilarDraftAfterRemove(
+      manualSimilarMovieIdsDraft,
+      movieId,
+      editingMovieId
+    ) || normalizeManualSimilarMovieIds(
+      manualSimilarMovieIdsDraft.filter(similarMovieId => String(similarMovieId) !== String(movieId)),
+      editingMovieId
+    ),
     { markDirty: true }
   );
 }
@@ -8452,6 +8447,7 @@ function getMovieEditorControllerContext() {
     areStringArraysEqual,
     normalizeTextArrayField,
     normalizeRuntimeMinutesValue,
+    normalizeManualSimilarMovieIds,
     normalizeMoviePosterImageRows,
     supabaseClient,
     withPendingRequestTimeout,
@@ -10443,6 +10439,7 @@ async function openMovieModal() {
     await ensureMovieEditorControllerLoaded();
   } catch (error) {
     console.warn('Не удалось загрузить редактор фильма:', error);
+    return;
   }
 
   try {

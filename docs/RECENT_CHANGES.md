@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-20 - Move movie editor manual similar draft helpers
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved movie-modal manual-similar draft set/add/remove helpers, selectable/selected movie calculations, and list/options HTML helpers into lazy `movie-editor.js`.
+  - Kept `app.js` responsible for modal DOM event bridge, local dirty flag assignment, and Supabase fetch/write callbacks.
+  - Added a smoke guard so manual-similar draft/render helpers stay in the lazy editor module.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles remain about `6.1 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue movie editor cleanup with submit event routing and the remaining thin modal DOM bridge.
+
 ## 2026-08-20 - Move movie editor poster draft helpers
 
 - Files:
