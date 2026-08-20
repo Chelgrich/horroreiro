@@ -611,8 +611,16 @@ async function checkStaticGuards() {
     movieEditorJs.includes('function buildMovieChangedFields(') &&
       movieEditorJs.includes('function getMovieUpdateRelationState(') &&
       movieEditorJs.includes('function getMovieUpdateSavePlan(') &&
+      movieEditorJs.includes('async function updateMovieRecord(') &&
       !appJs.includes('function buildMovieChangedFields('),
-    'movie-editor.js: movie update diff/relation/save-plan helpers must stay outside app.js'
+    'movie-editor.js: movie update diff/relation/save-plan/write helpers must stay outside app.js'
+  );
+  assert(
+    movieEditorJs.includes('async function insertMovieRecord(') &&
+      movieEditorJs.includes(".from('movies')") &&
+      !appJs.includes('insert(movieEditor.buildMovieInsertPayload(') &&
+      !appJs.includes('.update(changedFields)'),
+    'movie-editor.js: movie row insert/update writes must stay outside app.js submit orchestration'
   );
   assert(
     movieEditorJs.includes('function getMoviePosterImagesDraftAfterDrop(') &&

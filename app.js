@@ -8513,7 +8513,10 @@ function getMovieEditorControllerContext() {
     getOptionalTextArrayPayload,
     areStringArraysEqual,
     normalizeTextArrayField,
-    normalizeRuntimeMinutesValue
+    normalizeRuntimeMinutesValue,
+    supabaseClient,
+    withPendingRequestTimeout,
+    throwIfSupabaseError
   };
 }
 
@@ -13057,28 +13060,19 @@ async function addMovie(event) {
 
     setMovieFormStatus('Сохраняю...');
 
-    const { data: insertedMovie, error: insertMovieError } = await withPendingRequestTimeout(
-      supabaseClient
-        .from('movies')
-        .insert(movieEditor.buildMovieInsertPayload({
-          draft: formDraft,
-          classificationDraft,
-          finalPosterUrl,
-          slug: await buildUniqueMovieSlug(
-            formDraft.title,
-            formDraft.year ? Number(formDraft.year) : null
-          ),
-          ownerId: currentUser.id,
-          includeRuntimeMinutes: movieRuntimeMinutesColumnAvailable,
-          includeTmdbUrl: movieTmdbUrlColumnAvailable
-        }))
-        .select('id, slug') // сразу забираем id и slug созданной записи
-        .single(),
-      15000,
-      'Превышено время ожидания сохранения фильма.'
-    );
-
-    throwIfSupabaseError(insertMovieError);
+    const insertedMovie = await movieEditor.insertMovieRecord({
+      draft: formDraft,
+      classificationDraft,
+      finalPosterUrl,
+      slug: await buildUniqueMovieSlug(
+        formDraft.title,
+        formDraft.year ? Number(formDraft.year) : null
+      ),
+      ownerId: currentUser.id,
+      includeRuntimeMinutes: movieRuntimeMinutesColumnAvailable,
+      includeTmdbUrl: movieTmdbUrlColumnAvailable,
+      timeoutMessage: 'Превышено время ожидания сохранения фильма.'
+    });
 
     await withPendingRequestTimeout(
       replaceMovieRelations(insertedMovie.id, formDraft.genreNames, formDraft.countryNames),
@@ -13236,16 +13230,11 @@ async function updateMovie(event) {
     if (updateSavePlan.hasMovieFieldChanges) {
       setMovieFormStatus('Сохраняю изменения...');
 
-      const { error: updateMovieError } = await withPendingRequestTimeout(
-        supabaseClient
-          .from('movies')
-          .update(changedFields)
-          .eq('id', editingMovieId),
-        15000,
-        'Превышено время ожидания обновления фильма.'
-      );
-
-      throwIfSupabaseError(updateMovieError);
+      await movieEditor.updateMovieRecord({
+        movieId: editingMovieId,
+        changedFields,
+        timeoutMessage: 'Превышено время ожидания обновления фильма.'
+      });
     }
 
     if (relationsChanged) {

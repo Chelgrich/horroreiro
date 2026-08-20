@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-20 - Move movie editor row writes
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved `movies` row insert/update writes from `app.js` submit functions into lazy `movie-editor.js`.
+  - Passed Supabase write dependencies through the movie editor controller context, keeping service-role-free client writes only.
+  - Kept relation, director, manual-similar, poster-gallery, and post-save page/cache synchronization in `app.js` for later smaller passes.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `5.1 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue movie editor cleanup with relation/manual-similar/gallery write sequencing and post-save synchronization.
+
 ## 2026-08-20 - Move movie editor save-plan helpers
 
 - Files:

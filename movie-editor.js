@@ -28,7 +28,14 @@ export function createMovieEditorController(context = {}) {
       const numericValue = Number(value);
       return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null;
     },
-    uploadPosterFile = async () => ''
+    uploadPosterFile = async () => '',
+    supabaseClient = null,
+    withPendingRequestTimeout = promise => promise,
+    throwIfSupabaseError = error => {
+      if (error) {
+        throw error;
+      }
+    }
   } = context;
 
   const getInputValue = inputElement => String(inputElement?.value || '').trim();
@@ -428,6 +435,71 @@ export function createMovieEditorController(context = {}) {
     };
   }
 
+  function requireSupabaseClient() {
+    if (!supabaseClient) {
+      throw new Error('Supabase client is not available for movie editor writes.');
+    }
+
+    return supabaseClient;
+  }
+
+  async function insertMovieRecord({
+    draft,
+    classificationDraft,
+    finalPosterUrl,
+    slug,
+    ownerId,
+    includeRuntimeMinutes = true,
+    includeTmdbUrl = true,
+    timeoutMs = 15000,
+    timeoutMessage = 'Movie save timed out.'
+  }) {
+    const client = requireSupabaseClient();
+    const { data, error } = await withPendingRequestTimeout(
+      client
+        .from('movies')
+        .insert(buildMovieInsertPayload({
+          draft,
+          classificationDraft,
+          finalPosterUrl,
+          slug,
+          ownerId,
+          includeRuntimeMinutes,
+          includeTmdbUrl
+        }))
+        .select('id, slug')
+        .single(),
+      timeoutMs,
+      timeoutMessage
+    );
+
+    throwIfSupabaseError(error);
+    return data;
+  }
+
+  async function updateMovieRecord({
+    movieId,
+    changedFields,
+    timeoutMs = 15000,
+    timeoutMessage = 'Movie update timed out.'
+  }) {
+    if (!movieId || Object.keys(changedFields || {}).length === 0) {
+      return;
+    }
+
+    const client = requireSupabaseClient();
+    const { error } = await withPendingRequestTimeout(
+      client
+        .from('movies')
+        .update(changedFields)
+        .eq('id', movieId),
+      timeoutMs,
+      timeoutMessage
+    );
+
+    throwIfSupabaseError(error);
+  }
+
   return {
     readMovieFormDraft,
     validateMovieFormDraft,
@@ -441,6 +513,8 @@ export function createMovieEditorController(context = {}) {
     resolveMoviePosterImagesForSave,
     splitMoviePosterImageEntriesForSave,
     getMovieCreateSavePlan,
-    getMovieUpdateSavePlan
+    getMovieUpdateSavePlan,
+    insertMovieRecord,
+    updateMovieRecord
   };
 }
