@@ -13023,86 +13023,37 @@ async function addMovie(event) {
   setMovieFormSubmittingState(true);
   setMovieFormStatus('Сохраняю...');
 
-  const movieEditor = await ensureMovieEditorControllerLoaded();
-  const formDraft = movieEditor.readMovieFormDraft();
-  const validationMessage = movieEditor.validateMovieFormDraft(formDraft);
-
-  if (validationMessage) {
-    setMovieFormStatus(validationMessage);
-    setMovieFormSubmittingState(false);
-    return;
-  }
-
   try {
-    ensureActiveSessionForWrite();
-
-    const classificationDraft = buildMovieClassificationDraftFromForm();
-    const manualSimilarMovieIds = normalizeManualSimilarMovieIds(manualSimilarMovieIdsDraft);
-    const posterDraftEntries = movieEditor.getMoviePosterImagesDraftEntriesForSave(moviePosterImagesDraft);
-
-    if (movieEditor.hasPendingMoviePosterDraftUploads(posterDraftEntries)) {
-      setMovieFormStatus('Загружаю постеры...');
-    }
-
-    const resolvedPosterImages = await withPendingRequestTimeout(
-      movieEditor.resolveMoviePosterImagesForSave(posterDraftEntries),
-      30000,
-      'Превышено время ожидания загрузки постеров.'
-    );
-    const {
-      finalPosterUrl,
-      additionalPosterEntriesForSave
-    } = resolvedPosterImages;
-    const createSavePlan = movieEditor.getMovieCreateSavePlan({
-      manualSimilarMovieIds,
-      additionalPosterEntriesForSave
-    });
-
-    setMovieFormStatus('Сохраняю...');
-
-    const insertedMovie = await movieEditor.insertMovieRecord({
-      draft: formDraft,
-      classificationDraft,
-      finalPosterUrl,
-      slug: await buildUniqueMovieSlug(
-        formDraft.title,
-        formDraft.year ? Number(formDraft.year) : null
-      ),
-      ownerId: currentUser.id,
+    const movieEditor = await ensureMovieEditorControllerLoaded();
+    const createResult = await movieEditor.submitMovieCreate({
+      manualSimilarMovieIdsDraft,
+      moviePosterImagesDraft,
+      buildClassificationDraft: buildMovieClassificationDraftFromForm,
+      normalizeManualSimilarMovieIds,
+      ensureActiveSessionForWrite,
+      buildUniqueMovieSlug,
       includeRuntimeMinutes: movieRuntimeMinutesColumnAvailable,
       includeTmdbUrl: movieTmdbUrlColumnAvailable,
-      timeoutMessage: 'Превышено время ожидания сохранения фильма.'
-    });
-
-    await movieEditor.saveMovieCreateRelatedData({
-      movieId: insertedMovie.id,
-      draft: formDraft,
-      createSavePlan,
-      manualSimilarMovieIds,
-      additionalPosterEntriesForSave,
       setStatus: setMovieFormStatus,
       replaceMovieRelations,
       replaceMovieDirectors,
       replaceManualSimilarMovies,
-      replaceMoviePosterImages
-    });
-
-    const createPostSaveResult = await movieEditor.handleMovieCreatePostSave({
-      insertedMovie,
-      isCatalogPage: isCatalogPage(),
-      isMoviePage: isMoviePage(),
-      setStatus: setMovieFormStatus,
-      markLocalDataMutation,
-      reloadCatalogData,
-      rerenderCatalogAfterDataReload,
-      resetFormToCreateMode,
-      closeMovieModal,
-      redirectToMovie: movie => {
-        window.location.href = buildMoviePageUrl(movie);
+      replaceMoviePosterImages,
+      postSaveOptions: {
+        isCatalogPage: isCatalogPage(),
+        isMoviePage: isMoviePage(),
+        markLocalDataMutation,
+        reloadCatalogData,
+        rerenderCatalogAfterDataReload,
+        resetFormToCreateMode,
+        closeMovieModal,
+        redirectToMovie: movie => {
+          window.location.href = buildMoviePageUrl(movie);
+        }
       }
     });
 
-    if (createPostSaveResult.shouldExit) {
+    if (createResult.shouldExit) {
       return;
     }
   } catch (error) {

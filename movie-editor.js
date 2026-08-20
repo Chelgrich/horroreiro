@@ -712,6 +712,97 @@ export function createMovieEditorController(context = {}) {
     return { shouldExit: false };
   }
 
+  async function submitMovieCreate({
+    manualSimilarMovieIdsDraft = [],
+    moviePosterImagesDraft = [],
+    buildClassificationDraft = () => ({}),
+    normalizeManualSimilarMovieIds = values => values,
+    ensureActiveSessionForWrite = () => ({}),
+    buildUniqueMovieSlug = async () => '',
+    includeRuntimeMinutes = true,
+    includeTmdbUrl = true,
+    setStatus = () => {},
+    replaceMovieRelations = async () => {},
+    replaceMovieDirectors = async () => {},
+    replaceManualSimilarMovies = async () => {},
+    replaceMoviePosterImages = async () => {},
+    postSaveOptions = {}
+  } = {}) {
+    setStatus('Сохраняю...');
+
+    const draft = readMovieFormDraft();
+    const validationMessage = validateMovieFormDraft(draft);
+
+    if (validationMessage) {
+      setStatus(validationMessage);
+      return { shouldExit: true, validationFailed: true };
+    }
+
+    const activeUser = ensureActiveSessionForWrite();
+    const classificationDraft = buildClassificationDraft();
+    const manualSimilarMovieIds = normalizeManualSimilarMovieIds(manualSimilarMovieIdsDraft);
+    const posterDraftEntries = getMoviePosterImagesDraftEntriesForSave(moviePosterImagesDraft);
+
+    if (hasPendingMoviePosterDraftUploads(posterDraftEntries)) {
+      setStatus('Загружаю постеры...');
+    }
+
+    const resolvedPosterImages = await withPendingRequestTimeout(
+      resolveMoviePosterImagesForSave(posterDraftEntries),
+      30000,
+      'Превышено время ожидания загрузки постеров.'
+    );
+    const {
+      finalPosterUrl,
+      additionalPosterEntriesForSave
+    } = resolvedPosterImages;
+    const createSavePlan = getMovieCreateSavePlan({
+      manualSimilarMovieIds,
+      additionalPosterEntriesForSave
+    });
+
+    setStatus('Сохраняю...');
+
+    const insertedMovie = await insertMovieRecord({
+      draft,
+      classificationDraft,
+      finalPosterUrl,
+      slug: await buildUniqueMovieSlug(
+        draft.title,
+        draft.year ? Number(draft.year) : null
+      ),
+      ownerId: activeUser.id,
+      includeRuntimeMinutes,
+      includeTmdbUrl,
+      timeoutMessage: 'Превышено время ожидания сохранения фильма.'
+    });
+
+    await saveMovieCreateRelatedData({
+      movieId: insertedMovie.id,
+      draft,
+      createSavePlan,
+      manualSimilarMovieIds,
+      additionalPosterEntriesForSave,
+      setStatus,
+      replaceMovieRelations,
+      replaceMovieDirectors,
+      replaceManualSimilarMovies,
+      replaceMoviePosterImages
+    });
+
+    const postSaveResult = await handleMovieCreatePostSave({
+      insertedMovie,
+      setStatus,
+      ...postSaveOptions
+    });
+
+    return {
+      ...postSaveResult,
+      insertedMovie,
+      validationFailed: false
+    };
+  }
+
   return {
     readMovieFormDraft,
     validateMovieFormDraft,
@@ -731,6 +822,7 @@ export function createMovieEditorController(context = {}) {
     saveMovieCreateRelatedData,
     saveMovieUpdateRelatedData,
     handleMovieCreatePostSave,
-    handleMovieUpdatePostSave
+    handleMovieUpdatePostSave,
+    submitMovieCreate
   };
 }
