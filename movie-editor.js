@@ -247,6 +247,53 @@ export function createMovieEditorController(context = {}) {
     return changedFields;
   }
 
+  const sortRuValues = values => [...values].sort((a, b) => a.localeCompare(b, 'ru'));
+
+  function getMovieUpdateRelationState({
+    draft,
+    existingMovie,
+    getMovieDirectorItems = () => [],
+    getDirectorDisplayName = item => String(item || '').trim()
+  }) {
+    const existingGenreNames = (existingMovie?.movie_genres || [])
+      .map(item => item?.genres?.name)
+      .filter(Boolean);
+    const existingCountryNames = (existingMovie?.movie_countries || [])
+      .map(item => item?.countries?.name)
+      .filter(Boolean);
+
+    const normalizedExistingGenres = sortRuValues(existingGenreNames);
+    const normalizedNewGenres = sortRuValues(draft?.genreNames || []);
+    const normalizedExistingCountries = sortRuValues(existingCountryNames);
+    const normalizedNewCountries = sortRuValues(draft?.countryNames || []);
+
+    const existingLinkedDirectorNames = getMovieDirectorItems(existingMovie)
+      .map(getDirectorDisplayName)
+      .filter(Boolean);
+    const existingDirectorLinksKnown = (
+      Array.isArray(existingMovie?.movie_people) ||
+      Array.isArray(existingMovie?.movie_directors)
+    );
+    const existingDirectorNames = existingLinkedDirectorNames.length
+      ? existingLinkedDirectorNames
+      : parseLineOrCommaSeparatedValues(existingMovie?.director || '');
+    const shouldRefreshDirectorLinks = (
+      (draft?.directorNames || []).length > 0 &&
+      (!existingDirectorLinksKnown || existingLinkedDirectorNames.length === 0)
+    );
+
+    return {
+      relationsChanged: (
+        !areStringArraysEqual(normalizedExistingGenres, normalizedNewGenres) ||
+        !areStringArraysEqual(normalizedExistingCountries, normalizedNewCountries)
+      ),
+      directorsChanged: (
+        !areStringArraysEqual(existingDirectorNames, draft?.directorNames || []) ||
+        shouldRefreshDirectorLinks
+      )
+    };
+  }
+
   function getMoviePosterImagesDraftAfterDrop(
     draftEntries = [],
     sourceEntryId,
@@ -274,6 +321,10 @@ export function createMovieEditorController(context = {}) {
 
   function getMoviePosterImagesDraftEntriesForSave(draftEntries = []) {
     return draftEntries.map(entry => ({ ...entry }));
+  }
+
+  function hasPendingMoviePosterDraftUploads(draftEntries = []) {
+    return draftEntries.some(entry => entry?.type === 'pending');
   }
 
   async function resolveMoviePosterImageDraftEntries(draftEntries = []) {
@@ -323,14 +374,31 @@ export function createMovieEditorController(context = {}) {
     };
   }
 
+  async function resolveMoviePosterImagesForSave(draftEntries = []) {
+    const resolvedPosterImages = await resolveMoviePosterImageDraftEntries(draftEntries);
+    const posterImagesForSave = splitMoviePosterImageEntriesForSave(
+      resolvedPosterImages.resolvedEntries
+    );
+
+    return {
+      ...resolvedPosterImages,
+      finalPosterUrl: posterImagesForSave.primaryUrl,
+      additionalPosterEntriesForSave: posterImagesForSave.additionalEntries,
+      finalPosterUrls: posterImagesForSave.allUrls
+    };
+  }
+
   return {
     readMovieFormDraft,
     validateMovieFormDraft,
     buildMovieInsertPayload,
     buildMovieChangedFields,
+    getMovieUpdateRelationState,
     getMoviePosterImagesDraftAfterDrop,
     getMoviePosterImagesDraftEntriesForSave,
+    hasPendingMoviePosterDraftUploads,
     resolveMoviePosterImageDraftEntries,
+    resolveMoviePosterImagesForSave,
     splitMoviePosterImageEntriesForSave
   };
 }

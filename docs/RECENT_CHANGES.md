@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-20 - Move movie editor relation and poster save prep
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved movie edit relation-change detection for genres, countries, and linked directors into lazy `movie-editor.js`.
+  - Added lazy editor helpers for pending poster upload detection and resolved poster save results, so `app.js` no longer manually splits poster entries during add/update submit.
+  - Tightened smoke guards for the movie editor boundary and marked the editor backlog item as in progress.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `5.1 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue movie editor cleanup by moving more add/update submit orchestration and Supabase write sequencing out of `app.js`.
+
 ## 2026-08-16 - Close movie detail orchestration backlog
 
 - Files:

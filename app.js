@@ -13037,19 +13037,19 @@ async function addMovie(event) {
     const manualSimilarMovieIds = normalizeManualSimilarMovieIds(manualSimilarMovieIdsDraft);
     const posterDraftEntries = movieEditor.getMoviePosterImagesDraftEntriesForSave(moviePosterImagesDraft);
 
-    if (posterDraftEntries.some(entry => entry.type === 'pending')) {
+    if (movieEditor.hasPendingMoviePosterDraftUploads(posterDraftEntries)) {
       setMovieFormStatus('Загружаю постеры...');
     }
 
     const resolvedPosterImages = await withPendingRequestTimeout(
-      movieEditor.resolveMoviePosterImageDraftEntries(posterDraftEntries),
+      movieEditor.resolveMoviePosterImagesForSave(posterDraftEntries),
       30000,
       'Превышено время ожидания загрузки постеров.'
     );
     const {
-      primaryUrl: finalPosterUrl,
-      additionalEntries: additionalPosterEntriesForSave
-    } = movieEditor.splitMoviePosterImageEntriesForSave(resolvedPosterImages.resolvedEntries);
+      finalPosterUrl,
+      additionalPosterEntriesForSave
+    } = resolvedPosterImages;
 
     setMovieFormStatus('Сохраняю...');
 
@@ -13166,43 +13166,15 @@ async function updateMovie(event) {
   }
 
   const oldPosterUrl = existingMovie.poster_url ?? null;
-
-  const existingGenreNames = existingMovie.movie_genres
-    .map(item => item.genres.name)
-    .filter(Boolean);
-
-  const existingCountryNames = existingMovie.movie_countries
-    .map(item => item.countries.name)
-    .filter(Boolean);
-
-  const normalizedExistingGenres = [...existingGenreNames].sort((a, b) => a.localeCompare(b, 'ru'));
-  const normalizedNewGenres = [...formDraft.genreNames].sort((a, b) => a.localeCompare(b, 'ru'));
-
-  const normalizedExistingCountries = [...existingCountryNames].sort((a, b) => a.localeCompare(b, 'ru'));
-  const normalizedNewCountries = [...formDraft.countryNames].sort((a, b) => a.localeCompare(b, 'ru'));
-  const existingLinkedDirectorNames = getMovieDirectorItems(existingMovie)
-    .map(getDirectorDisplayName)
-    .filter(Boolean);
-  const existingDirectorLinksKnown = (
-    Array.isArray(existingMovie?.movie_people) ||
-    Array.isArray(existingMovie?.movie_directors)
-  );
-  const existingDirectorNames = existingLinkedDirectorNames.length
-    ? existingLinkedDirectorNames
-    : parseLineOrCommaSeparatedValues(existingMovie.director || '');
-  const shouldRefreshDirectorLinks = (
-    formDraft.directorNames.length > 0 &&
-    (!existingDirectorLinksKnown || existingLinkedDirectorNames.length === 0)
-  );
-  const directorsChanged = (
-    !areStringArraysEqual(existingDirectorNames, formDraft.directorNames) ||
-    shouldRefreshDirectorLinks
-  );
-
-  const relationsChanged = (
-    !areStringArraysEqual(normalizedExistingGenres, normalizedNewGenres) ||
-    !areStringArraysEqual(normalizedExistingCountries, normalizedNewCountries)
-  );
+  const {
+    relationsChanged,
+    directorsChanged
+  } = movieEditor.getMovieUpdateRelationState({
+    draft: formDraft,
+    existingMovie,
+    getMovieDirectorItems,
+    getDirectorDisplayName
+  });
 
   try {
     ensureActiveSessionForWrite();
@@ -13222,20 +13194,19 @@ async function updateMovie(event) {
     if (posterImagesChanged) {
       const posterDraftEntries = movieEditor.getMoviePosterImagesDraftEntriesForSave(moviePosterImagesDraft);
 
-      if (posterDraftEntries.some(entry => entry.type === 'pending')) {
+      if (movieEditor.hasPendingMoviePosterDraftUploads(posterDraftEntries)) {
         setMovieFormStatus('Загружаю постеры...');
       }
 
-      const resolvedPosterImages = await withPendingRequestTimeout(
-        movieEditor.resolveMoviePosterImageDraftEntries(posterDraftEntries),
+      const posterImagesForSave = await withPendingRequestTimeout(
+        movieEditor.resolveMoviePosterImagesForSave(posterDraftEntries),
         30000,
         'Превышено время ожидания загрузки постеров.'
       );
-      const posterImagesForSave = movieEditor.splitMoviePosterImageEntriesForSave(resolvedPosterImages.resolvedEntries);
 
-      finalPosterUrl = posterImagesForSave.primaryUrl;
-      additionalPosterEntriesForSave = posterImagesForSave.additionalEntries;
-      finalPosterUrls = posterImagesForSave.allUrls;
+      finalPosterUrl = posterImagesForSave.finalPosterUrl;
+      additionalPosterEntriesForSave = posterImagesForSave.additionalPosterEntriesForSave;
+      finalPosterUrls = posterImagesForSave.finalPosterUrls;
     }
 
     const changedFields = await movieEditor.buildMovieChangedFields({

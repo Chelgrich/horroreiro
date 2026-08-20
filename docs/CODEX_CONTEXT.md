@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-08-16.
+Last updated: 2026-08-20.
 
 ## Purpose
 
@@ -159,7 +159,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `person-placeholders.js` is lazy-loaded only for person/director pages and owns the large SVG placeholder silhouettes.
 
-`movie-editor.js` is lazy-loaded by the shared movie add/edit modal and owns form draft reading, validation, insert payload building, update changed-field diffing, and poster draft order/save helpers. `app.js` keeps the modal DOM bridge, poster/manual-similar editor UI state/rendering, Supabase writes, and post-save page/cache synchronization.
+`movie-editor.js` is lazy-loaded by the shared movie add/edit modal and owns form draft reading, validation, insert payload building, update changed-field/relation diffing, poster draft order helpers, and poster upload/save result preparation. `app.js` keeps the modal DOM bridge, poster/manual-similar editor UI state/rendering, Supabase writes, and post-save page/cache synchronization.
 
 `movie-detail-cache.js` is lazy-loaded only for movie detail pages and owns detail session-cache keys, signatures, entry creation, read/write, expiry, and removal. `app.js` keeps the actual restoration of shared rating/watchlist/review/comment/similar state.
 
@@ -187,7 +187,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 Work through this backlog one contour per pass unless the user explicitly changes the order:
 
 1. Movie detail orchestration: completed; keep route/load/init/similar/social/interactions/shell/user-state orchestration in lazy modules. `app.js` should remain a data/state bridge here, with only small maintenance cleanup expected.
-2. Movie editor: continue moving modal orchestration, DOM bridge, Supabase insert/update, and post-save synchronization out of `app.js` after the lower-risk helper moves.
+2. Movie editor: in progress; continue moving modal submit orchestration, Supabase insert/update, and post-save synchronization out of `app.js` after the current helper/relation/poster-save prep split.
 3. Supabase payload/select audit: review catalog, profile rails/taste, notifications, person/director payload, and movie detail RPC fallback so each page fetches only fields it actually needs.
 4. Catalog module split: move filters, presets, URL params, pagination, card rendering, and catalog return-state cache out of `app.js` after detail/editor boundaries are steadier.
 5. Shared profile/auth helpers: extract reusable profile helpers, avatar/settings actions, follow actions, and poster preference helpers into a shared profile module.
