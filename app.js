@@ -13074,38 +13074,18 @@ async function addMovie(event) {
       timeoutMessage: 'Превышено время ожидания сохранения фильма.'
     });
 
-    await withPendingRequestTimeout(
-      replaceMovieRelations(insertedMovie.id, formDraft.genreNames, formDraft.countryNames),
-      15000,
-      'Превышено время ожидания сохранения жанров и стран.'
-    );
-
-    if (formDraft.directorNames.length > 0) {
-      setMovieFormStatus('Сохраняю режиссёров...');
-      await withPendingRequestTimeout(
-        replaceMovieDirectors(insertedMovie.id, formDraft.directorNames),
-        15000,
-        'Превышено время ожидания сохранения режиссёров.'
-      );
-    }
-
-    if (createSavePlan.shouldSaveManualSimilarMovies) {
-      setMovieFormStatus('Сохраняю похожие фильмы...');
-      await withPendingRequestTimeout(
-        replaceManualSimilarMovies(insertedMovie.id, manualSimilarMovieIds),
-        15000,
-        'Превышено время ожидания сохранения похожих фильмов.'
-      );
-    }
-
-    if (createSavePlan.shouldSavePosterGallery) {
-      setMovieFormStatus('Сохраняю галерею...');
-      await withPendingRequestTimeout(
-        replaceMoviePosterImages(insertedMovie.id, additionalPosterEntriesForSave),
-        30000,
-        'Превышено время ожидания сохранения галереи.'
-      );
-    }
+    await movieEditor.saveMovieCreateRelatedData({
+      movieId: insertedMovie.id,
+      draft: formDraft,
+      createSavePlan,
+      manualSimilarMovieIds,
+      additionalPosterEntriesForSave,
+      setStatus: setMovieFormStatus,
+      replaceMovieRelations,
+      replaceMovieDirectors,
+      replaceManualSimilarMovies,
+      replaceMoviePosterImages
+    });
 
     markLocalDataMutation(`movie-create:${insertedMovie.id}`);
 
@@ -13237,42 +13217,22 @@ async function updateMovie(event) {
       });
     }
 
-    if (relationsChanged) {
-      await withPendingRequestTimeout(
-        replaceMovieRelations(editingMovieId, formDraft.genreNames, formDraft.countryNames),
-        15000,
-        'Превышено время ожидания обновления жанров и стран.'
-      );
-    }
-
-    if (directorsChanged) {
-      setMovieFormStatus('Сохраняю режиссёров...');
-      await withPendingRequestTimeout(
-        replaceMovieDirectors(editingMovieId, formDraft.directorNames),
-        15000,
-        'Превышено время ожидания сохранения режиссёров.'
-      );
-    }
-
-    if (manualSimilarChanged) {
-      setMovieFormStatus('Сохраняю похожие фильмы...');
-      await withPendingRequestTimeout(
-        replaceManualSimilarMovies(editingMovieId, manualSimilarMovieIds),
-        15000,
-        'Превышено время ожидания сохранения похожих фильмов.'
-      );
-    }
-
-    if (posterImagesChanged) {
-      setMovieFormStatus('Сохраняю галерею...');
-      await withPendingRequestTimeout(
-        replaceMoviePosterImages(editingMovieId, additionalPosterEntriesForSave, {
-          preservedUrls: [finalPosterUrl]
-        }),
-        30000,
-        'Превышено время ожидания сохранения галереи.'
-      );
-    }
+    await movieEditor.saveMovieUpdateRelatedData({
+      movieId: editingMovieId,
+      draft: formDraft,
+      relationsChanged,
+      directorsChanged,
+      manualSimilarChanged,
+      posterImagesChanged,
+      manualSimilarMovieIds,
+      additionalPosterEntriesForSave,
+      finalPosterUrl,
+      setStatus: setMovieFormStatus,
+      replaceMovieRelations,
+      replaceMovieDirectors,
+      replaceManualSimilarMovies,
+      replaceMoviePosterImages
+    });
 
     if (updateSavePlan.shouldDeleteOldPoster) {
       try {

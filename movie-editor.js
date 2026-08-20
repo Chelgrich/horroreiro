@@ -500,6 +500,111 @@ export function createMovieEditorController(context = {}) {
     throwIfSupabaseError(error);
   }
 
+  async function saveMovieCreateRelatedData({
+    movieId,
+    draft,
+    createSavePlan = null,
+    manualSimilarMovieIds = [],
+    additionalPosterEntriesForSave = [],
+    setStatus = () => {},
+    replaceMovieRelations = async () => {},
+    replaceMovieDirectors = async () => {},
+    replaceManualSimilarMovies = async () => {},
+    replaceMoviePosterImages = async () => {}
+  } = {}) {
+    const savePlan = createSavePlan || getMovieCreateSavePlan({
+      manualSimilarMovieIds,
+      additionalPosterEntriesForSave
+    });
+
+    await withPendingRequestTimeout(
+      replaceMovieRelations(movieId, draft.genreNames, draft.countryNames),
+      15000,
+      'Превышено время ожидания сохранения жанров и стран.'
+    );
+
+    if (draft.directorNames.length > 0) {
+      setStatus('Сохраняю режиссёров...');
+      await withPendingRequestTimeout(
+        replaceMovieDirectors(movieId, draft.directorNames),
+        15000,
+        'Превышено время ожидания сохранения режиссёров.'
+      );
+    }
+
+    if (savePlan.shouldSaveManualSimilarMovies) {
+      setStatus('Сохраняю похожие фильмы...');
+      await withPendingRequestTimeout(
+        replaceManualSimilarMovies(movieId, manualSimilarMovieIds),
+        15000,
+        'Превышено время ожидания сохранения похожих фильмов.'
+      );
+    }
+
+    if (savePlan.shouldSavePosterGallery) {
+      setStatus('Сохраняю галерею...');
+      await withPendingRequestTimeout(
+        replaceMoviePosterImages(movieId, additionalPosterEntriesForSave),
+        30000,
+        'Превышено время ожидания сохранения галереи.'
+      );
+    }
+  }
+
+  async function saveMovieUpdateRelatedData({
+    movieId,
+    draft,
+    relationsChanged = false,
+    directorsChanged = false,
+    manualSimilarChanged = false,
+    posterImagesChanged = false,
+    manualSimilarMovieIds = [],
+    additionalPosterEntriesForSave = [],
+    finalPosterUrl = null,
+    setStatus = () => {},
+    replaceMovieRelations = async () => {},
+    replaceMovieDirectors = async () => {},
+    replaceManualSimilarMovies = async () => {},
+    replaceMoviePosterImages = async () => {}
+  } = {}) {
+    if (relationsChanged) {
+      await withPendingRequestTimeout(
+        replaceMovieRelations(movieId, draft.genreNames, draft.countryNames),
+        15000,
+        'Превышено время ожидания обновления жанров и стран.'
+      );
+    }
+
+    if (directorsChanged) {
+      setStatus('Сохраняю режиссёров...');
+      await withPendingRequestTimeout(
+        replaceMovieDirectors(movieId, draft.directorNames),
+        15000,
+        'Превышено время ожидания сохранения режиссёров.'
+      );
+    }
+
+    if (manualSimilarChanged) {
+      setStatus('Сохраняю похожие фильмы...');
+      await withPendingRequestTimeout(
+        replaceManualSimilarMovies(movieId, manualSimilarMovieIds),
+        15000,
+        'Превышено время ожидания сохранения похожих фильмов.'
+      );
+    }
+
+    if (posterImagesChanged) {
+      setStatus('Сохраняю галерею...');
+      await withPendingRequestTimeout(
+        replaceMoviePosterImages(movieId, additionalPosterEntriesForSave, {
+          preservedUrls: [finalPosterUrl]
+        }),
+        30000,
+        'Превышено время ожидания сохранения галереи.'
+      );
+    }
+  }
+
   return {
     readMovieFormDraft,
     validateMovieFormDraft,
@@ -515,6 +620,8 @@ export function createMovieEditorController(context = {}) {
     getMovieCreateSavePlan,
     getMovieUpdateSavePlan,
     insertMovieRecord,
-    updateMovieRecord
+    updateMovieRecord,
+    saveMovieCreateRelatedData,
+    saveMovieUpdateRelatedData
   };
 }

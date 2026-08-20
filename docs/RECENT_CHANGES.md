@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-20 - Move movie editor related write sequencing
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved create/update sequencing for movie relations, director links, manual similar movies, and poster galleries into lazy `movie-editor.js`.
+  - Kept low-level write callbacks in `app.js`, but replaced the long submit-side `replace...` blocks with editor orchestration calls.
+  - Tightened smoke guards so related-data write sequencing does not drift back into `app.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `5.3 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue movie editor cleanup with post-save UI/cache synchronization and remaining modal submit orchestration.
+
 ## 2026-08-20 - Move movie editor row writes
 
 - Files:
