@@ -13087,21 +13087,22 @@ async function addMovie(event) {
       replaceMoviePosterImages
     });
 
-    markLocalDataMutation(`movie-create:${insertedMovie.id}`);
+    const createPostSaveResult = await movieEditor.handleMovieCreatePostSave({
+      insertedMovie,
+      isCatalogPage: isCatalogPage(),
+      isMoviePage: isMoviePage(),
+      setStatus: setMovieFormStatus,
+      markLocalDataMutation,
+      reloadCatalogData,
+      rerenderCatalogAfterDataReload,
+      resetFormToCreateMode,
+      closeMovieModal,
+      redirectToMovie: movie => {
+        window.location.href = buildMoviePageUrl(movie);
+      }
+    });
 
-    if (isCatalogPage()) {
-      setMovieFormStatus('Обновляю каталог...');
-      await withPendingRequestTimeout(
-        reloadCatalogData({ showSkeleton: false }),
-        15000,
-        'Превышено время ожидания обновления каталога.'
-      ); // сначала дожидаемся полной синхронизации состояния каталога
-
-      rerenderCatalogAfterDataReload(insertedMovie.id);
-      resetFormToCreateMode();
-      closeMovieModal();
-    } else if (isMoviePage()) {
-      window.location.href = buildMoviePageUrl(insertedMovie);
+    if (createPostSaveResult.shouldExit) {
       return;
     }
   } catch (error) {
@@ -13242,51 +13243,33 @@ async function updateMovie(event) {
       }
     }
 
-    if (!updateSavePlan.hasAnyChanges) {
-      setMovieFormStatus('Изменений нет.');
-      closeMovieModal();
-      resetFormToCreateMode();
+    const updatePostSaveResult = await movieEditor.handleMovieUpdatePostSave({
+      movieId: editingMovieId,
+      updateSavePlan,
+      isCatalogPage: isCatalogPage(),
+      isMoviePage: isMoviePage(),
+      shouldReplaceMoviePageUrl: window.location.pathname.endsWith('movie.html'),
+      setStatus: setMovieFormStatus,
+      markLocalDataMutation,
+      reloadCatalogData,
+      rerenderCatalogAfterDataReload,
+      reloadMoviePageData,
+      buildMoviePageUrl,
+      replaceMoviePageUrl: nextMoviePageUrl => {
+        window.history.replaceState({}, '', nextMoviePageUrl);
+      },
+      renderMoviePage,
+      syncCatalogSessionSnapshotMovieState,
+      loadMoviePageSimilarMovies,
+      persistCurrentMoviePageSessionCache,
+      renderMoviePageNotFound,
+      closeMovieModal,
+      resetFormToCreateMode
+    });
+
+    if (updatePostSaveResult.shouldExit) {
       return;
     }
-
-    markLocalDataMutation(`movie-update:${editingMovieId}`);
-
-    if (isCatalogPage()) {
-      setMovieFormStatus('Обновляю каталог...');
-      await withPendingRequestTimeout(
-        reloadCatalogData({ showSkeleton: false }),
-        15000,
-        'Превышено время ожидания обновления каталога.'
-      );
-
-      rerenderCatalogAfterDataReload(editingMovieId);
-    } else if (isMoviePage()) {
-      setMovieFormStatus('Обновляю страницу фильма...');
-
-      const updatedMovie = await withPendingRequestTimeout(
-        reloadMoviePageData(editingMovieId),
-        15000,
-        'Превышено время ожидания обновления страницы фильма.'
-      );
-
-      if (updatedMovie) {
-        const nextMoviePageUrl = buildMoviePageUrl(updatedMovie);
-
-        if (window.location.pathname.endsWith('movie.html')) {
-          window.history.replaceState({}, '', nextMoviePageUrl);
-        }
-
-        renderMoviePage(updatedMovie);
-        syncCatalogSessionSnapshotMovieState(editingMovieId, { syncMovie: updatedMovie });
-        await loadMoviePageSimilarMovies(updatedMovie);
-        persistCurrentMoviePageSessionCache();
-      } else {
-        renderMoviePageNotFound();
-      }
-    }
-
-    closeMovieModal();
-    resetFormToCreateMode();
   } catch (error) {
     console.error('Ошибка при редактировании фильма:', error);
     setMovieFormStatus(`Ошибка при редактировании фильма: ${error.message || 'смотри консоль F12.'}`);

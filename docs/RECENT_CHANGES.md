@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-20 - Move movie editor post-save orchestration
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved movie create/update post-save page synchronization decisions into lazy `movie-editor.js`.
+  - Kept concrete catalog/detail rerender, cache, redirect, and status callbacks in `app.js`, but removed the post-save branching from submit orchestration.
+  - Tightened smoke guards so create/update mutation stamps and detail reload calls do not drift back into `app.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `5.3 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue movie editor cleanup with the remaining modal submit wrapper/DOM bridge and editor UI state.
+
 ## 2026-08-20 - Move movie editor related write sequencing
 
 - Files:

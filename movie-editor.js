@@ -605,6 +605,113 @@ export function createMovieEditorController(context = {}) {
     }
   }
 
+  async function handleMovieCreatePostSave({
+    insertedMovie,
+    isCatalogPage = false,
+    isMoviePage = false,
+    setStatus = () => {},
+    markLocalDataMutation = () => {},
+    reloadCatalogData = async () => {},
+    rerenderCatalogAfterDataReload = () => {},
+    resetFormToCreateMode = () => {},
+    closeMovieModal = () => {},
+    redirectToMovie = () => {}
+  } = {}) {
+    markLocalDataMutation(`movie-create:${insertedMovie.id}`);
+
+    if (isCatalogPage) {
+      setStatus('Обновляю каталог...');
+      await withPendingRequestTimeout(
+        reloadCatalogData({ showSkeleton: false }),
+        15000,
+        'Превышено время ожидания обновления каталога.'
+      );
+
+      rerenderCatalogAfterDataReload(insertedMovie.id);
+      resetFormToCreateMode();
+      closeMovieModal();
+      return { shouldExit: false };
+    }
+
+    if (isMoviePage) {
+      redirectToMovie(insertedMovie);
+      return { shouldExit: true };
+    }
+
+    return { shouldExit: false };
+  }
+
+  async function handleMovieUpdatePostSave({
+    movieId,
+    updateSavePlan,
+    isCatalogPage = false,
+    isMoviePage = false,
+    shouldReplaceMoviePageUrl = false,
+    setStatus = () => {},
+    markLocalDataMutation = () => {},
+    reloadCatalogData = async () => {},
+    rerenderCatalogAfterDataReload = () => {},
+    reloadMoviePageData = async () => null,
+    buildMoviePageUrl = () => '',
+    replaceMoviePageUrl = () => {},
+    renderMoviePage = () => {},
+    syncCatalogSessionSnapshotMovieState = () => {},
+    loadMoviePageSimilarMovies = async () => {},
+    persistCurrentMoviePageSessionCache = () => {},
+    renderMoviePageNotFound = () => {},
+    closeMovieModal = () => {},
+    resetFormToCreateMode = () => {}
+  } = {}) {
+    const savePlan = updateSavePlan || { hasAnyChanges: false };
+
+    if (!savePlan.hasAnyChanges) {
+      setStatus('Изменений нет.');
+      closeMovieModal();
+      resetFormToCreateMode();
+      return { shouldExit: true };
+    }
+
+    markLocalDataMutation(`movie-update:${movieId}`);
+
+    if (isCatalogPage) {
+      setStatus('Обновляю каталог...');
+      await withPendingRequestTimeout(
+        reloadCatalogData({ showSkeleton: false }),
+        15000,
+        'Превышено время ожидания обновления каталога.'
+      );
+
+      rerenderCatalogAfterDataReload(movieId);
+    } else if (isMoviePage) {
+      setStatus('Обновляю страницу фильма...');
+
+      const updatedMovie = await withPendingRequestTimeout(
+        reloadMoviePageData(movieId),
+        15000,
+        'Превышено время ожидания обновления страницы фильма.'
+      );
+
+      if (updatedMovie) {
+        const nextMoviePageUrl = buildMoviePageUrl(updatedMovie);
+
+        if (shouldReplaceMoviePageUrl) {
+          replaceMoviePageUrl(nextMoviePageUrl);
+        }
+
+        renderMoviePage(updatedMovie);
+        syncCatalogSessionSnapshotMovieState(movieId, { syncMovie: updatedMovie });
+        await loadMoviePageSimilarMovies(updatedMovie);
+        persistCurrentMoviePageSessionCache();
+      } else {
+        renderMoviePageNotFound();
+      }
+    }
+
+    closeMovieModal();
+    resetFormToCreateMode();
+    return { shouldExit: false };
+  }
+
   return {
     readMovieFormDraft,
     validateMovieFormDraft,
@@ -622,6 +729,8 @@ export function createMovieEditorController(context = {}) {
     insertMovieRecord,
     updateMovieRecord,
     saveMovieCreateRelatedData,
-    saveMovieUpdateRelatedData
+    saveMovieUpdateRelatedData,
+    handleMovieCreatePostSave,
+    handleMovieUpdatePostSave
   };
 }

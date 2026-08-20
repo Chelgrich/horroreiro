@@ -619,6 +619,8 @@ async function checkStaticGuards() {
     movieEditorJs.includes('async function insertMovieRecord(') &&
       movieEditorJs.includes('async function saveMovieCreateRelatedData(') &&
       movieEditorJs.includes('async function saveMovieUpdateRelatedData(') &&
+      movieEditorJs.includes('async function handleMovieCreatePostSave(') &&
+      movieEditorJs.includes('async function handleMovieUpdatePostSave(') &&
       movieEditorJs.includes(".from('movies')") &&
       !appJs.includes('insert(movieEditor.buildMovieInsertPayload(') &&
       !appJs.includes('.update(changedFields)') &&
@@ -627,8 +629,11 @@ async function checkStaticGuards() {
       !appJs.includes('replaceManualSimilarMovies(insertedMovie.id') &&
       !appJs.includes('replaceManualSimilarMovies(editingMovieId') &&
       !appJs.includes('replaceMoviePosterImages(insertedMovie.id') &&
-      !appJs.includes('replaceMoviePosterImages(editingMovieId'),
-    'movie-editor.js: movie row and related-data write sequencing must stay outside app.js submit orchestration'
+      !appJs.includes('replaceMoviePosterImages(editingMovieId') &&
+      !appJs.includes('markLocalDataMutation(`movie-create:${insertedMovie.id}`)') &&
+      !appJs.includes('markLocalDataMutation(`movie-update:${editingMovieId}`)') &&
+      !appJs.includes('reloadMoviePageData(editingMovieId)'),
+    'movie-editor.js: movie row, related-data, and post-save sequencing must stay outside app.js submit orchestration'
   );
   assert(
     movieEditorJs.includes('function getMoviePosterImagesDraftAfterDrop(') &&
