@@ -610,13 +610,15 @@ async function checkStaticGuards() {
   assert(
     movieEditorJs.includes('function buildMovieChangedFields(') &&
       movieEditorJs.includes('function getMovieUpdateRelationState(') &&
+      movieEditorJs.includes('function getMovieUpdateSavePlan(') &&
       !appJs.includes('function buildMovieChangedFields('),
-    'movie-editor.js: movie update diff/relation helpers must stay outside app.js'
+    'movie-editor.js: movie update diff/relation/save-plan helpers must stay outside app.js'
   );
   assert(
     movieEditorJs.includes('function getMoviePosterImagesDraftAfterDrop(') &&
       movieEditorJs.includes('function resolveMoviePosterImageDraftEntries(') &&
       movieEditorJs.includes('function resolveMoviePosterImagesForSave(') &&
+      movieEditorJs.includes('function getMovieCreateSavePlan(') &&
       movieEditorJs.includes('function splitMoviePosterImageEntriesForSave(') &&
       !appJs.includes('function getMoviePosterImagesDraftAfterDrop(') &&
       !appJs.includes('function resolveMoviePosterImageDraftEntries(') &&

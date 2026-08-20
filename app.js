@@ -13050,6 +13050,10 @@ async function addMovie(event) {
       finalPosterUrl,
       additionalPosterEntriesForSave
     } = resolvedPosterImages;
+    const createSavePlan = movieEditor.getMovieCreateSavePlan({
+      manualSimilarMovieIds,
+      additionalPosterEntriesForSave
+    });
 
     setMovieFormStatus('Сохраняю...');
 
@@ -13091,7 +13095,7 @@ async function addMovie(event) {
       );
     }
 
-    if (manualSimilarMovieIds.length > 0) {
+    if (createSavePlan.shouldSaveManualSimilarMovies) {
       setMovieFormStatus('Сохраняю похожие фильмы...');
       await withPendingRequestTimeout(
         replaceManualSimilarMovies(insertedMovie.id, manualSimilarMovieIds),
@@ -13100,7 +13104,7 @@ async function addMovie(event) {
       );
     }
 
-    if (additionalPosterEntriesForSave.length > 0) {
+    if (createSavePlan.shouldSavePosterGallery) {
       setMovieFormStatus('Сохраняю галерею...');
       await withPendingRequestTimeout(
         replaceMoviePosterImages(insertedMovie.id, additionalPosterEntriesForSave),
@@ -13219,8 +13223,17 @@ async function updateMovie(event) {
       includeRuntimeMinutes: movieRuntimeMinutesColumnAvailable,
       includeTmdbUrl: movieTmdbUrlColumnAvailable
     });
+    const updateSavePlan = movieEditor.getMovieUpdateSavePlan({
+      changedFields,
+      relationsChanged,
+      directorsChanged,
+      manualSimilarChanged,
+      posterImagesChanged,
+      oldPosterUrl,
+      finalPosterUrls
+    });
 
-    if (Object.keys(changedFields).length > 0) {
+    if (updateSavePlan.hasMovieFieldChanges) {
       setMovieFormStatus('Сохраняю изменения...');
 
       const { error: updateMovieError } = await withPendingRequestTimeout(
@@ -13272,7 +13285,7 @@ async function updateMovie(event) {
       );
     }
 
-    if (posterImagesChanged && oldPosterUrl && !finalPosterUrls.has(oldPosterUrl)) {
+    if (updateSavePlan.shouldDeleteOldPoster) {
       try {
         await deletePosterFileByUrl(oldPosterUrl);
       } catch (deletePosterError) {
@@ -13280,13 +13293,7 @@ async function updateMovie(event) {
       }
     }
 
-    if (
-      Object.keys(changedFields).length === 0 &&
-      !relationsChanged &&
-      !directorsChanged &&
-      !manualSimilarChanged &&
-      !posterImagesChanged
-    ) {
+    if (!updateSavePlan.hasAnyChanges) {
       setMovieFormStatus('Изменений нет.');
       closeMovieModal();
       resetFormToCreateMode();

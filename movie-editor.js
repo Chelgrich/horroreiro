@@ -388,6 +388,46 @@ export function createMovieEditorController(context = {}) {
     };
   }
 
+  function getMovieCreateSavePlan({
+    manualSimilarMovieIds = [],
+    additionalPosterEntriesForSave = []
+  } = {}) {
+    return {
+      shouldSaveManualSimilarMovies: manualSimilarMovieIds.length > 0,
+      shouldSavePosterGallery: additionalPosterEntriesForSave.length > 0
+    };
+  }
+
+  function getMovieUpdateSavePlan({
+    changedFields = {},
+    relationsChanged = false,
+    directorsChanged = false,
+    manualSimilarChanged = false,
+    posterImagesChanged = false,
+    oldPosterUrl = null,
+    finalPosterUrls = new Set()
+  } = {}) {
+    const hasMovieFieldChanges = Object.keys(changedFields || {}).length > 0;
+    const hasAnyChanges = Boolean(
+      hasMovieFieldChanges ||
+      relationsChanged ||
+      directorsChanged ||
+      manualSimilarChanged ||
+      posterImagesChanged
+    );
+    const hasFinalPosterUrl = (
+      finalPosterUrls &&
+      typeof finalPosterUrls.has === 'function' &&
+      finalPosterUrls.has(oldPosterUrl)
+    );
+
+    return {
+      hasMovieFieldChanges,
+      hasAnyChanges,
+      shouldDeleteOldPoster: Boolean(posterImagesChanged && oldPosterUrl && !hasFinalPosterUrl)
+    };
+  }
+
   return {
     readMovieFormDraft,
     validateMovieFormDraft,
@@ -399,6 +439,8 @@ export function createMovieEditorController(context = {}) {
     hasPendingMoviePosterDraftUploads,
     resolveMoviePosterImageDraftEntries,
     resolveMoviePosterImagesForSave,
-    splitMoviePosterImageEntriesForSave
+    splitMoviePosterImageEntriesForSave,
+    getMovieCreateSavePlan,
+    getMovieUpdateSavePlan
   };
 }

@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-20 - Move movie editor save-plan helpers
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added lazy editor save-plan helpers for create/update submit decisions.
+  - Replaced manual `app.js` checks for saving manual similar movies, poster galleries, no-op updates, movie-field updates, and old poster cleanup with `movie-editor.js` plan results.
+  - Tightened smoke guards around the movie editor save-plan boundary.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `5.0 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue movie editor cleanup with Supabase write sequencing and post-save synchronization in a later pass.
+
 ## 2026-08-20 - Move movie editor relation and poster save prep
 
 - Files:
