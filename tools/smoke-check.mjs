@@ -647,6 +647,14 @@ async function checkStaticGuards() {
     'movie-editor.js: movie row, related-data, and post-save sequencing must stay outside app.js submit orchestration'
   );
   assert(
+    movieEditorJs.includes('async function submitMovieFormEvent(') &&
+      appJs.includes('movieEditor.submitMovieFormEvent({') &&
+      !appJs.includes('async function addMovie(event)') &&
+      !appJs.includes('async function updateMovie(event)') &&
+      !appJs.includes('setMovieFormSubmittingState(true);'),
+    'movie-editor.js: movie form submit event guard/error wrapper must stay outside app.js'
+  );
+  assert(
     movieEditorJs.includes('function getMoviePosterImagesDraftAfterDrop(') &&
       movieEditorJs.includes('function resolveMoviePosterImageDraftEntries(') &&
       movieEditorJs.includes('function resolveMoviePosterImagesForSave(') &&

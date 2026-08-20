@@ -988,6 +988,44 @@ export function createMovieEditorController(context = {}) {
     return { shouldExit: false };
   }
 
+  async function submitMovieFormEvent({
+    isEditing = false,
+    isSubmitting = false,
+    setSubmittingState = () => {},
+    setStatus = () => {},
+    submitCreate = async () => ({}),
+    submitUpdate = async () => ({}),
+    errorMessages = {}
+  } = {}) {
+    if (isSubmitting) {
+      return { shouldExit: true, skipped: true };
+    }
+
+    const mode = isEditing ? 'update' : 'create';
+    const errorMessageConfig = errorMessages[mode] || {};
+
+    setSubmittingState(true);
+
+    try {
+      return isEditing ? await submitUpdate() : await submitCreate();
+    } catch (error) {
+      const logPrefix = errorMessageConfig.logPrefix || 'Movie editor submit failed:';
+      const statusPrefix = errorMessageConfig.statusPrefix || 'Movie editor submit failed';
+      const fallbackMessage = errorMessageConfig.fallbackMessage || 'See console.';
+
+      console.error(logPrefix, error);
+      setStatus(`${statusPrefix}: ${error.message || fallbackMessage}`);
+
+      return {
+        shouldExit: true,
+        error,
+        mode
+      };
+    } finally {
+      setSubmittingState(false);
+    }
+  }
+
   async function submitMovieCreate({
     manualSimilarMovieIdsDraft = [],
     moviePosterImagesDraft = [],
@@ -1268,6 +1306,7 @@ export function createMovieEditorController(context = {}) {
     saveMovieUpdateRelatedData,
     handleMovieCreatePostSave,
     handleMovieUpdatePostSave,
+    submitMovieFormEvent,
     submitMovieCreate,
     submitMovieUpdate
   };

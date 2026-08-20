@@ -12956,140 +12956,129 @@ async function replaceMovieRelations(movieId, genreNames, countryNames) {
   }
 }
 
-async function addMovie(event) {
-  event.preventDefault();
-
-  if (isMovieFormSubmitting) {
-    return; // защита от повторного запуска, пока предыдущее сохранение ещё не завершилось
-  }
-
-  setMovieFormSubmittingState(true);
-  setMovieFormStatus('Сохраняю...');
-
-  try {
-    const movieEditor = await ensureMovieEditorControllerLoaded();
-    const createResult = await movieEditor.submitMovieCreate({
-      manualSimilarMovieIdsDraft,
-      moviePosterImagesDraft,
-      buildClassificationDraft: buildMovieClassificationDraftFromForm,
-      normalizeManualSimilarMovieIds,
-      ensureActiveSessionForWrite,
-      buildUniqueMovieSlug,
-      includeRuntimeMinutes: movieRuntimeMinutesColumnAvailable,
-      includeTmdbUrl: movieTmdbUrlColumnAvailable,
-      setStatus: setMovieFormStatus,
-      replaceMovieRelations,
-      replaceMovieDirectors,
-      replaceManualSimilarMovies,
-      replaceMoviePosterImages,
-      postSaveOptions: {
-        isCatalogPage: isCatalogPage(),
-        isMoviePage: isMoviePage(),
-        markLocalDataMutation,
-        reloadCatalogData,
-        rerenderCatalogAfterDataReload,
-        resetFormToCreateMode,
-        closeMovieModal,
-        redirectToMovie: movie => {
-          window.location.href = buildMoviePageUrl(movie);
-        }
+async function addMovie(movieEditor) {
+  const createResult = await movieEditor.submitMovieCreate({
+    manualSimilarMovieIdsDraft,
+    moviePosterImagesDraft,
+    buildClassificationDraft: buildMovieClassificationDraftFromForm,
+    normalizeManualSimilarMovieIds,
+    ensureActiveSessionForWrite,
+    buildUniqueMovieSlug,
+    includeRuntimeMinutes: movieRuntimeMinutesColumnAvailable,
+    includeTmdbUrl: movieTmdbUrlColumnAvailable,
+    setStatus: setMovieFormStatus,
+    replaceMovieRelations,
+    replaceMovieDirectors,
+    replaceManualSimilarMovies,
+    replaceMoviePosterImages,
+    postSaveOptions: {
+      isCatalogPage: isCatalogPage(),
+      isMoviePage: isMoviePage(),
+      markLocalDataMutation,
+      reloadCatalogData,
+      rerenderCatalogAfterDataReload,
+      resetFormToCreateMode,
+      closeMovieModal,
+      redirectToMovie: movie => {
+        window.location.href = buildMoviePageUrl(movie);
       }
-    });
-
-    if (createResult.shouldExit) {
-      return;
     }
-  } catch (error) {
-    console.error('Ошибка при добавлении фильма:', error);
-    setMovieFormStatus(`Ошибка при добавлении фильма: ${error.message || 'смотри консоль F12.'}`);
-  } finally {
-    setMovieFormSubmittingState(false);
-  }
+  });
+
+  return createResult;
 }
 
-async function updateMovie(event) {
-  event.preventDefault();
-
-  if (isMovieFormSubmitting) {
-    return;
-  }
-
-  setMovieFormSubmittingState(true);
-  setMovieFormStatus('Сохраняю изменения...');
-
-  try {
-    const movieEditor = await ensureMovieEditorControllerLoaded();
-    const existingMovie = getCatalogMovieById(editingMovieId)
-      || (currentMoviePageMovieData && currentMoviePageMovieData.id === editingMovieId
-        ? currentMoviePageMovieData
-        : null);
-    const updateResult = await movieEditor.submitMovieUpdate({
-      movieId: editingMovieId,
-      existingMovie,
-      manualSimilarMovieIdsDraft,
-      moviePosterImagesDraft,
-      posterImagesChanged: moviePosterImagesDraftDirty,
-      buildClassificationDraft: buildMovieClassificationDraftFromForm,
-      normalizeManualSimilarMovieIds,
-      getManualSimilarMovieIds,
-      getMovieDirectorItems,
-      getDirectorDisplayName,
-      ensureActiveSessionForWrite,
-      ensureManualSimilarDataLoaded,
-      buildUniqueMovieSlug,
-      includeRuntimeMinutes: movieRuntimeMinutesColumnAvailable,
-      includeTmdbUrl: movieTmdbUrlColumnAvailable,
-      setStatus: setMovieFormStatus,
-      setMissingMovieMessage: message => {
-        formMessage.textContent = message;
+async function updateMovie(movieEditor) {
+  const existingMovie = getCatalogMovieById(editingMovieId)
+    || (currentMoviePageMovieData && currentMoviePageMovieData.id === editingMovieId
+      ? currentMoviePageMovieData
+      : null);
+  const updateResult = await movieEditor.submitMovieUpdate({
+    movieId: editingMovieId,
+    existingMovie,
+    manualSimilarMovieIdsDraft,
+    moviePosterImagesDraft,
+    posterImagesChanged: moviePosterImagesDraftDirty,
+    buildClassificationDraft: buildMovieClassificationDraftFromForm,
+    normalizeManualSimilarMovieIds,
+    getManualSimilarMovieIds,
+    getMovieDirectorItems,
+    getDirectorDisplayName,
+    ensureActiveSessionForWrite,
+    ensureManualSimilarDataLoaded,
+    buildUniqueMovieSlug,
+    includeRuntimeMinutes: movieRuntimeMinutesColumnAvailable,
+    includeTmdbUrl: movieTmdbUrlColumnAvailable,
+    setStatus: setMovieFormStatus,
+    setMissingMovieMessage: message => {
+      formMessage.textContent = message;
+    },
+    replaceMovieRelations,
+    replaceMovieDirectors,
+    replaceManualSimilarMovies,
+    replaceMoviePosterImages,
+    deletePosterFileByUrl,
+    onDeletePosterError: deletePosterError => {
+      console.error('Не удалось удалить старый постер:', deletePosterError);
+    },
+    postSaveOptions: {
+      isCatalogPage: isCatalogPage(),
+      isMoviePage: isMoviePage(),
+      shouldReplaceMoviePageUrl: window.location.pathname.endsWith('movie.html'),
+      markLocalDataMutation,
+      reloadCatalogData,
+      rerenderCatalogAfterDataReload,
+      reloadMoviePageData,
+      buildMoviePageUrl,
+      replaceMoviePageUrl: nextMoviePageUrl => {
+        window.history.replaceState({}, '', nextMoviePageUrl);
       },
-      replaceMovieRelations,
-      replaceMovieDirectors,
-      replaceManualSimilarMovies,
-      replaceMoviePosterImages,
-      deletePosterFileByUrl,
-      onDeletePosterError: deletePosterError => {
-        console.error('Не удалось удалить старый постер:', deletePosterError);
-      },
-      postSaveOptions: {
-        isCatalogPage: isCatalogPage(),
-        isMoviePage: isMoviePage(),
-        shouldReplaceMoviePageUrl: window.location.pathname.endsWith('movie.html'),
-        markLocalDataMutation,
-        reloadCatalogData,
-        rerenderCatalogAfterDataReload,
-        reloadMoviePageData,
-        buildMoviePageUrl,
-        replaceMoviePageUrl: nextMoviePageUrl => {
-          window.history.replaceState({}, '', nextMoviePageUrl);
-        },
-        renderMoviePage,
-        syncCatalogSessionSnapshotMovieState,
-        loadMoviePageSimilarMovies,
-        persistCurrentMoviePageSessionCache,
-        renderMoviePageNotFound,
-        closeMovieModal,
-        resetFormToCreateMode
-      }
-    });
-
-    if (updateResult.shouldExit) {
-      return;
+      renderMoviePage,
+      syncCatalogSessionSnapshotMovieState,
+      loadMoviePageSimilarMovies,
+      persistCurrentMoviePageSessionCache,
+      renderMoviePageNotFound,
+      closeMovieModal,
+      resetFormToCreateMode
     }
-  } catch (error) {
-    console.error('Ошибка при редактировании фильма:', error);
-    setMovieFormStatus(`Ошибка при редактировании фильма: ${error.message || 'смотри консоль F12.'}`);
-  } finally {
-    setMovieFormSubmittingState(false);
-  }
+  });
+
+  return updateResult;
 }
 
 async function saveMovie(event) {
-  if (editingMovieId) {
-    await updateMovie(event);
-  } else {
-    await addMovie(event);
+  event.preventDefault();
+
+  let movieEditor = null;
+
+  try {
+    movieEditor = await ensureMovieEditorControllerLoaded();
+  } catch (error) {
+    console.error('Не удалось загрузить редактор фильма:', error);
+    setMovieFormStatus(`Не удалось загрузить редактор фильма: ${error.message || 'смотри консоль F12.'}`);
+    return;
   }
+
+  await movieEditor.submitMovieFormEvent({
+    isEditing: Boolean(editingMovieId),
+    isSubmitting: isMovieFormSubmitting,
+    setSubmittingState: setMovieFormSubmittingState,
+    setStatus: setMovieFormStatus,
+    submitCreate: () => addMovie(movieEditor),
+    submitUpdate: () => updateMovie(movieEditor),
+    errorMessages: {
+      create: {
+        logPrefix: 'Ошибка при добавлении фильма:',
+        statusPrefix: 'Ошибка при добавлении фильма',
+        fallbackMessage: 'смотри консоль F12.'
+      },
+      update: {
+        logPrefix: 'Ошибка при редактировании фильма:',
+        statusPrefix: 'Ошибка при редактировании фильма',
+        fallbackMessage: 'смотри консоль F12.'
+      }
+    }
+  });
 }
 
 async function deleteMovieRecord(movieId) {

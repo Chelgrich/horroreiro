@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-20 - Move movie editor submit event wrapper
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved movie-modal submit duplicate guard, create/update routing, submitting-state reset, and save error wrapping into lazy `movie-editor.js`.
+  - Kept `app.js` responsible for native form submit prevention, loading the lazy editor controller, and passing concrete create/update callbacks.
+  - Added a smoke guard so the submit event wrapper stays in the lazy editor module.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles remain about `6.2 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Finish the movie editor contour by auditing the remaining modal DOM bridge and editor UI state in `app.js`.
+
 ## 2026-08-20 - Move movie editor manual similar draft helpers
 
 - Files:
