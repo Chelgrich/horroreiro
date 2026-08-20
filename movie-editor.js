@@ -28,6 +28,21 @@ export function createMovieEditorController(context = {}) {
       const numericValue = Number(value);
       return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null;
     },
+    normalizeMoviePosterImageRows = rows => (Array.isArray(rows) ? rows : [])
+      .map(row => ({
+        id: row?.id ? String(row.id) : '',
+        movie_id: row?.movie_id ? String(row.movie_id) : '',
+        image_url: String(row?.image_url || '').trim(),
+        position: Number(row?.position ?? 0)
+      }))
+      .filter(row => row.image_url)
+      .sort((firstRow, secondRow) => {
+        if (firstRow.position !== secondRow.position) {
+          return firstRow.position - secondRow.position;
+        }
+
+        return firstRow.image_url.localeCompare(secondRow.image_url);
+      }),
     uploadPosterFile = async () => '',
     supabaseClient = null,
     withPendingRequestTimeout = promise => promise,
@@ -39,6 +54,142 @@ export function createMovieEditorController(context = {}) {
   } = context;
 
   const getInputValue = inputElement => String(inputElement?.value || '').trim();
+
+  function createMoviePosterImageDraftEntryId(prefix = 'poster') {
+    if (window.crypto?.randomUUID) {
+      return `${prefix}:${window.crypto.randomUUID()}`;
+    }
+
+    return `${prefix}:${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  }
+
+  function createMoviePosterImageDraftEntryFromRow(row) {
+    const normalizedRow = normalizeMoviePosterImageRows([row])[0];
+
+    if (!normalizedRow) {
+      return null;
+    }
+
+    return {
+      entryId: `existing:${normalizedRow.id || normalizedRow.image_url}`,
+      type: 'existing',
+      id: normalizedRow.id,
+      imageUrl: normalizedRow.image_url,
+      label: 'Сохранённое изображение'
+    };
+  }
+
+  function createMoviePosterImageDraftEntryFromPrimaryUrl(imageUrl) {
+    const normalizedImageUrl = String(imageUrl || '').trim();
+
+    if (!normalizedImageUrl) {
+      return null;
+    }
+
+    return {
+      entryId: `primary:${normalizedImageUrl}`,
+      type: 'existing-primary',
+      id: '',
+      imageUrl: normalizedImageUrl,
+      label: 'Сохранённое изображение'
+    };
+  }
+
+  function createMoviePosterImageDraftEntryFromFile(file) {
+    if (!file) {
+      return null;
+    }
+
+    return {
+      entryId: createMoviePosterImageDraftEntryId('pending'),
+      type: 'pending',
+      file,
+      objectUrl: URL.createObjectURL(file),
+      imageUrl: '',
+      label: file.name || 'Новое изображение'
+    };
+  }
+
+  function getMoviePosterImageDraftPreviewUrl(entry) {
+    return String(entry?.objectUrl || entry?.imageUrl || '').trim();
+  }
+
+  function revokeMoviePosterImageDraftObjectUrl(entry) {
+    if (entry?.objectUrl) {
+      URL.revokeObjectURL(entry.objectUrl);
+    }
+  }
+
+  function revokeMoviePosterImageDraftObjectUrls(draftEntries = []) {
+    (Array.isArray(draftEntries) ? draftEntries : [])
+      .forEach(revokeMoviePosterImageDraftObjectUrl);
+  }
+
+  function createMoviePosterImageDraftEntriesFromMovie(movie, rows = []) {
+    const usedImageUrls = new Set();
+    const draftEntries = [];
+    const primaryEntry = createMoviePosterImageDraftEntryFromPrimaryUrl(movie?.poster_url);
+
+    if (primaryEntry) {
+      usedImageUrls.add(primaryEntry.imageUrl);
+      draftEntries.push(primaryEntry);
+    }
+
+    normalizeMoviePosterImageRows(rows)
+      .map(createMoviePosterImageDraftEntryFromRow)
+      .filter(Boolean)
+      .forEach(entry => {
+        if (usedImageUrls.has(entry.imageUrl)) {
+          return;
+        }
+
+        usedImageUrls.add(entry.imageUrl);
+        draftEntries.push(entry);
+      });
+
+    return draftEntries;
+  }
+
+  function createMoviePosterImageDraftEntriesFromFiles(files = []) {
+    return Array.from(files || [])
+      .map(createMoviePosterImageDraftEntryFromFile)
+      .filter(Boolean);
+  }
+
+  function getMoviePosterImagesDraftAfterMove(draftEntries = [], entryId, direction) {
+    const normalizedEntryId = String(entryId || '');
+    const nextEntries = Array.isArray(draftEntries) ? draftEntries.slice() : [];
+    const currentIndex = nextEntries.findIndex(entry => entry.entryId === normalizedEntryId);
+    const nextIndex = currentIndex + Number(direction || 0);
+
+    if (
+      currentIndex < 0 ||
+      nextIndex < 0 ||
+      nextIndex >= nextEntries.length
+    ) {
+      return { draftEntries, changed: false };
+    }
+
+    const [entry] = nextEntries.splice(currentIndex, 1);
+    nextEntries.splice(nextIndex, 0, entry);
+    return { draftEntries: nextEntries, changed: true };
+  }
+
+  function getMoviePosterImagesDraftAfterRemove(draftEntries = [], entryId) {
+    const normalizedEntryId = String(entryId || '');
+    const currentEntries = Array.isArray(draftEntries) ? draftEntries : [];
+    const removedEntry = currentEntries.find(item => item.entryId === normalizedEntryId);
+
+    if (!removedEntry) {
+      return { draftEntries, removedEntry: null, changed: false };
+    }
+
+    return {
+      draftEntries: currentEntries.filter(item => item.entryId !== normalizedEntryId),
+      removedEntry,
+      changed: true
+    };
+  }
 
   function readMovieFormDraft() {
     const elements = getElements();
@@ -964,6 +1115,13 @@ export function createMovieEditorController(context = {}) {
     buildMovieInsertPayload,
     buildMovieChangedFields,
     getMovieUpdateRelationState,
+    createMoviePosterImageDraftEntriesFromMovie,
+    createMoviePosterImageDraftEntriesFromFiles,
+    getMoviePosterImageDraftPreviewUrl,
+    revokeMoviePosterImageDraftObjectUrl,
+    revokeMoviePosterImageDraftObjectUrls,
+    getMoviePosterImagesDraftAfterMove,
+    getMoviePosterImagesDraftAfterRemove,
     getMoviePosterImagesDraftAfterDrop,
     getMoviePosterImagesDraftEntriesForSave,
     hasPendingMoviePosterDraftUploads,

@@ -3676,73 +3676,25 @@ function getMovieDisplayPosterGalleryImages(movie) {
     });
 }
 
-function createMoviePosterImageDraftEntryId(prefix = 'poster') {
-  if (window.crypto?.randomUUID) {
-    return `${prefix}:${window.crypto.randomUUID()}`;
-  }
-
-  return `${prefix}:${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-}
-
-function createMoviePosterImageDraftEntryFromRow(row) {
-  const normalizedRow = normalizeMoviePosterImageRows([row])[0];
-
-  if (!normalizedRow) {
-    return null;
-  }
-
-  return {
-    entryId: `existing:${normalizedRow.id || normalizedRow.image_url}`,
-    type: 'existing',
-    id: normalizedRow.id,
-    imageUrl: normalizedRow.image_url,
-    label: 'Сохранённое изображение'
-  };
-}
-
-function createMoviePosterImageDraftEntryFromPrimaryUrl(imageUrl) {
-  const normalizedImageUrl = String(imageUrl || '').trim();
-
-  if (!normalizedImageUrl) {
-    return null;
-  }
-
-  return {
-    entryId: `primary:${normalizedImageUrl}`,
-    type: 'existing-primary',
-    id: '',
-    imageUrl: normalizedImageUrl,
-    label: 'Сохранённое изображение'
-  };
-}
-
-function createMoviePosterImageDraftEntryFromFile(file) {
-  if (!file) {
-    return null;
-  }
-
-  return {
-    entryId: createMoviePosterImageDraftEntryId('pending'),
-    type: 'pending',
-    file,
-    objectUrl: URL.createObjectURL(file),
-    imageUrl: '',
-    label: file.name || 'Новое изображение'
-  };
-}
-
 function getMoviePosterImageDraftPreviewUrl(entry) {
-  return String(entry?.objectUrl || entry?.imageUrl || '').trim();
+  return movieEditorController?.getMoviePosterImageDraftPreviewUrl(entry) ||
+    String(entry?.objectUrl || entry?.imageUrl || '').trim();
 }
 
 function revokeMoviePosterImageDraftObjectUrl(entry) {
-  if (entry?.objectUrl) {
+  if (movieEditorController) {
+    movieEditorController.revokeMoviePosterImageDraftObjectUrl(entry);
+  } else if (entry?.objectUrl) {
     URL.revokeObjectURL(entry.objectUrl);
   }
 }
 
 function resetMoviePosterImagesDraft() {
-  moviePosterImagesDraft.forEach(revokeMoviePosterImageDraftObjectUrl);
+  if (movieEditorController) {
+    movieEditorController.revokeMoviePosterImageDraftObjectUrls(moviePosterImagesDraft);
+  } else {
+    moviePosterImagesDraft.forEach(revokeMoviePosterImageDraftObjectUrl);
+  }
   moviePosterImagesDraft = [];
   moviePosterImagesDraftDirty = false;
   moviePosterImagesDraftDraggedEntryId = null;
@@ -3751,28 +3703,15 @@ function resetMoviePosterImagesDraft() {
 }
 
 function setMoviePosterImagesDraftFromMovie(movie, rows = [], { markDirty = false } = {}) {
-  const usedImageUrls = new Set();
-  const draftEntries = [];
-  const primaryEntry = createMoviePosterImageDraftEntryFromPrimaryUrl(movie?.poster_url);
+  const draftEntries = movieEditorController
+    ? movieEditorController.createMoviePosterImageDraftEntriesFromMovie(movie, rows)
+    : [];
 
-  if (primaryEntry) {
-    usedImageUrls.add(primaryEntry.imageUrl);
-    draftEntries.push(primaryEntry);
+  if (movieEditorController) {
+    movieEditorController.revokeMoviePosterImageDraftObjectUrls(moviePosterImagesDraft);
+  } else {
+    moviePosterImagesDraft.forEach(revokeMoviePosterImageDraftObjectUrl);
   }
-
-  normalizeMoviePosterImageRows(rows)
-    .map(createMoviePosterImageDraftEntryFromRow)
-    .filter(Boolean)
-    .forEach(entry => {
-      if (usedImageUrls.has(entry.imageUrl)) {
-        return;
-      }
-
-      usedImageUrls.add(entry.imageUrl);
-      draftEntries.push(entry);
-    });
-
-  moviePosterImagesDraft.forEach(revokeMoviePosterImageDraftObjectUrl);
   moviePosterImagesDraft = draftEntries;
   moviePosterImagesDraftDirty = Boolean(markDirty);
   moviePosterImagesDraftDraggedEntryId = null;
@@ -3889,9 +3828,9 @@ function renderMoviePosterImagesDraftList() {
 }
 
 function addMoviePosterImageDraftFiles(files = []) {
-  const entries = Array.from(files || [])
-    .map(createMoviePosterImageDraftEntryFromFile)
-    .filter(Boolean);
+  const entries = movieEditorController
+    ? movieEditorController.createMoviePosterImageDraftEntriesFromFiles(files)
+    : [];
 
   if (entries.length === 0) {
     updatePosterFileUi();
@@ -3905,34 +3844,33 @@ function addMoviePosterImageDraftFiles(files = []) {
 }
 
 function moveMoviePosterImageDraftEntry(entryId, direction) {
-  const normalizedEntryId = String(entryId || '');
-  const currentIndex = moviePosterImagesDraft.findIndex(entry => entry.entryId === normalizedEntryId);
-  const nextIndex = currentIndex + Number(direction || 0);
+  const result = movieEditorController?.getMoviePosterImagesDraftAfterMove(
+    moviePosterImagesDraft,
+    entryId,
+    direction
+  );
 
-  if (
-    currentIndex < 0 ||
-    nextIndex < 0 ||
-    nextIndex >= moviePosterImagesDraft.length
-  ) {
+  if (!result?.changed) {
     return;
   }
 
-  const [entry] = moviePosterImagesDraft.splice(currentIndex, 1);
-  moviePosterImagesDraft.splice(nextIndex, 0, entry);
+  moviePosterImagesDraft = result.draftEntries;
   moviePosterImagesDraftDirty = true;
   renderMoviePosterImagesDraftList();
 }
 
 function removeMoviePosterImageDraftEntry(entryId) {
-  const normalizedEntryId = String(entryId || '');
-  const entry = moviePosterImagesDraft.find(item => item.entryId === normalizedEntryId);
+  const result = movieEditorController?.getMoviePosterImagesDraftAfterRemove(
+    moviePosterImagesDraft,
+    entryId
+  );
 
-  if (!entry) {
+  if (!result?.changed) {
     return;
   }
 
-  revokeMoviePosterImageDraftObjectUrl(entry);
-  moviePosterImagesDraft = moviePosterImagesDraft.filter(item => item.entryId !== normalizedEntryId);
+  revokeMoviePosterImageDraftObjectUrl(result.removedEntry);
+  moviePosterImagesDraft = result.draftEntries;
   moviePosterImagesDraftDirty = true;
   updatePosterFileUi();
   renderMoviePosterImagesDraftList();
@@ -8514,6 +8452,7 @@ function getMovieEditorControllerContext() {
     areStringArraysEqual,
     normalizeTextArrayField,
     normalizeRuntimeMinutesValue,
+    normalizeMoviePosterImageRows,
     supabaseClient,
     withPendingRequestTimeout,
     throwIfSupabaseError
@@ -10614,7 +10553,14 @@ function resetFormToCreateMode() {
   refreshCustomSelect(releaseMonthInput);
 }
 
-function fillFormForEdit(movie) {
+async function fillFormForEdit(movie) {
+  try {
+    await ensureMovieEditorControllerLoaded();
+  } catch (error) {
+    console.warn('Movie editor controller failed to load before edit form fill:', error);
+    return;
+  }
+
   if (!ensureMovieModalMounted()) {
     return;
   }
@@ -15896,7 +15842,7 @@ async function handleCatalogCardClick(event) {
       const movieForEdit = await getMovieForAdminEdit(movieId, movie);
 
       if (movieForEdit) {
-        fillFormForEdit(movieForEdit);
+        await fillFormForEdit(movieForEdit);
       }
     }
 
@@ -17211,7 +17157,7 @@ function bindMoviePageEvents() {
       return;
     }
 
-    fillFormForEdit(movieForEdit);
+    await fillFormForEdit(movieForEdit);
   });
 
   moviePageDeleteButton?.addEventListener('click', () => {

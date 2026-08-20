@@ -12,6 +12,28 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-20 - Move movie editor poster draft helpers
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved movie poster draft entry creation, preview helpers, object URL cleanup, file entry creation, move/remove operations, and movie-row-to-draft conversion into lazy `movie-editor.js`.
+  - Reduced `app.js` poster editor handling to state assignment, dirty/submitting flags, DOM rendering, and event bridge callbacks.
+  - Made edit-form filling load the movie editor controller before preparing poster draft state.
+  - Documented the UTF-8/mojibake patching fallback that avoided retyping garbled Russian strings from PowerShell output.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles remain about `6.2 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue movie editor cleanup with the remaining manual-similar draft/UI bridge and submit event routing.
+
 ## 2026-08-20 - Move movie editor update submit orchestration
 
 - Files:

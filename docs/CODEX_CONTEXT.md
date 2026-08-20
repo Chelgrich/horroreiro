@@ -17,6 +17,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 ## Local Workflow Traps
 
 - PowerShell output can show UTF-8 Russian text from `app.js`/docs as mojibake even when the files are valid. Do not retype long Russian strings from garbled terminal output; use `node -e "fs.readFileSync(..., 'utf8')"` for exact text checks or move existing source blocks mechanically.
+- If an `apply_patch` fails because copied PowerShell output contains mojibake, retry with small ASCII-anchored hunks or the real UTF-8 Russian text from the source instead of pasting garbled strings.
 - Prefer `apply_patch` for edits. For long diagnostic snippets, keep shell commands small or split them into separate `multi_tool_use.parallel` calls instead of relying on large pasted multiline commands.
 - Paths containing square brackets are globbed by PowerShell. Use `Get-Content -LiteralPath functions\app-assets\[version].js` and quote the path for Node checks, for example `node --check "functions/app-assets/[version].js"`.
 - Do not pass bare `*.js` path globs to `rg` in PowerShell. Use exact files or `rg "pattern" -g "*.js"` to avoid path syntax errors.
@@ -159,7 +160,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `person-placeholders.js` is lazy-loaded only for person/director pages and owns the large SVG placeholder silhouettes.
 
-`movie-editor.js` is lazy-loaded by the shared movie add/edit modal and owns form draft reading, validation, create/update submit orchestration, insert payload building, movie row insert/update writes, create/update relation/manual-similar/poster-gallery write sequencing, update changed-field/relation diffing, poster draft order helpers, poster upload/save result preparation, create/update save-plan decisions, and post-save page/cache synchronization orchestration. `app.js` keeps the modal DOM bridge, submit event routing, poster/manual-similar editor UI state/rendering, low-level relation/manual-similar/gallery write callbacks, and concrete page/cache/render callbacks passed into the editor controller.
+`movie-editor.js` is lazy-loaded by the shared movie add/edit modal and owns form draft reading, validation, create/update submit orchestration, insert payload building, movie row insert/update writes, create/update relation/manual-similar/poster-gallery write sequencing, update changed-field/relation diffing, poster draft entry creation/move/remove/drop helpers, poster upload/save result preparation, create/update save-plan decisions, and post-save page/cache synchronization orchestration. `app.js` keeps the modal DOM bridge, submit event routing, poster/manual-similar editor UI state/rendering, low-level relation/manual-similar/gallery write callbacks, and concrete page/cache/render callbacks passed into the editor controller.
 
 `movie-detail-cache.js` is lazy-loaded only for movie detail pages and owns detail session-cache keys, signatures, entry creation, read/write, expiry, and removal. `app.js` keeps the actual restoration of shared rating/watchlist/review/comment/similar state.
 
