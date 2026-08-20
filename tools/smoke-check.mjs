@@ -622,10 +622,17 @@ async function checkStaticGuards() {
       movieEditorJs.includes('async function handleMovieCreatePostSave(') &&
       movieEditorJs.includes('async function handleMovieUpdatePostSave(') &&
       movieEditorJs.includes('async function submitMovieCreate(') &&
+      movieEditorJs.includes('async function submitMovieUpdate(') &&
       movieEditorJs.includes(".from('movies')") &&
       !appJs.includes('movieEditor.insertMovieRecord(') &&
+      !appJs.includes('movieEditor.updateMovieRecord(') &&
       !appJs.includes('movieEditor.saveMovieCreateRelatedData(') &&
+      !appJs.includes('movieEditor.saveMovieUpdateRelatedData(') &&
       !appJs.includes('movieEditor.handleMovieCreatePostSave(') &&
+      !appJs.includes('movieEditor.handleMovieUpdatePostSave(') &&
+      !appJs.includes('movieEditor.buildMovieChangedFields(') &&
+      !appJs.includes('movieEditor.getMovieUpdateRelationState(') &&
+      !appJs.includes('movieEditor.getMovieUpdateSavePlan(') &&
       !appJs.includes('insert(movieEditor.buildMovieInsertPayload(') &&
       !appJs.includes('.update(changedFields)') &&
       !appJs.includes('replaceMovieRelations(insertedMovie.id') &&

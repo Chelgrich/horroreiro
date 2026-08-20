@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-20 - Move movie editor update submit orchestration
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved the movie update submit flow into lazy `movie-editor.js`, including validation, relation/manual-similar/poster diffing, poster upload resolution, movie row update, related writes, old poster cleanup, and post-save handoff.
+  - Reduced `app.js` update handling to a thin wrapper that locates the current movie and passes state/render/write callbacks into the editor controller.
+  - Tightened smoke guards so update-submit diff/write/post-save helpers do not drift back into `app.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `6.0 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue movie editor cleanup with the remaining modal DOM bridge and editor UI state.
+
 ## 2026-08-20 - Move movie editor create submit orchestration
 
 - Files:

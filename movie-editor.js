@@ -803,6 +803,161 @@ export function createMovieEditorController(context = {}) {
     };
   }
 
+  async function submitMovieUpdate({
+    movieId,
+    existingMovie,
+    manualSimilarMovieIdsDraft = [],
+    moviePosterImagesDraft = [],
+    posterImagesChanged = false,
+    buildClassificationDraft = () => ({}),
+    normalizeManualSimilarMovieIds = values => values,
+    getManualSimilarMovieIds = () => [],
+    getMovieDirectorItems = () => [],
+    getDirectorDisplayName = item => String(item || '').trim(),
+    ensureActiveSessionForWrite = () => ({}),
+    ensureManualSimilarDataLoaded = async () => {},
+    buildUniqueMovieSlug = async () => '',
+    includeRuntimeMinutes = true,
+    includeTmdbUrl = true,
+    setStatus = () => {},
+    setMissingMovieMessage = () => {},
+    replaceMovieRelations = async () => {},
+    replaceMovieDirectors = async () => {},
+    replaceManualSimilarMovies = async () => {},
+    replaceMoviePosterImages = async () => {},
+    deletePosterFileByUrl = async () => {},
+    onDeletePosterError = error => {
+      console.error('Не удалось удалить старый постер:', error);
+    },
+    postSaveOptions = {}
+  } = {}) {
+    setStatus('Сохраняю изменения...');
+
+    const draft = readMovieFormDraft();
+    const validationMessage = validateMovieFormDraft(draft);
+
+    if (validationMessage) {
+      setStatus(validationMessage);
+      return { shouldExit: true, validationFailed: true };
+    }
+
+    if (!existingMovie) {
+      setMissingMovieMessage('Не удалось найти фильм для редактирования.');
+      return { shouldExit: true, missingMovie: true };
+    }
+
+    const oldPosterUrl = existingMovie.poster_url ?? null;
+    const {
+      relationsChanged,
+      directorsChanged
+    } = getMovieUpdateRelationState({
+      draft,
+      existingMovie,
+      getMovieDirectorItems,
+      getDirectorDisplayName
+    });
+
+    ensureActiveSessionForWrite();
+    await ensureManualSimilarDataLoaded();
+
+    const classificationDraft = buildClassificationDraft();
+    const manualSimilarMovieIds = normalizeManualSimilarMovieIds(manualSimilarMovieIdsDraft, movieId);
+    const manualSimilarChanged = !areStringArraysEqual(
+      manualSimilarMovieIds,
+      getManualSimilarMovieIds(movieId)
+    );
+    let additionalPosterEntriesForSave = [];
+    let finalPosterUrl = existingMovie.poster_url ?? null;
+    let finalPosterUrls = new Set([finalPosterUrl].filter(Boolean));
+
+    if (posterImagesChanged) {
+      const posterDraftEntries = getMoviePosterImagesDraftEntriesForSave(moviePosterImagesDraft);
+
+      if (hasPendingMoviePosterDraftUploads(posterDraftEntries)) {
+        setStatus('Загружаю постеры...');
+      }
+
+      const posterImagesForSave = await withPendingRequestTimeout(
+        resolveMoviePosterImagesForSave(posterDraftEntries),
+        30000,
+        'Превышено время ожидания загрузки постеров.'
+      );
+
+      finalPosterUrl = posterImagesForSave.finalPosterUrl;
+      additionalPosterEntriesForSave = posterImagesForSave.additionalPosterEntriesForSave;
+      finalPosterUrls = posterImagesForSave.finalPosterUrls;
+    }
+
+    const changedFields = await buildMovieChangedFields({
+      draft,
+      existingMovie,
+      classificationDraft,
+      finalPosterUrl,
+      editingMovieId: movieId,
+      buildUniqueMovieSlug,
+      includeRuntimeMinutes,
+      includeTmdbUrl
+    });
+    const updateSavePlan = getMovieUpdateSavePlan({
+      changedFields,
+      relationsChanged,
+      directorsChanged,
+      manualSimilarChanged,
+      posterImagesChanged,
+      oldPosterUrl,
+      finalPosterUrls
+    });
+
+    if (updateSavePlan.hasMovieFieldChanges) {
+      setStatus('Сохраняю изменения...');
+
+      await updateMovieRecord({
+        movieId,
+        changedFields,
+        timeoutMessage: 'Превышено время ожидания обновления фильма.'
+      });
+    }
+
+    await saveMovieUpdateRelatedData({
+      movieId,
+      draft,
+      relationsChanged,
+      directorsChanged,
+      manualSimilarChanged,
+      posterImagesChanged,
+      manualSimilarMovieIds,
+      additionalPosterEntriesForSave,
+      finalPosterUrl,
+      setStatus,
+      replaceMovieRelations,
+      replaceMovieDirectors,
+      replaceManualSimilarMovies,
+      replaceMoviePosterImages
+    });
+
+    if (updateSavePlan.shouldDeleteOldPoster) {
+      try {
+        await deletePosterFileByUrl(oldPosterUrl);
+      } catch (deletePosterError) {
+        onDeletePosterError(deletePosterError);
+      }
+    }
+
+    const postSaveResult = await handleMovieUpdatePostSave({
+      movieId,
+      updateSavePlan,
+      setStatus,
+      ...postSaveOptions
+    });
+
+    return {
+      ...postSaveResult,
+      updateSavePlan,
+      validationFailed: false,
+      missingMovie: false
+    };
+  }
+
   return {
     readMovieFormDraft,
     validateMovieFormDraft,
@@ -823,6 +978,7 @@ export function createMovieEditorController(context = {}) {
     saveMovieUpdateRelatedData,
     handleMovieCreatePostSave,
     handleMovieUpdatePostSave,
-    submitMovieCreate
+    submitMovieCreate,
+    submitMovieUpdate
   };
 }
