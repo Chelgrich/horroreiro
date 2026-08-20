@@ -239,6 +239,118 @@ export function createMovieEditorController(context = {}) {
     return String(entry?.objectUrl || entry?.imageUrl || '').trim();
   }
 
+  function getMoviePosterImagesDraftListHtml({
+    draftEntries = [],
+    isTableAvailable = true,
+    draggedEntryId = '',
+    isSubmitting = false,
+    escapeHtml = value => String(value ?? '')
+  } = {}) {
+    if (!isTableAvailable) {
+      return `
+        <div class="movie-poster-images-empty">
+          Галерея недоступна: серверный контур галереи пока не подключён.
+        </div>
+      `;
+    }
+
+    const entries = Array.isArray(draftEntries) ? draftEntries : [];
+
+    if (entries.length === 0) {
+      return `
+        <div class="movie-poster-images-empty">
+          Постеры не выбраны.
+        </div>
+      `;
+    }
+
+    return entries.map((entry, index) => {
+      const entryId = String(entry?.entryId || '');
+      const previewUrl = getMoviePosterImageDraftPreviewUrl(entry);
+      const isFirst = index === 0;
+      const isLast = index === entries.length - 1;
+      const isDragging = draggedEntryId === entryId;
+      const title = entry?.label || `Изображение ${index + 1}`;
+      const roleLabel = index === 0
+        ? 'Основной постер'
+        : `Дополнительный постер #${index + 1}`;
+      const status = entry?.type === 'pending'
+        ? 'Будет загружено после сохранения'
+        : 'Сохранено';
+      const disabledAttribute = isSubmitting ? 'disabled' : '';
+
+      return `
+        <div
+          class="movie-poster-images-item${isDragging ? ' is-dragging' : ''}"
+          data-movie-poster-image-entry="${escapeHtml(entryId)}"
+          draggable="${isSubmitting ? 'false' : 'true'}"
+        >
+          <button
+            type="button"
+            class="movie-poster-images-drag-handle"
+            aria-label="Перетащить изображение ${index + 1}"
+            title="Перетащить"
+            ${disabledAttribute}
+          >
+            ≡
+          </button>
+
+          <div class="movie-poster-images-preview">
+            ${
+              previewUrl
+                ? `<img src="${escapeHtml(previewUrl)}" alt="" loading="lazy" decoding="async">`
+                : ''
+            }
+          </div>
+
+          <div class="movie-poster-images-main">
+            <div class="movie-poster-images-title">
+              ${escapeHtml(title)}
+            </div>
+            <div class="movie-poster-images-meta">
+              ${escapeHtml(roleLabel)} · ${escapeHtml(status)}
+            </div>
+          </div>
+
+          <div class="movie-poster-images-actions">
+            <button
+              type="button"
+              class="movie-poster-images-icon-button"
+              data-movie-poster-image-move="${escapeHtml(entryId)}"
+              data-movie-poster-image-direction="-1"
+              aria-label="Поднять изображение выше"
+              title="Поднять выше"
+              ${isFirst || isSubmitting ? 'disabled' : ''}
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              class="movie-poster-images-icon-button"
+              data-movie-poster-image-move="${escapeHtml(entryId)}"
+              data-movie-poster-image-direction="1"
+              aria-label="Опустить изображение ниже"
+              title="Опустить ниже"
+              ${isLast || isSubmitting ? 'disabled' : ''}
+            >
+              ↓
+            </button>
+            <button
+              type="button"
+              class="movie-poster-images-icon-button movie-poster-images-remove-button"
+              data-movie-poster-image-remove="${escapeHtml(entryId)}"
+              aria-label="Удалить изображение из галереи"
+              title="Удалить"
+              ${disabledAttribute}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
   function revokeMoviePosterImageDraftObjectUrl(entry) {
     if (entry?.objectUrl) {
       URL.revokeObjectURL(entry.objectUrl);
@@ -1288,6 +1400,7 @@ export function createMovieEditorController(context = {}) {
     createMoviePosterImageDraftEntriesFromMovie,
     createMoviePosterImageDraftEntriesFromFiles,
     getMoviePosterImageDraftPreviewUrl,
+    getMoviePosterImagesDraftListHtml,
     revokeMoviePosterImageDraftObjectUrl,
     revokeMoviePosterImageDraftObjectUrls,
     getMoviePosterImagesDraftAfterMove,

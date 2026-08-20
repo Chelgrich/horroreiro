@@ -656,15 +656,19 @@ async function checkStaticGuards() {
   );
   assert(
     movieEditorJs.includes('function getMoviePosterImagesDraftAfterDrop(') &&
+      movieEditorJs.includes('function getMoviePosterImagesDraftListHtml(') &&
       movieEditorJs.includes('function resolveMoviePosterImageDraftEntries(') &&
       movieEditorJs.includes('function resolveMoviePosterImagesForSave(') &&
       movieEditorJs.includes('function getMovieCreateSavePlan(') &&
       movieEditorJs.includes('function splitMoviePosterImageEntriesForSave(') &&
+      appJs.includes('movieEditorController?.getMoviePosterImagesDraftListHtml({') &&
       !appJs.includes('function getMoviePosterImagesDraftAfterDrop(') &&
+      !appJs.includes('function getMoviePosterImageDraftPreviewUrl(') &&
+      !appJs.includes('class="movie-poster-images-item') &&
       !appJs.includes('function resolveMoviePosterImageDraftEntries(') &&
       !appJs.includes('function resolveMoviePosterImagesForSave(') &&
       !appJs.includes('function splitMoviePosterImageEntriesForSave('),
-    'movie-editor.js: movie poster draft order/resolve/save helpers must stay outside app.js'
+    'movie-editor.js: movie poster draft order/render/resolve/save helpers must stay outside app.js'
   );
   assert(
     movieEditorJs.includes('function getManualSimilarDraftAfterSet(') &&

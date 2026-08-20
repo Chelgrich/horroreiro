@@ -3671,11 +3671,6 @@ function getMovieDisplayPosterGalleryImages(movie) {
     });
 }
 
-function getMoviePosterImageDraftPreviewUrl(entry) {
-  return movieEditorController?.getMoviePosterImageDraftPreviewUrl(entry) ||
-    String(entry?.objectUrl || entry?.imageUrl || '').trim();
-}
-
 function revokeMoviePosterImageDraftObjectUrl(entry) {
   if (movieEditorController) {
     movieEditorController.revokeMoviePosterImageDraftObjectUrl(entry);
@@ -3719,107 +3714,13 @@ function renderMoviePosterImagesDraftList() {
     return;
   }
 
-  if (!moviePosterImagesTableAvailable) {
-    moviePosterImagesList.innerHTML = `
-      <div class="movie-poster-images-empty">
-        Галерея недоступна: серверный контур галереи пока не подключён.
-      </div>
-    `;
-    return;
-  }
-
-  if (moviePosterImagesDraft.length === 0) {
-    moviePosterImagesList.innerHTML = `
-      <div class="movie-poster-images-empty">
-        Постеры не выбраны.
-      </div>
-    `;
-    return;
-  }
-
-  moviePosterImagesList.innerHTML = moviePosterImagesDraft.map((entry, index) => {
-    const previewUrl = getMoviePosterImageDraftPreviewUrl(entry);
-    const isFirst = index === 0;
-    const isLast = index === moviePosterImagesDraft.length - 1;
-    const isDragging = moviePosterImagesDraftDraggedEntryId === entry.entryId;
-    const title = entry.label || `Изображение ${index + 1}`;
-    const roleLabel = index === 0
-      ? 'Основной постер'
-      : `Дополнительный постер #${index + 1}`;
-    const status = entry.type === 'pending'
-      ? 'Будет загружено после сохранения'
-      : 'Сохранено';
-
-    return `
-      <div
-        class="movie-poster-images-item${isDragging ? ' is-dragging' : ''}"
-        data-movie-poster-image-entry="${escapeHtml(entry.entryId)}"
-        draggable="${isMovieFormSubmitting ? 'false' : 'true'}"
-      >
-        <button
-          type="button"
-          class="movie-poster-images-drag-handle"
-          aria-label="Перетащить изображение ${index + 1}"
-          title="Перетащить"
-          ${isMovieFormSubmitting ? 'disabled' : ''}
-        >
-          ≡
-        </button>
-
-        <div class="movie-poster-images-preview">
-          ${
-            previewUrl
-              ? `<img src="${escapeHtml(previewUrl)}" alt="" loading="lazy" decoding="async">`
-              : ''
-          }
-        </div>
-
-        <div class="movie-poster-images-main">
-          <div class="movie-poster-images-title">
-            ${escapeHtml(title)}
-          </div>
-          <div class="movie-poster-images-meta">
-            ${escapeHtml(roleLabel)} · ${escapeHtml(status)}
-          </div>
-        </div>
-
-        <div class="movie-poster-images-actions">
-          <button
-            type="button"
-            class="movie-poster-images-icon-button"
-            data-movie-poster-image-move="${escapeHtml(entry.entryId)}"
-            data-movie-poster-image-direction="-1"
-            aria-label="Поднять изображение выше"
-            title="Поднять выше"
-            ${isFirst || isMovieFormSubmitting ? 'disabled' : ''}
-          >
-            ↑
-          </button>
-          <button
-            type="button"
-            class="movie-poster-images-icon-button"
-            data-movie-poster-image-move="${escapeHtml(entry.entryId)}"
-            data-movie-poster-image-direction="1"
-            aria-label="Опустить изображение ниже"
-            title="Опустить ниже"
-            ${isLast || isMovieFormSubmitting ? 'disabled' : ''}
-          >
-            ↓
-          </button>
-          <button
-            type="button"
-            class="movie-poster-images-icon-button movie-poster-images-remove-button"
-            data-movie-poster-image-remove="${escapeHtml(entry.entryId)}"
-            aria-label="Удалить изображение из галереи"
-            title="Удалить"
-            ${isMovieFormSubmitting ? 'disabled' : ''}
-          >
-            ×
-          </button>
-        </div>
-      </div>
-    `;
-  }).join('');
+  moviePosterImagesList.innerHTML = movieEditorController?.getMoviePosterImagesDraftListHtml({
+    draftEntries: moviePosterImagesDraft,
+    isTableAvailable: moviePosterImagesTableAvailable,
+    draggedEntryId: moviePosterImagesDraftDraggedEntryId,
+    isSubmitting: isMovieFormSubmitting,
+    escapeHtml
+  }) || '';
 }
 
 function addMoviePosterImageDraftFiles(files = []) {

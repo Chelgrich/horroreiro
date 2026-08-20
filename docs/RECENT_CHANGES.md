@@ -12,6 +12,30 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-20 - Move movie editor poster draft list renderer
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved the movie-modal poster draft list HTML renderer into lazy `movie-editor.js`.
+  - Reduced `app.js` poster draft rendering to a thin DOM assignment that passes current draft/submitting/drag state into the editor controller.
+  - Removed the now-unused poster preview wrapper from `app.js` and added a smoke guard for the poster draft renderer boundary.
+  - Documented the PowerShell `rg` quoting trap for patterns containing literal quotes or `|` alternatives.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `6.6 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue movie editor cleanup by moving the remaining poster/manual-similar event bridge or form fill/reset UI state where it can be isolated safely.
+
 ## 2026-08-20 - Move movie editor submit event wrapper
 
 - Files:

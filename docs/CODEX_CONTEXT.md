@@ -21,6 +21,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 - Prefer `apply_patch` for edits. For long diagnostic snippets, keep shell commands small or split them into separate `multi_tool_use.parallel` calls instead of relying on large pasted multiline commands.
 - Paths containing square brackets are globbed by PowerShell. Use `Get-Content -LiteralPath functions\app-assets\[version].js` and quote the path for Node checks, for example `node --check "functions/app-assets/[version].js"`.
 - Do not pass bare `*.js` path globs to `rg` in PowerShell. Use exact files or `rg "pattern" -g "*.js"` to avoid path syntax errors.
+- When an `rg` pattern contains literal quotes or several `|` alternatives in PowerShell, prefer simple separate `rg` calls or a single-quoted pattern without backslash-escaped quotes. PowerShell does not treat `\"` as a string escape, so complex double-quoted regex commands can split into broken pipeline fragments.
 - Do not chain PowerShell commands with `&&`; this shell can reject it as an invalid statement separator. Run `git add`, `git commit`, and similar steps as separate tool calls.
 - When a browser-console command is needed for the user, prefer a compact single-line IIFE or clear snippet instructions; if clipboard/browser focus blocks access, switch to a textarea/manual-paste path instead of retrying the same command.
 
@@ -160,7 +161,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `person-placeholders.js` is lazy-loaded only for person/director pages and owns the large SVG placeholder silhouettes.
 
-`movie-editor.js` is lazy-loaded by the shared movie add/edit modal and owns form draft reading, validation, submit event guard/error wrapping, create/update submit orchestration, insert payload building, movie row insert/update writes, create/update relation/manual-similar/poster-gallery write sequencing, update changed-field/relation diffing, manual-similar draft add/remove/select/render helpers, poster draft entry creation/move/remove/drop helpers, poster upload/save result preparation, create/update save-plan decisions, and post-save page/cache synchronization orchestration. `app.js` keeps the modal DOM bridge, native submit prevention/editor-controller loading, poster/manual-similar editor state assignment, low-level relation/manual-similar/gallery write callbacks, and concrete page/cache/render callbacks passed into the editor controller.
+`movie-editor.js` is lazy-loaded by the shared movie add/edit modal and owns form draft reading, validation, submit event guard/error wrapping, create/update submit orchestration, insert payload building, movie row insert/update writes, create/update relation/manual-similar/poster-gallery write sequencing, update changed-field/relation diffing, manual-similar draft add/remove/select/render helpers, poster draft entry creation/move/remove/drop helpers, poster draft list HTML rendering, poster upload/save result preparation, create/update save-plan decisions, and post-save page/cache synchronization orchestration. `app.js` keeps the modal DOM bridge, native submit prevention/editor-controller loading, poster/manual-similar editor state assignment, low-level relation/manual-similar/gallery write callbacks, and concrete page/cache/render callbacks passed into the editor controller.
 
 `movie-detail-cache.js` is lazy-loaded only for movie detail pages and owns detail session-cache keys, signatures, entry creation, read/write, expiry, and removal. `app.js` keeps the actual restoration of shared rating/watchlist/review/comment/similar state.
 
@@ -188,7 +189,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 Work through this backlog one contour per pass unless the user explicitly changes the order:
 
 1. Movie detail orchestration: completed; keep route/load/init/similar/social/interactions/shell/user-state orchestration in lazy modules. `app.js` should remain a data/state bridge here, with only small maintenance cleanup expected.
-2. Movie editor: in progress; continue moving the remaining modal DOM bridge and editor UI state out of `app.js` after the helper/relation/poster-save-plan/movie-row/related-write/post-save/create-update-submit/submit-event split.
+2. Movie editor: in progress; continue moving the remaining modal DOM bridge and editor UI state out of `app.js` after the helper/relation/poster-render/poster-save-plan/movie-row/related-write/post-save/create-update-submit/submit-event split.
 3. Supabase payload/select audit: review catalog, profile rails/taste, notifications, person/director payload, and movie detail RPC fallback so each page fetches only fields it actually needs.
 4. Catalog module split: move filters, presets, URL params, pagination, card rendering, and catalog return-state cache out of `app.js` after detail/editor boundaries are steadier.
 5. Shared profile/auth helpers: extract reusable profile helpers, avatar/settings actions, follow actions, and poster preference helpers into a shared profile module.
