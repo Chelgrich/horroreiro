@@ -3773,85 +3773,61 @@ function removeMoviePosterImageDraftEntry(entryId) {
 }
 
 function handleMoviePosterImagesDraftClick(event) {
-  const removeButton = event.target.closest('[data-movie-poster-image-remove]');
-  const moveButton = event.target.closest('[data-movie-poster-image-move]');
+  const action = movieEditorController?.getMoviePosterImagesDraftClickAction(event);
 
-  if (removeButton) {
-    removeMoviePosterImageDraftEntry(removeButton.dataset.moviePosterImageRemove);
+  if (action?.type === 'remove') {
+    removeMoviePosterImageDraftEntry(action.entryId);
     return;
   }
 
-  if (moveButton) {
-    moveMoviePosterImageDraftEntry(
-      moveButton.dataset.moviePosterImageMove,
-      Number(moveButton.dataset.moviePosterImageDirection || 0)
-    );
+  if (action?.type === 'move') {
+    moveMoviePosterImageDraftEntry(action.entryId, action.direction);
   }
 }
 
 function handleMoviePosterImagesDraftDragStart(event) {
-  const item = event.target.closest('[data-movie-poster-image-entry]');
+  const result = movieEditorController?.handleMoviePosterImagesDraftDragStartEvent(
+    event,
+    { isSubmitting: isMovieFormSubmitting }
+  );
 
-  if (!item || isMovieFormSubmitting) {
-    event.preventDefault();
-    return;
+  if (result?.started) {
+    moviePosterImagesDraftDraggedEntryId = result.draggedEntryId;
   }
-
-  moviePosterImagesDraftDraggedEntryId = item.dataset.moviePosterImageEntry;
-  event.dataTransfer.effectAllowed = 'move';
-  event.dataTransfer.setData('text/plain', moviePosterImagesDraftDraggedEntryId);
-  item.classList.add('is-dragging');
 }
 
 function handleMoviePosterImagesDraftDragEnd(event) {
-  event.target
-    .closest('[data-movie-poster-image-entry]')
-    ?.classList.remove('is-dragging');
-  moviePosterImagesDraftDraggedEntryId = null;
+  const result = movieEditorController?.handleMoviePosterImagesDraftDragEndEvent(event);
+  moviePosterImagesDraftDraggedEntryId = result?.draggedEntryId ?? null;
 }
 
 function handleMoviePosterImagesDraftDragOver(event) {
-  if (!moviePosterImagesDraftDraggedEntryId) {
-    return;
-  }
-
-  const item = event.target.closest('[data-movie-poster-image-entry]');
-
-  if (!item) {
-    return;
-  }
-
-  event.preventDefault();
-  event.dataTransfer.dropEffect = 'move';
+  movieEditorController?.handleMoviePosterImagesDraftDragOverEvent(
+    event,
+    { draggedEntryId: moviePosterImagesDraftDraggedEntryId }
+  );
 }
 
 function handleMoviePosterImagesDraftDrop(event) {
-  const targetItem = event.target.closest('[data-movie-poster-image-entry]');
-  const sourceEntryId = moviePosterImagesDraftDraggedEntryId ||
-    event.dataTransfer.getData('text/plain');
-  const targetEntryId = targetItem?.dataset.moviePosterImageEntry;
-
-  if (!sourceEntryId || !targetEntryId || sourceEntryId === targetEntryId) {
-    return;
-  }
-
   if (!movieEditorController) {
     return;
   }
 
-  event.preventDefault();
-
-  const targetRect = targetItem.getBoundingClientRect();
-  const shouldPlaceAfter = event.clientY > targetRect.top + (targetRect.height / 2);
-
-  moviePosterImagesDraft = movieEditorController.getMoviePosterImagesDraftAfterDrop(
-    moviePosterImagesDraft,
-    sourceEntryId,
-    targetEntryId,
-    shouldPlaceAfter
+  const result = movieEditorController.getMoviePosterImagesDraftDropResult(
+    event,
+    {
+      draftEntries: moviePosterImagesDraft,
+      draggedEntryId: moviePosterImagesDraftDraggedEntryId
+    }
   );
+
+  if (!result?.changed) {
+    return;
+  }
+
+  moviePosterImagesDraft = result.draftEntries;
   moviePosterImagesDraftDirty = true;
-  moviePosterImagesDraftDraggedEntryId = null;
+  moviePosterImagesDraftDraggedEntryId = result.draggedEntryId;
   renderMoviePosterImagesDraftList();
 }
 

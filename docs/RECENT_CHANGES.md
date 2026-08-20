@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-20 - Move movie editor poster event helpers
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved movie-modal poster draft click, drag-start, drag-end, drag-over, and drop DOM event mechanics into lazy `movie-editor.js`.
+  - Kept `app.js` responsible for applying returned draft/drag state, dirty flags, object URL cleanup, and rerendering.
+  - Added smoke guards so poster-specific DOM selector and dataTransfer logic do not drift back into `app.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `6.8 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue movie editor cleanup with the remaining form fill/reset UI state and the thin modal DOM bridge.
+
 ## 2026-08-20 - Move movie editor poster draft list renderer
 
 - Files:

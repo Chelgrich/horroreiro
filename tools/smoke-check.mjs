@@ -657,14 +657,21 @@ async function checkStaticGuards() {
   assert(
     movieEditorJs.includes('function getMoviePosterImagesDraftAfterDrop(') &&
       movieEditorJs.includes('function getMoviePosterImagesDraftListHtml(') &&
+      movieEditorJs.includes('function getMoviePosterImagesDraftClickAction(') &&
+      movieEditorJs.includes('function handleMoviePosterImagesDraftDragStartEvent(') &&
+      movieEditorJs.includes('function getMoviePosterImagesDraftDropResult(') &&
       movieEditorJs.includes('function resolveMoviePosterImageDraftEntries(') &&
       movieEditorJs.includes('function resolveMoviePosterImagesForSave(') &&
       movieEditorJs.includes('function getMovieCreateSavePlan(') &&
       movieEditorJs.includes('function splitMoviePosterImageEntriesForSave(') &&
       appJs.includes('movieEditorController?.getMoviePosterImagesDraftListHtml({') &&
+      appJs.includes('movieEditorController?.getMoviePosterImagesDraftClickAction(event)') &&
       !appJs.includes('function getMoviePosterImagesDraftAfterDrop(') &&
       !appJs.includes('function getMoviePosterImageDraftPreviewUrl(') &&
       !appJs.includes('class="movie-poster-images-item') &&
+      !appJs.includes("event.target.closest('[data-movie-poster-image-entry]") &&
+      !appJs.includes("event.dataTransfer.setData('text/plain'") &&
+      !appJs.includes('targetItem.getBoundingClientRect()') &&
       !appJs.includes('function resolveMoviePosterImageDraftEntries(') &&
       !appJs.includes('function resolveMoviePosterImagesForSave(') &&
       !appJs.includes('function splitMoviePosterImageEntriesForSave('),
