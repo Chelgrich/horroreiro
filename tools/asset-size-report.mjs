@@ -14,6 +14,7 @@ const assetGroups = {
     'app-page-runtime.js',
     'app.js',
     'admin-actions.js',
+    'catalog-pagination.js',
     'director-page.js',
     'editor-page.js',
     'following-page.js',

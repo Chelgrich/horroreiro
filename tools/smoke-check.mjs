@@ -18,6 +18,7 @@ const clientJsFiles = [
 ];
 const lazyJsFiles = [
   'admin-actions.js',
+  'catalog-pagination.js',
   'director-page.js',
   'editor-page.js',
   'following-page.js',
@@ -54,6 +55,7 @@ const contextSensitiveExactFiles = new Set([
   'app-script-loader.js',
   'app.js',
   'boot-loader.js',
+  'catalog-pagination.js',
   'custom-select.js',
   'docs/CODEX_CONTEXT.md',
   'docs/DATA_MODEL.md',
@@ -170,6 +172,10 @@ function checkAssetSizeReport() {
   assert(
     !report.startup?.movie?.files?.includes('custom-select.js'),
     'asset-size-report.mjs: movie startup profile must lazy-load custom-select.js'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('catalog-pagination.js')),
+    'asset-size-report.mjs: catalog-pagination.js must stay lazy-loaded outside startup profiles'
   );
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('director-page.js')),
@@ -445,6 +451,7 @@ async function checkStaticGuards() {
 
   [
     '/app.js',
+    '/catalog-pagination.js',
     '/custom-select.js',
     '/director-form.css',
     '/director-page.js',
@@ -494,6 +501,7 @@ async function checkStaticGuards() {
     'directors.html',
     'app.js',
     'admin-actions.js',
+    'catalog-pagination.js',
     'director-form.css',
     'director-page.js',
     'director-page.css',
@@ -525,6 +533,7 @@ async function checkStaticGuards() {
   ];
 
   const appJs = await readText('app.js');
+  const catalogPaginationJs = await readText('catalog-pagination.js');
   const movieEditorJs = await readText('movie-editor.js');
   const movieDetailCacheJs = await readText('movie-detail-cache.js');
   const directorPageJs = await readText('director-page.js');
@@ -856,6 +865,12 @@ async function checkStaticGuards() {
     !appJs.includes('function renderUserPageLoading()') &&
       userPageJs.includes('function renderUserPageLoading()'),
     'app.js: user page renderer should stay in user-page.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('catalog-pagination.js'))") &&
+      !appJs.includes('function getCatalogPaginationPageItems(') &&
+      catalogPaginationJs.includes('function getCatalogPaginationPageItems('),
+    'app.js: catalog pagination page item algorithm should stay in catalog-pagination.js'
   );
   assert(
     !appJs.includes('getFollowingPageAvatarHtml('),

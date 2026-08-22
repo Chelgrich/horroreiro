@@ -5,6 +5,7 @@ const ALLOWED_APP_ASSETS = new Set([
   'app-page-runtime.js',
   'admin-actions.js',
   'assets/directors-admin-app.js',
+  'catalog-pagination.js',
   'custom-select.js',
   'director-page.js',
   'director-form.css',

@@ -635,6 +635,8 @@ let directorsAdminFrameworkAppPromise = null;
 let directorsAdminFrameworkApp = null;
 let moviePageSimilarControllerPromise = null;
 let moviePageSimilarController = null;
+let catalogPaginationToolsPromise = null;
+let catalogPaginationTools = null;
 let directorModal = null;
 let directorForm = null;
 let directorModalTitle = null;
@@ -8183,6 +8185,31 @@ function loadLetterboxdImportTools() {
   return letterboxdImportToolsPromise;
 }
 
+function loadCatalogPaginationTools() {
+  if (!catalogPaginationToolsPromise) {
+    catalogPaginationToolsPromise = import(getLazyFeatureModuleUrl('catalog-pagination.js'))
+      .then(module => {
+        catalogPaginationTools = module;
+        return catalogPaginationTools;
+      })
+      .catch(error => {
+        catalogPaginationToolsPromise = null;
+        catalogPaginationTools = null;
+        throw error;
+      });
+  }
+
+  return catalogPaginationToolsPromise;
+}
+
+function getCatalogPaginationTools() {
+  if (!catalogPaginationTools) {
+    throw new Error('Catalog pagination module is not loaded.');
+  }
+
+  return catalogPaginationTools;
+}
+
 function loadCustomSelectScript() {
   if (typeof createCustomSelectManager === 'function') {
     return Promise.resolve();
@@ -14199,144 +14226,41 @@ function getCatalogPaginationContainers() {
 }
 
 function getCatalogPaginationState(totalItems) {
-  const normalizedTotalItems = Math.max(0, Number(totalItems) || 0);
-  const totalPages = Math.max(1, Math.ceil(normalizedTotalItems / CATALOG_PAGE_SIZE));
-  const requestedPage = Math.max(1, Number(currentCatalogPage) || 1);
-  const clampedPage = Math.min(requestedPage, totalPages);
-  const startIndex = normalizedTotalItems > 0
-    ? (clampedPage - 1) * CATALOG_PAGE_SIZE
-    : 0;
-  const endIndex = Math.min(startIndex + CATALOG_PAGE_SIZE, normalizedTotalItems);
+  const paginationState = getCatalogPaginationTools().getCatalogPaginationState({
+    totalItems,
+    currentPage: currentCatalogPage,
+    pageSize: CATALOG_PAGE_SIZE
+  });
 
-  currentCatalogPage = clampedPage;
+  currentCatalogPage = paginationState.currentPage;
 
-  if (clampedPage !== requestedPage) {
+  if (paginationState.currentPage !== paginationState.requestedPage) {
     saveCatalogState();
   }
 
-  return {
-    totalItems: normalizedTotalItems,
-    totalPages,
-    currentPage: clampedPage,
-    startIndex,
-    endIndex,
-    startItemNumber: normalizedTotalItems > 0 ? startIndex + 1 : 0,
-    endItemNumber: endIndex,
-    hasMultiplePages: totalPages > 1
-  };
+  return paginationState;
 }
 
 function getCatalogPaginationSlots() {
-  return typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 360px)').matches
-    ? CATALOG_PAGINATION_COMPACT_PAGE_SLOTS
-    : CATALOG_PAGINATION_PAGE_SLOTS;
-}
+  const matchMedia = window.matchMedia?.bind(window);
 
-function getCatalogPaginationPageItems(currentPage, totalPages, maxSlots = getCatalogPaginationSlots()) {
-  if (totalPages <= maxSlots) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  if (!catalogPaginationTools) {
+    return typeof matchMedia === 'function' && matchMedia('(max-width: 360px)').matches
+      ? CATALOG_PAGINATION_COMPACT_PAGE_SLOTS
+      : CATALOG_PAGINATION_PAGE_SLOTS;
   }
 
-  const edgeWindowSize = maxSlots <= 4 ? 3 : 4;
-  const pages = new Set([1, totalPages, currentPage]);
-  const neighborStart = Math.max(1, currentPage - 1);
-  const neighborEnd = Math.min(totalPages, currentPage + 1);
-
-  for (let page = neighborStart; page <= neighborEnd; page += 1) {
-    pages.add(page);
-  }
-
-  if (currentPage <= edgeWindowSize - 1) {
-    for (let page = 1; page <= Math.min(totalPages, edgeWindowSize); page += 1) {
-      pages.add(page);
-    }
-  }
-
-  if (currentPage >= totalPages - edgeWindowSize + 2) {
-    for (let page = Math.max(1, totalPages - edgeWindowSize + 1); page <= totalPages; page += 1) {
-      pages.add(page);
-    }
-  }
-
-  return Array.from(pages)
-    .sort((firstPage, secondPage) => firstPage - secondPage)
-    .reduce((items, page, index, sortedPages) => {
-      const previousPage = sortedPages[index - 1];
-
-      if (previousPage && page - previousPage > 1) {
-        items.push(`ellipsis-${previousPage}-${page}`);
-      }
-
-      items.push(page);
-
-      return items;
-    }, []);
-}
-
-function getCatalogPaginationButtonHtml({ label, targetPage, isDisabled = false, extraClassName = '', ariaLabel = '' }) {
-  const disabledAttribute = isDisabled ? ' disabled aria-disabled="true"' : '';
-  const ariaLabelAttribute = ariaLabel ? ` aria-label="${escapeHtml(ariaLabel)}"` : '';
-
-  return `
-    <button
-      type="button"
-      class="catalog-pagination-button ${extraClassName}"
-      data-catalog-page="${targetPage}"
-      ${ariaLabelAttribute}
-      ${disabledAttribute}
-    >${escapeHtml(label)}</button>
-  `;
+  return getCatalogPaginationTools().getCatalogPaginationSlots({
+    matchMedia,
+    defaultSlots: CATALOG_PAGINATION_PAGE_SLOTS,
+    compactSlots: CATALOG_PAGINATION_COMPACT_PAGE_SLOTS
+  });
 }
 
 function getCatalogPaginationHtml(paginationState) {
-  const {
-    currentPage,
-    totalPages
-  } = paginationState;
-  const pageItems = getCatalogPaginationPageItems(currentPage, totalPages);
-  const isFirstPage = currentPage === 1;
-  const isLastPage = currentPage === totalPages;
-  const pageButtonsHtml = pageItems.map(item => {
-    if (typeof item === 'string') {
-      return '<span class="catalog-pagination-ellipsis" aria-hidden="true">…</span>';
-    }
-
-    const isCurrentPage = item === currentPage;
-    const currentAttribute = isCurrentPage ? ' aria-current="page"' : '';
-    const activeClassName = isCurrentPage ? ' is-active' : '';
-
-    return `
-      <button
-        type="button"
-        class="catalog-pagination-button catalog-pagination-page${activeClassName}"
-        data-catalog-page="${item}"
-        aria-label="Страница ${item}"
-        ${currentAttribute}
-      >${item}</button>
-    `;
-  }).join('');
-
-  return `
-    <div class="catalog-pagination-controls" role="group" aria-label="Навигация по страницам каталога">
-      ${getCatalogPaginationButtonHtml({
-        label: '<',
-        targetPage: Math.max(1, currentPage - 1),
-        isDisabled: isFirstPage,
-        extraClassName: 'catalog-pagination-arrow',
-        ariaLabel: 'Перейти на предыдущую страницу каталога'
-      })}
-      <div class="catalog-pagination-pages" role="group" aria-label="Страницы каталога">
-        ${pageButtonsHtml}
-      </div>
-      ${getCatalogPaginationButtonHtml({
-        label: '>',
-        targetPage: Math.min(totalPages, currentPage + 1),
-        isDisabled: isLastPage,
-        extraClassName: 'catalog-pagination-arrow',
-        ariaLabel: 'Перейти на следующую страницу каталога'
-      })}
-    </div>
-  `;
+  return getCatalogPaginationTools().getCatalogPaginationHtml(paginationState, {
+    maxSlots: getCatalogPaginationSlots()
+  });
 }
 
 function renderCatalogPagination(paginationState) {
@@ -14357,11 +14281,7 @@ function clearCatalogPagination() {
 }
 
 function getMoviesResultCountText(totalItems, paginationState) {
-  if (!paginationState?.hasMultiplePages) {
-    return `Найдено: ${totalItems}`;
-  }
-
-  return `Найдено: ${totalItems} · показано ${paginationState.startItemNumber}–${paginationState.endItemNumber}`;
+  return getCatalogPaginationTools().getMoviesResultCountText(totalItems, paginationState);
 }
 
 function hideMoviesResultCount() {
@@ -17227,7 +17147,9 @@ function canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot, { 
 
 async function initCatalogPage() {
   initCatalogViewToggleButton();
+  const paginationToolsReady = loadCatalogPaginationTools();
   renderMoviesSkeleton();
+  await paginationToolsReady;
 
   const routePresetKey = getCatalogRoutePresetKey();
   const restoreSessionPromise = restoreSession();

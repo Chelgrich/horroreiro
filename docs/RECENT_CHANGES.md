@@ -12,6 +12,36 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Extract catalog pagination module
+
+- Files:
+  - `app.js`
+  - `catalog-pagination.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Started the catalog module split backlog item.
+  - Added lazy `catalog-pagination.js` for pagination math, page-slot/ellipsis calculation, pagination controls HTML, and result-count text.
+  - Kept `app.js` responsible for current page state, pagination DOM containers, events, and catalog render scheduling.
+  - Registered the new lazy asset in `/app-assets`, `_headers`, smoke checks, and size reporting.
+- Checks:
+  - `node --check app.js`
+  - `node --check catalog-pagination.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node tools\smoke-check.mjs`
+  - `node -e "import('./catalog-pagination.js').then(...)"`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `7.6 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue catalog module split with filters, presets, URL params, card rendering, or return-state cache.
+
 ## 2026-08-22 - Split Letterboxd import match payload
 
 - Files:
