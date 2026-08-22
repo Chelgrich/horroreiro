@@ -1,6 +1,9 @@
 /app.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/catalog-cards.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /catalog-filters.js
   Cache-Control: public, max-age=0, must-revalidate
 

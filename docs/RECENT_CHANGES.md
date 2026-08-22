@@ -12,6 +12,37 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Extract catalog cards module
+
+- Files:
+  - `app.js`
+  - `catalog-cards.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Continued the catalog module split backlog item.
+  - Added lazy `catalog-cards.js` for catalog movie card DOM/HTML rendering: rating summary, current-user rating controls, poster/watchlist/watched overlay HTML, highlighted title/meta fields, profile-rating badges, and admin card action buttons.
+  - Kept `app.js` responsible for catalog state, skeleton/empty-state rendering, external-link precomputed metadata, poster transform helpers, event handlers, and DOM replacement bridges.
+  - Loaded the card controller on catalog pages and person/director pages, because director filmographies reuse catalog cards.
+  - Registered the new lazy asset in `/app-assets`, `_headers`, smoke checks, and size reporting.
+- Checks:
+  - `node --check app.js`
+  - `node --check catalog-cards.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node -e "import('./catalog-cards.js').then(...)"`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `10.1 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue with smaller catalog render bridges or shared profile/auth helpers.
+
 ## 2026-08-22 - Extract catalog return cache module
 
 - Files:

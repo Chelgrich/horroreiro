@@ -146,6 +146,8 @@ Profile ranking note:
 
 `letterboxd-import.js` is lazy-loaded only when importing Letterboxd ratings.
 
+`catalog-cards.js` is lazy-loaded on catalog pages and person/director pages. It owns catalog movie card DOM/HTML rendering: rating summary, current-user rating controls, poster/watchlist/watched overlay HTML, highlighted title/meta fields, profile-rating badges, and admin card action buttons. `app.js` keeps catalog data/state, skeleton/empty-state rendering, external-link precomputed metadata, poster image transform helpers, event handlers, and card rerender/DOM replacement bridges.
+
 `catalog-pagination.js` is lazy-loaded only on catalog pages and owns catalog pagination math, page item slot/ellipsis calculation, pagination controls HTML, and result-count text. `app.js` keeps current page state, DOM containers, events, and render scheduling.
 
 `catalog-url-state.js` is lazy-loaded only on catalog pages and owns catalog URL param parsing/building, value aliases, boolean parsing, and search params serialization. `app.js` keeps catalog DOM controls, history replace/push, and the current filter/page/profile activity state bridge.
@@ -201,7 +203,7 @@ Work through this backlog one contour per pass unless the user explicitly change
 1. Movie detail orchestration: completed; keep route/load/init/similar/social/interactions/shell/user-state orchestration in lazy modules. `app.js` should remain a data/state bridge here, with only small maintenance cleanup expected.
 2. Movie editor: completed for the current optimization stage. Keep editor-specific draft/form/submit/poster/manual-similar/save logic in `movie-editor.js`; `app.js` should keep only the shared modal shell bridge, state assignment, Supabase callbacks, and page/cache/render callbacks.
 3. Supabase payload/select audit: completed for the current optimization stage. Notifications split lightweight movie links from digest movie cards; profile rails use compact activity row selects; person/director pages use explicit `PEOPLE_*_SELECT` profiles; poster gallery display reads use a compact `MOVIE_POSTER_IMAGE_DISPLAY_SELECT`; catalog payload no longer includes import-only `letterboxd_short_url`, and Letterboxd import uses `MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT`.
-4. Catalog module split: in progress. Pagination math/HTML/result-count text lives in lazy `catalog-pagination.js`; URL param parsing/building lives in lazy `catalog-url-state.js`; quick preset mechanics live in lazy `catalog-presets.js`; filter matching/count mechanics live in lazy `catalog-filters.js`; fast-return/session/DOM snapshot storage mechanics live in lazy `catalog-return-cache.js`. Continue with catalog card rendering.
+4. Catalog module split: in progress. Catalog movie card DOM/HTML rendering lives in lazy `catalog-cards.js`; pagination math/HTML/result-count text lives in lazy `catalog-pagination.js`; URL param parsing/building lives in lazy `catalog-url-state.js`; quick preset mechanics live in lazy `catalog-presets.js`; filter matching/count mechanics live in lazy `catalog-filters.js`; fast-return/session/DOM snapshot storage mechanics live in lazy `catalog-return-cache.js`. Continue with smaller catalog render bridges or shared profile/auth helpers.
 5. Shared profile/auth helpers: extract reusable profile helpers, avatar/settings actions, follow actions, and poster preference helpers into a shared profile module.
 6. CSS: after JS boundaries are cleaner, split or tighten remaining global `styles.css`, especially catalog-only styles and repeated shared values.
 

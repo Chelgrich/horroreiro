@@ -18,6 +18,7 @@ const clientJsFiles = [
 ];
 const lazyJsFiles = [
   'admin-actions.js',
+  'catalog-cards.js',
   'catalog-filters.js',
   'catalog-pagination.js',
   'catalog-presets.js',
@@ -59,6 +60,7 @@ const contextSensitiveExactFiles = new Set([
   'app-script-loader.js',
   'app.js',
   'boot-loader.js',
+  'catalog-cards.js',
   'catalog-filters.js',
   'catalog-pagination.js',
   'catalog-presets.js',
@@ -180,6 +182,10 @@ function checkAssetSizeReport() {
   assert(
     !report.startup?.movie?.files?.includes('custom-select.js'),
     'asset-size-report.mjs: movie startup profile must lazy-load custom-select.js'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('catalog-cards.js')),
+    'asset-size-report.mjs: catalog-cards.js must stay lazy-loaded outside startup profiles'
   );
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('catalog-filters.js')),
@@ -475,6 +481,7 @@ async function checkStaticGuards() {
 
   [
     '/app.js',
+    '/catalog-cards.js',
     '/catalog-filters.js',
     '/catalog-pagination.js',
     '/catalog-presets.js',
@@ -529,6 +536,7 @@ async function checkStaticGuards() {
     'directors.html',
     'app.js',
     'admin-actions.js',
+    'catalog-cards.js',
     'catalog-filters.js',
     'catalog-pagination.js',
     'catalog-presets.js',
@@ -565,6 +573,7 @@ async function checkStaticGuards() {
   ];
 
   const appJs = await readText('app.js');
+  const catalogCardsJs = await readText('catalog-cards.js');
   const catalogFiltersJs = await readText('catalog-filters.js');
   const catalogPaginationJs = await readText('catalog-pagination.js');
   const catalogPresetsJs = await readText('catalog-presets.js');
@@ -901,6 +910,15 @@ async function checkStaticGuards() {
     !appJs.includes('function renderUserPageLoading()') &&
       userPageJs.includes('function renderUserPageLoading()'),
     'app.js: user page renderer should stay in user-page.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('catalog-cards.js'))") &&
+      !appJs.includes('function getUserRatingControlsHtml(') &&
+      !appJs.includes('function getPosterHtml(') &&
+      catalogCardsJs.includes('function createMovieCard(') &&
+      catalogCardsJs.includes('function getUserRatingControlsHtml(') &&
+      catalogCardsJs.includes('function getPosterHtml('),
+    'app.js: catalog card HTML rendering should stay in catalog-cards.js'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('catalog-filters.js'))") &&
