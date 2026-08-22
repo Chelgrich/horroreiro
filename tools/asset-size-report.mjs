@@ -35,6 +35,7 @@ const assetGroups = {
     'movie-user-state.js',
     'notifications-page.js',
     'person-placeholders.js',
+    'profile-settings-actions.js',
     'profile-utils.js',
     'user-page.js',
     'assets/directors-admin-app.js'

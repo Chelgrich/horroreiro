@@ -644,6 +644,8 @@ let catalogRenderControllerPromise = null;
 let catalogRenderController = null;
 let profileUtilsPromise = null;
 let profileUtils = null;
+let profileSettingsActionsPromise = null;
+let profileSettingsActions = null;
 let directorModal = null;
 let directorForm = null;
 let directorModalTitle = null;
@@ -5135,64 +5137,6 @@ function renderAvatarCropBlob() {
   });
 }
 
-function extractAvatarStoragePath(publicUrl) {
-  if (!publicUrl) {
-    return null;
-  }
-
-  let parsedUrl = null;
-
-  try {
-    parsedUrl = new URL(publicUrl);
-  } catch (error) {
-    return null;
-  }
-
-  const path = parsedUrl.pathname;
-
-  if (!path.includes(AVATAR_STORAGE_PUBLIC_PATH)) {
-    return null;
-  }
-
-  return path.split(AVATAR_STORAGE_PUBLIC_PATH)[1] || null;
-}
-
-async function uploadAvatarBlob(blob) {
-  const user = ensureActiveSessionForWrite();
-  const storagePath = `${user.id}/avatar-${Date.now()}.jpg`;
-  const { error: uploadError } = await supabaseClient.storage
-    .from(AVATAR_STORAGE_BUCKET)
-    .upload(storagePath, blob, {
-      cacheControl: '31536000',
-      contentType: AVATAR_OUTPUT_TYPE,
-      upsert: false
-    });
-
-  throwIfSupabaseError(uploadError);
-
-  const { data } = supabaseClient.storage
-    .from(AVATAR_STORAGE_BUCKET)
-    .getPublicUrl(storagePath);
-
-  return data?.publicUrl || '';
-}
-
-async function deleteAvatarFileByUrl(publicUrl) {
-  const storagePath = extractAvatarStoragePath(publicUrl);
-
-  if (!storagePath) {
-    return;
-  }
-
-  const { error } = await supabaseClient.storage
-    .from(AVATAR_STORAGE_BUCKET)
-    .remove([storagePath]);
-
-  if (error) {
-    console.warn('Не удалось удалить старый аватар:', error);
-  }
-}
-
 async function deleteCurrentUserAvatar() {
   if (isAvatarCropSubmitting) {
     return;
@@ -5207,16 +5151,12 @@ async function deleteCurrentUserAvatar() {
   }
 
   try {
-    ensureActiveSessionForWrite();
     setUserPageAvatarSubmitting(true);
     setUserPageAvatarStatus('Удаляю аватар...');
 
-    const { error } = await supabaseClient
-      .from('profiles')
-      .update({ avatar_url: null })
-      .eq('id', currentUser.id);
+    const settingsActions = await loadProfileSettingsActions();
 
-    throwIfSupabaseError(error);
+    await settingsActions.clearProfileAvatarUrl({ userId: currentUser.id });
 
     currentUserProfile = {
       ...(currentUserProfile || {}),
@@ -5226,7 +5166,7 @@ async function deleteCurrentUserAvatar() {
 
     syncUserPageOwnProfileIdentity();
     setUserPageAvatarStatus('Аватар удалён.', 'success');
-    deleteAvatarFileByUrl(previousAvatarUrl);
+    void settingsActions.deleteAvatarFileByUrl(previousAvatarUrl);
   } catch (error) {
     const message = getAvatarFriendlyErrorMessage(error);
 
@@ -5245,27 +5185,26 @@ async function saveAvatarCrop() {
   let uploadedAvatarUrl = '';
 
   try {
-    ensureActiveSessionForWrite();
     setAvatarCropSubmitting(true);
     setUserPageAvatarSubmitting(true);
     setAvatarCropStatus('Сохраняю аватар...');
     setUserPageAvatarStatus('Сохраняю аватар...');
 
+    const settingsActions = await loadProfileSettingsActions();
+
     const previousAvatarUrl = getPublicProfileAvatarUrl(currentUserProfile);
     const avatarBlob = await renderAvatarCropBlob();
-    const avatarUrl = await uploadAvatarBlob(avatarBlob);
+    const avatarUrl = await settingsActions.uploadAvatarBlob(avatarBlob);
     uploadedAvatarUrl = avatarUrl;
 
     if (!avatarUrl) {
       throw new Error('Supabase не вернул публичную ссылку на аватар.');
     }
 
-    const { error } = await supabaseClient
-      .from('profiles')
-      .update({ avatar_url: avatarUrl })
-      .eq('id', currentUser.id);
-
-    throwIfSupabaseError(error);
+    await settingsActions.updateProfileAvatarUrl({
+      userId: currentUser.id,
+      avatarUrl
+    });
 
     currentUserProfile = {
       ...(currentUserProfile || {}),
@@ -5278,7 +5217,7 @@ async function saveAvatarCrop() {
     setUserPageAvatarStatus('Аватар обновлён.', 'success');
 
     if (previousAvatarUrl && previousAvatarUrl !== avatarUrl) {
-      deleteAvatarFileByUrl(previousAvatarUrl);
+      void settingsActions.deleteAvatarFileByUrl(previousAvatarUrl);
     }
   } catch (error) {
     const message = getAvatarFriendlyErrorMessage(error);
@@ -5286,7 +5225,11 @@ async function saveAvatarCrop() {
     console.error('Ошибка сохранения аватара:', error);
 
     if (uploadedAvatarUrl) {
-      deleteAvatarFileByUrl(uploadedAvatarUrl);
+      void loadProfileSettingsActions()
+        .then(settingsActions => settingsActions.deleteAvatarFileByUrl(uploadedAvatarUrl))
+        .catch(cleanupError => {
+          console.warn('Не удалось удалить загруженный аватар после ошибки сохранения:', cleanupError);
+        });
     }
 
     setAvatarCropStatus(message, 'error');
@@ -7937,6 +7880,37 @@ function getProfileUtils() {
   }
 
   return profileUtils;
+}
+
+function getProfileSettingsActionsContext() {
+  return {
+    supabaseClient,
+    avatarStorageBucket: AVATAR_STORAGE_BUCKET,
+    avatarStoragePublicPath: AVATAR_STORAGE_PUBLIC_PATH,
+    avatarOutputType: AVATAR_OUTPUT_TYPE,
+    normalizeDisplayNameValue,
+    withAuthRequestTimeout,
+    withAuthProfileRequestTimeout,
+    ensureActiveSessionForWrite,
+    throwIfSupabaseError
+  };
+}
+
+function loadProfileSettingsActions() {
+  if (!profileSettingsActionsPromise) {
+    profileSettingsActionsPromise = import(getLazyFeatureModuleUrl('profile-settings-actions.js'))
+      .then(module => {
+        profileSettingsActions = module.createProfileSettingsActions(getProfileSettingsActionsContext());
+        return profileSettingsActions;
+      })
+      .catch(error => {
+        profileSettingsActionsPromise = null;
+        profileSettingsActions = null;
+        throw error;
+      });
+  }
+
+  return profileSettingsActionsPromise;
 }
 
 function loadLetterboxdImportTools() {
@@ -12989,27 +12963,7 @@ function getReadableAuthErrorMessage(error, fallbackMessage) {
 }
 
 async function isDisplayNameAvailable(displayName, excludeUserId = null) {
-  const normalizedDisplayName = normalizeDisplayNameValue(displayName);
-
-  let query = supabaseClient
-    .from('profiles')
-    .select('id')
-    .eq('display_name_normalized', normalizedDisplayName);
-
-  if (excludeUserId) {
-    query = query.neq('id', excludeUserId);
-  }
-
-  const { data, error } = await withAuthProfileRequestTimeout(
-    query.limit(1),
-    'Не удалось проверить никнейм. Проверь соединение и попробуй снова.'
-  );
-
-  if (error) {
-    throw error;
-  }
-
-  return !data || data.length === 0;
+  return (await loadProfileSettingsActions()).isDisplayNameAvailable(displayName, excludeUserId);
 }
 
 async function saveDisplayName(event) {
@@ -13057,42 +13011,30 @@ async function saveDisplayName(event) {
   }
 
   try {
-    const isAvailable = await isDisplayNameAvailable(nextDisplayName, currentUser.id);
+    const result = await (await loadProfileSettingsActions()).saveDisplayName({
+      currentUser,
+      nextDisplayName
+    });
 
-    if (!isAvailable) {
+    if (!result.ok && result.reason === 'display-name-unavailable') {
       setDisplayNameMessage('Этот никнейм уже занят. Выберите другой.', 'error');
       return;
     }
 
-    const { error: authError } = await withAuthRequestTimeout(
-      supabaseClient.auth.updateUser({
-        data: {
-          ...(currentUser.user_metadata || {}),
-          display_name: nextDisplayName
-        }
-      }),
-      'Не удалось обновить никнейм в аккаунте. Проверь соединение и попробуй снова.'
-    );
-
-    if (authError) {
-      console.error('Ошибка обновления user_metadata.display_name:', authError);
+    if (!result.ok && result.reason === 'auth-update-failed') {
+      console.error('Ошибка обновления user_metadata.display_name:', result.error);
       setDisplayNameMessage('Не удалось обновить никнейм. Попробуйте ещё раз.', 'error');
       return;
     }
 
-    const { error: profileError } = await withAuthProfileRequestTimeout(
-      supabaseClient
-        .from('profiles')
-        .update({
-          display_name: nextDisplayName
-        })
-        .eq('id', currentUser.id),
-      'Не удалось сохранить никнейм в профиле. Проверь соединение и попробуй снова.'
-    );
-
-    if (profileError) {
-      console.error('Ошибка обновления profiles.display_name:', profileError);
+    if (!result.ok && result.reason === 'profile-update-failed') {
+      console.error('Ошибка обновления profiles.display_name:', result.error);
       setDisplayNameMessage('Не удалось сохранить никнейм в профиле. Попробуйте ещё раз.', 'error');
+      return;
+    }
+
+    if (!result.ok) {
+      setDisplayNameMessage('Не удалось сохранить никнейм. Попробуйте ещё раз.', 'error');
       return;
     }
 
@@ -13193,15 +13135,10 @@ async function saveProfilePosterPreference(event) {
   setProfilePosterPreferenceMessage('Сохраняю...');
 
   try {
-    ensureActiveSessionForWrite();
-
-    const { error } = await withAuthProfileRequestTimeout(
-      supabaseClient
-        .from('profiles')
-        .update({ prefer_russian_posters: nextPreferRussianPosters })
-        .eq('id', currentUser.id),
-      'Не удалось сохранить настройку постеров. Проверь соединение и попробуй снова.'
-    );
+    const { error } = await (await loadProfileSettingsActions()).savePosterPreference({
+      currentUserId: currentUser.id,
+      nextPreferRussianPosters
+    });
 
     if (error) {
       if (getMissingProfileOptionalColumnName(error, ['prefer_russian_posters']) === 'prefer_russian_posters') {
@@ -13356,13 +13293,11 @@ async function saveProfilePassword(event) {
   setProfilePasswordMessage('Проверяю старый пароль...');
 
   try {
-    const { error: signInError } = await withAuthRequestTimeout(
-      supabaseClient.auth.signInWithPassword({
-        email,
-        password: currentPassword
-      }),
-      'Не удалось проверить старый пароль. Проверь соединение и попробуй снова.'
-    );
+    const settingsActions = await loadProfileSettingsActions();
+    const { error: signInError } = await settingsActions.verifyProfilePassword({
+      email,
+      currentPassword
+    });
 
     if (signInError) {
       setProfilePasswordMessage(
@@ -13374,12 +13309,9 @@ async function saveProfilePassword(event) {
 
     setProfilePasswordMessage('Сохраняю новый пароль...');
 
-    const { error: updateError } = await withAuthRequestTimeout(
-      supabaseClient.auth.updateUser({
-        password: nextPassword
-      }),
-      'Не удалось обновить пароль. Проверь соединение и попробуй снова.'
-    );
+    const { error: updateError } = await settingsActions.updateProfilePassword({
+      nextPassword
+    });
 
     if (updateError) {
       setProfilePasswordMessage(

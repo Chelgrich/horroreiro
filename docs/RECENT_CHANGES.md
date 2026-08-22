@@ -12,6 +12,37 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Extract profile settings actions
+
+- Files:
+  - `app.js`
+  - `profile-settings-actions.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Continued the shared profile/auth helpers backlog contour.
+  - Added lazy `profile-settings-actions.js` for rare profile settings writes: display-name availability/saving, poster preference saving, password verification/update, avatar Storage upload/delete, and `profiles.avatar_url` updates.
+  - Kept `app.js` responsible for form validation/focus, user-facing status messages, crop/modal UI, local profile state mutation, and post-save rerender/cache bridges.
+  - Registered the new lazy asset in `/app-assets`, `_headers`, smoke checks, and size reporting.
+- Checks:
+  - `node --check app.js`
+  - `node --check profile-settings-actions.js`
+  - `node --check profile-utils.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node -e "import('./profile-settings-actions.js').then(...)"`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles stay about `10.1 KiB` brotli below the saved baseline; `profile-settings-actions.js` stays lazy-loaded outside startup profiles.
+- Follow-up:
+  - Continue this contour with follow actions or remaining profile/poster preference UI bridges.
+
 ## 2026-08-22 - Extract shared profile utils
 
 - Files:
