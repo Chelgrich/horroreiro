@@ -18,6 +18,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 
 - PowerShell output can show UTF-8 Russian text from `app.js`/docs as mojibake even when the files are valid. Do not retype long Russian strings from garbled terminal output; use `node -e "fs.readFileSync(..., 'utf8')"` for exact text checks or move existing source blocks mechanically.
 - If an `apply_patch` fails because copied PowerShell output contains mojibake, retry with small ASCII-anchored hunks or the real UTF-8 Russian text from the source instead of pasting garbled strings.
+- When piping inline Node/JS diagnostics through PowerShell, keep regex/search literals ASCII-only where possible. Non-ASCII text inside here-strings can be mojibaked into `?` characters and even break regex syntax. For Russian UI assertions, prefer ASCII DOM selectors/classes or read exact UTF-8 text from files.
 - Prefer `apply_patch` for edits. For long diagnostic snippets, keep shell commands small or split them into separate `multi_tool_use.parallel` calls instead of relying on large pasted multiline commands.
 - Paths containing square brackets are globbed by PowerShell. Use `Get-Content -LiteralPath functions\app-assets\[version].js` and quote the path for Node checks, for example `node --check "functions/app-assets/[version].js"`.
 - Do not pass bare `*.js` path globs to `rg` in PowerShell. Use exact files or `rg "pattern" -g "*.js"` to avoid path syntax errors.

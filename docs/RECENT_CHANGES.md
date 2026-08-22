@@ -12,6 +12,19 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Document inline JS diagnostic encoding trap
+
+- Files:
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a local workflow trap for inline Node/JS diagnostics piped through PowerShell after a Russian regex literal was mojibaked into `?` characters and broke a dev-route smoke script.
+  - Documented the safer pattern: keep diagnostic regex/search literals ASCII-only and assert Russian UI state through DOM selectors/classes or exact UTF-8 file reads.
+- Checks:
+  - `node tools\smoke-check.mjs`
+- Follow-up:
+  - Keep adding concrete command/encoding traps here when they recur during project work.
+
 ## 2026-08-22 - Restore user page count helper
 
 - Files:
