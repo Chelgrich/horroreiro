@@ -21,6 +21,7 @@ const lazyJsFiles = [
   'catalog-filters.js',
   'catalog-pagination.js',
   'catalog-presets.js',
+  'catalog-return-cache.js',
   'catalog-url-state.js',
   'director-page.js',
   'editor-page.js',
@@ -61,6 +62,7 @@ const contextSensitiveExactFiles = new Set([
   'catalog-filters.js',
   'catalog-pagination.js',
   'catalog-presets.js',
+  'catalog-return-cache.js',
   'catalog-url-state.js',
   'custom-select.js',
   'docs/CODEX_CONTEXT.md',
@@ -190,6 +192,10 @@ function checkAssetSizeReport() {
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('catalog-presets.js')),
     'asset-size-report.mjs: catalog-presets.js must stay lazy-loaded outside startup profiles'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('catalog-return-cache.js')),
+    'asset-size-report.mjs: catalog-return-cache.js must stay lazy-loaded outside startup profiles'
   );
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('catalog-url-state.js')),
@@ -472,6 +478,7 @@ async function checkStaticGuards() {
     '/catalog-filters.js',
     '/catalog-pagination.js',
     '/catalog-presets.js',
+    '/catalog-return-cache.js',
     '/catalog-url-state.js',
     '/custom-select.js',
     '/director-form.css',
@@ -525,6 +532,7 @@ async function checkStaticGuards() {
     'catalog-filters.js',
     'catalog-pagination.js',
     'catalog-presets.js',
+    'catalog-return-cache.js',
     'catalog-url-state.js',
     'director-form.css',
     'director-page.js',
@@ -560,6 +568,7 @@ async function checkStaticGuards() {
   const catalogFiltersJs = await readText('catalog-filters.js');
   const catalogPaginationJs = await readText('catalog-pagination.js');
   const catalogPresetsJs = await readText('catalog-presets.js');
+  const catalogReturnCacheJs = await readText('catalog-return-cache.js');
   const catalogUrlStateJs = await readText('catalog-url-state.js');
   const movieEditorJs = await readText('movie-editor.js');
   const movieDetailCacheJs = await readText('movie-detail-cache.js');
@@ -914,6 +923,15 @@ async function checkStaticGuards() {
       catalogPresetsJs.includes('function getActiveQuickPresetKey(') &&
       catalogPresetsJs.includes('function getQuickPresetFilterPatch('),
     'app.js: catalog preset mechanics should stay in catalog-presets.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('catalog-return-cache.js'))") &&
+      !appJs.includes('function getCatalogSessionSnapshotSignature(') &&
+      !appJs.includes('function readCatalogSnapshot(') &&
+      catalogReturnCacheJs.includes('function getCatalogSessionSnapshotSignature(') &&
+      catalogReturnCacheJs.includes('function readCatalogSnapshot(') &&
+      catalogReturnCacheJs.includes('function writeCatalogSnapshot('),
+    'app.js: catalog return snapshot storage/signature mechanics should stay in catalog-return-cache.js'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('catalog-url-state.js'))") &&

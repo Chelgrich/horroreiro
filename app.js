@@ -636,6 +636,8 @@ let catalogUrlStateTools = null;
 let catalogUrlValueAliasLookups = null;
 let catalogPresetToolsPromise = null;
 let catalogPresetTools = null;
+let catalogReturnCacheToolsPromise = null;
+let catalogReturnCacheTools = null;
 let directorModal = null;
 let directorForm = null;
 let directorModalTitle = null;
@@ -5527,24 +5529,23 @@ function hasSavedCatalogReturnPosition() {
 }
 
 function markCatalogFastReturnPending() {
-  try {
-    sessionStorage.setItem(CATALOG_FAST_RETURN_PENDING_KEY, '1');
-  } catch (error) {
-    console.warn('Ошибка сохранения признака быстрого возврата в каталог:', error);
-  }
+  catalogReturnCacheTools?.markCatalogFastReturnPending({
+    storage: sessionStorage,
+    key: CATALOG_FAST_RETURN_PENDING_KEY,
+    onError: error => {
+      console.warn('Ошибка сохранения признака быстрого возврата в каталог:', error);
+    }
+  });
 }
 
 function consumeCatalogFastReturnPending() {
-  try {
-    const hasPendingFastReturn = sessionStorage.getItem(CATALOG_FAST_RETURN_PENDING_KEY) === '1';
-
-    sessionStorage.removeItem(CATALOG_FAST_RETURN_PENDING_KEY);
-
-    return hasPendingFastReturn;
-  } catch (error) {
-    console.warn('Ошибка чтения признака быстрого возврата в каталог:', error);
-    return false;
-  }
+  return catalogReturnCacheTools?.consumeCatalogFastReturnPending({
+    storage: sessionStorage,
+    key: CATALOG_FAST_RETURN_PENDING_KEY,
+    onError: error => {
+      console.warn('Ошибка чтения признака быстрого возврата в каталог:', error);
+    }
+  }) || false;
 }
 
 function getMovieRatingStatsSnapshotRows() {
@@ -5606,37 +5607,10 @@ function createCatalogSessionSnapshotPayload() {
 }
 
 function canUseCatalogSnapshotForPosterPreference(snapshot) {
-  return Boolean(snapshot?.preferRussianPosters) === shouldPreferRussianPosters();
-}
-
-function getCatalogSessionSnapshotSignature(snapshot) {
-  if (!snapshot) {
-    return '';
-  }
-
-  const sortByMovieAndUser = (firstItem, secondItem) => {
-    const movieCompare = String(firstItem?.movie_id || '').localeCompare(String(secondItem?.movie_id || ''));
-
-    if (movieCompare !== 0) {
-      return movieCompare;
-    }
-
-    return String(firstItem?.user_id || '').localeCompare(String(secondItem?.user_id || ''));
-  };
-
-  return JSON.stringify({
-    version: snapshot.version,
-    buildVersion: snapshot.buildVersion,
-    dataMutationStamp: snapshot.dataMutationStamp || '',
-    userId: snapshot.userId || null,
-    movies: snapshot.movies || [],
-    movieRatings: [...(snapshot.movieRatings || [])].sort(sortByMovieAndUser),
-    movieRatingStats: [...(snapshot.movieRatingStats || [])].sort((firstItem, secondItem) =>
-      String(firstItem?.movie_id || '').localeCompare(String(secondItem?.movie_id || ''))
-    ),
-    movieWatchlist: [...(snapshot.movieWatchlist || [])].sort(sortByMovieAndUser),
-    reviewedMovieIds: [...(snapshot.reviewedMovieIds || [])].sort()
-  });
+  return Boolean(catalogReturnCacheTools?.canUseCatalogSnapshotForPosterPreference(
+    snapshot,
+    shouldPreferRussianPosters()
+  ));
 }
 
 function getStableStringHash(value) {
@@ -5680,32 +5654,10 @@ function isDataMutationStampFresh(stamp) {
 }
 
 function getCatalogDataSignatureHash(snapshot, { forceRefresh = false } = {}) {
-  if (!snapshot) {
-    return '';
-  }
-
-  if (!forceRefresh && typeof snapshot.dataSignatureHash === 'string' && snapshot.dataSignatureHash) {
-    return snapshot.dataSignatureHash;
-  }
-
-  if (!forceRefresh) {
-    const cachedHash = catalogSessionSnapshotDataHashCache.get(snapshot);
-
-    if (cachedHash) {
-      return cachedHash;
-    }
-  }
-
-  const signature = getCatalogSessionSnapshotSignature(snapshot);
-  const nextHash = `${signature.length}:${getStableStringHash(signature)}`;
-
-  catalogSessionSnapshotDataHashCache.set(snapshot, nextHash);
-
-  if (typeof snapshot === 'object') {
-    snapshot.dataSignatureHash = nextHash;
-  }
-
-  return nextHash;
+  return catalogReturnCacheTools?.getCatalogDataSignatureHash(snapshot, {
+    forceRefresh,
+    cache: catalogSessionSnapshotDataHashCache
+  }) || '';
 }
 
 function getCatalogRenderStateSignature() {
@@ -5721,56 +5673,43 @@ function getCatalogRenderStateSignature() {
 }
 
 function readCatalogSessionSnapshot({ allowStale = false } = {}) {
-  try {
-    const rawSnapshot = sessionStorage.getItem(CATALOG_SESSION_SNAPSHOT_KEY);
-
-    if (!rawSnapshot) {
-      return null;
+  return catalogReturnCacheTools?.readCatalogSnapshot({
+    storage: sessionStorage,
+    key: CATALOG_SESSION_SNAPSHOT_KEY,
+    allowStale,
+    maxAgeMs: CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS,
+    isValid: snapshot => (
+      snapshot?.version === CATALOG_SESSION_SNAPSHOT_VERSION &&
+      snapshot?.buildVersion === APP_BUILD_VERSION &&
+      isDataMutationStampFresh(snapshot?.dataMutationStamp) &&
+      Array.isArray(snapshot?.movies)
+    ),
+    onError: error => {
+      console.warn('Ошибка чтения снимка каталога:', error);
     }
-
-    const snapshot = JSON.parse(rawSnapshot);
-    const snapshotAge = Date.now() - Number(snapshot?.savedAt || 0);
-
-    if (
-      snapshot?.version !== CATALOG_SESSION_SNAPSHOT_VERSION ||
-      snapshot?.buildVersion !== APP_BUILD_VERSION ||
-      !isDataMutationStampFresh(snapshot?.dataMutationStamp) ||
-      !Array.isArray(snapshot?.movies) ||
-      (!allowStale && snapshotAge > CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS)
-    ) {
-      sessionStorage.removeItem(CATALOG_SESSION_SNAPSHOT_KEY);
-      return null;
-    }
-
-    return snapshot;
-  } catch (error) {
-    console.warn('Ошибка чтения снимка каталога:', error);
-    sessionStorage.removeItem(CATALOG_SESSION_SNAPSHOT_KEY);
-    return null;
-  }
+  }) || null;
 }
 
 function writeCatalogSessionSnapshot(snapshot) {
-  try {
-    if (!snapshot) {
-      return;
-    }
-
-    const dataSignatureHash = getCatalogDataSignatureHash(snapshot, {
-      forceRefresh: true
-    });
-
-    sessionStorage.setItem(
-      CATALOG_SESSION_SNAPSHOT_KEY,
-      JSON.stringify({
-        ...snapshot,
-        dataSignatureHash,
-        savedAt: Date.now()
-      })
-    );
-  } catch (error) {
-    console.warn('Ошибка сохранения снимка каталога:', error);
+  if (!snapshot || !catalogReturnCacheTools) {
+    return;
   }
+
+  catalogReturnCacheTools.writeCatalogSnapshot(snapshot, {
+    storage: sessionStorage,
+    key: CATALOG_SESSION_SNAPSHOT_KEY,
+    decorateSnapshot: nextSnapshot => ({
+      ...nextSnapshot,
+      dataSignatureHash: catalogReturnCacheTools.getCatalogDataSignatureHash(nextSnapshot, {
+        forceRefresh: true,
+        cache: catalogSessionSnapshotDataHashCache
+      }),
+      savedAt: Date.now()
+    }),
+    onError: error => {
+      console.warn('Ошибка сохранения снимка каталога:', error);
+    }
+  });
 }
 
 function createMoviePageSessionCacheEntry(movie) {
@@ -5858,54 +5797,42 @@ function persistCurrentMoviePageSessionCache() {
 }
 
 function readCatalogDomSnapshot({ allowStale = false } = {}) {
-  try {
-    const rawSnapshot = sessionStorage.getItem(CATALOG_DOM_SNAPSHOT_KEY);
-
-    if (!rawSnapshot) {
-      return null;
+  return catalogReturnCacheTools?.readCatalogSnapshot({
+    storage: sessionStorage,
+    key: CATALOG_DOM_SNAPSHOT_KEY,
+    allowStale,
+    maxAgeMs: CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS,
+    isValid: snapshot => (
+      snapshot?.version === CATALOG_SESSION_SNAPSHOT_VERSION &&
+      snapshot?.buildVersion === APP_BUILD_VERSION &&
+      snapshot?.viewMode === 'list' &&
+      typeof snapshot?.containerHtml === 'string' &&
+      Boolean(snapshot.containerHtml)
+    ),
+    onError: error => {
+      console.warn('Ошибка чтения DOM-снимка каталога:', error);
     }
-
-    const snapshot = JSON.parse(rawSnapshot);
-    const snapshotAge = Date.now() - Number(snapshot?.savedAt || 0);
-
-    if (
-      snapshot?.version !== CATALOG_SESSION_SNAPSHOT_VERSION ||
-      snapshot?.buildVersion !== APP_BUILD_VERSION ||
-      snapshot?.viewMode !== 'list' ||
-      typeof snapshot?.containerHtml !== 'string' ||
-      !snapshot.containerHtml ||
-      (!allowStale && snapshotAge > CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS)
-    ) {
-      sessionStorage.removeItem(CATALOG_DOM_SNAPSHOT_KEY);
-      return null;
-    }
-
-    return snapshot;
-  } catch (error) {
-    console.warn('Ошибка чтения DOM-снимка каталога:', error);
-    sessionStorage.removeItem(CATALOG_DOM_SNAPSHOT_KEY);
-    return null;
-  }
+  }) || null;
 }
 
 function writeCatalogDomSnapshot(snapshot) {
-  try {
-    if (!snapshot) {
-      sessionStorage.removeItem(CATALOG_DOM_SNAPSHOT_KEY);
-      return;
-    }
-
-    sessionStorage.setItem(
-      CATALOG_DOM_SNAPSHOT_KEY,
-      JSON.stringify({
-        ...snapshot,
-        savedAt: Date.now()
-      })
-    );
-  } catch (error) {
-    console.warn('Ошибка сохранения DOM-снимка каталога:', error);
-    sessionStorage.removeItem(CATALOG_DOM_SNAPSHOT_KEY);
+  if (!catalogReturnCacheTools) {
+    return;
   }
+
+  catalogReturnCacheTools.writeCatalogSnapshot(snapshot, {
+    storage: sessionStorage,
+    key: CATALOG_DOM_SNAPSHOT_KEY,
+    removeWhenEmpty: true,
+    removeOnError: true,
+    decorateSnapshot: nextSnapshot => ({
+      ...nextSnapshot,
+      savedAt: Date.now()
+    }),
+    onError: error => {
+      console.warn('Ошибка сохранения DOM-снимка каталога:', error);
+    }
+  });
 }
 
 function createCatalogDomSnapshotPayload(sessionSnapshot = createCatalogSessionSnapshotPayload()) {
@@ -5926,18 +5853,20 @@ function createCatalogDomSnapshotPayload(sessionSnapshot = createCatalogSessionS
     return null;
   }
 
-  return {
+  if (!catalogReturnCacheTools) {
+    return null;
+  }
+
+  return catalogReturnCacheTools.createCatalogDomSnapshotPayload({
     version: CATALOG_SESSION_SNAPSHOT_VERSION,
     buildVersion: APP_BUILD_VERSION,
-    savedAt: Date.now(),
     userId: currentUser?.id || null,
     preferRussianPosters: shouldPreferRussianPosters(),
-    viewMode: 'list',
     renderStateSignature: getCatalogRenderStateSignature(),
     dataSignatureHash: getCatalogDataSignatureHash(sessionSnapshot),
     moviesResultCountText: moviesResultCount?.textContent || '',
     containerHtml
-  };
+  });
 }
 
 function canQueueCatalogDomSnapshot() {
@@ -8145,6 +8074,23 @@ function getCatalogPresetTools() {
   }
 
   return catalogPresetTools;
+}
+
+function loadCatalogReturnCacheTools() {
+  if (!catalogReturnCacheToolsPromise) {
+    catalogReturnCacheToolsPromise = import(getLazyFeatureModuleUrl('catalog-return-cache.js'))
+      .then(module => {
+        catalogReturnCacheTools = module;
+        return catalogReturnCacheTools;
+      })
+      .catch(error => {
+        catalogReturnCacheToolsPromise = null;
+        catalogReturnCacheTools = null;
+        throw error;
+      });
+  }
+
+  return catalogReturnCacheToolsPromise;
 }
 
 function loadCustomSelectScript() {
@@ -16747,12 +16693,14 @@ async function initCatalogPage() {
   const paginationToolsReady = loadCatalogPaginationTools();
   const catalogUrlStateToolsReady = loadCatalogUrlStateTools();
   const catalogPresetToolsReady = loadCatalogPresetTools();
+  const catalogReturnCacheToolsReady = loadCatalogReturnCacheTools();
   renderMoviesSkeleton();
   await Promise.all([
     catalogFilterToolsReady,
     paginationToolsReady,
     catalogUrlStateToolsReady,
-    catalogPresetToolsReady
+    catalogPresetToolsReady,
+    catalogReturnCacheToolsReady
   ]);
 
   const routePresetKey = getCatalogRoutePresetKey();
@@ -18854,7 +18802,8 @@ async function initMoviePage() {
       ensureMovieDetailCacheControllerLoaded(),
       ensureMoviePageShellControllerLoaded(),
       ensureMoviePageInteractionsControllerLoaded(),
-      ensureMoviePageSimilarControllerLoaded()
+      ensureMoviePageSimilarControllerLoaded(),
+      loadCatalogReturnCacheTools()
     ]),
     restoreFromSessionCache: restoreMoviePageFromSessionCache,
     hydrateFromCatalogSnapshot: hydrateMoviePageFromCatalogSnapshot,

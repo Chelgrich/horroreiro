@@ -12,6 +12,36 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Extract catalog return cache module
+
+- Files:
+  - `app.js`
+  - `catalog-return-cache.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Continued the catalog module split backlog item.
+  - Added lazy `catalog-return-cache.js` for catalog fast-return flags, session/DOM snapshot storage reads and writes, snapshot validity envelopes, snapshot signatures, data-signature hashes, and DOM snapshot payload shaping.
+  - Kept `app.js` responsible for concrete catalog payload composition, DOM hydration, scroll/anchor restore, and local data mutation bridges.
+  - Registered the new lazy asset in `/app-assets`, `_headers`, smoke checks, and size reporting.
+- Checks:
+  - `node --check app.js`
+  - `node --check catalog-return-cache.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node -e "import('./catalog-return-cache.js').then(...)"`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `9.0 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue catalog module split with catalog card rendering.
+
 ## 2026-08-22 - Extract catalog filters module
 
 - Files:
