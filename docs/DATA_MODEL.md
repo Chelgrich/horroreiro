@@ -202,6 +202,10 @@ Rules:
 
 - Public person page path: `/name/<slug>`.
 - Admin people list path remains `/directors`.
+- Client person reads use explicit select profiles:
+  - `PEOPLE_PUBLIC_SELECT` for public `/name/*` fallback data;
+  - `PEOPLE_ADMIN_SELECT` for `/directors` list rows and person edit modal data;
+  - `PEOPLE_MOVIE_LINK_SELECT` for clickable director names on movie detail pages.
 - When saving movie director names, synchronize people by `name_ru`.
 - Add `movie_people` rows for new director links.
 - Remove stale links when a director is removed from the movie field.

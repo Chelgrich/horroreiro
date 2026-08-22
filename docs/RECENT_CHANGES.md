@@ -12,6 +12,33 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Add explicit people select profiles
+
+- Files:
+  - `app.js`
+  - `director-page.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Continued the Supabase payload/select audit with public person pages, movie detail director links, and the `/directors` admin list.
+  - Added `PEOPLE_PUBLIC_SELECT`, `PEOPLE_ADMIN_SELECT`, and `PEOPLE_MOVIE_LINK_SELECT`.
+  - Replaced public `/name/*` fallback `people.select('*')` reads with the public select profile.
+  - Replaced movie detail `movie_people -> people (*)` link reads with the compact director-link select.
+  - Replaced admin people list/modal reads and post-save returned rows with the admin select profile.
+  - Added smoke coverage so public/admin people reads do not drift back to wildcard selects.
+- Checks:
+  - `node --check app.js`
+  - `node --check director-page.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles remain about `7.2 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue payload/select audit with movie detail RPC fallback and catalog payload.
+
 ## 2026-08-22 - Trim profile activity row payloads
 
 - Files:

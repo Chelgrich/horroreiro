@@ -11,6 +11,7 @@ export function createDirectorPageController(context = {}) {
     },
     posterImageMinQuality = 90,
     movieCatalogSelect = '',
+    peoplePublicSelect = '',
     catalogPriorityPosterCount = 8,
     getAreDirectorsAvailable = () => true,
     setAreDirectorsAvailable = () => {},
@@ -119,7 +120,7 @@ export function createDirectorPageController(context = {}) {
 
     const { data, error } = await supabaseClient
       .from('people')
-      .select('*')
+      .select(peoplePublicSelect || '*')
       .eq('slug', normalizedSlug)
       .maybeSingle();
 
@@ -138,7 +139,7 @@ export function createDirectorPageController(context = {}) {
 
     const { data: fallbackData, error: fallbackError } = await supabaseClient
       .from('people')
-      .select('*')
+      .select(peoplePublicSelect || '*')
       .order('name_ru', { ascending: true });
 
     if (fallbackError) {

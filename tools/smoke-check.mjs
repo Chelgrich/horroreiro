@@ -575,6 +575,19 @@ async function checkStaticGuards() {
     'notifications-page.js: notification link movies must use a skinny select separate from digest cards'
   );
   assert(
+    appJs.includes('const PEOPLE_PUBLIC_SELECT = `') &&
+      appJs.includes('const PEOPLE_ADMIN_SELECT = `') &&
+      appJs.includes("const PEOPLE_MOVIE_LINK_SELECT = 'id, slug, name_ru, name'") &&
+      appJs.includes('peoplePublicSelect: PEOPLE_PUBLIC_SELECT') &&
+      appJs.includes('.select(PEOPLE_ADMIN_SELECT)') &&
+      appJs.includes('people (${PEOPLE_MOVIE_LINK_SELECT})') &&
+      directorPageJs.includes('peoplePublicSelect =') &&
+      directorPageJs.includes(".select(peoplePublicSelect || '*')") &&
+      !directorPageJs.includes(".select('*')") &&
+      !appJs.includes('people (*)'),
+    'app.js/director-page.js: person/director pages must use explicit people select profiles'
+  );
+  assert(
     appJs.includes("import(getLazyFeatureModuleUrl('movie-page-shell.js'))"),
     'app.js: movie detail shell must lazy-load movie-page-shell.js'
   );

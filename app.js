@@ -277,6 +277,32 @@ const POSTER_IMAGE_MIN_QUALITY = 90;
 const DIRECTOR_STORAGE_BUCKET = 'people';
 const DIRECTOR_STORAGE_PUBLIC_PATH = `/storage/v1/object/public/${DIRECTOR_STORAGE_BUCKET}/`;
 const DIRECTOR_STORAGE_RENDER_PATH = `/storage/v1/render/image/public/${DIRECTOR_STORAGE_BUCKET}/`;
+const PEOPLE_PUBLIC_SELECT = `
+  id,
+  slug,
+  name_ru,
+  name,
+  aliases,
+  gender,
+  birth_date,
+  death_date,
+  birth_place,
+  photo_url
+`;
+const PEOPLE_ADMIN_SELECT = `
+  id,
+  slug,
+  name_ru,
+  name,
+  aliases,
+  gender,
+  birth_date,
+  death_date,
+  birth_place,
+  photo_url,
+  tmdb_url
+`;
+const PEOPLE_MOVIE_LINK_SELECT = 'id, slug, name_ru, name';
 const AVATAR_STORAGE_BUCKET = 'avatars';
 const AVATAR_STORAGE_PUBLIC_PATH = `/storage/v1/object/public/${AVATAR_STORAGE_BUCKET}/`;
 const AVATAR_ACCEPTED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -1523,6 +1549,7 @@ function getDirectorPageControllerContext() {
     directorImagePreset: DIRECTOR_IMAGE_PRESET,
     posterImageMinQuality: POSTER_IMAGE_MIN_QUALITY,
     movieCatalogSelect: MOVIE_CATALOG_SELECT,
+    peoplePublicSelect: PEOPLE_PUBLIC_SELECT,
     catalogPriorityPosterCount: CATALOG_PRIORITY_POSTER_COUNT,
     getAreDirectorsAvailable: () => areDirectorsAvailable,
     setAreDirectorsAvailable: value => {
@@ -1782,7 +1809,7 @@ async function fetchDirectorById(directorId) {
 
   const { data, error } = await supabaseClient
     .from('people')
-    .select('*')
+    .select(PEOPLE_ADMIN_SELECT)
     .eq('id', normalizedDirectorId)
     .maybeSingle();
 
@@ -1807,7 +1834,7 @@ async function fetchMovieDirectorsForMovie(movieId) {
 
   const { data, error } = await supabaseClient
     .from('movie_people')
-    .select('role, position, people (*)')
+    .select(`role, position, people (${PEOPLE_MOVIE_LINK_SELECT})`)
     .eq('movie_id', normalizedMovieId)
     .eq('role', 'director')
     .order('position', { ascending: true });
@@ -1889,7 +1916,7 @@ async function fetchAdminPersonRows() {
   return fetchAllSupabaseRows(() => (
     supabaseClient
       .from('people')
-      .select('*')
+      .select(PEOPLE_ADMIN_SELECT)
       .order('name_ru', { ascending: true })
   ));
 }
@@ -2863,7 +2890,7 @@ async function saveDirectorFromModal(event) {
         .from('people')
         .update(savePayload)
         .eq('id', targetDirector.id)
-        .select('*')
+        .select(PEOPLE_ADMIN_SELECT)
         .single();
 
       throwIfSupabaseError(error);
@@ -2885,7 +2912,7 @@ async function saveDirectorFromModal(event) {
       const { data, error } = await supabaseClient
         .from('people')
         .insert(savePayload)
-        .select('*')
+        .select(PEOPLE_ADMIN_SELECT)
         .single();
 
       throwIfSupabaseError(error);
@@ -2928,7 +2955,7 @@ async function ensureDirectorsByNames(names = []) {
 
   const { data, error } = await supabaseClient
     .from('people')
-    .select('*')
+    .select(PEOPLE_ADMIN_SELECT)
     .order('name_ru', { ascending: true });
 
   if (error) {
@@ -2971,7 +2998,7 @@ async function ensureDirectorsByNames(names = []) {
       const { data: insertedDirector, error: insertError } = await supabaseClient
         .from('people')
         .insert(payload)
-        .select('*')
+        .select(PEOPLE_ADMIN_SELECT)
         .single();
 
       if (insertError) {
