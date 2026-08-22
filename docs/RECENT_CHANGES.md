@@ -12,6 +12,37 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Extract catalog filters module
+
+- Files:
+  - `app.js`
+  - `catalog-filters.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Continued the catalog module split backlog item.
+  - Added lazy `catalog-filters.js` for filter state shaping, movie filter matching, numeric range matching, dynamic filter option counts, and filter-modal chip scoping.
+  - Kept `app.js` responsible for reading filter controls, building user-facing chip labels, refreshing select/range UI, sorting, pagination slicing, and rendering.
+  - Registered the new lazy asset in `/app-assets`, `_headers`, smoke checks, and size reporting.
+- Checks:
+  - `node --check app.js`
+  - `node --check catalog-filters.js`
+  - `node --check catalog-presets.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node tools\smoke-check.mjs`
+  - `node -e "import('./catalog-filters.js').then(...)"`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `8.9 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue catalog module split with card rendering or catalog return-state cache.
+
 ## 2026-08-22 - Extract catalog presets module
 
 - Files:

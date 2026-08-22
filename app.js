@@ -627,6 +627,8 @@ let directorsAdminFrameworkAppPromise = null;
 let directorsAdminFrameworkApp = null;
 let moviePageSimilarControllerPromise = null;
 let moviePageSimilarController = null;
+let catalogFilterToolsPromise = null;
+let catalogFilterTools = null;
 let catalogPaginationToolsPromise = null;
 let catalogPaginationTools = null;
 let catalogUrlStateToolsPromise = null;
@@ -8043,6 +8045,31 @@ function loadLetterboxdImportTools() {
   return letterboxdImportToolsPromise;
 }
 
+function loadCatalogFilterTools() {
+  if (!catalogFilterToolsPromise) {
+    catalogFilterToolsPromise = import(getLazyFeatureModuleUrl('catalog-filters.js'))
+      .then(module => {
+        catalogFilterTools = module;
+        return catalogFilterTools;
+      })
+      .catch(error => {
+        catalogFilterToolsPromise = null;
+        catalogFilterTools = null;
+        throw error;
+      });
+  }
+
+  return catalogFilterToolsPromise;
+}
+
+function getCatalogFilterTools() {
+  if (!catalogFilterTools) {
+    throw new Error('Catalog filters module is not loaded.');
+  }
+
+  return catalogFilterTools;
+}
+
 function loadCatalogPaginationTools() {
   if (!catalogPaginationToolsPromise) {
     catalogPaginationToolsPromise = import(getLazyFeatureModuleUrl('catalog-pagination.js'))
@@ -12200,7 +12227,11 @@ function getActiveFilterChips() {
 }
 
 function getFilterModalActiveChips() {
-  return getActiveFilterChips().filter(chip => chip.key !== 'profile-activity');
+  if (!catalogFilterTools) {
+    return getActiveFilterChips().filter(chip => chip.key !== 'profile-activity');
+  }
+
+  return getCatalogFilterTools().getFilterModalActiveChips(getActiveFilterChips());
 }
 
 function updateFiltersModalStatus() {
@@ -15660,19 +15691,26 @@ function getCatalogDerivedStateSignature(filterState, selectedSortMode) {
   });
 }
 
+function getCatalogFilterToolsContext() {
+  return {
+    getCatalogMovieMeta,
+    movieMatchesSearch,
+    getMovieAverageRating,
+    getCatalogMovieYearFilterValue,
+    catalogReviewedMovieIds,
+    getCurrentUserMovieState
+  };
+}
+
 function filterCatalogMovies(filterState, { skipSorting = false, selectedSortMode = sortMode?.value || 'default' } = {}) {
-  const filteredMovies = [];
   const sourceMovies = skipSorting
     ? allMovies
     : (getCatalogSortedMoviesSource(selectedSortMode) || allMovies);
-
-  sourceMovies.forEach(movie => {
-    const meta = getCatalogMovieMeta(movie);
-
-    if (doesMovieMatchCatalogFilters(movie, filterState, meta)) {
-      filteredMovies.push(movie);
-    }
-  });
+  const filteredMovies = getCatalogFilterTools().filterCatalogMovies(
+    sourceMovies,
+    filterState,
+    getCatalogFilterToolsContext()
+  );
 
   if (!skipSorting && sourceMovies === allMovies) {
     sortMovies(filteredMovies, selectedSortMode);
@@ -15734,291 +15772,32 @@ function getCatalogFilterStateSnapshot(options = {}) {
   const selectedWatched = watchedFilter.value;
   const searchQuery = searchInput.value;
   const searchQueryWords = getSearchQueryWords(searchQuery);
-  return {
+
+  return getCatalogFilterTools().getCatalogFilterStateSnapshot({
     selectedGenre: ignoreGenre ? '' : genreFilter.value,
     selectedSubgenre: ignoreSubgenre ? '' : subgenreFilter.value,
     selectedFormat: ignoreFormat ? '' : formatFilter.value,
     selectedCountry: ignoreCountry ? '' : countryFilter.value,
-    ratingFrom: ratingRange.from,
-    ratingTo: ratingRange.to,
-    hasRatingRange: ratingRange.hasRange,
-    yearFrom: yearRange.from,
-    yearTo: yearRange.to,
-    hasYearRange: yearRange.hasRange,
-    runtimeFrom: runtimeRange.from,
-    runtimeTo: runtimeRange.to,
-    hasRuntimeRange: runtimeRange.hasRange,
+    ratingRange,
+    yearRange,
+    runtimeRange,
     selectedWatchlist,
-    hasWatchlistFilter: selectedWatchlist === 'in_watchlist' || selectedWatchlist === 'not_in_watchlist',
     selectedWatched,
-    hasWatchedFilter: selectedWatched === 'watched' || selectedWatched === 'unwatched',
     searchQuery,
     searchQueryWords,
-    hasSearchQuery: searchQueryWords.length > 0,
     hasCurrentUser: Boolean(currentUser),
     hasProfileActivityFilter: isCatalogProfileActivityActive(),
     profileActivityMovieIds: getCatalogProfileActivityMatchSet(),
     reviewedOnly: reviewedOnlyFilter
-  };
-}
-
-function doesNumberMatchCatalogRange(value, from, to) {
-  const numericValue = Number(value);
-
-  if (!Number.isFinite(numericValue)) {
-    return false;
-  }
-
-  if (from !== null && numericValue < from) {
-    return false;
-  }
-
-  if (to !== null && numericValue > to) {
-    return false;
-  }
-
-  return true;
-}
-
-function doesMovieMatchCatalogFilters(movie, filterState, meta = getCatalogMovieMeta(movie)) {
-  if (
-    filterState.hasSearchQuery &&
-    !movieMatchesSearch(movie, filterState.searchQuery, filterState.searchQueryWords)
-  ) {
-    return false;
-  }
-
-  if (
-    filterState.hasProfileActivityFilter &&
-    !filterState.profileActivityMovieIds?.has(String(movie.id))
-  ) {
-    return false;
-  }
-
-  if (filterState.selectedGenre && !meta.genreNames.has(filterState.selectedGenre)) {
-    return false;
-  }
-
-  if (filterState.selectedSubgenre && !meta.subgenreKeys.has(filterState.selectedSubgenre)) {
-    return false;
-  }
-
-  if (filterState.selectedFormat && !meta.formatKeys.has(filterState.selectedFormat)) {
-    return false;
-  }
-
-  if (filterState.selectedCountry && !meta.countryNames.has(filterState.selectedCountry)) {
-    return false;
-  }
-
-  if (filterState.hasRatingRange) {
-    const averageRating = getMovieAverageRating(movie.id);
-    const matchesRating = doesNumberMatchCatalogRange(
-      averageRating,
-      filterState.ratingFrom,
-      filterState.ratingTo
-    );
-
-    if (!matchesRating) {
-      return false;
-    }
-  }
-
-  const movieYearFilterValue = filterState.hasYearRange
-    ? getCatalogMovieYearFilterValue(movie)
-    : null;
-
-  if (
-    filterState.hasYearRange &&
-    (
-      movieYearFilterValue === null ||
-      !doesNumberMatchCatalogRange(
-        movieYearFilterValue,
-        filterState.yearFrom,
-        filterState.yearTo
-      )
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    filterState.hasRuntimeRange &&
-    (
-      movie.runtime_minutes === null ||
-      !doesNumberMatchCatalogRange(movie.runtime_minutes, filterState.runtimeFrom, filterState.runtimeTo)
-    )
-  ) {
-    return false;
-  }
-
-  if (filterState.reviewedOnly && !catalogReviewedMovieIds.has(String(movie.id))) {
-    return false;
-  }
-
-  let currentUserMovieState = null;
-
-  if (filterState.hasCurrentUser && filterState.hasWatchlistFilter) {
-    currentUserMovieState = getCurrentUserMovieState(movie.id);
-
-    if (
-      filterState.selectedWatchlist === 'in_watchlist'
-        ? !currentUserMovieState.isInWatchlist
-        : currentUserMovieState.isInWatchlist
-    ) {
-      return false;
-    }
-  }
-
-  if (filterState.hasCurrentUser && filterState.hasWatchedFilter) {
-    currentUserMovieState = currentUserMovieState || getCurrentUserMovieState(movie.id);
-
-    if (
-      filterState.selectedWatched === 'watched'
-        ? !currentUserMovieState.isWatched
-        : currentUserMovieState.isWatched
-    ) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function getCatalogFilterMatches(movie, filterState, meta = getCatalogMovieMeta(movie)) {
-  const currentUserMovieState = (
-    filterState.hasCurrentUser &&
-    (filterState.hasWatchlistFilter || filterState.hasWatchedFilter)
-  )
-    ? getCurrentUserMovieState(movie.id)
-    : null;
-  const averageRating = filterState.hasRatingRange
-    ? getMovieAverageRating(movie.id)
-    : 0;
-  const movieYearFilterValue = filterState.hasYearRange
-    ? getCatalogMovieYearFilterValue(movie)
-    : null;
-  return {
-    profileActivity: (
-      !filterState.hasProfileActivityFilter ||
-      filterState.profileActivityMovieIds?.has(String(movie.id))
-    ),
-    search: (
-      !filterState.hasSearchQuery ||
-      movieMatchesSearch(movie, filterState.searchQuery, filterState.searchQueryWords)
-    ),
-    genre: !filterState.selectedGenre || meta.genreNames.has(filterState.selectedGenre),
-    subgenre: !filterState.selectedSubgenre || meta.subgenreKeys.has(filterState.selectedSubgenre),
-    format: !filterState.selectedFormat || meta.formatKeys.has(filterState.selectedFormat),
-    country: !filterState.selectedCountry || meta.countryNames.has(filterState.selectedCountry),
-    rating: (
-      !filterState.hasRatingRange ||
-      doesNumberMatchCatalogRange(averageRating, filterState.ratingFrom, filterState.ratingTo)
-    ),
-    year: (
-      !filterState.hasYearRange ||
-      (
-        movieYearFilterValue !== null &&
-        doesNumberMatchCatalogRange(
-          movieYearFilterValue,
-          filterState.yearFrom,
-          filterState.yearTo
-        )
-      )
-    ),
-    runtime: (
-      !filterState.hasRuntimeRange ||
-      (
-        movie.runtime_minutes !== null &&
-        doesNumberMatchCatalogRange(movie.runtime_minutes, filterState.runtimeFrom, filterState.runtimeTo)
-      )
-    ),
-    reviews: !filterState.reviewedOnly || catalogReviewedMovieIds.has(String(movie.id)),
-    watchlist: (
-      !filterState.hasCurrentUser ||
-      !filterState.hasWatchlistFilter ||
-      (
-        filterState.selectedWatchlist === 'in_watchlist'
-          ? currentUserMovieState.isInWatchlist
-          : !currentUserMovieState.isInWatchlist
-      )
-    ),
-    watched: (
-      !filterState.hasCurrentUser ||
-      !filterState.hasWatchedFilter ||
-      (
-        filterState.selectedWatched === 'watched'
-          ? currentUserMovieState.isWatched
-          : !currentUserMovieState.isWatched
-      )
-    )
-  };
-}
-
-function matchesCatalogFilterCountScope(matches, ignoredFilterKey) {
-  return (
-    matches.search &&
-    matches.profileActivity &&
-    (ignoredFilterKey === 'genre' || matches.genre) &&
-    (ignoredFilterKey === 'subgenre' || matches.subgenre) &&
-    (ignoredFilterKey === 'format' || matches.format) &&
-    (ignoredFilterKey === 'country' || matches.country) &&
-    (ignoredFilterKey === 'year' || matches.year) &&
-    (ignoredFilterKey === 'runtime' || matches.runtime) &&
-    matches.rating &&
-    matches.reviews &&
-    matches.watchlist &&
-    matches.watched
-  );
-}
-
-function addCount(counts, value) {
-  if (!value) {
-    return;
-  }
-
-  counts.set(value, (counts.get(value) || 0) + 1);
+  });
 }
 
 function getDynamicFilterOptionCounts() {
-  const counts = {
-    genreCounts: new Map(),
-    subgenreCounts: new Map(),
-    formatCounts: new Map(),
-    countryCounts: new Map()
-  };
-  const filterState = getCatalogFilterStateSnapshot();
-
-  allMovies.forEach(movie => {
-    const meta = getCatalogMovieMeta(movie);
-    const matches = getCatalogFilterMatches(movie, filterState, meta);
-
-    if (matchesCatalogFilterCountScope(matches, 'genre')) {
-      meta.filterableGenreNames.forEach(genreName => {
-        addCount(counts.genreCounts, genreName);
-      });
-    }
-
-    if (matchesCatalogFilterCountScope(matches, 'subgenre')) {
-      meta.subgenreKeys.forEach(subgenreKey => {
-        addCount(counts.subgenreCounts, subgenreKey);
-      });
-    }
-
-    if (matchesCatalogFilterCountScope(matches, 'format')) {
-      meta.formatKeys.forEach(formatKey => {
-        addCount(counts.formatCounts, formatKey);
-      });
-    }
-
-    if (matchesCatalogFilterCountScope(matches, 'country')) {
-      meta.countryNames.forEach(countryName => {
-        addCount(counts.countryCounts, countryName);
-      });
-    }
-  });
-
-  return counts;
+  return getCatalogFilterTools().getDynamicFilterOptionCounts(
+    allMovies,
+    getCatalogFilterStateSnapshot(),
+    getCatalogFilterToolsContext()
+  );
 }
 
 function refreshDynamicFilterOptions() {
@@ -16964,11 +16743,17 @@ function canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot, { 
 
 async function initCatalogPage() {
   initCatalogViewToggleButton();
+  const catalogFilterToolsReady = loadCatalogFilterTools();
   const paginationToolsReady = loadCatalogPaginationTools();
   const catalogUrlStateToolsReady = loadCatalogUrlStateTools();
   const catalogPresetToolsReady = loadCatalogPresetTools();
   renderMoviesSkeleton();
-  await Promise.all([paginationToolsReady, catalogUrlStateToolsReady, catalogPresetToolsReady]);
+  await Promise.all([
+    catalogFilterToolsReady,
+    paginationToolsReady,
+    catalogUrlStateToolsReady,
+    catalogPresetToolsReady
+  ]);
 
   const routePresetKey = getCatalogRoutePresetKey();
   const restoreSessionPromise = restoreSession();

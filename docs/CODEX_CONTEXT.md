@@ -152,6 +152,8 @@ Profile ranking note:
 
 `catalog-presets.js` is lazy-loaded only on catalog pages and owns quick preset active-state detection, route-preset validation, auth gating, preset filter patches, and quick preset button state sync. `app.js` keeps real filter control mutation, custom-select refresh, render scheduling, and the mobile preset scroll hint.
 
+`catalog-filters.js` is lazy-loaded only on catalog pages and owns catalog filter state shaping, movie filter matching, numeric range matching, dynamic filter option counts, and filter-modal chip scoping. `app.js` keeps reading filter controls, building user-facing chip labels, refreshing select/range UI, sorting, pagination slicing, and rendering.
+
 `editor-page.js` is lazy-loaded only for `/editor` and owns editor-center completeness summary rendering, auth/forbidden/loading states, and page toolbar click handling. `app.js` provides shared auth, admin state, completeness data fetchers, and download actions.
 
 `director-page.js` is lazy-loaded only for `/name/*` and owns public person/director page route parsing, person-page data fetching, legacy director fallback matching, page rendering, photo transforms, and the director movie grid. `app.js` keeps shared people helpers, movie-card helpers, the director add/edit modal, and `/directors` admin bridge.
@@ -197,7 +199,7 @@ Work through this backlog one contour per pass unless the user explicitly change
 1. Movie detail orchestration: completed; keep route/load/init/similar/social/interactions/shell/user-state orchestration in lazy modules. `app.js` should remain a data/state bridge here, with only small maintenance cleanup expected.
 2. Movie editor: completed for the current optimization stage. Keep editor-specific draft/form/submit/poster/manual-similar/save logic in `movie-editor.js`; `app.js` should keep only the shared modal shell bridge, state assignment, Supabase callbacks, and page/cache/render callbacks.
 3. Supabase payload/select audit: completed for the current optimization stage. Notifications split lightweight movie links from digest movie cards; profile rails use compact activity row selects; person/director pages use explicit `PEOPLE_*_SELECT` profiles; poster gallery display reads use a compact `MOVIE_POSTER_IMAGE_DISPLAY_SELECT`; catalog payload no longer includes import-only `letterboxd_short_url`, and Letterboxd import uses `MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT`.
-4. Catalog module split: in progress. Pagination math/HTML/result-count text lives in lazy `catalog-pagination.js`; URL param parsing/building lives in lazy `catalog-url-state.js`; quick preset mechanics live in lazy `catalog-presets.js`. Continue with filters, card rendering, and catalog return-state cache.
+4. Catalog module split: in progress. Pagination math/HTML/result-count text lives in lazy `catalog-pagination.js`; URL param parsing/building lives in lazy `catalog-url-state.js`; quick preset mechanics live in lazy `catalog-presets.js`; filter matching/count mechanics live in lazy `catalog-filters.js`. Continue with card rendering and catalog return-state cache.
 5. Shared profile/auth helpers: extract reusable profile helpers, avatar/settings actions, follow actions, and poster preference helpers into a shared profile module.
 6. CSS: after JS boundaries are cleaner, split or tighten remaining global `styles.css`, especially catalog-only styles and repeated shared values.
 

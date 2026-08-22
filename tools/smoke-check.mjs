@@ -18,6 +18,7 @@ const clientJsFiles = [
 ];
 const lazyJsFiles = [
   'admin-actions.js',
+  'catalog-filters.js',
   'catalog-pagination.js',
   'catalog-presets.js',
   'catalog-url-state.js',
@@ -57,6 +58,7 @@ const contextSensitiveExactFiles = new Set([
   'app-script-loader.js',
   'app.js',
   'boot-loader.js',
+  'catalog-filters.js',
   'catalog-pagination.js',
   'catalog-presets.js',
   'catalog-url-state.js',
@@ -176,6 +178,10 @@ function checkAssetSizeReport() {
   assert(
     !report.startup?.movie?.files?.includes('custom-select.js'),
     'asset-size-report.mjs: movie startup profile must lazy-load custom-select.js'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('catalog-filters.js')),
+    'asset-size-report.mjs: catalog-filters.js must stay lazy-loaded outside startup profiles'
   );
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('catalog-pagination.js')),
@@ -463,6 +469,7 @@ async function checkStaticGuards() {
 
   [
     '/app.js',
+    '/catalog-filters.js',
     '/catalog-pagination.js',
     '/catalog-presets.js',
     '/catalog-url-state.js',
@@ -515,6 +522,7 @@ async function checkStaticGuards() {
     'directors.html',
     'app.js',
     'admin-actions.js',
+    'catalog-filters.js',
     'catalog-pagination.js',
     'catalog-presets.js',
     'catalog-url-state.js',
@@ -549,6 +557,7 @@ async function checkStaticGuards() {
   ];
 
   const appJs = await readText('app.js');
+  const catalogFiltersJs = await readText('catalog-filters.js');
   const catalogPaginationJs = await readText('catalog-pagination.js');
   const catalogPresetsJs = await readText('catalog-presets.js');
   const catalogUrlStateJs = await readText('catalog-url-state.js');
@@ -883,6 +892,14 @@ async function checkStaticGuards() {
     !appJs.includes('function renderUserPageLoading()') &&
       userPageJs.includes('function renderUserPageLoading()'),
     'app.js: user page renderer should stay in user-page.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('catalog-filters.js'))") &&
+      !appJs.includes('function doesMovieMatchCatalogFilters(') &&
+      !appJs.includes('function getCatalogFilterMatches(') &&
+      catalogFiltersJs.includes('function doesMovieMatchCatalogFilters(') &&
+      catalogFiltersJs.includes('function getDynamicFilterOptionCounts('),
+    'app.js: catalog filter matching mechanics should stay in catalog-filters.js'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('catalog-pagination.js'))") &&
