@@ -4,6 +4,9 @@
 /catalog-pagination.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/catalog-presets.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /catalog-url-state.js
   Cache-Control: public, max-age=0, must-revalidate
 

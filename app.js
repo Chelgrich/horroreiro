@@ -265,6 +265,7 @@ const INTENTIONAL_EMPTY_FIELD_MARKERS = new Set([
 const CATALOG_PRESET_QUERY_PARAM = 'preset';
 const CATALOG_PROFILE_QUERY_PARAM = 'profile';
 const CATALOG_PROFILE_ACTIVITY_QUERY_PARAM = 'activity';
+const CATALOG_ASTRALS_SEARCH_QUERY = '\u0410\u0441\u0442\u0440\u0430\u043b';
 const CATALOG_PROFILE_ACTIVITY_KEYS = new Set(['ratings', 'watchlist', 'reviews']);
 const CATALOG_PROFILE_ACTIVITY_LABELS = {
   ratings: 'Оценки и просмотры',
@@ -631,6 +632,8 @@ let catalogPaginationTools = null;
 let catalogUrlStateToolsPromise = null;
 let catalogUrlStateTools = null;
 let catalogUrlValueAliasLookups = null;
+let catalogPresetToolsPromise = null;
+let catalogPresetTools = null;
 let directorModal = null;
 let directorForm = null;
 let directorModalTitle = null;
@@ -8092,6 +8095,31 @@ function getCatalogUrlStateTools() {
   return catalogUrlStateTools;
 }
 
+function loadCatalogPresetTools() {
+  if (!catalogPresetToolsPromise) {
+    catalogPresetToolsPromise = import(getLazyFeatureModuleUrl('catalog-presets.js'))
+      .then(module => {
+        catalogPresetTools = module;
+        return catalogPresetTools;
+      })
+      .catch(error => {
+        catalogPresetToolsPromise = null;
+        catalogPresetTools = null;
+        throw error;
+      });
+  }
+
+  return catalogPresetToolsPromise;
+}
+
+function getCatalogPresetTools() {
+  if (!catalogPresetTools) {
+    throw new Error('Catalog presets module is not loaded.');
+  }
+
+  return catalogPresetTools;
+}
+
 function loadCustomSelectScript() {
   if (typeof createCustomSelectManager === 'function') {
     return Promise.resolve();
@@ -11927,151 +11955,96 @@ function showAstralPresetToast() {
   }, 1350);
 }
 
+function getCurrentQuickPresetState() {
+  return {
+    searchQuery: searchInput.value,
+    normalizedSearchQuery: normalizeSearchText(searchInput.value),
+    normalizedAstralsSearchQuery: normalizeSearchText(CATALOG_ASTRALS_SEARCH_QUERY),
+    genre: genreFilter.value,
+    subgenre: subgenreFilter.value,
+    format: formatFilter.value,
+    country: countryFilter.value,
+    yearFrom: yearFromFilter.value,
+    yearTo: yearToFilter.value,
+    ratingFrom: ratingFromFilter.value,
+    ratingTo: ratingToFilter.value,
+    runtimeFrom: runtimeFromFilter.value,
+    runtimeTo: runtimeToFilter.value,
+    reviewedOnly: reviewedOnlyFilter,
+    watchlist: currentUser ? watchlistFilter.value : '',
+    watched: currentUser ? watchedFilter.value : '',
+    hasCurrentUser: Boolean(currentUser)
+  };
+}
+
 function getActiveQuickPresetKey() {
-  const hasSearchQuery = searchInput.value.trim() !== '';
-  const hasGenreFilter = Boolean(genreFilter.value);
-  const hasSubgenreFilter = Boolean(subgenreFilter.value);
-  const hasFormatFilter = Boolean(formatFilter.value);
-  const hasCountryFilter = Boolean(countryFilter.value);
-  const hasYearFilter = Boolean(yearFromFilter.value || yearToFilter.value);
-  const hasRatingFilter = Boolean(ratingFromFilter.value || ratingToFilter.value);
-  const hasRuntimeFilter = Boolean(runtimeFromFilter.value || runtimeToFilter.value);
-  const hasAuthPresetFilter = Boolean(currentUser && (watchlistFilter.value || watchedFilter.value));
-
-  if (
-    normalizeSearchText(searchInput.value) === 'астрал' &&
-    !reviewedOnlyFilter &&
-    !hasGenreFilter &&
-    !hasSubgenreFilter &&
-    !hasFormatFilter &&
-    !hasCountryFilter &&
-    !hasYearFilter &&
-    !hasRatingFilter &&
-    !hasRuntimeFilter &&
-    !hasAuthPresetFilter
-  ) {
-    return 'astrals';
-  }
-
-  if (
-    runtimeFromFilter.value === '' &&
-    runtimeToFilter.value === '90' &&
-    !hasSearchQuery &&
-    !reviewedOnlyFilter &&
-    !hasGenreFilter &&
-    !hasSubgenreFilter &&
-    !hasFormatFilter &&
-    !hasCountryFilter &&
-    !hasYearFilter &&
-    !hasRatingFilter &&
-    !hasAuthPresetFilter
-  ) {
-    return 'short-runtime';
-  }
-
-  if (
-    hasSearchQuery ||
-    hasGenreFilter ||
-    hasSubgenreFilter ||
-    hasFormatFilter ||
-    hasCountryFilter ||
-    hasYearFilter ||
-    hasRuntimeFilter
-  ) {
-    return null;
-  }
-
-  if (
-    reviewedOnlyFilter &&
-    !hasRatingFilter &&
-    !hasAuthPresetFilter
-  ) {
-    return 'with-reviews';
-  }
-
-  if (
-    ratingFromFilter.value === '7' &&
-    ratingToFilter.value === '' &&
-    !hasAuthPresetFilter
-  ) {
-    return 'top-rated';
-  }
-
-  if (
-    ratingFromFilter.value === '1' &&
-    ratingToFilter.value === '3' &&
-    !hasAuthPresetFilter
-  ) {
-    return 'low-rated';
-  }
-
-  if (
-    ratingFromFilter.value === '0' &&
-    ratingToFilter.value === '0' &&
-    !hasAuthPresetFilter
-  ) {
-    return 'unrated';
-  }
-
-  if (
-    currentUser &&
-    watchlistFilter.value === 'in_watchlist' &&
-    !watchedFilter.value &&
-    !hasRatingFilter
-  ) {
-    return 'watchlist';
-  }
-
-  if (
-    currentUser &&
-    watchedFilter.value === 'watched' &&
-    !watchlistFilter.value &&
-    !hasRatingFilter
-  ) {
-    return 'watched';
-  }
-
-  if (
-    currentUser &&
-    watchedFilter.value === 'unwatched' &&
-    !watchlistFilter.value &&
-    !hasRatingFilter
-  ) {
-    return 'unwatched';
-  }
-
-  return null;
+  return getCatalogPresetTools().getActiveQuickPresetKey(getCurrentQuickPresetState());
 }
 
 function syncQuickPresetButtons() {
-  if (!quickPresetsBar) {
+  if (!quickPresetsBar || !catalogPresetTools) {
     return;
   }
 
-  const activePresetKey = getActiveQuickPresetKey();
-
-  quickPresetsBar.querySelectorAll('.quick-preset-button').forEach(button => {
-    const presetKey = button.dataset.quickPreset;
-    const requiresAuth = button.dataset.requiresAuth === 'true';
-    const shouldHide = requiresAuth && !currentUser;
-
-    button.classList.toggle('is-hidden-by-auth', shouldHide);
-    button.classList.toggle('is-active', !shouldHide && presetKey === activePresetKey);
+  catalogPresetTools.syncQuickPresetButtons(quickPresetsBar, {
+    activePresetKey: getActiveQuickPresetKey(),
+    hasCurrentUser: Boolean(currentUser)
   });
 
   scheduleQuickPresetsScrollHint();
 }
 
 function getCatalogRoutePresetKey() {
-  const presetKey = String(
-    new URLSearchParams(window.location.search).get(CATALOG_PRESET_QUERY_PARAM) || ''
-  ).trim();
-
-  return CATALOG_ROUTE_PRESET_KEYS.has(presetKey) ? presetKey : '';
+  return getCatalogPresetTools().getCatalogRoutePresetKey(window.location.search, {
+    presetQueryParam: CATALOG_PRESET_QUERY_PARAM,
+    routePresetKeys: CATALOG_ROUTE_PRESET_KEYS
+  });
 }
 
 function canApplyQuickPreset(presetKey) {
-  return !AUTH_REQUIRED_CATALOG_PRESET_KEYS.has(presetKey) || Boolean(currentUser);
+  return getCatalogPresetTools().canApplyQuickPreset(presetKey, {
+    authRequiredPresetKeys: AUTH_REQUIRED_CATALOG_PRESET_KEYS,
+    hasCurrentUser: Boolean(currentUser)
+  });
+}
+
+function applyQuickPresetFilterPatch(presetPatch = {}) {
+  if (Object.prototype.hasOwnProperty.call(presetPatch, 'searchQuery')) {
+    searchInput.value = presetPatch.searchQuery || '';
+    lastSearchQuery = presetPatch.lastSearchQuery ?? searchInput.value;
+
+    if (searchClearBtn) {
+      searchClearBtn.classList.toggle('is-visible', Boolean(searchInput.value));
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(presetPatch, 'ratingFrom')) {
+    ratingFromFilter.value = presetPatch.ratingFrom || '';
+  }
+
+  if (Object.prototype.hasOwnProperty.call(presetPatch, 'ratingTo')) {
+    ratingToFilter.value = presetPatch.ratingTo || '';
+  }
+
+  if (Object.prototype.hasOwnProperty.call(presetPatch, 'runtimeFrom')) {
+    runtimeFromFilter.value = presetPatch.runtimeFrom || '';
+  }
+
+  if (Object.prototype.hasOwnProperty.call(presetPatch, 'runtimeTo')) {
+    runtimeToFilter.value = presetPatch.runtimeTo || '';
+  }
+
+  if (Object.prototype.hasOwnProperty.call(presetPatch, 'reviewedOnly')) {
+    reviewedOnlyFilter = Boolean(presetPatch.reviewedOnly);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(presetPatch, 'watchlist')) {
+    watchlistFilter.value = presetPatch.watchlist || '';
+  }
+
+  if (Object.prototype.hasOwnProperty.call(presetPatch, 'watched')) {
+    watchedFilter.value = presetPatch.watched || '';
+  }
 }
 
 function applyQuickPreset(presetKey, { preservePage = false, urlMode = 'push' } = {}) {
@@ -12108,53 +12081,15 @@ function applyQuickPreset(presetKey, { preservePage = false, urlMode = 'push' } 
     skipSave: true
   });
 
-  if (presetKey === 'top-rated') {
-    ratingFromFilter.value = '7';
-    ratingToFilter.value = '';
-  }
+  applyQuickPresetFilterPatch(
+    getCatalogPresetTools().getQuickPresetFilterPatch(presetKey, {
+      hasCurrentUser: Boolean(currentUser),
+      astralsSearchQuery: CATALOG_ASTRALS_SEARCH_QUERY
+    })
+  );
 
-  if (presetKey === 'low-rated') {
-    ratingFromFilter.value = '1';
-    ratingToFilter.value = '3';
-  }
-
-  if (presetKey === 'unrated') {
-    ratingFromFilter.value = '0';
-    ratingToFilter.value = '0';
-  }
-
-  if (presetKey === 'short-runtime') {
-    runtimeFromFilter.value = '';
-    runtimeToFilter.value = '90';
-  }
-
-  if (presetKey === 'with-reviews') {
-    reviewedOnlyFilter = true;
-  }
-
-  if (presetKey === 'astrals') {
-    searchInput.value = 'Астрал';
-    lastSearchQuery = 'Астрал';
-
-    if (searchClearBtn) {
-      searchClearBtn.classList.add('is-visible');
-    }
-
-    if (shouldShowAstralPresetToast) {
-      showAstralPresetToast();
-    }
-  }
-
-  if (presetKey === 'watchlist' && currentUser) {
-    watchlistFilter.value = 'in_watchlist';
-  }
-
-  if (presetKey === 'watched' && currentUser) {
-    watchedFilter.value = 'watched';
-  }
-
-  if (presetKey === 'unwatched' && currentUser) {
-    watchedFilter.value = 'unwatched';
+  if (shouldShowAstralPresetToast) {
+    showAstralPresetToast();
   }
 
   refreshCustomSelectGroup([watchlistFilter, watchedFilter]);
@@ -17031,8 +16966,9 @@ async function initCatalogPage() {
   initCatalogViewToggleButton();
   const paginationToolsReady = loadCatalogPaginationTools();
   const catalogUrlStateToolsReady = loadCatalogUrlStateTools();
+  const catalogPresetToolsReady = loadCatalogPresetTools();
   renderMoviesSkeleton();
-  await Promise.all([paginationToolsReady, catalogUrlStateToolsReady]);
+  await Promise.all([paginationToolsReady, catalogUrlStateToolsReady, catalogPresetToolsReady]);
 
   const routePresetKey = getCatalogRoutePresetKey();
   const restoreSessionPromise = restoreSession();

@@ -15,6 +15,7 @@ const assetGroups = {
     'app.js',
     'admin-actions.js',
     'catalog-pagination.js',
+    'catalog-presets.js',
     'catalog-url-state.js',
     'director-page.js',
     'editor-page.js',

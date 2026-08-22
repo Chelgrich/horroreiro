@@ -12,6 +12,37 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Extract catalog presets module
+
+- Files:
+  - `app.js`
+  - `catalog-presets.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Continued the catalog module split backlog item.
+  - Added lazy `catalog-presets.js` for quick preset active-state detection, route-preset validation, auth gating, preset filter patches, and quick preset button state sync.
+  - Kept `app.js` responsible for actual filter control mutation, custom-select refresh, render scheduling, and the mobile preset scroll hint.
+  - Registered the new lazy asset in `/app-assets`, `_headers`, smoke checks, and size reporting.
+- Checks:
+  - `node --check app.js`
+  - `node --check catalog-presets.js`
+  - `node --check catalog-url-state.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node tools\smoke-check.mjs`
+  - `node -e "import('./catalog-presets.js').then(...)"`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles remain about `8.1 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue catalog module split with filters, card rendering, or catalog return-state cache.
+
 ## 2026-08-22 - Extract catalog URL state module
 
 - Files:
