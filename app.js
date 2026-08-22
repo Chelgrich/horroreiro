@@ -592,6 +592,8 @@ let isProfilePasswordSubmitting = false;
 let isUserAdminPasswordSubmitting = false;
 let isLetterboxdRatingsImporting = false;
 let lastLetterboxdRatingsImportFileToken = '';
+let letterboxdImportMatchMovies = null;
+let letterboxdImportMatchMoviesPromise = null;
 let ratingRequestInFlight = new Set();
 let feedbackAnimationTimers = new Map();
 let watchlistRequestInFlight = new Set();
@@ -5658,6 +5660,7 @@ function getDataMutationStamp() {
 
 function markLocalDataMutation(scope = 'data') {
   invalidateMovieSelectRowsCache();
+  invalidateLetterboxdImportMatchMoviesCache();
 
   try {
     const stamp = `${Date.now().toString(36)}:${String(scope || 'data')}:${Math.random().toString(36).slice(2)}`;
@@ -8675,6 +8678,40 @@ function getMovieImportYear(movie) {
   return parseLetterboxdImportYear(movie?.year ?? movie?.release_year);
 }
 
+function invalidateLetterboxdImportMatchMoviesCache() {
+  letterboxdImportMatchMovies = null;
+  letterboxdImportMatchMoviesPromise = null;
+}
+
+async function fetchLetterboxdImportMatchMovies() {
+  if (Array.isArray(letterboxdImportMatchMovies)) {
+    return letterboxdImportMatchMovies;
+  }
+
+  if (letterboxdImportMatchMoviesPromise) {
+    return letterboxdImportMatchMoviesPromise;
+  }
+
+  letterboxdImportMatchMoviesPromise = supabaseClient
+    .from('movies')
+    .select(MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT)
+    .order('title', { ascending: true })
+    .then(({ data, error }) => {
+      if (error) {
+        throw error;
+      }
+
+      letterboxdImportMatchMovies = data || [];
+      return letterboxdImportMatchMovies;
+    })
+    .catch(error => {
+      invalidateLetterboxdImportMatchMoviesCache();
+      throw error;
+    });
+
+  return letterboxdImportMatchMoviesPromise;
+}
+
 async function fetchCurrentUserRatingsForMovieIds(movieIds, userId) {
   if (!movieIds.length || !userId) {
     return [];
@@ -8813,20 +8850,18 @@ async function importLetterboxdRatingsFromCsvText(csvText, options = {}) {
     };
   }
 
-  if (!moviesLoadedSuccessfully || !allMovies.length) {
-    reportLetterboxdRatingsImportProgress(
-      options,
-      'Загружаю каталог для сопоставления оценок...'
-    );
+  reportLetterboxdRatingsImportProgress(
+    options,
+    'Загружаю индекс Letterboxd для сопоставления оценок...'
+  );
 
-    const moviesLoaded = await fetchMovies({ preserveExistingCatalogOnError: true });
+  const importMatchMovies = await fetchLetterboxdImportMatchMovies();
 
-    if (!moviesLoaded) {
-      throw new Error('Не удалось загрузить каталог для сопоставления оценок.');
-    }
+  if (!importMatchMovies.length) {
+    throw new Error('Не удалось загрузить индекс Letterboxd для сопоставления оценок.');
   }
 
-  const movieIndex = buildLetterboxdImportMovieIndex(allMovies);
+  const movieIndex = buildLetterboxdImportMovieIndex(importMatchMovies);
   const matchedRowsByMovieId = new Map();
   const unmatchedItems = [];
   const invalidRatingRows = [];
@@ -10895,7 +10930,6 @@ const MOVIE_CATALOG_SELECT = `
   kinopoisk_url,
   imdb_url,
   letterboxd_url,
-  letterboxd_short_url,
   rottentomatoes_url,
   release_year,
   release_month,
@@ -10907,6 +10941,16 @@ const MOVIE_CATALOG_SELECT = `
   movie_countries (
     countries (name)
   )
+`;
+
+const MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT = `
+  id,
+  title,
+  original_title,
+  year,
+  release_year,
+  letterboxd_url,
+  letterboxd_short_url
 `;
 
 const MOVIE_USER_PAGE_CARD_SELECT = `

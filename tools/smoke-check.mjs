@@ -885,6 +885,20 @@ async function checkStaticGuards() {
     catalogSelectMatch && !catalogSelectMatch[1].includes('tmdb_url'),
     'app.js: catalog payload must not include detail-only tmdb_url'
   );
+  assert(
+    catalogSelectMatch && !catalogSelectMatch[1].includes('letterboxd_short_url'),
+    'app.js: catalog payload must not include import-only letterboxd_short_url'
+  );
+  const letterboxdImportSelectMatch = appJs.match(/const MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT = `([\s\S]*?)`;/);
+  assert(
+    letterboxdImportSelectMatch &&
+      letterboxdImportSelectMatch[1].includes('letterboxd_url') &&
+      letterboxdImportSelectMatch[1].includes('letterboxd_short_url') &&
+      !letterboxdImportSelectMatch[1].includes('poster_url') &&
+      appJs.includes('fetchLetterboxdImportMatchMovies()') &&
+      appJs.includes('buildLetterboxdImportMovieIndex(importMatchMovies)'),
+    'app.js: Letterboxd import must use a compact URL-only match payload'
+  );
 
   for (const file of activeTextTargets) {
     const text = await readText(file);

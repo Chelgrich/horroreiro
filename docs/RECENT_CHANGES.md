@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Split Letterboxd import match payload
+
+- Files:
+  - `app.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Finished the current Supabase payload/select audit contour.
+  - Removed import-only `letterboxd_short_url` from `MOVIE_CATALOG_SELECT`.
+  - Added `MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT` and a cached compact import index for strict Letterboxd/Boxd URL matching.
+  - Letterboxd ratings import no longer loads the full catalog when only URL matching is needed.
+  - Added smoke coverage so the catalog payload and import payload stay separated.
+- Checks:
+  - `node --check app.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+- Follow-up:
+  - Move to backlog item 4: catalog module split.
+
 ## 2026-08-22 - Trim poster gallery display payloads
 
 - Files:
