@@ -12,6 +12,36 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Extract catalog render module
+
+- Files:
+  - `app.js`
+  - `catalog-render.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Continued the catalog module split backlog item and completed the current catalog split stage.
+  - Added lazy `catalog-render.js` for catalog list/month DOM fragment rendering, month section controls, year headings, month-local sorting, and catalog DOM render signatures.
+  - Kept `app.js` responsible for catalog data derivation, pagination and active-chip rendering, skeleton/empty states, priority-poster budgeting, structured data, DOM replacement timing, and snapshot persistence.
+  - Registered the new lazy asset in `/app-assets`, `_headers`, smoke checks, and size reporting.
+- Checks:
+  - `node --check app.js`
+  - `node --check catalog-render.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node -e "import('./catalog-render.js').then(...)"`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `10.9 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Move to shared profile/auth helpers or CSS tightening.
+
 ## 2026-08-22 - Extract catalog cards module
 
 - Files:

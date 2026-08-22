@@ -9,6 +9,7 @@ const ALLOWED_APP_ASSETS = new Set([
   'catalog-filters.js',
   'catalog-pagination.js',
   'catalog-presets.js',
+  'catalog-render.js',
   'catalog-return-cache.js',
   'catalog-url-state.js',
   'custom-select.js',

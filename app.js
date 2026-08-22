@@ -640,6 +640,8 @@ let catalogReturnCacheToolsPromise = null;
 let catalogReturnCacheTools = null;
 let catalogCardControllerPromise = null;
 let catalogCardController = null;
+let catalogRenderControllerPromise = null;
+let catalogRenderController = null;
 let directorModal = null;
 let directorForm = null;
 let directorModalTitle = null;
@@ -8027,6 +8029,41 @@ function getCatalogCardController() {
   }
 
   return catalogCardController;
+}
+
+function getCatalogRenderControllerContext() {
+  return {
+    document,
+    createMovieCard,
+    getMovieAverageRating,
+    getMovieVotesCount,
+    getMonthName
+  };
+}
+
+function loadCatalogRenderController() {
+  if (!catalogRenderControllerPromise) {
+    catalogRenderControllerPromise = import(getLazyFeatureModuleUrl('catalog-render.js'))
+      .then(module => {
+        catalogRenderController = module.createCatalogRenderController(getCatalogRenderControllerContext());
+        return catalogRenderController;
+      })
+      .catch(error => {
+        catalogRenderControllerPromise = null;
+        catalogRenderController = null;
+        throw error;
+      });
+  }
+
+  return catalogRenderControllerPromise;
+}
+
+function getCatalogRenderController() {
+  if (!catalogRenderController) {
+    throw new Error('Catalog render module is not loaded.');
+  }
+
+  return catalogRenderController;
 }
 
 function loadCatalogFilterTools() {
@@ -15541,174 +15578,15 @@ function refreshDynamicFilterOptions() {
   refreshCatalogRangeControls();
 }
 
-function sortMoviesWithinMonth(movies, monthSortMode, monthSortDirection = 'desc') {
-  const sortedMovies = [...movies];
-  const directionMultiplier = monthSortDirection === 'asc' ? 1 : -1;
-
-  if (monthSortMode === 'rating') {
-    sortedMovies.sort((a, b) => {
-      const ratingA = getMovieAverageRating(a.id);
-      const ratingB = getMovieAverageRating(b.id);
-
-      if (ratingA !== ratingB) {
-        return (ratingA - ratingB) * directionMultiplier;
-      }
-
-      const votesA = getMovieVotesCount(a.id);
-      const votesB = getMovieVotesCount(b.id);
-
-      if (votesA !== votesB) {
-        return (votesA - votesB) * directionMultiplier;
-      }
-
-      const orderA = a.sort_order ?? Infinity;
-      const orderB = b.sort_order ?? Infinity;
-
-      return monthSortDirection === 'asc'
-        ? orderA - orderB
-        : orderB - orderA;
-    });
-
-    return sortedMovies;
-  }
-
-  sortedMovies.sort((a, b) => {
-    const orderA = a.sort_order ?? Infinity;
-    const orderB = b.sort_order ?? Infinity;
-
-    return monthSortDirection === 'asc'
-      ? orderA - orderB
-      : orderB - orderA;
-  });
-
-  return sortedMovies;
-}
-
-function createMonthSection(
-  month,
-  movies,
-  initialReleaseDirection = 'desc',
-  renderContext = createMovieCardRenderContext(),
-  getCardRenderOptions = () => ({})
-) {
-  const monthSection = document.createElement('section');
-  const monthHeader = document.createElement('div');
-  const monthTitle = document.createElement('h4');
-  const monthControls = document.createElement('div');
-  const dateSortButton = document.createElement('button');
-  const ratingSortButton = document.createElement('button');
-  const monthCards = document.createElement('div');
-
-  monthSection.className = 'movies-month-section';
-  monthHeader.className = 'movies-month-header';
-  monthTitle.className = 'movies-month-title';
-  monthControls.className = 'month-sort-controls';
-  monthCards.className = 'movies-month-cards';
-
-  monthTitle.textContent = getMonthName(month);
-
-  dateSortButton.type = 'button';
-  dateSortButton.className = 'month-sort-btn';
-
-  ratingSortButton.type = 'button';
-  ratingSortButton.className = 'month-sort-btn';
-
-  monthControls.appendChild(dateSortButton);
-  monthControls.appendChild(ratingSortButton);
-  monthHeader.appendChild(monthTitle);
-  monthHeader.appendChild(monthControls);
-  monthSection.appendChild(monthHeader);
-  monthSection.appendChild(monthCards);
-
-  const monthSortState = {
-    activeMode: 'release',
-    directions: {
-      release: initialReleaseDirection,
-      rating: 'desc'
-    }
-  };
-
-  const syncSortButtonsUi = () => {
-    const dateDirection = monthSortState.directions.release;
-    const ratingDirection = monthSortState.directions.rating;
-
-    dateSortButton.classList.toggle('is-active', monthSortState.activeMode === 'release');
-    ratingSortButton.classList.toggle('is-active', monthSortState.activeMode === 'rating');
-
-    dateSortButton.textContent = `По дате ${dateDirection === 'desc' ? '↓' : '↑'}`;
-    ratingSortButton.textContent = `По рейтингу ${ratingDirection === 'desc' ? '↓' : '↑'}`;
-
-    dateSortButton.setAttribute(
-      'aria-label',
-      `Сортировка по дате: ${dateDirection === 'desc' ? 'по убыванию' : 'по возрастанию'}`
-    );
-
-    ratingSortButton.setAttribute(
-      'aria-label',
-      `Сортировка по рейтингу: ${ratingDirection === 'desc' ? 'по убыванию' : 'по возрастанию'}`
-    );
-  };
-
-  const renderMonthCards = () => {
-    const activeSortDirection = monthSortState.directions[monthSortState.activeMode];
-    const sortedMonthMovies = sortMoviesWithinMonth(
-      movies,
-      monthSortState.activeMode,
-      activeSortDirection
-    );
-
-    monthCards.innerHTML = '';
-
-    sortedMonthMovies.forEach(movie => {
-      monthCards.appendChild(createMovieCard(movie, renderContext, getCardRenderOptions(movie)));
-    });
-
-    syncSortButtonsUi();
-  };
-
-  dateSortButton.addEventListener('click', () => {
-    if (monthSortState.activeMode === 'release') {
-      monthSortState.directions.release = monthSortState.directions.release === 'desc' ? 'asc' : 'desc';
-    } else {
-      monthSortState.activeMode = 'release';
-    }
-
-    renderMonthCards();
-  });
-
-  ratingSortButton.addEventListener('click', () => {
-    if (monthSortState.activeMode === 'rating') {
-      monthSortState.directions.rating = monthSortState.directions.rating === 'desc' ? 'asc' : 'desc';
-    } else {
-      monthSortState.activeMode = 'rating';
-    }
-
-    renderMonthCards();
-  });
-
-  renderMonthCards();
-
-  return monthSection;
-}
-
-function createMoviesYearTitle(year) {
-  const yearTitle = document.createElement('h3');
-  yearTitle.className = 'movies-year-title';
-  yearTitle.textContent = year;
-
-  return yearTitle;
-}
-
 function getCatalogDomRenderSignature({ filteredTotal, paginationState, pageMovies, selectedSortMode, filterState }) {
-  return JSON.stringify({
+  return getCatalogRenderController().getCatalogDomRenderSignature({
     dataVersion: catalogDataVersion,
     viewMode: viewMode?.value || 'list',
     sortMode: selectedSortMode || sortMode?.value || 'default',
     filteredTotal,
     currentPage: paginationState?.currentPage || currentCatalogPage,
-    startIndex: paginationState?.startIndex || 0,
-    endIndex: paginationState?.endIndex || 0,
-    pageMovieIds: (Array.isArray(pageMovies) ? pageMovies : []).map(movie => String(movie?.id || '')),
+    paginationState,
+    pageMovies,
     filterState
   });
 }
@@ -15780,60 +15658,15 @@ function renderMovies() {
     return { isPriorityPoster };
   };
 
-  if (viewMode.value === 'list') {
-    const moviesFragment = document.createDocumentFragment();
-
-    pageMovies.forEach(movie => {
-      moviesFragment.appendChild(createMovieCard(movie, cardRenderContext, getPriorityPosterOptions(movie)));
-    });
-
-    container.replaceChildren(moviesFragment);
-  } else {
-    let lastYear = null;
-    let currentMonth = null;
-    let currentMonthMovies = [];
-    const moviesFragment = document.createDocumentFragment();
-    const defaultMonthReleaseDirection = sortMode.value === 'oldest' ? 'asc' : 'desc';
-
-    const flushCurrentMonth = () => {
-      if (!currentMonth || currentMonthMovies.length === 0) {
-        return;
-      }
-
-      moviesFragment.appendChild(
-        createMonthSection(
-          currentMonth,
-          currentMonthMovies,
-          defaultMonthReleaseDirection,
-          cardRenderContext,
-          getPriorityPosterOptions
-        )
-      );
-      currentMonth = null;
-      currentMonthMovies = [];
-    };
-    
-    pageMovies.forEach(movie => {
-      const year = movie.release_year;
-      const month = movie.release_month;
-    
-      if (year !== lastYear) {
-        flushCurrentMonth();
-        moviesFragment.appendChild(createMoviesYearTitle(year));
-        lastYear = year;
-      }
-
-      if (month !== currentMonth) {
-        flushCurrentMonth();
-        currentMonth = month;
-      }
-
-      currentMonthMovies.push(movie);
-    });
-
-    flushCurrentMonth();
-    container.replaceChildren(moviesFragment);
-  }
+  container.replaceChildren(
+    getCatalogRenderController().createCatalogMoviesFragment({
+      pageMovies,
+      viewMode: viewMode.value,
+      sortMode: sortMode.value,
+      renderContext: cardRenderContext,
+      getCardRenderOptions: getPriorityPosterOptions
+    })
+  );
 
   lastCatalogDomRenderSignature = domRenderSignature;
   persistCatalogDomSnapshot();
@@ -16475,6 +16308,7 @@ function canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot, { 
 async function initCatalogPage() {
   initCatalogViewToggleButton();
   const catalogCardControllerReady = loadCatalogCardController();
+  const catalogRenderControllerReady = loadCatalogRenderController();
   const catalogFilterToolsReady = loadCatalogFilterTools();
   const paginationToolsReady = loadCatalogPaginationTools();
   const catalogUrlStateToolsReady = loadCatalogUrlStateTools();
@@ -16483,6 +16317,7 @@ async function initCatalogPage() {
   renderMoviesSkeleton();
   await Promise.all([
     catalogCardControllerReady,
+    catalogRenderControllerReady,
     catalogFilterToolsReady,
     paginationToolsReady,
     catalogUrlStateToolsReady,
