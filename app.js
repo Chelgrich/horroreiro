@@ -646,6 +646,8 @@ let profileUtilsPromise = null;
 let profileUtils = null;
 let profileSettingsActionsPromise = null;
 let profileSettingsActions = null;
+let profileFollowActionsPromise = null;
+let profileFollowActions = null;
 let directorModal = null;
 let directorForm = null;
 let directorModalTitle = null;
@@ -7911,6 +7913,31 @@ function loadProfileSettingsActions() {
   }
 
   return profileSettingsActionsPromise;
+}
+
+function getProfileFollowActionsContext() {
+  return {
+    supabaseClient,
+    throwIfSupabaseError,
+    isNotificationsUnavailableError
+  };
+}
+
+function loadProfileFollowActions() {
+  if (!profileFollowActionsPromise) {
+    profileFollowActionsPromise = import(getLazyFeatureModuleUrl('profile-follow-actions.js'))
+      .then(module => {
+        profileFollowActions = module.createProfileFollowActions(getProfileFollowActionsContext());
+        return profileFollowActions;
+      })
+      .catch(error => {
+        profileFollowActionsPromise = null;
+        profileFollowActions = null;
+        throw error;
+      });
+  }
+
+  return profileFollowActionsPromise;
 }
 
 function loadLetterboxdImportTools() {
@@ -16436,19 +16463,20 @@ async function fetchCurrentUserProfileFollows() {
     return;
   }
 
-  const { data, error } = await supabaseClient
-    .from('user_profile_follows')
-    .select('following_id')
-    .eq('follower_id', currentUser.id);
+  let rows = [];
 
-  if (error) {
+  try {
+    rows = await (await loadProfileFollowActions()).fetchProfileFollowRows({
+      followerId: currentUser.id
+    });
+  } catch (error) {
     console.warn('Ошибка загрузки отслеживаемых профилей:', error);
     currentUserFollowedProfileIds = new Set();
     return;
   }
 
   currentUserFollowedProfileIds = new Set(
-    (data || [])
+    rows
       .map(row => String(row?.following_id || '').trim())
       .filter(Boolean)
   );
@@ -16547,27 +16575,19 @@ async function toggleUserPageProfileFollow(profileId) {
   syncUserPageFollowButtonState(normalizedProfileId);
 
   try {
-    if (wasFollowing) {
-      const { error } = await supabaseClient
-        .from('user_profile_follows')
-        .delete()
-        .eq('follower_id', currentUser.id)
-        .eq('following_id', normalizedProfileId);
+    const followActions = await loadProfileFollowActions();
 
-      throwIfSupabaseError(error);
+    if (wasFollowing) {
+      await followActions.unfollowProfile({
+        followerId: currentUser.id,
+        followingId: normalizedProfileId
+      });
       currentUserFollowedProfileIds.delete(normalizedProfileId);
     } else {
-      const { error } = await supabaseClient
-        .from('user_profile_follows')
-        .insert({
-          follower_id: currentUser.id,
-          following_id: normalizedProfileId
-        });
-
-      if (error && error.code !== '23505') {
-        throw error;
-      }
-
+      await followActions.followProfile({
+        followerId: currentUser.id,
+        followingId: normalizedProfileId
+      });
       currentUserFollowedProfileIds.add(normalizedProfileId);
     }
 
@@ -17411,7 +17431,6 @@ let followingPageControllerPromise = null;
 function getFollowingPageControllerContext() {
   return {
     followingPage,
-    supabaseClient,
     getCurrentUser: () => currentUser,
     shouldUseAuthenticatedUi,
     restoreSession,
@@ -17426,8 +17445,7 @@ function getFollowingPageControllerContext() {
     getPublicProfileAvatarUrl,
     getPublicProfileHandle,
     fetchPublicProfilesByIds,
-    throwIfSupabaseError,
-    isNotificationsUnavailableError,
+    loadProfileFollowActions,
     setNotificationsUnavailable: value => {
       areNotificationsUnavailable = Boolean(value);
     },

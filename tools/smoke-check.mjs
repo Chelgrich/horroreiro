@@ -40,6 +40,7 @@ const lazyJsFiles = [
   'movie-user-state.js',
   'notifications-page.js',
   'person-placeholders.js',
+  'profile-follow-actions.js',
   'profile-settings-actions.js',
   'user-page.js',
   'assets/directors-admin-app.js'
@@ -194,6 +195,10 @@ function checkAssetSizeReport() {
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('profile-settings-actions.js')),
     'asset-size-report.mjs: profile-settings-actions.js must stay lazy-loaded outside startup profiles'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('profile-follow-actions.js')),
+    'asset-size-report.mjs: profile-follow-actions.js must stay lazy-loaded outside startup profiles'
   );
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('catalog-cards.js')),
@@ -526,6 +531,7 @@ async function checkStaticGuards() {
     '/notifications-page.css',
     '/notifications-page.js',
     '/person-placeholders.js',
+    '/profile-follow-actions.js',
     '/profile-settings-actions.js',
     '/profile-utils.js',
     '/user-page.js',
@@ -581,6 +587,7 @@ async function checkStaticGuards() {
     'notifications-page.css',
     'notifications-page.js',
     'person-placeholders.js',
+    'profile-follow-actions.js',
     'profile-settings-actions.js',
     'profile-utils.js',
     'user-page.js',
@@ -602,6 +609,7 @@ async function checkStaticGuards() {
   const catalogRenderJs = await readText('catalog-render.js');
   const catalogReturnCacheJs = await readText('catalog-return-cache.js');
   const catalogUrlStateJs = await readText('catalog-url-state.js');
+  const followingPageJs = await readText('following-page.js');
   const movieEditorJs = await readText('movie-editor.js');
   const movieDetailCacheJs = await readText('movie-detail-cache.js');
   const directorPageJs = await readText('director-page.js');
@@ -612,6 +620,7 @@ async function checkStaticGuards() {
   const movieSocialJs = await readText('movie-social.js');
   const movieUserStateJs = await readText('movie-user-state.js');
   const notificationsPageJs = await readText('notifications-page.js');
+  const profileFollowActionsJs = await readText('profile-follow-actions.js');
   const profileSettingsActionsJs = await readText('profile-settings-actions.js');
   const profileUtilsJs = await readText('profile-utils.js');
   const userPageJs = await readText('user-page.js');
@@ -954,6 +963,19 @@ async function checkStaticGuards() {
       profileSettingsActionsJs.includes('function uploadAvatarBlob(') &&
       profileSettingsActionsJs.includes('function updateProfilePassword('),
     'app.js: profile settings Supabase/Auth/Storage actions should stay in profile-settings-actions.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('profile-follow-actions.js'))") &&
+      !appJs.includes(".from('user_profile_follows')") &&
+      !appJs.includes(".from('user_follow_notification_preferences')") &&
+      !followingPageJs.includes(".from('user_profile_follows')") &&
+      !followingPageJs.includes(".from('user_follow_notification_preferences')") &&
+      followingPageJs.includes('loadProfileFollowActions') &&
+      profileFollowActionsJs.includes("from('user_profile_follows')") &&
+      profileFollowActionsJs.includes("from('user_follow_notification_preferences')") &&
+      profileFollowActionsJs.includes('function followProfile(') &&
+      profileFollowActionsJs.includes('function updateFollowNotificationPreference('),
+    'app.js/following-page.js: profile follow Supabase actions should stay in profile-follow-actions.js'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('catalog-cards.js'))") &&

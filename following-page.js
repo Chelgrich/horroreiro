@@ -7,7 +7,6 @@ const FOLLOWING_NOTIFICATION_PREFERENCE_LABELS = {
 export function createFollowingPageController(context = {}) {
   const {
     followingPage,
-    supabaseClient,
     getCurrentUser,
     shouldUseAuthenticatedUi,
     restoreSession,
@@ -22,8 +21,7 @@ export function createFollowingPageController(context = {}) {
     getPublicProfileAvatarUrl,
     getPublicProfileHandle,
     fetchPublicProfilesByIds,
-    throwIfSupabaseError,
-    isNotificationsUnavailableError,
+    loadProfileFollowActions,
     setNotificationsUnavailable,
     setCurrentUserFollowedProfileIds,
     deleteCurrentUserFollowedProfileId
@@ -74,15 +72,10 @@ export function createFollowingPageController(context = {}) {
       return [];
     }
 
-    const { data, error } = await supabaseClient
-      .from('user_profile_follows')
-      .select('following_id, created_at')
-      .eq('follower_id', getCurrentUser().id)
-      .order('created_at', { ascending: false });
-
-    throwIfSupabaseError(error);
-
-    const rows = data || [];
+    const rows = await (await loadProfileFollowActions()).fetchProfileFollowRows({
+      followerId: getCurrentUser().id,
+      includeCreatedAt: true
+    });
 
     setCurrentUserFollowedProfileIds(new Set(
       rows
@@ -107,36 +100,10 @@ export function createFollowingPageController(context = {}) {
       };
     }
 
-    const { data, error } = await supabaseClient
-      .from('user_follow_notification_preferences')
-      .select('following_id, notify_ratings, notify_watchlist, notify_reviews')
-      .eq('follower_id', getCurrentUser().id)
-      .in('following_id', normalizedProfileIds);
-
-    if (error) {
-      if (isNotificationsUnavailableError(error)) {
-        return {
-          preferencesByProfileId: new Map(),
-          arePreferencesAvailable: false
-        };
-      }
-
-      throw error;
-    }
-
-    return {
-      preferencesByProfileId: new Map(
-        (data || []).map(row => [
-          String(row.following_id),
-          {
-            notify_ratings: row.notify_ratings !== false,
-            notify_watchlist: row.notify_watchlist !== false,
-            notify_reviews: row.notify_reviews !== false
-          }
-        ])
-      ),
-      arePreferencesAvailable: true
-    };
+    return (await loadProfileFollowActions()).fetchFollowNotificationPreferences({
+      followerId: getCurrentUser().id,
+      profileIds: normalizedProfileIds
+    });
   }
 
   function getFollowingNotificationPreference(preferencesByProfileId, profileId) {
@@ -323,22 +290,19 @@ export function createFollowingPageController(context = {}) {
     followingPagePreferenceRequestKeys.add(requestKey);
 
     try {
-      const { error } = await supabaseClient
-        .from('user_follow_notification_preferences')
-        .upsert({
-          follower_id: getCurrentUser().id,
-          following_id: normalizedProfileId,
-          [normalizedKey]: Boolean(value)
-        }, {
-          onConflict: 'follower_id,following_id'
-        });
+      const result = await (await loadProfileFollowActions()).updateFollowNotificationPreference({
+        followerId: getCurrentUser().id,
+        followingId: normalizedProfileId,
+        key: normalizedKey,
+        value
+      });
 
-      if (error) {
-        if (isNotificationsUnavailableError(error)) {
+      if (!result.ok) {
+        if (result.arePreferencesAvailable === false) {
           setNotificationsUnavailable(true);
         }
 
-        throw error;
+        throw result.error || new Error('Follow notification preference update failed.');
       }
     } catch (error) {
       console.error('Ошибка обновления настройки отслеживания:', error);
@@ -378,13 +342,10 @@ export function createFollowingPageController(context = {}) {
     followingPageUnfollowRequestProfileIds.add(normalizedProfileId);
 
     try {
-      const { error } = await supabaseClient
-        .from('user_profile_follows')
-        .delete()
-        .eq('follower_id', getCurrentUser().id)
-        .eq('following_id', normalizedProfileId);
-
-      throwIfSupabaseError(error);
+      await (await loadProfileFollowActions()).unfollowProfile({
+        followerId: getCurrentUser().id,
+        followingId: normalizedProfileId
+      });
       deleteCurrentUserFollowedProfileId(normalizedProfileId);
       showAppMessage('Профиль больше не отслеживается.', 'success', true);
     } catch (error) {

@@ -12,6 +12,40 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Extract profile follow actions
+
+- Files:
+  - `app.js`
+  - `following-page.js`
+  - `profile-follow-actions.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Continued the shared profile/auth helpers backlog contour.
+  - Added lazy `profile-follow-actions.js` for Supabase reads/writes around followed profiles and per-follow notification preferences.
+  - Moved user-page follow/unfollow writes and `/following` follow/preference data actions behind the shared lazy action module.
+  - Kept `app.js` responsible for current followed-profile state, auth gates, user-page button state, and feedback messages; kept `following-page.js` responsible for page UI/rendering.
+  - Registered the new lazy asset in `/app-assets`, `_headers`, smoke checks, and size reporting.
+- Checks:
+  - `node --check app.js`
+  - `node --check following-page.js`
+  - `node --check profile-follow-actions.js`
+  - `node --check profile-settings-actions.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node -e "import('./profile-follow-actions.js').then(...)"`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles stay about `10.0 KiB` brotli below the saved baseline; `profile-follow-actions.js` stays lazy-loaded outside startup profiles.
+- Follow-up:
+  - Continue this contour with any remaining poster preference UI bridges or broader auth/profile cleanup.
+
 ## 2026-08-22 - Extract profile settings actions
 
 - Files:
