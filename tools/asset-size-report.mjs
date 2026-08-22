@@ -35,6 +35,7 @@ const assetGroups = {
     'movie-user-state.js',
     'notifications-page.js',
     'person-placeholders.js',
+    'profile-data-actions.js',
     'profile-follow-actions.js',
     'profile-settings-actions.js',
     'profile-utils.js',

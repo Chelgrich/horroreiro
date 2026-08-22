@@ -644,6 +644,8 @@ let catalogRenderControllerPromise = null;
 let catalogRenderController = null;
 let profileUtilsPromise = null;
 let profileUtils = null;
+let profileDataActionsPromise = null;
+let profileDataActions = null;
 let profileSettingsActionsPromise = null;
 let profileSettingsActions = null;
 let profileFollowActionsPromise = null;
@@ -4676,46 +4678,6 @@ function isMissingAvatarColumnError(error) {
   return getMissingProfileOptionalColumnName(error, ['avatar_url']) === 'avatar_url';
 }
 
-async function runProfileSelectWithOptionalColumns(createQuery, requiredSelectColumns, optionalColumns = []) {
-  let activeOptionalColumns = optionalColumns
-    .map(columnName => String(columnName || '').trim())
-    .filter(Boolean);
-
-  while (true) {
-    const selectColumns = [
-      String(requiredSelectColumns || '').trim(),
-      ...activeOptionalColumns
-    ].filter(Boolean).join(', ');
-    const { data, error } = await createQuery(selectColumns);
-
-    if (!error) {
-      return data || null;
-    }
-
-    const missingColumn = getMissingProfileOptionalColumnName(error, activeOptionalColumns);
-
-    if (!missingColumn) {
-      throwIfSupabaseError(error);
-      return data || null;
-    }
-
-    markMissingProfileOptionalColumn(missingColumn);
-    activeOptionalColumns = activeOptionalColumns.filter(columnName => columnName !== missingColumn);
-  }
-}
-
-async function runProfileSelectWithOptionalAvatar(createQuery, selectWithAvatar, selectWithoutAvatar) {
-  return runProfileSelectWithOptionalColumns(createQuery, selectWithoutAvatar, ['avatar_url']);
-}
-
-async function runCurrentUserProfileSelect(createQuery) {
-  return runProfileSelectWithOptionalColumns(
-    createQuery,
-    'role, display_name, default_display_name',
-    ['avatar_url', 'prefer_russian_posters']
-  );
-}
-
 function cachePublicProfileRows(rows = []) {
   getProfileUtils().cachePublicProfileRows(rows, {
     profilesByIdCache: publicProfilesByIdCache,
@@ -7577,16 +7539,7 @@ async function loadCurrentUserRole() {
   }
 
   try {
-    const data = await withAuthProfileRequestTimeout(
-      runCurrentUserProfileSelect(
-        selectColumns => supabaseClient
-          .from('profiles')
-          .select(selectColumns)
-          .eq('id', currentUser.id)
-          .single()
-      ),
-      'Не удалось загрузить профиль пользователя. Проверь соединение и попробуй обновить страницу.'
-    );
+    const data = await (await loadProfileDataActions()).fetchCurrentUserProfile(currentUser.id);
 
     currentUserRole = data?.role || null;
     currentUserProfile = data || null;
@@ -7882,6 +7835,32 @@ function getProfileUtils() {
   }
 
   return profileUtils;
+}
+
+function getProfileDataActionsContext() {
+  return {
+    supabaseClient,
+    withAuthProfileRequestTimeout,
+    throwIfSupabaseError,
+    onMissingOptionalColumn: markMissingProfileOptionalColumn
+  };
+}
+
+function loadProfileDataActions() {
+  if (!profileDataActionsPromise) {
+    profileDataActionsPromise = import(getLazyFeatureModuleUrl('profile-data-actions.js'))
+      .then(module => {
+        profileDataActions = module.createProfileDataActions(getProfileDataActionsContext());
+        return profileDataActions;
+      })
+      .catch(error => {
+        profileDataActionsPromise = null;
+        profileDataActions = null;
+        throw error;
+      });
+  }
+
+  return profileDataActionsPromise;
 }
 
 function getProfileSettingsActionsContext() {
@@ -16416,10 +16395,6 @@ async function initCatalogPage() {
   loadDeferredInitialUserState();
 }
 
-function isSafeUserProfileLookupHandle(handle) {
-  return /^[A-Za-z0-9_-]{3,80}$/.test(String(handle || '').trim());
-}
-
 function getUserPageRouteHandle() {
   const searchParams = new URLSearchParams(window.location.search);
   const pathHandleMatch = window.location.pathname.match(/\/user\/([^/]+)\/?$/);
@@ -16853,7 +16828,9 @@ async function fetchUserPageActivityRanks(profileId) {
 async function fetchPublicUserProfileByHandle(handle) {
   const normalizedHandle = String(handle || '').trim();
 
-  if (!normalizedHandle || !isSafeUserProfileLookupHandle(normalizedHandle)) {
+  const profileData = await loadProfileDataActions();
+
+  if (!normalizedHandle || !profileData.isSafeUserProfileLookupHandle(normalizedHandle)) {
     return null;
   }
 
@@ -16866,15 +16843,7 @@ async function fetchPublicUserProfileByHandle(handle) {
     return cachedProfile;
   }
 
-  const profile = await runProfileSelectWithOptionalAvatar(
-    selectColumns => supabaseClient
-      .from('profiles')
-      .select(selectColumns)
-      .eq('default_display_name', normalizedHandle)
-      .maybeSingle(),
-    'id, display_name, default_display_name, avatar_url',
-    'id, display_name, default_display_name'
-  );
+  const profile = await profileData.fetchPublicProfileByHandle(normalizedHandle);
 
   cachePublicProfileRows(profile ? [profile] : []);
 
@@ -16895,14 +16864,7 @@ async function fetchPublicProfilesByIds(profileIds = []) {
   const missingProfileIds = normalizedProfileIds.filter(profileId => !publicProfilesByIdCache.has(profileId));
 
   if (missingProfileIds.length > 0) {
-    const profiles = await runProfileSelectWithOptionalAvatar(
-      selectColumns => supabaseClient
-        .from('profiles')
-        .select(selectColumns)
-        .in('id', missingProfileIds),
-      'id, display_name, default_display_name, avatar_url',
-      'id, display_name, default_display_name'
-    );
+    const profiles = await (await loadProfileDataActions()).fetchPublicProfilesByIds(missingProfileIds);
 
     cachePublicProfileRows(profiles || []);
   }

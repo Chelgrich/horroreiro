@@ -40,6 +40,7 @@ const lazyJsFiles = [
   'movie-user-state.js',
   'notifications-page.js',
   'person-placeholders.js',
+  'profile-data-actions.js',
   'profile-follow-actions.js',
   'profile-settings-actions.js',
   'user-page.js',
@@ -191,6 +192,10 @@ function checkAssetSizeReport() {
   assert(
     Object.values(report.startup || {}).every(profile => profile.files?.includes('profile-utils.js')),
     'asset-size-report.mjs: profile-utils.js must stay accounted for in startup profiles'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('profile-data-actions.js')),
+    'asset-size-report.mjs: profile-data-actions.js must stay lazy-loaded outside startup profiles'
   );
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('profile-settings-actions.js')),
@@ -531,6 +536,7 @@ async function checkStaticGuards() {
     '/notifications-page.css',
     '/notifications-page.js',
     '/person-placeholders.js',
+    '/profile-data-actions.js',
     '/profile-follow-actions.js',
     '/profile-settings-actions.js',
     '/profile-utils.js',
@@ -587,6 +593,7 @@ async function checkStaticGuards() {
     'notifications-page.css',
     'notifications-page.js',
     'person-placeholders.js',
+    'profile-data-actions.js',
     'profile-follow-actions.js',
     'profile-settings-actions.js',
     'profile-utils.js',
@@ -620,6 +627,7 @@ async function checkStaticGuards() {
   const movieSocialJs = await readText('movie-social.js');
   const movieUserStateJs = await readText('movie-user-state.js');
   const notificationsPageJs = await readText('notifications-page.js');
+  const profileDataActionsJs = await readText('profile-data-actions.js');
   const profileFollowActionsJs = await readText('profile-follow-actions.js');
   const profileSettingsActionsJs = await readText('profile-settings-actions.js');
   const profileUtilsJs = await readText('profile-utils.js');
@@ -953,6 +961,18 @@ async function checkStaticGuards() {
       profileUtilsJs.includes('function getPublicProfileDisplayName(') &&
       profileUtilsJs.includes('function doesProfilePreferRussianPosters('),
     'app.js: shared profile display/avatar helpers should stay in profile-utils.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('profile-data-actions.js'))") &&
+      !appJs.includes('function runProfileSelectWithOptionalColumns(') &&
+      !appJs.includes('function runProfileSelectWithOptionalAvatar(') &&
+      !appJs.includes('function runCurrentUserProfileSelect(') &&
+      !appJs.includes('function isSafeUserProfileLookupHandle(') &&
+      profileDataActionsJs.includes('function runProfileSelectWithOptionalColumns(') &&
+      profileDataActionsJs.includes('function fetchCurrentUserProfile(') &&
+      profileDataActionsJs.includes('function fetchPublicProfileByHandle(') &&
+      profileDataActionsJs.includes('function fetchPublicProfilesByIds('),
+    'app.js: profile Supabase read helpers should stay in profile-data-actions.js'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('profile-settings-actions.js'))") &&

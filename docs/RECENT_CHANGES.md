@@ -12,6 +12,39 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Extract profile data actions
+
+- Files:
+  - `app.js`
+  - `profile-data-actions.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Completed the shared profile/auth helpers backlog contour for the current optimization stage.
+  - Added lazy `profile-data-actions.js` for Supabase profile reads: current-user role/profile payload, public profile lookup by handle, public profile batch lookup by id, and optional-column fallback for `profiles`.
+  - Removed profile select orchestration helpers and direct public/current profile `profiles` queries from `app.js`.
+  - Kept `app.js` responsible for current profile/role state, public profile caches, UI reactions to missing optional columns, and page rerender bridges.
+  - Registered the new lazy asset in `/app-assets`, `_headers`, smoke checks, and size reporting.
+- Checks:
+  - `node --check app.js`
+  - `node --check profile-data-actions.js`
+  - `node --check profile-settings-actions.js`
+  - `node --check profile-follow-actions.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node -e "import('./profile-data-actions.js').then(...)"`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles stay about `10.2 KiB` brotli below the saved baseline; `profile-data-actions.js` stays lazy-loaded outside startup profiles.
+- Follow-up:
+  - Move to backlog point 6: CSS/global style tightening, or pick a new optimization contour if priorities changed.
+
 ## 2026-08-22 - Extract profile follow actions
 
 - Files:

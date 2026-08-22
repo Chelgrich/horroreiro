@@ -98,7 +98,7 @@ All HTML-like app shell responses should be no-store.
 `app.js` is still the main application file. It owns:
 
 - Supabase client setup;
-- auth/user role/profile loading;
+- auth state and current role/profile state assignment;
 - session-memory public profile and movie-by-id row caches for repeated profile, notification, and rail lookups;
 - catalog state, filters, presets, and DOM/render bridges for URL state and pagination;
 - movie modal add/edit bridge and Supabase writes;
@@ -146,7 +146,9 @@ Profile ranking note:
 
 `profile-utils.js` is loaded during shared app init and owns pure profile display helpers: display-name normalization/validation, public profile display name and handle, current-user public handle/display-name derivation, safe avatar URL parsing, user-page avatar HTML, public profile row cache merging, and the `prefer_russian_posters` boolean check. `app.js` keeps Supabase profile reads, auth state, profile settings UI, follow actions, and poster-preference dependent rerender bridges.
 
-`profile-settings-actions.js` is lazy-loaded only when profile settings actions are used. It owns Supabase/Auth/Storage writes for display-name availability and saving, profile poster preference saving, profile password verification/update, avatar upload/delete from Storage, and `profiles.avatar_url` updates. `app.js` keeps form validation/focus, status messages, local profile state mutation, modal/crop UI, and post-save rerender/cache bridges.
+`profile-data-actions.js` is lazy-loaded when profile Supabase reads are needed. It owns optional-column fallback for `profiles`, current-user profile reads, public profile lookup by handle, and public profile batch lookup by id. `app.js` keeps profile caches, current role/profile state assignment, UI reactions to missing optional columns, and page-specific rerender bridges.
+
+`profile-settings-actions.js` is lazy-loaded only when profile settings actions are used. It owns Supabase/Auth/Storage writes for display-name availability and saving, profile poster preference saving, password verification/update, avatar upload/delete from Storage, and `profiles.avatar_url` updates. `app.js` keeps form validation/focus, status messages, local profile state mutation, modal/crop UI, and post-save rerender/cache bridges.
 
 `profile-follow-actions.js` is lazy-loaded when profile follow data or mutations are needed. It owns Supabase reads/writes for `user_profile_follows` and `user_follow_notification_preferences`: current followed-profile rows, follow/unfollow, per-follow notification preference reads, and per-follow preference updates. `app.js` keeps current followed-profile Set state, user-page follow button rendering, auth gates, and feedback messages; `following-page.js` keeps the `/following` page UI and delegates data actions to this module.
 
@@ -212,7 +214,7 @@ Work through this backlog one contour per pass unless the user explicitly change
 2. Movie editor: completed for the current optimization stage. Keep editor-specific draft/form/submit/poster/manual-similar/save logic in `movie-editor.js`; `app.js` should keep only the shared modal shell bridge, state assignment, Supabase callbacks, and page/cache/render callbacks.
 3. Supabase payload/select audit: completed for the current optimization stage. Notifications split lightweight movie links from digest movie cards; profile rails use compact activity row selects; person/director pages use explicit `PEOPLE_*_SELECT` profiles; poster gallery display reads use a compact `MOVIE_POSTER_IMAGE_DISPLAY_SELECT`; catalog payload no longer includes import-only `letterboxd_short_url`, and Letterboxd import uses `MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT`.
 4. Catalog module split: completed for the current optimization stage. Catalog movie card DOM/HTML rendering lives in lazy `catalog-cards.js`; list/month DOM fragment rendering and month-local sorting live in lazy `catalog-render.js`; pagination math/HTML/result-count text lives in lazy `catalog-pagination.js`; URL param parsing/building lives in lazy `catalog-url-state.js`; quick preset mechanics live in lazy `catalog-presets.js`; filter matching/count mechanics live in lazy `catalog-filters.js`; fast-return/session/DOM snapshot storage mechanics live in lazy `catalog-return-cache.js`. Keep `app.js` as catalog state/data/event bridge.
-5. Shared profile/auth helpers: in progress. Pure profile display/cache/avatar-letter/avatar-HTML helpers and `prefer_russian_posters` checks live in `profile-utils.js`; profile settings Supabase/Auth/Storage writes live in lazy `profile-settings-actions.js`; profile follow/follow-notification Supabase actions live in lazy `profile-follow-actions.js`. Continue with any remaining poster preference UI bridges or auth/profile cleanup.
+5. Shared profile/auth helpers: completed for the current optimization stage. Pure profile display/cache/avatar-letter/avatar-HTML helpers and `prefer_russian_posters` checks live in `profile-utils.js`; profile Supabase reads and optional-column fallback live in lazy `profile-data-actions.js`; profile settings Supabase/Auth/Storage writes live in lazy `profile-settings-actions.js`; profile follow/follow-notification Supabase actions live in lazy `profile-follow-actions.js`. `app.js` should remain the state/UI bridge for these areas.
 6. CSS: after JS boundaries are cleaner, split or tighten remaining global `styles.css`, especially catalog-only styles and repeated shared values.
 
 ## Framework Island
