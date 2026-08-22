@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Trim poster gallery display payloads
+
+- Files:
+  - `app.js`
+  - `tools/smoke-check.mjs`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Continued the movie detail RPC/fallback payload audit.
+  - Kept `MOVIE_DETAIL_SELECT` intact because its fields are used by the public movie header, SEO, external links, and metadata.
+  - Added `MOVIE_POSTER_IMAGE_DISPLAY_SELECT` for public poster gallery and Russian-poster preference reads.
+  - Removed unused `movie_poster_images.id` from single-movie and batch poster-gallery display fetches.
+  - Added smoke coverage so display poster reads do not drift back to the wider row payload.
+- Checks:
+  - `node --check app.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles remain about `7.1 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue payload/select audit with catalog payload and any remaining movie detail fallback edges.
+
 ## 2026-08-22 - Add explicit people select profiles
 
 - Files:

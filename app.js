@@ -329,6 +329,7 @@ const POSTER_IMAGE_PRESETS = {
     sizes: '(max-width: 680px) calc(100vw - 64px), (max-width: 900px) 232px, 320px'
   }
 };
+const MOVIE_POSTER_IMAGE_DISPLAY_SELECT = 'movie_id, image_url, position';
 const POSTER_IMAGE_CACHE_MAX_ENTRIES = 1500;
 const posterTransformUrlCache = new Map();
 const posterImageDataCache = new Map();
@@ -3521,7 +3522,7 @@ async function fetchMoviePosterImagesForMovie(movieId, { force = false } = {}) {
   const loadPromise = (async () => {
     const { data, error } = await supabaseClient
       .from('movie_poster_images')
-      .select('id, movie_id, image_url, position')
+      .select(MOVIE_POSTER_IMAGE_DISPLAY_SELECT)
       .eq('movie_id', normalizedMovieId)
       .order('position', { ascending: true });
 
@@ -3585,7 +3586,7 @@ async function fetchMoviePosterImagesForMovies(movieIds = [], { force = false } 
     const chunkMovieIds = movieIdsToFetch.slice(index, index + chunkSize);
     const { data, error } = await supabaseClient
       .from('movie_poster_images')
-      .select('id, movie_id, image_url, position')
+      .select(MOVIE_POSTER_IMAGE_DISPLAY_SELECT)
       .in('movie_id', chunkMovieIds)
       .order('movie_id', { ascending: true })
       .order('position', { ascending: true });

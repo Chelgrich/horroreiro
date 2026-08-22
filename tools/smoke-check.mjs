@@ -588,6 +588,12 @@ async function checkStaticGuards() {
     'app.js/director-page.js: person/director pages must use explicit people select profiles'
   );
   assert(
+    appJs.includes("const MOVIE_POSTER_IMAGE_DISPLAY_SELECT = 'movie_id, image_url, position'") &&
+      appJs.includes('.select(MOVIE_POSTER_IMAGE_DISPLAY_SELECT)') &&
+      !appJs.includes(".select('id, movie_id, image_url, position')"),
+    'app.js: public poster gallery/preference reads must not fetch unused movie_poster_images.id'
+  );
+  assert(
     appJs.includes("import(getLazyFeatureModuleUrl('movie-page-shell.js'))"),
     'app.js: movie detail shell must lazy-load movie-page-shell.js'
   );

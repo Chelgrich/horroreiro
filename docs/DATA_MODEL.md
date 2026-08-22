@@ -33,6 +33,8 @@ Related movie data:
 - poster gallery rows, used by detail gallery and admin poster editor;
 - manual similar movie rows.
 
+Poster gallery display reads use `MOVIE_POSTER_IMAGE_DISPLAY_SELECT` (`movie_id`, `image_url`, `position`). Public display, detail gallery, and Russian-poster preference do not need `movie_poster_images.id`.
+
 Client movie select profiles:
 
 - `MOVIE_CATALOG_SELECT`: catalog cards and full catalog cache.
