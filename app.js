@@ -9481,6 +9481,20 @@ function getCatalogMovieMeta(movie) {
   return buildCatalogMovieMeta(movie);
 }
 
+function addCount(counts, key) {
+  if (!counts || typeof counts.get !== 'function' || typeof counts.set !== 'function') {
+    return;
+  }
+
+  const normalizedKey = typeof key === 'string' ? key.trim() : key;
+
+  if (normalizedKey === null || normalizedKey === undefined || normalizedKey === '') {
+    return;
+  }
+
+  counts.set(normalizedKey, (counts.get(normalizedKey) || 0) + 1);
+}
+
 function getCatalogMovieById(movieId) {
   return catalogMoviesById.get(String(movieId)) || null;
 }

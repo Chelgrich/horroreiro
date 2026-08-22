@@ -954,6 +954,13 @@ async function checkStaticGuards() {
     'app.js: user page renderer should stay in user-page.js'
   );
   assert(
+    appJs.includes('function addCount(counts, key)') &&
+      appJs.includes('addCount,') &&
+      userPageJs.includes('addCount = () => {}') &&
+      userPageJs.includes('addCount(genreCounts, genreName)'),
+    'app.js/user-page.js: user page count helper must stay available in controller context'
+  );
+  assert(
     appJs.includes("import(getLazyFeatureModuleUrl('profile-utils.js'))") &&
       !appJs.includes('return /^[A-Za-zА-Яа-яЁё0-9_]{3,24}$/.test') &&
       !appJs.includes('function getPublicProfileAvatarUrl(profile) {\n  const rawUrl') &&

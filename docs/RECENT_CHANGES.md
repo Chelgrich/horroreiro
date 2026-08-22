@@ -12,6 +12,25 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Restore user page count helper
+
+- Files:
+  - `app.js`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Fixed the `/user/*` startup regression caused by `getUserPageControllerContext()` passing `addCount` after the shared profile data refactor while the helper was missing from `app.js`.
+  - Restored the shared `addCount` helper used by `user-page.js` for profile taste stats and activity rank count maps.
+  - Added a smoke-check guard for the `app.js` to `user-page.js` count-helper bridge so this contract cannot disappear silently in later lazy-module refactors.
+- Checks:
+  - `node --check app.js`
+  - `node --check user-page.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `git diff --check`
+- Follow-up:
+  - Continue with the current optimization backlog after the profile route fix is verified on `dev`.
+
 ## 2026-08-22 - Extract profile data actions
 
 - Files:
