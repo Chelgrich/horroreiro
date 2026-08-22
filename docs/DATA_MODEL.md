@@ -38,7 +38,8 @@ Client movie select profiles:
 - `MOVIE_CATALOG_SELECT`: catalog cards and full catalog cache.
 - `MOVIE_DETAIL_SELECT`: public movie detail fallback payload.
 - `MOVIE_EDITOR_SELECT`: admin movie add/edit modal payload.
-- `MOVIE_USER_PAGE_CARD_SELECT`: profile rails and notification movie digests.
+- `MOVIE_USER_PAGE_CARD_SELECT`: profile rails and notification new-movie digest cards.
+- `MOVIE_NOTIFICATION_LINK_SELECT`: lightweight movie links in non-digest notifications.
 - `MOVIE_USER_PAGE_TASTE_SELECT`: profile taste statistics.
 - `MOVIE_SIMILAR_CARD_SELECT`: movie detail manual similar cards; use this instead of full catalog payload when only similar-card fields are needed.
 

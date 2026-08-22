@@ -10890,6 +10890,13 @@ const MOVIE_USER_PAGE_CARD_SELECT = `
   poster_url
 `;
 
+const MOVIE_NOTIFICATION_LINK_SELECT = `
+  id,
+  slug,
+  title,
+  year
+`;
+
 const MOVIE_USER_PAGE_TASTE_SELECT = `
   id,
   year,
@@ -18260,6 +18267,7 @@ function getNotificationsPageControllerContext() {
     fetchMoviesByIdsWithSelect,
     ensurePreferredPosterImagesForMovies,
     movieUserPageCardSelect: MOVIE_USER_PAGE_CARD_SELECT,
+    movieNotificationLinkSelect: MOVIE_NOTIFICATION_LINK_SELECT,
     getManualSimilarMovieLabel,
     normalizeMovieReviewText,
     normalizeMovieCommentText,

@@ -12,6 +12,32 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Split notification movie payloads
+
+- Files:
+  - `app.js`
+  - `notifications-page.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Started the Supabase payload/select audit with the notifications page.
+  - Added `MOVIE_NOTIFICATION_LINK_SELECT` for non-digest notification movie links (`id`, `slug`, `title`, `year`).
+  - Kept `MOVIE_USER_PAGE_CARD_SELECT` for new-movie digest cards where `poster_url` and `original_title` are actually rendered.
+  - Split notification movie fetching so poster preference enrichment runs only for digest card movies.
+  - Added smoke coverage for the link-vs-digest select boundary.
+- Checks:
+  - `node --check app.js`
+  - `node --check notifications-page.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `7.3 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue payload/select audit with catalog/profile/person/detail payloads.
+
 ## 2026-08-22 - Close movie editor optimization contour
 
 - Files:

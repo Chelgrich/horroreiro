@@ -54,6 +54,7 @@ export function createNotificationsPageController(context = {}) {
     fetchMoviesByIdsWithSelect = async () => [],
     ensurePreferredPosterImagesForMovies = async () => {},
     movieUserPageCardSelect = '',
+    movieNotificationLinkSelect = '',
     getManualSimilarMovieLabel = () => '',
     normalizeMovieReviewText = value => String(value || ''),
     normalizeMovieCommentText = value => String(value || ''),
@@ -310,26 +311,30 @@ export function createNotificationsPageController(context = {}) {
         .map(item => item.actorId)
         .filter(Boolean)
     )];
-    const movieIds = [...new Set(
+    const notificationMovieIds = [...new Set(
       notificationRows
-        .flatMap(item => [
-          item.movieId,
-          ...getNotificationMovieIdsFromPayload(item.payload)
-        ])
+        .map(item => String(item.movieId || '').trim())
+        .filter(Boolean)
+    )];
+    const digestMovieIds = [...new Set(
+      notificationRows
+        .flatMap(item => getNotificationMovieIdsFromPayload(item.payload))
         .map(movieId => String(movieId || '').trim())
         .filter(Boolean)
     )];
     const reviewSnippetIds = getNotificationReviewSnippetIds(notificationRows);
     const commentSnippetIds = getNotificationCommentSnippetIds(notificationRows);
-    const [profiles, movies, reviewSnippets, commentSnippets] = await Promise.all([
+    const [profiles, notificationMovies, digestMovies, reviewSnippets, commentSnippets] = await Promise.all([
       fetchPublicProfilesByIds(actorIds),
-      fetchMoviesByIdsWithSelect(movieIds, movieUserPageCardSelect),
+      fetchMoviesByIdsWithSelect(notificationMovieIds, movieNotificationLinkSelect || movieUserPageCardSelect),
+      fetchMoviesByIdsWithSelect(digestMovieIds, movieUserPageCardSelect),
       fetchNotificationReviewSnippets(reviewSnippetIds),
       fetchNotificationCommentSnippets(commentSnippetIds)
     ]);
-    await ensurePreferredPosterImagesForMovies(movies);
+    await ensurePreferredPosterImagesForMovies(digestMovies);
     const profilesById = new Map((profiles || []).map(profile => [String(profile.id), profile]));
-    const moviesById = new Map((movies || []).map(movie => [String(movie.id), movie]));
+    const notificationMoviesById = new Map((notificationMovies || []).map(movie => [String(movie.id), movie]));
+    const digestMoviesById = new Map((digestMovies || []).map(movie => [String(movie.id), movie]));
     const reviewSnippetsById = new Map((reviewSnippets || []).map(review => [String(review.id), review]));
     const commentSnippetsById = new Map((commentSnippets || []).map(comment => [String(comment.id), comment]));
 
@@ -338,11 +343,11 @@ export function createNotificationsPageController(context = {}) {
       .map(item => ({
         ...item,
         actor: item.actorId ? profilesById.get(item.actorId) : null,
-        movie: item.movieId ? moviesById.get(item.movieId) : null,
+        movie: item.movieId ? notificationMoviesById.get(item.movieId) : null,
         reviewSnippet: item.entityId ? reviewSnippetsById.get(item.entityId) : null,
         commentSnippet: item.entityId ? commentSnippetsById.get(item.entityId) : null,
         digestMovies: getNotificationMovieIdsFromPayload(item.payload)
-          .map(movieId => moviesById.get(movieId))
+          .map(movieId => digestMoviesById.get(movieId))
           .filter(Boolean)
       }))
       .sort((firstItem, secondItem) => (

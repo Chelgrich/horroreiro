@@ -566,6 +566,15 @@ async function checkStaticGuards() {
     'app.js: public movie detail select and admin movie editor select must stay split'
   );
   assert(
+    appJs.includes('const MOVIE_NOTIFICATION_LINK_SELECT = `') &&
+      appJs.includes('movieNotificationLinkSelect: MOVIE_NOTIFICATION_LINK_SELECT') &&
+      notificationsPageJs.includes('movieNotificationLinkSelect =') &&
+      notificationsPageJs.includes('fetchMoviesByIdsWithSelect(notificationMovieIds, movieNotificationLinkSelect || movieUserPageCardSelect)') &&
+      notificationsPageJs.includes('fetchMoviesByIdsWithSelect(digestMovieIds, movieUserPageCardSelect)') &&
+      notificationsPageJs.includes('await ensurePreferredPosterImagesForMovies(digestMovies)'),
+    'notifications-page.js: notification link movies must use a skinny select separate from digest cards'
+  );
+  assert(
     appJs.includes("import(getLazyFeatureModuleUrl('movie-page-shell.js'))"),
     'app.js: movie detail shell must lazy-load movie-page-shell.js'
   );

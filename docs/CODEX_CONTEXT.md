@@ -190,7 +190,7 @@ Work through this backlog one contour per pass unless the user explicitly change
 
 1. Movie detail orchestration: completed; keep route/load/init/similar/social/interactions/shell/user-state orchestration in lazy modules. `app.js` should remain a data/state bridge here, with only small maintenance cleanup expected.
 2. Movie editor: completed for the current optimization stage. Keep editor-specific draft/form/submit/poster/manual-similar/save logic in `movie-editor.js`; `app.js` should keep only the shared modal shell bridge, state assignment, Supabase callbacks, and page/cache/render callbacks.
-3. Supabase payload/select audit: review catalog, profile rails/taste, notifications, person/director payload, and movie detail RPC fallback so each page fetches only fields it actually needs.
+3. Supabase payload/select audit: in progress. Notifications now split lightweight movie links from digest movie cards; continue with catalog, profile rails/taste, person/director payload, and movie detail RPC fallback so each page fetches only fields it actually needs.
 4. Catalog module split: move filters, presets, URL params, pagination, card rendering, and catalog return-state cache out of `app.js` after detail/editor boundaries are steadier.
 5. Shared profile/auth helpers: extract reusable profile helpers, avatar/settings actions, follow actions, and poster preference helpers into a shared profile module.
 6. CSS: after JS boundaries are cleaner, split or tighten remaining global `styles.css`, especially catalog-only styles and repeated shared values.
