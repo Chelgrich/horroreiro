@@ -35,6 +35,7 @@ const assetGroups = {
     'movie-user-state.js',
     'notifications-page.js',
     'person-placeholders.js',
+    'profile-utils.js',
     'user-page.js',
     'assets/directors-admin-app.js'
   ],
@@ -68,28 +69,32 @@ const startupProfiles = {
     'shared-layout.js',
     'custom-select.js',
     'app-page-runtime.js',
-    'app.js'
+    'app.js',
+    'profile-utils.js'
   ],
   movie: [
     'boot-loader.js',
     'app-script-loader.js',
     'shared-layout.js',
     'app-page-runtime.js',
-    'app.js'
+    'app.js',
+    'profile-utils.js'
   ],
   profile: [
     'boot-loader.js',
     'app-script-loader.js',
     'shared-layout.js',
     'app-page-runtime.js',
-    'app.js'
+    'app.js',
+    'profile-utils.js'
   ],
   notifications: [
     'boot-loader.js',
     'app-script-loader.js',
     'shared-layout.js',
     'app-page-runtime.js',
-    'app.js'
+    'app.js',
+    'profile-utils.js'
   ],
   directors: [
     'boot-loader.js',
@@ -97,6 +102,7 @@ const startupProfiles = {
     'shared-layout.js',
     'app-page-runtime.js',
     'app.js',
+    'profile-utils.js',
     'assets/directors-admin-app.js'
   ]
 };

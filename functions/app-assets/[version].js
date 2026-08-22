@@ -33,6 +33,7 @@ const ALLOWED_APP_ASSETS = new Set([
   'notifications-page.js',
   'notifications-page.css',
   'movie-page.css',
+  'profile-utils.js',
   'person-placeholders.js',
   'secondary-pages.css',
   'shared-layout.js',

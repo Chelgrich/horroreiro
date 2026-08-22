@@ -642,6 +642,8 @@ let catalogCardControllerPromise = null;
 let catalogCardController = null;
 let catalogRenderControllerPromise = null;
 let catalogRenderController = null;
+let profileUtilsPromise = null;
+let profileUtils = null;
 let directorModal = null;
 let directorForm = null;
 let directorModalTitle = null;
@@ -4342,34 +4344,23 @@ function escapeRegExp(value) {
 }
 
 function normalizeDisplayNameValue(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase();
+  return getProfileUtils().normalizeDisplayNameValue(value);
 }
 
 function isValidDisplayNameValue(value) {
-  return /^[A-Za-zА-Яа-яЁё0-9_]{3,24}$/.test(String(value || '').trim());
+  return getProfileUtils().isValidDisplayNameValue(value);
 }
 
 function getCurrentDisplayName() {
-  return String(
-    currentUser?.user_metadata?.display_name ||
-    currentUserProfile?.display_name ||
-    currentUserProfile?.default_display_name ||
-    ''
-  ).trim();
+  return getProfileUtils().getCurrentDisplayName(currentUser, currentUserProfile);
 }
 
 function getCurrentUserPublicHandle() {
-  return String(
-    currentUserProfile?.default_display_name ||
-    currentUser?.id ||
-    ''
-  ).trim();
+  return getProfileUtils().getCurrentUserPublicHandle(currentUser, currentUserProfile);
 }
 
 function doesProfilePreferRussianPosters(profile = currentUserProfile) {
-  return Boolean(profile?.prefer_russian_posters);
+  return getProfileUtils().doesProfilePreferRussianPosters(profile);
 }
 
 function shouldPreferRussianPosters() {
@@ -4722,27 +4713,10 @@ async function runCurrentUserProfileSelect(createQuery) {
 }
 
 function cachePublicProfileRows(rows = []) {
-  (Array.isArray(rows) ? rows : [rows])
-    .filter(Boolean)
-    .forEach(profile => {
-      const profileId = String(profile?.id || '').trim();
-
-      if (!profileId) {
-        return;
-      }
-
-      publicProfilesByIdCache.set(profileId, {
-        ...(publicProfilesByIdCache.get(profileId) || {}),
-        ...profile,
-        id: profileId
-      });
-
-      const profileHandle = String(profile?.default_display_name || '').trim();
-
-      if (profileHandle) {
-        publicProfileIdsByHandleCache.set(profileHandle, profileId);
-      }
-    });
+  getProfileUtils().cachePublicProfileRows(rows, {
+    profilesByIdCache: publicProfilesByIdCache,
+    profileIdsByHandleCache: publicProfileIdsByHandleCache
+  });
 }
 
 function getAvatarFriendlyErrorMessage(error) {
@@ -4765,57 +4739,19 @@ function getAvatarFriendlyErrorMessage(error) {
 }
 
 function getPublicProfileAvatarUrl(profile) {
-  const rawUrl = String(profile?.avatar_url || '').trim();
-
-  if (!rawUrl) {
-    return '';
-  }
-
-  try {
-    const parsedUrl = new URL(rawUrl);
-
-    if (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') {
-      return parsedUrl.toString();
-    }
-  } catch (error) {
-    return '';
-  }
-
-  return '';
+  return getProfileUtils().getPublicProfileAvatarUrl(profile);
 }
 
 function getUserPageAvatarLetter(displayName) {
-  return String(displayName || 'H').trim().slice(0, 1).toUpperCase() || 'H';
+  return getProfileUtils().getUserPageAvatarLetter(displayName);
 }
 
 function getUserPageAvatarMediaHtml(profile, displayName) {
-  const avatarUrl = getPublicProfileAvatarUrl(profile);
-
-  if (avatarUrl) {
-    return `
-      <img
-        class="user-page-avatar user-page-avatar-image"
-        data-user-page-avatar="true"
-        src="${escapeHtml(avatarUrl)}"
-        decoding="async"
-        alt="Аватар пользователя ${escapeHtml(displayName)}"
-      >
-    `;
-  }
-
-  return `
-    <div class="user-page-avatar" data-user-page-avatar="true" aria-hidden="true">
-      ${escapeHtml(getUserPageAvatarLetter(displayName))}
-    </div>
-  `;
+  return getProfileUtils().getUserPageAvatarMediaHtml(profile, displayName);
 }
 
 function getUserPageAvatarHtml(profile, displayName, canEditAvatar) {
-  return `
-    <div class="user-page-avatar-shell" data-user-page-avatar-shell="true" data-profile-avatar-media-slot="true">
-      ${getUserPageAvatarMediaHtml(profile, displayName)}
-    </div>
-  `;
+  return getProfileUtils().getUserPageAvatarHtml(profile, displayName, canEditAvatar);
 }
 
 function syncUserPageAvatarControls(profile = currentUserProfile) {
@@ -7970,6 +7906,37 @@ function getLazyFeatureModuleUrl(filename) {
   const assetPath = window.location.protocol === 'file:' ? filename : `/${filename}`;
 
   return `${assetPath}?v=${encodeURIComponent(APP_BUILD_VERSION)}`;
+}
+
+function getProfileUtilsContext() {
+  return {
+    escapeHtml
+  };
+}
+
+function loadProfileUtils() {
+  if (!profileUtilsPromise) {
+    profileUtilsPromise = import(getLazyFeatureModuleUrl('profile-utils.js'))
+      .then(module => {
+        profileUtils = module.createProfileUtils(getProfileUtilsContext());
+        return profileUtils;
+      })
+      .catch(error => {
+        profileUtilsPromise = null;
+        profileUtils = null;
+        throw error;
+      });
+  }
+
+  return profileUtilsPromise;
+}
+
+function getProfileUtils() {
+  if (!profileUtils) {
+    throw new Error('Profile utils module is not loaded.');
+  }
+
+  return profileUtils;
 }
 
 function loadLetterboxdImportTools() {
@@ -16504,15 +16471,11 @@ function getUserPageRouteHandle() {
 }
 
 function getPublicProfileDisplayName(profile) {
-  return String(
-    profile?.display_name ||
-    profile?.default_display_name ||
-    'Пользователь'
-  ).trim();
+  return getProfileUtils().getPublicProfileDisplayName(profile);
 }
 
 function getPublicProfileHandle(profile) {
-  return String(profile?.default_display_name || '').trim();
+  return getProfileUtils().getPublicProfileHandle(profile);
 }
 
 function buildUserCanonicalUrl(profile) {
@@ -18498,6 +18461,8 @@ async function initSharedApp() {
     window.location.replace(window.location.pathname + window.location.search + window.location.hash);
     return false;
   }
+
+  await loadProfileUtils();
 
   bindCustomSelectGlobalEvents();
   initCustomSelects();

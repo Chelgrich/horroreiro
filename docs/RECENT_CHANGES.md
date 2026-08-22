@@ -12,6 +12,36 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Extract shared profile utils
+
+- Files:
+  - `app.js`
+  - `profile-utils.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Started the shared profile/auth helpers backlog contour.
+  - Added shared `profile-utils.js` for pure profile display/cache helpers: display-name normalization and validation, public profile display name/handle, current-user display name/handle derivation, safe avatar URL parsing, user-page avatar HTML, public profile cache merging, and `prefer_russian_posters` checks.
+  - Kept `app.js` responsible for Supabase profile reads/writes, auth state, avatar upload/delete actions, profile settings UI, follow actions, and poster-preference dependent UI refreshes.
+  - Registered the new shared startup asset in `/app-assets`, `_headers`, smoke checks, and size reporting.
+- Checks:
+  - `node --check app.js`
+  - `node --check profile-utils.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node -e "import('./profile-utils.js').then(...)"`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `10.1 KiB` brotli below the saved baseline with `profile-utils.js` included in shared startup accounting.
+- Follow-up:
+  - Continue this contour with avatar/settings actions or follow actions.
+
 ## 2026-08-22 - Extract catalog render module
 
 - Files:

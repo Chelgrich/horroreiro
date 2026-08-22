@@ -14,7 +14,8 @@ const clientJsFiles = [
   'shared-layout.js',
   'custom-select.js',
   'app-page-runtime.js',
-  'app.js'
+  'app.js',
+  'profile-utils.js'
 ];
 const lazyJsFiles = [
   'admin-actions.js',
@@ -184,6 +185,10 @@ function checkAssetSizeReport() {
   assert(
     !report.startup?.movie?.files?.includes('custom-select.js'),
     'asset-size-report.mjs: movie startup profile must lazy-load custom-select.js'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => profile.files?.includes('profile-utils.js')),
+    'asset-size-report.mjs: profile-utils.js must stay accounted for in startup profiles'
   );
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('catalog-cards.js')),
@@ -516,6 +521,7 @@ async function checkStaticGuards() {
     '/notifications-page.css',
     '/notifications-page.js',
     '/person-placeholders.js',
+    '/profile-utils.js',
     '/user-page.js',
     '/assets/directors-admin-app.js',
     '/shared-layout.js',
@@ -569,6 +575,7 @@ async function checkStaticGuards() {
     'notifications-page.css',
     'notifications-page.js',
     'person-placeholders.js',
+    'profile-utils.js',
     'user-page.js',
     'assets/directors-admin-app.js',
     'shared-layout.js',
@@ -598,6 +605,7 @@ async function checkStaticGuards() {
   const movieSocialJs = await readText('movie-social.js');
   const movieUserStateJs = await readText('movie-user-state.js');
   const notificationsPageJs = await readText('notifications-page.js');
+  const profileUtilsJs = await readText('profile-utils.js');
   const userPageJs = await readText('user-page.js');
   const directorsAdminSource = await readText('src/directors-admin-app.jsx');
 
@@ -919,6 +927,15 @@ async function checkStaticGuards() {
     !appJs.includes('function renderUserPageLoading()') &&
       userPageJs.includes('function renderUserPageLoading()'),
     'app.js: user page renderer should stay in user-page.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('profile-utils.js'))") &&
+      !appJs.includes('return /^[A-Za-zА-Яа-яЁё0-9_]{3,24}$/.test') &&
+      !appJs.includes('function getPublicProfileAvatarUrl(profile) {\n  const rawUrl') &&
+      profileUtilsJs.includes('function getPublicProfileAvatarUrl(') &&
+      profileUtilsJs.includes('function getPublicProfileDisplayName(') &&
+      profileUtilsJs.includes('function doesProfilePreferRussianPosters('),
+    'app.js: shared profile display/avatar helpers should stay in profile-utils.js'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('catalog-cards.js'))") &&
