@@ -12,6 +12,19 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Document PowerShell query-string interpolation trap
+
+- Files:
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a local workflow trap for PowerShell URL strings where `$version?file=...` is parsed as a different variable name and sends a broken `/app-assets/=...` request.
+  - Documented the safer `${version}?file=...` interpolation style for direct versioned asset checks.
+- Checks:
+  - `node tools\smoke-check.mjs`
+- Follow-up:
+  - Keep using braced variables in PowerShell commands that place punctuation immediately after an interpolated value.
+
 ## 2026-08-22 - Document inline JS diagnostic encoding trap
 
 - Files:
