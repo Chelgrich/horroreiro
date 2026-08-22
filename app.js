@@ -502,15 +502,6 @@ const CATALOG_URL_VALUE_ALIASES = {
     'Япония': 'japan'
   }
 };
-const CATALOG_URL_VALUE_ALIAS_LOOKUPS = Object.fromEntries(
-  Object.entries(CATALOG_URL_VALUE_ALIASES).map(([paramName, valueMap]) => [
-    paramName,
-    Object.fromEntries(
-      Object.entries(valueMap).map(([label, alias]) => [alias, label])
-    )
-  ])
-);
-
 let currentUser = null;
 let currentUserRole = null;
 let currentUserProfile = null;
@@ -637,6 +628,9 @@ let moviePageSimilarControllerPromise = null;
 let moviePageSimilarController = null;
 let catalogPaginationToolsPromise = null;
 let catalogPaginationTools = null;
+let catalogUrlStateToolsPromise = null;
+let catalogUrlStateTools = null;
+let catalogUrlValueAliasLookups = null;
 let directorModal = null;
 let directorForm = null;
 let directorModalTitle = null;
@@ -6533,22 +6527,6 @@ function getCurrentCatalogStateForPersistence() {
   };
 }
 
-function hasCatalogUrlStateParams(searchParams = new URLSearchParams(window.location.search)) {
-  return Array.from(CATALOG_URL_STATE_PARAMS).some(paramName => searchParams.has(paramName));
-}
-
-function getSelectOptionValue(selectElement, value, fallbackValue = '') {
-  const normalizedValue = String(value || '').trim();
-
-  if (!normalizedValue || !selectElement) {
-    return fallbackValue;
-  }
-
-  return Array.from(selectElement.options).some(option => option.value === normalizedValue)
-    ? normalizedValue
-    : fallbackValue;
-}
-
 function getCatalogRangeFilterConfig(rangeKey) {
   return CATALOG_RANGE_FILTER_CONFIGS[rangeKey] || null;
 }
@@ -6976,116 +6954,35 @@ function formatCatalogRangeLabel(label, fromValue, toValue, {
   return '';
 }
 
-function getCatalogUrlValueAlias(paramName, value) {
-  const normalizedValue = String(value || '').trim();
-
-  if (!normalizedValue) {
-    return '';
-  }
-
-  if (!CATALOG_URL_VALUE_ALIASES[paramName]) {
-    return normalizedValue;
-  }
-
-  return CATALOG_URL_VALUE_ALIASES[paramName][normalizedValue]
-    || slugifyMovieValue(normalizedValue)
-    || normalizedValue;
-}
-
-function getCatalogUrlValueByAlias(paramName, value, selectElement = null) {
-  const normalizedValue = String(value || '').trim();
-
-  if (!normalizedValue) {
-    return '';
-  }
-
-  if (
-    selectElement &&
-    Array.from(selectElement.options).some(option => option.value === normalizedValue)
-  ) {
-    return normalizedValue;
-  }
-
-  const aliasedValue = CATALOG_URL_VALUE_ALIAS_LOOKUPS[paramName]?.[normalizedValue];
-
-  if (aliasedValue) {
-    return aliasedValue;
-  }
-
-  if (selectElement) {
-    const matchingOption = Array.from(selectElement.options)
-      .find(option => getCatalogUrlValueAlias(paramName, option.value) === normalizedValue);
-
-    if (matchingOption) {
-      return matchingOption.value;
-    }
-  }
-
-  return normalizedValue;
-}
-
-function getCatalogUrlBooleanValue(value) {
-  return CATALOG_URL_TRUE_VALUES.has(String(value || '').trim().toLowerCase());
-}
-
 function readCatalogUrlState() {
-  const searchParams = new URLSearchParams(window.location.search);
+  const tools = getCatalogUrlStateTools();
 
-  if (!hasCatalogUrlStateParams(searchParams)) {
-    return null;
-  }
-
-  const catalogState = getDefaultCatalogState();
-  const presetKey = String(searchParams.get(CATALOG_PRESET_QUERY_PARAM) || '').trim();
-  const hasValidPreset = CATALOG_ROUTE_PRESET_KEYS.has(presetKey);
-  const searchQuery = searchParams.has('q')
-    ? searchParams.get('q')
-    : searchParams.get('search');
-
-  if (!hasValidPreset) {
-    catalogState.searchQuery = String(searchQuery || '').trim();
-    catalogState.genre = getCatalogUrlValueByAlias('genre', searchParams.get('genre'), genreFilter);
-    catalogState.subgenre = getCatalogUrlValueByAlias('subgenre', searchParams.get('subgenre'), subgenreFilter);
-    catalogState.format = getCatalogUrlValueByAlias('format', searchParams.get('format'), formatFilter);
-    catalogState.country = getCatalogUrlValueByAlias('country', searchParams.get('country'), countryFilter);
-    catalogState.ratingFrom = normalizeCatalogRangeValue(
-      searchParams.get('rating_from') || searchParams.get('rating'),
-      getCatalogRangeInputOptions('rating')
-    );
-    catalogState.ratingTo = normalizeCatalogRangeValue(
-      searchParams.get('rating_to'),
-      getCatalogRangeInputOptions('rating')
-    );
-    catalogState.yearFrom = normalizeCatalogRangeValue(
-      searchParams.get('year_from') || searchParams.get('year'),
-      getCatalogRangeInputOptions('year')
-    );
-    catalogState.yearTo = normalizeCatalogRangeValue(
-      searchParams.get('year_to') || searchParams.get('year'),
-      getCatalogRangeInputOptions('year')
-    );
-    catalogState.runtimeFrom = normalizeCatalogRangeValue(
-      searchParams.get('runtime_from'),
-      getCatalogRangeInputOptions('runtime')
-    );
-    catalogState.runtimeTo = normalizeCatalogRangeValue(
-      searchParams.get('runtime_to'),
-      getCatalogRangeInputOptions('runtime')
-    );
-    catalogState.withReviews = getCatalogUrlBooleanValue(searchParams.get('reviews'));
-    catalogState.watchlist = getSelectOptionValue(watchlistFilter, searchParams.get('watchlist'), '');
-    catalogState.watched = getSelectOptionValue(watchedFilter, searchParams.get('watched'), '');
-  }
-
-  catalogState.viewMode = getSelectOptionValue(viewMode, searchParams.get('view'), 'list');
-  catalogState.sortMode = getSelectOptionValue(sortMode, searchParams.get('sort'), 'default');
-  catalogState.page = Math.max(1, Number(searchParams.get('page')) || 1);
-  catalogState.profileHandle = String(searchParams.get(CATALOG_PROFILE_QUERY_PARAM) || '').trim();
-  catalogState.profileActivity = normalizeCatalogProfileActivityKey(
-    searchParams.get(CATALOG_PROFILE_ACTIVITY_QUERY_PARAM)
-  );
-
-  return catalogState;
+  return tools.readCatalogUrlState({
+    search: window.location.search,
+    defaultState: getDefaultCatalogState,
+    urlStateParams: CATALOG_URL_STATE_PARAMS,
+    presetQueryParam: CATALOG_PRESET_QUERY_PARAM,
+    profileQueryParam: CATALOG_PROFILE_QUERY_PARAM,
+    profileActivityQueryParam: CATALOG_PROFILE_ACTIVITY_QUERY_PARAM,
+    routePresetKeys: CATALOG_ROUTE_PRESET_KEYS,
+    valueAliases: CATALOG_URL_VALUE_ALIASES,
+    valueAliasLookups: catalogUrlValueAliasLookups,
+    trueValues: CATALOG_URL_TRUE_VALUES,
+    selectElements: {
+      genre: genreFilter,
+      subgenre: subgenreFilter,
+      format: formatFilter,
+      country: countryFilter,
+      watchlist: watchlistFilter,
+      watched: watchedFilter,
+      viewMode,
+      sortMode
+    },
+    normalizeRangeValue: normalizeCatalogRangeValue,
+    getRangeOptions: getCatalogRangeInputOptions,
+    normalizeProfileActivityKey: normalizeCatalogProfileActivityKey,
+    slugifyValue: slugifyMovieValue
+  });
 }
 
 function readStoredCatalogState() {
@@ -7147,65 +7044,23 @@ function applyCatalogStateToControls(catalogState) {
   setCatalogProfileActivitySelection(nextCatalogState.profileHandle, nextCatalogState.profileActivity);
 }
 
-function setCatalogUrlParam(searchParams, paramName, value) {
-  const normalizedValue = getCatalogUrlValueAlias(paramName, value);
-
-  if (normalizedValue) {
-    searchParams.set(paramName, normalizedValue);
-  }
-}
-
 function getCatalogUrlSearchParamsFromControls() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const activePresetKey = getActiveQuickPresetKey();
+  const isProfileActivityActive = isCatalogProfileActivityActive();
 
-  CATALOG_URL_STATE_PARAMS.forEach(paramName => {
-    searchParams.delete(paramName);
+  return getCatalogUrlStateTools().getCatalogUrlSearchParamsFromState({
+    currentSearch: window.location.search,
+    state: getCurrentCatalogStateForPersistence(),
+    activePresetKey: getActiveQuickPresetKey(),
+    urlStateParams: CATALOG_URL_STATE_PARAMS,
+    presetQueryParam: CATALOG_PRESET_QUERY_PARAM,
+    profileQueryParam: CATALOG_PROFILE_QUERY_PARAM,
+    profileActivityQueryParam: CATALOG_PROFILE_ACTIVITY_QUERY_PARAM,
+    hasCurrentUser: Boolean(currentUser),
+    profileHandle: isProfileActivityActive ? catalogProfileActivityHandle : '',
+    profileActivityKey: isProfileActivityActive ? catalogProfileActivityKey : '',
+    valueAliases: CATALOG_URL_VALUE_ALIASES,
+    slugifyValue: slugifyMovieValue
   });
-
-  if (activePresetKey) {
-    searchParams.set(CATALOG_PRESET_QUERY_PARAM, activePresetKey);
-  } else {
-    setCatalogUrlParam(searchParams, 'q', searchInput.value);
-    setCatalogUrlParam(searchParams, 'genre', genreFilter.value);
-    setCatalogUrlParam(searchParams, 'subgenre', subgenreFilter.value);
-    setCatalogUrlParam(searchParams, 'format', formatFilter.value);
-    setCatalogUrlParam(searchParams, 'country', countryFilter.value);
-    setCatalogUrlParam(searchParams, 'year_from', getCatalogRangeControlValue(yearFromFilter, getCatalogRangeInputOptions('year')));
-    setCatalogUrlParam(searchParams, 'year_to', getCatalogRangeControlValue(yearToFilter, getCatalogRangeInputOptions('year')));
-    setCatalogUrlParam(searchParams, 'rating_from', getCatalogRangeControlValue(ratingFromFilter, getCatalogRangeInputOptions('rating')));
-    setCatalogUrlParam(searchParams, 'rating_to', getCatalogRangeControlValue(ratingToFilter, getCatalogRangeInputOptions('rating')));
-    setCatalogUrlParam(searchParams, 'runtime_from', getCatalogRangeControlValue(runtimeFromFilter, getCatalogRangeInputOptions('runtime')));
-    setCatalogUrlParam(searchParams, 'runtime_to', getCatalogRangeControlValue(runtimeToFilter, getCatalogRangeInputOptions('runtime')));
-
-    if (reviewedOnlyFilter) {
-      searchParams.set('reviews', '1');
-    }
-
-    if (currentUser) {
-      setCatalogUrlParam(searchParams, 'watchlist', watchlistFilter.value);
-      setCatalogUrlParam(searchParams, 'watched', watchedFilter.value);
-    }
-  }
-
-  if (sortMode.value && sortMode.value !== 'default') {
-    searchParams.set('sort', sortMode.value);
-  }
-
-  if (viewMode.value && viewMode.value !== 'list') {
-    searchParams.set('view', viewMode.value);
-  }
-
-  if (currentCatalogPage > 1) {
-    searchParams.set('page', String(currentCatalogPage));
-  }
-
-  if (isCatalogProfileActivityActive()) {
-    searchParams.set(CATALOG_PROFILE_QUERY_PARAM, catalogProfileActivityHandle);
-    searchParams.set(CATALOG_PROFILE_ACTIVITY_QUERY_PARAM, catalogProfileActivityKey);
-  }
-
-  return searchParams;
 }
 
 function syncCatalogUrlFromControls({ urlMode = 'replace' } = {}) {
@@ -8208,6 +8063,33 @@ function getCatalogPaginationTools() {
   }
 
   return catalogPaginationTools;
+}
+
+function loadCatalogUrlStateTools() {
+  if (!catalogUrlStateToolsPromise) {
+    catalogUrlStateToolsPromise = import(getLazyFeatureModuleUrl('catalog-url-state.js'))
+      .then(module => {
+        catalogUrlStateTools = module;
+        catalogUrlValueAliasLookups = module.createCatalogUrlValueAliasLookups(CATALOG_URL_VALUE_ALIASES);
+        return catalogUrlStateTools;
+      })
+      .catch(error => {
+        catalogUrlStateToolsPromise = null;
+        catalogUrlStateTools = null;
+        catalogUrlValueAliasLookups = null;
+        throw error;
+      });
+  }
+
+  return catalogUrlStateToolsPromise;
+}
+
+function getCatalogUrlStateTools() {
+  if (!catalogUrlStateTools) {
+    throw new Error('Catalog URL state module is not loaded.');
+  }
+
+  return catalogUrlStateTools;
 }
 
 function loadCustomSelectScript() {
@@ -17148,8 +17030,9 @@ function canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot, { 
 async function initCatalogPage() {
   initCatalogViewToggleButton();
   const paginationToolsReady = loadCatalogPaginationTools();
+  const catalogUrlStateToolsReady = loadCatalogUrlStateTools();
   renderMoviesSkeleton();
-  await paginationToolsReady;
+  await Promise.all([paginationToolsReady, catalogUrlStateToolsReady]);
 
   const routePresetKey = getCatalogRoutePresetKey();
   const restoreSessionPromise = restoreSession();

@@ -12,6 +12,37 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Extract catalog URL state module
+
+- Files:
+  - `app.js`
+  - `catalog-url-state.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Continued the catalog module split backlog item.
+  - Added lazy `catalog-url-state.js` for catalog query param parsing/building, value aliases, boolean parsing, and search params serialization.
+  - Kept `app.js` responsible for catalog controls, current state, profile activity state, and history replace/push.
+  - Registered the new lazy asset in `/app-assets`, `_headers`, smoke checks, and size reporting.
+- Checks:
+  - `node --check app.js`
+  - `node --check catalog-url-state.js`
+  - `node --check catalog-pagination.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node tools\smoke-check.mjs`
+  - `node -e "import('./catalog-url-state.js').then(...)"`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `8.1 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue catalog module split with filters, presets, card rendering, or return-state cache.
+
 ## 2026-08-22 - Extract catalog pagination module
 
 - Files:

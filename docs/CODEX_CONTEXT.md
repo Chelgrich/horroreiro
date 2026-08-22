@@ -100,7 +100,7 @@ All HTML-like app shell responses should be no-store.
 - Supabase client setup;
 - auth/user role/profile loading;
 - session-memory public profile and movie-by-id row caches for repeated profile, notification, and rail lookups;
-- catalog state, filters, URL params, presets, and DOM/render bridges for pagination;
+- catalog state, filters, presets, and DOM/render bridges for URL state and pagination;
 - movie modal add/edit bridge and Supabase writes;
 - movie detail Supabase payload fetchers, cache/state bridges, and callbacks into lazy detail modules;
 - ratings/watchlist data, request state, Supabase write callbacks, and catalog/detail rerender bridges;
@@ -148,6 +148,8 @@ Profile ranking note:
 
 `catalog-pagination.js` is lazy-loaded only on catalog pages and owns catalog pagination math, page item slot/ellipsis calculation, pagination controls HTML, and result-count text. `app.js` keeps current page state, DOM containers, events, and render scheduling.
 
+`catalog-url-state.js` is lazy-loaded only on catalog pages and owns catalog URL param parsing/building, value aliases, boolean parsing, and search params serialization. `app.js` keeps catalog DOM controls, history replace/push, and the current filter/page/profile activity state bridge.
+
 `editor-page.js` is lazy-loaded only for `/editor` and owns editor-center completeness summary rendering, auth/forbidden/loading states, and page toolbar click handling. `app.js` provides shared auth, admin state, completeness data fetchers, and download actions.
 
 `director-page.js` is lazy-loaded only for `/name/*` and owns public person/director page route parsing, person-page data fetching, legacy director fallback matching, page rendering, photo transforms, and the director movie grid. `app.js` keeps shared people helpers, movie-card helpers, the director add/edit modal, and `/directors` admin bridge.
@@ -193,7 +195,7 @@ Work through this backlog one contour per pass unless the user explicitly change
 1. Movie detail orchestration: completed; keep route/load/init/similar/social/interactions/shell/user-state orchestration in lazy modules. `app.js` should remain a data/state bridge here, with only small maintenance cleanup expected.
 2. Movie editor: completed for the current optimization stage. Keep editor-specific draft/form/submit/poster/manual-similar/save logic in `movie-editor.js`; `app.js` should keep only the shared modal shell bridge, state assignment, Supabase callbacks, and page/cache/render callbacks.
 3. Supabase payload/select audit: completed for the current optimization stage. Notifications split lightweight movie links from digest movie cards; profile rails use compact activity row selects; person/director pages use explicit `PEOPLE_*_SELECT` profiles; poster gallery display reads use a compact `MOVIE_POSTER_IMAGE_DISPLAY_SELECT`; catalog payload no longer includes import-only `letterboxd_short_url`, and Letterboxd import uses `MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT`.
-4. Catalog module split: in progress. Pagination math/HTML/result-count text now lives in lazy `catalog-pagination.js`; continue with filters, presets, URL params, card rendering, and catalog return-state cache.
+4. Catalog module split: in progress. Pagination math/HTML/result-count text lives in lazy `catalog-pagination.js`; URL param parsing/building lives in lazy `catalog-url-state.js`. Continue with filters, presets, card rendering, and catalog return-state cache.
 5. Shared profile/auth helpers: extract reusable profile helpers, avatar/settings actions, follow actions, and poster preference helpers into a shared profile module.
 6. CSS: after JS boundaries are cleaner, split or tighten remaining global `styles.css`, especially catalog-only styles and repeated shared values.
 
