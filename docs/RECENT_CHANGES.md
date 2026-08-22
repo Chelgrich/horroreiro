@@ -12,6 +12,30 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Move movie editor form fill reset helpers
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved movie-modal create reset and edit fill DOM state into lazy `movie-editor.js`.
+  - Expanded the movie editor form element/context bridge so the lazy editor owns title/button/message, format/tag, poster-file, and genre/country field assignment.
+  - Kept `app.js` responsible for `editingMovieId`, poster/manual-similar draft state, async gallery/similar loading, custom select refresh, and opening the modal.
+  - Added smoke guards so form fill/reset UI state does not drift back into `app.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `7.2 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue movie editor cleanup by auditing the remaining thin modal DOM bridge and deciding whether the second backlog item is complete.
+
 ## 2026-08-20 - Move movie editor poster event helpers
 
 - Files:

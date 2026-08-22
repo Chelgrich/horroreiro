@@ -655,6 +655,18 @@ async function checkStaticGuards() {
     'movie-editor.js: movie form submit event guard/error wrapper must stay outside app.js'
   );
   assert(
+    movieEditorJs.includes('function resetMovieFormToCreateMode(') &&
+      movieEditorJs.includes('function fillMovieFormForEdit(') &&
+      movieEditorJs.includes('function setMovieFormInputValue(') &&
+      appJs.includes('movieEditorController?.resetMovieFormToCreateMode()') &&
+      appJs.includes('movieEditorController.fillMovieFormForEdit(movie)') &&
+      !appJs.includes('movieForm.reset();') &&
+      !appJs.includes('formTitle.textContent = `Редактирование:') &&
+      !appJs.includes("submitButton.textContent = 'Добавить фильм'") &&
+      !appJs.includes("submitButton.textContent = 'Сохранить изменения'"),
+    'movie-editor.js: movie form fill/reset UI state must stay outside app.js'
+  );
+  assert(
     movieEditorJs.includes('function getMoviePosterImagesDraftAfterDrop(') &&
       movieEditorJs.includes('function getMoviePosterImagesDraftListHtml(') &&
       movieEditorJs.includes('function getMoviePosterImagesDraftClickAction(') &&

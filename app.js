@@ -8285,6 +8285,11 @@ function loadPersonPlaceholderTools() {
 
 function getMovieEditorFormElements() {
   return {
+    movieForm,
+    formTitle,
+    formMessage,
+    submitButton,
+    cancelEditButton,
     titleInput,
     originalTitleInput,
     yearInput,
@@ -8306,7 +8311,10 @@ function getMovieEditorFormElements() {
     trailerUrlInput,
     genresInput,
     countriesInput,
-    searchAliasesInput
+    searchAliasesInput,
+    movieFormatsInput,
+    tagsPerceivedInput,
+    posterFileInput
   };
 }
 
@@ -8318,6 +8326,9 @@ function getMovieEditorControllerContext() {
     parseRuntimeMinutesFormValue,
     parseLineOrCommaSeparatedValues,
     parseMultilineValues,
+    getTextArrayFormValue,
+    normalizeSearchText,
+    baseHorrorGenreNormalized: BASE_HORROR_GENRE_NORMALIZED,
     normalizeAdditionalGenreNames,
     uploadPosterFile,
     getOptionalTextArrayPayload,
@@ -10413,16 +10424,8 @@ function resetFormToCreateMode() {
   }
 
   editingMovieId = null;
-  movieForm.reset();
-  if (posterFileInput) {
-    posterFileInput.value = '';
-  }
+  movieEditorController?.resetMovieFormToCreateMode();
   resetMoviePosterImagesDraft();
-  formTitle.textContent = 'Добавить фильм';
-  submitButton.textContent = 'Добавить фильм';
-  cancelEditButton.classList.remove('is-visible');
-  formMessage.textContent = '';
-
   setManualSimilarDraft([]);
   refreshCustomSelect(releaseMonthInput);
 }
@@ -10441,65 +10444,17 @@ async function fillFormForEdit(movie) {
 
   editingMovieId = movie.id;
 
-  // Безопасно заполняем поля и сразу видим в консоли, какого элемента не хватает
-  const setInputValue = (inputElement, value, inputName) => {
-    if (!inputElement) {
-      console.error(`Не найден элемент формы: ${inputName}`);
-      return;
-    }
-
-    inputElement.value = value ?? '';
-  };
-
-  setInputValue(titleInput, movie.title, 'titleInput');
-  setInputValue(originalTitleInput, movie.original_title, 'originalTitleInput');
-  setInputValue(yearInput, movie.year, 'yearInput');
-  setInputValue(releaseMonthInput, movie.release_month, 'releaseMonthInput');
-  setInputValue(releaseYearInput, movie.release_year, 'releaseYearInput');
-  setInputValue(sortOrderInput, movie.sort_order, 'sortOrderInput');
-  setInputValue(runtimeMinutesInput, movie.runtime_minutes, 'runtimeMinutesInput');
-  setInputValue(directorInput, parseLineOrCommaSeparatedValues(movie.director).join('\n'), 'directorInput');
-  setInputValue(productionInput, getTextArrayFormValue(movie.production), 'productionInput');
-  setInputValue(distributionInput, getTextArrayFormValue(movie.distribution), 'distributionInput');
-  setInputValue(russianDistributionInput, getTextArrayFormValue(movie.russian_distribution), 'russianDistributionInput');
-  setInputValue(kinopoiskUrlInput, movie.kinopoisk_url, 'kinopoiskUrlInput');
-  setInputValue(imdbUrlInput, movie.imdb_url, 'imdbUrlInput');
-  setInputValue(letterboxdUrlInput, movie.letterboxd_url, 'letterboxdUrlInput');
-  setInputValue(letterboxdShortUrlInput, movie.letterboxd_short_url, 'letterboxdShortUrlInput');
-  setInputValue(rottentomatoesUrlInput, movie.rottentomatoes_url, 'rottentomatoesUrlInput');
-  setInputValue(tmdbUrlInput, movie.tmdb_url, 'tmdbUrlInput');
-  setInputValue(trailerUrlInput, movie.trailer_url, 'trailerUrlInput');
-
-  if (posterFileInput) {
-    posterFileInput.value = '';
-  }
+  movieEditorController.fillMovieFormForEdit(movie);
 
   setMoviePosterImagesDraftFromMovie(movie, getMoviePosterImages(movie.id));
   ensureMoviePosterImagesEditorDataLoaded(movie).catch(error => {
     console.warn('Не удалось загрузить галерею постеров для формы:', error);
   });
 
-  const genres = movie.movie_genres
-    .map(item => item.genres.name)
-    .filter(name => normalizeSearchText(name) !== BASE_HORROR_GENRE_NORMALIZED)
-    .join('\n');
-  const countries = movie.movie_countries.map(item => item.countries.name).join('\n');
-
-  setInputValue(genresInput, genres, 'genresInput');
-  setInputValue(countriesInput, countries, 'countriesInput');
-  setInputValue(searchAliasesInput, (movie.search_aliases || []).join('\n'), 'searchAliasesInput');
-  setInputValue(synopsisInput, movie.synopsis, 'synopsisInput');
-  setInputValue(movieFormatsInput, (movie.formats || []).join('\n'), 'movieFormatsInput');
-  setInputValue(tagsPerceivedInput, (movie.tags_perceived || []).join('\n'), 'tagsPerceivedInput');
   setManualSimilarDraft(getManualSimilarMovieIds(movie.id));
   ensureManualSimilarEditorDataLoaded(movie.id).catch(error => {
     console.warn('Не удалось загрузить ручные похожие фильмы для формы:', error);
   });
-
-  formTitle.textContent = `Редактирование: ${movie.title}`;
-  submitButton.textContent = 'Сохранить изменения';
-  cancelEditButton.classList.add('is-visible');
-  formMessage.textContent = '';
 
   refreshCustomSelect(releaseMonthInput);
 
@@ -16853,7 +16808,14 @@ function bindCatalogPageEvents() {
 
   window.addEventListener('popstate', handleCatalogHistoryNavigation);
 
-  openAddMovieButton?.addEventListener('click', () => {
+  openAddMovieButton?.addEventListener('click', async () => {
+    try {
+      await ensureMovieEditorControllerLoaded();
+    } catch (error) {
+      console.warn('Не удалось загрузить редактор фильма:', error);
+      return;
+    }
+
     resetFormToCreateMode();
     void openMovieModal();
   });
