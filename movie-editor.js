@@ -691,6 +691,22 @@ export function createMovieEditorController(context = {}) {
     }
   }
 
+  function setMoviePosterFileUiState(draftEntries = []) {
+    const elements = getElements();
+
+    if (!elements.posterFileName) {
+      return;
+    }
+
+    const pendingFilesCount = (Array.isArray(draftEntries) ? draftEntries : [])
+      .filter(entry => entry?.type === 'pending')
+      .length;
+
+    elements.posterFileName.textContent = pendingFilesCount > 0
+      ? `Добавлено файлов: ${pendingFilesCount}`
+      : 'Файлы не выбраны';
+  }
+
   function readMovieFormDraft() {
     const elements = getElements();
     const directorNames = parseLineOrCommaSeparatedValues(elements.directorInput?.value || '');
@@ -1678,6 +1694,7 @@ export function createMovieEditorController(context = {}) {
     fillMovieFormForEdit,
     setMovieFormSubmittingUiState,
     setMovieFormStatus,
+    setMoviePosterFileUiState,
     getMoviePosterImagesDraftEntriesForSave,
     hasPendingMoviePosterDraftUploads,
     resolveMoviePosterImageDraftEntries,

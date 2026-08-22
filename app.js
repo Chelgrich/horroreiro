@@ -7253,17 +7253,7 @@ function applySavedCatalogState({ fallbackToStorage = true } = {}) {
 }
 
 function updatePosterFileUi() {
-  if (!posterFileName) {
-    return;
-  }
-
-  const pendingFilesCount = moviePosterImagesDraft
-    .filter(entry => entry.type === 'pending')
-    .length;
-
-  posterFileName.textContent = pendingFilesCount > 0
-    ? `Добавлено файлов: ${pendingFilesCount}`
-    : 'Файлы не выбраны';
+  movieEditorController?.setMoviePosterFileUiState(moviePosterImagesDraft);
 }
 
 function ensureActiveSessionForWrite() {
@@ -8316,6 +8306,7 @@ function getMovieEditorFormElements() {
     movieFormatsInput,
     tagsPerceivedInput,
     posterFileInput,
+    posterFileName,
     moviePosterImagesList
   };
 }

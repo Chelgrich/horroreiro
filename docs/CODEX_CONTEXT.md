@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-08-20.
+Last updated: 2026-08-22.
 
 ## Purpose
 
@@ -161,7 +161,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `person-placeholders.js` is lazy-loaded only for person/director pages and owns the large SVG placeholder silhouettes.
 
-`movie-editor.js` is lazy-loaded by the shared movie add/edit modal and owns form draft reading, form fill/reset UI state, form submitting/status UI state, validation, submit event guard/error wrapping, create/update submit orchestration, insert payload building, movie row insert/update writes, create/update relation/manual-similar/poster-gallery write sequencing, update changed-field/relation diffing, manual-similar draft add/remove/select/render helpers, poster draft entry creation/move/remove/drop helpers, poster draft list HTML rendering, poster draft list click/drag/drop event helpers, poster upload/save result preparation, create/update save-plan decisions, and post-save page/cache synchronization orchestration. `app.js` keeps the modal DOM bridge, native submit prevention/editor-controller loading, poster/manual-similar editor state assignment, low-level relation/manual-similar/gallery write callbacks, and concrete page/cache/render callbacks passed into the editor controller.
+`movie-editor.js` is lazy-loaded by the shared movie add/edit modal and owns form draft reading, form fill/reset UI state, form submitting/status UI state, poster-file feedback UI state, validation, submit event guard/error wrapping, create/update submit orchestration, insert payload building, movie row insert/update writes, create/update relation/manual-similar/poster-gallery write sequencing, update changed-field/relation diffing, manual-similar draft add/remove/select/render helpers, poster draft entry creation/move/remove/drop helpers, poster draft list HTML rendering, poster draft list click/drag/drop event helpers, poster upload/save result preparation, create/update save-plan decisions, and post-save page/cache synchronization orchestration. `app.js` keeps the modal DOM bridge, native submit prevention/editor-controller loading, poster/manual-similar editor state assignment, low-level relation/manual-similar/gallery write callbacks, and concrete page/cache/render callbacks passed into the editor controller.
 
 `movie-detail-cache.js` is lazy-loaded only for movie detail pages and owns detail session-cache keys, signatures, entry creation, read/write, expiry, and removal. `app.js` keeps the actual restoration of shared rating/watchlist/review/comment/similar state.
 
@@ -189,7 +189,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 Work through this backlog one contour per pass unless the user explicitly changes the order:
 
 1. Movie detail orchestration: completed; keep route/load/init/similar/social/interactions/shell/user-state orchestration in lazy modules. `app.js` should remain a data/state bridge here, with only small maintenance cleanup expected.
-2. Movie editor: in progress; continue moving the remaining modal DOM bridge and editor UI state out of `app.js` after the helper/relation/form-fill-reset/form-status-submit-state/poster-render/poster-events/poster-save-plan/movie-row/related-write/post-save/create-update-submit/submit-event split.
+2. Movie editor: completed for the current optimization stage. Keep editor-specific draft/form/submit/poster/manual-similar/save logic in `movie-editor.js`; `app.js` should keep only the shared modal shell bridge, state assignment, Supabase callbacks, and page/cache/render callbacks.
 3. Supabase payload/select audit: review catalog, profile rails/taste, notifications, person/director payload, and movie detail RPC fallback so each page fetches only fields it actually needs.
 4. Catalog module split: move filters, presets, URL params, pagination, card rendering, and catalog return-state cache out of `app.js` after detail/editor boundaries are steadier.
 5. Shared profile/auth helpers: extract reusable profile helpers, avatar/settings actions, follow actions, and poster preference helpers into a shared profile module.

@@ -12,6 +12,30 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Close movie editor optimization contour
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Finished the movie editor contour audit and marked backlog item 2 complete for the current optimization stage.
+  - Moved poster-file feedback text handling into lazy `movie-editor.js`.
+  - Kept the remaining `app.js` movie-modal code as shell bridge: mount/bind/open/close, custom-select refresh, draft state assignment, Supabase callbacks, and page/cache/render callbacks.
+  - Added smoke coverage so poster-file feedback UI does not drift back into `app.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `7.3 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Start backlog item 3: Supabase payload/select audit for catalog, profile rails/taste, notifications, person/director payload, and movie detail RPC fallback.
+
 ## 2026-08-22 - Move movie editor status submitting UI state
 
 - Files:
