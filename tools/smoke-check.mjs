@@ -658,9 +658,18 @@ async function checkStaticGuards() {
     movieEditorJs.includes('function resetMovieFormToCreateMode(') &&
       movieEditorJs.includes('function fillMovieFormForEdit(') &&
       movieEditorJs.includes('function setMovieFormInputValue(') &&
+      movieEditorJs.includes('function setMovieFormSubmittingUiState(') &&
+      movieEditorJs.includes('function setMovieFormStatus(') &&
       appJs.includes('movieEditorController?.resetMovieFormToCreateMode()') &&
       appJs.includes('movieEditorController.fillMovieFormForEdit(movie)') &&
+      appJs.includes('movieEditorController?.setMovieFormSubmittingUiState(isSubmitting)') &&
+      appJs.includes('movieEditorController.setMovieFormStatus(message)') &&
       !appJs.includes('movieForm.reset();') &&
+      !appJs.includes('submitButton.disabled = isSubmitting') &&
+      !appJs.includes('cancelEditButton.disabled = isSubmitting') &&
+      !appJs.includes('closeMovieModalButton.disabled = isSubmitting') &&
+      !appJs.includes('posterFileInput.disabled = isSubmitting') &&
+      !appJs.includes("moviePosterImagesList?.querySelectorAll('button')") &&
       !appJs.includes('formTitle.textContent = `Редактирование:') &&
       !appJs.includes("submitButton.textContent = 'Добавить фильм'") &&
       !appJs.includes("submitButton.textContent = 'Сохранить изменения'"),

@@ -659,6 +659,38 @@ export function createMovieEditorController(context = {}) {
     return { didFill: true };
   }
 
+  function setMovieFormSubmittingUiState(isSubmitting) {
+    const elements = getElements();
+
+    if (elements.submitButton) {
+      elements.submitButton.disabled = isSubmitting;
+    }
+
+    if (elements.cancelEditButton) {
+      elements.cancelEditButton.disabled = isSubmitting;
+    }
+
+    if (elements.closeMovieModalButton) {
+      elements.closeMovieModalButton.disabled = isSubmitting;
+    }
+
+    if (elements.posterFileInput) {
+      elements.posterFileInput.disabled = isSubmitting;
+    }
+
+    elements.moviePosterImagesList?.querySelectorAll('button').forEach(button => {
+      button.disabled = isSubmitting || button.disabled;
+    });
+  }
+
+  function setMovieFormStatus(message = '') {
+    const elements = getElements();
+
+    if (elements.formMessage) {
+      elements.formMessage.textContent = message;
+    }
+  }
+
   function readMovieFormDraft() {
     const elements = getElements();
     const directorNames = parseLineOrCommaSeparatedValues(elements.directorInput?.value || '');
@@ -1644,6 +1676,8 @@ export function createMovieEditorController(context = {}) {
     getMoviePosterImagesDraftAfterDrop,
     resetMovieFormToCreateMode,
     fillMovieFormForEdit,
+    setMovieFormSubmittingUiState,
+    setMovieFormStatus,
     getMoviePosterImagesDraftEntriesForSave,
     hasPendingMoviePosterDraftUploads,
     resolveMoviePosterImageDraftEntries,

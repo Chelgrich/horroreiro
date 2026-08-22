@@ -8290,6 +8290,7 @@ function getMovieEditorFormElements() {
     formMessage,
     submitButton,
     cancelEditButton,
+    closeMovieModalButton,
     titleInput,
     originalTitleInput,
     yearInput,
@@ -8314,7 +8315,8 @@ function getMovieEditorFormElements() {
     searchAliasesInput,
     movieFormatsInput,
     tagsPerceivedInput,
-    posterFileInput
+    posterFileInput,
+    moviePosterImagesList
   };
 }
 
@@ -10384,26 +10386,7 @@ function closeFiltersModal() {
 
 function setMovieFormSubmittingState(isSubmitting) {
   isMovieFormSubmitting = isSubmitting;
-
-  if (submitButton) {
-    submitButton.disabled = isSubmitting;
-  }
-
-  if (cancelEditButton) {
-    cancelEditButton.disabled = isSubmitting;
-  }
-
-  if (closeMovieModalButton) {
-    closeMovieModalButton.disabled = isSubmitting;
-  }
-
-  if (posterFileInput) {
-    posterFileInput.disabled = isSubmitting;
-  }
-
-  moviePosterImagesList?.querySelectorAll('button').forEach(button => {
-    button.disabled = isSubmitting || button.disabled;
-  });
+  movieEditorController?.setMovieFormSubmittingUiState(isSubmitting);
 
   if (openAddMovieButton) {
     openAddMovieButton.disabled = isSubmitting;
@@ -10413,6 +10396,11 @@ function setMovieFormSubmittingState(isSubmitting) {
 }
 
 function setMovieFormStatus(message) {
+  if (movieEditorController?.setMovieFormStatus) {
+    movieEditorController.setMovieFormStatus(message);
+    return;
+  }
+
   if (formMessage) {
     formMessage.textContent = message;
   }
@@ -12842,9 +12830,7 @@ async function updateMovie(movieEditor) {
     includeRuntimeMinutes: movieRuntimeMinutesColumnAvailable,
     includeTmdbUrl: movieTmdbUrlColumnAvailable,
     setStatus: setMovieFormStatus,
-    setMissingMovieMessage: message => {
-      formMessage.textContent = message;
-    },
+    setMissingMovieMessage: setMovieFormStatus,
     replaceMovieRelations,
     replaceMovieDirectors,
     replaceManualSimilarMovies,

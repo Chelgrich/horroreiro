@@ -12,6 +12,30 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Move movie editor status submitting UI state
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved movie-modal submit disabled-state handling and status-message writes into lazy `movie-editor.js`.
+  - Kept `app.js` responsible for the boolean `isMovieFormSubmitting`, the external add button state, poster draft rerender bridge, and a minimal status fallback if the lazy editor itself fails to load.
+  - Reused the common form-status helper for the missing-movie update path instead of writing to `formMessage` inline.
+  - Added smoke guards so modal button/file/list disabled logic stays outside `app.js`.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check tools\smoke-check.mjs`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles are about `7.2 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Audit the remaining movie-modal DOM event bridge and decide whether the movie editor backlog item is complete enough to move to payload/select audit.
+
 ## 2026-08-22 - Move movie editor form fill reset helpers
 
 - Files:
