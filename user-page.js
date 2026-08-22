@@ -707,7 +707,7 @@ export function createUserPageController(context = {}) {
     ] = await Promise.all([
       supabaseClient
         .from('movie_ratings')
-        .select('movie_id, rating, created_at, updated_at')
+        .select('movie_id, rating, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false }),
       supabaseClient
@@ -717,7 +717,7 @@ export function createUserPageController(context = {}) {
         .order('created_at', { ascending: false }),
       supabaseClient
         .from('movie_reviews')
-        .select('id, movie_id, created_at, updated_at')
+        .select('movie_id, created_at, updated_at')
         .eq('user_id', userId)
         .order('updated_at', { ascending: false }),
       fetchUserPageActivityRanks(userId)

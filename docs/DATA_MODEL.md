@@ -1,6 +1,6 @@
 # Horroreiro Data Model Context
 
-Last updated: 2026-08-09.
+Last updated: 2026-08-22.
 
 This document describes the client-visible data model and operational assumptions. Supabase schema SQL has often been applied manually through the Supabase UI; do not assume old setup SQL files exist or are still authoritative.
 
@@ -128,6 +128,13 @@ Profile page uses:
 - taste summary: additional genre, subgenre, country, year;
 - rails for ratings/watchlist/reviews;
 - profile-filtered catalog URLs: `profile=<handle>&activity=ratings|watchlist|reviews`.
+
+Profile page activity row payloads:
+
+- ratings need `movie_id`, `rating`, and `created_at`;
+- watchlist rows need `movie_id` and `created_at`;
+- review rails need `movie_id`, `created_at`, and `updated_at`;
+- movie card/taste details are loaded through the dedicated movie select profiles above, not by widening activity table selects.
 
 Profile activity ranks:
 

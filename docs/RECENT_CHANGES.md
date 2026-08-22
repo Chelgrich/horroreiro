@@ -12,6 +12,26 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Trim profile activity row payloads
+
+- Files:
+  - `user-page.js`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Continued the Supabase payload/select audit with the profile page.
+  - Removed unused `updated_at` from profile rating rows; rating rails still sort by `created_at`.
+  - Removed unused `id` from profile review rows; review rails still keep `created_at`/`updated_at` for newest-activity sorting.
+  - Documented the compact activity row payload expected by the profile page.
+- Checks:
+  - `node --check user-page.js`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+  - Asset report: startup profiles remain about `7.3 KiB` brotli below the saved baseline.
+- Follow-up:
+  - Continue payload/select audit with person/director and movie detail payloads.
+
 ## 2026-08-22 - Split notification movie payloads
 
 - Files:
