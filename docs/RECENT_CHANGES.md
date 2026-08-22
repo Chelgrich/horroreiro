@@ -12,6 +12,37 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Split catalog page CSS
+
+- Files:
+  - `styles.css`
+  - `catalog-page.css`
+  - `boot-loader.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Started the CSS optimization backlog contour by moving catalog-only shell/control styles out of global `styles.css` and into page-only `catalog-page.css`.
+  - Kept shared movie card primitives in `styles.css` because catalog, profile rails, person/director grids, similar movies, and empty/fallback states reuse them.
+  - Updated `boot-loader.js` to load `catalog-page.css` only for `data-app-page="catalog"`.
+  - Registered the new stylesheet in `/app-assets`, `_headers`, smoke checks, and asset-size reporting.
+  - Documented the local PowerShell compatibility trap around null-conditional `?.` usage after it failed during browser smoke setup.
+- Checks:
+  - `node --check boot-loader.js`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node --check tools\smoke-check.mjs`
+  - `node --check tools\asset-size-report.mjs`
+  - PostCSS parse: `styles.css`, `catalog-page.css`, `movie-page.css`, `secondary-pages.css`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - Browser smoke: local `index.html` loaded `/styles.css` and `/catalog-page.css`, reached `app-ready`, and kept catalog toolbar/grid/presets displays; local `user.html` reached `app-ready` without loading `/catalog-page.css`.
+  - `git diff --check`
+- Follow-up:
+  - Continue CSS tightening with remaining shared/card/form values, then consider page-specific card style splits where reuse boundaries are clean.
+
 ## 2026-08-22 - Document PowerShell query-string interpolation trap
 
 - Files:

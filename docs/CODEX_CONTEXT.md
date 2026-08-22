@@ -22,6 +22,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 - Prefer `apply_patch` for edits. For long diagnostic snippets, keep shell commands small or split them into separate `multi_tool_use.parallel` calls instead of relying on large pasted multiline commands.
 - Paths containing square brackets are globbed by PowerShell. Use `Get-Content -LiteralPath functions\app-assets\[version].js` and quote the path for Node checks, for example `node --check "functions/app-assets/[version].js"`.
 - When interpolating a PowerShell variable immediately before a query string, wrap the variable name: use `"https://host/app-assets/${version}?file=app.js"`, not `"$version?file=app.js"`. Otherwise PowerShell treats `?file` as part of the variable name and sends a broken URL.
+- Do not assume PowerShell 7 syntax in local shell commands. The desktop environment can reject null-conditional access such as `(Get-Command node)?.Source`; use explicit variable checks instead.
 - Do not pass bare `*.js` path globs to `rg` in PowerShell. Use exact files or `rg "pattern" -g "*.js"` to avoid path syntax errors.
 - When an `rg` pattern contains literal quotes or several `|` alternatives in PowerShell, prefer simple separate `rg` calls or a single-quoted pattern without backslash-escaped quotes. PowerShell does not treat `\"` as a string escape, so complex double-quoted regex commands can split into broken pipeline fragments.
 - Do not chain PowerShell commands with `&&`; this shell can reject it as an invalid statement separator. Run `git add`, `git commit`, and similar steps as separate tool calls.
@@ -46,7 +47,7 @@ Page HTML is static shell plus shared scripts:
   - loads `/env`;
   - creates `window.__ENV__`;
   - loads versioned `styles.css`;
-  - loads page-specific CSS such as `movie-page.css`, shared `secondary-pages.css`, and secondary page-only CSS before app startup when the current shell needs it;
+  - loads page-specific CSS such as `catalog-page.css`, `movie-page.css`, shared `secondary-pages.css`, and secondary page-only CSS before app startup when the current shell needs it;
   - marks `app-styles-ready` or `app-load-failed`.
 - `app-script-loader.js`
   - waits for `window.__ENV_READY__`;
@@ -66,7 +67,7 @@ Production asset URL strategy:
 - Core JS/CSS and lazy feature modules use `/app-assets/<APP_BUILD_VERSION>?file=<asset>`.
 - `functions/app-assets/[version].js` allowlists app assets and proxies them from current Pages assets with `no-store`.
 - `_headers` sets core app assets to `public, max-age=0, must-revalidate`.
-- Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `movie-page.css`, `secondary-pages.css`, secondary page-only CSS, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, lazy feature modules, or `assets/directors-admin-app.js`.
+- Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `catalog-page.css`, `movie-page.css`, `secondary-pages.css`, secondary page-only CSS, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, lazy feature modules, or `assets/directors-admin-app.js`.
 
 ## Pages
 
@@ -120,6 +121,8 @@ All HTML-like app shell responses should be no-store.
 - footer.
 
 `styles.css` is the global design system and shared page styles. It uses CSS variables heavily. Avoid local one-off colors if a token exists.
+
+`catalog-page.css` owns catalog-only layout/control styles loaded by `boot-loader.js` only for `data-app-page="catalog"`: catalog toolbar/search/sort controls, quick presets, active filter chips, filter modal/range controls, catalog result header, pagination, month/list shell, and catalog SEO text. Shared movie card styling stays in `styles.css` because profile rails, person pages, similar movies, and catalog surfaces reuse card primitives.
 
 `movie-page.css` owns movie detail-only styles and is loaded by `boot-loader.js` only for `data-app-page="movie"`.
 
@@ -217,7 +220,7 @@ Work through this backlog one contour per pass unless the user explicitly change
 3. Supabase payload/select audit: completed for the current optimization stage. Notifications split lightweight movie links from digest movie cards; profile rails use compact activity row selects; person/director pages use explicit `PEOPLE_*_SELECT` profiles; poster gallery display reads use a compact `MOVIE_POSTER_IMAGE_DISPLAY_SELECT`; catalog payload no longer includes import-only `letterboxd_short_url`, and Letterboxd import uses `MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT`.
 4. Catalog module split: completed for the current optimization stage. Catalog movie card DOM/HTML rendering lives in lazy `catalog-cards.js`; list/month DOM fragment rendering and month-local sorting live in lazy `catalog-render.js`; pagination math/HTML/result-count text lives in lazy `catalog-pagination.js`; URL param parsing/building lives in lazy `catalog-url-state.js`; quick preset mechanics live in lazy `catalog-presets.js`; filter matching/count mechanics live in lazy `catalog-filters.js`; fast-return/session/DOM snapshot storage mechanics live in lazy `catalog-return-cache.js`. Keep `app.js` as catalog state/data/event bridge.
 5. Shared profile/auth helpers: completed for the current optimization stage. Pure profile display/cache/avatar-letter/avatar-HTML helpers and `prefer_russian_posters` checks live in `profile-utils.js`; profile Supabase reads and optional-column fallback live in lazy `profile-data-actions.js`; profile settings Supabase/Auth/Storage writes live in lazy `profile-settings-actions.js`; profile follow/follow-notification Supabase actions live in lazy `profile-follow-actions.js`. `app.js` should remain the state/UI bridge for these areas.
-6. CSS: after JS boundaries are cleaner, split or tighten remaining global `styles.css`, especially catalog-only styles and repeated shared values.
+6. CSS: in progress. First pass split catalog-only shell/control styles into `catalog-page.css` while keeping shared movie card primitives in `styles.css`; continue tightening remaining global card/form/shared values and any leftover catalog-only responsive fragments.
 
 ## Framework Island
 

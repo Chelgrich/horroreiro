@@ -84,6 +84,10 @@
         directors: ['secondary-pages.css', 'directors-admin-page.css', 'director-form.css']
       };
 
+      if (page === 'catalog') {
+        assets.push('catalog-page.css');
+      }
+
       if (page === 'movie') {
         assets.push('movie-page.css');
       }

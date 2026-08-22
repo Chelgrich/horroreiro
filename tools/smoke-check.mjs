@@ -72,6 +72,7 @@ const contextSensitiveExactFiles = new Set([
   'catalog-render.js',
   'catalog-return-cache.js',
   'catalog-url-state.js',
+  'catalog-page.css',
   'custom-select.js',
   'docs/CODEX_CONTEXT.md',
   'docs/DATA_MODEL.md',
@@ -493,6 +494,11 @@ async function checkStaticGuards() {
     'boot-loader.js: movie page stylesheet must be selected before body is parsed'
   );
   assert(
+    bootLoader.includes("if (page === 'catalog')") &&
+      bootLoader.includes("assets.push('catalog-page.css')"),
+    'boot-loader.js: catalog stylesheet must be selected only for catalog pages'
+  );
+  assert(
     bootLoader.includes('const secondaryPageStylesheets = {') &&
       bootLoader.includes("following: ['secondary-pages.css', 'following-page.css']") &&
       bootLoader.includes("notifications: ['secondary-pages.css', 'notifications-page.css']") &&
@@ -514,6 +520,7 @@ async function checkStaticGuards() {
     '/catalog-render.js',
     '/catalog-return-cache.js',
     '/catalog-url-state.js',
+    '/catalog-page.css',
     '/custom-select.js',
     '/director-form.css',
     '/director-page.js',
@@ -574,6 +581,7 @@ async function checkStaticGuards() {
     'catalog-render.js',
     'catalog-return-cache.js',
     'catalog-url-state.js',
+    'catalog-page.css',
     'director-form.css',
     'director-page.js',
     'director-page.css',
@@ -601,6 +609,7 @@ async function checkStaticGuards() {
     'assets/directors-admin-app.js',
     'shared-layout.js',
     'styles.css',
+    'catalog-page.css',
     'movie-page.css',
     'secondary-pages.css',
     'app-script-loader.js',
