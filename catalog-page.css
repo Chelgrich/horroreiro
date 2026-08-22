@@ -1,3 +1,14 @@
+.page{
+  --catalog-columns: 4;
+  --catalog-grid-gap: 16px;
+  --catalog-pagination-gap: 6px;
+  --catalog-pagination-button-width: 34px;
+  --catalog-pagination-button-height: 32px;
+  --catalog-pagination-ellipsis-width: 18px;
+  --movies-year-title-font-size: var(--font-size-title-2xl);
+  --movies-month-title-font-size: var(--font-size-title-lg);
+}
+
 .movies-section-header .section-title,
 .movies-section-heading .section-title{
   margin-bottom: 0;
@@ -955,7 +966,24 @@
   }
 }
 
+@media (max-width: 1200px){
+  .page{
+    --catalog-columns: 3;
+  }
+}
+
+@media (max-width: 1024px){
+  .page{
+    --catalog-columns: 2;
+    --catalog-grid-gap: 14px;
+  }
+}
+
 @media (max-width: 900px){
+  .page{
+    --movies-year-title-font-size: var(--font-size-title-lg);
+    --movies-month-title-font-size: var(--font-size-title-md);
+  }
 
   .filter-sort{
     margin-top: 0;
@@ -1085,6 +1113,14 @@
 }
 
 @media (max-width: 680px){
+  .page{
+    --catalog-columns: 2;
+    --catalog-grid-gap: 12px;
+    --catalog-pagination-gap: clamp(4px, 1.2vw, 6px);
+    --catalog-pagination-button-height: 34px;
+    --movies-year-title-font-size: var(--font-size-title-md);
+    --movies-month-title-font-size: var(--font-size-title-sm);
+  }
 
   .catalog-search-row input[type="text"]{
     font-size: var(--font-size-base);
@@ -1262,6 +1298,15 @@
 }
 
 @media (max-width: 360px){
+  .page{
+    --catalog-columns: 1;
+    --catalog-pagination-gap: clamp(2px, 1vw, 4px);
+    --catalog-pagination-button-width: clamp(24px, 8vw, 30px);
+    --catalog-pagination-button-height: 32px;
+    --catalog-pagination-ellipsis-width: 10px;
+    --movies-year-title-font-size: var(--font-size-title-xl);
+    --movies-month-title-font-size: var(--font-size-title-lg);
+  }
 
   .movies-year-title{
     margin: 12px 0 0;

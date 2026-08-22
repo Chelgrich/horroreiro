@@ -12,6 +12,25 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-22 - Move catalog CSS variables
+
+- Files:
+  - `styles.css`
+  - `catalog-page.css`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved catalog-only CSS custom properties for grid columns, grid gaps, pagination sizing, and month/year title sizing from global `styles.css` into page-only `catalog-page.css`.
+  - Kept shared movie-card typography variables in `styles.css`, because catalog cards are reused by profile rails, person/director pages, and similar-film blocks.
+- Checks:
+  - PostCSS parse: `styles.css`, `catalog-page.css`, `movie-page.css`, `secondary-pages.css`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - Browser smoke: local `index.html` loaded `/catalog-page.css`, exposed catalog CSS variables, and reached `app-ready`; local `user.html` reached `app-ready` without loading `/catalog-page.css`.
+  - `git diff --check`
+- Follow-up:
+  - Continue CSS tightening with remaining global card/form/shared values and only split them when reuse boundaries are clean.
+
 ## 2026-08-22 - Split catalog page CSS
 
 - Files:

@@ -34,10 +34,6 @@ html::-webkit-scrollbar-corner{
   --control-height-lg: 44px;
   --control-height-md: 36px;
   --control-height-sm: 32px;
-  --catalog-pagination-gap: 6px;
-  --catalog-pagination-button-width: 34px;
-  --catalog-pagination-button-height: 32px;
-  --catalog-pagination-ellipsis-width: 18px;
   --poster-aspect-ratio: 2 / 3;
   --poster-overlay-offset: 10px;
   --poster-overlay-size: 32px;
@@ -353,8 +349,6 @@ h3{
   box-sizing: border-box;
   flex: 1 0 auto;
   width: 100%;
-  --catalog-columns: 4;
-  --catalog-grid-gap: 16px;
   --movie-card-title-padding-bottom: 10px;
   --movie-card-title-font-size: var(--font-size-title-md);
   --movie-card-title-line-height: var(--line-height-snug);
@@ -368,8 +362,6 @@ h3{
   --page-logo-font-size: var(--font-size-display-lg);
   --page-logo-letter-spacing: var(--letter-spacing-brand);
   --section-title-font-size: var(--font-size-title-sm);
-  --movies-year-title-font-size: var(--font-size-title-2xl);
-  --movies-month-title-font-size: var(--font-size-title-lg);
   --user-page-display-name-font-size: var(--font-size-title-lg);
   --user-page-handle-font-size: var(--font-size-body);
   --movie-page-subtitle-font-size: var(--font-size-title-sm);
@@ -4449,29 +4441,12 @@ a[data-current-page-link="true"]{
 
 }
 
-@media (max-width: 1200px) {
-  .page{
-    --catalog-columns: 3;
-  }
-
-}
-
-@media (max-width: 1024px) {
-  .page{
-    --catalog-columns: 2;
-    --catalog-grid-gap: 14px;
-  }
-
-}
-
 @media (max-width: 900px) {
   .page{
     padding: 16px;
     --page-logo-font-size: var(--font-size-display-lg);
     --page-logo-letter-spacing: var(--letter-spacing-brand-tablet);
     --section-title-font-size: var(--font-size-title-sm);
-    --movies-year-title-font-size: var(--font-size-title-lg);
-    --movies-month-title-font-size: var(--font-size-title-md);
     --movie-card-title-padding-bottom: 8px;
     --movie-card-text-font-size: var(--font-size-md);
     --movie-card-text-line-height: var(--line-height-card-comfort);
@@ -4689,15 +4664,9 @@ a[data-current-page-link="true"]{
   }
 
   .page{
-    --catalog-columns: 2;
-    --catalog-grid-gap: 12px;
-    --catalog-pagination-gap: clamp(4px, 1.2vw, 6px);
-    --catalog-pagination-button-height: 34px;
     --page-logo-font-size: var(--font-size-title-xl);
     --page-logo-letter-spacing: var(--letter-spacing-footer);
     --section-title-font-size: var(--font-size-lg);
-    --movies-year-title-font-size: var(--font-size-title-md);
-    --movies-month-title-font-size: var(--font-size-title-sm);
     --movie-card-title-padding-bottom: 7px;
     --movie-card-title-font-size: var(--font-size-lg);
     --movie-card-title-line-height: var(--line-height-title-tight);
@@ -5032,17 +5001,10 @@ a[data-current-page-link="true"]{
 
 @media (max-width: 360px) {
   .page{
-    --catalog-columns: 1;
-    --catalog-pagination-gap: clamp(2px, 1vw, 4px);
-    --catalog-pagination-button-width: clamp(24px, 8vw, 30px);
-    --catalog-pagination-button-height: 32px;
-    --catalog-pagination-ellipsis-width: 10px;
     --page-logo-font-size: var(--font-size-title-sm);
     --page-logo-letter-spacing: var(--letter-spacing-footer);
     --user-page-display-name-font-size: var(--font-size-base);
     --user-page-handle-font-size: var(--font-size-xs);
-    --movies-year-title-font-size: var(--font-size-title-xl);
-    --movies-month-title-font-size: var(--font-size-title-lg);
     --movie-card-title-padding-bottom: 8px;
     --movie-card-title-font-size: var(--font-size-title-md);
     --movie-card-title-line-height: var(--line-height-title);
