@@ -43,6 +43,7 @@ const ALLOWED_APP_ASSETS = new Set([
   'secondary-pages.css',
   'shared-layout.js',
   'styles.css',
+  'user-page.css',
   'user-page.js'
 ]);
 

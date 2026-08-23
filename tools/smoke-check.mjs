@@ -98,6 +98,7 @@ const contextSensitiveExactFiles = new Set([
   'notifications-page.js',
   'movie-page.css',
   'secondary-pages.css',
+  'user-page.css',
   'package-lock.json',
   'package.json',
   'person-placeholders.js',
@@ -500,6 +501,11 @@ async function checkStaticGuards() {
     'boot-loader.js: catalog stylesheet must be selected only for catalog pages'
   );
   assert(
+    bootLoader.includes("if (page === 'user')") &&
+      bootLoader.includes("assets.push('user-page.css')"),
+    'boot-loader.js: user page stylesheet must be selected only for user pages'
+  );
+  assert(
     bootLoader.includes('const secondaryPageStylesheets = {') &&
       bootLoader.includes("following: ['secondary-pages.css', 'following-page.css']") &&
       bootLoader.includes("notifications: ['secondary-pages.css', 'notifications-page.css']") &&
@@ -550,6 +556,7 @@ async function checkStaticGuards() {
     '/profile-settings-actions.js',
     '/profile-utils.js',
     '/user-page.js',
+    '/user-page.css',
     '/assets/directors-admin-app.js',
     '/shared-layout.js',
     '/styles.css',
@@ -609,6 +616,7 @@ async function checkStaticGuards() {
     'profile-settings-actions.js',
     'profile-utils.js',
     'user-page.js',
+    'user-page.css',
     'assets/directors-admin-app.js',
     'shared-layout.js',
     'styles.css',

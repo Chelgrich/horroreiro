@@ -12,6 +12,35 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-23 - Split profile page CSS
+
+- Files:
+  - `styles.css`
+  - `user-page.css`
+  - `boot-loader.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved profile page-only layout, stats, taste, section-header, follow-button, settings-button, and admin-password panel styles out of global `styles.css` into page-only `user-page.css`.
+  - Updated `boot-loader.js` to load `user-page.css` only for `data-app-page="user"`.
+  - Kept shared profile avatar primitives, back links, movie rails, rail arrows, and rail cards in `styles.css` because profile settings, secondary pages, notifications, and movie detail rails reuse them.
+  - Registered `user-page.css` in `/app-assets`, cache headers, asset-size reporting, and smoke guards.
+- Checks:
+  - `node --check boot-loader.js`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check tools\smoke-check.mjs`
+  - PostCSS parse: `styles.css`, `user-page.css`, `catalog-page.css`, `movie-page.css`, `movie-editor.css`, `secondary-pages.css`, `following-page.css`, `notifications-page.css`, `editor-page.css`, `director-page.css`, `directors-admin-page.css`, `director-form.css`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - Boot-loader VM route check: `/user/*` loads `styles.css + user-page.css`; catalog and movie routes do not load `user-page.css`.
+- Follow-up:
+  - Continue CSS tightening with remaining global shared controls and card primitives.
+
 ## 2026-08-23 - Document PowerShell colon interpolation trap
 
 - Files:

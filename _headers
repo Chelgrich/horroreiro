@@ -124,6 +124,9 @@
 /styles.css
   Cache-Control: public, max-age=0, must-revalidate
 
+/user-page.css
+  Cache-Control: public, max-age=0, must-revalidate
+
 /catalog-page.css
   Cache-Control: public, max-age=0, must-revalidate
 

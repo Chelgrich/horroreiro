@@ -92,6 +92,10 @@
         assets.push('movie-page.css');
       }
 
+      if (page === 'user') {
+        assets.push('user-page.css');
+      }
+
       if (secondaryPageStylesheets[page]) {
         assets.push(...secondaryPageStylesheets[page]);
       }
