@@ -12,6 +12,24 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-23 - Move profile settings CSS to user page
+
+- Files:
+  - `styles.css`
+  - `user-page.css`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Moved profile settings modal, display-name form, and profile avatar primitive styles out of global `styles.css` into page-only `user-page.css`.
+  - Kept shared back-link and movie rail/card primitives in `styles.css` because secondary pages, notifications, movie detail rails, and person pages reuse them.
+- Checks:
+  - PostCSS parse: `styles.css`, `user-page.css`, `catalog-page.css`, `movie-page.css`, `movie-editor.css`, `secondary-pages.css`, `following-page.css`, `notifications-page.css`, `editor-page.css`, `director-page.css`, `directors-admin-page.css`, `director-form.css`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+- Follow-up:
+  - Continue CSS tightening with remaining global shared controls and card/rail primitives.
+
 ## 2026-08-23 - Split profile page CSS
 
 - Files:
