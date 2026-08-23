@@ -24,6 +24,7 @@ const ALLOWED_APP_ASSETS = new Set([
   'following-page.css',
   'letterboxd-import.js',
   'movie-editor.js',
+  'movie-editor.css',
   'movie-detail-cache.js',
   'movie-page-interactions.js',
   'movie-page-orchestrator.js',

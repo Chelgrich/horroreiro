@@ -45,6 +45,7 @@ const assetGroups = {
   css: [
     'styles.css',
     'catalog-page.css',
+    'movie-editor.css',
     'movie-page.css',
     'secondary-pages.css',
     'following-page.css',

@@ -12,6 +12,35 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-23 - Lazy-load movie editor CSS
+
+- Files:
+  - `styles.css`
+  - `movie-editor.css`
+  - `app.js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Split movie add/edit modal-only CSS out of startup `styles.css` into lazy `movie-editor.css`.
+  - Added a shared lazy stylesheet loader in `app.js` and made movie editor entry points load `movie-editor.css` before mounting/opening/filling the modal.
+  - Registered `movie-editor.css` in `/app-assets`, cache headers, asset-size reporting, and smoke guards.
+- Checks:
+  - `node --check app.js`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node --check tools\asset-size-report.mjs`
+  - `node --check tools\smoke-check.mjs`
+  - PostCSS parse: `styles.css`, `movie-editor.css`, `catalog-page.css`, `movie-page.css`, `secondary-pages.css`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - Browser smoke: local catalog did not load `movie-editor.css` on startup; clicking the add-movie button lazy-loaded `/movie-editor.css?v=dev-local-27` and mounted/opened the movie form.
+  - `git diff --check`
+- Follow-up:
+  - Continue CSS tightening with remaining global form/control/button rules.
+
 ## 2026-08-22 - Move catalog CSS variables
 
 - Files:

@@ -7784,6 +7784,7 @@ let moviePageShellControllerPromise = null;
 let moviePageInteractionsControllerPromise = null;
 let movieUserStateControllerPromise = null;
 let customSelectScriptPromise = null;
+let movieEditorStylesheetPromise = null;
 let personPlaceholderTools = null;
 let movieSocialController = null;
 let movieEditorController = null;
@@ -7804,6 +7805,43 @@ function getLazyFeatureModuleUrl(filename) {
   const assetPath = window.location.protocol === 'file:' ? filename : `/${filename}`;
 
   return `${assetPath}?v=${encodeURIComponent(APP_BUILD_VERSION)}`;
+}
+
+function loadLazyStylesheet(filename) {
+  const existingStylesheet = Array
+    .from(document.querySelectorAll('link[data-app-lazy-stylesheet]'))
+    .find(stylesheet => stylesheet.dataset.appLazyStylesheet === filename);
+
+  if (existingStylesheet) {
+    return Promise.resolve(existingStylesheet);
+  }
+
+  return new Promise((resolve, reject) => {
+    const stylesheet = document.createElement('link');
+
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = getLazyFeatureModuleUrl(filename);
+    stylesheet.dataset.appLazyStylesheet = filename;
+    stylesheet.onload = () => resolve(stylesheet);
+    stylesheet.onerror = () => {
+      stylesheet.remove();
+      reject(new Error(`Stylesheet failed to load: ${filename}`));
+    };
+
+    document.head.appendChild(stylesheet);
+  });
+}
+
+function ensureMovieEditorStylesheetLoaded() {
+  if (!movieEditorStylesheetPromise) {
+    movieEditorStylesheetPromise = loadLazyStylesheet('movie-editor.css')
+      .catch(error => {
+        movieEditorStylesheetPromise = null;
+        throw error;
+      });
+  }
+
+  return movieEditorStylesheetPromise;
 }
 
 function getProfileUtilsContext() {
@@ -10343,7 +10381,10 @@ function ensureMovieModalMounted() {
 
 async function openMovieModal() {
   try {
-    await ensureMovieEditorControllerLoaded();
+    await Promise.all([
+      ensureMovieEditorStylesheetLoaded(),
+      ensureMovieEditorControllerLoaded()
+    ]);
   } catch (error) {
     console.warn('Не удалось загрузить редактор фильма:', error);
     return;
@@ -10437,7 +10478,10 @@ function resetFormToCreateMode() {
 
 async function fillFormForEdit(movie) {
   try {
-    await ensureMovieEditorControllerLoaded();
+    await Promise.all([
+      ensureMovieEditorStylesheetLoaded(),
+      ensureMovieEditorControllerLoaded()
+    ]);
   } catch (error) {
     console.warn('Movie editor controller failed to load before edit form fill:', error);
     return;
@@ -15865,7 +15909,10 @@ function bindCatalogPageEvents() {
 
   openAddMovieButton?.addEventListener('click', async () => {
     try {
-      await ensureMovieEditorControllerLoaded();
+      await Promise.all([
+        ensureMovieEditorStylesheetLoaded(),
+        ensureMovieEditorControllerLoaded()
+      ]);
     } catch (error) {
       console.warn('Не удалось загрузить редактор фильма:', error);
       return;

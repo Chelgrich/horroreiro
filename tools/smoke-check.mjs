@@ -73,6 +73,7 @@ const contextSensitiveExactFiles = new Set([
   'catalog-return-cache.js',
   'catalog-url-state.js',
   'catalog-page.css',
+  'movie-editor.css',
   'custom-select.js',
   'docs/CODEX_CONTEXT.md',
   'docs/DATA_MODEL.md',
@@ -521,6 +522,7 @@ async function checkStaticGuards() {
     '/catalog-return-cache.js',
     '/catalog-url-state.js',
     '/catalog-page.css',
+    '/movie-editor.css',
     '/custom-select.js',
     '/director-form.css',
     '/director-page.js',
@@ -582,6 +584,7 @@ async function checkStaticGuards() {
     'catalog-return-cache.js',
     'catalog-url-state.js',
     'catalog-page.css',
+    'movie-editor.css',
     'director-form.css',
     'director-page.js',
     'director-page.css',
@@ -658,6 +661,11 @@ async function checkStaticGuards() {
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('movie-editor.js'))"),
     'app.js: movie editor helpers must lazy-load movie-editor.js'
+  );
+  assert(
+    appJs.includes("loadLazyStylesheet('movie-editor.css')") &&
+      appJs.includes('ensureMovieEditorStylesheetLoaded()'),
+    'app.js: movie editor modal styles must lazy-load movie-editor.css'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('movie-detail-cache.js'))"),
