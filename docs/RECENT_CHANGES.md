@@ -12,6 +12,19 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-23 - Document PowerShell colon interpolation trap
+
+- Files:
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Documented that PowerShell variables immediately followed by `:` in strings, such as `$i:`, must be written as `${i}:` to avoid parser errors.
+- Checks:
+  - `node tools\smoke-check.mjs`
+  - `git diff --check`
+- Follow-up:
+  - Keep adding repeatable local workflow traps to the context map as they appear.
+
 ## 2026-08-23 - Lazy-load movie editor CSS
 
 - Files:

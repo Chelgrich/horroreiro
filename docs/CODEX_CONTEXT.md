@@ -22,6 +22,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 - Prefer `apply_patch` for edits. For long diagnostic snippets, keep shell commands small or split them into separate `multi_tool_use.parallel` calls instead of relying on large pasted multiline commands.
 - Paths containing square brackets are globbed by PowerShell. Use `Get-Content -LiteralPath functions\app-assets\[version].js` and quote the path for Node checks, for example `node --check "functions/app-assets/[version].js"`.
 - When interpolating a PowerShell variable immediately before a query string, wrap the variable name: use `"https://host/app-assets/${version}?file=app.js"`, not `"$version?file=app.js"`. Otherwise PowerShell treats `?file` as part of the variable name and sends a broken URL.
+- The same PowerShell interpolation issue happens before colons and other punctuation in status strings. Use `"attempt ${i}: not yet"`, not `"attempt $i: not yet"`.
 - Do not assume PowerShell 7 syntax in local shell commands. The desktop environment can reject null-conditional access such as `(Get-Command node)?.Source`; use explicit variable checks instead.
 - Inline Node scripts piped through stdin run as CommonJS by default. If the script uses `require(...)` and needs `await`, wrap the code in an async IIFE instead of using top-level `await`, or Node 24 can throw `ERR_AMBIGUOUS_MODULE_SYNTAX`.
 - Do not pass bare `*.js` path globs to `rg` in PowerShell. Use exact files or `rg "pattern" -g "*.js"` to avoid path syntax errors.
