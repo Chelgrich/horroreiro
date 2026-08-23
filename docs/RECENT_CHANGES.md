@@ -12,6 +12,23 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-23 - Fix person movie grid columns
+
+- Files:
+  - `director-page.css`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added person-page local movie grid variables and responsive breakpoints so `/name/*` movie cards no longer depend on catalog-only CSS variables.
+  - Restored multi-column movie cards on person/director pages after the catalog CSS split.
+- Checks:
+  - PostCSS parse: `director-page.css`, `styles.css`, `catalog-page.css`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `rg -n "catalog-columns|catalog-grid-gap" director-page.css` returned no matches
+  - `git diff --check`
+- Follow-up:
+  - Continue CSS tightening with remaining global shared controls and card/rail primitives.
+
 ## 2026-08-23 - Move profile settings CSS to user page
 
 - Files:
