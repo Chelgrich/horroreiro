@@ -5378,6 +5378,15 @@ function hasSavedCatalogReturnPosition() {
 }
 
 function markCatalogFastReturnPending() {
+  if (!catalogReturnCacheTools) {
+    try {
+      sessionStorage.setItem(CATALOG_FAST_RETURN_PENDING_KEY, '1');
+    } catch (error) {
+      return;
+    }
+    return;
+  }
+
   catalogReturnCacheTools?.markCatalogFastReturnPending({
     storage: sessionStorage,
     key: CATALOG_FAST_RETURN_PENDING_KEY,
@@ -5395,6 +5404,64 @@ function consumeCatalogFastReturnPending() {
       console.warn('Ошибка чтения признака быстрого возврата в каталог:', error);
     }
   }) || false;
+}
+
+function isPlainSameTabLinkClick(event, link) {
+  return Boolean(
+    event &&
+    link &&
+    !event.defaultPrevented &&
+    event.button === 0 &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.shiftKey &&
+    !event.altKey &&
+    (!link.target || link.target === '_self') &&
+    !link.hasAttribute('download')
+  );
+}
+
+function isCatalogNavigationHref(href) {
+  try {
+    const targetUrl = new URL(href, window.location.href);
+    const catalogUrl = new URL(buildCatalogPageUrl(), window.location.href);
+
+    return (
+      targetUrl.origin === window.location.origin &&
+      normalizeCurrentPageLinkPath(targetUrl.pathname) === normalizeCurrentPageLinkPath(catalogUrl.pathname)
+    );
+  } catch (error) {
+    return false;
+  }
+}
+
+function prepareCatalogReturnNavigation() {
+  try {
+    if (isCatalogPage()) {
+      return;
+    }
+
+    if (isMoviePage() && currentMoviePageMovieData?.id) {
+      syncCatalogSessionSnapshotMovieState(currentMoviePageMovieData.id, {
+        syncMovie: currentMoviePageMovieData
+      });
+      persistCurrentMoviePageSessionCache();
+    }
+
+    markCatalogFastReturnPending();
+  } catch (error) {
+    console.warn('Catalog return cache preparation failed:', error);
+  }
+}
+
+function handleCatalogReturnNavigationLinkClick(event) {
+  const link = event.target?.closest?.('a[href]');
+
+  if (!isPlainSameTabLinkClick(event, link) || !isCatalogNavigationHref(link.getAttribute('href'))) {
+    return;
+  }
+
+  prepareCatalogReturnNavigation();
 }
 
 function getMovieRatingStatsSnapshotRows() {
@@ -15791,6 +15858,8 @@ function bindSharedUiEvents() {
   });
 
   document.addEventListener('click', event => {
+    handleCatalogReturnNavigationLinkClick(event);
+
     if (handleUserPageRankTooltipClick(event)) {
       return;
     }
@@ -16263,8 +16332,8 @@ function hydrateCatalogPageFromSnapshot(hydratedSnapshot, { shouldRestoreScroll 
   };
 }
 
-function canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot, { isReturnNavigation = false } = {}) {
-  if (!isReturnNavigation || !hydrationState?.didHydrateCatalogFromSnapshot || !hydratedSnapshot) {
+function canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot) {
+  if (!hydrationState?.didHydrateCatalogFromSnapshot || !hydratedSnapshot) {
     return false;
   }
 
@@ -16280,7 +16349,6 @@ async function initCatalogPage() {
   const catalogUrlStateToolsReady = loadCatalogUrlStateTools();
   const catalogPresetToolsReady = loadCatalogPresetTools();
   const catalogReturnCacheToolsReady = loadCatalogReturnCacheTools();
-  renderMoviesSkeleton();
   await Promise.all([
     catalogCardControllerReady,
     catalogRenderControllerReady,
@@ -16294,7 +16362,8 @@ async function initCatalogPage() {
   const routePresetKey = getCatalogRoutePresetKey();
   const restoreSessionPromise = restoreSession();
   const initialCatalogUrlState = readCatalogUrlState();
-  const isReturnNavigationWithSnapshot = consumeCatalogFastReturnPending() && hasSavedCatalogReturnPosition();
+  const hasFastReturnHint = consumeCatalogFastReturnPending();
+  const shouldRestoreCatalogScrollFromSnapshot = hasFastReturnHint && hasSavedCatalogReturnPosition();
   const shouldSkipSnapshotForProfileActivity = Boolean(
     initialCatalogUrlState?.profileHandle &&
     initialCatalogUrlState?.profileActivity
@@ -16316,15 +16385,23 @@ async function initCatalogPage() {
   };
   let restoredUser = null;
 
+  if (!hydratedSnapshot) {
+    renderMoviesSkeleton();
+  }
+
   if (!shouldWaitForSessionBeforeHydration) {
-    hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot);
+    hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot, {
+      shouldRestoreScroll: shouldRestoreCatalogScrollFromSnapshot
+    });
   }
 
   restoredUser = await restoreSessionPromise;
   trackEmailConfirmedLoginIfNeeded();
 
   if (shouldWaitForSessionBeforeHydration) {
-    hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot);
+    hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot, {
+      shouldRestoreScroll: shouldRestoreCatalogScrollFromSnapshot
+    });
   }
 
   const activeUserId = currentUser?.id || null;
@@ -16370,9 +16447,7 @@ async function initCatalogPage() {
     }
   });
 
-  if (canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot, {
-    isReturnNavigation: isReturnNavigationWithSnapshot
-  })) {
+  if (canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot)) {
     applySavedCatalogState();
     await syncCatalogProfileActivityContextBeforeRender();
 

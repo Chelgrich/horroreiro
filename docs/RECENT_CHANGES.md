@@ -12,6 +12,24 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-25 - Snapshot-first catalog return
+
+- Files:
+  - `app.js`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Changed catalog startup to hydrate from a valid session/DOM snapshot before rendering skeletons.
+  - Allowed valid same-user catalog snapshots to skip the initial network reload until build version, poster preference, age, or local data mutation invalidates them.
+  - Added same-tab catalog-link preparation for secondary pages so movie detail back links and the shared logo can return to the saved catalog state.
+- Checks:
+  - `node --check app.js`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - `git diff --check`
+- Follow-up:
+  - Add targeted movie/page dependency invalidation so edits refresh only affected cached pages.
+
 ## 2026-08-23 - Fix person movie grid columns
 
 - Files:
