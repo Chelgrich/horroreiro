@@ -190,6 +190,103 @@ export function createMovieDetailCacheController(context = {}) {
     }
   }
 
+  function patchMovieReferences(movieId, {
+    movie = null,
+    posterImages = null,
+    removeOwnEntries = false
+  } = {}) {
+    try {
+      const movieKey = String(movieId || '').trim();
+      const cache = readCache();
+
+      if (!movieKey || !cache?.entries) {
+        return false;
+      }
+
+      const nextEntries = {};
+      let didChange = false;
+
+      Object.entries(cache.entries).forEach(([entryKey, entry]) => {
+        if (!entry?.movie?.id) {
+          nextEntries[entryKey] = entry;
+          return;
+        }
+
+        const isOwnEntry = String(entry.movie.id) === movieKey;
+
+        if (isOwnEntry && removeOwnEntries) {
+          didChange = true;
+          return;
+        }
+
+        let nextEntry = entry;
+        let didChangeEntry = false;
+
+        if (isOwnEntry && movie) {
+          nextEntry = {
+            ...nextEntry,
+            movie
+          };
+          didChangeEntry = true;
+        }
+
+        if (Array.isArray(nextEntry.similarMovies) && movie) {
+          const nextSimilarMovies = nextEntry.similarMovies.map(similarMovie => {
+            if (String(similarMovie?.id || '') !== movieKey) {
+              return similarMovie;
+            }
+
+            didChangeEntry = true;
+            return {
+              ...similarMovie,
+              ...movie
+            };
+          });
+
+          nextEntry = {
+            ...nextEntry,
+            similarMovies: nextSimilarMovies
+          };
+        }
+
+        if (isOwnEntry && Array.isArray(posterImages)) {
+          nextEntry = {
+            ...nextEntry,
+            posterImages
+          };
+          didChangeEntry = true;
+        }
+
+        if (didChangeEntry) {
+          didChange = true;
+          nextEntry = {
+            ...nextEntry,
+            signature: getEntrySignature(nextEntry)
+          };
+        }
+
+        nextEntries[entryKey] = nextEntry;
+      });
+
+      if (!didChange) {
+        return false;
+      }
+
+      storage?.setItem(
+        cacheKey,
+        JSON.stringify({
+          ...cache,
+          entries: nextEntries
+        })
+      );
+
+      return true;
+    } catch (error) {
+      onCacheError('patch', error);
+      return false;
+    }
+  }
+
   function getEntry(routeParams) {
     const routeCacheKey = getRouteCacheKey(routeParams);
     const cache = readCache();
@@ -217,6 +314,7 @@ export function createMovieDetailCacheController(context = {}) {
     createEntry,
     writeEntry,
     removeForMovie,
+    patchMovieReferences,
     getEntry
   };
 }

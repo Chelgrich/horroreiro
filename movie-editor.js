@@ -1098,6 +1098,10 @@ export function createMovieEditorController(context = {}) {
     return {
       hasMovieFieldChanges,
       hasAnyChanges,
+      relationsChanged,
+      directorsChanged,
+      manualSimilarChanged,
+      posterImagesChanged,
       shouldDeleteOldPoster: Boolean(posterImagesChanged && oldPosterUrl && !hasFinalPosterUrl)
     };
   }
@@ -1310,12 +1314,14 @@ export function createMovieEditorController(context = {}) {
 
   async function handleMovieUpdatePostSave({
     movieId,
+    existingMovie = null,
     updateSavePlan,
     isCatalogPage = false,
     isMoviePage = false,
     shouldReplaceMoviePageUrl = false,
     setStatus = () => {},
     markLocalDataMutation = () => {},
+    refreshCatalogMovieAfterUpdate = async () => null,
     reloadCatalogData = async () => {},
     rerenderCatalogAfterDataReload = () => {},
     reloadMoviePageData = async () => null,
@@ -1338,15 +1344,25 @@ export function createMovieEditorController(context = {}) {
       return { shouldExit: true };
     }
 
-    markLocalDataMutation(`movie-update:${movieId}`);
-
     if (isCatalogPage) {
-      setStatus('Обновляю каталог...');
-      await withPendingRequestTimeout(
-        reloadCatalogData({ showSkeleton: false }),
+      const refreshedCatalogMovie = await withPendingRequestTimeout(
+        refreshCatalogMovieAfterUpdate(movieId, {
+          updateSavePlan,
+          existingMovie
+        }),
         15000,
-        'Превышено время ожидания обновления каталога.'
+        'Превышено время ожидания обновления карточки фильма.'
       );
+
+      if (!refreshedCatalogMovie) {
+        markLocalDataMutation(`movie-update:${movieId}`);
+        setStatus('Обновляю каталог...');
+        await withPendingRequestTimeout(
+          reloadCatalogData({ showSkeleton: false }),
+          15000,
+          'Превышено время ожидания обновления каталога.'
+        );
+      }
 
       rerenderCatalogAfterDataReload(movieId);
     } else if (isMoviePage) {
@@ -1366,7 +1382,16 @@ export function createMovieEditorController(context = {}) {
         }
 
         renderMoviePage(updatedMovie);
-        syncCatalogSessionSnapshotMovieState(movieId, { syncMovie: updatedMovie });
+        const refreshedCatalogMovie = await refreshCatalogMovieAfterUpdate(movieId, {
+          updateSavePlan,
+          existingMovie
+        });
+
+        if (!refreshedCatalogMovie) {
+          markLocalDataMutation(`movie-update:${movieId}`);
+          syncCatalogSessionSnapshotMovieState(movieId, { syncMovie: updatedMovie });
+        }
+
         await loadMoviePageSimilarMovies(updatedMovie);
         persistCurrentMoviePageSessionCache();
       } else {
@@ -1650,6 +1675,7 @@ export function createMovieEditorController(context = {}) {
 
     const postSaveResult = await handleMovieUpdatePostSave({
       movieId,
+      existingMovie,
       updateSavePlan,
       setStatus,
       ...postSaveOptions

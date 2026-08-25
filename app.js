@@ -3405,7 +3405,7 @@ function ensureManualSimilarEditorDataLoaded(movieId) {
   });
 }
 
-async function replaceManualSimilarMovies(movieId, similarMovieIds = []) {
+async function replaceManualSimilarMovies(movieId, similarMovieIds = [], { markMutation = true } = {}) {
   const ownerMovieId = String(movieId || '').trim();
   const normalizedSimilarMovieIds = normalizeManualSimilarMovieIds(similarMovieIds, ownerMovieId);
 
@@ -3470,7 +3470,11 @@ async function replaceManualSimilarMovies(movieId, similarMovieIds = []) {
   }
 
   await fetchManualSimilarMovies();
-  markLocalDataMutation(`manual-similar:${ownerMovieId}`);
+
+  if (markMutation) {
+    markLocalDataMutation(`manual-similar:${ownerMovieId}`);
+  }
+
   return true;
 }
 
@@ -3878,7 +3882,10 @@ function handleMoviePosterImagesDraftDrop(event) {
   renderMoviePosterImagesDraftList();
 }
 
-async function replaceMoviePosterImages(movieId, draftEntries = [], { preservedUrls = [] } = {}) {
+async function replaceMoviePosterImages(movieId, draftEntries = [], {
+  preservedUrls = [],
+  markMutation = true
+} = {}) {
   const ownerMovieId = String(movieId || '').trim();
 
   if (!ownerMovieId) {
@@ -3958,7 +3965,10 @@ async function replaceMoviePosterImages(movieId, draftEntries = [], { preservedU
     }
 
     await fetchMoviePosterImagesForMovie(ownerMovieId, { force: true });
-    markLocalDataMutation(`poster-images:${ownerMovieId}`);
+
+    if (markMutation) {
+      markLocalDataMutation(`poster-images:${ownerMovieId}`);
+    }
 
     const removedUrls = [...previousUrls].filter(url => (
       !finalUrls.has(url) &&
@@ -5638,6 +5648,18 @@ function writeMoviePageSessionCacheEntry(entry) {
 
 function removeMoviePageSessionCacheForMovie(movie) {
   movieDetailCacheController?.removeForMovie(movie);
+}
+
+function patchMoviePageSessionCacheReferences(movieId, {
+  movie = null,
+  posterImages = null,
+  removeOwnEntries = false
+} = {}) {
+  movieDetailCacheController?.patchMovieReferences?.(movieId, {
+    movie,
+    posterImages,
+    removeOwnEntries
+  });
 }
 
 function getMoviePageSessionCacheEntry(routeParams) {
@@ -11711,6 +11733,78 @@ async function reloadMoviePageData(movieId) {
   return movie;
 }
 
+function replaceLoadedCatalogMovie(movie) {
+  if (!movie?.id || !moviesLoadedSuccessfully || !Array.isArray(allMovies) || allMovies.length === 0) {
+    return false;
+  }
+
+  const movieKey = String(movie.id);
+  let didReplaceMovie = false;
+
+  allMovies = allMovies.map(existingMovie => {
+    if (String(existingMovie?.id || '') !== movieKey) {
+      return existingMovie;
+    }
+
+    didReplaceMovie = true;
+    return movie;
+  });
+
+  if (!didReplaceMovie) {
+    return false;
+  }
+
+  rebuildCatalogMovieMeta();
+  markCatalogDataChanged();
+  return true;
+}
+
+async function refreshCatalogMovieAfterUpdate(movieId, {
+  updateSavePlan = null
+} = {}) {
+  const movieKey = String(movieId || '').trim();
+
+  if (!movieKey) {
+    return null;
+  }
+
+  const shouldRefreshPosterImages = Boolean(updateSavePlan?.posterImagesChanged);
+
+  invalidateMovieSelectRowsCache([movieKey]);
+  invalidateLetterboxdImportMatchMoviesCache();
+
+  if (shouldRefreshPosterImages) {
+    await fetchMoviePosterImagesForMovieSafe(movieKey, { force: true });
+  }
+
+  const updatedMovie = await fetchMovieById(movieKey, MOVIE_CATALOG_SELECT);
+
+  if (!updatedMovie?.id) {
+    return null;
+  }
+
+  await ensurePreferredPosterImagesForMovies([updatedMovie]);
+  replaceLoadedCatalogMovie(updatedMovie);
+  syncCatalogSessionSnapshotMovieState(movieKey, { syncMovie: updatedMovie });
+
+  if (isCatalogPage()) {
+    persistCatalogSessionSnapshot();
+  }
+
+  try {
+    await ensureMovieDetailCacheControllerLoaded();
+    patchMoviePageSessionCacheReferences(movieKey, {
+      movie: updatedMovie,
+      posterImages: getMoviePosterImages(movieKey),
+      removeOwnEntries: true
+    });
+  } catch (cacheError) {
+    console.warn('Error patching movie detail cache after movie update:', cacheError);
+  }
+
+  return updatedMovie;
+}
+
 async function reloadCatalogData({
   showSkeleton = false,
   refreshFilters = true,
@@ -12888,8 +12982,13 @@ async function updateMovie(movieEditor) {
     setMissingMovieMessage: setMovieFormStatus,
     replaceMovieRelations,
     replaceMovieDirectors,
-    replaceManualSimilarMovies,
-    replaceMoviePosterImages,
+    replaceManualSimilarMovies: (movieId, similarMovieIds) =>
+      replaceManualSimilarMovies(movieId, similarMovieIds, { markMutation: false }),
+    replaceMoviePosterImages: (movieId, draftEntries, options = {}) =>
+      replaceMoviePosterImages(movieId, draftEntries, {
+        ...options,
+        markMutation: false
+      }),
     deletePosterFileByUrl,
     onDeletePosterError: deletePosterError => {
       console.error('Не удалось удалить старый постер:', deletePosterError);
@@ -12899,6 +12998,7 @@ async function updateMovie(movieEditor) {
       isMoviePage: isMoviePage(),
       shouldReplaceMoviePageUrl: window.location.pathname.endsWith('movie.html'),
       markLocalDataMutation,
+      refreshCatalogMovieAfterUpdate,
       reloadCatalogData,
       rerenderCatalogAfterDataReload,
       reloadMoviePageData,

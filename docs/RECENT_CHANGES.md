@@ -12,6 +12,28 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-25 - Target movie update cache refresh
+
+- Files:
+  - `app.js`
+  - `movie-editor.js`
+  - `movie-detail-cache.js`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Existing movie updates now try a targeted one-movie refresh instead of globally invalidating the catalog snapshot and reloading the full movie list.
+  - Patched the loaded catalog row, catalog session snapshot, poster-gallery cache, Letterboxd match cache, and cached similar-card references for the updated movie.
+  - Kept global data mutation/full catalog reload as fallback, and left movie create/delete on the safer full invalidation path because they change catalog membership.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check movie-detail-cache.js`
+  - `git diff --check`
+  - `node tools\smoke-check.mjs`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+- Follow-up:
+  - Verify an authenticated admin edit path on dev and continue with page dependency tracking for profile/person/notification caches.
+
 ## 2026-08-25 - Snapshot-first catalog return
 
 - Files:
