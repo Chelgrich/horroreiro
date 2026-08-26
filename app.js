@@ -11908,7 +11908,8 @@ async function reloadCatalogData({
   showSkeleton = false,
   refreshFilters = true,
   awaitUserState = false,
-  loadDeferredUserState = true
+  loadDeferredUserState = true,
+  onSkeletonRendered = null
 } = {}) {
   const shouldShowCatalogSkeleton = showSkeleton && Boolean(container);
   const shouldPreserveExistingCatalogOnMovieLoadError = (
@@ -11922,6 +11923,10 @@ async function reloadCatalogData({
 
   if (shouldShowCatalogSkeleton) {
     renderMoviesSkeleton(getCatalogSkeletonCardsCount());
+
+    if (typeof onSkeletonRendered === 'function') {
+      onSkeletonRendered();
+    }
   }
 
   await Promise.all([
@@ -16539,7 +16544,21 @@ function canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot) {
   return (hydratedSnapshot.userId || null) === (currentUser?.id || null);
 }
 
-async function initCatalogPage() {
+async function initCatalogPage({ onShellReady = null } = {}) {
+  let didSignalShellReady = false;
+  const signalCatalogShellReady = () => {
+    if (didSignalShellReady) {
+      return;
+    }
+
+    didSignalShellReady = true;
+    document.documentElement.classList.remove('app-catalog-fast-return-pending');
+
+    if (typeof onShellReady === 'function') {
+      onShellReady();
+    }
+  };
+
   initCatalogViewToggleButton();
   const catalogCardControllerReady = loadCatalogCardController();
   const catalogRenderControllerReady = loadCatalogRenderController();
@@ -16586,12 +16605,17 @@ async function initCatalogPage() {
 
   if (!hydratedSnapshot) {
     renderMoviesSkeleton();
+    signalCatalogShellReady();
   }
 
   if (!shouldWaitForSessionBeforeHydration) {
     hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot, {
       shouldRestoreScroll: shouldRestoreCatalogScrollFromSnapshot
     });
+
+    if (hydrationState.didHydrateCatalogFromSnapshot) {
+      signalCatalogShellReady();
+    }
   }
 
   restoredUser = await restoreSessionPromise;
@@ -16601,6 +16625,10 @@ async function initCatalogPage() {
     hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot, {
       shouldRestoreScroll: shouldRestoreCatalogScrollFromSnapshot
     });
+
+    if (hydrationState.didHydrateCatalogFromSnapshot) {
+      signalCatalogShellReady();
+    }
   }
 
   const activeUserId = currentUser?.id || null;
@@ -16616,6 +16644,10 @@ async function initCatalogPage() {
     hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot, {
       shouldRestoreScroll: false
     });
+
+    if (hydrationState.didHydrateCatalogFromSnapshot) {
+      signalCatalogShellReady();
+    }
   }
 
   let storedCatalogStateForInitialLoad = null;
@@ -16658,11 +16690,13 @@ async function initCatalogPage() {
 
       if (didApplyRoutePreset) {
         updateFiltersButtonLabel();
+        signalCatalogShellReady();
         return;
       }
     }
 
     updateFiltersButtonLabel();
+    signalCatalogShellReady();
     return;
   }
 
@@ -16670,7 +16704,8 @@ async function initCatalogPage() {
     showSkeleton: !hydrationState.didHydrateCatalogFromSnapshot,
     refreshFilters: false,
     awaitUserState: shouldAwaitInitialUserCatalogState,
-    loadDeferredUserState: false
+    loadDeferredUserState: false,
+    onSkeletonRendered: signalCatalogShellReady
   });
 
   const loadDeferredInitialUserState = () => {
@@ -16696,6 +16731,7 @@ async function initCatalogPage() {
     if (didApplyRoutePreset) {
       updateFiltersButtonLabel();
       loadDeferredInitialUserState();
+      signalCatalogShellReady();
       return;
     }
   }
@@ -16710,6 +16746,7 @@ async function initCatalogPage() {
   if (canReuseHydratedCatalog) {
     updateFiltersButtonLabel();
     loadDeferredInitialUserState();
+    signalCatalogShellReady();
     return;
   }
 
@@ -16728,6 +16765,7 @@ async function initCatalogPage() {
   }
 
   loadDeferredInitialUserState();
+  signalCatalogShellReady();
 }
 
 function getUserPageRouteHandle() {

@@ -12,6 +12,33 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-26 - Defer catalog shell until warm state
+
+- Files:
+  - `app.js`
+  - `app-page-runtime.js`
+  - `app-script-loader.js`
+  - `boot-loader.js`
+  - `index.html`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Changed page runtime so the catalog can defer `app-ready` until it has restored a valid snapshot/DOM state or rendered the real catalog skeleton.
+  - Added a catalog fast-return startup hint in `boot-loader.js` that delays the visible boot shell when a same-tab return has a saved DOM snapshot.
+  - Removed the fast-return hint when the app marks itself ready, preventing stale startup classes after hydration.
+- Checks:
+  - `node --check app.js`
+  - `node --check app-page-runtime.js`
+  - `node --check app-script-loader.js`
+  - `node --check boot-loader.js`
+  - `node tools\smoke-check.mjs`
+  - `git diff --check`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - Inline Node smoke: catalog page runtime deferred `app-ready` until `initCatalogPage` called `onShellReady`, while non-catalog pages kept the previous immediate shell-ready behavior.
+  - Inline Node smoke: `boot-loader.js` marked `html.app-catalog-fast-return-pending` when a catalog fast-return flag and DOM snapshot existed.
+- Follow-up:
+  - Verify same-tab catalog returns on dev/local browser after deployment and keep extending page-level cache invalidation only where data actually changes.
+
 ## 2026-08-26 - Cache profile page data by dependencies
 
 - Files:

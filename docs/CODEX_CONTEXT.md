@@ -62,7 +62,8 @@ Page HTML is static shell plus shared scripts:
 - `app-page-runtime.js`
   - dispatches by `document.body.dataset.appPage`;
   - calls `initSharedApp()` first;
-  - then calls the page initializer.
+  - then calls the page initializer;
+  - lets page modules defer `app-ready` through `onShellReady` when a page needs to restore a warm view before the static shell is revealed. The catalog uses this so fast returns do not expose an intermediate empty shell.
 
 Production asset URL strategy:
 
@@ -179,6 +180,11 @@ Profile ranking note:
 `catalog-filters.js` is lazy-loaded only on catalog pages and owns catalog filter state shaping, movie filter matching, numeric range matching, dynamic filter option counts, and filter-modal chip scoping. `app.js` keeps reading filter controls, building user-facing chip labels, refreshing select/range UI, sorting, pagination slicing, and rendering.
 
 `catalog-return-cache.js` is lazy-loaded on catalog pages and movie detail pages. It owns the catalog fast-return flag, session/DOM snapshot storage reads and writes, snapshot validity envelopes, catalog snapshot signatures, data-signature hashes, and DOM snapshot payload shaping. `app.js` keeps the concrete catalog payload composition, DOM hydration, scroll/anchor restore, and local data state mutation bridges. Catalog startup is snapshot-first: `initCatalogPage()` should try a valid session/DOM snapshot before rendering skeletons or reloading data. A valid same-user snapshot can skip the initial catalog network reload until build version, user id, poster preference, age, or local `DATA_MUTATION_STAMP` invalidates it.
+
+Catalog fast-return startup:
+
+- `boot-loader.js` marks `html.app-catalog-fast-return-pending` when the catalog has both a pending fast-return flag and a saved DOM snapshot, delaying the visible boot shell long enough for warm DOM hydration in normal same-tab returns.
+- `initCatalogPage({ onShellReady })` must call the shell-ready callback only after a snapshot/DOM restore or after rendering the catalog skeleton. Do not mark `app-ready` before that point, or users can see the static catalog shell and a full-looking rebuild when returning from movie/detail pages.
 
 `editor-page.js` is lazy-loaded only for `/editor` and owns editor-center completeness summary rendering, auth/forbidden/loading states, and page toolbar click handling. `app.js` provides shared auth, admin state, completeness data fetchers, and download actions.
 

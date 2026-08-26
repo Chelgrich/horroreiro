@@ -18,6 +18,8 @@
       SUPABASE_ANON_KEY: 'sb_publishable_trS_-TlQwFqcM59nELIdsw_ygVI6B0j',
       APP_BUILD_VERSION: 'dev-local-27'
     };
+    const CATALOG_FAST_RETURN_PENDING_KEY = 'horroreiro_catalog_fast_return_pending';
+    const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
 
     function getVersionedAssetUrl(src, buildVersion) {
       if (shouldUseLocalDevEnv) {
@@ -73,6 +75,23 @@
       return '';
     }
 
+    function markCatalogFastReturnStartupHint() {
+      if (getCurrentAppPage() !== 'catalog') {
+        return;
+      }
+
+      try {
+        if (
+          window.sessionStorage?.getItem(CATALOG_FAST_RETURN_PENDING_KEY) === '1' &&
+          window.sessionStorage?.getItem(CATALOG_DOM_SNAPSHOT_KEY)
+        ) {
+          document.documentElement.classList.add('app-catalog-fast-return-pending');
+        }
+      } catch (error) {
+        // Session storage hints are optional; normal boot still handles the page.
+      }
+    }
+
     function getPageStylesheetAssets() {
       const page = getCurrentAppPage();
       const assets = ['styles.css'];
@@ -102,6 +121,8 @@
 
       return assets;
     }
+
+    markCatalogFastReturnStartupHint();
 
     function finishEnvReady() {
       if (isEnvReadyResolved) {

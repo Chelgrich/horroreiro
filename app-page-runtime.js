@@ -1,9 +1,10 @@
 (function () {
   const pageModules = {
     catalog: {
-      run(app) {
+      defersShellReady: true,
+      run(app, runtimeOptions = {}) {
         app.bindCatalogPageEvents();
-        return app.initCatalogPage();
+        return app.initCatalogPage(runtimeOptions);
       }
     },
     user: {
@@ -64,13 +65,26 @@
       return;
     }
 
-    const pageRunResult = pageModule.run(app);
+    let didSignalShellReady = false;
+    const signalShellReady = () => {
+      if (didSignalShellReady || typeof onShellReady !== 'function') {
+        return;
+      }
 
-    if (typeof onShellReady === 'function') {
+      didSignalShellReady = true;
       onShellReady();
+    };
+
+    const pageRunResult = pageModule.run(app, {
+      onShellReady: signalShellReady
+    });
+
+    if (!pageModule.defersShellReady) {
+      signalShellReady();
     }
 
     await pageRunResult;
+    signalShellReady();
   }
 
   window.HorroreiroPageRuntime = {

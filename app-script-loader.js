@@ -49,6 +49,7 @@
   function markAppStarted() {
     isAppStarted = true;
     document.documentElement.classList.remove('app-load-failed');
+    document.documentElement.classList.remove('app-catalog-fast-return-pending');
     document.documentElement.classList.add('app-ready');
   }
 
