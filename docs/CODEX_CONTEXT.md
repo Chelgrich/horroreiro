@@ -111,6 +111,7 @@ All HTML-like app shell responses should be no-store.
 - ratings/watchlist data, request state, Supabase write callbacks, and catalog/detail rerender bridges;
 - notifications unread badge and shared notification availability;
 - shared user profile state, settings UI bridges, follow UI controls, and reusable profile movie rails;
+- local page dependency stamps in `localStorage`, used to invalidate cached secondary page data for a changed movie without bumping the global catalog mutation stamp;
 - shared movie poster display preference state and UI refresh bridges, including the profile-level "Русские постеры" mode that treats the second uploaded poster as primary when available;
 - bridging legacy app data into the `/directors` Preact island.
 
@@ -149,7 +150,7 @@ Secondary page-only CSS is loaded by `boot-loader.js` only for the matching shel
 
 `notifications-page.js` is lazy-loaded only for `/notifications` and owns notification settings/feed rendering, filters, read/dwell handling, clear-all, mark-all-read, and notification digest movie rails. `app.js` keeps the unread badge, account-menu badge, and shared availability/error state.
 
-`user-page.js` is lazy-loaded only for `/user/*` and owns public profile page data composition, rankings/taste stats, and page rendering. `app.js` keeps profile state/write bridges, avatar/settings actions, follow actions, shared movie rail components, and the `/profile-activity-ranks/:userId` fetch bridge because notifications and other surfaces reuse nearby profile state.
+`user-page.js` is lazy-loaded only for `/user/*` and owns public profile page data composition, rankings/taste stats, page rendering, activity aggregate row caching, and session page-data caching. The page-data cache is keyed by profile handle, viewer id, poster preference, build version, global mutation stamp, and per-movie dependency stamps for the movies used by the page. `app.js` keeps profile state/write bridges, avatar/settings actions, follow actions, shared movie rail components, local page dependency stamp helpers, and the `/profile-activity-ranks/:userId` fetch bridge because notifications and other surfaces reuse nearby profile state.
 
 Profile ranking note:
 

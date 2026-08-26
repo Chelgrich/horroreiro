@@ -247,7 +247,9 @@ const CATALOG_SESSION_SNAPSHOT_KEY = 'horroreiro_catalog_session_snapshot';
 const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
 const MOVIE_PAGE_SESSION_CACHE_KEY = 'horroreiro_movie_page_session_cache';
 const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY = 'horroreiro_user_page_activity_aggregate_cache';
+const USER_PAGE_DATA_CACHE_KEY = 'horroreiro_user_page_data_cache';
 const DATA_MUTATION_STAMP_KEY = 'horroreiro_data_mutation_stamp';
+const DATA_DEPENDENCY_STAMPS_KEY = 'horroreiro_data_dependency_stamps';
 const CATALOG_SESSION_SNAPSHOT_VERSION = 8;
 const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
@@ -695,6 +697,7 @@ let catalogProfileActivityError = null;
 let catalogDataVersion = 0;
 let catalogDerivedStateCache = null;
 let lastCatalogDomRenderSignature = '';
+let localDataDependencyStamps = null;
 const catalogSessionSnapshotDataHashCache = new WeakMap();
 
 function hasStoredSupabaseAuthSession() {
@@ -4638,6 +4641,7 @@ async function updateCurrentUserDisplayName(nextDisplayName) {
     display_name: nextDisplayName
   };
   cachePublicProfileRows([{ id: currentUser.id, ...currentUserProfile }]);
+  invalidateUserPageDataCache();
 
   syncDisplayNameButton();
   syncUserPageOwnProfileIdentity();
@@ -5137,6 +5141,7 @@ async function deleteCurrentUserAvatar() {
       avatar_url: null
     };
     cachePublicProfileRows([{ id: currentUser.id, ...currentUserProfile }]);
+    invalidateUserPageDataCache();
 
     syncUserPageOwnProfileIdentity();
     setUserPageAvatarStatus('Аватар удалён.', 'success');
@@ -5185,6 +5190,7 @@ async function saveAvatarCrop() {
       avatar_url: avatarUrl
     };
     cachePublicProfileRows([{ id: currentUser.id, ...currentUserProfile }]);
+    invalidateUserPageDataCache();
 
     syncUserPageOwnProfileIdentity();
     closeAvatarCropModal({ force: true });
@@ -5557,6 +5563,98 @@ function getDataMutationStamp() {
   } catch (error) {
     return '';
   }
+}
+
+function getDataDependencyMovieKey(movieId) {
+  const movieKey = String(movieId || '').trim();
+  return movieKey ? `movie:${movieKey}` : '';
+}
+
+function getLocalDataDependencyStamps() {
+  if (localDataDependencyStamps && typeof localDataDependencyStamps === 'object') {
+    return localDataDependencyStamps;
+  }
+
+  try {
+    const rawValue = localStorage.getItem(DATA_DEPENDENCY_STAMPS_KEY);
+    const parsedValue = rawValue ? JSON.parse(rawValue) : {};
+
+    localDataDependencyStamps = (
+      parsedValue &&
+      typeof parsedValue === 'object' &&
+      !Array.isArray(parsedValue)
+    )
+      ? parsedValue
+      : {};
+  } catch (error) {
+    localDataDependencyStamps = {};
+  }
+
+  return localDataDependencyStamps;
+}
+
+function writeLocalDataDependencyStamps(stamps) {
+  localDataDependencyStamps = (
+    stamps &&
+    typeof stamps === 'object' &&
+    !Array.isArray(stamps)
+  )
+    ? stamps
+    : {};
+
+  try {
+    localStorage.setItem(DATA_DEPENDENCY_STAMPS_KEY, JSON.stringify(localDataDependencyStamps));
+  } catch (error) {
+    // Local dependency stamps are an optimization hint; global mutation stamps remain the fallback.
+  }
+}
+
+function markLocalDataDependencyMutation(dependencyKeys = [], scope = 'dependency') {
+  const normalizedKeys = [...new Set(
+    (Array.isArray(dependencyKeys) ? dependencyKeys : [dependencyKeys])
+      .map(key => String(key || '').trim())
+      .filter(Boolean)
+  )];
+
+  if (!normalizedKeys.length) {
+    return '';
+  }
+
+  const stamp = `${Date.now().toString(36)}:${String(scope || 'dependency')}:${Math.random().toString(36).slice(2)}`;
+  const nextStamps = {
+    ...getLocalDataDependencyStamps()
+  };
+
+  normalizedKeys.forEach(key => {
+    nextStamps[key] = stamp;
+  });
+
+  writeLocalDataDependencyStamps(nextStamps);
+  return stamp;
+}
+
+function getLocalDataDependencySnapshot(dependencyKeys = []) {
+  const stamps = getLocalDataDependencyStamps();
+
+  return Object.fromEntries(
+    [...new Set(
+      (Array.isArray(dependencyKeys) ? dependencyKeys : [dependencyKeys])
+        .map(key => String(key || '').trim())
+        .filter(Boolean)
+    )].map(key => [key, String(stamps[key] || '')])
+  );
+}
+
+function isLocalDataDependencySnapshotFresh(snapshot = {}) {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+    return true;
+  }
+
+  const stamps = getLocalDataDependencyStamps();
+
+  return Object.entries(snapshot).every(([key, stamp]) => (
+    String(stamps[key] || '') === String(stamp || '')
+  ));
 }
 
 function markLocalDataMutation(scope = 'data') {
@@ -11772,6 +11870,7 @@ async function refreshCatalogMovieAfterUpdate(movieId, {
 
   invalidateMovieSelectRowsCache([movieKey]);
   invalidateLetterboxdImportMatchMoviesCache();
+  markLocalDataDependencyMutation([getDataDependencyMovieKey(movieKey)], `movie-update:${movieKey}`);
 
   if (shouldRefreshPosterImages) {
     await fetchMoviePosterImagesForMovieSafe(movieKey, { force: true });
@@ -17685,6 +17784,7 @@ function getUserPageControllerContext() {
     trackEmailConfirmedLoginIfNeeded,
     bindSharedAuthStateListener,
     escapeHtml,
+    shouldPreferRussianPosters,
     buildCatalogProfileActivityUrl,
     getPublicProfileDisplayName,
     getPublicProfileHandle,
@@ -17708,7 +17808,12 @@ function getUserPageControllerContext() {
     syncUserPageProfileSettingsButton,
     getUserPageMovieRailHtml,
     hideUserPageRankTooltip,
+    appBuildVersion: APP_BUILD_VERSION,
+    getDataMutationStamp,
+    getPageDependencySnapshot: getLocalDataDependencySnapshot,
+    isPageDependencySnapshotFresh: isLocalDataDependencySnapshotFresh,
     userPageActivityAggregateCacheKey: USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY,
+    userPageDataCacheKey: USER_PAGE_DATA_CACHE_KEY,
     userPagePreviewLimit: USER_PAGE_PREVIEW_LIMIT
   };
 }
@@ -17737,6 +17842,16 @@ function invalidateUserPageActivityAggregateRowsCache() {
     sessionStorage.removeItem(USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY);
   } catch (error) {
     console.warn('?? ??????? ???????? ??? ????????? ???????:', error);
+  }
+}
+
+function invalidateUserPageDataCache() {
+  userPageController?.invalidateUserPageDataCache?.();
+
+  try {
+    sessionStorage.removeItem(USER_PAGE_DATA_CACHE_KEY);
+  } catch (error) {
+    console.warn('Could not clear user page data cache:', error);
   }
 }
 

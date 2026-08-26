@@ -1,6 +1,9 @@
 const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_VERSION = 1;
 const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 const USER_PAGE_ACTIVITY_AGGREGATE_LIMIT = 10000;
+const USER_PAGE_DATA_CACHE_VERSION = 1;
+const USER_PAGE_DATA_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
+const USER_PAGE_DATA_CACHE_MAX_ENTRIES = 12;
 
 export function createUserPageController(context = {}) {
   const {
@@ -8,6 +11,7 @@ export function createUserPageController(context = {}) {
     supabaseClient = null,
     getCurrentUser = () => null,
     shouldUseAuthenticatedUi = () => false,
+    shouldPreferRussianPosters = () => false,
     restoreSession = async () => null,
     trackEmailConfirmedLoginIfNeeded = () => {},
     bindSharedAuthStateListener = () => {},
@@ -39,11 +43,17 @@ export function createUserPageController(context = {}) {
     syncUserPageProfileSettingsButton = () => {},
     getUserPageMovieRailHtml = () => '',
     hideUserPageRankTooltip = () => {},
+    appBuildVersion = 'dev',
+    getDataMutationStamp = () => '',
+    getPageDependencySnapshot = () => ({}),
+    isPageDependencySnapshotFresh = () => true,
     userPageActivityAggregateCacheKey = 'horroreiro_user_page_activity_aggregate_cache',
+    userPageDataCacheKey = 'horroreiro_user_page_data_cache',
     userPagePreviewLimit = 10
   } = context;
 
   let userPageActivityAggregateRowsCache = null;
+  let userPageDataCache = null;
 
   function getUserPageMovieIds(rows = []) {
     return [...new Set(
@@ -138,7 +148,7 @@ export function createUserPageController(context = {}) {
     if (
       !cache ||
       cache.version !== USER_PAGE_ACTIVITY_AGGREGATE_CACHE_VERSION ||
-      cache.buildVersion !== APP_BUILD_VERSION ||
+      cache.buildVersion !== appBuildVersion ||
       cache.mutationStamp !== getDataMutationStamp()
     ) {
       return false;
@@ -197,7 +207,7 @@ export function createUserPageController(context = {}) {
   function writeUserPageActivityAggregateRowsCache(payload) {
     const cache = {
       version: USER_PAGE_ACTIVITY_AGGREGATE_CACHE_VERSION,
-      buildVersion: APP_BUILD_VERSION,
+      buildVersion: appBuildVersion,
       mutationStamp: getDataMutationStamp(),
       createdAt: Date.now(),
       profileRows: Array.isArray(payload?.profileRows) ? payload.profileRows : [],
@@ -224,6 +234,156 @@ export function createUserPageController(context = {}) {
 
     try {
       sessionStorage.removeItem(userPageActivityAggregateCacheKey);
+    } catch (error) {
+      // Ignore storage errors; cache invalidation is best-effort.
+    }
+  }
+
+  function getUserPageDataCacheEntryKey(handle) {
+    const normalizedHandle = String(handle || '').trim().toLowerCase();
+    const viewerId = getCurrentUser()?.id ? `user:${getCurrentUser().id}` : 'public';
+    const posterPreferenceKey = shouldPreferRussianPosters() ? 'ru-posters' : 'default-posters';
+
+    return `${normalizedHandle}|${viewerId}|${posterPreferenceKey}`;
+  }
+
+  function isUserPageDataCacheRootValid(cache) {
+    return Boolean(
+      cache &&
+      cache.version === USER_PAGE_DATA_CACHE_VERSION &&
+      cache.buildVersion === appBuildVersion &&
+      cache.entries &&
+      typeof cache.entries === 'object' &&
+      !Array.isArray(cache.entries)
+    );
+  }
+
+  function readUserPageDataCacheRoot() {
+    if (isUserPageDataCacheRootValid(userPageDataCache)) {
+      return userPageDataCache;
+    }
+
+    try {
+      const rawCache = sessionStorage.getItem(userPageDataCacheKey);
+      const parsedCache = rawCache ? JSON.parse(rawCache) : null;
+
+      if (!isUserPageDataCacheRootValid(parsedCache)) {
+        userPageDataCache = {
+          version: USER_PAGE_DATA_CACHE_VERSION,
+          buildVersion: appBuildVersion,
+          entries: {}
+        };
+        return userPageDataCache;
+      }
+
+      userPageDataCache = parsedCache;
+      return parsedCache;
+    } catch (error) {
+      userPageDataCache = {
+        version: USER_PAGE_DATA_CACHE_VERSION,
+        buildVersion: appBuildVersion,
+        entries: {}
+      };
+      return userPageDataCache;
+    }
+  }
+
+  function writeUserPageDataCacheRoot(cache) {
+    userPageDataCache = isUserPageDataCacheRootValid(cache)
+      ? cache
+      : {
+          version: USER_PAGE_DATA_CACHE_VERSION,
+          buildVersion: appBuildVersion,
+          entries: {}
+        };
+
+    try {
+      sessionStorage.setItem(userPageDataCacheKey, JSON.stringify(userPageDataCache));
+    } catch (error) {
+      // Session storage can be unavailable or full; the in-memory cache is enough as a fallback.
+    }
+  }
+
+  function isUserPageDataCacheEntryValid(entry) {
+    if (!entry || typeof entry !== 'object' || !entry.data?.profile) {
+      return false;
+    }
+
+    const createdAt = Number(entry.createdAt || 0);
+
+    if (!createdAt || Date.now() - createdAt > USER_PAGE_DATA_CACHE_MAX_AGE_MS) {
+      return false;
+    }
+
+    if (String(entry.mutationStamp || '') !== getDataMutationStamp()) {
+      return false;
+    }
+
+    return isPageDependencySnapshotFresh(entry.dependencySnapshot || {});
+  }
+
+  function readUserPageDataCacheEntry(handle) {
+    const entryKey = getUserPageDataCacheEntryKey(handle);
+    const cache = readUserPageDataCacheRoot();
+    const entry = cache.entries[entryKey];
+
+    if (!isUserPageDataCacheEntryValid(entry)) {
+      if (entry) {
+        delete cache.entries[entryKey];
+        writeUserPageDataCacheRoot(cache);
+      }
+
+      return null;
+    }
+
+    return entry.data;
+  }
+
+  function writeUserPageDataCacheEntry(handle, data) {
+    if (!data?.profile) {
+      return;
+    }
+
+    const entryKey = getUserPageDataCacheEntryKey(handle);
+    const dependencyMovieIds = [...new Set(
+      (Array.isArray(data.dependencyMovieIds) ? data.dependencyMovieIds : [])
+        .map(movieId => String(movieId || '').trim())
+        .filter(Boolean)
+    )];
+    const dependencyKeys = dependencyMovieIds.map(movieId => `movie:${movieId}`);
+    const cache = readUserPageDataCacheRoot();
+    const nextEntries = {
+      ...cache.entries,
+      [entryKey]: {
+        createdAt: Date.now(),
+        mutationStamp: getDataMutationStamp(),
+        dependencySnapshot: getPageDependencySnapshot(dependencyKeys),
+        data: {
+          ...data,
+          dependencyMovieIds
+        }
+      }
+    };
+    const prunedEntries = Object.fromEntries(
+      Object.entries(nextEntries)
+        .sort(([, firstEntry], [, secondEntry]) => (
+          Number(secondEntry?.createdAt || 0) - Number(firstEntry?.createdAt || 0)
+        ))
+        .slice(0, USER_PAGE_DATA_CACHE_MAX_ENTRIES)
+    );
+
+    writeUserPageDataCacheRoot({
+      version: USER_PAGE_DATA_CACHE_VERSION,
+      buildVersion: appBuildVersion,
+      entries: prunedEntries
+    });
+  }
+
+  function invalidateUserPageDataCache() {
+    userPageDataCache = null;
+
+    try {
+      sessionStorage.removeItem(userPageDataCacheKey);
     } catch (error) {
       // Ignore storage errors; cache invalidation is best-effort.
     }
@@ -744,6 +904,10 @@ export function createUserPageController(context = {}) {
       ...getUserPageMovieIds(previewReviewRows)
     ])];
     const tasteMovieIds = getUserPageMovieIds(ratingRows);
+    const dependencyMovieIds = [...new Set([
+      ...previewMovieIds,
+      ...tasteMovieIds
+    ])];
     const ownActivityCounts = {
       ratings: ratingRows.length,
       watchlist: activeWatchlistRows.length,
@@ -801,7 +965,8 @@ export function createUserPageController(context = {}) {
       reviewCount: reviewRows.length,
       averageRating: getUserPageAverageRating(ratingRows),
       tasteStats: getUserPageTasteStats(tasteItems),
-      activityRanks
+      activityRanks,
+      dependencyMovieIds
     };
   }
 
@@ -912,7 +1077,16 @@ export function createUserPageController(context = {}) {
     await restoreSession();
     trackEmailConfirmedLoginIfNeeded();
 
-    async function loadUserPage() {
+    async function loadUserPage({ useCache = true } = {}) {
+      if (useCache) {
+        const cachedData = readUserPageDataCacheEntry(handle);
+
+        if (cachedData) {
+          renderUserPage(cachedData);
+          return;
+        }
+      }
+
       const profile = await fetchPublicUserProfileByHandle(handle);
 
       if (!profile) {
@@ -921,6 +1095,7 @@ export function createUserPageController(context = {}) {
       }
 
       const data = await fetchPublicUserPageData(profile);
+      writeUserPageDataCacheEntry(handle, data);
       renderUserPage(data);
     }
 
@@ -934,7 +1109,7 @@ export function createUserPageController(context = {}) {
     bindSharedAuthStateListener({
       onAfterAuthSync: async () => {
         try {
-          await loadUserPage();
+          await loadUserPage({ useCache: false });
         } catch (error) {
           console.error('Ошибка обновления страницы пользователя после смены auth-состояния:', error);
         }
@@ -954,6 +1129,7 @@ export function createUserPageController(context = {}) {
       }
 
       const data = await fetchPublicUserPageData(profile);
+      writeUserPageDataCacheEntry(handle, data);
       renderUserPage(data);
     } catch (error) {
       console.error('Ошибка обновления страницы пользователя:', error);
@@ -963,6 +1139,7 @@ export function createUserPageController(context = {}) {
   return {
     initUserPage,
     reloadUserPage,
-    invalidateUserPageActivityAggregateRowsCache
+    invalidateUserPageActivityAggregateRowsCache,
+    invalidateUserPageDataCache
   };
 }

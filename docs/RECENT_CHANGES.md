@@ -12,6 +12,27 @@ Format:
 - Follow-up:
 ```
 
+## 2026-08-26 - Cache profile page data by dependencies
+
+- Files:
+  - `app.js`
+  - `user-page.js`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added local per-movie dependency stamps so a movie update can invalidate secondary page caches without bumping the global catalog mutation stamp.
+  - Added a `/user/*` session page-data cache keyed by profile handle, viewer id, poster preference, build version, global mutation stamp, and the movie dependencies used by the profile page.
+  - Profile display-name and avatar saves now clear the profile page-data cache so cached own-profile pages do not keep stale identity data.
+- Checks:
+  - `node --check app.js`
+  - `node --check user-page.js`
+  - `node tools\smoke-check.mjs`
+  - `git diff --check`
+  - `node tools\asset-size-report.mjs --compare tools\asset-size-baseline.json`
+  - Inline Node smoke: `/user/*` data cache reused the sessionStorage entry on a second controller init.
+- Follow-up:
+  - Extend the same dependency-cache approach to public person pages, then evaluate whether notifications should use a short-lived render cache or stay fully fresh.
+
 ## 2026-08-25 - Target movie update cache refresh
 
 - Files:
