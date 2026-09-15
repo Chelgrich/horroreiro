@@ -55,6 +55,10 @@ Page HTML is static shell plus shared scripts:
   - is loaded only by `index.html`, before Supabase and the main app loader;
   - restores a saved catalog DOM snapshot during same-tab returns when the snapshot matches version, build, user, and local data mutation stamp;
   - keeps the restored catalog hidden until styles and shared UI are ready, so users do not see partial static HTML, native controls, or lone toolbar elements.
+- `movie-warm-start.js`
+  - is loaded only by `movie.html`, before Supabase and the main app loader;
+  - restores a saved movie detail DOM snapshot before the full app starts when the snapshot matches the current route, build, age limit, and per-movie dependency stamp;
+  - saved movie DOM snapshots intentionally replace dynamic user/social/similar areas with loading states, so static movie content can render early without trusting stale ratings, watchlist state, reviews, comments, or similar movies.
 - `app-script-loader.js`
   - waits for `window.__ENV_READY__`;
   - loads `shared-layout.js`;
@@ -68,7 +72,7 @@ Page HTML is static shell plus shared scripts:
   - calls `initSharedApp()` first;
   - marks `html.app-shared-ui-ready` after shared app/UI setup succeeds;
   - then calls the page initializer;
-  - lets page modules defer `app-ready` through `onShellReady` when a page needs to restore a warm view before the static shell is revealed. The catalog uses this so fast returns do not expose an intermediate empty shell.
+  - lets page modules defer `app-ready` through `onShellReady` when a page needs to restore a warm view before the static shell is revealed. The catalog and movie detail pages use this so fast returns do not expose an intermediate empty shell.
 
 Startup shell visibility rule:
 
@@ -193,10 +197,17 @@ Profile ranking note:
 
 Catalog fast-return startup:
 
-- `boot-loader.js` marks `html.app-catalog-fast-return-pending` when the catalog has both a pending fast-return flag and a saved DOM snapshot, delaying the visible boot shell long enough for warm DOM hydration in normal same-tab returns.
+- `index.html` sets `html.app-catalog-fast-return-pending` before critical CSS when the catalog has both a pending fast-return flag and a saved DOM snapshot; `boot-loader.js` keeps the same idempotent hint as fallback. The class must exist before the boot-shell animation starts, otherwise the animation delay can be recalculated mid-flight and the loader can appear/disappear/appear.
 - `catalog-warm-start.js` can restore the saved catalog DOM before the full app starts, but `index.html` only reveals that restored page after `app-styles-ready` and `app-shared-ui-ready`; this avoids showing a lone sort select, empty toolbar, or other partial shell while startup continues.
 - Catalog-return links from movie detail pages can use `history.back()` when the current movie page was actually opened from the catalog, preserving the browser's previous catalog document when possible. Direct-open movie pages keep the normal catalog link behavior.
 - `initCatalogPage({ onShellReady })` must call the shell-ready callback only after a snapshot/DOM restore or after the first real catalog render. Do not mark `app-ready` from the intermediate skeleton render, or users can see static controls such as the sort select before the movie grid is ready.
+
+Movie detail warm-start startup:
+
+- `app.js` writes a sanitized `horroreiro_movie_page_dom_snapshot` after a real detail render/session-cache persist. The snapshot stores only the detail DOM plus build, route keys, age, and the current per-movie dependency stamp.
+- The sanitized snapshot removes watchlist/watched controls and replaces the summary rating panel, review/comment sections, and similar section with loading states. This allows already-opened movie pages to return with stable static content while the full app reloads current user/social data.
+- `movie-warm-start.js` restores the saved DOM before the full app starts; `movie.html` only reveals the restored page after styles and shared UI are ready.
+- `initMoviePage({ onShellReady })` must signal shell-ready after choosing warm DOM or rendering a skeleton/not-found state, not immediately when app JS starts.
 
 `editor-page.js` is lazy-loaded only for `/editor` and owns editor-center completeness summary rendering, auth/forbidden/loading states, and page toolbar click handling. `app.js` provides shared auth, admin state, completeness data fetchers, and download actions.
 

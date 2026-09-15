@@ -90,6 +90,22 @@
   <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
+  <script>
+    (function () {
+      try {
+        if (
+          window.sessionStorage &&
+          sessionStorage.getItem('horroreiro_catalog_fast_return_pending') === '1' &&
+          sessionStorage.getItem('horroreiro_catalog_dom_snapshot')
+        ) {
+          document.documentElement.classList.add('app-catalog-fast-return-pending');
+        }
+      } catch (error) {
+        // Fast-return hints are optional; normal boot will continue.
+      }
+    })();
+  </script>
+
   <style>
     html {
       background: #111315;

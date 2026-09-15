@@ -79,6 +79,9 @@
 /movie-social.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/movie-warm-start.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /movie-user-state.js
   Cache-Control: public, max-age=0, must-revalidate
 

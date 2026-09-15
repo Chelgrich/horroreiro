@@ -35,6 +35,7 @@ export function createMoviePageOrchestratorController(context = {}) {
 
     if (!routeParams) {
       bindings.renderNotFound?.();
+      bindings.onShellReady?.();
       return;
     }
 
@@ -54,10 +55,13 @@ export function createMoviePageOrchestratorController(context = {}) {
     const warmMovie = restoredMovie
       ? null
       : bindings.hydrateFromCatalogSnapshot?.(routeParams) || null;
+    const hasWarmDom = Boolean(bindings.hasWarmStartedDom?.());
 
-    if (!restoredMovie) {
+    if (!restoredMovie && !hasWarmDom) {
       bindings.renderSkeleton?.();
     }
+
+    bindings.onShellReady?.();
 
     try {
       await bindings.loadByRouteParams?.(routeParams, {

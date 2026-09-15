@@ -12,6 +12,42 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-15 - Add stable movie warm-start boot path
+
+- Files:
+  - `index.html`
+  - `movie.html`
+  - `movie-warm-start.js`
+  - `app.js`
+  - `app-page-runtime.js`
+  - `app-script-loader.js`
+  - `movie-page-orchestrator.js`
+  - `_headers`
+  - `functions/app-assets/[version].js`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a pre-CSS catalog fast-return hint so the boot loader animation delay is known before critical CSS runs and cannot visually restart.
+  - Added `movie-warm-start.js` for movie detail pages; it restores a valid saved detail DOM snapshot before the full app starts.
+  - Movie detail DOM snapshots deliberately replace user/social/similar live zones with loading states, so static movie content can be warm-started without trusting stale ratings, watchlist state, reviews, comments, or similar movies.
+  - Movie detail page runtime now defers `app-ready` until the page has selected a warm DOM, skeleton, cache render, or not-found state.
+- Checks:
+  - `node --check app.js`
+  - `node --check app-page-runtime.js`
+  - `node --check app-script-loader.js`
+  - `node --check movie-page-orchestrator.js`
+  - `node --check movie-warm-start.js`
+  - `node --check tools/smoke-check.mjs`
+  - `node --check tools/asset-size-report.mjs`
+  - `node --check "functions/app-assets/[version].js"`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Verify dev hard refresh and repeated returns to the same movie detail page: no double boot-loader flash, and dynamic zones hydrate after the warm static content.
+
 ## 2026-09-15 - Prevent native controls leaking during boot
 
 - Files:

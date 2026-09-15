@@ -33,6 +33,7 @@ const assetGroups = {
     'movie-page-similar.js',
     'movie-page-shell.js',
     'movie-social.js',
+    'movie-warm-start.js',
     'movie-user-state.js',
     'notifications-page.js',
     'person-placeholders.js',
@@ -82,6 +83,7 @@ const startupProfiles = {
   ],
   movie: [
     'boot-loader.js',
+    'movie-warm-start.js',
     'app-script-loader.js',
     'shared-layout.js',
     'app-page-runtime.js',

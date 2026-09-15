@@ -32,6 +32,7 @@ const ALLOWED_APP_ASSETS = new Set([
   'movie-page-similar.js',
   'movie-page-shell.js',
   'movie-social.js',
+  'movie-warm-start.js',
   'movie-user-state.js',
   'notifications-page.js',
   'notifications-page.css',

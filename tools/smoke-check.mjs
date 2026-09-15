@@ -38,6 +38,7 @@ const lazyJsFiles = [
   'movie-page-similar.js',
   'movie-page-shell.js',
   'movie-social.js',
+  'movie-warm-start.js',
   'movie-user-state.js',
   'notifications-page.js',
   'person-placeholders.js',
@@ -95,6 +96,7 @@ const contextSensitiveExactFiles = new Set([
   'movie-page-similar.js',
   'movie-page-shell.js',
   'movie-social.js',
+  'movie-warm-start.js',
   'movie-user-state.js',
   'notifications-page.css',
   'notifications-page.js',
@@ -469,13 +471,30 @@ async function checkStaticGuards() {
       `${file}: catalog-warm-start.js must load only on the catalog shell`
     );
     assert(
+      file === 'movie.html'
+        ? html.includes('<script src="/movie-warm-start.js')
+        : !html.includes('/movie-warm-start.js'),
+      `${file}: movie-warm-start.js must load only on the movie shell`
+    );
+    assert(
       /html:not\(\.app-ready\) \.page,\s*html:not\(\.app-ready\) #sharedFooterMount\s*\{\s*display: none;/m.test(html),
       `${file}: static page shell must use display:none before app-ready so form controls cannot leak through`
     );
     if (file === 'index.html') {
       assert(
+        html.indexOf("sessionStorage.getItem('horroreiro_catalog_fast_return_pending')") > -1 &&
+          html.indexOf("sessionStorage.getItem('horroreiro_catalog_fast_return_pending')") < html.indexOf('<style>'),
+        'index.html: catalog fast-return startup hint must run before critical CSS so boot animation does not restart'
+      );
+      assert(
         /html\.app-catalog-warm-started\.app-styles-ready\.app-shared-ui-ready[^{}]+\.page,\s*html\.app-catalog-warm-started\.app-styles-ready\.app-shared-ui-ready[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html),
         'index.html: warm-started catalog must explicitly redisplay the hidden page shell'
+      );
+    }
+    if (file === 'movie.html') {
+      assert(
+        /html\.app-movie-warm-started\.app-styles-ready\.app-shared-ui-ready[^{}]+\.page,\s*html\.app-movie-warm-started\.app-styles-ready\.app-shared-ui-ready[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html),
+        'movie.html: warm-started movie detail must explicitly redisplay the hidden page shell'
       );
     }
     const googleFontStylesheetMatches = html.match(/href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]+"/g) || [];
@@ -570,6 +589,7 @@ async function checkStaticGuards() {
     '/movie-page-similar.js',
     '/movie-page-shell.js',
     '/movie-social.js',
+    '/movie-warm-start.js',
     '/movie-user-state.js',
     '/notifications-page.css',
     '/notifications-page.js',
@@ -653,6 +673,7 @@ async function checkStaticGuards() {
   ];
 
   const appJs = await readText('app.js');
+  const appPageRuntimeJs = await readText('app-page-runtime.js');
   const catalogCardsJs = await readText('catalog-cards.js');
   const catalogFiltersJs = await readText('catalog-filters.js');
   const catalogPaginationJs = await readText('catalog-pagination.js');
@@ -669,6 +690,7 @@ async function checkStaticGuards() {
   const moviePageSimilarJs = await readText('movie-page-similar.js');
   const moviePageShellJs = await readText('movie-page-shell.js');
   const movieSocialJs = await readText('movie-social.js');
+  const movieWarmStartJs = await readText('movie-warm-start.js');
   const movieUserStateJs = await readText('movie-user-state.js');
   const notificationsPageJs = await readText('notifications-page.js');
   const profileDataActionsJs = await readText('profile-data-actions.js');
@@ -905,6 +927,7 @@ async function checkStaticGuards() {
       moviePageOrchestratorJs.includes('async function initMoviePage(') &&
       moviePageOrchestratorJs.includes('async function loadMoviePageByRouteParams(') &&
       moviePageOrchestratorJs.includes('async function loadDeferredMoviePageSections(') &&
+      moviePageOrchestratorJs.includes('bindings.onShellReady?.();') &&
       !appJs.includes('const pathSlugMatch = window.location.pathname.match') &&
       !appJs.includes('const restoredMovie = restoreMoviePageFromSessionCache(routeParams);') &&
       !appJs.includes('skipRenderIfCacheFresh: Boolean(restoredMovie)') &&
@@ -912,6 +935,30 @@ async function checkStaticGuards() {
       !appJs.includes('const shouldSkipRender = (') &&
       !appJs.includes('Promise.allSettled(deferredTasks)'),
     'movie-page-orchestrator.js: movie detail init flow, route parsing, page-load decision tree, and deferred section loading must stay outside app.js'
+  );
+  assert(
+    appPageRuntimeJs.includes('movie: {') &&
+      appPageRuntimeJs.includes('defersShellReady: true') &&
+      appPageRuntimeJs.includes('return app.initMoviePage(runtimeOptions);'),
+    'app-page-runtime.js: movie detail must defer app-ready until the movie shell chooses warm DOM, skeleton, or cache render'
+  );
+  assert(
+    movieWarmStartJs.includes("const DOM_SNAPSHOT_KEY = 'horroreiro_movie_page_dom_snapshot'") &&
+      movieWarmStartJs.includes('function isUsableMovieDomSnapshot(') &&
+      movieWarmStartJs.includes('isDependencySnapshotFresh(snapshot.dataDependencySnapshot)') &&
+      movieWarmStartJs.includes("document.documentElement.classList.add('app-movie-warm-started')"),
+    'movie-warm-start.js: movie detail warm-start must validate and restore a saved DOM snapshot before app startup'
+  );
+  assert(
+    appJs.includes('function getSanitizedMoviePageDomSnapshotHtml(') &&
+      appJs.includes("template.content") &&
+      appJs.includes('data-movie-page-watchlist-icon-toggle="true"') &&
+      appJs.includes('.movie-page-watched-icon') &&
+      appJs.includes('.movie-page-summary-panel') &&
+      appJs.includes('movie-page-skeleton-summary') &&
+      appJs.includes("reviewsSection.outerHTML = getMoviePageReviewsSectionHtml(movie, { isLoading: true })") &&
+      appJs.includes("similarMount.innerHTML = getMoviePageSimilarSectionHtml([], movie, { isLoading: true })"),
+    'app.js: movie DOM snapshots must hide user/social/similar live zones behind loading states'
   );
   assert(
     moviePageSimilarJs.includes('function getMoviePageSimilarIdsAfterMove(') &&

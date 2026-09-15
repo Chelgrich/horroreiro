@@ -118,6 +118,19 @@
       display: none;
     }
 
+    html.app-movie-warm-started:not(.app-load-failed) .app-boot-shell {
+      display: none;
+    }
+
+    html.app-movie-warm-started.app-styles-ready.app-shared-ui-ready:not(.app-ready):not(.app-load-failed) body {
+      overflow: auto;
+    }
+
+    html.app-movie-warm-started.app-styles-ready.app-shared-ui-ready:not(.app-ready):not(.app-load-failed) .page,
+    html.app-movie-warm-started.app-styles-ready.app-shared-ui-ready:not(.app-ready):not(.app-load-failed) #sharedFooterMount {
+      display: block;
+    }
+
     html.app-load-failed .app-boot-shell {
       opacity: 1;
       visibility: visible;
@@ -361,6 +374,8 @@
   </main>
 
   <div id="sharedFooterMount"></div>
+
+  <script src="/movie-warm-start.js?v=27"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 

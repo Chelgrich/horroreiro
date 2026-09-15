@@ -38,9 +38,10 @@
       }
     },
     movie: {
-      run(app) {
+      defersShellReady: true,
+      run(app, runtimeOptions = {}) {
         app.bindMoviePageEvents();
-        return app.initMoviePage();
+        return app.initMoviePage(runtimeOptions);
       }
     }
   };

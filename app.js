@@ -246,6 +246,7 @@ const CATALOG_FAST_RETURN_PENDING_KEY = 'horroreiro_catalog_fast_return_pending'
 const CATALOG_SESSION_SNAPSHOT_KEY = 'horroreiro_catalog_session_snapshot';
 const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
 const MOVIE_PAGE_SESSION_CACHE_KEY = 'horroreiro_movie_page_session_cache';
+const MOVIE_PAGE_DOM_SNAPSHOT_KEY = 'horroreiro_movie_page_dom_snapshot';
 const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY = 'horroreiro_user_page_activity_aggregate_cache';
 const USER_PAGE_DATA_CACHE_KEY = 'horroreiro_user_page_data_cache';
 const DATA_MUTATION_STAMP_KEY = 'horroreiro_data_mutation_stamp';
@@ -254,6 +255,7 @@ const CATALOG_SESSION_SNAPSHOT_VERSION = 8;
 const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
 const MOVIE_PAGE_SESSION_CACHE_VERSION = 1;
+const MOVIE_PAGE_DOM_SNAPSHOT_VERSION = 1;
 const MOVIE_PAGE_SESSION_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 const MOVIE_PAGE_SESSION_CACHE_MAX_ENTRIES = 6;
 const CATALOG_PAGE_SIZE = 40;
@@ -5759,6 +5761,10 @@ function writeMoviePageSessionCacheEntry(entry) {
 
 function removeMoviePageSessionCacheForMovie(movie) {
   movieDetailCacheController?.removeForMovie(movie);
+
+  if (isMoviePage() && String(movie?.id || '') === String(currentMoviePageMovieData?.id || '')) {
+    writeMoviePageDomSnapshot(null);
+  }
 }
 
 function patchMoviePageSessionCacheReferences(movieId, {
@@ -5817,6 +5823,7 @@ function applyMoviePageSessionCacheEntry(entry) {
     '';
 
   renderMoviePage(movie);
+  persistCurrentMoviePageDomSnapshot();
   return movie;
 }
 
@@ -5842,7 +5849,133 @@ function persistCurrentMoviePageSessionCache() {
     activeMoviePageSessionCacheSignature = signature;
   }
 
+  persistCurrentMoviePageDomSnapshot();
   return signature;
+}
+
+function getMoviePageDomSnapshotRouteKeys(movie = currentMoviePageMovieData) {
+  const routeKeys = [];
+
+  if (movie?.slug) {
+    routeKeys.push(`slug:${String(movie.slug)}`);
+  }
+
+  if (movie?.id) {
+    routeKeys.push(`id:${String(movie.id)}`);
+  }
+
+  return [...new Set(routeKeys)];
+}
+
+function getSanitizedMoviePageDomSnapshotHtml(movie = currentMoviePageMovieData) {
+  if (!moviePage || !movie?.id) {
+    return '';
+  }
+
+  const renderedStack = moviePage.querySelector('.movie-page-stack:not(.movie-page-stack-skeleton)');
+
+  if (!renderedStack) {
+    return '';
+  }
+
+  const template = document.createElement('template');
+  template.innerHTML = moviePage.innerHTML;
+
+  template.content
+    .querySelectorAll('[data-movie-page-watchlist-icon-toggle="true"], .movie-page-watched-icon')
+    .forEach(element => {
+      element.remove();
+    });
+
+  template.content.querySelectorAll('.movie-page-summary-panel').forEach(element => {
+    const placeholder = document.createElement('div');
+
+    placeholder.className = 'movie-page-summary-panel movie-page-skeleton-summary';
+    placeholder.setAttribute('aria-hidden', 'true');
+    placeholder.innerHTML = `
+      <span class="movie-text-skeleton movie-page-skeleton-rating"></span>
+      <span class="secondary-button movie-page-rate-trigger movie-page-skeleton-rate-button"></span>
+    `;
+    element.replaceWith(placeholder);
+  });
+
+  template.content.querySelectorAll('[data-open-mobile-rating="true"]').forEach(element => {
+    const placeholder = document.createElement('span');
+
+    placeholder.className = 'secondary-button movie-page-rate-trigger movie-page-skeleton-rate-button';
+    placeholder.setAttribute('aria-hidden', 'true');
+    element.replaceWith(placeholder);
+  });
+
+  const reviewsSection = template.content.querySelector('[data-movie-page-reviews-section="true"]');
+
+  if (reviewsSection) {
+    reviewsSection.outerHTML = getMoviePageReviewsSectionHtml(movie, { isLoading: true });
+  }
+
+  const commentsSection = template.content.querySelector('[data-movie-page-comments-section="true"]');
+
+  if (commentsSection) {
+    commentsSection.outerHTML = getMoviePageCommentsSectionHtml(movie, { isLoading: true });
+  }
+
+  const similarMount = template.content.querySelector('[data-movie-page-similar-mount="true"]');
+
+  if (similarMount) {
+    similarMount.innerHTML = getMoviePageSimilarSectionHtml([], movie, { isLoading: true });
+  }
+
+  return template.innerHTML;
+}
+
+function createMoviePageDomSnapshotPayload(movie = currentMoviePageMovieData) {
+  if (!isMoviePage() || !movie?.id || !moviePage) {
+    return null;
+  }
+
+  const moviePageHtml = getSanitizedMoviePageDomSnapshotHtml(movie);
+
+  if (!moviePageHtml.trim()) {
+    return null;
+  }
+
+  return {
+    version: MOVIE_PAGE_DOM_SNAPSHOT_VERSION,
+    buildVersion: APP_BUILD_VERSION,
+    savedAt: Date.now(),
+    movieId: String(movie.id),
+    routeKeys: getMoviePageDomSnapshotRouteKeys(movie),
+    dataDependencySnapshot: getLocalDataDependencySnapshot([getDataDependencyMovieKey(movie.id)]),
+    moviePageHtml
+  };
+}
+
+function writeMoviePageDomSnapshot(snapshot) {
+  try {
+    if (!snapshot) {
+      sessionStorage.removeItem(MOVIE_PAGE_DOM_SNAPSHOT_KEY);
+      return false;
+    }
+
+    sessionStorage.setItem(MOVIE_PAGE_DOM_SNAPSHOT_KEY, JSON.stringify(snapshot));
+    return true;
+  } catch (error) {
+    try {
+      sessionStorage.removeItem(MOVIE_PAGE_DOM_SNAPSHOT_KEY);
+    } catch (removeError) {
+      // Ignore optional warm-start cleanup errors.
+    }
+
+    return false;
+  }
+}
+
+function persistCurrentMoviePageDomSnapshot() {
+  if (!isMoviePage()) {
+    return;
+  }
+
+  writeMoviePageDomSnapshot(createMoviePageDomSnapshotPayload());
 }
 
 function readCatalogDomSnapshot({ allowStale = false } = {}) {
@@ -18693,7 +18826,11 @@ async function loadMoviePageByRouteParams(routeParams, {
   });
 }
 
-async function initMoviePage() {
+function hasWarmStartedMoviePageDom() {
+  return Boolean(window.__HORROREIRO_MOVIE_WARM_START__?.didStart);
+}
+
+async function initMoviePage({ onShellReady = null } = {}) {
   await ensureMoviePageOrchestratorControllerLoaded();
 
   return getMoviePageOrchestratorController().initMoviePage({
@@ -18708,6 +18845,8 @@ async function initMoviePage() {
       ensureMoviePageSimilarControllerLoaded(),
       loadCatalogReturnCacheTools()
     ]),
+    hasWarmStartedDom: hasWarmStartedMoviePageDom,
+    onShellReady,
     restoreFromSessionCache: restoreMoviePageFromSessionCache,
     hydrateFromCatalogSnapshot: hydrateMoviePageFromCatalogSnapshot,
     renderSkeleton: renderMoviePageSkeleton,
