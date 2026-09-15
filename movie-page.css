@@ -1356,7 +1356,7 @@ button:not(:where(
 }
 
 .movie-page-review-text{
-  margin-top: 7px;
+  margin-top: var(--movie-review-space, 14px);
   font-size: var(--font-size-body);
   line-height: var(--line-height-prose-loose);
   color: var(--color-text-readable);
@@ -1366,7 +1366,7 @@ button:not(:where(
 }
 
 .movie-page-review-text.is-collapsed{
-  margin-top: 0;
+  margin-top: var(--movie-review-space, 14px);
   display: -webkit-box;
   -webkit-line-clamp: 8;
   -webkit-box-orient: vertical;

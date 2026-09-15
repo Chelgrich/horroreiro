@@ -12,6 +12,20 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-15 - Space review text from header
+
+- Files:
+  - `movie-page.css`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Increased the vertical gap between a review card header/meta and the review text.
+  - Kept collapsed long reviews on the same spacing so the text no longer sticks to the rating line before expansion.
+- Checks:
+  - `git diff --check -- movie-page.css docs/RECENT_CHANGES.md`
+  - Inline Node smoke: verified base and collapsed review text use `--movie-review-space`.
+- Follow-up:
+  - Continue the catalog warm-start fix after this visual spacing pass is confirmed.
+
 ## 2026-08-26 - Defer catalog shell until warm state
 
 - Files:
