@@ -1094,6 +1094,10 @@ async function checkStaticGuards() {
     'app.js: catalog return snapshot storage/signature mechanics should stay in catalog-return-cache.js'
   );
   assert(
+    !appJs.includes('onSkeletonRendered'),
+    'app.js: catalog shell must not be marked ready from the intermediate skeleton render'
+  );
+  assert(
     appJs.includes("import(getLazyFeatureModuleUrl('catalog-url-state.js'))") &&
       !appJs.includes('function getCatalogUrlValueByAlias(') &&
       !appJs.includes('function setCatalogUrlParam(') &&

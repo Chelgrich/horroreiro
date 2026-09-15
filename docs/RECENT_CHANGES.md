@@ -12,6 +12,26 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-15 - Keep catalog shell hidden until first real render
+
+- Files:
+  - `app.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Stopped marking the catalog shell ready immediately after rendering the intermediate skeleton.
+  - Catalog `app-ready` now waits for a valid snapshot restore or the first real catalog render, preventing standalone controls such as the sort select from flashing before the movie grid is ready.
+- Checks:
+  - `node --check app.js`
+  - `node --check tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+  - `rg -n "onSkeletonRendered|renderMoviesSkeleton\\(\\);\\s*signalCatalogShellReady|signalCatalogShellReady\\(\\);" app.js`
+- Follow-up:
+  - Recheck primary catalog load after a cache reset and same-tab returns from movie detail pages.
+
 ## 2026-09-15 - Stabilize catalog warm returns
 
 - Files:

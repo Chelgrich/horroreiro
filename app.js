@@ -11929,8 +11929,7 @@ async function reloadCatalogData({
   showSkeleton = false,
   refreshFilters = true,
   awaitUserState = false,
-  loadDeferredUserState = true,
-  onSkeletonRendered = null
+  loadDeferredUserState = true
 } = {}) {
   const shouldShowCatalogSkeleton = showSkeleton && Boolean(container);
   const shouldPreserveExistingCatalogOnMovieLoadError = (
@@ -11944,10 +11943,6 @@ async function reloadCatalogData({
 
   if (shouldShowCatalogSkeleton) {
     renderMoviesSkeleton(getCatalogSkeletonCardsCount());
-
-    if (typeof onSkeletonRendered === 'function') {
-      onSkeletonRendered();
-    }
   }
 
   await Promise.all([
@@ -16629,7 +16624,6 @@ async function initCatalogPage({ onShellReady = null } = {}) {
 
   if (!hydratedSnapshot) {
     renderMoviesSkeleton();
-    signalCatalogShellReady();
   }
 
   if (!shouldWaitForSessionBeforeHydration) {
@@ -16728,8 +16722,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     showSkeleton: !hydrationState.didHydrateCatalogFromSnapshot,
     refreshFilters: false,
     awaitUserState: shouldAwaitInitialUserCatalogState,
-    loadDeferredUserState: false,
-    onSkeletonRendered: signalCatalogShellReady
+    loadDeferredUserState: false
   });
 
   const loadDeferredInitialUserState = () => {

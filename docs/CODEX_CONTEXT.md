@@ -191,7 +191,7 @@ Catalog fast-return startup:
 - `boot-loader.js` marks `html.app-catalog-fast-return-pending` when the catalog has both a pending fast-return flag and a saved DOM snapshot, delaying the visible boot shell long enough for warm DOM hydration in normal same-tab returns.
 - `catalog-warm-start.js` can restore the saved catalog DOM before the full app starts, but `index.html` only reveals that restored page after `app-styles-ready` and `app-shared-ui-ready`; this avoids showing a lone sort select, empty toolbar, or other partial shell while startup continues.
 - Catalog-return links from movie detail pages can use `history.back()` when the current movie page was actually opened from the catalog, preserving the browser's previous catalog document when possible. Direct-open movie pages keep the normal catalog link behavior.
-- `initCatalogPage({ onShellReady })` must call the shell-ready callback only after a snapshot/DOM restore or after rendering the catalog skeleton. Do not mark `app-ready` before that point, or users can see the static catalog shell and a full-looking rebuild when returning from movie/detail pages.
+- `initCatalogPage({ onShellReady })` must call the shell-ready callback only after a snapshot/DOM restore or after the first real catalog render. Do not mark `app-ready` from the intermediate skeleton render, or users can see static controls such as the sort select before the movie grid is ready.
 
 `editor-page.js` is lazy-loaded only for `/editor` and owns editor-center completeness summary rendering, auth/forbidden/loading states, and page toolbar click handling. `app.js` provides shared auth, admin state, completeness data fetchers, and download actions.
 
