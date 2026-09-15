@@ -12,6 +12,32 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-15 - Prevent native controls leaking during boot
+
+- Files:
+  - `index.html`
+  - `movie.html`
+  - `user.html`
+  - `following.html`
+  - `notifications.html`
+  - `editor.html`
+  - `name.html`
+  - `directors.html`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Changed the pre-`app-ready` static shell hiding from `visibility: hidden` to `display: none` across HTML shells.
+  - Kept the catalog warm-start exception by explicitly redisplaying the shell only after the warm DOM, styles, and shared UI are ready.
+  - Added smoke guards so descendant form-control visibility rules cannot make native selects leak over the boot screen again.
+- Checks:
+  - `node --check tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Recheck dev hard refresh and catalog return for the sort select flash.
+
 ## 2026-09-15 - Keep catalog shell hidden until first real render
 
 - Files:

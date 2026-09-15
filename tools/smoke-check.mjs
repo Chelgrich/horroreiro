@@ -468,6 +468,16 @@ async function checkStaticGuards() {
         : !html.includes('/catalog-warm-start.js'),
       `${file}: catalog-warm-start.js must load only on the catalog shell`
     );
+    assert(
+      /html:not\(\.app-ready\) \.page,\s*html:not\(\.app-ready\) #sharedFooterMount\s*\{\s*display: none;/m.test(html),
+      `${file}: static page shell must use display:none before app-ready so form controls cannot leak through`
+    );
+    if (file === 'index.html') {
+      assert(
+        /html\.app-catalog-warm-started\.app-styles-ready\.app-shared-ui-ready[^{}]+\.page,\s*html\.app-catalog-warm-started\.app-styles-ready\.app-shared-ui-ready[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html),
+        'index.html: warm-started catalog must explicitly redisplay the hidden page shell'
+      );
+    }
     const googleFontStylesheetMatches = html.match(/href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]+"/g) || [];
     assert(
       googleFontStylesheetMatches.length === 1 &&

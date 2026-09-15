@@ -70,6 +70,11 @@ Page HTML is static shell plus shared scripts:
   - then calls the page initializer;
   - lets page modules defer `app-ready` through `onShellReady` when a page needs to restore a warm view before the static shell is revealed. The catalog uses this so fast returns do not expose an intermediate empty shell.
 
+Startup shell visibility rule:
+
+- HTML shells must hide `.page` and `#sharedFooterMount` with `display: none` before `app-ready`, not `visibility: hidden`. Some form-control rules intentionally set descendant `select` elements back to `visibility: visible`, which can otherwise leak controls such as the catalog sort select over the boot screen.
+- `index.html` may temporarily redisplay the catalog shell before `app-ready` only in the validated warm-start state, after both `app-styles-ready` and `app-shared-ui-ready`.
+
 Production asset URL strategy:
 
 - Core JS/CSS and lazy feature modules use `/app-assets/<APP_BUILD_VERSION>?file=<asset>`.
