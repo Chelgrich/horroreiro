@@ -158,12 +158,17 @@
       display: none;
     }
 
-    html.app-catalog-warm-started.app-styles-ready.app-shared-ui-ready:not(.app-ready):not(.app-load-failed) body {
+    html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) body {
       overflow: auto;
     }
 
-    html.app-catalog-warm-started.app-styles-ready.app-shared-ui-ready:not(.app-ready):not(.app-load-failed) .page,
-    html.app-catalog-warm-started.app-styles-ready.app-shared-ui-ready:not(.app-ready):not(.app-load-failed) #sharedFooterMount {
+    html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) .page,
+    html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedFooterMount {
+      display: block;
+    }
+
+    html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty {
+      min-height: 56px;
       display: block;
     }
 

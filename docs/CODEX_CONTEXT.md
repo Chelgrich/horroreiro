@@ -77,7 +77,7 @@ Page HTML is static shell plus shared scripts:
 Startup shell visibility rule:
 
 - HTML shells must hide `.page` and `#sharedFooterMount` with `display: none` before `app-ready`, not `visibility: hidden`. Some form-control rules intentionally set descendant `select` elements back to `visibility: visible`, which can otherwise leak controls such as the catalog sort select over the boot screen.
-- `index.html` may temporarily redisplay the catalog shell before `app-ready` only in the validated warm-start state, after both `app-styles-ready` and `app-shared-ui-ready`.
+- `index.html` and `movie.html` may temporarily redisplay a validated warm-start shell before `app-ready` as soon as `app-styles-ready` is set. They reserve empty shared-header space until shared UI mounts so cached content appears quickly without layout jumps or unstyled controls.
 
 Production asset URL strategy:
 
@@ -198,7 +198,7 @@ Profile ranking note:
 Catalog fast-return startup:
 
 - `index.html` sets `html.app-catalog-fast-return-pending` before critical CSS when the catalog has both a pending fast-return flag and a saved DOM snapshot; `boot-loader.js` keeps the same idempotent hint as fallback. The class must exist before the boot-shell animation starts, otherwise the animation delay can be recalculated mid-flight and the loader can appear/disappear/appear.
-- `catalog-warm-start.js` can restore the saved catalog DOM before the full app starts, but `index.html` only reveals that restored page after `app-styles-ready` and `app-shared-ui-ready`; this avoids showing a lone sort select, empty toolbar, or other partial shell while startup continues.
+- `catalog-warm-start.js` can restore the saved catalog DOM before the full app starts, and `index.html` reveals that restored page after `app-styles-ready`; this avoids waiting on shared app initialization while still avoiding unstyled controls. The shell reserves shared-header space until shared UI mounts.
 - Catalog-return links from movie detail pages can use `history.back()` when the current movie page was actually opened from the catalog, preserving the browser's previous catalog document when possible. Direct-open movie pages keep the normal catalog link behavior.
 - `initCatalogPage({ onShellReady })` must call the shell-ready callback only after a snapshot/DOM restore or after the first real catalog render. Do not mark `app-ready` from the intermediate skeleton render, or users can see static controls such as the sort select before the movie grid is ready.
 
@@ -206,7 +206,7 @@ Movie detail warm-start startup:
 
 - `app.js` writes a sanitized `horroreiro_movie_page_dom_snapshot` after a real detail render/session-cache persist. The snapshot stores only the detail DOM plus build, route keys, age, and the current per-movie dependency stamp.
 - The sanitized snapshot removes watchlist/watched controls and replaces the summary rating panel, review/comment sections, and similar section with loading states. This allows already-opened movie pages to return with stable static content while the full app reloads current user/social data.
-- `movie-warm-start.js` restores the saved DOM before the full app starts; `movie.html` only reveals the restored page after styles and shared UI are ready.
+- `movie-warm-start.js` restores the saved DOM before the full app starts; `movie.html` reveals the restored page after styles are ready and reserves shared-header space until shared UI mounts.
 - `initMoviePage({ onShellReady })` must signal shell-ready after choosing warm DOM or rendering a skeleton/not-found state, not immediately when app JS starts.
 
 `editor-page.js` is lazy-loaded only for `/editor` and owns editor-center completeness summary rendering, auth/forbidden/loading states, and page toolbar click handling. `app.js` provides shared auth, admin state, completeness data fetchers, and download actions.

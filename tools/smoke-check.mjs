@@ -487,14 +487,16 @@ async function checkStaticGuards() {
         'index.html: catalog fast-return startup hint must run before critical CSS so boot animation does not restart'
       );
       assert(
-        /html\.app-catalog-warm-started\.app-styles-ready\.app-shared-ui-ready[^{}]+\.page,\s*html\.app-catalog-warm-started\.app-styles-ready\.app-shared-ui-ready[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html),
-        'index.html: warm-started catalog must explicitly redisplay the hidden page shell'
+        /html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+\.page,\s*html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html) &&
+          html.includes('html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty'),
+        'index.html: warm-started catalog must redisplay after styles and reserve shared header space'
       );
     }
     if (file === 'movie.html') {
       assert(
-        /html\.app-movie-warm-started\.app-styles-ready\.app-shared-ui-ready[^{}]+\.page,\s*html\.app-movie-warm-started\.app-styles-ready\.app-shared-ui-ready[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html),
-        'movie.html: warm-started movie detail must explicitly redisplay the hidden page shell'
+        /html\.app-movie-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+\.page,\s*html\.app-movie-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html) &&
+          html.includes('html.app-movie-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty'),
+        'movie.html: warm-started movie detail must redisplay after styles and reserve shared header space'
       );
     }
     const googleFontStylesheetMatches = html.match(/href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]+"/g) || [];

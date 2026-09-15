@@ -48,6 +48,25 @@ Format:
 - Follow-up:
   - Verify dev hard refresh and repeated returns to the same movie detail page: no double boot-loader flash, and dynamic zones hydrate after the warm static content.
 
+## 2026-09-15 - Reveal warm pages after CSS only
+
+- Files:
+  - `index.html`
+  - `movie.html`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Changed catalog and movie warm-start reveal rules to wait only for `app-styles-ready`, not full `app-shared-ui-ready`.
+  - Added a temporary empty-header reserve for warm-started catalog/movie shells so cached content appears quickly while the shared header mounts without causing a layout jump.
+- Checks:
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Recheck warm catalog/movie returns on dev; cached pages should appear almost immediately after CSS applies, without the previous multi-second dark wait.
+
 ## 2026-09-15 - Prevent native controls leaking during boot
 
 - Files:
