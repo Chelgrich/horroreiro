@@ -1,5 +1,6 @@
 (function () {
   const DOM_SNAPSHOT_KEY = 'horroreiro_movie_page_dom_snapshot';
+  const DOM_SNAPSHOTS_KEY = 'horroreiro_movie_page_dom_snapshots';
   const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
   const DATA_DEPENDENCY_STAMPS_KEY = 'horroreiro_data_dependency_stamps';
   const MOVIE_PAGE_DOM_SNAPSHOT_VERSION = 1;
@@ -105,14 +106,35 @@
     );
   }
 
+  function findUsableMovieDomSnapshot() {
+    const routeKeys = getCurrentMovieRouteKeys();
+    const snapshotsMap = parseJson(getStorageValue(sessionStorage, DOM_SNAPSHOTS_KEY));
+
+    if (snapshotsMap && typeof snapshotsMap === 'object' && !Array.isArray(snapshotsMap)) {
+      for (const routeKey of routeKeys) {
+        const snapshot = snapshotsMap[routeKey];
+
+        if (isUsableMovieDomSnapshot(snapshot)) {
+          return snapshot;
+        }
+      }
+    }
+
+    const fallbackSnapshot = parseJson(getStorageValue(sessionStorage, DOM_SNAPSHOT_KEY));
+
+    return isUsableMovieDomSnapshot(fallbackSnapshot)
+      ? fallbackSnapshot
+      : null;
+  }
+
   function warmStartMoviePage() {
     if (document.body?.dataset?.appPage !== 'movie') {
       return;
     }
 
-    const snapshot = parseJson(getStorageValue(sessionStorage, DOM_SNAPSHOT_KEY));
+    const snapshot = findUsableMovieDomSnapshot();
 
-    if (!isUsableMovieDomSnapshot(snapshot)) {
+    if (!snapshot) {
       return;
     }
 

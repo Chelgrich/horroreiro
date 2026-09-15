@@ -247,6 +247,7 @@ const CATALOG_SESSION_SNAPSHOT_KEY = 'horroreiro_catalog_session_snapshot';
 const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
 const MOVIE_PAGE_SESSION_CACHE_KEY = 'horroreiro_movie_page_session_cache';
 const MOVIE_PAGE_DOM_SNAPSHOT_KEY = 'horroreiro_movie_page_dom_snapshot';
+const MOVIE_PAGE_DOM_SNAPSHOTS_KEY = 'horroreiro_movie_page_dom_snapshots';
 const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY = 'horroreiro_user_page_activity_aggregate_cache';
 const USER_PAGE_DATA_CACHE_KEY = 'horroreiro_user_page_data_cache';
 const DATA_MUTATION_STAMP_KEY = 'horroreiro_data_mutation_stamp';
@@ -258,6 +259,7 @@ const MOVIE_PAGE_SESSION_CACHE_VERSION = 1;
 const MOVIE_PAGE_DOM_SNAPSHOT_VERSION = 1;
 const MOVIE_PAGE_SESSION_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 const MOVIE_PAGE_SESSION_CACHE_MAX_ENTRIES = 6;
+const MOVIE_PAGE_DOM_SNAPSHOT_MAX_ENTRIES = 8;
 const CATALOG_PAGE_SIZE = 40;
 const CATALOG_PAGINATION_PAGE_SLOTS = 6;
 const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
@@ -5763,7 +5765,7 @@ function removeMoviePageSessionCacheForMovie(movie) {
   movieDetailCacheController?.removeForMovie(movie);
 
   if (isMoviePage() && String(movie?.id || '') === String(currentMoviePageMovieData?.id || '')) {
-    writeMoviePageDomSnapshot(null);
+    removeMoviePageDomSnapshotForMovie(movie);
   }
 }
 
@@ -5867,6 +5869,99 @@ function getMoviePageDomSnapshotRouteKeys(movie = currentMoviePageMovieData) {
   return [...new Set(routeKeys)];
 }
 
+function getMoviePageDomSnapshotsMap() {
+  try {
+    const parsedValue = JSON.parse(sessionStorage.getItem(MOVIE_PAGE_DOM_SNAPSHOTS_KEY) || '{}');
+
+    return parsedValue && typeof parsedValue === 'object' && !Array.isArray(parsedValue)
+      ? parsedValue
+      : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function writeMoviePageDomSnapshotsMap(snapshotsMap) {
+  try {
+    sessionStorage.setItem(MOVIE_PAGE_DOM_SNAPSHOTS_KEY, JSON.stringify(snapshotsMap || {}));
+  } catch (error) {
+    try {
+      sessionStorage.removeItem(MOVIE_PAGE_DOM_SNAPSHOTS_KEY);
+    } catch (removeError) {
+      // Ignore optional warm-start cleanup errors.
+    }
+  }
+}
+
+function pruneMoviePageDomSnapshotsMap(snapshotsMap) {
+  const entries = Object.entries(snapshotsMap || {})
+    .filter(([, snapshot]) => snapshot && typeof snapshot === 'object')
+    .sort(([, firstSnapshot], [, secondSnapshot]) => (
+      Number(secondSnapshot?.savedAt || 0) - Number(firstSnapshot?.savedAt || 0)
+    ));
+
+  const nextMap = {};
+  const seenMovieIds = new Set();
+
+  entries.forEach(([key, snapshot]) => {
+    const movieId = String(snapshot?.movieId || key);
+
+    if (!seenMovieIds.has(movieId) && seenMovieIds.size >= MOVIE_PAGE_DOM_SNAPSHOT_MAX_ENTRIES) {
+      return;
+    }
+
+    nextMap[key] = snapshot;
+    seenMovieIds.add(movieId);
+  });
+
+  return nextMap;
+}
+
+function writeMoviePageDomSnapshotIndex(snapshot) {
+  const routeKeys = Array.isArray(snapshot?.routeKeys) ? snapshot.routeKeys : [];
+
+  if (routeKeys.length === 0) {
+    return;
+  }
+
+  const snapshotsMap = getMoviePageDomSnapshotsMap();
+
+  routeKeys.forEach(routeKey => {
+    if (routeKey) {
+      snapshotsMap[String(routeKey)] = snapshot;
+    }
+  });
+
+  writeMoviePageDomSnapshotsMap(pruneMoviePageDomSnapshotsMap(snapshotsMap));
+}
+
+function removeMoviePageDomSnapshotForMovie(movie) {
+  const routeKeys = getMoviePageDomSnapshotRouteKeys(movie);
+
+  try {
+    const currentSnapshot = JSON.parse(sessionStorage.getItem(MOVIE_PAGE_DOM_SNAPSHOT_KEY) || 'null');
+    const currentRouteKeys = Array.isArray(currentSnapshot?.routeKeys) ? currentSnapshot.routeKeys : [];
+
+    if (routeKeys.some(routeKey => currentRouteKeys.includes(routeKey))) {
+      sessionStorage.removeItem(MOVIE_PAGE_DOM_SNAPSHOT_KEY);
+    }
+
+    const snapshotsMap = getMoviePageDomSnapshotsMap();
+
+    routeKeys.forEach(routeKey => {
+      delete snapshotsMap[routeKey];
+    });
+
+    writeMoviePageDomSnapshotsMap(snapshotsMap);
+  } catch (error) {
+    try {
+      sessionStorage.removeItem(MOVIE_PAGE_DOM_SNAPSHOT_KEY);
+    } catch (removeError) {
+      // Ignore optional warm-start cleanup errors.
+    }
+  }
+}
+
 function getSanitizedMoviePageDomSnapshotHtml(movie = currentMoviePageMovieData) {
   if (!moviePage || !movie?.id) {
     return '';
@@ -5958,10 +6053,12 @@ function writeMoviePageDomSnapshot(snapshot) {
     }
 
     sessionStorage.setItem(MOVIE_PAGE_DOM_SNAPSHOT_KEY, JSON.stringify(snapshot));
+    writeMoviePageDomSnapshotIndex(snapshot);
     return true;
   } catch (error) {
     try {
       sessionStorage.removeItem(MOVIE_PAGE_DOM_SNAPSHOT_KEY);
+      sessionStorage.removeItem(MOVIE_PAGE_DOM_SNAPSHOTS_KEY);
     } catch (removeError) {
       // Ignore optional warm-start cleanup errors.
     }
@@ -5975,7 +6072,11 @@ function persistCurrentMoviePageDomSnapshot() {
     return;
   }
 
-  writeMoviePageDomSnapshot(createMoviePageDomSnapshotPayload());
+  const snapshot = createMoviePageDomSnapshotPayload();
+
+  if (snapshot) {
+    writeMoviePageDomSnapshot(snapshot);
+  }
 }
 
 function readCatalogDomSnapshot({ allowStale = false } = {}) {
@@ -16527,6 +16628,10 @@ function bindMoviePageEvents() {
     armDeleteMovieButton(moviePageDeleteButton, () => {
       deleteMovieFromMoviePage(currentMoviePageMovieId, currentMoviePageMovieData.title);
     }, `Удалить фильм "${currentMoviePageMovieData.title}"?`);
+  });
+
+  window.addEventListener('pagehide', () => {
+    persistCurrentMoviePageDomSnapshot();
   });
 
   areMoviePageEventsBound = true;

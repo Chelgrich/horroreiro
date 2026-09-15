@@ -12,6 +12,33 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-15 - Make browser history warm-start deterministic
+
+- Files:
+  - `index.html`
+  - `boot-loader.js`
+  - `catalog-warm-start.js`
+  - `movie-warm-start.js`
+  - `app.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Changed catalog warm-start to depend on a valid same-tab DOM snapshot instead of requiring a separate fast-return or Back/Forward navigation hint.
+  - Added route-keyed movie detail DOM snapshot storage so browser Back/Forward can restore more than the single most recently viewed movie detail page.
+  - Persisted the current movie detail DOM snapshot on `pagehide` to avoid timing races when leaving a detail page before deferred sections finish.
+- Checks:
+  - `node --check app.js`
+  - `node --check boot-loader.js`
+  - `node --check catalog-warm-start.js`
+  - `node --check movie-warm-start.js`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Recheck repeated browser Back/Forward across catalog and multiple movie detail pages; valid previously loaded pages should avoid the boot loader consistently.
+
 ## 2026-09-15 - Reserve movie admin action space
 
 - Files:

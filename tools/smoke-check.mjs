@@ -482,14 +482,9 @@ async function checkStaticGuards() {
     );
     if (file === 'index.html') {
       assert(
-        html.indexOf("sessionStorage.getItem('horroreiro_catalog_fast_return_pending')") > -1 &&
-          html.indexOf("sessionStorage.getItem('horroreiro_catalog_fast_return_pending')") < html.indexOf('<style>'),
-        'index.html: catalog fast-return startup hint must run before critical CSS so boot animation does not restart'
-      );
-      assert(
-        html.includes("navigationEntry.type === 'back_forward'") &&
-          html.indexOf("navigationEntry.type === 'back_forward'") < html.indexOf('<style>'),
-        'index.html: browser Back/Forward navigation must be able to warm-start catalog before critical CSS'
+        html.indexOf("sessionStorage.getItem('horroreiro_catalog_dom_snapshot')") > -1 &&
+          html.indexOf("sessionStorage.getItem('horroreiro_catalog_dom_snapshot')") < html.indexOf('<style>'),
+        'index.html: catalog warm-start startup hint must run before critical CSS whenever a DOM snapshot exists'
       );
       assert(
         /html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+\.page,\s*html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html) &&
@@ -952,7 +947,8 @@ async function checkStaticGuards() {
       catalogReturnCacheJs.includes('moviesSectionHeaderHtml =') &&
       catalogWarmStartJs.includes('function restoreMoviesSectionHeader(') &&
       catalogWarmStartJs.includes('restoreMoviesSectionHeader(snapshot);') &&
-      catalogWarmStartJs.includes('function isBackForwardNavigation('),
+      catalogWarmStartJs.includes('parseJson(getStorageValue(sessionStorage, DOM_SNAPSHOT_KEY))') &&
+      !catalogWarmStartJs.includes('FAST_RETURN_KEY'),
     'catalog warm-start: DOM snapshot must include and restore movies-section-header so the catalog header/toggle layout does not shift during hydration'
   );
   assert(
@@ -978,10 +974,21 @@ async function checkStaticGuards() {
   );
   assert(
     movieWarmStartJs.includes("const DOM_SNAPSHOT_KEY = 'horroreiro_movie_page_dom_snapshot'") &&
+      movieWarmStartJs.includes("const DOM_SNAPSHOTS_KEY = 'horroreiro_movie_page_dom_snapshots'") &&
+      movieWarmStartJs.includes('function findUsableMovieDomSnapshot(') &&
+      movieWarmStartJs.includes('snapshotsMap[routeKey]') &&
       movieWarmStartJs.includes('function isUsableMovieDomSnapshot(') &&
       movieWarmStartJs.includes('isDependencySnapshotFresh(snapshot.dataDependencySnapshot)') &&
       movieWarmStartJs.includes("document.documentElement.classList.add('app-movie-warm-started')"),
-    'movie-warm-start.js: movie detail warm-start must validate and restore a saved DOM snapshot before app startup'
+    'movie-warm-start.js: movie detail warm-start must validate and restore a route-keyed saved DOM snapshot before app startup'
+  );
+  assert(
+    appJs.includes("const MOVIE_PAGE_DOM_SNAPSHOTS_KEY = 'horroreiro_movie_page_dom_snapshots'") &&
+      appJs.includes('function writeMoviePageDomSnapshotIndex(') &&
+      appJs.includes('writeMoviePageDomSnapshotIndex(snapshot);') &&
+      appJs.includes("window.addEventListener('pagehide', () =>") &&
+      appJs.includes('persistCurrentMoviePageDomSnapshot();'),
+    'app.js: movie detail DOM snapshots must be indexed by route and persisted on pagehide for stable browser Back/Forward'
   );
   assert(
     appJs.includes('function getSanitizedMoviePageDomSnapshotHtml(') &&

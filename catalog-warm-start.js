@@ -1,5 +1,4 @@
 (function () {
-  const FAST_RETURN_KEY = 'horroreiro_catalog_fast_return_pending';
   const DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
   const DATA_MUTATION_STAMP_KEY = 'horroreiro_data_mutation_stamp';
   const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
@@ -89,16 +88,6 @@
       hasMatchingKnownUser(snapshot) &&
       hasMatchingKnownBuild(snapshot)
     );
-  }
-
-  function isBackForwardNavigation() {
-    try {
-      const navigationEntry = performance.getEntriesByType?.('navigation')?.[0];
-
-      return navigationEntry?.type === 'back_forward';
-    } catch (error) {
-      return false;
-    }
   }
 
   function restoreHtml(id, html, hidden) {
@@ -205,13 +194,6 @@
 
   function warmStartCatalog() {
     if (document.body?.dataset?.appPage !== 'catalog') {
-      return;
-    }
-
-    if (
-      getStorageValue(sessionStorage, FAST_RETURN_KEY) !== '1' &&
-      !isBackForwardNavigation()
-    ) {
       return;
     }
 
