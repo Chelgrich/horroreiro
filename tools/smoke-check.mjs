@@ -488,15 +488,17 @@ async function checkStaticGuards() {
       );
       assert(
         /html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+\.page,\s*html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html) &&
-          html.includes('html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty'),
-        'index.html: warm-started catalog must redisplay after styles and reserve shared header space'
+          html.includes('html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty') &&
+          html.includes('overflow-y: scroll;'),
+        'index.html: warm-started catalog must redisplay after styles, reserve shared header space, and match final scrollbar policy'
       );
     }
     if (file === 'movie.html') {
       assert(
         /html\.app-movie-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+\.page,\s*html\.app-movie-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html) &&
-          html.includes('html.app-movie-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty'),
-        'movie.html: warm-started movie detail must redisplay after styles and reserve shared header space'
+          html.includes('html.app-movie-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty') &&
+          html.includes('overflow-y: scroll;'),
+        'movie.html: warm-started movie detail must redisplay after styles, reserve shared header space, and match final scrollbar policy'
       );
     }
     const googleFontStylesheetMatches = html.match(/href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]+"/g) || [];
@@ -682,6 +684,7 @@ async function checkStaticGuards() {
   const catalogPresetsJs = await readText('catalog-presets.js');
   const catalogRenderJs = await readText('catalog-render.js');
   const catalogReturnCacheJs = await readText('catalog-return-cache.js');
+  const catalogWarmStartJs = await readText('catalog-warm-start.js');
   const catalogUrlStateJs = await readText('catalog-url-state.js');
   const followingPageJs = await readText('following-page.js');
   const movieEditorJs = await readText('movie-editor.js');
@@ -937,6 +940,13 @@ async function checkStaticGuards() {
       !appJs.includes('const shouldSkipRender = (') &&
       !appJs.includes('Promise.allSettled(deferredTasks)'),
     'movie-page-orchestrator.js: movie detail init flow, route parsing, page-load decision tree, and deferred section loading must stay outside app.js'
+  );
+  assert(
+    appJs.includes('moviesSectionHeaderHtml: moviesSectionTitle?.closest') &&
+      catalogReturnCacheJs.includes('moviesSectionHeaderHtml =') &&
+      catalogWarmStartJs.includes('function restoreMoviesSectionHeader(') &&
+      catalogWarmStartJs.includes('restoreMoviesSectionHeader(snapshot);'),
+    'catalog warm-start: DOM snapshot must include and restore movies-section-header so the catalog header/toggle layout does not shift during hydration'
   );
   assert(
     appPageRuntimeJs.includes('movie: {') &&

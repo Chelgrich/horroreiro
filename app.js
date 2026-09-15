@@ -251,7 +251,7 @@ const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY = 'horroreiro_user_page_activity_ag
 const USER_PAGE_DATA_CACHE_KEY = 'horroreiro_user_page_data_cache';
 const DATA_MUTATION_STAMP_KEY = 'horroreiro_data_mutation_stamp';
 const DATA_DEPENDENCY_STAMPS_KEY = 'horroreiro_data_dependency_stamps';
-const CATALOG_SESSION_SNAPSHOT_VERSION = 8;
+const CATALOG_SESSION_SNAPSHOT_VERSION = 9;
 const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
 const MOVIE_PAGE_SESSION_CACHE_VERSION = 1;
@@ -6046,6 +6046,7 @@ function createCatalogDomSnapshotPayload(sessionSnapshot = createCatalogSessionS
     preferRussianPosters: shouldPreferRussianPosters(),
     renderStateSignature: getCatalogRenderStateSignature(),
     dataSignatureHash: getCatalogDataSignatureHash(sessionSnapshot),
+    moviesSectionHeaderHtml: moviesSectionTitle?.closest('.movies-section-header')?.innerHTML || '',
     moviesResultCountText: moviesResultCount?.textContent || '',
     quickPresetsHtml: quickPresetsBar?.innerHTML || '',
     quickPresetsScrollLeft: Number(quickPresetsBar?.scrollLeft || 0),
@@ -7626,11 +7627,17 @@ function initCatalogViewToggleButton() {
     moviesSectionHeader.appendChild(currentParent);
   }
 
+  catalogViewToggleButton = moviesSectionHeader.querySelector('.catalog-view-toggle');
+
   if (!catalogViewToggleButton) {
     catalogViewToggleButton = document.createElement('button');
     catalogViewToggleButton.type = 'button';
     catalogViewToggleButton.className = 'secondary-button catalog-view-toggle';
 
+    moviesSectionHeader.appendChild(catalogViewToggleButton);
+  }
+
+  if (!catalogViewToggleButton.__catalogViewToggleBound) {
     catalogViewToggleButton.addEventListener('click', () => {
       viewMode.value = viewMode.value === 'list' ? 'releases' : 'list';
 
@@ -7638,7 +7645,7 @@ function initCatalogViewToggleButton() {
       applyCatalogViewModeChange();
     });
 
-    moviesSectionHeader.appendChild(catalogViewToggleButton);
+    catalogViewToggleButton.__catalogViewToggleBound = true;
   }
 
   syncCatalogViewToggleButton();

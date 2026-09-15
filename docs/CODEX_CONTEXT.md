@@ -54,7 +54,8 @@ Page HTML is static shell plus shared scripts:
 - `catalog-warm-start.js`
   - is loaded only by `index.html`, before Supabase and the main app loader;
   - restores a saved catalog DOM snapshot during same-tab returns when the snapshot matches version, build, user, and local data mutation stamp;
-  - keeps the restored catalog hidden until styles and shared UI are ready, so users do not see partial static HTML, native controls, or lone toolbar elements.
+  - restores the catalog section header, result count, quick presets, active chips, pagination, and movie grid as one stable warm view;
+  - keeps the restored catalog hidden until styles are ready, so users do not see partial static HTML, native controls, or lone toolbar elements.
 - `movie-warm-start.js`
   - is loaded only by `movie.html`, before Supabase and the main app loader;
   - restores a saved movie detail DOM snapshot before the full app starts when the snapshot matches the current route, build, age limit, and per-movie dependency stamp;
@@ -78,6 +79,7 @@ Startup shell visibility rule:
 
 - HTML shells must hide `.page` and `#sharedFooterMount` with `display: none` before `app-ready`, not `visibility: hidden`. Some form-control rules intentionally set descendant `select` elements back to `visibility: visible`, which can otherwise leak controls such as the catalog sort select over the boot screen.
 - `index.html` and `movie.html` may temporarily redisplay a validated warm-start shell before `app-ready` as soon as `app-styles-ready` is set. They reserve empty shared-header space until shared UI mounts so cached content appears quickly without layout jumps or unstyled controls.
+- Warm-start redisplay rules should match the final page scrollbar policy (`overflow-y: scroll`) so a restored shell does not shift when `app-ready` lands.
 
 Production asset URL strategy:
 
@@ -199,6 +201,7 @@ Catalog fast-return startup:
 
 - `index.html` sets `html.app-catalog-fast-return-pending` before critical CSS when the catalog has both a pending fast-return flag and a saved DOM snapshot; `boot-loader.js` keeps the same idempotent hint as fallback. The class must exist before the boot-shell animation starts, otherwise the animation delay can be recalculated mid-flight and the loader can appear/disappear/appear.
 - `catalog-warm-start.js` can restore the saved catalog DOM before the full app starts, and `index.html` reveals that restored page after `app-styles-ready`; this avoids waiting on shared app initialization while still avoiding unstyled controls. The shell reserves shared-header space until shared UI mounts.
+- Catalog DOM snapshots include `.movies-section-header`, including the view-toggle button. Do not restore the movie grid without the section header, or the hydrated app can append the toggle later and create a visible shift inside `.movies-section`.
 - Catalog-return links from movie detail pages can use `history.back()` when the current movie page was actually opened from the catalog, preserving the browser's previous catalog document when possible. Direct-open movie pages keep the normal catalog link behavior.
 - `initCatalogPage({ onShellReady })` must call the shell-ready callback only after a snapshot/DOM restore or after the first real catalog render. Do not mark `app-ready` from the intermediate skeleton render, or users can see static controls such as the sort select before the movie grid is ready.
 

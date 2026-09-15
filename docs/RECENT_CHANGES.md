@@ -12,6 +12,32 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-15 - Stabilize catalog warm section header
+
+- Files:
+  - `index.html`
+  - `movie.html`
+  - `catalog-warm-start.js`
+  - `catalog-return-cache.js`
+  - `app.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Extended catalog DOM snapshots with the full `.movies-section-header`, including the catalog view toggle, so warm-started catalog returns do not append that control later and shift the section layout.
+  - Bumped the catalog snapshot version to invalidate old DOM snapshots that did not contain the section header.
+  - Matched catalog/movie warm-start body overflow to the final page scrollbar policy to avoid scrollbar-driven micro shifts.
+- Checks:
+  - `node --check app.js`
+  - `node --check catalog-warm-start.js`
+  - `node --check catalog-return-cache.js`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Recheck dev with overlaid warm-start and fully hydrated catalog screenshots; `.section.movies-section` should now align without the internal header/toggle offset.
+
 ## 2026-09-15 - Add stable movie warm-start boot path
 
 - Files:

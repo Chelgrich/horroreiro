@@ -3,7 +3,7 @@
   const DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
   const DATA_MUTATION_STAMP_KEY = 'horroreiro_data_mutation_stamp';
   const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
-  const CATALOG_SNAPSHOT_VERSION = 8;
+  const CATALOG_SNAPSHOT_VERSION = 9;
   const CATALOG_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
   const CATALOG_SCROLL_POSITION_KEY = 'horroreiro_catalog_scroll_position';
   const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
@@ -118,6 +118,20 @@
     resultCount.hidden = false;
   }
 
+  function restoreMoviesSectionHeader(snapshot) {
+    const moviesSectionHeader = document.querySelector('.movies-section-header');
+
+    if (
+      !moviesSectionHeader ||
+      typeof snapshot.moviesSectionHeaderHtml !== 'string' ||
+      !snapshot.moviesSectionHeaderHtml.trim()
+    ) {
+      return;
+    }
+
+    moviesSectionHeader.innerHTML = snapshot.moviesSectionHeaderHtml;
+  }
+
   function restoreActiveFilters(snapshot) {
     const activeFiltersBar = document.getElementById('activeFiltersBar');
 
@@ -202,6 +216,7 @@
 
     moviesContainer.innerHTML = snapshot.containerHtml;
     moviesContainer.removeAttribute('aria-busy');
+    restoreMoviesSectionHeader(snapshot);
     restoreResultCount(snapshot);
     restoreActiveFilters(snapshot);
     restoreQuickPresets(snapshot);
