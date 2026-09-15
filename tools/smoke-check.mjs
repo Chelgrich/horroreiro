@@ -963,6 +963,14 @@ async function checkStaticGuards() {
     'movie-page.css: movie detail warm skeleton rating panel must match the real summary panel height to prevent top-page shifts'
   );
   assert(
+    moviePageCss.includes('.movie-page-admin-actions') &&
+      moviePageCss.includes('visibility: hidden;') &&
+      moviePageCss.includes('pointer-events: none;') &&
+      moviePageCss.includes('.movie-page-admin-actions.is-visible') &&
+      moviePageCss.includes('visibility: visible;'),
+    'movie-page.css: movie admin actions must reserve layout space while hidden so late auth sync does not shift movie detail content'
+  );
+  assert(
     appPageRuntimeJs.includes('movie: {') &&
       appPageRuntimeJs.includes('defersShellReady: true') &&
       appPageRuntimeJs.includes('return app.initMoviePage(runtimeOptions);'),

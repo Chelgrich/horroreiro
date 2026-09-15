@@ -12,6 +12,23 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-15 - Reserve movie admin action space
+
+- Files:
+  - `movie-page.css`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Kept the movie detail admin action block in layout while hidden, using `visibility`/`opacity`/`pointer-events` instead of `display: none`.
+  - Added a smoke guard so late auth/admin synchronization cannot reintroduce a topbar layout shift when edit/delete buttons appear.
+- Checks:
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Recheck movie detail warm load as an admin; edit/delete buttons should appear without nudging the top content.
+
 ## 2026-09-15 - Warm-start browser Back and movie header geometry
 
 - Files:
