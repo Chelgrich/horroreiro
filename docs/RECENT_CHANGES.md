@@ -12,6 +12,28 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-15 - Warm-start browser Back and movie header geometry
+
+- Files:
+  - `index.html`
+  - `catalog-warm-start.js`
+  - `movie-page.css`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Allowed catalog warm-start to run on browser Back/Forward navigations when a valid DOM snapshot exists, even if the in-app fast-return flag was not set by a catalog-return link.
+  - Matched the movie detail warm summary skeleton heights to the real rating panel/button heights so the upper detail layout does not shift when hydration replaces the warm snapshot.
+  - Added smoke guards for Back/Forward catalog warm-start and stable movie summary skeleton sizing.
+- Checks:
+  - `node --check catalog-warm-start.js`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Recheck dev by opening a movie from the catalog, using the browser Back button, and comparing the warmed movie detail top area with the fully hydrated state.
+
 ## 2026-09-15 - Stabilize catalog warm section header
 
 - Files:

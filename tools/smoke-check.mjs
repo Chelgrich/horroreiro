@@ -487,6 +487,11 @@ async function checkStaticGuards() {
         'index.html: catalog fast-return startup hint must run before critical CSS so boot animation does not restart'
       );
       assert(
+        html.includes("navigationEntry.type === 'back_forward'") &&
+          html.indexOf("navigationEntry.type === 'back_forward'") < html.indexOf('<style>'),
+        'index.html: browser Back/Forward navigation must be able to warm-start catalog before critical CSS'
+      );
+      assert(
         /html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+\.page,\s*html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html) &&
           html.includes('html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty') &&
           html.includes('overflow-y: scroll;'),
@@ -697,6 +702,7 @@ async function checkStaticGuards() {
   const movieSocialJs = await readText('movie-social.js');
   const movieWarmStartJs = await readText('movie-warm-start.js');
   const movieUserStateJs = await readText('movie-user-state.js');
+  const moviePageCss = await readText('movie-page.css');
   const notificationsPageJs = await readText('notifications-page.js');
   const profileDataActionsJs = await readText('profile-data-actions.js');
   const profileFollowActionsJs = await readText('profile-follow-actions.js');
@@ -945,8 +951,16 @@ async function checkStaticGuards() {
     appJs.includes('moviesSectionHeaderHtml: moviesSectionTitle?.closest') &&
       catalogReturnCacheJs.includes('moviesSectionHeaderHtml =') &&
       catalogWarmStartJs.includes('function restoreMoviesSectionHeader(') &&
-      catalogWarmStartJs.includes('restoreMoviesSectionHeader(snapshot);'),
+      catalogWarmStartJs.includes('restoreMoviesSectionHeader(snapshot);') &&
+      catalogWarmStartJs.includes('function isBackForwardNavigation('),
     'catalog warm-start: DOM snapshot must include and restore movies-section-header so the catalog header/toggle layout does not shift during hydration'
+  );
+  assert(
+    moviePageCss.includes('.movie-page-skeleton-rating') &&
+      moviePageCss.includes('height: var(--font-size-display-lg);') &&
+      moviePageCss.includes('.movie-page-skeleton-rate-button') &&
+      moviePageCss.includes('height: var(--control-height-md);'),
+    'movie-page.css: movie detail warm skeleton rating panel must match the real summary panel height to prevent top-page shifts'
   );
   assert(
     appPageRuntimeJs.includes('movie: {') &&

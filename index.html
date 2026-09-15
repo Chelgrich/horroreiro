@@ -93,9 +93,16 @@
   <script>
     (function () {
       try {
+        var navigationEntry = performance.getEntriesByType &&
+          performance.getEntriesByType('navigation')[0];
+        var isBackForwardNavigation = navigationEntry && navigationEntry.type === 'back_forward';
+
         if (
           window.sessionStorage &&
-          sessionStorage.getItem('horroreiro_catalog_fast_return_pending') === '1' &&
+          (
+            sessionStorage.getItem('horroreiro_catalog_fast_return_pending') === '1' ||
+            isBackForwardNavigation
+          ) &&
           sessionStorage.getItem('horroreiro_catalog_dom_snapshot')
         ) {
           document.documentElement.classList.add('app-catalog-fast-return-pending');

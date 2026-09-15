@@ -201,6 +201,7 @@ Catalog fast-return startup:
 
 - `index.html` sets `html.app-catalog-fast-return-pending` before critical CSS when the catalog has both a pending fast-return flag and a saved DOM snapshot; `boot-loader.js` keeps the same idempotent hint as fallback. The class must exist before the boot-shell animation starts, otherwise the animation delay can be recalculated mid-flight and the loader can appear/disappear/appear.
 - `catalog-warm-start.js` can restore the saved catalog DOM before the full app starts, and `index.html` reveals that restored page after `app-styles-ready`; this avoids waiting on shared app initialization while still avoiding unstyled controls. The shell reserves shared-header space until shared UI mounts.
+- Browser Back/Forward can also use the catalog warm-start path via the `PerformanceNavigationTiming.type === "back_forward"` hint. Do not rely only on the explicit fast-return flag, because the browser Back button does not click an in-app catalog-return link.
 - Catalog DOM snapshots include `.movies-section-header`, including the view-toggle button. Do not restore the movie grid without the section header, or the hydrated app can append the toggle later and create a visible shift inside `.movies-section`.
 - Catalog-return links from movie detail pages can use `history.back()` when the current movie page was actually opened from the catalog, preserving the browser's previous catalog document when possible. Direct-open movie pages keep the normal catalog link behavior.
 - `initCatalogPage({ onShellReady })` must call the shell-ready callback only after a snapshot/DOM restore or after the first real catalog render. Do not mark `app-ready` from the intermediate skeleton render, or users can see static controls such as the sort select before the movie grid is ready.
@@ -209,6 +210,7 @@ Movie detail warm-start startup:
 
 - `app.js` writes a sanitized `horroreiro_movie_page_dom_snapshot` after a real detail render/session-cache persist. The snapshot stores only the detail DOM plus build, route keys, age, and the current per-movie dependency stamp.
 - The sanitized snapshot removes watchlist/watched controls and replaces the summary rating panel, review/comment sections, and similar section with loading states. This allows already-opened movie pages to return with stable static content while the full app reloads current user/social data.
+- The movie summary skeleton must preserve the real rating panel's vertical rhythm. If `.movie-page-skeleton-rating` or `.movie-page-skeleton-rate-button` gets shorter than the real summary controls, the upper movie detail layout will shift when hydration replaces the warm snapshot.
 - `movie-warm-start.js` restores the saved DOM before the full app starts; `movie.html` reveals the restored page after styles are ready and reserves shared-header space until shared UI mounts.
 - `initMoviePage({ onShellReady })` must signal shell-ready after choosing warm DOM or rendering a skeleton/not-found state, not immediately when app JS starts.
 

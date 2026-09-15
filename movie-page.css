@@ -405,13 +405,13 @@ button:not(:where(
 
 .movie-page-skeleton-rating{
   width: 84px;
-  height: 1.6em;
+  height: var(--font-size-display-lg);
 }
 
 .movie-page-skeleton-rate-button{
   display: block;
   width: 112px;
-  height: var(--control-height-sm);
+  height: var(--control-height-md);
   border: 0;
   box-shadow: none;
 }

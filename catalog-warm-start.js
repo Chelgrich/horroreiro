@@ -91,6 +91,16 @@
     );
   }
 
+  function isBackForwardNavigation() {
+    try {
+      const navigationEntry = performance.getEntriesByType?.('navigation')?.[0];
+
+      return navigationEntry?.type === 'back_forward';
+    } catch (error) {
+      return false;
+    }
+  }
+
   function restoreHtml(id, html, hidden) {
     const element = document.getElementById(id);
 
@@ -198,7 +208,10 @@
       return;
     }
 
-    if (getStorageValue(sessionStorage, FAST_RETURN_KEY) !== '1') {
+    if (
+      getStorageValue(sessionStorage, FAST_RETURN_KEY) !== '1' &&
+      !isBackForwardNavigation()
+    ) {
       return;
     }
 
