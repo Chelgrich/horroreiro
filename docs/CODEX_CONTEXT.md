@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-08-22.
+Last updated: 2026-09-15.
 
 ## Purpose
 
@@ -51,6 +51,10 @@ Page HTML is static shell plus shared scripts:
   - loads versioned `styles.css`;
   - loads page-specific CSS such as `catalog-page.css`, `movie-page.css`, shared `secondary-pages.css`, and secondary page-only CSS before app startup when the current shell needs it;
   - marks `app-styles-ready` or `app-load-failed`.
+- `catalog-warm-start.js`
+  - is loaded only by `index.html`, before Supabase and the main app loader;
+  - restores a saved catalog DOM snapshot during same-tab returns when the snapshot matches version, build, user, and local data mutation stamp;
+  - keeps the restored catalog hidden until styles and shared UI are ready, so users do not see partial static HTML, native controls, or lone toolbar elements.
 - `app-script-loader.js`
   - waits for `window.__ENV_READY__`;
   - loads `shared-layout.js`;
@@ -62,6 +66,7 @@ Page HTML is static shell plus shared scripts:
 - `app-page-runtime.js`
   - dispatches by `document.body.dataset.appPage`;
   - calls `initSharedApp()` first;
+  - marks `html.app-shared-ui-ready` after shared app/UI setup succeeds;
   - then calls the page initializer;
   - lets page modules defer `app-ready` through `onShellReady` when a page needs to restore a warm view before the static shell is revealed. The catalog uses this so fast returns do not expose an intermediate empty shell.
 
@@ -184,6 +189,8 @@ Profile ranking note:
 Catalog fast-return startup:
 
 - `boot-loader.js` marks `html.app-catalog-fast-return-pending` when the catalog has both a pending fast-return flag and a saved DOM snapshot, delaying the visible boot shell long enough for warm DOM hydration in normal same-tab returns.
+- `catalog-warm-start.js` can restore the saved catalog DOM before the full app starts, but `index.html` only reveals that restored page after `app-styles-ready` and `app-shared-ui-ready`; this avoids showing a lone sort select, empty toolbar, or other partial shell while startup continues.
+- Catalog-return links from movie detail pages can use `history.back()` when the current movie page was actually opened from the catalog, preserving the browser's previous catalog document when possible. Direct-open movie pages keep the normal catalog link behavior.
 - `initCatalogPage({ onShellReady })` must call the shell-ready callback only after a snapshot/DOM restore or after rendering the catalog skeleton. Do not mark `app-ready` before that point, or users can see the static catalog shell and a full-looking rebuild when returning from movie/detail pages.
 
 `editor-page.js` is lazy-loaded only for `/editor` and owns editor-center completeness summary rendering, auth/forbidden/loading states, and page toolbar click handling. `app.js` provides shared auth, admin state, completeness data fetchers, and download actions.

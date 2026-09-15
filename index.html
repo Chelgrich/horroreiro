@@ -134,8 +134,21 @@
       display: none;
     }
 
-    html.app-catalog-fast-return-pending:not(.app-load-failed) .app-boot-shell {
+    html.app-catalog-fast-return-pending:not(.app-load-failed):not(.app-catalog-warm-started) .app-boot-shell {
       animation-delay: 1.2s;
+    }
+
+    html.app-catalog-warm-started:not(.app-load-failed) .app-boot-shell {
+      display: none;
+    }
+
+    html.app-catalog-warm-started.app-styles-ready.app-shared-ui-ready:not(.app-ready):not(.app-load-failed) body {
+      overflow: auto;
+    }
+
+    html.app-catalog-warm-started.app-styles-ready.app-shared-ui-ready:not(.app-ready):not(.app-load-failed) .page,
+    html.app-catalog-warm-started.app-styles-ready.app-shared-ui-ready:not(.app-ready):not(.app-load-failed) #sharedFooterMount {
+      visibility: visible;
     }
 
     html.app-load-failed .app-boot-shell {
@@ -465,6 +478,8 @@
   </main>
 
   <div id="sharedFooterMount"></div>
+
+  <script src="/catalog-warm-start.js?v=27"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 

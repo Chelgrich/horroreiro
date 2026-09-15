@@ -5451,6 +5451,14 @@ function isCatalogNavigationHref(href) {
   }
 }
 
+function shouldReturnToCatalogThroughHistory() {
+  if (!isMoviePage() || window.history.length <= 1) {
+    return false;
+  }
+
+  return isCatalogNavigationHref(document.referrer || '');
+}
+
 function prepareCatalogReturnNavigation() {
   try {
     if (isCatalogPage()) {
@@ -5478,6 +5486,11 @@ function handleCatalogReturnNavigationLinkClick(event) {
   }
 
   prepareCatalogReturnNavigation();
+
+  if (shouldReturnToCatalogThroughHistory()) {
+    event.preventDefault();
+    window.history.back();
+  }
 }
 
 function getMovieRatingStatsSnapshotRows() {
@@ -5901,6 +5914,14 @@ function createCatalogDomSnapshotPayload(sessionSnapshot = createCatalogSessionS
     renderStateSignature: getCatalogRenderStateSignature(),
     dataSignatureHash: getCatalogDataSignatureHash(sessionSnapshot),
     moviesResultCountText: moviesResultCount?.textContent || '',
+    quickPresetsHtml: quickPresetsBar?.innerHTML || '',
+    quickPresetsScrollLeft: Number(quickPresetsBar?.scrollLeft || 0),
+    activeFiltersHtml: activeFiltersBar?.innerHTML || '',
+    activeFiltersVisible: Boolean(activeFiltersBar?.classList.contains('is-visible')),
+    paginationTopHtml: catalogPaginationTop?.innerHTML || '',
+    paginationTopHidden: Boolean(catalogPaginationTop?.hidden ?? true),
+    paginationBottomHtml: catalogPaginationBottom?.innerHTML || '',
+    paginationBottomHidden: Boolean(catalogPaginationBottom?.hidden ?? true),
     containerHtml
   });
 }
@@ -15508,6 +15529,9 @@ async function handleCatalogCardClick(event) {
   if (link) {
     if (isSameTabCatalogMovieLinkNavigation(event, link)) {
       markCatalogFastReturnPending();
+      persistCatalogSessionSnapshot({
+        persistDomSnapshotImmediately: true
+      });
     }
 
     resetMovieCardFocusAfterLinkOpen(event, link);

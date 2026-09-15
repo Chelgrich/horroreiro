@@ -20,6 +20,7 @@ const assetGroups = {
     'catalog-presets.js',
     'catalog-render.js',
     'catalog-return-cache.js',
+    'catalog-warm-start.js',
     'catalog-url-state.js',
     'director-page.js',
     'editor-page.js',
@@ -71,6 +72,7 @@ const assetGroups = {
 const startupProfiles = {
   catalog: [
     'boot-loader.js',
+    'catalog-warm-start.js',
     'app-script-loader.js',
     'shared-layout.js',
     'custom-select.js',

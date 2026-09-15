@@ -201,6 +201,14 @@ export function createCatalogDomSnapshotPayload({
   renderStateSignature = '',
   dataSignatureHash = '',
   moviesResultCountText = '',
+  quickPresetsHtml = '',
+  quickPresetsScrollLeft = 0,
+  activeFiltersHtml = '',
+  activeFiltersVisible = false,
+  paginationTopHtml = '',
+  paginationTopHidden = true,
+  paginationBottomHtml = '',
+  paginationBottomHidden = true,
   containerHtml = '',
   savedAt = Date.now()
 } = {}) {
@@ -214,6 +222,14 @@ export function createCatalogDomSnapshotPayload({
     renderStateSignature,
     dataSignatureHash,
     moviesResultCountText,
+    quickPresetsHtml,
+    quickPresetsScrollLeft: Number(quickPresetsScrollLeft) || 0,
+    activeFiltersHtml,
+    activeFiltersVisible: Boolean(activeFiltersVisible),
+    paginationTopHtml,
+    paginationTopHidden: Boolean(paginationTopHidden),
+    paginationBottomHtml,
+    paginationBottomHidden: Boolean(paginationBottomHidden),
     containerHtml
   };
 }

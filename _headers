@@ -19,6 +19,9 @@
 /catalog-return-cache.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/catalog-warm-start.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /catalog-url-state.js
   Cache-Control: public, max-age=0, must-revalidate
 

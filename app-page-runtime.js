@@ -65,6 +65,8 @@
       return;
     }
 
+    document.documentElement.classList.add('app-shared-ui-ready');
+
     let didSignalShellReady = false;
     const signalShellReady = () => {
       if (didSignalShellReady || typeof onShellReady !== 'function') {

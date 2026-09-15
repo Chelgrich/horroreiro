@@ -12,6 +12,41 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-15 - Stabilize catalog warm returns
+
+- Files:
+  - `index.html`
+  - `catalog-warm-start.js`
+  - `catalog-return-cache.js`
+  - `app.js`
+  - `app-page-runtime.js`
+  - `app-script-loader.js`
+  - `_headers`
+  - `functions/app-assets/[version].js`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a catalog-only warm-start script that restores a valid saved catalog DOM snapshot before the full app finishes loading, while keeping the page hidden until styles and shared UI are ready.
+  - Extended catalog DOM snapshots with quick preset, active filter, result count, and pagination fragments so fast returns do not reveal partial toolbar/list states.
+  - Made same-tab catalog-return links from movie pages use browser history when the movie page was actually opened from the catalog, preserving the previous catalog document when possible.
+- Checks:
+  - `node --check catalog-warm-start.js`
+  - `node --check app-page-runtime.js`
+  - `node --check app-script-loader.js`
+  - `node --check app.js`
+  - `node --check catalog-return-cache.js`
+  - `node --check "functions/app-assets/[version].js"`
+  - `node --check tools/asset-size-report.mjs`
+  - `node --check tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+  - Inline Node VM smoke: valid catalog warm-start restored DOM/result/preset state, while a stale local data stamp skipped warm-start.
+- Follow-up:
+  - Verify same-tab catalog returns on dev after deployment, especially browser Back, the in-page back link, and the shared logo.
+
 ## 2026-09-15 - Space review text from header
 
 - Files:

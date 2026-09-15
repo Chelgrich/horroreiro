@@ -10,6 +10,7 @@ const port = 4181;
 
 const clientJsFiles = [
   'boot-loader.js',
+  'catalog-warm-start.js',
   'app-script-loader.js',
   'shared-layout.js',
   'custom-select.js',
@@ -71,6 +72,7 @@ const contextSensitiveExactFiles = new Set([
   'catalog-presets.js',
   'catalog-render.js',
   'catalog-return-cache.js',
+  'catalog-warm-start.js',
   'catalog-url-state.js',
   'catalog-page.css',
   'movie-editor.css',
@@ -187,6 +189,10 @@ function checkAssetSizeReport() {
   assert(
     report.startup?.catalog?.files?.includes('custom-select.js'),
     'asset-size-report.mjs: catalog startup profile must include custom-select.js'
+  );
+  assert(
+    report.startup?.catalog?.files?.includes('catalog-warm-start.js'),
+    'asset-size-report.mjs: catalog startup profile must include catalog-warm-start.js'
   );
   assert(
     !report.startup?.movie?.files?.includes('custom-select.js'),
@@ -456,6 +462,12 @@ async function checkStaticGuards() {
       html.includes('<script src="/app-script-loader.js'),
       `${file}: missing app-script-loader.js`
     );
+    assert(
+      file === 'index.html'
+        ? html.includes('<script src="/catalog-warm-start.js')
+        : !html.includes('/catalog-warm-start.js'),
+      `${file}: catalog-warm-start.js must load only on the catalog shell`
+    );
     const googleFontStylesheetMatches = html.match(/href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]+"/g) || [];
     assert(
       googleFontStylesheetMatches.length === 1 &&
@@ -526,6 +538,7 @@ async function checkStaticGuards() {
     '/catalog-presets.js',
     '/catalog-render.js',
     '/catalog-return-cache.js',
+    '/catalog-warm-start.js',
     '/catalog-url-state.js',
     '/catalog-page.css',
     '/movie-editor.css',
@@ -589,6 +602,7 @@ async function checkStaticGuards() {
     'catalog-presets.js',
     'catalog-render.js',
     'catalog-return-cache.js',
+    'catalog-warm-start.js',
     'catalog-url-state.js',
     'catalog-page.css',
     'movie-editor.css',
