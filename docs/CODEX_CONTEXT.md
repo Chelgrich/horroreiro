@@ -397,7 +397,7 @@ Behavior:
 
 - Movie fields `production`, `distribution`, and `russian_distribution` stay as editable multiline arrays in the movie modal.
 - On movie save, those arrays synchronize into `companies` and `movie_companies` by normalized company name.
-- Admin movie detail pages hydrate `movie_companies` for the current movie and render production/distribution/Russian distribution names as links to `/company/<slug>` when matching company rows exist; otherwise the names remain plain escaped text.
+- Admin movie detail pages hydrate `movie_companies` for the current movie and render production/distribution/Russian distribution names as links to `/company/<slug>` with the canonical `companies.name`; otherwise the original movie array values remain plain escaped fallback text.
 - If a company value is removed from a movie and no other movie references that company, cleanup can delete the orphan company row.
 - Company detail pages render only non-empty role sections; do not show empty section headings.
 - Company pages are admin-only for now. The account menu exposes the three role pages only to admins.

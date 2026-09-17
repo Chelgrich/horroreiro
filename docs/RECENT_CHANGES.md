@@ -12,6 +12,27 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-17 - Display canonical company names on movie details
+
+- Files:
+  - `movie-page-shell.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Linked production/distribution/Russian distribution values on admin movie detail pages now display the current `companies.name` instead of stale text from the movie array.
+  - The original movie array value remains a fallback only when no linked company row exists.
+  - Movie detail company rendering can still show linked company rows even if the legacy movie array is missing.
+- Checks:
+  - `node --check movie-page-shell.js`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Recheck a movie after changing only the company name casing: the movie detail meta field should show the updated company casing.
+
 ## 2026-09-17 - Link movie detail company names
 
 - Files:

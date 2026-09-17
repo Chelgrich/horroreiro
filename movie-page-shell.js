@@ -78,30 +78,61 @@ export function createMoviePageShellController(context = {}) {
       .map(value => String(value || '').trim())
       .filter(value => value && formatTextArrayForDetail([value]));
 
-    if (displayNames.length === 0) {
+    const linkRows = getMovieCompanyLinkRows(movie, role);
+
+    if (displayNames.length === 0 && linkRows.length === 0) {
       return '';
     }
 
-    const linkRows = getMovieCompanyLinkRows(movie, role);
-    const linksByNameKey = linkRows.reduce((map, row) => {
-      const nameKey = normalizeCompanyNameKey(row.company?.name);
+    const usedRowIndexes = new Set();
 
-      if (nameKey && row.href && !map.has(nameKey)) {
-        map.set(nameKey, row.href);
+    const claimRow = index => {
+      if (!linkRows[index] || usedRowIndexes.has(index)) {
+        return null;
       }
 
-      return map;
-    }, new Map());
+      usedRowIndexes.add(index);
+      return linkRows[index];
+    };
+    const claimRowByName = name => {
+      const nameKey = normalizeCompanyNameKey(name);
 
-    return displayNames.map((name, index) => {
-      const href = linksByNameKey.get(normalizeCompanyNameKey(name)) || linkRows[index]?.href || '';
+      if (!nameKey) {
+        return null;
+      }
+
+      const rowIndex = linkRows.findIndex((row, index) => (
+        !usedRowIndexes.has(index) &&
+        normalizeCompanyNameKey(row.company?.name) === nameKey
+      ));
+
+      return rowIndex >= 0 ? claimRow(rowIndex) : null;
+    };
+    const renderCompanyItem = (fallbackName, row = null) => {
+      const label = String(row?.company?.name || fallbackName || '').trim();
+      const href = String(row?.href || '').trim();
+
+      if (!label) {
+        return '';
+      }
 
       if (!href) {
-        return escapeHtml(name);
+        return escapeHtml(label);
       }
 
-      return `<a class="movie-page-meta-link" href="${escapeHtml(href)}">${escapeHtml(name)}</a>`;
-    }).join(', ');
+      return `<a class="movie-page-meta-link" href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
+    };
+    const items = displayNames.map((name, index) =>
+      renderCompanyItem(name, claimRowByName(name) || claimRow(index))
+    );
+
+    linkRows.forEach((row, index) => {
+      if (!usedRowIndexes.has(index)) {
+        items.push(renderCompanyItem('', claimRow(index)));
+      }
+    });
+
+    return items.filter(Boolean).join(', ');
   }
 
   function buildMoviePageViewModel(movie, { includeSocialSections = true } = {}) {

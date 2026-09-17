@@ -902,6 +902,8 @@ async function checkStaticGuards() {
       appJs.includes('ensureMovieCompanyItemsLoaded') &&
       moviePageOrchestratorJs.includes('ensureCompanyItemsLoaded') &&
       moviePageShellJs.includes('function getMoviePageCompanyListHtml(') &&
+      moviePageShellJs.includes('claimRowByName') &&
+      moviePageShellJs.includes('row?.company?.name || fallbackName') &&
       moviePageShellJs.includes('buildCompanyPageUrl(company)') &&
       !companyPagesJs.includes(".select('*')"),
     'app.js/company-pages.js/movie-page-shell.js: company pages and movie detail company links must use explicit company select profiles and tolerate existing company name_key conflicts'
