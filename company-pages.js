@@ -360,7 +360,6 @@ export function createCompanyPagesController(context = {}) {
     companyPage.innerHTML = `
       <div class="secondary-page-empty-state">
         <p>Компания не найдена.</p>
-        <a href="${escapeHtml(buildCompanyAdminPageUrl('production'))}" class="secondary-button">К производителям</a>
       </div>
     `;
   }

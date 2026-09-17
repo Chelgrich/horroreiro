@@ -12,6 +12,23 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-17 - Remove admin link from public company not-found state
+
+- Files:
+  - `company-pages.js`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Public `/company/<slug>` not-found state no longer shows the `К производителям` button because it points to an admin-only role list.
+  - Smoke checks now guard against reintroducing that admin-list link into public company detail UI.
+- Checks:
+  - `node --check company-pages.js`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+- Follow-up:
+  - If anonymous visitors still see plain company text or `Компания не найдена`, apply the public-read Supabase grants/policies for `companies` and `movie_companies`.
+
 ## 2026-09-17 - Make company detail pages public
 
 - Files:

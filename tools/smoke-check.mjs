@@ -912,6 +912,8 @@ async function checkStaticGuards() {
       movieCompaniesSetupSql.includes('Public can read movie companies') &&
       companyPagesJs.includes("action === 'edit' && getIsAdmin()") &&
       companyPagesJs.includes('function renderCompanyAdminForbidden(') &&
+      !companyPagesJs.includes("buildCompanyAdminPageUrl('production')") &&
+      !companyPagesJs.includes('К производителям') &&
       !appJs.includes('!isAdmin || !areCompaniesAvailable || Array.isArray(movie.movie_companies)') &&
       !moviePageShellJs.includes('if (!getIsAdmin())') &&
       !companyPagesJs.includes('function renderCompanyPageAuthGate(') &&
