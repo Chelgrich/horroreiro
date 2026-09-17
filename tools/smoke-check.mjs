@@ -489,16 +489,18 @@ async function checkStaticGuards() {
       assert(
         /html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+\.page,\s*html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html) &&
           html.includes('html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty') &&
+          html.includes('html.app-catalog-warm-started.app-styles-ready:not(.app-load-failed) .app-boot-shell') &&
           html.includes('overflow-y: scroll;'),
-        'index.html: warm-started catalog must redisplay after styles, reserve shared header space, and match final scrollbar policy'
+        'index.html: warm-started catalog must hide boot shell only after styles, redisplay after styles, reserve shared header space, and match final scrollbar policy'
       );
     }
     if (file === 'movie.html') {
       assert(
         /html\.app-movie-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+\.page,\s*html\.app-movie-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html) &&
           html.includes('html.app-movie-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty') &&
+          html.includes('html.app-movie-warm-started.app-styles-ready:not(.app-load-failed) .app-boot-shell') &&
           html.includes('overflow-y: scroll;'),
-        'movie.html: warm-started movie detail must redisplay after styles, reserve shared header space, and match final scrollbar policy'
+        'movie.html: warm-started movie detail must hide boot shell only after styles, redisplay after styles, reserve shared header space, and match final scrollbar policy'
       );
     }
     const googleFontStylesheetMatches = html.match(/href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]+"/g) || [];
@@ -532,6 +534,14 @@ async function checkStaticGuards() {
   assert(
     bootLoader.includes('/app-assets/') && appScriptLoader.includes('/app-assets/'),
     'boot-loader.js/app-script-loader.js: production assets must use app-assets route'
+  );
+  assert(
+    bootLoader.includes("const STYLESHEET_CACHE_KEY = 'horroreiro_stylesheet_cache_v1'") &&
+      bootLoader.includes('function applyCachedStylesheets(') &&
+      bootLoader.includes('document.documentElement.classList.add(\'app-styles-ready\')') &&
+      bootLoader.includes('function cacheLoadedStylesheets(') &&
+      bootLoader.includes("style.dataset.horroreiroStyleCache = 'true'"),
+    'boot-loader.js: warm returns must be able to reuse a same-build stylesheet cache before live CSS finishes loading'
   );
   assert(
     bootLoader.includes('function getCurrentAppPage') &&

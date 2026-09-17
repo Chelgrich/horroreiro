@@ -19,6 +19,10 @@
       APP_BUILD_VERSION: 'dev-local-27'
     };
     const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
+    const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
+    const STYLESHEET_CACHE_KEY = 'horroreiro_stylesheet_cache_v1';
+    const STYLESHEET_CACHE_MAX_ENTRIES = 6;
+    const STYLESHEET_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
     function getVersionedAssetUrl(src, buildVersion) {
       if (shouldUseLocalDevEnv) {
@@ -120,7 +124,159 @@
       return assets;
     }
 
+    function parseJson(value) {
+      try {
+        return value ? JSON.parse(value) : null;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function getStorageValue(storage, key) {
+      try {
+        return storage?.getItem?.(key) ?? '';
+      } catch (error) {
+        return '';
+      }
+    }
+
+    function getStylesheetCacheId(buildVersion, assets) {
+      return `${String(buildVersion || '')}::${assets.join('|')}`;
+    }
+
+    function readStylesheetCacheStore() {
+      const store = parseJson(getStorageValue(sessionStorage, STYLESHEET_CACHE_KEY));
+
+      return (
+        store &&
+        store.version === 1 &&
+        store.entries &&
+        typeof store.entries === 'object' &&
+        !Array.isArray(store.entries)
+      )
+        ? store
+        : { version: 1, entries: {} };
+    }
+
+    function writeStylesheetCacheStore(store) {
+      try {
+        const entries = Object.entries(store.entries || {})
+          .sort((first, second) => Number(second[1]?.savedAt || 0) - Number(first[1]?.savedAt || 0))
+          .slice(0, STYLESHEET_CACHE_MAX_ENTRIES);
+
+        sessionStorage.setItem(
+          STYLESHEET_CACHE_KEY,
+          JSON.stringify({
+            version: 1,
+            entries: Object.fromEntries(entries)
+          })
+        );
+      } catch (error) {
+        try {
+          sessionStorage.removeItem(STYLESHEET_CACHE_KEY);
+        } catch (removeError) {
+          // Stylesheet cache is only a warm-start acceleration path.
+        }
+      }
+    }
+
+    function hasCompleteStylesheetCacheEntry(entry, buildVersion, assets) {
+      const savedAt = Number(entry?.savedAt || 0);
+      const age = Date.now() - savedAt;
+
+      return Boolean(
+        entry &&
+        String(entry.buildVersion || '') === String(buildVersion || '') &&
+        Array.isArray(entry.assets) &&
+        entry.assets.join('|') === assets.join('|') &&
+        entry.cssTextByAsset &&
+        typeof entry.cssTextByAsset === 'object' &&
+        !Array.isArray(entry.cssTextByAsset) &&
+        Number.isFinite(age) &&
+        age >= 0 &&
+        age <= STYLESHEET_CACHE_MAX_AGE_MS &&
+        assets.every(assetName => typeof entry.cssTextByAsset[assetName] === 'string' && entry.cssTextByAsset[assetName])
+      );
+    }
+
+    function removeCachedStylesheets() {
+      document.querySelectorAll('style[data-horroreiro-style-cache="true"]').forEach(element => {
+        element.remove();
+      });
+    }
+
+    function applyCachedStylesheets() {
+      const buildVersion = getStorageValue(localStorage, APP_VERSION_STORAGE_KEY);
+
+      if (!buildVersion) {
+        return false;
+      }
+
+      const assets = getPageStylesheetAssets();
+      const store = readStylesheetCacheStore();
+      const cacheId = getStylesheetCacheId(buildVersion, assets);
+      const entry = store.entries[cacheId];
+
+      if (!hasCompleteStylesheetCacheEntry(entry, buildVersion, assets)) {
+        return false;
+      }
+
+      removeCachedStylesheets();
+      assets.forEach(assetName => {
+        const style = document.createElement('style');
+
+        style.dataset.horroreiroStyleCache = 'true';
+        style.dataset.asset = assetName;
+        style.textContent = entry.cssTextByAsset[assetName];
+        document.head.appendChild(style);
+      });
+      document.documentElement.classList.add('app-styles-ready');
+      return true;
+    }
+
+    function cacheLoadedStylesheets(buildVersion, assets, stylesheetLinks) {
+      if (!buildVersion || !assets.length || !stylesheetLinks.length) {
+        return;
+      }
+
+      Promise.all(
+        assets.map((assetName, index) => {
+          const href = stylesheetLinks[index]?.href;
+
+          if (!href) {
+            throw new Error('Missing stylesheet href.');
+          }
+
+          return fetch(href, { cache: 'force-cache' })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`Stylesheet fetch failed: ${response.status}`);
+              }
+
+              return response.text();
+            })
+            .then(cssText => [assetName, cssText]);
+        })
+      )
+        .then(entries => {
+          const store = readStylesheetCacheStore();
+          const cacheId = getStylesheetCacheId(buildVersion, assets);
+
+          store.entries[cacheId] = {
+            buildVersion,
+            assets,
+            savedAt: Date.now(),
+            cssTextByAsset: Object.fromEntries(entries)
+          };
+          writeStylesheetCacheStore(store);
+        })
+        .catch(() => {
+          // The live stylesheets already loaded; cache misses only affect later warm starts.
+        });
+    }
+
     markCatalogFastReturnStartupHint();
+    applyCachedStylesheets();
 
     function finishEnvReady() {
       if (isEnvReadyResolved) {
@@ -157,6 +313,7 @@
 
       const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
       const stylesheetAssets = getPageStylesheetAssets();
+      const stylesheetLinks = [];
       let pendingStylesheets = stylesheetAssets.length;
       let hasFailedStylesheetLoad = false;
 
@@ -168,6 +325,8 @@
         pendingStylesheets -= 1;
 
         if (pendingStylesheets <= 0) {
+          cacheLoadedStylesheets(buildVersion, stylesheetAssets, stylesheetLinks);
+          removeCachedStylesheets();
           finishEnvReady();
         }
       };
@@ -184,6 +343,7 @@
         stylesheet.href = getVersionedAssetUrl(assetName, buildVersion);
         stylesheet.onload = handleStylesheetLoad;
         stylesheet.onerror = handleStylesheetError;
+        stylesheetLinks.push(stylesheet);
         document.head.appendChild(stylesheet);
       });
 

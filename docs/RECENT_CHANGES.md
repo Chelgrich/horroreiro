@@ -12,6 +12,29 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-17 - Accelerate warm-start stylesheet readiness
+
+- Files:
+  - `boot-loader.js`
+  - `index.html`
+  - `movie.html`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a same-tab, same-build stylesheet cache in `sessionStorage` so already visited catalog/movie shells can apply cached page CSS before live stylesheet requests finish.
+  - Kept live CSS loading as the source of truth and refreshes/removes cached inline styles once the real stylesheets load.
+  - Changed catalog/movie warm-start boot-shell hiding so a restored DOM snapshot no longer creates an empty dark screen before styles are ready.
+- Checks:
+  - `node --check boot-loader.js`
+  - `node --check app-script-loader.js`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Recheck repeated catalog <-> movie browser Back/Forward returns after one full page load; valid warm pages should appear as soon as cached CSS and DOM snapshots are available.
+
 ## 2026-09-15 - Make browser history warm-start deterministic
 
 - Files:

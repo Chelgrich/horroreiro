@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-09-15.
+Last updated: 2026-09-17.
 
 ## Purpose
 
@@ -50,6 +50,7 @@ Page HTML is static shell plus shared scripts:
   - creates `window.__ENV__`;
   - loads versioned `styles.css`;
   - loads page-specific CSS such as `catalog-page.css`, `movie-page.css`, shared `secondary-pages.css`, and secondary page-only CSS before app startup when the current shell needs it;
+  - caches successfully loaded same-build page stylesheet bundles in `sessionStorage` and injects that cached CSS on later same-tab warm returns so restored catalog/movie DOM can become visible before live CSS requests finish;
   - marks `app-styles-ready` or `app-load-failed`.
 - `catalog-warm-start.js`
   - is loaded only by `index.html`, before Supabase and the main app loader;
@@ -80,6 +81,8 @@ Startup shell visibility rule:
 - HTML shells must hide `.page` and `#sharedFooterMount` with `display: none` before `app-ready`, not `visibility: hidden`. Some form-control rules intentionally set descendant `select` elements back to `visibility: visible`, which can otherwise leak controls such as the catalog sort select over the boot screen.
 - `index.html` and `movie.html` may temporarily redisplay a validated warm-start shell before `app-ready` as soon as `app-styles-ready` is set. They reserve empty shared-header space until shared UI mounts so cached content appears quickly without layout jumps or unstyled controls.
 - Warm-start redisplay rules should match the final page scrollbar policy (`overflow-y: scroll`) so a restored shell does not shift when `app-ready` lands.
+- Warm-started catalog/movie shells hide the boot loader only after `app-styles-ready`. If a DOM snapshot is restored before styles are usable, keep the loader rather than showing an empty dark page.
+- The boot loader may set `app-styles-ready` from a same-build cached stylesheet bundle before `/env` and live CSS complete. The live `<link>` stylesheets remain the source of truth and remove the cached inline styles after they load.
 
 Production asset URL strategy:
 
