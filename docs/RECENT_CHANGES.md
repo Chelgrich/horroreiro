@@ -12,6 +12,66 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-17 - Add admin company role pages
+
+- Files:
+  - `app.js`
+  - `company-pages.js`
+  - `company-page.css`
+  - `companies.html`
+  - `company.html`
+  - `movie-editor.js`
+  - `shared-layout.js`
+  - `boot-loader.js`
+  - `page-warm-start.js`
+  - `app-page-runtime.js`
+  - `functions/production.js`
+  - `functions/production.html.js`
+  - `functions/distributors.js`
+  - `functions/distributors.html.js`
+  - `functions/russian-distributors.js`
+  - `functions/russian-distributors.html.js`
+  - `functions/company.html.js`
+  - `functions/company/[slug].js`
+  - `functions/app-assets/[version].js`
+  - `_headers`
+  - `_routes.json`
+  - `movie-companies-setup.sql`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added admin-only company pages for production, distribution, and Russian distribution values with clean routes `/production`, `/distributors`, and `/russian-distributors`.
+  - Added shared company detail pages at `/company/<slug>`; detail pages show company country only when filled and omit empty role sections.
+  - Movie create/update now synchronizes multiline production/distribution/Russian distribution fields into `companies`/`movie_companies`, and movie deletion/removal cleanup deletes orphan company rows when safe.
+  - Added admin account-menu links for the three company role pages and routed the new shells through warm-start, app-assets, cache headers, and Cloudflare Functions.
+  - Added `movie-companies-setup.sql` to create/backfill the company tables with admin-only RLS.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-editor.js`
+  - `node --check company-pages.js`
+  - `node --check shared-layout.js`
+  - `node --check boot-loader.js`
+  - `node --check page-warm-start.js`
+  - `node --check app-page-runtime.js`
+  - `node --check functions/app-assets/[version].js`
+  - `node --check functions/production.js`
+  - `node --check functions/production.html.js`
+  - `node --check functions/distributors.js`
+  - `node --check functions/distributors.html.js`
+  - `node --check functions/russian-distributors.js`
+  - `node --check functions/russian-distributors.html.js`
+  - `node --check functions/company.html.js`
+  - `node --check functions/company/[slug].js`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+  - `git diff --check`
+- Follow-up:
+  - Apply `movie-companies-setup.sql` in Supabase before opening the new company pages on dev/prod.
+
 ## 2026-09-17 - Fix directors admin edit fallback and movie delete orphan cleanup
 
 - Files:

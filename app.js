@@ -30,6 +30,9 @@ const notificationsMenuBadge = document.getElementById('notificationsMenuBadge')
 const followingSummaryButton = document.getElementById('followingSummaryButton');
 const editorCenterSummaryButton = document.getElementById('editorCenterSummaryButton');
 const directorsAdminSummaryButton = document.getElementById('directorsAdminSummaryButton');
+const productionAdminSummaryButton = document.getElementById('productionAdminSummaryButton');
+const distributorsAdminSummaryButton = document.getElementById('distributorsAdminSummaryButton');
+const russianDistributorsAdminSummaryButton = document.getElementById('russianDistributorsAdminSummaryButton');
 
 const WINDOW_SCROLL_INTENT_VERSION_KEY = '__HORROREIRO_SCROLL_INTENT_VERSION__';
 const WINDOW_LAST_USER_SCROLL_Y_KEY = '__HORROREIRO_LAST_USER_SCROLL_Y__';
@@ -81,6 +84,8 @@ const followingPage = document.getElementById('followingPage');
 const editorPage = document.getElementById('editorPage');
 const directorPage = document.getElementById('directorPage');
 const directorsAdminPage = document.getElementById('directorsAdminPage');
+const companyPage = document.getElementById('companyPage');
+const companyAdminPage = document.getElementById('companyAdminPage');
 
 const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
@@ -297,7 +302,9 @@ const SECONDARY_PAGE_DOM_SNAPSHOT_PAGE_TYPES = new Set([
   'notifications',
   'editor',
   'director',
-  'directors'
+  'directors',
+  'company',
+  'company-admin'
 ]);
 const CATALOG_PROFILE_ACTIVITY_LABELS = {
   ratings: 'Оценки и просмотры',
@@ -336,6 +343,42 @@ const PEOPLE_ADMIN_SELECT = `
   tmdb_url
 `;
 const PEOPLE_MOVIE_LINK_SELECT = 'id, slug, name_ru, name';
+const COMPANY_PUBLIC_SELECT = `
+  id,
+  slug,
+  name,
+  country
+`;
+const COMPANY_ADMIN_SELECT = `
+  id,
+  slug,
+  name,
+  name_key,
+  country
+`;
+const COMPANY_ROLES = {
+  production: {
+    key: 'production',
+    title: 'Производство',
+    pageTitle: 'Производство',
+    path: '/production',
+    localPath: 'production.html'
+  },
+  distribution: {
+    key: 'distribution',
+    title: 'Дистрибуция',
+    pageTitle: 'Дистрибьюторы',
+    path: '/distributors',
+    localPath: 'distributors.html'
+  },
+  russian_distribution: {
+    key: 'russian_distribution',
+    title: 'Дистрибуция в России',
+    pageTitle: 'Дистрибьюторы в России',
+    path: '/russian-distributors',
+    localPath: 'russian-distributors.html'
+  }
+};
 const AVATAR_STORAGE_BUCKET = 'avatars';
 const AVATAR_STORAGE_PUBLIC_PATH = `/storage/v1/object/public/${AVATAR_STORAGE_BUCKET}/`;
 const AVATAR_ACCEPTED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -378,6 +421,7 @@ const MANUAL_SIMILAR_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205'])
 const MOVIE_REVIEW_LIKES_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const MOVIE_POSTER_IMAGES_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const DIRECTORS_UNAVAILABLE_CODES = new Set(['42P01', '42703', 'PGRST204', 'PGRST205']);
+const COMPANIES_UNAVAILABLE_CODES = new Set(['42P01', '42703', 'PGRST204', 'PGRST205']);
 const MOVIE_COMMENTS_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const MOVIE_COMMENT_LIKES_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const SITE_ORIGIN = 'https://horroreiro.ru';
@@ -656,6 +700,10 @@ let areDirectorsAvailable = true;
 let currentDirectorPageData = null;
 let currentDirectorsAdminRows = [];
 let currentDirectorsAdminMovieRows = [];
+let areCompaniesAvailable = true;
+let currentCompanyPageData = null;
+let companyPagesControllerPromise = null;
+let companyPagesController = null;
 let directorPageControllerPromise = null;
 let directorPageController = null;
 let directorsAdminFrameworkAppPromise = null;
@@ -1709,6 +1757,126 @@ async function initDirectorPage() {
   } finally {
     endSecondaryPageWarmStartHydration();
   }
+}
+
+function getCompanyPagesControllerContext() {
+  return {
+    companyAdminPage,
+    companyPage,
+    supabaseClient,
+    companyRoles: COMPANY_ROLES,
+    companyPublicSelect: COMPANY_PUBLIC_SELECT,
+    companyAdminSelect: COMPANY_ADMIN_SELECT,
+    movieCatalogSelect: MOVIE_CATALOG_SELECT,
+    getCurrentUser: () => currentUser,
+    getAreCompaniesAvailable: () => areCompaniesAvailable,
+    setAreCompaniesAvailable: value => {
+      areCompaniesAvailable = Boolean(value);
+    },
+    getCurrentCompanyPageData: () => currentCompanyPageData,
+    setCurrentCompanyPageData: data => {
+      currentCompanyPageData = data;
+    },
+    getIsAdmin: () => isAdmin,
+    hasWarmStartedPageDom: hasWarmStartedSecondaryPageDom,
+    shouldUseAuthenticatedUi,
+    restoreSession,
+    trackEmailConfirmedLoginIfNeeded,
+    bindSharedAuthStateListener,
+    openAuthModal,
+    escapeHtml,
+    isCompaniesUnavailableError,
+    normalizeCompanyRow,
+    normalizeCompanyNameKey,
+    getCompanyDisplayName,
+    getCompanyRoleLabel,
+    getCompanyRoleConfig,
+    buildCompanyAdminPageUrl,
+    buildCompanyPageUrl,
+    buildCatalogPageUrl,
+    buildUniqueCompanySlug,
+    fetchAdminCompanyRows,
+    fetchCompanyById,
+    fetchMovieCompanyRowsForRole,
+    fetchMovieCompanyRowsForCompany,
+    fetchMoviesByIdsWithSelect,
+    ensurePreferredPosterImagesForMovies,
+    getSortedMoviesCopy,
+    cacheCatalogMovies,
+    createMovieCardRenderContext,
+    createMovieCard,
+    bindMoviePosterLoadStates,
+    bindPosterFallbackImages,
+    handleCatalogCardClick,
+    handleCatalogCardAuxClick,
+    handleCatalogRatingStarMouseOver,
+    handleCatalogRatingStarMouseOut,
+    showAppMessage,
+    markLocalDataMutation,
+    persistCurrentSecondaryPageDomSnapshot
+  };
+}
+
+async function loadCompanyPagesController() {
+  if (!companyAdminPage && !companyPage) {
+    return null;
+  }
+
+  if (!companyPagesControllerPromise) {
+    const catalogCardsDependency = companyPage
+      ? loadCatalogCardController()
+      : Promise.resolve(null);
+
+    companyPagesControllerPromise = Promise.all([
+      import(getLazyFeatureModuleUrl('company-pages.js')),
+      catalogCardsDependency
+    ])
+      .then(([module]) => {
+        companyPagesController = module.createCompanyPagesController(getCompanyPagesControllerContext());
+        return companyPagesController;
+      })
+      .catch(error => {
+        companyPagesControllerPromise = null;
+        companyPagesController = null;
+        throw error;
+      });
+  }
+
+  return companyPagesControllerPromise;
+}
+
+async function initCompanyAdminPage() {
+  beginSecondaryPageWarmStartHydration();
+
+  try {
+    const controller = await loadCompanyPagesController();
+
+    await controller?.initCompanyAdminPage?.();
+    persistCurrentSecondaryPageDomSnapshot();
+  } finally {
+    endSecondaryPageWarmStartHydration();
+  }
+}
+
+async function initCompanyPage() {
+  beginSecondaryPageWarmStartHydration();
+
+  try {
+    const controller = await loadCompanyPagesController();
+
+    await controller?.initCompanyPage?.();
+    persistCurrentSecondaryPageDomSnapshot();
+  } finally {
+    endSecondaryPageWarmStartHydration();
+  }
+}
+
+function handleCompanyPagesClick(event) {
+  return companyPagesController?.handleCompanyPagesClick?.(event) || false;
+}
+
+function handleCompanyPagesKeydown(event) {
+  return companyPagesController?.handleCompanyPagesKeydown?.(event) || false;
 }
 
 function isDirectorsUnavailableError(error) {
@@ -3248,6 +3416,422 @@ async function replaceMovieDirectorsClientFallback(movieId, directorNames = []) 
   } catch (error) {
     if (isDirectorsUnavailableError(error)) {
       areDirectorsAvailable = false;
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+function isCompaniesUnavailableError(error) {
+  const code = String(error?.code || '').trim();
+  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+  const mentionsCompanySchema = (
+    message.includes('companies') ||
+    message.includes('movie_companies')
+  );
+
+  return COMPANIES_UNAVAILABLE_CODES.has(code) && mentionsCompanySchema;
+}
+
+function normalizeCompanyNameKey(name) {
+  return normalizeSearchText(name);
+}
+
+function normalizeCompanyRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  const name = String(row.name || '').trim();
+
+  if (!row.id || !name) {
+    return null;
+  }
+
+  return {
+    ...row,
+    id: String(row.id),
+    slug: String(row.slug || '').trim(),
+    name,
+    name_key: String(row.name_key || normalizeCompanyNameKey(name)).trim(),
+    country: String(row.country || '').trim()
+  };
+}
+
+function getCompanyDisplayName(company) {
+  return String(company?.name || '').trim() || 'Без названия';
+}
+
+function getCompanyRoleConfig(role) {
+  return COMPANY_ROLES[String(role || '').trim()] || null;
+}
+
+function getCompanyRoleLabel(role) {
+  return getCompanyRoleConfig(role)?.title || String(role || '').trim();
+}
+
+function buildCompanyAdminPageUrl(role) {
+  const roleConfig = getCompanyRoleConfig(role);
+
+  if (!roleConfig) {
+    return buildEditorPageUrl();
+  }
+
+  return isLocalDevRouteHost() ? `companies.html?role=${encodeURIComponent(roleConfig.key)}` : roleConfig.path;
+}
+
+function buildCompanyPageUrl(company) {
+  const slug = String(company?.slug || '').trim();
+
+  if (!slug) {
+    return buildCompanyAdminPageUrl('production');
+  }
+
+  const encodedSlug = encodeURIComponent(slug);
+
+  return isLocalDevRouteHost()
+    ? `company.html?slug=${encodedSlug}`
+    : `/company/${encodedSlug}`;
+}
+
+async function buildUniqueCompanySlug(name, excludeCompanyId = null) {
+  const baseSlug = slugifyMovieValue(name) || 'company';
+  let slugCandidate = baseSlug;
+  let suffix = 2;
+
+  while (true) {
+    let query = supabaseClient
+      .from('companies')
+      .select('id')
+      .eq('slug', slugCandidate)
+      .limit(1);
+
+    if (excludeCompanyId) {
+      query = query.neq('id', excludeCompanyId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      if (isCompaniesUnavailableError(error)) {
+        areCompaniesAvailable = false;
+        return slugCandidate;
+      }
+
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      return slugCandidate;
+    }
+
+    slugCandidate = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+}
+
+function normalizeMovieCompanyRoleValues(roleValues = {}) {
+  return Object.values(COMPANY_ROLES).reduce((normalizedValues, roleConfig) => {
+    const seenNameKeys = new Set();
+
+    normalizedValues[roleConfig.key] = normalizeTextArrayField(
+      roleValues[roleConfig.key],
+      { excludeIntentionalEmpty: true }
+    ).filter(name => {
+      const nameKey = normalizeCompanyNameKey(name);
+
+      if (!nameKey || seenNameKeys.has(nameKey)) {
+        return false;
+      }
+
+      seenNameKeys.add(nameKey);
+      return true;
+    });
+
+    return normalizedValues;
+  }, {});
+}
+
+async function fetchCompanyById(companyId) {
+  const normalizedCompanyId = String(companyId || '').trim();
+
+  if (!normalizedCompanyId || !areCompaniesAvailable) {
+    return null;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('companies')
+    .select(COMPANY_ADMIN_SELECT)
+    .eq('id', normalizedCompanyId)
+    .maybeSingle();
+
+  if (error) {
+    if (isCompaniesUnavailableError(error)) {
+      areCompaniesAvailable = false;
+      return null;
+    }
+
+    throw error;
+  }
+
+  return normalizeCompanyRow(data);
+}
+
+async function fetchAdminCompanyRows() {
+  if (!areCompaniesAvailable) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('companies')
+    .select(COMPANY_ADMIN_SELECT)
+    .order('name', { ascending: true });
+
+  if (error) {
+    if (isCompaniesUnavailableError(error)) {
+      areCompaniesAvailable = false;
+      return [];
+    }
+
+    throw error;
+  }
+
+  return (data || []).map(normalizeCompanyRow).filter(Boolean);
+}
+
+async function fetchMovieCompanyRowsForRole(role) {
+  const roleConfig = getCompanyRoleConfig(role);
+
+  if (!roleConfig || !areCompaniesAvailable) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_companies')
+    .select(`movie_id, company_id, role, position, companies (${COMPANY_PUBLIC_SELECT})`)
+    .eq('role', roleConfig.key)
+    .order('position', { ascending: true });
+
+  if (error) {
+    if (isCompaniesUnavailableError(error)) {
+      areCompaniesAvailable = false;
+      return [];
+    }
+
+    throw error;
+  }
+
+  return data || [];
+}
+
+async function fetchMovieCompanyRowsForCompany(companyId) {
+  const normalizedCompanyId = String(companyId || '').trim();
+
+  if (!normalizedCompanyId || !areCompaniesAvailable) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_companies')
+    .select('movie_id, company_id, role, position')
+    .eq('company_id', normalizedCompanyId)
+    .order('role', { ascending: true })
+    .order('position', { ascending: true });
+
+  if (error) {
+    if (isCompaniesUnavailableError(error)) {
+      areCompaniesAvailable = false;
+      return [];
+    }
+
+    throw error;
+  }
+
+  return data || [];
+}
+
+async function ensureCompaniesByNames(names = []) {
+  const normalizedNames = normalizeTextArrayField(names, { excludeIntentionalEmpty: true });
+
+  if (!areCompaniesAvailable || normalizedNames.length === 0) {
+    return [];
+  }
+
+  const rows = await fetchAdminCompanyRows();
+
+  if (!areCompaniesAvailable) {
+    return [];
+  }
+
+  const companiesByNameKey = rows.reduce((companiesMap, company) => {
+    const nameKey = normalizeCompanyNameKey(company.name);
+
+    if (nameKey && !companiesMap.has(nameKey)) {
+      companiesMap.set(nameKey, company);
+    }
+
+    return companiesMap;
+  }, new Map());
+  const result = [];
+
+  for (const name of normalizedNames) {
+    const nameKey = normalizeCompanyNameKey(name);
+    let company = companiesByNameKey.get(nameKey);
+
+    if (!company) {
+      const payload = {
+        name,
+        name_key: nameKey,
+        slug: await buildUniqueCompanySlug(name),
+        created_by: currentUser?.id || null
+      };
+      const { data: insertedCompany, error: insertError } = await supabaseClient
+        .from('companies')
+        .insert(payload)
+        .select(COMPANY_ADMIN_SELECT)
+        .single();
+
+      if (insertError) {
+        if (isCompaniesUnavailableError(insertError)) {
+          areCompaniesAvailable = false;
+          return result;
+        }
+
+        throw insertError;
+      }
+
+      company = normalizeCompanyRow(insertedCompany);
+      companiesByNameKey.set(nameKey, company);
+    }
+
+    if (company) {
+      result.push(company);
+    }
+  }
+
+  return result;
+}
+
+async function deleteOrphanCompaniesByIds(companyIds = []) {
+  const uniqueCompanyIds = Array.from(new Set(
+    (Array.isArray(companyIds) ? companyIds : [])
+      .map(companyId => String(companyId || '').trim())
+      .filter(Boolean)
+  ));
+
+  if (!areCompaniesAvailable || uniqueCompanyIds.length === 0) {
+    return;
+  }
+
+  for (const companyId of uniqueCompanyIds) {
+    const { count, error: countError } = await supabaseClient
+      .from('movie_companies')
+      .select('movie_id', {
+        count: 'exact',
+        head: true
+      })
+      .eq('company_id', companyId);
+
+    if (countError) {
+      if (isCompaniesUnavailableError(countError)) {
+        areCompaniesAvailable = false;
+        return;
+      }
+
+      throw countError;
+    }
+
+    if (Number(count) > 0) {
+      continue;
+    }
+
+    const { error: deleteError } = await supabaseClient
+      .from('companies')
+      .delete()
+      .eq('id', companyId);
+
+    if (deleteError) {
+      if (isCompaniesUnavailableError(deleteError)) {
+        areCompaniesAvailable = false;
+        return;
+      }
+
+      throw deleteError;
+    }
+  }
+}
+
+async function replaceMovieCompanies(movieId, roleValues = {}) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!normalizedMovieId || !areCompaniesAvailable) {
+    return false;
+  }
+
+  try {
+    const normalizedRoleValues = normalizeMovieCompanyRoleValues(roleValues);
+    const allCompanyNames = Object.values(normalizedRoleValues).flat();
+    const companies = await ensureCompaniesByNames(allCompanyNames);
+    const companiesByNameKey = new Map(
+      companies.map(company => [normalizeCompanyNameKey(company.name), company])
+    );
+    const nextCompanyIds = new Set(companies.map(company => String(company.id)));
+    const { data: previousLinks, error: previousLinksError } = await supabaseClient
+      .from('movie_companies')
+      .select('company_id')
+      .eq('movie_id', normalizedMovieId);
+
+    if (previousLinksError) {
+      throw previousLinksError;
+    }
+
+    const orphanCandidateIds = (previousLinks || [])
+      .map(row => String(row?.company_id || '').trim())
+      .filter(companyId => companyId && !nextCompanyIds.has(companyId));
+    const { error: deleteError } = await supabaseClient
+      .from('movie_companies')
+      .delete()
+      .eq('movie_id', normalizedMovieId);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    const rows = [];
+
+    Object.values(COMPANY_ROLES).forEach(roleConfig => {
+      (normalizedRoleValues[roleConfig.key] || []).forEach((name, index) => {
+        const company = companiesByNameKey.get(normalizeCompanyNameKey(name));
+
+        if (!company) {
+          return;
+        }
+
+        rows.push({
+          movie_id: normalizedMovieId,
+          company_id: company.id,
+          role: roleConfig.key,
+          position: index
+        });
+      });
+    });
+
+    if (rows.length > 0) {
+      const { error: insertError } = await supabaseClient
+        .from('movie_companies')
+        .insert(rows);
+
+      if (insertError) {
+        throw insertError;
+      }
+    }
+
+    await deleteOrphanCompaniesByIds(orphanCandidateIds);
+    return true;
+  } catch (error) {
+    if (isCompaniesUnavailableError(error)) {
+      areCompaniesAvailable = false;
       return false;
     }
 
@@ -6165,6 +6749,32 @@ async function fetchMoviePersonIdsForCleanup(movieId) {
 
   return (data || [])
     .map(row => String(row?.person_id || '').trim())
+    .filter(Boolean);
+}
+
+async function fetchMovieCompanyIdsForCleanup(movieId) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!normalizedMovieId || !areCompaniesAvailable) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_companies')
+    .select('company_id')
+    .eq('movie_id', normalizedMovieId);
+
+  if (error) {
+    if (isCompaniesUnavailableError(error)) {
+      areCompaniesAvailable = false;
+      return [];
+    }
+
+    throw error;
+  }
+
+  return (data || [])
+    .map(row => String(row?.company_id || '').trim())
     .filter(Boolean);
 }
 
@@ -11304,6 +11914,30 @@ function updateAuthUI() {
     );
   }
 
+  if (productionAdminSummaryButton) {
+    syncAuthPopoverNavigationLink(
+      productionAdminSummaryButton,
+      buildCompanyAdminPageUrl('production'),
+      shouldShowAuthenticatedUi && isAdmin
+    );
+  }
+
+  if (distributorsAdminSummaryButton) {
+    syncAuthPopoverNavigationLink(
+      distributorsAdminSummaryButton,
+      buildCompanyAdminPageUrl('distribution'),
+      shouldShowAuthenticatedUi && isAdmin
+    );
+  }
+
+  if (russianDistributorsAdminSummaryButton) {
+    syncAuthPopoverNavigationLink(
+      russianDistributorsAdminSummaryButton,
+      buildCompanyAdminPageUrl('russian_distribution'),
+      shouldShowAuthenticatedUi && isAdmin
+    );
+  }
+
   if (shouldShowAuthenticatedUi) {
     scheduleNotificationsUnreadRefresh();
   } else {
@@ -13596,6 +14230,7 @@ async function addMovie(movieEditor) {
     setStatus: setMovieFormStatus,
     replaceMovieRelations,
     replaceMovieDirectors,
+    replaceMovieCompanies,
     replaceManualSimilarMovies,
     replaceMoviePosterImages,
     postSaveOptions: {
@@ -13640,6 +14275,7 @@ async function updateMovie(movieEditor) {
     setMissingMovieMessage: setMovieFormStatus,
     replaceMovieRelations,
     replaceMovieDirectors,
+    replaceMovieCompanies,
     replaceManualSimilarMovies: (movieId, similarMovieIds) =>
       replaceManualSimilarMovies(movieId, similarMovieIds, { markMutation: false }),
     replaceMoviePosterImages: (movieId, draftEntries, options = {}) =>
@@ -13713,7 +14349,10 @@ async function saveMovie(event) {
 }
 
 async function deleteMovieRecord(movieId) {
-  const personIdsForCleanup = await fetchMoviePersonIdsForCleanup(movieId);
+  const [personIdsForCleanup, companyIdsForCleanup] = await Promise.all([
+    fetchMoviePersonIdsForCleanup(movieId),
+    fetchMovieCompanyIdsForCleanup(movieId)
+  ]);
   const { error } = await supabaseClient
     .from('movies')
     .delete()
@@ -13722,6 +14361,7 @@ async function deleteMovieRecord(movieId) {
   throwIfSupabaseError(error);
 
   await deleteOrphanPeopleByIds(personIdsForCleanup);
+  await deleteOrphanCompaniesByIds(companyIdsForCleanup);
   markLocalDataMutation(`movie-delete:${movieId}`);
 }
 
@@ -16548,6 +17188,9 @@ function bindSharedUiEvents() {
   followingSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
   editorCenterSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
   directorsAdminSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
+  productionAdminSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
+  distributorsAdminSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
+  russianDistributorsAdminSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
 
   manualSimilarAuditButton?.addEventListener('click', runManualSimilarAudit);
   completenessAuditButton?.addEventListener('click', runCompletenessAudit);
@@ -16648,6 +17291,10 @@ function bindSharedUiEvents() {
       return;
     }
 
+    if (handleCompanyPagesClick(event)) {
+      return;
+    }
+
     handleUserPageProfileSettingsClick(event);
     handleUserPageRailControlClick(event);
 
@@ -16692,6 +17339,10 @@ function bindSharedUiEvents() {
 
   document.addEventListener('keydown', event => {
     if (handleUserPageRankTooltipKeydown(event)) {
+      return;
+    }
+
+    if (handleCompanyPagesKeydown(event)) {
       return;
     }
 
@@ -16979,6 +17630,14 @@ function isDirectorPage() {
 
 function isDirectorsAdminPage() {
   return Boolean(directorsAdminPage);
+}
+
+function isCompanyAdminPage() {
+  return Boolean(companyAdminPage);
+}
+
+function isCompanyPage() {
+  return Boolean(companyPage);
 }
 
 function handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect) {
@@ -19403,6 +20062,16 @@ async function initDetectedPage() {
     return;
   }
 
+  if (isCompanyAdminPage()) {
+    await initCompanyAdminPage();
+    return;
+  }
+
+  if (isCompanyPage()) {
+    await initCompanyPage();
+    return;
+  }
+
   if (isDirectorPage()) {
     await initDirectorPage();
     return;
@@ -19489,5 +20158,7 @@ window.HorroreiroApp = {
   initEditorPage,
   initDirectorPage,
   initDirectorsAdminPage,
+  initCompanyAdminPage,
+  initCompanyPage,
   initMoviePage
 };

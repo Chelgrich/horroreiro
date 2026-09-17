@@ -28,6 +28,7 @@ const lazyJsFiles = [
   'catalog-render.js',
   'catalog-return-cache.js',
   'catalog-url-state.js',
+  'company-pages.js',
   'director-page.js',
   'editor-page.js',
   'following-page.js',
@@ -77,7 +78,10 @@ const contextSensitiveExactFiles = new Set([
   'catalog-warm-start.js',
   'catalog-url-state.js',
   'catalog-page.css',
+  'company-pages.js',
+  'company-page.css',
   'page-warm-start.js',
+  'movie-companies-setup.sql',
   'movie-editor.css',
   'custom-select.js',
   'docs/CODEX_CONTEXT.md',
@@ -129,7 +133,9 @@ const pageFiles = {
   'notifications.html': 'notifications',
   'editor.html': 'editor',
   'name.html': 'director',
-  'directors.html': 'directors'
+  'directors.html': 'directors',
+  'companies.html': 'company-admin',
+  'company.html': 'company'
 };
 const secondaryWarmStartPages = new Set(
   Object.keys(pageFiles).filter(file => !['index.html', 'movie.html'].includes(file))
@@ -143,7 +149,11 @@ const routes = [
   { path: '/following', expected: 'id="followingPage"', label: 'following' },
   { path: '/editor', expected: 'id="editorPage"', label: 'editor center' },
   { path: '/name/test-director', expected: 'id="directorPage"', label: 'director detail' },
-  { path: '/directors', expected: 'id="directorsAdminPage"', label: 'directors admin' }
+  { path: '/directors', expected: 'id="directorsAdminPage"', label: 'directors admin' },
+  { path: '/production', expected: 'id="companyAdminPage"', label: 'production admin' },
+  { path: '/distributors', expected: 'id="companyAdminPage"', label: 'distributors admin' },
+  { path: '/russian-distributors', expected: 'id="companyAdminPage"', label: 'russian distributors admin' },
+  { path: '/company/test-company', expected: 'id="companyPage"', label: 'company detail' }
 ];
 
 const contentTypes = {
@@ -206,6 +216,8 @@ function checkAssetSizeReport() {
       !report.startup?.movie?.files?.includes('page-warm-start.js') &&
       report.startup?.profile?.files?.includes('page-warm-start.js') &&
       report.startup?.notifications?.files?.includes('page-warm-start.js') &&
+      report.startup?.company?.files?.includes('page-warm-start.js') &&
+      report.startup?.companyAdmin?.files?.includes('page-warm-start.js') &&
       report.startup?.directors?.files?.includes('page-warm-start.js'),
     'asset-size-report.mjs: page-warm-start.js must be counted for secondary page startup profiles only'
   );
@@ -256,6 +268,10 @@ function checkAssetSizeReport() {
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('catalog-url-state.js')),
     'asset-size-report.mjs: catalog-url-state.js must stay lazy-loaded outside startup profiles'
+  );
+  assert(
+    Object.values(report.startup || {}).every(profile => !profile.files?.includes('company-pages.js')),
+    'asset-size-report.mjs: company-pages.js must stay lazy-loaded outside startup profiles'
   );
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('director-page.js')),
@@ -416,6 +432,21 @@ function getSpaFallbackPath(pathname) {
 
   if (pathname === '/directors' || pathname === '/directors.html') {
     return 'directors.html';
+  }
+
+  if (
+    pathname === '/production' ||
+    pathname === '/production.html' ||
+    pathname === '/distributors' ||
+    pathname === '/distributors.html' ||
+    pathname === '/russian-distributors' ||
+    pathname === '/russian-distributors.html'
+  ) {
+    return 'companies.html';
+  }
+
+  if (pathname === '/company.html' || pathname.startsWith('/company/')) {
+    return 'company.html';
   }
 
   if (pathname === '/name.html' || pathname.startsWith('/name/')) {
@@ -599,6 +630,8 @@ async function checkStaticGuards() {
       bootLoader.includes("editor: ['secondary-pages.css', 'editor-page.css']") &&
       bootLoader.includes("director: ['secondary-pages.css', 'director-page.css', 'director-form.css']") &&
       bootLoader.includes("directors: ['secondary-pages.css', 'directors-admin-page.css', 'director-form.css']") &&
+      bootLoader.includes("company: ['secondary-pages.css', 'company-page.css']") &&
+      bootLoader.includes("'company-admin': ['secondary-pages.css', 'company-page.css']") &&
       bootLoader.includes('assets.push(...secondaryPageStylesheets[page])'),
     'boot-loader.js: secondary page stylesheets must be selected by page type'
   );
@@ -616,6 +649,8 @@ async function checkStaticGuards() {
     '/catalog-warm-start.js',
     '/catalog-url-state.js',
     '/catalog-page.css',
+    '/company-pages.js',
+    '/company-page.css',
     '/movie-editor.css',
     '/custom-select.js',
     '/director-form.css',
@@ -671,6 +706,8 @@ async function checkStaticGuards() {
     'editor.html',
     'name.html',
     'directors.html',
+    'companies.html',
+    'company.html',
     'app.js',
     'admin-actions.js',
     'catalog-cards.js',
@@ -682,6 +719,8 @@ async function checkStaticGuards() {
     'catalog-warm-start.js',
     'catalog-url-state.js',
     'catalog-page.css',
+    'company-pages.js',
+    'company-page.css',
     'page-warm-start.js',
     'movie-editor.css',
     'director-form.css',
@@ -730,6 +769,7 @@ async function checkStaticGuards() {
   const catalogReturnCacheJs = await readText('catalog-return-cache.js');
   const catalogWarmStartJs = await readText('catalog-warm-start.js');
   const catalogUrlStateJs = await readText('catalog-url-state.js');
+  const companyPagesJs = await readText('company-pages.js');
   const followingPageJs = await readText('following-page.js');
   const movieEditorJs = await readText('movie-editor.js');
   const movieDetailCacheJs = await readText('movie-detail-cache.js');
@@ -748,6 +788,7 @@ async function checkStaticGuards() {
   const profileFollowActionsJs = await readText('profile-follow-actions.js');
   const profileSettingsActionsJs = await readText('profile-settings-actions.js');
   const profileUtilsJs = await readText('profile-utils.js');
+  const sharedLayoutJs = await readText('shared-layout.js');
   const userPageJs = await readText('user-page.js');
   const directorsAdminSource = await readText('src/directors-admin-app.jsx');
   const directorsAdminBuiltJs = await readText('assets/directors-admin-app.js');
@@ -831,6 +872,32 @@ async function checkStaticGuards() {
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('director-page.js'))"),
     'app.js: /name page must lazy-load director-page.js'
+  );
+  assert(
+    appJs.includes("import(getLazyFeatureModuleUrl('company-pages.js'))") &&
+      appJs.includes('function initCompanyAdminPage(') &&
+      appJs.includes('function initCompanyPage(') &&
+      companyPagesJs.includes('function renderCompanyAdminPage(') &&
+      companyPagesJs.includes('function renderCompanyPage('),
+    'company-pages.js: company admin/detail pages must stay lazy-loaded outside app.js'
+  );
+  assert(
+    sharedLayoutJs.includes('id="productionAdminSummaryButton"') &&
+      sharedLayoutJs.includes('id="distributorsAdminSummaryButton"') &&
+      sharedLayoutJs.includes('id="russianDistributorsAdminSummaryButton"') &&
+      appJs.includes('productionAdminSummaryButton?.addEventListener') &&
+      appJs.includes('distributorsAdminSummaryButton?.addEventListener') &&
+      appJs.includes('russianDistributorsAdminSummaryButton?.addEventListener'),
+    'shared-layout.js/app.js: company role admin menu items must be real navigation links'
+  );
+  assert(
+    appJs.includes('const COMPANY_PUBLIC_SELECT = `') &&
+      appJs.includes('const COMPANY_ADMIN_SELECT = `') &&
+      appJs.includes('const COMPANY_ROLES = {') &&
+      appJs.includes('fetchMovieCompanyRowsForRole') &&
+      appJs.includes('fetchMovieCompanyRowsForCompany') &&
+      !companyPagesJs.includes(".select('*')"),
+    'app.js/company-pages.js: company pages must use explicit company select profiles and role bridge helpers'
   );
   assert(
     !appJs.includes('async function fetchDirectorPageData(') &&
@@ -1310,10 +1377,14 @@ async function checkStaticGuards() {
   );
   assert(
     appJs.includes('async function fetchMoviePersonIdsForCleanup(') &&
-      appJs.includes('const personIdsForCleanup = await fetchMoviePersonIdsForCleanup(movieId);') &&
+      appJs.includes('async function fetchMovieCompanyIdsForCleanup(') &&
+      appJs.includes('const [personIdsForCleanup, companyIdsForCleanup] = await Promise.all([') &&
+      appJs.includes('fetchMoviePersonIdsForCleanup(movieId),') &&
+      appJs.includes('fetchMovieCompanyIdsForCleanup(movieId)') &&
       appJs.includes('await deleteOrphanPeopleByIds(personIdsForCleanup);') &&
-      appJs.indexOf('const personIdsForCleanup = await fetchMoviePersonIdsForCleanup(movieId);') < appJs.indexOf(".from('movies')\n    .delete()"),
-    'movie delete: deleting a movie must collect linked people before deleting the movie and remove orphan people after cascade'
+      appJs.includes('await deleteOrphanCompaniesByIds(companyIdsForCleanup);') &&
+      appJs.indexOf('const [personIdsForCleanup, companyIdsForCleanup] = await Promise.all([') < appJs.indexOf(".from('movies')\n    .delete()"),
+    'movie delete: deleting a movie must collect linked people/companies before deleting the movie and remove orphans after cascade'
   );
 
   const catalogSelectMatch = appJs.match(/const MOVIE_CATALOG_SELECT = `([\s\S]*?)`;/);
@@ -1360,6 +1431,14 @@ async function checkStaticGuards() {
     '/editor.html',
     '/directors',
     '/directors.html',
+    '/production',
+    '/production.html',
+    '/distributors',
+    '/distributors.html',
+    '/russian-distributors',
+    '/russian-distributors.html',
+    '/company/*',
+    '/company.html',
     '/following',
     '/following.html',
     '/notifications',

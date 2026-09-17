@@ -37,6 +37,16 @@
         return app.initDirectorsAdminPage();
       }
     },
+    'company-admin': {
+      run(app) {
+        return app.initCompanyAdminPage();
+      }
+    },
+    company: {
+      run(app) {
+        return app.initCompanyPage();
+      }
+    },
     movie: {
       defersShellReady: true,
       run(app, runtimeOptions = {}) {

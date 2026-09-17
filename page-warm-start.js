@@ -16,7 +16,9 @@
     'notifications',
     'editor',
     'director',
-    'directors'
+    'directors',
+    'company',
+    'company-admin'
   ]);
 
   function getStorageValue(storage, key) {

@@ -94,6 +94,36 @@
                     >
                       Режиссёры
                     </a>
+                    <a
+                      href="#"
+                      class="auth-popover-item"
+                      id="productionAdminSummaryButton"
+                      data-admin-only-menu-item="true"
+                      role="menuitem"
+                      hidden
+                    >
+                      Производство
+                    </a>
+                    <a
+                      href="#"
+                      class="auth-popover-item"
+                      id="distributorsAdminSummaryButton"
+                      data-admin-only-menu-item="true"
+                      role="menuitem"
+                      hidden
+                    >
+                      Дистрибуция
+                    </a>
+                    <a
+                      href="#"
+                      class="auth-popover-item"
+                      id="russianDistributorsAdminSummaryButton"
+                      data-admin-only-menu-item="true"
+                      role="menuitem"
+                      hidden
+                    >
+                      Дистрибуция в России
+                    </a>
                     <button
                       type="button"
                       class="auth-popover-item"

@@ -25,6 +25,12 @@
 /catalog-url-state.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/company-pages.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/company-page.css
+  Cache-Control: public, max-age=0, must-revalidate
+
 /custom-select.js
   Cache-Control: public, max-age=0, must-revalidate
 

@@ -955,6 +955,9 @@ export function createMovieEditorController(context = {}) {
       (draft?.directorNames || []).length > 0 &&
       (!existingDirectorLinksKnown || existingLinkedDirectorNames.length === 0)
     );
+    const existingProduction = normalizeTextArrayField(existingMovie?.production);
+    const existingDistribution = normalizeTextArrayField(existingMovie?.distribution);
+    const existingRussianDistribution = normalizeTextArrayField(existingMovie?.russian_distribution);
 
     return {
       relationsChanged: (
@@ -964,6 +967,11 @@ export function createMovieEditorController(context = {}) {
       directorsChanged: (
         !areStringArraysEqual(existingDirectorNames, draft?.directorNames || []) ||
         shouldRefreshDirectorLinks
+      ),
+      companiesChanged: (
+        !areStringArraysEqual(existingProduction, draft?.production || []) ||
+        !areStringArraysEqual(existingDistribution, draft?.distribution || []) ||
+        !areStringArraysEqual(existingRussianDistribution, draft?.russianDistribution || [])
       )
     };
   }
@@ -1067,6 +1075,7 @@ export function createMovieEditorController(context = {}) {
     additionalPosterEntriesForSave = []
   } = {}) {
     return {
+      shouldSaveCompanies: true,
       shouldSaveManualSimilarMovies: manualSimilarMovieIds.length > 0,
       shouldSavePosterGallery: additionalPosterEntriesForSave.length > 0
     };
@@ -1076,6 +1085,7 @@ export function createMovieEditorController(context = {}) {
     changedFields = {},
     relationsChanged = false,
     directorsChanged = false,
+    companiesChanged = false,
     manualSimilarChanged = false,
     posterImagesChanged = false,
     oldPosterUrl = null,
@@ -1086,6 +1096,7 @@ export function createMovieEditorController(context = {}) {
       hasMovieFieldChanges ||
       relationsChanged ||
       directorsChanged ||
+      companiesChanged ||
       manualSimilarChanged ||
       posterImagesChanged
     );
@@ -1100,6 +1111,7 @@ export function createMovieEditorController(context = {}) {
       hasAnyChanges,
       relationsChanged,
       directorsChanged,
+      companiesChanged,
       manualSimilarChanged,
       posterImagesChanged,
       shouldDeleteOldPoster: Boolean(posterImagesChanged && oldPosterUrl && !hasFinalPosterUrl)
@@ -1180,6 +1192,7 @@ export function createMovieEditorController(context = {}) {
     setStatus = () => {},
     replaceMovieRelations = async () => {},
     replaceMovieDirectors = async () => {},
+    replaceMovieCompanies = async () => {},
     replaceManualSimilarMovies = async () => {},
     replaceMoviePosterImages = async () => {}
   } = {}) {
@@ -1200,6 +1213,19 @@ export function createMovieEditorController(context = {}) {
         replaceMovieDirectors(movieId, draft.directorNames),
         15000,
         'Превышено время ожидания сохранения режиссёров.'
+      );
+    }
+
+    if (savePlan.shouldSaveCompanies) {
+      setStatus('Сохраняю компании...');
+      await withPendingRequestTimeout(
+        replaceMovieCompanies(movieId, {
+          production: draft.production,
+          distribution: draft.distribution,
+          russian_distribution: draft.russianDistribution
+        }),
+        15000,
+        'Превышено время ожидания сохранения компаний.'
       );
     }
 
@@ -1227,6 +1253,7 @@ export function createMovieEditorController(context = {}) {
     draft,
     relationsChanged = false,
     directorsChanged = false,
+    companiesChanged = false,
     manualSimilarChanged = false,
     posterImagesChanged = false,
     manualSimilarMovieIds = [],
@@ -1235,6 +1262,7 @@ export function createMovieEditorController(context = {}) {
     setStatus = () => {},
     replaceMovieRelations = async () => {},
     replaceMovieDirectors = async () => {},
+    replaceMovieCompanies = async () => {},
     replaceManualSimilarMovies = async () => {},
     replaceMoviePosterImages = async () => {}
   } = {}) {
@@ -1252,6 +1280,19 @@ export function createMovieEditorController(context = {}) {
         replaceMovieDirectors(movieId, draft.directorNames),
         15000,
         'Превышено время ожидания сохранения режиссёров.'
+      );
+    }
+
+    if (companiesChanged) {
+      setStatus('Сохраняю компании...');
+      await withPendingRequestTimeout(
+        replaceMovieCompanies(movieId, {
+          production: draft.production,
+          distribution: draft.distribution,
+          russian_distribution: draft.russianDistribution
+        }),
+        15000,
+        'Превышено время ожидания сохранения компаний.'
       );
     }
 
@@ -1454,6 +1495,7 @@ export function createMovieEditorController(context = {}) {
     setStatus = () => {},
     replaceMovieRelations = async () => {},
     replaceMovieDirectors = async () => {},
+    replaceMovieCompanies = async () => {},
     replaceManualSimilarMovies = async () => {},
     replaceMoviePosterImages = async () => {},
     postSaveOptions = {}
@@ -1516,6 +1558,7 @@ export function createMovieEditorController(context = {}) {
       setStatus,
       replaceMovieRelations,
       replaceMovieDirectors,
+      replaceMovieCompanies,
       replaceManualSimilarMovies,
       replaceMoviePosterImages
     });
@@ -1553,6 +1596,7 @@ export function createMovieEditorController(context = {}) {
     setMissingMovieMessage = () => {},
     replaceMovieRelations = async () => {},
     replaceMovieDirectors = async () => {},
+    replaceMovieCompanies = async () => {},
     replaceManualSimilarMovies = async () => {},
     replaceMoviePosterImages = async () => {},
     deletePosterFileByUrl = async () => {},
@@ -1579,7 +1623,8 @@ export function createMovieEditorController(context = {}) {
     const oldPosterUrl = existingMovie.poster_url ?? null;
     const {
       relationsChanged,
-      directorsChanged
+      directorsChanged,
+      companiesChanged
     } = getMovieUpdateRelationState({
       draft,
       existingMovie,
@@ -1632,6 +1677,7 @@ export function createMovieEditorController(context = {}) {
       changedFields,
       relationsChanged,
       directorsChanged,
+      companiesChanged,
       manualSimilarChanged,
       posterImagesChanged,
       oldPosterUrl,
@@ -1653,6 +1699,7 @@ export function createMovieEditorController(context = {}) {
       draft,
       relationsChanged,
       directorsChanged,
+      companiesChanged,
       manualSimilarChanged,
       posterImagesChanged,
       manualSimilarMovieIds,
@@ -1661,6 +1708,7 @@ export function createMovieEditorController(context = {}) {
       setStatus,
       replaceMovieRelations,
       replaceMovieDirectors,
+      replaceMovieCompanies,
       replaceManualSimilarMovies,
       replaceMoviePosterImages
     });

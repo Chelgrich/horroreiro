@@ -1,6 +1,6 @@
 # Horroreiro Data Model Context
 
-Last updated: 2026-08-22.
+Last updated: 2026-09-17.
 
 This document describes the client-visible data model and operational assumptions. Supabase schema SQL has often been applied manually through the Supabase UI; do not assume old setup SQL files exist or are still authoritative.
 
@@ -215,6 +215,42 @@ Rules:
 - Delete orphan people rows when no movie references remain, if safe.
 - Movie `tmdb_url` is used for future matching/enrichment and is shown only on movie detail pages, not in catalog cards.
 
+### Companies
+
+Tables:
+
+- `companies`
+- `movie_companies`
+
+Current supported roles:
+
+- `production`
+- `distribution`
+- `russian_distribution`
+
+Important company fields:
+
+- `name` (company display name);
+- `name_key` (normalized unique match key);
+- `slug`;
+- `country`.
+
+Rules:
+
+- Admin role list paths:
+  - `/production`
+  - `/distributors`
+  - `/russian-distributors`
+- Shared company detail path: `/company/<slug>`.
+- Apply `movie-companies-setup.sql` before using these pages in a fresh Supabase environment.
+- Movie modal fields `production`, `distribution`, and `russian_distribution` remain the source edited by admins.
+- On movie create/update, synchronize those arrays into `companies` and `movie_companies`.
+- Matching is by normalized company name, not by role; one company can have several role sections on its detail page.
+- Remove stale `movie_companies` rows when a company value is removed from a movie.
+- Delete orphan company rows when no movie references remain.
+- Company detail pages hide `country` when empty and hide any role section that has no movies.
+- Company pages are currently admin-only.
+
 ### Storage
 
 Known storage buckets:
@@ -254,3 +290,9 @@ Cloudflare Functions:
   - `/directors` admin island/adapters;
   - public `/name` detail;
   - data sync from movie save if role-related.
+- When adding company fields or roles, update:
+  - `movie-companies-setup.sql`;
+  - `COMPANY_*_SELECT` and `COMPANY_ROLES` in `app.js`;
+  - `company-pages.js`;
+  - movie save sync in `movie-editor.js`/`app.js`;
+  - Cloudflare route includes/functions when a new role gets its own page.

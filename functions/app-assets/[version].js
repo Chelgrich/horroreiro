@@ -14,6 +14,8 @@ const ALLOWED_APP_ASSETS = new Set([
   'catalog-warm-start.js',
   'catalog-url-state.js',
   'catalog-page.css',
+  'company-pages.js',
+  'company-page.css',
   'custom-select.js',
   'director-page.js',
   'director-form.css',

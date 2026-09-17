@@ -22,6 +22,7 @@ const assetGroups = {
     'catalog-return-cache.js',
     'catalog-warm-start.js',
     'catalog-url-state.js',
+    'company-pages.js',
     'director-page.js',
     'editor-page.js',
     'following-page.js',
@@ -55,6 +56,7 @@ const assetGroups = {
     'following-page.css',
     'notifications-page.css',
     'editor-page.css',
+    'company-page.css',
     'director-page.css',
     'directors-admin-page.css',
     'director-form.css'
@@ -66,6 +68,8 @@ const assetGroups = {
     'following.html',
     'notifications.html',
     'editor.html',
+    'companies.html',
+    'company.html',
     'name.html',
     'directors.html'
   ]
@@ -101,6 +105,24 @@ const startupProfiles = {
     'profile-utils.js'
   ],
   notifications: [
+    'boot-loader.js',
+    'page-warm-start.js',
+    'app-script-loader.js',
+    'shared-layout.js',
+    'app-page-runtime.js',
+    'app.js',
+    'profile-utils.js'
+  ],
+  company: [
+    'boot-loader.js',
+    'page-warm-start.js',
+    'app-script-loader.js',
+    'shared-layout.js',
+    'app-page-runtime.js',
+    'app.js',
+    'profile-utils.js'
+  ],
+  companyAdmin: [
     'boot-loader.js',
     'page-warm-start.js',
     'app-script-loader.js',

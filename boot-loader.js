@@ -55,6 +55,10 @@
         return 'director';
       }
 
+      if (normalizedPathname.startsWith('/company/') || filename === 'company.html') {
+        return 'company';
+      }
+
       if (normalizedPathname.startsWith('/user/') || filename === 'user.html') {
         return 'user';
       }
@@ -73,6 +77,18 @@
 
       if (normalizedPathname === '/directors' || filename === 'directors.html') {
         return 'directors';
+      }
+
+      if (
+        normalizedPathname === '/production' ||
+        normalizedPathname === '/distributors' ||
+        normalizedPathname === '/russian-distributors' ||
+        filename === 'companies.html' ||
+        filename === 'production.html' ||
+        filename === 'distributors.html' ||
+        filename === 'russian-distributors.html'
+      ) {
+        return 'company-admin';
       }
 
       return '';
@@ -102,7 +118,9 @@
         notifications: ['secondary-pages.css', 'notifications-page.css'],
         editor: ['secondary-pages.css', 'editor-page.css'],
         director: ['secondary-pages.css', 'director-page.css', 'director-form.css'],
-        directors: ['secondary-pages.css', 'directors-admin-page.css', 'director-form.css']
+        directors: ['secondary-pages.css', 'directors-admin-page.css', 'director-form.css'],
+        company: ['secondary-pages.css', 'company-page.css'],
+        'company-admin': ['secondary-pages.css', 'company-page.css']
       };
 
       if (page === 'catalog') {

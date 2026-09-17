@@ -62,7 +62,7 @@ Page HTML is static shell plus shared scripts:
   - restores a saved movie detail DOM snapshot before the full app starts when the snapshot matches the current route, build, age limit, and per-movie dependency stamp;
   - saved movie DOM snapshots intentionally replace dynamic user/social/similar areas with loading states, so static movie content can render early without trusting stale ratings, watchlist state, reviews, comments, or similar movies.
 - `page-warm-start.js`
-  - is loaded by secondary HTML shells (`user.html`, `following.html`, `notifications.html`, `editor.html`, `name.html`, `directors.html`) before Supabase and the main app loader;
+  - is loaded by secondary HTML shells (`user.html`, `following.html`, `notifications.html`, `editor.html`, `name.html`, `directors.html`, `companies.html`, `company.html`) before Supabase and the main app loader;
   - restores sanitized secondary page DOM snapshots keyed by page route, build, user id, global data mutation stamp, and local dependency stamps;
   - is the default warm-return mechanism for future non-catalog/non-movie pages unless a page has a stronger custom warm-start reason.
 - `app-script-loader.js`
@@ -111,6 +111,8 @@ HTML shells:
 - `editor.html`: admin editor center, `data-app-page="editor"`.
 - `name.html`: person/director detail, `data-app-page="director"`.
 - `directors.html`: admin people/directors list, `data-app-page="directors"`.
+- `companies.html`: admin company list for one company role, `data-app-page="company-admin"`.
+- `company.html`: admin company detail, `data-app-page="company"`.
 
 Cloudflare Functions route extensionless/detail paths to these shells:
 
@@ -122,6 +124,10 @@ Cloudflare Functions route extensionless/detail paths to these shells:
 - `/editor`, `/editor.html`
 - `/directors`, `/directors.html`
 - `/name/*`, `/name.html`
+- `/production`, `/production.html`
+- `/distributors`, `/distributors.html`
+- `/russian-distributors`, `/russian-distributors.html`
+- `/company/*`, `/company.html`
 - `/sitemap.xml`
 
 All HTML-like app shell responses should be no-store.
@@ -141,8 +147,9 @@ All HTML-like app shell responses should be no-store.
 - shared user profile state, settings UI bridges, follow UI controls, and reusable profile movie rails;
 - local page dependency stamps in `localStorage`, used to invalidate cached secondary page data for a changed movie without bumping the global catalog mutation stamp;
 - shared movie poster display preference state and UI refresh bridges, including the profile-level "Русские постеры" mode that treats the second uploaded poster as primary when available;
+- company helpers and movie-company sync bridges for production, distribution, and Russian distribution pages;
 - bridging legacy app data into the `/directors` Preact island.
-- sanitized secondary page DOM snapshot persistence for `/user/*`, `/following`, `/notifications`, `/editor`, `/name/*`, and `/directors`, including `pagehide` persistence for browser Back/Forward returns.
+- sanitized secondary page DOM snapshot persistence for `/user/*`, `/following`, `/notifications`, `/editor`, `/name/*`, `/directors`, `/production`, `/distributors`, `/russian-distributors`, and `/company/*`, including `pagehide` persistence for browser Back/Forward returns.
 
 `shared-layout.js` owns reusable DOM shells:
 
@@ -172,6 +179,7 @@ Secondary page-only CSS is loaded by `boot-loader.js` only for the matching shel
 - `director-page.css`: `/name/*` public person/director page.
 - `directors-admin-page.css`: `/directors` admin people list.
 - `director-form.css`: shared person edit modal styles used by `/name/*` and `/directors`.
+- `company-page.css`: `/production`, `/distributors`, `/russian-distributors`, and `/company/*` admin company list/detail pages.
 
 `custom-select.js` owns custom select behavior used by catalog and movie modal selects. It is loaded upfront only for catalog pages; movie detail pages lazy-load it on demand before opening the movie add/edit modal.
 
@@ -230,6 +238,8 @@ Movie detail warm-start startup:
 `editor-page.js` is lazy-loaded only for `/editor` and owns editor-center completeness summary rendering, auth/forbidden/loading states, and page toolbar click handling. `app.js` provides shared auth, admin state, completeness data fetchers, and download actions.
 
 `director-page.js` is lazy-loaded only for `/name/*` and owns public person/director page route parsing, person-page data fetching, legacy director fallback matching, page rendering, photo transforms, and the director movie grid. `app.js` keeps shared people helpers, movie-card helpers, the director add/edit modal, and `/directors` admin bridge.
+
+`company-pages.js` is lazy-loaded only for `/production`, `/distributors`, `/russian-distributors`, and `/company/*`. It owns admin company list/detail rendering, company edit modal, role-section rendering, and company-page movie grids. `app.js` keeps the Supabase table helpers, movie-company sync from movie save, route URL builders, shared auth/admin state, and movie-card callbacks passed into the controller.
 
 `admin-actions.js` is lazy-loaded only for rare admin actions:
 
@@ -371,6 +381,25 @@ Behavior:
 - If a director is removed from a movie and no other movies reference that person, cleanup can delete the orphan person row.
 - Person placeholder image depends on `gender` (`М` / `Ж`), but gender is not displayed publicly.
 - Movie `tmdb_url` is used for matching/future enrichment and is shown only on movie detail pages, not in catalog cards.
+
+## Companies
+
+Terminology:
+
+- Company data is generic and role-based. The same company can appear under production, distribution, and Russian distribution.
+- Admin list pages use role routes:
+  - `/production`
+  - `/distributors`
+  - `/russian-distributors`
+- Shared company detail URLs use `/company/<slug>`.
+
+Behavior:
+
+- Movie fields `production`, `distribution`, and `russian_distribution` stay as editable multiline arrays in the movie modal.
+- On movie save, those arrays synchronize into `companies` and `movie_companies` by normalized company name.
+- If a company value is removed from a movie and no other movie references that company, cleanup can delete the orphan company row.
+- Company detail pages render only non-empty role sections; do not show empty section headings.
+- Company pages are admin-only for now. The account menu exposes the three role pages only to admins.
 
 ## Notifications And Following
 
