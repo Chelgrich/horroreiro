@@ -346,25 +346,6 @@ export function createCompanyPagesController(context = {}) {
     }
   }
 
-  function renderCompanyPageAuthGate() {
-    if (!companyPage) {
-      return;
-    }
-
-    companyPage.innerHTML = `
-      <div class="secondary-page-empty-state">
-        <p>Войдите в аккаунт администратора, чтобы открыть карточку компании.</p>
-        <button type="button" class="secondary-button" data-company-page-action="login">Войти</button>
-      </div>
-    `;
-  }
-
-  function renderCompanyPageForbidden() {
-    if (companyPage) {
-      companyPage.innerHTML = '<div class="secondary-page-empty-state">Эта страница доступна только администратору.</div>';
-    }
-  }
-
   function renderCompanyPageUnavailable() {
     if (companyPage) {
       companyPage.innerHTML = '<div class="secondary-page-empty-state">Страницы компаний пока недоступны. Нужно применить movie-companies-setup.sql в Supabase.</div>';
@@ -474,7 +455,11 @@ export function createCompanyPagesController(context = {}) {
               <div class="company-page-meta-item"><span>Страна:</span> ${escapeHtml(country)}</div>
             </div>
           ` : ''}
-          <button type="button" class="secondary-button company-page-edit-button" data-company-page-action="edit" data-company-id="${escapeHtml(company.id)}">Редактировать</button>
+          ${
+            getIsAdmin()
+              ? `<button type="button" class="secondary-button company-page-edit-button" data-company-page-action="edit" data-company-id="${escapeHtml(company.id)}">Редактировать</button>`
+              : ''
+          }
         </div>
       </div>
       ${sectionsHtml || '<div class="company-page-empty-state">Фильмов для этой компании пока нет.</div>'}
@@ -485,16 +470,6 @@ export function createCompanyPagesController(context = {}) {
 
   async function loadCompanyPage() {
     if (!companyPage) {
-      return;
-    }
-
-    if (!shouldUseAuthenticatedUi() || !getCurrentUser()?.id) {
-      renderCompanyPageAuthGate();
-      return;
-    }
-
-    if (!getIsAdmin()) {
-      renderCompanyPageForbidden();
       return;
     }
 
@@ -822,12 +797,7 @@ export function createCompanyPagesController(context = {}) {
 
       const action = String(pageAction.dataset.companyPageAction || '').trim();
 
-      if (action === 'login') {
-        openAuthModal();
-        return true;
-      }
-
-      if (action === 'edit') {
+      if (action === 'edit' && getIsAdmin()) {
         void openCompanyModalById(pageAction.dataset.companyId);
         return true;
       }

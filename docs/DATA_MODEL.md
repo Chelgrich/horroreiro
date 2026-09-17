@@ -245,12 +245,14 @@ Rules:
 - Apply `movie-companies-setup.sql` before using these pages in a fresh Supabase environment.
 - Movie modal fields `production`, `distribution`, and `russian_distribution` remain the source edited by admins.
 - On movie create/update, synchronize those arrays into `companies` and `movie_companies`.
-- Movie detail pages use `movie_companies -> companies` to link production/distribution/Russian distribution names to `/company/<slug>` for admins; linked rows display the canonical `companies.name`, while original movie array values are only the fallback when no link row exists.
+- Movie detail pages use `movie_companies -> companies` to link production/distribution/Russian distribution names to `/company/<slug>` for all visitors; linked rows display the canonical `companies.name`, while original movie array values are only the fallback when no link row exists.
 - Matching is by normalized company name, not by role; one company can have several role sections on its detail page.
 - Remove stale `movie_companies` rows when a company value is removed from a movie.
 - Delete orphan company rows when no movie references remain.
 - Company detail pages hide `country` when empty and hide any role section that has no movies.
-- Company pages are currently admin-only.
+- Company detail pages are public read-only.
+- Company role list pages (`/production`, `/distributors`, `/russian-distributors`) and company edit actions are admin-only.
+- RLS must allow public `select` on `companies` and `movie_companies` for `anon` and `authenticated`; writes stay restricted to admins.
 
 ### Storage
 

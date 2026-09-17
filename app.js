@@ -3695,7 +3695,7 @@ async function fetchMovieCompanyRowsForMovie(movieId) {
 }
 
 async function ensureMovieCompanyItemsLoaded(movie) {
-  if (!movie?.id || !isAdmin || !areCompaniesAvailable || Array.isArray(movie.movie_companies)) {
+  if (!movie?.id || !areCompaniesAvailable || Array.isArray(movie.movie_companies)) {
     return movie;
   }
 
@@ -9987,7 +9987,6 @@ function getMoviePageShellControllerContext() {
     buildCompanyPageUrl,
     normalizeCompanyNameKey,
     getCurrentUser: () => currentUser,
-    getIsAdmin: () => Boolean(isAdmin),
     isMovieRatingBusy: movieId => ratingRequestInFlight.has(String(movieId)),
     isMovieWatchlistBusy: movieId => watchlistRequestInFlight.has(String(movieId)),
     getStoredPosterGalleryIndex: getStoredMoviePagePosterGalleryIndex

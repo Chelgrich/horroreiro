@@ -12,6 +12,34 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-17 - Make company detail pages public
+
+- Files:
+  - `app.js`
+  - `company-pages.js`
+  - `movie-page-shell.js`
+  - `movie-companies-setup.sql`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - `/company/<slug>` detail pages are now public read-only pages.
+  - Company role lists (`/production`, `/distributors`, `/russian-distributors`) and company edit actions remain admin-only.
+  - Movie detail production/distribution/Russian distribution company links are available to all visitors and still display canonical `companies.name` values.
+  - The company SQL baseline now grants and policies public read access to `companies` and `movie_companies`, while writes stay admin-only.
+  - Smoke checks now guard against reintroducing an admin-only company detail gate.
+- Checks:
+  - `node --check app.js`
+  - `node --check company-pages.js`
+  - `node --check movie-page-shell.js`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Apply the updated public-read `movie-companies-setup.sql` policy block in existing Supabase environments before relying on public company pages.
+
 ## 2026-09-17 - Display canonical company names on movie details
 
 - Files:

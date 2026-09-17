@@ -792,6 +792,7 @@ async function checkStaticGuards() {
   const userPageJs = await readText('user-page.js');
   const directorsAdminSource = await readText('src/directors-admin-app.jsx');
   const directorsAdminBuiltJs = await readText('assets/directors-admin-app.js');
+  const movieCompaniesSetupSql = await readText('movie-companies-setup.sql');
 
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('following-page.js'))"),
@@ -905,8 +906,18 @@ async function checkStaticGuards() {
       moviePageShellJs.includes('claimRowByName') &&
       moviePageShellJs.includes('row?.company?.name || fallbackName') &&
       moviePageShellJs.includes('buildCompanyPageUrl(company)') &&
+      movieCompaniesSetupSql.includes('grant select on public.companies to anon, authenticated') &&
+      movieCompaniesSetupSql.includes('grant select on public.movie_companies to anon, authenticated') &&
+      movieCompaniesSetupSql.includes('Public can read companies') &&
+      movieCompaniesSetupSql.includes('Public can read movie companies') &&
+      companyPagesJs.includes("action === 'edit' && getIsAdmin()") &&
+      companyPagesJs.includes('function renderCompanyAdminForbidden(') &&
+      !appJs.includes('!isAdmin || !areCompaniesAvailable || Array.isArray(movie.movie_companies)') &&
+      !moviePageShellJs.includes('if (!getIsAdmin())') &&
+      !companyPagesJs.includes('function renderCompanyPageAuthGate(') &&
+      !companyPagesJs.includes('function renderCompanyPageForbidden(') &&
       !companyPagesJs.includes(".select('*')"),
-    'app.js/company-pages.js/movie-page-shell.js: company pages and movie detail company links must use explicit company select profiles and tolerate existing company name_key conflicts'
+    'app.js/company-pages.js/movie-page-shell.js: public company detail pages and movie detail company links must use explicit company select profiles while admin role lists and edits stay admin-only'
   );
   assert(
     !appJs.includes('async function fetchDirectorPageData(') &&
@@ -1384,6 +1395,9 @@ async function checkStaticGuards() {
       appJs.includes('openDirectorModalById(actionButton.dataset.directorId)'),
     'directors admin: edit buttons must keep a DOM fallback for warm-started snapshots before Preact handlers mount'
   );
+  const deleteMovieRecordIndex = appJs.indexOf('async function deleteMovieRecord(');
+  const deleteMovieCleanupIndex = appJs.indexOf('const [personIdsForCleanup, companyIdsForCleanup] = await Promise.all([', deleteMovieRecordIndex);
+  const deleteMovieMutationIndex = appJs.indexOf(".from('movies')", deleteMovieRecordIndex);
   assert(
     appJs.includes('async function fetchMoviePersonIdsForCleanup(') &&
       appJs.includes('async function fetchMovieCompanyIdsForCleanup(') &&
@@ -1392,7 +1406,10 @@ async function checkStaticGuards() {
       appJs.includes('fetchMovieCompanyIdsForCleanup(movieId)') &&
       appJs.includes('await deleteOrphanPeopleByIds(personIdsForCleanup);') &&
       appJs.includes('await deleteOrphanCompaniesByIds(companyIdsForCleanup);') &&
-      appJs.indexOf('const [personIdsForCleanup, companyIdsForCleanup] = await Promise.all([') < appJs.indexOf(".from('movies')\n    .delete()"),
+      deleteMovieRecordIndex >= 0 &&
+      deleteMovieCleanupIndex >= 0 &&
+      deleteMovieMutationIndex >= 0 &&
+      deleteMovieCleanupIndex < deleteMovieMutationIndex,
     'movie delete: deleting a movie must collect linked people/companies before deleting the movie and remove orphans after cascade'
   );
 

@@ -91,11 +91,27 @@ $$;
 alter table public.companies enable row level security;
 alter table public.movie_companies enable row level security;
 
-grant select, insert, update, delete on public.companies to authenticated;
-grant select, insert, update, delete on public.movie_companies to authenticated;
+grant select on public.companies to anon, authenticated;
+grant select on public.movie_companies to anon, authenticated;
+grant insert, update, delete on public.companies to authenticated;
+grant insert, update, delete on public.movie_companies to authenticated;
 
 do $$
 begin
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'companies'
+      and policyname = 'Public can read companies'
+  ) then
+    create policy "Public can read companies"
+      on public.companies
+      for select
+      to anon, authenticated
+      using (true);
+  end if;
+
   if not exists (
     select 1
     from pg_policies
@@ -129,6 +145,20 @@ $$;
 
 do $$
 begin
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'movie_companies'
+      and policyname = 'Public can read movie companies'
+  ) then
+    create policy "Public can read movie companies"
+      on public.movie_companies
+      for select
+      to anon, authenticated
+      using (true);
+  end if;
+
   if not exists (
     select 1
     from pg_policies

@@ -112,7 +112,7 @@ HTML shells:
 - `name.html`: person/director detail, `data-app-page="director"`.
 - `directors.html`: admin people/directors list, `data-app-page="directors"`.
 - `companies.html`: admin company list for one company role, `data-app-page="company-admin"`.
-- `company.html`: admin company detail, `data-app-page="company"`.
+- `company.html`: public company detail, `data-app-page="company"`.
 
 Cloudflare Functions route extensionless/detail paths to these shells:
 
@@ -179,7 +179,7 @@ Secondary page-only CSS is loaded by `boot-loader.js` only for the matching shel
 - `director-page.css`: `/name/*` public person/director page.
 - `directors-admin-page.css`: `/directors` admin people list.
 - `director-form.css`: shared person edit modal styles used by `/name/*` and `/directors`.
-- `company-page.css`: `/production`, `/distributors`, `/russian-distributors`, and `/company/*` admin company list/detail pages.
+- `company-page.css`: `/production`, `/distributors`, `/russian-distributors` admin company list pages and `/company/*` public company detail pages.
 
 `custom-select.js` owns custom select behavior used by catalog and movie modal selects. It is loaded upfront only for catalog pages; movie detail pages lazy-load it on demand before opening the movie add/edit modal.
 
@@ -239,7 +239,7 @@ Movie detail warm-start startup:
 
 `director-page.js` is lazy-loaded only for `/name/*` and owns public person/director page route parsing, person-page data fetching, legacy director fallback matching, page rendering, photo transforms, and the director movie grid. `app.js` keeps shared people helpers, movie-card helpers, the director add/edit modal, and `/directors` admin bridge.
 
-`company-pages.js` is lazy-loaded only for `/production`, `/distributors`, `/russian-distributors`, and `/company/*`. It owns admin company list/detail rendering, company edit modal, role-section rendering, and company-page movie grids. `app.js` keeps the Supabase table helpers, movie-company sync from movie save, route URL builders, shared auth/admin state, and movie-card callbacks passed into the controller.
+`company-pages.js` is lazy-loaded only for `/production`, `/distributors`, `/russian-distributors`, and `/company/*`. It owns admin company list rendering, public company detail rendering, the admin-only company edit modal, role-section rendering, and company-page movie grids. `app.js` keeps the Supabase table helpers, movie-company sync from movie save, route URL builders, shared auth/admin state, and movie-card callbacks passed into the controller.
 
 `admin-actions.js` is lazy-loaded only for rare admin actions:
 
@@ -397,10 +397,10 @@ Behavior:
 
 - Movie fields `production`, `distribution`, and `russian_distribution` stay as editable multiline arrays in the movie modal.
 - On movie save, those arrays synchronize into `companies` and `movie_companies` by normalized company name.
-- Admin movie detail pages hydrate `movie_companies` for the current movie and render production/distribution/Russian distribution names as links to `/company/<slug>` with the canonical `companies.name`; otherwise the original movie array values remain plain escaped fallback text.
+- Movie detail pages hydrate `movie_companies` for the current movie and render production/distribution/Russian distribution names as links to `/company/<slug>` with the canonical `companies.name`; otherwise the original movie array values remain plain escaped fallback text.
 - If a company value is removed from a movie and no other movie references that company, cleanup can delete the orphan company row.
 - Company detail pages render only non-empty role sections; do not show empty section headings.
-- Company pages are admin-only for now. The account menu exposes the three role pages only to admins.
+- Company detail pages are public read-only. Company role list pages and company edit actions are admin-only; the account menu exposes the three role pages only to admins.
 
 ## Notifications And Following
 

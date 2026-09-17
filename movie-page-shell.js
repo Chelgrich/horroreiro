@@ -24,7 +24,6 @@ export function createMoviePageShellController(context = {}) {
     buildCompanyPageUrl = () => '',
     normalizeCompanyNameKey = value => String(value || '').trim().toLowerCase(),
     getCurrentUser = () => null,
-    getIsAdmin = () => false,
     isMovieRatingBusy = () => false,
     isMovieWatchlistBusy = () => false,
     getStoredPosterGalleryIndex = () => 0
@@ -50,10 +49,6 @@ export function createMoviePageShellController(context = {}) {
   }
 
   function getMovieCompanyLinkRows(movie, role) {
-    if (!getIsAdmin()) {
-      return [];
-    }
-
     return (Array.isArray(movie?.movie_companies) ? movie.movie_companies : [])
       .filter(row => String(row?.role || '') === role)
       .map(row => {
