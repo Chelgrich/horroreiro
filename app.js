@@ -3459,6 +3459,10 @@ function normalizeCompanyRow(row) {
   };
 }
 
+function getCompanyNameKey(company) {
+  return String(company?.name_key || normalizeCompanyNameKey(company?.name)).trim();
+}
+
 function getCompanyDisplayName(company) {
   return String(company?.name || '').trim() || 'Без названия';
 }
@@ -3578,6 +3582,31 @@ async function fetchCompanyById(companyId) {
   return normalizeCompanyRow(data);
 }
 
+async function fetchCompanyByNameKey(nameKey) {
+  const normalizedNameKey = String(nameKey || '').trim();
+
+  if (!normalizedNameKey || !areCompaniesAvailable) {
+    return null;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('companies')
+    .select(COMPANY_ADMIN_SELECT)
+    .eq('name_key', normalizedNameKey)
+    .maybeSingle();
+
+  if (error) {
+    if (isCompaniesUnavailableError(error)) {
+      areCompaniesAvailable = false;
+      return null;
+    }
+
+    throw error;
+  }
+
+  return normalizeCompanyRow(data);
+}
+
 async function fetchAdminCompanyRows() {
   if (!areCompaniesAvailable) {
     return [];
@@ -3665,7 +3694,7 @@ async function ensureCompaniesByNames(names = []) {
   }
 
   const companiesByNameKey = rows.reduce((companiesMap, company) => {
-    const nameKey = normalizeCompanyNameKey(company.name);
+    const nameKey = getCompanyNameKey(company);
 
     if (nameKey && !companiesMap.has(nameKey)) {
       companiesMap.set(nameKey, company);
@@ -3698,11 +3727,28 @@ async function ensureCompaniesByNames(names = []) {
           return result;
         }
 
-        throw insertError;
+        if (String(insertError.code || '') === '23505') {
+          company = await fetchCompanyByNameKey(nameKey);
+
+          if (!company) {
+            throw insertError;
+          }
+        } else {
+          throw insertError;
+        }
+      } else {
+        company = normalizeCompanyRow(insertedCompany);
+
+        if (!company) {
+          company = await fetchCompanyByNameKey(nameKey);
+        }
+
+        if (!company) {
+          throw new Error(`Не удалось создать компанию: ${name}`);
+        }
       }
 
-      company = normalizeCompanyRow(insertedCompany);
-      companiesByNameKey.set(nameKey, company);
+      companiesByNameKey.set(getCompanyNameKey(company), company);
     }
 
     if (company) {

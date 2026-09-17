@@ -894,10 +894,12 @@ async function checkStaticGuards() {
     appJs.includes('const COMPANY_PUBLIC_SELECT = `') &&
       appJs.includes('const COMPANY_ADMIN_SELECT = `') &&
       appJs.includes('const COMPANY_ROLES = {') &&
+      appJs.includes('function fetchCompanyByNameKey(') &&
+      appJs.includes("String(insertError.code || '') === '23505'") &&
       appJs.includes('fetchMovieCompanyRowsForRole') &&
       appJs.includes('fetchMovieCompanyRowsForCompany') &&
       !companyPagesJs.includes(".select('*')"),
-    'app.js/company-pages.js: company pages must use explicit company select profiles and role bridge helpers'
+    'app.js/company-pages.js: company pages must use explicit company select profiles and tolerate existing company name_key conflicts'
   );
   assert(
     !appJs.includes('async function fetchDirectorPageData(') &&

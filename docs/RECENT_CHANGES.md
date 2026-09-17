@@ -12,6 +12,24 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-17 - Tolerate existing company name keys on movie save
+
+- Files:
+  - `app.js`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Company sync now keys the in-memory map by stored `companies.name_key` instead of recalculating only from the display name.
+  - If inserting a company hits Postgres unique violation `23505` on `companies_name_key_idx`, the save path rereads the existing company by `name_key` and continues instead of failing movie edit.
+  - Smoke checks now guard the duplicate-key fallback in the company sync path.
+- Checks:
+  - `node --check app.js`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+- Follow-up:
+  - Recheck editing a movie whose production/distribution values already exist in `companies`.
+
 ## 2026-09-17 - Add admin company role pages
 
 - Files:
