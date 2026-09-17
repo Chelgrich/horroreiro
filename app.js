@@ -2336,6 +2336,11 @@ function handleDirectorsAdminPageClick(event) {
     return true;
   }
 
+  if (action === 'edit') {
+    void openDirectorModalById(actionButton.dataset.directorId);
+    return true;
+  }
+
   return false;
 }
 
@@ -6135,6 +6140,32 @@ function persistCurrentMoviePageDomSnapshot() {
   if (snapshot) {
     writeMoviePageDomSnapshot(snapshot);
   }
+}
+
+async function fetchMoviePersonIdsForCleanup(movieId) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!normalizedMovieId || !areDirectorsAvailable) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_people')
+    .select('person_id')
+    .eq('movie_id', normalizedMovieId);
+
+  if (error) {
+    if (isDirectorsUnavailableError(error)) {
+      areDirectorsAvailable = false;
+      return [];
+    }
+
+    throw error;
+  }
+
+  return (data || [])
+    .map(row => String(row?.person_id || '').trim())
+    .filter(Boolean);
 }
 
 function getSecondaryPageDomSnapshotPage() {
@@ -13682,12 +13713,15 @@ async function saveMovie(event) {
 }
 
 async function deleteMovieRecord(movieId) {
+  const personIdsForCleanup = await fetchMoviePersonIdsForCleanup(movieId);
   const { error } = await supabaseClient
     .from('movies')
     .delete()
     .eq('id', movieId);
 
   throwIfSupabaseError(error);
+
+  await deleteOrphanPeopleByIds(personIdsForCleanup);
   markLocalDataMutation(`movie-delete:${movieId}`);
 }
 

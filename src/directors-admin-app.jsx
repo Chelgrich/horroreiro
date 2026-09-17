@@ -338,7 +338,12 @@ function DirectorCard({ director, movieCount, isDuplicateName, actions, utils })
         <button
           type="button"
           className="secondary-button secondary-button-compact"
-          onClick={() => actions.edit(director.id)}
+          data-directors-admin-action="edit"
+          data-director-id={director.id}
+          onClick={event => {
+            event.stopPropagation();
+            actions.edit(director.id);
+          }}
         >
           Редактировать
         </button>
@@ -391,7 +396,15 @@ function DirectorsAdminReady({ directors, movieDirectorRows, actions, utils }) {
             Технический список для быстрого редактирования страниц режиссёров.
           </p>
         </div>
-        <button type="button" className="secondary-button" onClick={actions.create}>
+        <button
+          type="button"
+          className="secondary-button"
+          data-directors-admin-action="create"
+          onClick={event => {
+            event.stopPropagation();
+            actions.create();
+          }}
+        >
           Добавить режиссёра
         </button>
       </section>
@@ -459,7 +472,15 @@ function DirectorsAdminApp(props) {
     return (
       <EmptyState large>
         <p>Войди под администратором, чтобы открыть список режиссёров.</p>
-        <button type="button" className="secondary-button directors-admin-page-login-button" onClick={safeActions.login}>
+        <button
+          type="button"
+          className="secondary-button directors-admin-page-login-button"
+          data-directors-admin-action="login"
+          onClick={event => {
+            event.stopPropagation();
+            safeActions.login();
+          }}
+        >
           Войти
         </button>
       </EmptyState>
@@ -486,7 +507,15 @@ function DirectorsAdminApp(props) {
     return (
       <EmptyState large>
         <p>Не удалось загрузить режиссёров. Попробуй обновить страницу.</p>
-        <button type="button" className="secondary-button directors-admin-page-login-button" onClick={safeActions.refresh}>
+        <button
+          type="button"
+          className="secondary-button directors-admin-page-login-button"
+          data-directors-admin-action="refresh"
+          onClick={event => {
+            event.stopPropagation();
+            safeActions.refresh();
+          }}
+        >
           Повторить
         </button>
       </EmptyState>

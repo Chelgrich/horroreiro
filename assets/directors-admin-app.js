@@ -619,7 +619,11 @@ function Be({ director: e, movieCount: t, isDuplicateName: n, actions: r, utils:
 				/* @__PURE__ */ Z("button", {
 					type: "button",
 					className: "secondary-button secondary-button-compact",
-					onClick: () => r.edit(e.id),
+					"data-directors-admin-action": "edit",
+					"data-director-id": e.id,
+					onClick: (t) => {
+						t.stopPropagation(), r.edit(e.id);
+					},
 					children: "Редактировать"
 				})
 			]
@@ -646,7 +650,10 @@ function Ve({ directors: e, movieDirectorRows: t, actions: n, utils: r }) {
 			})] }), /* @__PURE__ */ Z("button", {
 				type: "button",
 				className: "secondary-button",
-				onClick: n.create,
+				"data-directors-admin-action": "create",
+				onClick: (e) => {
+					e.stopPropagation(), n.create();
+				},
 				children: "Добавить режиссёра"
 			})]
 		}),
@@ -694,7 +701,10 @@ function He(e) {
 		children: [/* @__PURE__ */ Z("p", { children: "Войди под администратором, чтобы открыть список режиссёров." }), /* @__PURE__ */ Z("button", {
 			type: "button",
 			className: "secondary-button directors-admin-page-login-button",
-			onClick: o.login,
+			"data-directors-admin-action": "login",
+			onClick: (e) => {
+				e.stopPropagation(), o.login();
+			},
 			children: "Войти"
 		})]
 	}) : t === "forbidden" ? /* @__PURE__ */ Z($, {
@@ -708,7 +718,10 @@ function He(e) {
 		children: [/* @__PURE__ */ Z("p", { children: "Не удалось загрузить режиссёров. Попробуй обновить страницу." }), /* @__PURE__ */ Z("button", {
 			type: "button",
 			className: "secondary-button directors-admin-page-login-button",
-			onClick: o.refresh,
+			"data-directors-admin-action": "refresh",
+			onClick: (e) => {
+				e.stopPropagation(), o.refresh();
+			},
 			children: "Повторить"
 		})]
 	}) : /* @__PURE__ */ Z(Ve, {

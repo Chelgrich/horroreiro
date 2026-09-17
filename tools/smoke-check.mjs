@@ -750,6 +750,7 @@ async function checkStaticGuards() {
   const profileUtilsJs = await readText('profile-utils.js');
   const userPageJs = await readText('user-page.js');
   const directorsAdminSource = await readText('src/directors-admin-app.jsx');
+  const directorsAdminBuiltJs = await readText('assets/directors-admin-app.js');
 
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('following-page.js'))"),
@@ -1297,6 +1298,22 @@ async function checkStaticGuards() {
       !directorsAdminSource.includes("transformedUrl.searchParams.set('height'") &&
       !directorsAdminSource.includes("transformedUrl.searchParams.set('resize', 'cover')"),
     'src/directors-admin-app.jsx: director admin avatar transforms must use width + resize=contain without square cover crop'
+  );
+  assert(
+    directorsAdminSource.includes('data-directors-admin-action="edit"') &&
+      directorsAdminSource.includes('data-director-id={director.id}') &&
+      directorsAdminBuiltJs.includes('"data-directors-admin-action": "edit"') &&
+      directorsAdminBuiltJs.includes('"data-director-id": e.id') &&
+      appJs.includes("if (action === 'edit')") &&
+      appJs.includes('openDirectorModalById(actionButton.dataset.directorId)'),
+    'directors admin: edit buttons must keep a DOM fallback for warm-started snapshots before Preact handlers mount'
+  );
+  assert(
+    appJs.includes('async function fetchMoviePersonIdsForCleanup(') &&
+      appJs.includes('const personIdsForCleanup = await fetchMoviePersonIdsForCleanup(movieId);') &&
+      appJs.includes('await deleteOrphanPeopleByIds(personIdsForCleanup);') &&
+      appJs.indexOf('const personIdsForCleanup = await fetchMoviePersonIdsForCleanup(movieId);') < appJs.indexOf(".from('movies')\n    .delete()"),
+    'movie delete: deleting a movie must collect linked people before deleting the movie and remove orphan people after cascade'
   );
 
   const catalogSelectMatch = appJs.match(/const MOVIE_CATALOG_SELECT = `([\s\S]*?)`;/);

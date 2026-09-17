@@ -12,6 +12,30 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-17 - Fix directors admin edit fallback and movie delete orphan cleanup
+
+- Files:
+  - `app.js`
+  - `src/directors-admin-app.jsx`
+  - `assets/directors-admin-app.js`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added stable `data-directors-admin-action`/`data-director-id` attributes to `/directors` admin buttons and taught the delegated app handler to open the person edit modal from restored DOM snapshots.
+  - Rebuilt the `/directors` Preact island so the deployed asset includes the edit fallback while still using native Preact handlers after mount.
+  - Movie deletion now collects linked `person_id` values before deleting the movie and removes orphan people after cascade, preventing director cards with `0 фильмов` when the deleted movie was their only link.
+  - Smoke checks now guard both the `/directors` edit fallback and movie-delete orphan cleanup.
+- Checks:
+  - `npm run build:directors`
+  - `node --check app.js`
+  - `node --check assets/directors-admin-app.js`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Recheck `/directors`: edit should open immediately on a warm-started page and after full Preact load; deleting a movie should remove one-film director cards automatically.
+
 ## 2026-09-17 - Preserve live scroll during warm hydration
 
 - Files:
