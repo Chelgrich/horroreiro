@@ -31,6 +31,21 @@ const followingSummaryButton = document.getElementById('followingSummaryButton')
 const editorCenterSummaryButton = document.getElementById('editorCenterSummaryButton');
 const directorsAdminSummaryButton = document.getElementById('directorsAdminSummaryButton');
 
+const WINDOW_SCROLL_INTENT_VERSION_KEY = '__HORROREIRO_SCROLL_INTENT_VERSION__';
+const WINDOW_LAST_USER_SCROLL_Y_KEY = '__HORROREIRO_LAST_USER_SCROLL_Y__';
+const WINDOW_SCROLL_INTENT_TRACKER_BOUND_KEY = '__HORROREIRO_SCROLL_INTENT_TRACKER_BOUND__';
+const WINDOW_WARM_START_SCROLL_INTENT_BASELINE_KEY = '__HORROREIRO_WARM_START_SCROLL_INTENT_BASELINE__';
+const WINDOW_SCROLL_KEYS = new Set([
+  ' ',
+  'Spacebar',
+  'ArrowDown',
+  'ArrowUp',
+  'PageDown',
+  'PageUp',
+  'Home',
+  'End'
+]);
+
 const openAuthModalButton = document.getElementById('openAuthModalButton');
 const authIconButtonDefaultHtml = openAuthModalButton?.innerHTML || '';
 const authPopoverMenu = document.getElementById('authPopoverMenu');
@@ -551,6 +566,7 @@ let areCatalogPageEventsBound = false;
 let areMoviePageEventsBound = false;
 let areSecondaryPageSnapshotEventsBound = false;
 let isSecondaryPageWarmStartHydrationActive = false;
+let secondaryPageWarmStartScrollIntentBaseline = 0;
 let allMovies = [];
 let catalogMoviesById = new Map();
 let catalogMovieMetaById = new Map();
@@ -5379,23 +5395,23 @@ function saveCatalogAnchorMovieId() {
   }
 }
 
-function scheduleCatalogAnchorRestore(movieId) {
+function scheduleCatalogAnchorRestore(movieId, options = {}) {
   if (!movieId) {
     return;
   }
 
   requestAnimationFrame(() => {
-    restoreCatalogAnchorMoviePosition(movieId);
+    restoreCatalogAnchorMoviePosition(movieId, options);
   });
 }
 
-function restoreCatalogScrollPosition() {
+function restoreCatalogScrollPosition({ skipIfUserScrollIntentAfter = null } = {}) {
   try {
     const savedAnchorMovieId = sessionStorage.getItem(CATALOG_ANCHOR_MOVIE_ID_KEY);
     const savedScrollPosition = sessionStorage.getItem(CATALOG_SCROLL_POSITION_KEY);
 
     if (savedAnchorMovieId) {
-      scheduleCatalogAnchorRestore(savedAnchorMovieId);
+      scheduleCatalogAnchorRestore(savedAnchorMovieId, { skipIfUserScrollIntentAfter });
 
       sessionStorage.removeItem(CATALOG_ANCHOR_MOVIE_ID_KEY);
       sessionStorage.removeItem(CATALOG_SCROLL_POSITION_KEY);
@@ -5414,6 +5430,10 @@ function restoreCatalogScrollPosition() {
     }
 
     requestAnimationFrame(() => {
+      if (shouldSkipWindowScrollRestore(skipIfUserScrollIntentAfter)) {
+        return;
+      }
+
       scrollWindowToPosition(scrollY);
     });
 
@@ -6744,6 +6764,75 @@ function rerenderCatalogPreservingPosition(options = {}) {
 
 function createDebouncedCatalogRender(delay) {
   return debounce(renderCatalogAndRestoreScrollPosition, delay);
+}
+
+function getWindowScrollIntentVersion() {
+  return Number(window[WINDOW_SCROLL_INTENT_VERSION_KEY] || 0);
+}
+
+function setWindowScrollIntentVersion(nextVersion) {
+  window[WINDOW_SCROLL_INTENT_VERSION_KEY] = Math.max(0, Number(nextVersion) || 0);
+}
+
+function markWindowScrollIntent() {
+  setWindowScrollIntentVersion(getWindowScrollIntentVersion() + 1);
+  window[WINDOW_LAST_USER_SCROLL_Y_KEY] = Math.max(0, Math.round(window.scrollY || window.pageYOffset || 0));
+}
+
+function isEditableScrollIntentTarget(target) {
+  if (!target || typeof target.closest !== 'function') {
+    return false;
+  }
+
+  return Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
+}
+
+function handleWindowScrollIntentKeydown(event) {
+  if (!WINDOW_SCROLL_KEYS.has(event.key) || isEditableScrollIntentTarget(event.target)) {
+    return;
+  }
+
+  markWindowScrollIntent();
+}
+
+function handleWindowScrollAfterIntent() {
+  if (getWindowScrollIntentVersion() <= 0) {
+    return;
+  }
+
+  window[WINDOW_LAST_USER_SCROLL_Y_KEY] = Math.max(0, Math.round(window.scrollY || window.pageYOffset || 0));
+}
+
+function bindWindowScrollIntentTracker() {
+  if (window[WINDOW_SCROLL_INTENT_TRACKER_BOUND_KEY]) {
+    return;
+  }
+
+  window[WINDOW_SCROLL_INTENT_TRACKER_BOUND_KEY] = true;
+  window.addEventListener('wheel', markWindowScrollIntent, { passive: true, capture: true });
+  window.addEventListener('touchstart', markWindowScrollIntent, { passive: true, capture: true });
+  window.addEventListener('touchmove', markWindowScrollIntent, { passive: true, capture: true });
+  window.addEventListener('pointerdown', markWindowScrollIntent, { passive: true, capture: true });
+  window.addEventListener('keydown', handleWindowScrollIntentKeydown, { capture: true });
+  window.addEventListener('scroll', handleWindowScrollAfterIntent, { passive: true });
+}
+
+function getWarmStartScrollIntentBaseline() {
+  return Number(window[WINDOW_WARM_START_SCROLL_INTENT_BASELINE_KEY] || 0);
+}
+
+function hasWindowScrollIntentAfter(version) {
+  const normalizedVersion = Number(version);
+
+  return Number.isFinite(normalizedVersion) && getWindowScrollIntentVersion() > normalizedVersion;
+}
+
+function shouldSkipWindowScrollRestore(skipIfUserScrollIntentAfter) {
+  return (
+    skipIfUserScrollIntentAfter !== null &&
+    skipIfUserScrollIntentAfter !== undefined &&
+    hasWindowScrollIntentAfter(skipIfUserScrollIntentAfter)
+  );
 }
 
 function prepareCatalogStateForDeferredRender({ resetPage = false, urlMode = 'replace' } = {}) {
@@ -12398,15 +12487,16 @@ async function reloadCatalogData({
 
 function preserveWindowScrollPosition(callback) {
   const currentScrollY = window.scrollY;
+  const scrollIntentVersion = getWindowScrollIntentVersion();
 
   callback();
 
-  requestAnimationFrame(() => {
-    scrollWindowToPosition(currentScrollY);
+  restoreWindowScrollPositionOnNextFrames(currentScrollY, {
+    skipIfUserScrollIntentAfter: scrollIntentVersion
   });
 }
 
-function restoreWindowScrollPositionOnNextFrames(scrollY) {
+function restoreWindowScrollPositionOnNextFrames(scrollY, { skipIfUserScrollIntentAfter = null } = {}) {
   if (scrollY === null || scrollY === undefined) {
     return;
   }
@@ -12418,8 +12508,16 @@ function restoreWindowScrollPositionOnNextFrames(scrollY) {
   }
 
   requestAnimationFrame(() => {
+    if (shouldSkipWindowScrollRestore(skipIfUserScrollIntentAfter)) {
+      return;
+    }
+
     scrollWindowToPosition(normalizedScrollY);
     requestAnimationFrame(() => {
+      if (shouldSkipWindowScrollRestore(skipIfUserScrollIntentAfter)) {
+        return;
+      }
+
       scrollWindowToPosition(normalizedScrollY);
     });
   });
@@ -12439,7 +12537,7 @@ function scrollWindowByDelta(topDelta) {
   });
 }
 
-function restoreCatalogAnchorMoviePosition(movieId) {
+function restoreCatalogAnchorMoviePosition(movieId, { skipIfUserScrollIntentAfter = null } = {}) {
   if (!movieId) {
     return;
   }
@@ -12455,6 +12553,10 @@ function restoreCatalogAnchorMoviePosition(movieId) {
   const scrollDelta = anchoredCardTop - targetTop;
 
   if (scrollDelta !== 0) {
+    if (shouldSkipWindowScrollRestore(skipIfUserScrollIntentAfter)) {
+      return;
+    }
+
     scrollWindowByDelta(scrollDelta);
   }
 }
@@ -16940,7 +17042,10 @@ function bindSharedAuthStateListener({ onAfterAuthSync } = {}) {
   });
 }
 
-function hydrateCatalogPageFromSnapshot(hydratedSnapshot, { shouldRestoreScroll = true } = {}) {
+function hydrateCatalogPageFromSnapshot(hydratedSnapshot, {
+  shouldRestoreScroll = true,
+  skipRestoreIfUserScrollIntentAfter = null
+} = {}) {
   const didHydrateCatalogFromSnapshot = hydrateCatalogFromSessionSnapshot(hydratedSnapshot);
   let didHydrateCatalogDomFromSnapshot = false;
   let hydratedCatalogSignature = '';
@@ -16964,7 +17069,9 @@ function hydrateCatalogPageFromSnapshot(hydratedSnapshot, { shouldRestoreScroll 
   updateFiltersButtonLabel();
 
   if (shouldRestoreScroll) {
-    restoreCatalogScrollPosition();
+    restoreCatalogScrollPosition({
+      skipIfUserScrollIntentAfter: skipRestoreIfUserScrollIntentAfter
+    });
   }
 
   hydratedCatalogSignature = getCatalogDataSignatureHash(createCatalogSessionSnapshotPayload());
@@ -16985,6 +17092,7 @@ function canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot) {
 }
 
 async function initCatalogPage({ onShellReady = null } = {}) {
+  const startupScrollIntentBaseline = getWarmStartScrollIntentBaseline();
   let didSignalShellReady = false;
   const signalCatalogShellReady = () => {
     if (didSignalShellReady) {
@@ -17049,7 +17157,8 @@ async function initCatalogPage({ onShellReady = null } = {}) {
 
   if (!shouldWaitForSessionBeforeHydration) {
     hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot, {
-      shouldRestoreScroll: shouldRestoreCatalogScrollFromSnapshot
+      shouldRestoreScroll: shouldRestoreCatalogScrollFromSnapshot,
+      skipRestoreIfUserScrollIntentAfter: startupScrollIntentBaseline
     });
 
     if (hydrationState.didHydrateCatalogFromSnapshot) {
@@ -17062,7 +17171,8 @@ async function initCatalogPage({ onShellReady = null } = {}) {
 
   if (shouldWaitForSessionBeforeHydration) {
     hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot, {
-      shouldRestoreScroll: shouldRestoreCatalogScrollFromSnapshot
+      shouldRestoreScroll: shouldRestoreCatalogScrollFromSnapshot,
+      skipRestoreIfUserScrollIntentAfter: startupScrollIntentBaseline
     });
 
     if (hydrationState.didHydrateCatalogFromSnapshot) {
@@ -17199,7 +17309,9 @@ async function initCatalogPage({ onShellReady = null } = {}) {
   updateFiltersButtonLabel();
 
   if (!hydrationState.didHydrateCatalogFromSnapshot) {
-    restoreCatalogScrollPosition();
+    restoreCatalogScrollPosition({
+      skipIfUserScrollIntentAfter: startupScrollIntentBaseline
+    });
   }
 
   loadDeferredInitialUserState();
@@ -19042,17 +19154,19 @@ function renderMoviePage(movie, { socialLoading = false, similarLoading = false 
 
   setMoviePageDocumentMeta(movie);
 
-  moviePage.innerHTML = `
-    <div class="movie-page-stack">
-      ${getMoviePageShellController().getMoviePageHeaderHtml(movie, viewModel)}
+  preserveWarmStartedPageScrollIfNeeded(() => {
+    moviePage.innerHTML = `
+      <div class="movie-page-stack">
+        ${getMoviePageShellController().getMoviePageHeaderHtml(movie, viewModel)}
 
-      ${reviewsSectionHtml}
-      ${commentsSectionHtml}
-      <div data-movie-page-similar-mount="true">
-        ${similarSectionHtml}
+        ${reviewsSectionHtml}
+        ${commentsSectionHtml}
+        <div data-movie-page-similar-mount="true">
+          ${similarSectionHtml}
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  });
   document.documentElement.classList.add('movie-page-rendered');
 
   bindMoviePageHeaderEvents(movie);
@@ -19142,12 +19256,43 @@ function hasWarmStartedMoviePageDom() {
   return Boolean(window.__HORROREIRO_MOVIE_WARM_START__?.didStart);
 }
 
+function preserveWarmStartedPageScrollIfNeeded(callback) {
+  if (!hasWindowScrollIntentAfter(getWarmStartScrollIntentBaseline())) {
+    callback();
+    return;
+  }
+
+  preserveWindowScrollPosition(callback);
+}
+
+function restoreSecondaryPageUserScrollIfNeeded() {
+  if (!hasWindowScrollIntentAfter(secondaryPageWarmStartScrollIntentBaseline)) {
+    return;
+  }
+
+  const lastUserScrollY = Math.max(
+    Number(window[WINDOW_LAST_USER_SCROLL_Y_KEY] || 0),
+    Number(window.scrollY || window.pageYOffset || 0)
+  );
+
+  if (!Number.isFinite(lastUserScrollY) || lastUserScrollY < 0) {
+    return;
+  }
+
+  restoreWindowScrollPositionOnNextFrames(lastUserScrollY, {
+    skipIfUserScrollIntentAfter: getWindowScrollIntentVersion()
+  });
+}
+
 function beginSecondaryPageWarmStartHydration() {
   isSecondaryPageWarmStartHydrationActive = Boolean(window.__HORROREIRO_PAGE_WARM_START__?.didStart);
+  secondaryPageWarmStartScrollIntentBaseline = getWarmStartScrollIntentBaseline();
 }
 
 function endSecondaryPageWarmStartHydration() {
+  restoreSecondaryPageUserScrollIfNeeded();
   isSecondaryPageWarmStartHydrationActive = false;
+  secondaryPageWarmStartScrollIntentBaseline = 0;
 }
 
 function hasWarmStartedSecondaryPageDom() {
@@ -19248,6 +19393,7 @@ async function initSharedApp() {
 
   await loadProfileUtils();
 
+  bindWindowScrollIntentTracker();
   bindCustomSelectGlobalEvents();
   initCustomSelects();
   initCurrentPageLinkGuard();

@@ -5,6 +5,11 @@
   const DATA_DEPENDENCY_STAMPS_KEY = 'horroreiro_data_dependency_stamps';
   const MOVIE_PAGE_DOM_SNAPSHOT_VERSION = 1;
   const MOVIE_PAGE_DOM_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
+  const WINDOW_SCROLL_INTENT_VERSION_KEY = '__HORROREIRO_SCROLL_INTENT_VERSION__';
+  const WINDOW_LAST_USER_SCROLL_Y_KEY = '__HORROREIRO_LAST_USER_SCROLL_Y__';
+  const WINDOW_SCROLL_INTENT_TRACKER_BOUND_KEY = '__HORROREIRO_SCROLL_INTENT_TRACKER_BOUND__';
+  const WINDOW_WARM_START_SCROLL_INTENT_BASELINE_KEY = '__HORROREIRO_WARM_START_SCROLL_INTENT_BASELINE__';
+  const WINDOW_SCROLL_KEYS = new Set([' ', 'Spacebar', 'ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End']);
 
   function getStorageValue(storage, key) {
     try {
@@ -20,6 +25,49 @@
     } catch (error) {
       return null;
     }
+  }
+
+  function getWindowScrollIntentVersion() {
+    return Number(window[WINDOW_SCROLL_INTENT_VERSION_KEY] || 0);
+  }
+
+  function markWindowScrollIntent() {
+    window[WINDOW_SCROLL_INTENT_VERSION_KEY] = getWindowScrollIntentVersion() + 1;
+    window[WINDOW_LAST_USER_SCROLL_Y_KEY] = Math.max(0, Math.round(window.scrollY || window.pageYOffset || 0));
+  }
+
+  function isEditableScrollIntentTarget(target) {
+    return Boolean(target?.closest?.('input, textarea, select, [contenteditable="true"]'));
+  }
+
+  function handleWindowScrollIntentKeydown(event) {
+    if (!WINDOW_SCROLL_KEYS.has(event.key) || isEditableScrollIntentTarget(event.target)) {
+      return;
+    }
+
+    markWindowScrollIntent();
+  }
+
+  function handleWindowScrollAfterIntent() {
+    if (getWindowScrollIntentVersion() <= 0) {
+      return;
+    }
+
+    window[WINDOW_LAST_USER_SCROLL_Y_KEY] = Math.max(0, Math.round(window.scrollY || window.pageYOffset || 0));
+  }
+
+  function bindWarmStartScrollIntentTracker() {
+    if (window[WINDOW_SCROLL_INTENT_TRACKER_BOUND_KEY]) {
+      return;
+    }
+
+    window[WINDOW_SCROLL_INTENT_TRACKER_BOUND_KEY] = true;
+    window.addEventListener('wheel', markWindowScrollIntent, { passive: true, capture: true });
+    window.addEventListener('touchstart', markWindowScrollIntent, { passive: true, capture: true });
+    window.addEventListener('touchmove', markWindowScrollIntent, { passive: true, capture: true });
+    window.addEventListener('pointerdown', markWindowScrollIntent, { passive: true, capture: true });
+    window.addEventListener('keydown', handleWindowScrollIntentKeydown, { capture: true });
+    window.addEventListener('scroll', handleWindowScrollAfterIntent, { passive: true });
   }
 
   function getCurrentBuildVersion() {
@@ -147,6 +195,8 @@
     moviePage.innerHTML = snapshot.moviePageHtml;
     document.documentElement.classList.add('app-movie-warm-started');
     document.documentElement.classList.add('movie-page-rendered');
+    bindWarmStartScrollIntentTracker();
+    window[WINDOW_WARM_START_SCROLL_INTENT_BASELINE_KEY] = getWindowScrollIntentVersion();
     window.__HORROREIRO_MOVIE_WARM_START__ = {
       didStart: true,
       movieId: snapshot.movieId || '',

@@ -12,6 +12,33 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-17 - Preserve live scroll during warm hydration
+
+- Files:
+  - `app.js`
+  - `catalog-warm-start.js`
+  - `movie-warm-start.js`
+  - `page-warm-start.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a shared scroll-intent contract for warm-started pages so delayed hydration cannot override a user who already started scrolling after returning to a restored page.
+  - `catalog-warm-start.js` now consumes saved catalog scroll/anchor keys after restoring the DOM, preventing a later duplicate scroll restore from `app.js`.
+  - Movie detail and secondary page hydration now preserve the live scroll position when a warm-started page has already received user scroll input.
+  - Smoke checks now guard that all warm-start scripts include the early scroll tracker and that `app.js` honors it.
+- Checks:
+  - `node --check app.js`
+  - `node --check catalog-warm-start.js`
+  - `node --check movie-warm-start.js`
+  - `node --check page-warm-start.js`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Recheck fast Back/Forward returns by scrolling immediately after the restored catalog/movie/profile page appears; full hydration should not jump back to the top or to the old saved position.
+
 ## 2026-09-17 - Add secondary page warm-start snapshots
 
 - Files:

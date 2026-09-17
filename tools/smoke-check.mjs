@@ -1050,6 +1050,20 @@ async function checkStaticGuards() {
     'secondary warm-start: secondary pages must validate route/build/user/stamps and persist sanitized DOM snapshots for returns'
   );
   assert(
+    [catalogWarmStartJs, movieWarmStartJs, pageWarmStartJs].every(source => (
+      source.includes("const WINDOW_SCROLL_INTENT_VERSION_KEY = '__HORROREIRO_SCROLL_INTENT_VERSION__'") &&
+      source.includes('function bindWarmStartScrollIntentTracker(') &&
+      source.includes('WINDOW_WARM_START_SCROLL_INTENT_BASELINE_KEY')
+    )) &&
+      catalogWarmStartJs.includes('hasWindowScrollIntentAfter(scrollIntentBaseline)') &&
+      pageWarmStartJs.includes('hasWindowScrollIntentAfter(scrollIntentBaseline)') &&
+      appJs.includes('function bindWindowScrollIntentTracker(') &&
+      appJs.includes('function preserveWarmStartedPageScrollIfNeeded(') &&
+      appJs.includes('function restoreSecondaryPageUserScrollIfNeeded(') &&
+      appJs.includes('skipRestoreIfUserScrollIntentAfter: startupScrollIntentBaseline'),
+    'warm-start scroll: delayed hydration must not override user scroll after a restored page becomes interactive'
+  );
+  assert(
     appJs.includes('function getSanitizedMoviePageDomSnapshotHtml(') &&
       appJs.includes("template.content") &&
       appJs.includes('data-movie-page-watchlist-icon-toggle="true"') &&

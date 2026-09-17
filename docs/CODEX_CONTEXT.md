@@ -89,6 +89,7 @@ Startup shell visibility rule:
 - Warm-start redisplay rules should match the final page scrollbar policy (`overflow-y: scroll`) so a restored shell does not shift when `app-ready` lands.
 - Warm-started catalog/movie shells hide the boot loader only after `app-styles-ready`. If a DOM snapshot is restored before styles are usable, keep the loader rather than showing an empty dark page.
 - The boot loader may set `app-styles-ready` from a same-build cached stylesheet bundle before `/env` and live CSS complete. The live `<link>` stylesheets remain the source of truth and remove the cached inline styles after they load.
+- Warm-start scripts must bind the shared early scroll-intent tracker before revealing/restoring a page. After a restored page is visible, full hydration must not force an old saved scroll position over a user who already started scrolling; preserve the live position instead.
 - Future app pages with their own HTML shell must either use the shared `page-warm-start.js` contract or explicitly document why they need a page-specific warm-start script. Do not introduce a new shell that exposes static HTML or waits for full data reload when a valid same-tab DOM snapshot can be restored.
 
 Production asset URL strategy:
