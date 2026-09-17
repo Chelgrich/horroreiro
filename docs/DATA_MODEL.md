@@ -245,6 +245,7 @@ Rules:
 - Apply `movie-companies-setup.sql` before using these pages in a fresh Supabase environment.
 - Movie modal fields `production`, `distribution`, and `russian_distribution` remain the source edited by admins.
 - On movie create/update, synchronize those arrays into `companies` and `movie_companies`.
+- Movie detail pages use `movie_companies -> companies` to link production/distribution/Russian distribution names to `/company/<slug>` for admins; the original movie array values remain the displayed labels and fall back to plain text when no link row exists.
 - Matching is by normalized company name, not by role; one company can have several role sections on its detail page.
 - Remove stale `movie_companies` rows when a company value is removed from a movie.
 - Delete orphan company rows when no movie references remain.

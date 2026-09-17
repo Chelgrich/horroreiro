@@ -3654,6 +3654,55 @@ async function fetchMovieCompanyRowsForRole(role) {
   return data || [];
 }
 
+function normalizeMovieCompanyLinkRow(row) {
+  const company = Array.isArray(row?.companies) ? row.companies[0] : row?.companies;
+
+  return {
+    movie_id: String(row?.movie_id || '').trim(),
+    company_id: String(row?.company_id || '').trim(),
+    role: String(row?.role || '').trim(),
+    position: Number.isFinite(Number(row?.position)) ? Number(row.position) : 0,
+    companies: normalizeCompanyRow(company)
+  };
+}
+
+async function fetchMovieCompanyRowsForMovie(movieId) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!normalizedMovieId || !areCompaniesAvailable) {
+    return [];
+  }
+
+  const { data, error } = await supabaseClient
+    .from('movie_companies')
+    .select(`movie_id, company_id, role, position, companies (${COMPANY_PUBLIC_SELECT})`)
+    .eq('movie_id', normalizedMovieId)
+    .order('role', { ascending: true })
+    .order('position', { ascending: true });
+
+  if (error) {
+    if (isCompaniesUnavailableError(error)) {
+      areCompaniesAvailable = false;
+      return [];
+    }
+
+    throw error;
+  }
+
+  return (data || [])
+    .map(normalizeMovieCompanyLinkRow)
+    .filter(row => row.movie_id && row.company_id && row.role && row.companies?.id);
+}
+
+async function ensureMovieCompanyItemsLoaded(movie) {
+  if (!movie?.id || !isAdmin || !areCompaniesAvailable || Array.isArray(movie.movie_companies)) {
+    return movie;
+  }
+
+  movie.movie_companies = await fetchMovieCompanyRowsForMovie(movie.id);
+  return movie;
+}
+
 async function fetchMovieCompanyRowsForCompany(companyId) {
   const normalizedCompanyId = String(companyId || '').trim();
 
@@ -9935,7 +9984,10 @@ function getMoviePageShellControllerContext() {
     getPosterImageAttributeHtml,
     getVotesLabel,
     getMoviePageDirectorHtml,
+    buildCompanyPageUrl,
+    normalizeCompanyNameKey,
     getCurrentUser: () => currentUser,
+    getIsAdmin: () => Boolean(isAdmin),
     isMovieRatingBusy: movieId => ratingRequestInFlight.has(String(movieId)),
     isMovieWatchlistBusy: movieId => watchlistRequestInFlight.has(String(movieId)),
     getStoredPosterGalleryIndex: getStoredMoviePagePosterGalleryIndex
@@ -13038,6 +13090,7 @@ async function reloadMoviePageData(movieId) {
 
   if (rpcMovie) {
     await Promise.all([
+      ensureMovieCompanyItemsLoaded(rpcMovie),
       fetchMovieReviews(movieId),
       fetchMovieComments(movieId)
     ]);
@@ -13054,6 +13107,7 @@ async function reloadMoviePageData(movieId) {
     fetchMoviePosterImagesForMovieSafe(movieId, { force: true })
   ]);
 
+  await ensureMovieCompanyItemsLoaded(movie);
   return movie;
 }
 
@@ -19960,6 +20014,8 @@ async function loadMoviePageByRouteParams(routeParams, {
     fetchMovieByRouteParams,
     getAreDirectorsAvailable: () => areDirectorsAvailable,
     ensureDirectorItemsLoaded: ensureMovieDirectorItemsLoaded,
+    getAreCompaniesAvailable: () => areCompaniesAvailable,
+    ensureCompanyItemsLoaded: ensureMovieCompanyItemsLoaded,
     fetchRatingStats: fetchMovieRatingStatsForMovie,
     fetchPosterImages: fetchMoviePosterImagesForMovieSafe,
     fetchCurrentUserRating: fetchCurrentUserRatingForMovie,

@@ -196,6 +196,14 @@ export function createMoviePageOrchestratorController(context = {}) {
       loadTasks.push(bindings.ensureDirectorItemsLoaded(movie));
     }
 
+    if (
+      bindings.getAreCompaniesAvailable?.() !== false &&
+      !Array.isArray(movie.movie_companies) &&
+      typeof bindings.ensureCompanyItemsLoaded === 'function'
+    ) {
+      loadTasks.push(bindings.ensureCompanyItemsLoaded(movie));
+    }
+
     if (!isMoviePayloadLoadedByRpc) {
       if (typeof bindings.fetchRatingStats === 'function') {
         loadTasks.push(bindings.fetchRatingStats(movie.id));

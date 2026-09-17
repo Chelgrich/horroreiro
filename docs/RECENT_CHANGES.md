@@ -12,6 +12,32 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-17 - Link movie detail company names
+
+- Files:
+  - `app.js`
+  - `movie-page-orchestrator.js`
+  - `movie-page-shell.js`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Admin movie detail payload hydration now loads `movie_companies` for the current movie before rendering/cache entry creation.
+  - Production, distribution, and Russian distribution values on admin movie detail pages now link to matching `/company/<slug>` detail pages when a synced company row exists.
+  - Non-admin movie detail pages and missing company links fall back to escaped plain text because company pages are currently admin-only.
+  - Smoke checks now guard the movie detail company-link data path.
+- Checks:
+  - `node --check app.js`
+  - `node --check movie-page-shell.js`
+  - `node --check movie-page-orchestrator.js`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Recheck a movie detail page as admin: company names should open the shared company detail page; regular users should still see plain text.
+
 ## 2026-09-17 - Tolerate existing company name keys on movie save
 
 - Files:

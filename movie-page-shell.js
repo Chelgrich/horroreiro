@@ -21,7 +21,10 @@ export function createMoviePageShellController(context = {}) {
     getPosterImageAttributeHtml = (imageUrl) => `src="${escapeHtml(imageUrl)}"`,
     getVotesLabel = () => 'оценок',
     getMoviePageDirectorHtml = () => '-',
+    buildCompanyPageUrl = () => '',
+    normalizeCompanyNameKey = value => String(value || '').trim().toLowerCase(),
     getCurrentUser = () => null,
+    getIsAdmin = () => false,
     isMovieRatingBusy = () => false,
     isMovieWatchlistBusy = () => false,
     getStoredPosterGalleryIndex = () => 0
@@ -46,6 +49,61 @@ export function createMoviePageShellController(context = {}) {
       .join(', ');
   }
 
+  function getMovieCompanyLinkRows(movie, role) {
+    if (!getIsAdmin()) {
+      return [];
+    }
+
+    return (Array.isArray(movie?.movie_companies) ? movie.movie_companies : [])
+      .filter(row => String(row?.role || '') === role)
+      .map(row => {
+        const company = Array.isArray(row?.companies) ? row.companies[0] : row?.companies;
+
+        if (!company?.id || !company?.slug) {
+          return null;
+        }
+
+        return {
+          position: Number.isFinite(Number(row?.position)) ? Number(row.position) : Number.MAX_SAFE_INTEGER,
+          company,
+          href: buildCompanyPageUrl(company)
+        };
+      })
+      .filter(Boolean)
+      .sort((firstRow, secondRow) => firstRow.position - secondRow.position);
+  }
+
+  function getMoviePageCompanyListHtml(movie, role, values) {
+    const displayNames = (Array.isArray(values) ? values : [])
+      .map(value => String(value || '').trim())
+      .filter(value => value && formatTextArrayForDetail([value]));
+
+    if (displayNames.length === 0) {
+      return '';
+    }
+
+    const linkRows = getMovieCompanyLinkRows(movie, role);
+    const linksByNameKey = linkRows.reduce((map, row) => {
+      const nameKey = normalizeCompanyNameKey(row.company?.name);
+
+      if (nameKey && row.href && !map.has(nameKey)) {
+        map.set(nameKey, row.href);
+      }
+
+      return map;
+    }, new Map());
+
+    return displayNames.map((name, index) => {
+      const href = linksByNameKey.get(normalizeCompanyNameKey(name)) || linkRows[index]?.href || '';
+
+      if (!href) {
+        return escapeHtml(name);
+      }
+
+      return `<a class="movie-page-meta-link" href="${escapeHtml(href)}">${escapeHtml(name)}</a>`;
+    }).join(', ');
+  }
+
   function buildMoviePageViewModel(movie, { includeSocialSections = true } = {}) {
     const genreNames = (Array.isArray(movie?.movie_genres) ? movie.movie_genres : [])
       .map(item => item?.genres?.name)
@@ -57,9 +115,9 @@ export function createMoviePageShellController(context = {}) {
     return {
       genres: formatGenreNamesForPublicDisplay(genreNames),
       countries: countryNames.join(', '),
-      production: formatTextArrayForDetail(movie?.production),
-      distribution: formatTextArrayForDetail(movie?.distribution),
-      russianDistribution: formatTextArrayForDetail(movie?.russian_distribution),
+      production: getMoviePageCompanyListHtml(movie, 'production', movie?.production),
+      distribution: getMoviePageCompanyListHtml(movie, 'distribution', movie?.distribution),
+      russianDistribution: getMoviePageCompanyListHtml(movie, 'russian_distribution', movie?.russian_distribution),
       runtimeLabel: formatRuntimeMinutes(movie?.runtime_minutes),
       averageRating: getMovieAverageRating(movie?.id),
       votesCount: getMovieVotesCount(movie?.id),
@@ -319,17 +377,17 @@ export function createMoviePageShellController(context = {}) {
             <div class="movie-page-meta-item"><span>Страны:</span> ${countries ? escapeHtml(countries) : '-'}</div>
             ${
               production
-                ? `<div class="movie-page-meta-item"><span>Производство:</span> ${escapeHtml(production)}</div>`
+                ? `<div class="movie-page-meta-item"><span>Производство:</span> ${production}</div>`
                 : ''
             }
             ${
               distribution
-                ? `<div class="movie-page-meta-item"><span>Дистрибуция:</span> ${escapeHtml(distribution)}</div>`
+                ? `<div class="movie-page-meta-item"><span>Дистрибуция:</span> ${distribution}</div>`
                 : ''
             }
             ${
               russianDistribution
-                ? `<div class="movie-page-meta-item"><span>Дистрибуция в России:</span> ${escapeHtml(russianDistribution)}</div>`
+                ? `<div class="movie-page-meta-item"><span>Дистрибуция в России:</span> ${russianDistribution}</div>`
                 : ''
             }
             ${

@@ -898,8 +898,13 @@ async function checkStaticGuards() {
       appJs.includes("String(insertError.code || '') === '23505'") &&
       appJs.includes('fetchMovieCompanyRowsForRole') &&
       appJs.includes('fetchMovieCompanyRowsForCompany') &&
+      appJs.includes('fetchMovieCompanyRowsForMovie') &&
+      appJs.includes('ensureMovieCompanyItemsLoaded') &&
+      moviePageOrchestratorJs.includes('ensureCompanyItemsLoaded') &&
+      moviePageShellJs.includes('function getMoviePageCompanyListHtml(') &&
+      moviePageShellJs.includes('buildCompanyPageUrl(company)') &&
       !companyPagesJs.includes(".select('*')"),
-    'app.js/company-pages.js: company pages must use explicit company select profiles and tolerate existing company name_key conflicts'
+    'app.js/company-pages.js/movie-page-shell.js: company pages and movie detail company links must use explicit company select profiles and tolerate existing company name_key conflicts'
   );
   assert(
     !appJs.includes('async function fetchDirectorPageData(') &&
