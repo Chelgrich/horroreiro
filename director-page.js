@@ -18,6 +18,7 @@ export function createDirectorPageController(context = {}) {
     getCurrentDirectorPageData = () => null,
     setCurrentDirectorPageData = () => {},
     getIsAdmin = () => false,
+    hasWarmStartedPageDom = () => false,
     shouldUseAuthenticatedUi = () => false,
     restoreSession = async () => null,
     trackEmailConfirmedLoginIfNeeded = () => {},
@@ -702,7 +703,9 @@ export function createDirectorPageController(context = {}) {
       return;
     }
 
-    renderDirectorPageLoading();
+    if (!hasWarmStartedPageDom()) {
+      renderDirectorPageLoading();
+    }
 
     try {
       try {

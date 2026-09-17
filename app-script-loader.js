@@ -52,6 +52,7 @@
     document.documentElement.classList.remove('app-catalog-fast-return-pending');
     document.documentElement.classList.remove('app-catalog-warm-started');
     document.documentElement.classList.remove('app-movie-warm-started');
+    document.documentElement.classList.remove('app-page-warm-started');
     document.documentElement.classList.remove('app-shared-ui-ready');
     document.documentElement.classList.add('app-ready');
   }

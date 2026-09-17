@@ -8,6 +8,7 @@ export function createFollowingPageController(context = {}) {
   const {
     followingPage,
     getCurrentUser,
+    hasWarmStartedPageDom = () => false,
     shouldUseAuthenticatedUi,
     restoreSession,
     trackEmailConfirmedLoginIfNeeded,
@@ -424,7 +425,9 @@ export function createFollowingPageController(context = {}) {
 
   async function initFollowingPage() {
     bindFollowingPageEvents();
-    renderFollowingPageLoading();
+    if (!hasWarmStartedPageDom()) {
+      renderFollowingPageLoading();
+    }
     await restoreSession();
     trackEmailConfirmedLoginIfNeeded();
     await loadFollowingPage();

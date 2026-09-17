@@ -36,6 +36,7 @@ const ALLOWED_APP_ASSETS = new Set([
   'movie-user-state.js',
   'notifications-page.js',
   'notifications-page.css',
+  'page-warm-start.js',
   'movie-page.css',
   'profile-data-actions.js',
   'profile-follow-actions.js',

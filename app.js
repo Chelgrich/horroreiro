@@ -248,6 +248,7 @@ const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
 const MOVIE_PAGE_SESSION_CACHE_KEY = 'horroreiro_movie_page_session_cache';
 const MOVIE_PAGE_DOM_SNAPSHOT_KEY = 'horroreiro_movie_page_dom_snapshot';
 const MOVIE_PAGE_DOM_SNAPSHOTS_KEY = 'horroreiro_movie_page_dom_snapshots';
+const SECONDARY_PAGE_DOM_SNAPSHOTS_KEY = 'horroreiro_page_dom_snapshots_v1';
 const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY = 'horroreiro_user_page_activity_aggregate_cache';
 const USER_PAGE_DATA_CACHE_KEY = 'horroreiro_user_page_data_cache';
 const DATA_MUTATION_STAMP_KEY = 'horroreiro_data_mutation_stamp';
@@ -257,9 +258,11 @@ const CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 const CATALOG_DOM_SNAPSHOT_IDLE_TIMEOUT_MS = 1200;
 const MOVIE_PAGE_SESSION_CACHE_VERSION = 1;
 const MOVIE_PAGE_DOM_SNAPSHOT_VERSION = 1;
+const SECONDARY_PAGE_DOM_SNAPSHOT_VERSION = 1;
 const MOVIE_PAGE_SESSION_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 const MOVIE_PAGE_SESSION_CACHE_MAX_ENTRIES = 6;
 const MOVIE_PAGE_DOM_SNAPSHOT_MAX_ENTRIES = 8;
+const SECONDARY_PAGE_DOM_SNAPSHOT_MAX_ENTRIES = 12;
 const CATALOG_PAGE_SIZE = 40;
 const CATALOG_PAGINATION_PAGE_SLOTS = 6;
 const CATALOG_PAGINATION_COMPACT_PAGE_SLOTS = 4;
@@ -273,6 +276,14 @@ const CATALOG_PROFILE_QUERY_PARAM = 'profile';
 const CATALOG_PROFILE_ACTIVITY_QUERY_PARAM = 'activity';
 const CATALOG_ASTRALS_SEARCH_QUERY = '\u0410\u0441\u0442\u0440\u0430\u043b';
 const CATALOG_PROFILE_ACTIVITY_KEYS = new Set(['ratings', 'watchlist', 'reviews']);
+const SECONDARY_PAGE_DOM_SNAPSHOT_PAGE_TYPES = new Set([
+  'user',
+  'following',
+  'notifications',
+  'editor',
+  'director',
+  'directors'
+]);
 const CATALOG_PROFILE_ACTIVITY_LABELS = {
   ratings: 'Оценки и просмотры',
   watchlist: 'Смотреть позже',
@@ -538,6 +549,8 @@ let isMovieModalEventsBound = false;
 let areSharedUiEventsBound = false;
 let areCatalogPageEventsBound = false;
 let areMoviePageEventsBound = false;
+let areSecondaryPageSnapshotEventsBound = false;
+let isSecondaryPageWarmStartHydrationActive = false;
 let allMovies = [];
 let catalogMoviesById = new Map();
 let catalogMovieMetaById = new Map();
@@ -1514,6 +1527,7 @@ function getEditorPageControllerContext() {
     editorPage,
     getCurrentUser: () => currentUser,
     getIsAdmin: () => isAdmin,
+    hasWarmStartedPageDom: hasWarmStartedSecondaryPageDom,
     shouldUseAuthenticatedUi,
     restoreSession,
     trackEmailConfirmedLoginIfNeeded,
@@ -1556,9 +1570,16 @@ async function loadEditorPageController() {
 }
 
 async function initEditorPage() {
-  const controller = await loadEditorPageController();
+  beginSecondaryPageWarmStartHydration();
 
-  await controller?.initEditorPage?.();
+  try {
+    const controller = await loadEditorPageController();
+
+    await controller?.initEditorPage?.();
+    persistCurrentSecondaryPageDomSnapshot();
+  } finally {
+    endSecondaryPageWarmStartHydration();
+  }
 }
 
 function handleEditorPageClick(event) {
@@ -1584,6 +1605,7 @@ function getDirectorPageControllerContext() {
       currentDirectorPageData = data;
     },
     getIsAdmin: () => isAdmin,
+    hasWarmStartedPageDom: hasWarmStartedSecondaryPageDom,
     shouldUseAuthenticatedUi,
     restoreSession,
     trackEmailConfirmedLoginIfNeeded,
@@ -1661,9 +1683,16 @@ function renderDirectorPage(data = currentDirectorPageData) {
 }
 
 async function initDirectorPage() {
-  const controller = await loadDirectorPageController();
+  beginSecondaryPageWarmStartHydration();
 
-  await controller?.initDirectorPage?.();
+  try {
+    const controller = await loadDirectorPageController();
+
+    await controller?.initDirectorPage?.();
+    persistCurrentSecondaryPageDomSnapshot();
+  } finally {
+    endSecondaryPageWarmStartHydration();
+  }
 }
 
 function isDirectorsUnavailableError(error) {
@@ -2203,14 +2232,23 @@ async function loadDirectorsAdminPage({ preserveScroll = false } = {}) {
 }
 
 async function initDirectorsAdminPage() {
-  renderDirectorsAdminPageLoading();
-  await restoreSession();
-  trackEmailConfirmedLoginIfNeeded();
-  await loadDirectorsAdminPage();
+  beginSecondaryPageWarmStartHydration();
 
-  bindSharedAuthStateListener({
-    onAfterAuthSync: loadDirectorsAdminPage
-  });
+  try {
+    if (!hasWarmStartedSecondaryPageDom()) {
+      renderDirectorsAdminPageLoading();
+    }
+    await restoreSession();
+    trackEmailConfirmedLoginIfNeeded();
+    await loadDirectorsAdminPage();
+
+    bindSharedAuthStateListener({
+      onAfterAuthSync: loadDirectorsAdminPage
+    });
+    persistCurrentSecondaryPageDomSnapshot();
+  } finally {
+    endSecondaryPageWarmStartHydration();
+  }
 }
 
 function getDirectorByIdFromAdminRows(directorId) {
@@ -6077,6 +6115,132 @@ function persistCurrentMoviePageDomSnapshot() {
   if (snapshot) {
     writeMoviePageDomSnapshot(snapshot);
   }
+}
+
+function getSecondaryPageDomSnapshotPage() {
+  const page = String(document.body?.dataset?.appPage || '').trim();
+
+  return SECONDARY_PAGE_DOM_SNAPSHOT_PAGE_TYPES.has(page)
+    ? page
+    : '';
+}
+
+function getSecondaryPageDomSnapshotRouteKey(page = getSecondaryPageDomSnapshotPage()) {
+  if (!page) {
+    return '';
+  }
+
+  return `${page}:${window.location.pathname || '/'}${window.location.search || ''}`;
+}
+
+function getRawLocalDataDependencyStamps() {
+  try {
+    return localStorage.getItem(DATA_DEPENDENCY_STAMPS_KEY) || '';
+  } catch (error) {
+    return '';
+  }
+}
+
+function getSecondaryPageDomSnapshotsMap() {
+  try {
+    const rawValue = sessionStorage.getItem(SECONDARY_PAGE_DOM_SNAPSHOTS_KEY);
+    const parsedValue = rawValue ? JSON.parse(rawValue) : {};
+
+    return (
+      parsedValue &&
+      typeof parsedValue === 'object' &&
+      !Array.isArray(parsedValue)
+    )
+      ? parsedValue
+      : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function writeSecondaryPageDomSnapshotsMap(snapshotsMap) {
+  try {
+    sessionStorage.setItem(SECONDARY_PAGE_DOM_SNAPSHOTS_KEY, JSON.stringify(snapshotsMap));
+  } catch (error) {
+    try {
+      sessionStorage.removeItem(SECONDARY_PAGE_DOM_SNAPSHOTS_KEY);
+    } catch (removeError) {
+      // Secondary page snapshots are an optional warm-start optimization.
+    }
+  }
+}
+
+function pruneSecondaryPageDomSnapshotsMap(snapshotsMap) {
+  const entries = Object.entries(snapshotsMap || {})
+    .sort((first, second) => Number(second[1]?.savedAt || 0) - Number(first[1]?.savedAt || 0))
+    .slice(0, SECONDARY_PAGE_DOM_SNAPSHOT_MAX_ENTRIES);
+
+  return Object.fromEntries(entries);
+}
+
+function getSanitizedSecondaryPageDomSnapshotHtml() {
+  const pageElement = document.querySelector('.page');
+
+  if (!pageElement) {
+    return '';
+  }
+
+  const clone = pageElement.cloneNode(true);
+
+  clone
+    .querySelectorAll('#sharedAuthModalMount, #sharedDisplayNameModalMount, #sharedMovieModalMount')
+    .forEach(element => {
+      element.innerHTML = '';
+    });
+
+  const authPopoverMenu = clone.querySelector('#authPopoverMenu');
+  const authMenuButton = clone.querySelector('#authMenuButton');
+
+  authPopoverMenu?.classList.remove('is-open');
+  authMenuButton?.setAttribute('aria-expanded', 'false');
+
+  return clone.outerHTML;
+}
+
+function createSecondaryPageDomSnapshotPayload() {
+  const page = getSecondaryPageDomSnapshotPage();
+  const routeKey = getSecondaryPageDomSnapshotRouteKey(page);
+
+  if (!page || !routeKey || document.documentElement.classList.contains('app-load-failed')) {
+    return null;
+  }
+
+  const pageHtml = getSanitizedSecondaryPageDomSnapshotHtml();
+
+  if (!pageHtml.trim()) {
+    return null;
+  }
+
+  return {
+    version: SECONDARY_PAGE_DOM_SNAPSHOT_VERSION,
+    buildVersion: APP_BUILD_VERSION,
+    savedAt: Date.now(),
+    page,
+    routeKey,
+    userId: currentUser?.id || '',
+    dataMutationStamp: getDataMutationStamp(),
+    dataDependencyStamps: getRawLocalDataDependencyStamps(),
+    scrollY: Math.max(0, Math.round(window.scrollY || 0)),
+    pageHtml
+  };
+}
+
+function persistCurrentSecondaryPageDomSnapshot() {
+  const snapshot = createSecondaryPageDomSnapshotPayload();
+
+  if (!snapshot) {
+    return;
+  }
+
+  const snapshotsMap = getSecondaryPageDomSnapshotsMap();
+
+  snapshotsMap[snapshot.routeKey] = snapshot;
+  writeSecondaryPageDomSnapshotsMap(pruneSecondaryPageDomSnapshotsMap(snapshotsMap));
 }
 
 function readCatalogDomSnapshot({ allowStale = false } = {}) {
@@ -16637,6 +16801,18 @@ function bindMoviePageEvents() {
   areMoviePageEventsBound = true;
 }
 
+function bindSecondaryPageSnapshotEvents() {
+  if (areSecondaryPageSnapshotEventsBound) {
+    return;
+  }
+
+  window.addEventListener('pagehide', () => {
+    persistCurrentSecondaryPageDomSnapshot();
+  });
+
+  areSecondaryPageSnapshotEventsBound = true;
+}
+
 function isCatalogPage() {
   return Boolean(container);
 }
@@ -17930,6 +18106,7 @@ function getNotificationsPageControllerContext() {
     notificationsPage,
     supabaseClient,
     getCurrentUser: () => currentUser,
+    hasWarmStartedPageDom: hasWarmStartedSecondaryPageDom,
     shouldUseAuthenticatedUi,
     restoreSession,
     bindSharedAuthStateListener,
@@ -18019,8 +18196,15 @@ function observeNotificationsPageVisibleItems() {
 }
 
 async function initNotificationsPage() {
-  const controller = await loadNotificationsPageController();
-  await controller.initNotificationsPage();
+  beginSecondaryPageWarmStartHydration();
+
+  try {
+    const controller = await loadNotificationsPageController();
+    await controller.initNotificationsPage();
+    persistCurrentSecondaryPageDomSnapshot();
+  } finally {
+    endSecondaryPageWarmStartHydration();
+  }
 }
 
 let followingPageControllerPromise = null;
@@ -18029,6 +18213,7 @@ function getFollowingPageControllerContext() {
   return {
     followingPage,
     getCurrentUser: () => currentUser,
+    hasWarmStartedPageDom: hasWarmStartedSecondaryPageDom,
     shouldUseAuthenticatedUi,
     restoreSession,
     trackEmailConfirmedLoginIfNeeded,
@@ -18067,8 +18252,15 @@ function loadFollowingPageController() {
 }
 
 async function initFollowingPage() {
-  const controller = await loadFollowingPageController();
-  await controller.initFollowingPage();
+  beginSecondaryPageWarmStartHydration();
+
+  try {
+    const controller = await loadFollowingPageController();
+    await controller.initFollowingPage();
+    persistCurrentSecondaryPageDomSnapshot();
+  } finally {
+    endSecondaryPageWarmStartHydration();
+  }
 }
 
 let userPageControllerPromise = null;
@@ -18079,6 +18271,7 @@ function getUserPageControllerContext() {
     userPage,
     supabaseClient,
     getCurrentUser: () => currentUser,
+    hasWarmStartedPageDom: hasWarmStartedSecondaryPageDom,
     shouldUseAuthenticatedUi,
     restoreSession,
     trackEmailConfirmedLoginIfNeeded,
@@ -18156,8 +18349,15 @@ function invalidateUserPageDataCache() {
 }
 
 async function initUserPage() {
-  const controller = await loadUserPageController();
-  await controller.initUserPage();
+  beginSecondaryPageWarmStartHydration();
+
+  try {
+    const controller = await loadUserPageController();
+    await controller.initUserPage();
+    persistCurrentSecondaryPageDomSnapshot();
+  } finally {
+    endSecondaryPageWarmStartHydration();
+  }
 }
 
 function getMoviePageRouteParams() {
@@ -18942,6 +19142,21 @@ function hasWarmStartedMoviePageDom() {
   return Boolean(window.__HORROREIRO_MOVIE_WARM_START__?.didStart);
 }
 
+function beginSecondaryPageWarmStartHydration() {
+  isSecondaryPageWarmStartHydrationActive = Boolean(window.__HORROREIRO_PAGE_WARM_START__?.didStart);
+}
+
+function endSecondaryPageWarmStartHydration() {
+  isSecondaryPageWarmStartHydrationActive = false;
+}
+
+function hasWarmStartedSecondaryPageDom() {
+  return Boolean(
+    isSecondaryPageWarmStartHydrationActive &&
+    window.__HORROREIRO_PAGE_WARM_START__?.didStart
+  );
+}
+
 async function initMoviePage({ onShellReady = null } = {}) {
   await ensureMoviePageOrchestratorControllerLoaded();
 
@@ -19037,6 +19252,7 @@ async function initSharedApp() {
   initCustomSelects();
   initCurrentPageLinkGuard();
   bindSharedUiEvents();
+  bindSecondaryPageSnapshotEvents();
 
   const authRedirectResult = await consumeAuthRedirectFromUrl(initialAuthRedirectInfo);
 

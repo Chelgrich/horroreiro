@@ -10,6 +10,7 @@ export function createUserPageController(context = {}) {
     userPage = null,
     supabaseClient = null,
     getCurrentUser = () => null,
+    hasWarmStartedPageDom = () => false,
     shouldUseAuthenticatedUi = () => false,
     shouldPreferRussianPosters = () => false,
     restoreSession = async () => null,
@@ -1073,7 +1074,9 @@ export function createUserPageController(context = {}) {
   async function initUserPage() {
     const handle = getUserPageRouteHandle();
 
-    renderUserPageLoading();
+    if (!hasWarmStartedPageDom()) {
+      renderUserPageLoading();
+    }
     await restoreSession();
     trackEmailConfirmedLoginIfNeeded();
 

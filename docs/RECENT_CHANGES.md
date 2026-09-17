@@ -12,6 +12,46 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-17 - Add secondary page warm-start snapshots
+
+- Files:
+  - `page-warm-start.js`
+  - `app.js`
+  - `app-script-loader.js`
+  - `user.html`
+  - `following.html`
+  - `notifications.html`
+  - `editor.html`
+  - `name.html`
+  - `directors.html`
+  - `_headers`
+  - `functions/app-assets/[version].js`
+  - `tools/asset-size-report.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added shared `page-warm-start.js` for secondary pages: `/user/*`, `/following`, `/notifications`, `/editor`, `/name/*`, and `/directors`.
+  - Secondary pages now save sanitized DOM snapshots after successful page init and on `pagehide`, keyed by route/build/user/global mutation stamp/local dependency stamps.
+  - Warm-started secondary pages use the same reveal contract as catalog/movie detail: restored DOM is shown only after page styles are available, with shared-header space reserved until the header mounts.
+  - Secondary page controllers skip only their first loading-state render while a warm DOM snapshot is being hydrated, so restored content is not immediately replaced by a loading screen.
+  - Smoke checks now enforce that future secondary HTML shells include the shared warm-start script/rules and that app startup clears `app-page-warm-started`.
+- Checks:
+  - `node --check page-warm-start.js`
+  - `node --check app.js`
+  - `node --check app-script-loader.js`
+  - `node --check user-page.js`
+  - `node --check notifications-page.js`
+  - `node --check following-page.js`
+  - `node --check editor-page.js`
+  - `node --check director-page.js`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Recheck repeated browser Back/Forward on profile, notifications, following, editor, person, and directors pages after one complete load.
+
 ## 2026-09-17 - Accelerate warm-start stylesheet readiness
 
 - Files:

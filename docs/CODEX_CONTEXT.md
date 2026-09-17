@@ -61,6 +61,10 @@ Page HTML is static shell plus shared scripts:
   - is loaded only by `movie.html`, before Supabase and the main app loader;
   - restores a saved movie detail DOM snapshot before the full app starts when the snapshot matches the current route, build, age limit, and per-movie dependency stamp;
   - saved movie DOM snapshots intentionally replace dynamic user/social/similar areas with loading states, so static movie content can render early without trusting stale ratings, watchlist state, reviews, comments, or similar movies.
+- `page-warm-start.js`
+  - is loaded by secondary HTML shells (`user.html`, `following.html`, `notifications.html`, `editor.html`, `name.html`, `directors.html`) before Supabase and the main app loader;
+  - restores sanitized secondary page DOM snapshots keyed by page route, build, user id, global data mutation stamp, and local dependency stamps;
+  - is the default warm-return mechanism for future non-catalog/non-movie pages unless a page has a stronger custom warm-start reason.
 - `app-script-loader.js`
   - waits for `window.__ENV_READY__`;
   - loads `shared-layout.js`;
@@ -80,16 +84,19 @@ Startup shell visibility rule:
 
 - HTML shells must hide `.page` and `#sharedFooterMount` with `display: none` before `app-ready`, not `visibility: hidden`. Some form-control rules intentionally set descendant `select` elements back to `visibility: visible`, which can otherwise leak controls such as the catalog sort select over the boot screen.
 - `index.html` and `movie.html` may temporarily redisplay a validated warm-start shell before `app-ready` as soon as `app-styles-ready` is set. They reserve empty shared-header space until shared UI mounts so cached content appears quickly without layout jumps or unstyled controls.
+- Secondary page shells use the same rule through `html.app-page-warm-started`: redisplay the restored page only after `app-styles-ready`, reserve empty shared-header space, and keep the boot shell visible until styles are usable.
+- While `app-page-warm-started` is hydrating, secondary page controllers must not replace the restored DOM with their initial loading state. `app.js` exposes `hasWarmStartedPageDom` to those controllers as a one-init-cycle flag; after page init completes, loading states work normally again.
 - Warm-start redisplay rules should match the final page scrollbar policy (`overflow-y: scroll`) so a restored shell does not shift when `app-ready` lands.
 - Warm-started catalog/movie shells hide the boot loader only after `app-styles-ready`. If a DOM snapshot is restored before styles are usable, keep the loader rather than showing an empty dark page.
 - The boot loader may set `app-styles-ready` from a same-build cached stylesheet bundle before `/env` and live CSS complete. The live `<link>` stylesheets remain the source of truth and remove the cached inline styles after they load.
+- Future app pages with their own HTML shell must either use the shared `page-warm-start.js` contract or explicitly document why they need a page-specific warm-start script. Do not introduce a new shell that exposes static HTML or waits for full data reload when a valid same-tab DOM snapshot can be restored.
 
 Production asset URL strategy:
 
 - Core JS/CSS and lazy feature modules use `/app-assets/<APP_BUILD_VERSION>?file=<asset>`.
 - `functions/app-assets/[version].js` allowlists app assets and proxies them from current Pages assets with `no-store`.
 - `_headers` sets core app assets to `public, max-age=0, must-revalidate`.
-- Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `catalog-page.css`, `movie-page.css`, `secondary-pages.css`, secondary page-only CSS, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, lazy feature modules, or `assets/directors-admin-app.js`.
+- Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `catalog-page.css`, `movie-page.css`, `secondary-pages.css`, secondary page-only CSS, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, warm-start scripts, lazy feature modules, or `assets/directors-admin-app.js`.
 
 ## Pages
 
@@ -134,6 +141,7 @@ All HTML-like app shell responses should be no-store.
 - local page dependency stamps in `localStorage`, used to invalidate cached secondary page data for a changed movie without bumping the global catalog mutation stamp;
 - shared movie poster display preference state and UI refresh bridges, including the profile-level "Русские постеры" mode that treats the second uploaded poster as primary when available;
 - bridging legacy app data into the `/directors` Preact island.
+- sanitized secondary page DOM snapshot persistence for `/user/*`, `/following`, `/notifications`, `/editor`, `/name/*`, and `/directors`, including `pagehide` persistence for browser Back/Forward returns.
 
 `shared-layout.js` owns reusable DOM shells:
 

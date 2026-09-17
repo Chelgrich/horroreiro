@@ -36,6 +36,7 @@ const assetGroups = {
     'movie-warm-start.js',
     'movie-user-state.js',
     'notifications-page.js',
+    'page-warm-start.js',
     'person-placeholders.js',
     'profile-data-actions.js',
     'profile-follow-actions.js',
@@ -92,6 +93,7 @@ const startupProfiles = {
   ],
   profile: [
     'boot-loader.js',
+    'page-warm-start.js',
     'app-script-loader.js',
     'shared-layout.js',
     'app-page-runtime.js',
@@ -100,6 +102,7 @@ const startupProfiles = {
   ],
   notifications: [
     'boot-loader.js',
+    'page-warm-start.js',
     'app-script-loader.js',
     'shared-layout.js',
     'app-page-runtime.js',
@@ -108,6 +111,7 @@ const startupProfiles = {
   ],
   directors: [
     'boot-loader.js',
+    'page-warm-start.js',
     'app-script-loader.js',
     'shared-layout.js',
     'app-page-runtime.js',

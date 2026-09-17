@@ -11,6 +11,7 @@ const port = 4181;
 const clientJsFiles = [
   'boot-loader.js',
   'catalog-warm-start.js',
+  'page-warm-start.js',
   'app-script-loader.js',
   'shared-layout.js',
   'custom-select.js',
@@ -76,6 +77,7 @@ const contextSensitiveExactFiles = new Set([
   'catalog-warm-start.js',
   'catalog-url-state.js',
   'catalog-page.css',
+  'page-warm-start.js',
   'movie-editor.css',
   'custom-select.js',
   'docs/CODEX_CONTEXT.md',
@@ -129,6 +131,9 @@ const pageFiles = {
   'name.html': 'director',
   'directors.html': 'directors'
 };
+const secondaryWarmStartPages = new Set(
+  Object.keys(pageFiles).filter(file => !['index.html', 'movie.html'].includes(file))
+);
 
 const routes = [
   { path: '/', expected: 'id="movies"', label: 'catalog' },
@@ -195,6 +200,14 @@ function checkAssetSizeReport() {
   assert(
     report.startup?.catalog?.files?.includes('catalog-warm-start.js'),
     'asset-size-report.mjs: catalog startup profile must include catalog-warm-start.js'
+  );
+  assert(
+    !report.startup?.catalog?.files?.includes('page-warm-start.js') &&
+      !report.startup?.movie?.files?.includes('page-warm-start.js') &&
+      report.startup?.profile?.files?.includes('page-warm-start.js') &&
+      report.startup?.notifications?.files?.includes('page-warm-start.js') &&
+      report.startup?.directors?.files?.includes('page-warm-start.js'),
+    'asset-size-report.mjs: page-warm-start.js must be counted for secondary page startup profiles only'
   );
   assert(
     !report.startup?.movie?.files?.includes('custom-select.js'),
@@ -477,6 +490,12 @@ async function checkStaticGuards() {
       `${file}: movie-warm-start.js must load only on the movie shell`
     );
     assert(
+      secondaryWarmStartPages.has(file)
+        ? html.includes('<script src="/page-warm-start.js')
+        : !html.includes('/page-warm-start.js'),
+      `${file}: page-warm-start.js must load only on secondary warm-start shells`
+    );
+    assert(
       /html:not\(\.app-ready\) \.page,\s*html:not\(\.app-ready\) #sharedFooterMount\s*\{\s*display: none;/m.test(html),
       `${file}: static page shell must use display:none before app-ready so form controls cannot leak through`
     );
@@ -501,6 +520,15 @@ async function checkStaticGuards() {
           html.includes('html.app-movie-warm-started.app-styles-ready:not(.app-load-failed) .app-boot-shell') &&
           html.includes('overflow-y: scroll;'),
         'movie.html: warm-started movie detail must hide boot shell only after styles, redisplay after styles, reserve shared header space, and match final scrollbar policy'
+      );
+    }
+    if (secondaryWarmStartPages.has(file)) {
+      assert(
+        /html\.app-page-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+\.page,\s*html\.app-page-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html) &&
+          html.includes('html.app-page-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty') &&
+          html.includes('html.app-page-warm-started.app-styles-ready:not(.app-load-failed) .app-boot-shell') &&
+          html.includes('overflow-y: scroll;'),
+        `${file}: secondary warm-start pages must hide boot shell only after styles, redisplay after styles, reserve shared header space, and match final scrollbar policy`
       );
     }
     const googleFontStylesheetMatches = html.match(/href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]+"/g) || [];
@@ -530,6 +558,10 @@ async function checkStaticGuards() {
   assert(
     appScriptLoader.includes("const needsCustomSelect = page === 'catalog'"),
     'app-script-loader.js: custom-select.js should be an upfront dependency only for catalog'
+  );
+  assert(
+    appScriptLoader.includes("document.documentElement.classList.remove('app-page-warm-started')"),
+    'app-script-loader.js: app-ready must clear secondary page warm-start state'
   );
   assert(
     bootLoader.includes('/app-assets/') && appScriptLoader.includes('/app-assets/'),
@@ -605,6 +637,7 @@ async function checkStaticGuards() {
     '/movie-social.js',
     '/movie-warm-start.js',
     '/movie-user-state.js',
+    '/page-warm-start.js',
     '/notifications-page.css',
     '/notifications-page.js',
     '/person-placeholders.js',
@@ -649,6 +682,7 @@ async function checkStaticGuards() {
     'catalog-warm-start.js',
     'catalog-url-state.js',
     'catalog-page.css',
+    'page-warm-start.js',
     'movie-editor.css',
     'director-form.css',
     'director-page.js',
@@ -707,6 +741,7 @@ async function checkStaticGuards() {
   const movieSocialJs = await readText('movie-social.js');
   const movieWarmStartJs = await readText('movie-warm-start.js');
   const movieUserStateJs = await readText('movie-user-state.js');
+  const pageWarmStartJs = await readText('page-warm-start.js');
   const moviePageCss = await readText('movie-page.css');
   const notificationsPageJs = await readText('notifications-page.js');
   const profileDataActionsJs = await readText('profile-data-actions.js');
@@ -999,6 +1034,20 @@ async function checkStaticGuards() {
       appJs.includes("window.addEventListener('pagehide', () =>") &&
       appJs.includes('persistCurrentMoviePageDomSnapshot();'),
     'app.js: movie detail DOM snapshots must be indexed by route and persisted on pagehide for stable browser Back/Forward'
+  );
+  assert(
+    pageWarmStartJs.includes("const SECONDARY_PAGE_DOM_SNAPSHOTS_KEY = 'horroreiro_page_dom_snapshots_v1'") &&
+      pageWarmStartJs.includes('function warmStartPage(') &&
+      pageWarmStartJs.includes("document.documentElement.classList.add('app-page-warm-started')") &&
+      pageWarmStartJs.includes('hasFreshLocalDataStamp(snapshot)') &&
+      pageWarmStartJs.includes('hasFreshLocalDependencySnapshot(snapshot)') &&
+      appJs.includes("const SECONDARY_PAGE_DOM_SNAPSHOTS_KEY = 'horroreiro_page_dom_snapshots_v1'") &&
+      appJs.includes('function createSecondaryPageDomSnapshotPayload(') &&
+      appJs.includes('function persistCurrentSecondaryPageDomSnapshot(') &&
+      appJs.includes('function beginSecondaryPageWarmStartHydration(') &&
+      appJs.includes('function endSecondaryPageWarmStartHydration(') &&
+      appJs.includes('bindSecondaryPageSnapshotEvents();'),
+    'secondary warm-start: secondary pages must validate route/build/user/stamps and persist sanitized DOM snapshots for returns'
   );
   assert(
     appJs.includes('function getSanitizedMoviePageDomSnapshotHtml(') &&

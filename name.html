@@ -62,6 +62,25 @@
       display: none;
     }
 
+    html.app-page-warm-started.app-styles-ready:not(.app-load-failed) .app-boot-shell {
+      display: none;
+    }
+
+    html.app-page-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) body {
+      overflow-x: hidden;
+      overflow-y: scroll;
+    }
+
+    html.app-page-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) .page,
+    html.app-page-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedFooterMount {
+      display: block;
+    }
+
+    html.app-page-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty {
+      min-height: 56px;
+      display: block;
+    }
+
     html.app-load-failed .app-boot-shell {
       opacity: 1;
       visibility: visible;
@@ -182,6 +201,8 @@
   </main>
 
   <div id="sharedFooterMount"></div>
+
+  <script src="/page-warm-start.js?v=27"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 

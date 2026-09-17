@@ -37,6 +37,7 @@ export function createNotificationsPageController(context = {}) {
     notificationsPage = null,
     supabaseClient = null,
     getCurrentUser = () => null,
+    hasWarmStartedPageDom = () => false,
     shouldUseAuthenticatedUi = () => false,
     restoreSession = async () => null,
     bindSharedAuthStateListener = () => {},
@@ -1370,7 +1371,9 @@ export function createNotificationsPageController(context = {}) {
       return;
     }
 
-    renderNotificationsPageLoading();
+    if (!hasWarmStartedPageDom()) {
+      renderNotificationsPageLoading();
+    }
 
     try {
       const data = await fetchNotificationsPageData();
@@ -1389,7 +1392,9 @@ export function createNotificationsPageController(context = {}) {
   }
 
   async function initNotificationsPage() {
-    renderNotificationsPageLoading();
+    if (!hasWarmStartedPageDom()) {
+      renderNotificationsPageLoading();
+    }
 
     const restoredUser = await restoreSession();
 

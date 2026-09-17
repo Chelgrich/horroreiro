@@ -6,6 +6,7 @@ export function createEditorPageController(context = {}) {
     editorPage = null,
     getCurrentUser = () => null,
     getIsAdmin = () => false,
+    hasWarmStartedPageDom = () => false,
     shouldUseAuthenticatedUi = () => false,
     restoreSession = async () => null,
     trackEmailConfirmedLoginIfNeeded = () => {},
@@ -376,7 +377,9 @@ export function createEditorPageController(context = {}) {
       return;
     }
 
-    renderEditorPageLoading();
+    if (!hasWarmStartedPageDom()) {
+      renderEditorPageLoading();
+    }
 
     try {
       const data = await fetchEditorCenterData();
@@ -388,7 +391,9 @@ export function createEditorPageController(context = {}) {
   }
 
   async function initEditorPage() {
-    renderEditorPageLoading();
+    if (!hasWarmStartedPageDom()) {
+      renderEditorPageLoading();
+    }
     await restoreSession();
     trackEmailConfirmedLoginIfNeeded();
     await loadEditorPage();
