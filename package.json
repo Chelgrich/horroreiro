@@ -3,6 +3,8 @@
   "type": "module",
   "scripts": {
     "smoke": "node tools/smoke-check.mjs",
+    "smoke:portable": "node tools/portable-runtime-smoke.mjs",
+    "start:portable": "node server/server.mjs",
     "build:directors": "vite build",
     "size": "node tools/asset-size-report.mjs",
     "size:json": "node tools/asset-size-report.mjs --json",

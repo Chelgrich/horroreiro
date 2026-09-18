@@ -12,6 +12,34 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-18 - Add provider-independent server runtime
+
+- Files:
+  - `server/runtime.js`
+  - `server/server.mjs`
+  - `tools/portable-runtime-smoke.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/SERVER_RUNTIME.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `README.md`
+  - `package.json`
+- Summary:
+  - Added a portable Node HTTP runtime that reuses the existing Cloudflare `functions/*` handlers without depending on Cloudflare or Yandex request APIs.
+  - The runtime provides `env.ASSETS.fetch`, route params, static fallback, and the current public route map for local/Docker-compatible serving.
+  - Added `npm run start:portable` and `npm run smoke:portable` as the base checks for future Docker/Yandex/VPS hosting work.
+  - Documented route inventory and the rule that future host adapters should wrap the portable runtime instead of duplicating business logic.
+- Checks:
+  - `node --check server/runtime.js`
+  - `node --check server/server.mjs`
+  - `node --check tools/portable-runtime-smoke.mjs`
+  - `node --check tools/smoke-check.mjs`
+  - `npm run smoke:portable`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Add a Dockerfile only after the portable runtime remains green and route parity is accepted.
+
 ## 2026-09-18 - Roll back Netlify deployment adapter
 
 - Files:

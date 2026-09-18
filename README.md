@@ -48,6 +48,17 @@
 - `/`, `/index.html`, `/movie/*`, `/movie.html`, `/user/*`, `/user.html`, `/following`, `/following.html`, `/notifications`, `/notifications.html` отдаются с корректной no-store HTML-логикой
 - `/sitemap.xml` генерируется динамически из актуальной базы фильмов
 
+## Portable server runtime
+
+- `server/runtime.js` is the provider-independent Node HTTP runtime for future Docker/container hosting.
+- `server/server.mjs` starts the same routes locally without Cloudflare Pages.
+- Host-specific deployment adapters should wrap this runtime rather than duplicating route logic.
+
+```powershell
+npm run start:portable
+npm run smoke:portable
+```
+
 ## Переменные окружения
 
 На Cloudflare Pages нужны:

@@ -1,10 +1,10 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-09-17.
+Last updated: 2026-09-18.
 
 ## Purpose
 
-Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, reviews, comments, profile pages, notifications, manual similar movies, and person/director pages. It is deployed on Cloudflare Pages with Supabase as backend.
+Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, reviews, comments, profile pages, notifications, manual similar movies, and person/director pages. It is currently deployed on Cloudflare Pages with Supabase as backend, and now has a provider-independent Node HTTP runtime as the base for future Docker/container hosting.
 
 ## Read Order For New Work
 
@@ -34,6 +34,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 
 - Active working branch: `dev`.
 - Production branch for `horroreiro.ru`: `main`.
+- Portable hosting migration starts in `server/runtime.js`, not in host-specific config. The runtime reuses existing `functions/*` handlers behind a normal Node HTTP router and should stay free of Yandex/VPS/provider SDKs. Future Docker/Yandex/VPS adapters should wrap this runtime rather than duplicating route logic.
 - Recent production cache incident showed that `/env` can point to the current commit while old static assets are still served if assets are cached too aggressively. Core app assets now go through `/app-assets/<commit>?file=...` and are returned with `no-store`.
 - If the user reports a production-only issue, verify:
   - `https://horroreiro.ru/env`
@@ -131,6 +132,18 @@ Cloudflare Functions route extensionless/detail paths to these shells:
 - `/sitemap.xml`
 
 All HTML-like app shell responses should be no-store.
+
+## Portable Server Runtime
+
+`server/runtime.js` is the provider-independent HTTP runtime for migration work:
+
+- maps the same public routes as the Cloudflare Pages Functions setup;
+- provides a Cloudflare-compatible context to existing `functions/*` handlers;
+- implements `env.ASSETS.fetch` through local file reads;
+- serves static fallback files from the project root;
+- is started locally by `server/server.mjs` and checked by `tools/portable-runtime-smoke.mjs`.
+
+Read `docs/SERVER_RUNTIME.md` before changing portable routing, Docker migration, or host adapters.
 
 ## Client Ownership
 

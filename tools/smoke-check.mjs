@@ -54,8 +54,11 @@ const syntaxFiles = [
   ...clientJsFiles,
   ...lazyJsFiles,
   'vite.config.mjs',
+  'server/runtime.js',
+  'server/server.mjs',
   'functions/app-assets/[version].js',
   'functions/profile-activity-ranks/[userId].js',
+  'tools/portable-runtime-smoke.mjs',
   'tools/asset-size-report.mjs'
 ];
 
@@ -86,6 +89,7 @@ const contextSensitiveExactFiles = new Set([
   'custom-select.js',
   'docs/CODEX_CONTEXT.md',
   'docs/DATA_MODEL.md',
+  'docs/SERVER_RUNTIME.md',
   'director-form.css',
   'director-page.js',
   'director-page.css',
@@ -120,6 +124,7 @@ const contextSensitiveExactFiles = new Set([
 const contextSensitivePrefixes = [
   'assets/',
   'functions/',
+  'server/',
   'src/',
   'tools/'
 ];
@@ -320,6 +325,18 @@ function checkAssetSizeReport() {
   assert(
     Object.values(report.startup || {}).every(profile => !profile.files?.includes('user-page.js')),
     'asset-size-report.mjs: user-page.js must stay lazy-loaded outside startup profiles'
+  );
+}
+
+function checkPortableRuntimeSmoke() {
+  const result = spawnSync(process.execPath, ['tools/portable-runtime-smoke.mjs'], {
+    cwd: rootDir,
+    encoding: 'utf8'
+  });
+
+  assert(
+    result.status === 0,
+    `portable-runtime-smoke.mjs: failed\n${result.stderr || result.stdout}`
   );
 }
 
@@ -698,6 +715,7 @@ async function checkStaticGuards() {
 
   const activeTextTargets = [
     '_headers',
+    'docs/SERVER_RUNTIME.md',
     'index.html',
     'movie.html',
     'user.html',
@@ -756,7 +774,10 @@ async function checkStaticGuards() {
     'secondary-pages.css',
     'app-script-loader.js',
     'app-page-runtime.js',
-    'boot-loader.js'
+    'boot-loader.js',
+    'server/runtime.js',
+    'server/server.mjs',
+    'tools/portable-runtime-smoke.mjs'
   ];
 
   const appJs = await readText('app.js');
@@ -1493,6 +1514,7 @@ async function checkStaticGuards() {
   assert(await fileExists('AGENTS.md'), 'missing Codex entrypoint AGENTS.md');
   assert(await fileExists('docs/CODEX_CONTEXT.md'), 'missing Codex architecture context');
   assert(await fileExists('docs/DATA_MODEL.md'), 'missing Codex data model context');
+  assert(await fileExists('docs/SERVER_RUNTIME.md'), 'missing portable server runtime context');
   assert(await fileExists(contextJournalFile), 'missing Codex recent changes journal');
 
   const attributeSafetyTargets = [
@@ -1632,6 +1654,7 @@ async function checkMovieCommentThreadRenderingContract() {
 
 checkJavaScriptSyntax();
 checkAssetSizeReport();
+checkPortableRuntimeSmoke();
 checkContextJournalUpdated();
 await checkNoTemporaryRootArtifacts();
 await checkStaticGuards();
