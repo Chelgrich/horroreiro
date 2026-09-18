@@ -1,10 +1,10 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-09-18.
+Last updated: 2026-09-17.
 
 ## Purpose
 
-Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, reviews, comments, profile pages, notifications, manual similar movies, and person/director pages. It currently runs on Cloudflare Pages with Supabase as backend; a parallel Netlify adapter exists for a safer hosting migration path.
+Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, reviews, comments, profile pages, notifications, manual similar movies, and person/director pages. It is deployed on Cloudflare Pages with Supabase as backend.
 
 ## Read Order For New Work
 
@@ -34,8 +34,6 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 
 - Active working branch: `dev`.
 - Production branch for `horroreiro.ru`: `main`.
-- `netlify.toml` and `netlify/functions/*` are a parallel host adapter, not a replacement for the current Cloudflare files yet. They preserve the same public URLs (`/env`, `/app-assets`, clean page routes, movie SEO, sitemap, and server Supabase helper endpoints) so Netlify can be tested before DNS moves.
-- Netlify Functions are thin wrappers around the existing Cloudflare Function handlers. If a server route changes in `functions/`, update the matching Netlify wrapper/redirect too.
 - Recent production cache incident showed that `/env` can point to the current commit while old static assets are still served if assets are cached too aggressively. Core app assets now go through `/app-assets/<commit>?file=...` and are returned with `no-store`.
 - If the user reports a production-only issue, verify:
   - `https://horroreiro.ru/env`
@@ -116,7 +114,7 @@ HTML shells:
 - `companies.html`: admin company list for one company role, `data-app-page="company-admin"`.
 - `company.html`: public company detail, `data-app-page="company"`.
 
-Cloudflare Functions route extensionless/detail paths to these shells. `netlify.toml` mirrors the same public routes through static rewrites and Netlify Functions for the dynamic endpoints:
+Cloudflare Functions route extensionless/detail paths to these shells:
 
 - `/`, `/index.html`
 - `/movie/*`, `/movie.html`

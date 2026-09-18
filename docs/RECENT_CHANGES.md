@@ -12,39 +12,25 @@ Format:
 - Follow-up:
 ```
 
-## 2026-09-18 - Add parallel Netlify deployment adapter
+## 2026-09-18 - Roll back Netlify deployment adapter
 
 - Files:
   - `netlify.toml`
-  - `netlify/functions/_netlify-utils.js`
-  - `netlify/functions/env.js`
-  - `netlify/functions/app-assets.js`
-  - `netlify/functions/movie.js`
-  - `netlify/functions/sitemap.js`
-  - `netlify/functions/profile-activity-ranks.js`
-  - `netlify/functions/admin-user-password.js`
+  - `netlify/functions/*`
   - `tools/smoke-check.mjs`
   - `docs/CODEX_CONTEXT.md`
   - `README.md`
+  - `docs/RECENT_CHANGES.md`
 - Summary:
-  - Added a Netlify deploy path in parallel with the current Cloudflare Pages setup.
-  - Netlify Functions now wrap the existing Cloudflare handlers for `/env`, `/app-assets`, movie SEO, sitemap, profile activity ranks, and admin password reset.
-  - `netlify.toml` mirrors the clean app routes to the same HTML shells and keeps HTML/runtime endpoints `no-store`.
-  - Smoke checks now include Netlify function syntax and guard the critical Netlify rewrites.
+  - Removed the parallel Netlify deployment adapter because Netlify and Vercel are not acceptable hosting targets for the Russia-accessibility requirement.
+  - Restored the deployment documentation and smoke-check contracts to the Cloudflare-only state before the Netlify experiment.
+  - Keep future hosting migration work focused on providers that are practically reachable from Russia before adding project adapters.
 - Checks:
-  - `node --check netlify/functions/_netlify-utils.js`
-  - `node --check netlify/functions/env.js`
-  - `node --check netlify/functions/app-assets.js`
-  - `node --check netlify/functions/movie.js`
-  - `node --check netlify/functions/sitemap.js`
-  - `node --check netlify/functions/profile-activity-ranks.js`
-  - `node --check netlify/functions/admin-user-password.js`
   - `node --check tools/smoke-check.mjs`
-  - `node tools/smoke-check.mjs`
   - `git diff --check`
-  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+  - `node tools/smoke-check.mjs`
 - Follow-up:
-  - Create a Netlify site from the repo, add the same public Supabase variables plus `SUPABASE_SERVICE_ROLE_KEY`, deploy `dev`, and test the generated Netlify URL before switching DNS.
+  - Evaluate Russia-accessible static hosting/VPS options before implementing another deployment adapter.
 
 ## 2026-09-17 - Remove admin link from public company not-found state
 

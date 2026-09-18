@@ -56,13 +56,6 @@ const syntaxFiles = [
   'vite.config.mjs',
   'functions/app-assets/[version].js',
   'functions/profile-activity-ranks/[userId].js',
-  'netlify/functions/_netlify-utils.js',
-  'netlify/functions/env.js',
-  'netlify/functions/app-assets.js',
-  'netlify/functions/movie.js',
-  'netlify/functions/sitemap.js',
-  'netlify/functions/profile-activity-ranks.js',
-  'netlify/functions/admin-user-password.js',
   'tools/asset-size-report.mjs'
 ];
 
@@ -111,7 +104,6 @@ const contextSensitiveExactFiles = new Set([
   'movie-social.js',
   'movie-warm-start.js',
   'movie-user-state.js',
-  'netlify.toml',
   'notifications-page.css',
   'notifications-page.js',
   'movie-page.css',
@@ -128,7 +120,6 @@ const contextSensitiveExactFiles = new Set([
 const contextSensitivePrefixes = [
   'assets/',
   'functions/',
-  'netlify/',
   'src/',
   'tools/'
 ];
@@ -707,7 +698,6 @@ async function checkStaticGuards() {
 
   const activeTextTargets = [
     '_headers',
-    'netlify.toml',
     'index.html',
     'movie.html',
     'user.html',
@@ -766,14 +756,7 @@ async function checkStaticGuards() {
     'secondary-pages.css',
     'app-script-loader.js',
     'app-page-runtime.js',
-    'boot-loader.js',
-    'netlify/functions/_netlify-utils.js',
-    'netlify/functions/env.js',
-    'netlify/functions/app-assets.js',
-    'netlify/functions/movie.js',
-    'netlify/functions/sitemap.js',
-    'netlify/functions/profile-activity-ranks.js',
-    'netlify/functions/admin-user-password.js'
+    'boot-loader.js'
   ];
 
   const appJs = await readText('app.js');
@@ -1493,43 +1476,6 @@ async function checkStaticGuards() {
     '/sitemap.xml'
   ].forEach(route => {
     assert(routesConfig.include.includes(route), `_routes.json: missing ${route}`);
-  });
-
-  const netlifyConfig = await readText('netlify.toml');
-  [
-    'publish = "."',
-    'functions = "netlify/functions"',
-    'from = "/env"',
-    'to = "/.netlify/functions/env"',
-    'from = "/app-assets/:version"',
-    'to = "/.netlify/functions/app-assets"',
-    'from = "/profile-activity-ranks/:userId"',
-    'to = "/.netlify/functions/profile-activity-ranks?userId=:userId"',
-    'from = "/admin/users/:userId/password"',
-    'to = "/.netlify/functions/admin-user-password?userId=:userId"',
-    'from = "/movie/:slug"',
-    'to = "/.netlify/functions/movie?route=detail&slug=:slug"',
-    'from = "/movie.html"',
-    'to = "/.netlify/functions/movie"',
-    'from = "/sitemap.xml"',
-    'to = "/.netlify/functions/sitemap"',
-    'for = "/following"',
-    'for = "/notifications"',
-    'for = "/editor"',
-    'for = "/directors"',
-    'for = "/production"',
-    'for = "/distributors"',
-    'for = "/russian-distributors"',
-    'from = "/user/*"',
-    'to = "/user.html"',
-    'from = "/directors"',
-    'to = "/directors.html"',
-    'from = "/production"',
-    'to = "/companies.html"',
-    'from = "/company/*"',
-    'to = "/company.html"'
-  ].forEach(fragment => {
-    assert(netlifyConfig.includes(fragment), `netlify.toml: missing ${fragment}`);
   });
 
   assert(!(await fileExists('sitemap.xml')), 'static sitemap.xml should not shadow the dynamic function');
