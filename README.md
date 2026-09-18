@@ -48,6 +48,13 @@
 - `/`, `/index.html`, `/movie/*`, `/movie.html`, `/user/*`, `/user.html`, `/following`, `/following.html`, `/notifications`, `/notifications.html` отдаются с корректной no-store HTML-логикой
 - `/sitemap.xml` генерируется динамически из актуальной базы фильмов
 
+## Netlify migration adapter
+
+- `netlify.toml` mirrors the current clean routes and no-store runtime endpoints for a parallel Netlify deployment.
+- `netlify/functions/*` wraps the existing Cloudflare Function handlers for `/env`, `/app-assets`, `/movie/*`, `/movie.html`, `/sitemap.xml`, `/profile-activity-ranks/:userId`, and `/admin/users/:userId/password`.
+- Keep Cloudflare and Netlify route behavior in sync until DNS is intentionally moved away from Cloudflare.
+- Netlify must receive the same environment variables: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and server-only `SUPABASE_SERVICE_ROLE_KEY`.
+
 ## Переменные окружения
 
 На Cloudflare Pages нужны:
