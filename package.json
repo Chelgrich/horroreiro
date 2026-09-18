@@ -2,7 +2,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "docker:build": "docker build -t horroreiro-portable .",
     "smoke": "node tools/smoke-check.mjs",
+    "smoke:docker": "node tools/docker-runtime-smoke.mjs",
+    "smoke:docker:required": "node tools/docker-runtime-smoke.mjs --require-docker",
     "smoke:portable": "node tools/portable-runtime-smoke.mjs",
     "start:portable": "node server/server.mjs",
     "build:directors": "vite build",

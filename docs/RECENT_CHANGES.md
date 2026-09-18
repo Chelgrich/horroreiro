@@ -12,6 +12,32 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-18 - Add Docker wrapper for portable runtime
+
+- Files:
+  - `Dockerfile`
+  - `.dockerignore`
+  - `tools/docker-runtime-smoke.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/SERVER_RUNTIME.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `README.md`
+  - `package.json`
+- Summary:
+  - Added a provider-independent Docker image wrapper around `server/server.mjs`.
+  - The image uses Node 24 Alpine, runs as the `node` user, listens on `PORT=8080`, and avoids installing dev dependencies.
+  - Added optional Docker smoke scripts; the smoke skips when Docker is unavailable and has a required mode for Docker-enabled CI or local validation.
+  - Documented Docker as a wrapper around the portable runtime, not a host-specific migration layer.
+- Checks:
+  - `node --check tools/docker-runtime-smoke.mjs`
+  - `npm run smoke:docker` (skipped because Docker is not available in this environment)
+  - `npm run smoke:portable`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+  - `node tools/asset-size-report.mjs --compare tools/asset-size-baseline.json`
+- Follow-up:
+  - Run `npm run smoke:docker:required` on a machine with Docker before using the image for staging.
+
 ## 2026-09-18 - Add provider-independent server runtime
 
 - Files:

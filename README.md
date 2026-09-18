@@ -57,6 +57,8 @@
 ```powershell
 npm run start:portable
 npm run smoke:portable
+npm run docker:build
+npm run smoke:docker
 ```
 
 ## Переменные окружения

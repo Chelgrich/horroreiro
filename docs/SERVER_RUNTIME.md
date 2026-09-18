@@ -13,6 +13,8 @@ Provider-specific deployment files should live outside the runtime. The runtime 
 - `server/runtime.js` creates a portable request router and Cloudflare-compatible handler context.
 - `server/server.mjs` starts the runtime as a plain Node HTTP server on `PORT` for local use and future Docker use.
 - `tools/portable-runtime-smoke.mjs` verifies that the portable runtime answers the important public routes without Cloudflare Pages.
+- `Dockerfile` wraps the same runtime in a minimal Node image.
+- `tools/docker-runtime-smoke.mjs` optionally builds and runs the Docker image when Docker is available.
 
 The runtime currently reuses the existing `functions/*` handlers by providing:
 
@@ -74,6 +76,25 @@ Useful smoke:
 ```powershell
 npm run smoke:portable
 ```
+
+## Docker Run
+
+The Docker image is only a portable wrapper around `server/server.mjs`; it should not contain host-specific logic.
+
+```powershell
+npm run docker:build
+docker run --rm -p 8080:8080 --env-file .env horroreiro-portable
+```
+
+The container listens on `PORT`, defaulting to `8080` in the image.
+
+Optional smoke:
+
+```powershell
+npm run smoke:docker
+```
+
+`smoke:docker` skips cleanly when Docker is not installed. Use `npm run smoke:docker:required` in an environment where Docker must be present.
 
 ## Migration Rule
 

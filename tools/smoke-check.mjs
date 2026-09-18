@@ -58,6 +58,7 @@ const syntaxFiles = [
   'server/server.mjs',
   'functions/app-assets/[version].js',
   'functions/profile-activity-ranks/[userId].js',
+  'tools/docker-runtime-smoke.mjs',
   'tools/portable-runtime-smoke.mjs',
   'tools/asset-size-report.mjs'
 ];
@@ -65,6 +66,8 @@ const syntaxFiles = [
 const contextJournalFile = 'docs/RECENT_CHANGES.md';
 const contextSensitiveExactFiles = new Set([
   'AGENTS.md',
+  '.dockerignore',
+  'Dockerfile',
   'README.md',
   '_headers',
   '_routes.json',
@@ -714,7 +717,9 @@ async function checkStaticGuards() {
   });
 
   const activeTextTargets = [
+    '.dockerignore',
     '_headers',
+    'Dockerfile',
     'docs/SERVER_RUNTIME.md',
     'index.html',
     'movie.html',
@@ -777,6 +782,7 @@ async function checkStaticGuards() {
     'boot-loader.js',
     'server/runtime.js',
     'server/server.mjs',
+    'tools/docker-runtime-smoke.mjs',
     'tools/portable-runtime-smoke.mjs'
   ];
 
@@ -1515,7 +1521,39 @@ async function checkStaticGuards() {
   assert(await fileExists('docs/CODEX_CONTEXT.md'), 'missing Codex architecture context');
   assert(await fileExists('docs/DATA_MODEL.md'), 'missing Codex data model context');
   assert(await fileExists('docs/SERVER_RUNTIME.md'), 'missing portable server runtime context');
+  assert(await fileExists('Dockerfile'), 'missing portable Dockerfile');
+  assert(await fileExists('.dockerignore'), 'missing Docker build ignore file');
+  assert(await fileExists('tools/docker-runtime-smoke.mjs'), 'missing Docker runtime smoke');
   assert(await fileExists(contextJournalFile), 'missing Codex recent changes journal');
+
+  const dockerfile = await readText('Dockerfile');
+  const dockerignore = await readText('.dockerignore');
+  const packageJson = await readText('package.json');
+
+  assert(
+    dockerfile.includes('FROM node:24-alpine') &&
+      dockerfile.includes('ENV PORT=8080') &&
+      dockerfile.includes('USER node') &&
+      dockerfile.includes('CMD ["node", "server/server.mjs"]'),
+    'Dockerfile: portable runtime image must use Node 24, expose PORT 8080, run as node, and start server/server.mjs'
+  );
+  assert(
+    !dockerfile.includes('npm install') && !dockerfile.includes('npm ci'),
+    'Dockerfile: portable runtime image should not install dev dependencies'
+  );
+  assert(
+    dockerignore.includes('node_modules') &&
+      dockerignore.includes('.git') &&
+      dockerignore.includes('docs') &&
+      dockerignore.includes('tools'),
+    '.dockerignore: Docker context must exclude development-only directories'
+  );
+  assert(
+    packageJson.includes('"docker:build": "docker build -t horroreiro-portable ."') &&
+      packageJson.includes('"smoke:docker": "node tools/docker-runtime-smoke.mjs"') &&
+      packageJson.includes('"smoke:docker:required": "node tools/docker-runtime-smoke.mjs --require-docker"'),
+    'package.json: missing Docker build/smoke scripts'
+  );
 
   const attributeSafetyTargets = [
     ...clientJsFiles.filter(item => item !== 'custom-select.js'),

@@ -35,6 +35,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 - Active working branch: `dev`.
 - Production branch for `horroreiro.ru`: `main`.
 - Portable hosting migration starts in `server/runtime.js`, not in host-specific config. The runtime reuses existing `functions/*` handlers behind a normal Node HTTP router and should stay free of Yandex/VPS/provider SDKs. Future Docker/Yandex/VPS adapters should wrap this runtime rather than duplicating route logic.
+- `Dockerfile` is the first portable wrapper around `server/server.mjs`; keep container changes generic and provider-independent.
 - Recent production cache incident showed that `/env` can point to the current commit while old static assets are still served if assets are cached too aggressively. Core app assets now go through `/app-assets/<commit>?file=...` and are returned with `no-store`.
 - If the user reports a production-only issue, verify:
   - `https://horroreiro.ru/env`
@@ -141,7 +142,7 @@ All HTML-like app shell responses should be no-store.
 - provides a Cloudflare-compatible context to existing `functions/*` handlers;
 - implements `env.ASSETS.fetch` through local file reads;
 - serves static fallback files from the project root;
-- is started locally by `server/server.mjs` and checked by `tools/portable-runtime-smoke.mjs`.
+- is started locally by `server/server.mjs`, wrapped by `Dockerfile`, and checked by `tools/portable-runtime-smoke.mjs` plus optional `tools/docker-runtime-smoke.mjs`.
 
 Read `docs/SERVER_RUNTIME.md` before changing portable routing, Docker migration, or host adapters.
 
