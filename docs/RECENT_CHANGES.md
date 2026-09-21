@@ -12,6 +12,33 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-21 - Add deployed runtime smoke
+
+- Files:
+  - `tools/deployed-runtime-smoke.mjs`
+  - `package.json`
+  - `tools/smoke-check.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DEPLOYMENT_INVENTORY.md`
+  - `docs/YANDEX_STAGING_PLAN.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a provider-neutral deployed smoke script for staging/production URLs.
+  - The script checks `/env`, app asset routing, route shells, clean-route fallbacks, sitemap XML, cache headers, build version, and service-key leakage.
+  - Heavy `app.js` asset routing is checked by headers/cache without downloading the whole bundle; a smaller versioned asset verifies body content.
+  - Added `npm run smoke:deployed -- --base-url <url> --expected-version <APP_BUILD_VERSION>` and documented it in the deployment inventory and Yandex staging plan.
+  - Smoke guards now keep the deployed smoke script and package command present.
+- Checks:
+  - `node --check tools/deployed-runtime-smoke.mjs`
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `npm run smoke:portable`
+  - `npm run smoke:docker` (skipped because Docker is not available in this environment)
+  - `npm run smoke:deployed -- --base-url https://dev.horroreiro.ru --allow-dev-version --timeout-ms 20000`
+- Follow-up:
+  - Run `npm run smoke:deployed -- --base-url https://staging.horroreiro.ru --expected-version <sha>` after the first external staging URL exists.
+
 ## 2026-09-21 - Document Yandex staging plan
 
 - Files:

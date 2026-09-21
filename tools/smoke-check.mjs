@@ -56,6 +56,7 @@ const syntaxFiles = [
   'vite.config.mjs',
   'server/runtime.js',
   'server/server.mjs',
+  'tools/deployed-runtime-smoke.mjs',
   'functions/app-assets/[version].js',
   'functions/profile-activity-ranks/[userId].js',
   'tools/docker-runtime-smoke.mjs',
@@ -786,6 +787,7 @@ async function checkStaticGuards() {
     'boot-loader.js',
     'server/runtime.js',
     'server/server.mjs',
+    'tools/deployed-runtime-smoke.mjs',
     'tools/docker-runtime-smoke.mjs',
     'tools/portable-runtime-smoke.mjs'
   ];
@@ -1529,6 +1531,7 @@ async function checkStaticGuards() {
   assert(await fileExists('docs/YANDEX_STAGING_PLAN.md'), 'missing Yandex staging plan');
   assert(await fileExists('Dockerfile'), 'missing portable Dockerfile');
   assert(await fileExists('.dockerignore'), 'missing Docker build ignore file');
+  assert(await fileExists('tools/deployed-runtime-smoke.mjs'), 'missing deployed runtime smoke');
   assert(await fileExists('tools/docker-runtime-smoke.mjs'), 'missing Docker runtime smoke');
   assert(await fileExists(contextJournalFile), 'missing Codex recent changes journal');
 
@@ -1558,10 +1561,33 @@ async function checkStaticGuards() {
   );
   assert(
     packageJson.includes('"docker:build": "docker build -t horroreiro-portable ."') &&
+      packageJson.includes('"smoke:deployed": "node tools/deployed-runtime-smoke.mjs"') &&
       packageJson.includes('"smoke:docker": "node tools/docker-runtime-smoke.mjs"') &&
       packageJson.includes('"smoke:docker:required": "node tools/docker-runtime-smoke.mjs --require-docker"'),
     'package.json: missing Docker build/smoke scripts'
   );
+  const deployedRuntimeSmoke = await readText('tools/deployed-runtime-smoke.mjs');
+
+  [
+    '--base-url',
+    '--expected-version',
+    '--allow-cross-origin-redirect',
+    '--allow-dev-version',
+    '/app-assets/',
+    'APP_BUILD_VERSION',
+    'app-page-runtime.js',
+    'max-age=0',
+    'no-store',
+    'readBody: false',
+    'SUPABASE_SERVICE',
+    'sitemap.xml',
+    'must-revalidate'
+  ].forEach(fragment => {
+    assert(
+      deployedRuntimeSmoke.includes(fragment),
+      `tools/deployed-runtime-smoke.mjs: missing deployed smoke fragment "${fragment}"`
+    );
+  });
   [
     'server/runtime.js',
     'Dockerfile',

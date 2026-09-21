@@ -157,6 +157,12 @@ Direct container URL checks before API Gateway:
 
 Expected result: routes answer through the portable runtime, even if Supabase data returns normal not-found/fallback states for fake slugs.
 
+If the container exposes an external HTTPS URL, run:
+
+```powershell
+npm run smoke:deployed -- --base-url <direct-container-url> --expected-version <APP_BUILD_VERSION>
+```
+
 ## Phase 4 - API Gateway Staging
 
 Create API Gateway only after the direct container URL works.
@@ -176,6 +182,12 @@ Gateway checks:
 - `/sitemap.xml` returns XML;
 - clean app URLs return HTML shells or SEO HTML as expected;
 - POST `/admin/users/:userId/password` remains admin-gated by app/server logic.
+
+Provider-neutral gateway smoke:
+
+```powershell
+npm run smoke:deployed -- --base-url <gateway-url> --expected-version <APP_BUILD_VERSION>
+```
 
 If a future gateway route sends assets to Object Storage, it must pass these additional checks:
 
@@ -213,6 +225,7 @@ Automated checks from a machine that can reach staging:
 ```powershell
 npm run smoke:portable
 npm run smoke:docker:required
+npm run smoke:deployed -- --base-url https://staging.horroreiro.ru --expected-version <APP_BUILD_VERSION>
 node tools/smoke-check.mjs
 ```
 

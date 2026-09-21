@@ -174,6 +174,17 @@ node tools/smoke-check.mjs
 git diff --check
 ```
 
+Run this after a staging/prod URL is reachable:
+
+```powershell
+npm run smoke:deployed -- --base-url https://staging.horroreiro.ru --expected-version <APP_BUILD_VERSION>
+```
+
+The deployed smoke keeps `/env` and `/app-assets/*` strict `no-store`.
+For HTML shells it accepts either `no-store` or `max-age=0, must-revalidate`
+so the same check works against the current Cloudflare deployment and future
+portable-container staging.
+
 On a Docker-enabled deployment machine or CI runner, use the strict Docker check:
 
 ```powershell
