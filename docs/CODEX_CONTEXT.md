@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-09-18.
+Last updated: 2026-09-21.
 
 ## Purpose
 
@@ -36,6 +36,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 - Production branch for `horroreiro.ru`: `main`.
 - Portable hosting migration starts in `server/runtime.js`, not in host-specific config. The runtime reuses existing `functions/*` handlers behind a normal Node HTTP router and should stay free of Yandex/VPS/provider SDKs. Future Docker/Yandex/VPS adapters should wrap this runtime rather than duplicating route logic.
 - `Dockerfile` is the first portable wrapper around `server/server.mjs`; keep container changes generic and provider-independent.
+- Read `docs/DEPLOYMENT_INVENTORY.md` before adding staging, DNS, object-storage, Docker hosting, or provider-specific deployment files. It is the provider-neutral checklist for env vars, routes, assets, DNS/TLS, observability, and parity checks.
 - Recent production cache incident showed that `/env` can point to the current commit while old static assets are still served if assets are cached too aggressively. Core app assets now go through `/app-assets/<commit>?file=...` and are returned with `no-store`.
 - If the user reports a production-only issue, verify:
   - `https://horroreiro.ru/env`
@@ -144,7 +145,7 @@ All HTML-like app shell responses should be no-store.
 - serves static fallback files from the project root;
 - is started locally by `server/server.mjs`, wrapped by `Dockerfile`, and checked by `tools/portable-runtime-smoke.mjs` plus optional `tools/docker-runtime-smoke.mjs`.
 
-Read `docs/SERVER_RUNTIME.md` before changing portable routing, Docker migration, or host adapters.
+Read `docs/SERVER_RUNTIME.md` before changing portable routing, Docker migration, or host adapters. Read `docs/DEPLOYMENT_INVENTORY.md` before planning or implementing a target-host deployment.
 
 ## Client Ownership
 

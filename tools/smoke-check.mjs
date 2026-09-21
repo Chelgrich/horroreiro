@@ -92,6 +92,7 @@ const contextSensitiveExactFiles = new Set([
   'custom-select.js',
   'docs/CODEX_CONTEXT.md',
   'docs/DATA_MODEL.md',
+  'docs/DEPLOYMENT_INVENTORY.md',
   'docs/SERVER_RUNTIME.md',
   'director-form.css',
   'director-page.js',
@@ -720,6 +721,7 @@ async function checkStaticGuards() {
     '.dockerignore',
     '_headers',
     'Dockerfile',
+    'docs/DEPLOYMENT_INVENTORY.md',
     'docs/SERVER_RUNTIME.md',
     'index.html',
     'movie.html',
@@ -1520,6 +1522,7 @@ async function checkStaticGuards() {
   assert(await fileExists('AGENTS.md'), 'missing Codex entrypoint AGENTS.md');
   assert(await fileExists('docs/CODEX_CONTEXT.md'), 'missing Codex architecture context');
   assert(await fileExists('docs/DATA_MODEL.md'), 'missing Codex data model context');
+  assert(await fileExists('docs/DEPLOYMENT_INVENTORY.md'), 'missing portable deployment inventory');
   assert(await fileExists('docs/SERVER_RUNTIME.md'), 'missing portable server runtime context');
   assert(await fileExists('Dockerfile'), 'missing portable Dockerfile');
   assert(await fileExists('.dockerignore'), 'missing Docker build ignore file');
@@ -1528,6 +1531,7 @@ async function checkStaticGuards() {
 
   const dockerfile = await readText('Dockerfile');
   const dockerignore = await readText('.dockerignore');
+  const deploymentInventory = await readText('docs/DEPLOYMENT_INVENTORY.md');
   const packageJson = await readText('package.json');
 
   assert(
@@ -1554,6 +1558,23 @@ async function checkStaticGuards() {
       packageJson.includes('"smoke:docker:required": "node tools/docker-runtime-smoke.mjs --require-docker"'),
     'package.json: missing Docker build/smoke scripts'
   );
+  [
+    'server/runtime.js',
+    'Dockerfile',
+    'SUPABASE_URL',
+    'SUPABASE_ANON_KEY',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    '/app-assets/<APP_BUILD_VERSION>?file=<asset>',
+    'staging.horroreiro.ru',
+    'Cloudflare production',
+    'DNS And TLS',
+    'Staging Parity Checklist'
+  ].forEach(fragment => {
+    assert(
+      deploymentInventory.includes(fragment),
+      `docs/DEPLOYMENT_INVENTORY.md: missing deployment checklist fragment "${fragment}"`
+    );
+  });
 
   const attributeSafetyTargets = [
     ...clientJsFiles.filter(item => item !== 'custom-select.js'),

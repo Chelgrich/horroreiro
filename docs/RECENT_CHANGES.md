@@ -12,6 +12,28 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-21 - Add portable deployment inventory
+
+- Files:
+  - `docs/DEPLOYMENT_INVENTORY.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a provider-neutral deployment inventory for future Russia-accessible hosting migration work.
+  - Documented runtime env vars, server-only secrets, public route inventory, static asset/cache requirements, DNS/TLS guardrails, observability expectations, staging parity checks, and the future host-adapter boundary.
+  - Linked the inventory from the architecture context and added smoke guards so the migration checklist remains present and covers the critical runtime/DNS/secret topics.
+- Checks:
+  - `node --check tools/smoke-check.mjs`
+  - `node --check server/runtime.js`
+  - `node --check server/server.mjs`
+  - `npm run smoke:portable`
+  - `npm run smoke:docker` (skipped because Docker is not available in this environment)
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+- Follow-up:
+  - Use this checklist before adding any Yandex/VPS/provider-specific staging files.
+
 ## 2026-09-18 - Add Docker wrapper for portable runtime
 
 - Files:
