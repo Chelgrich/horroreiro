@@ -12,6 +12,22 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-21 - Require API Gateway service account in Yandex template
+
+- Files:
+  - `deploy/yandex/api-gateway-openapi.example.yaml`
+  - `docs/YANDEX_CONTAINER_RELEASE.md`
+  - `docs/YANDEX_STAGING_PLAN.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Updated the initial Yandex API Gateway OpenAPI template to include a top-level `service_account_id`.
+  - Documented that Serverless Container integrations require a gateway service account with `serverless-containers.containerInvoker` for the target container.
+- Checks:
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Create/select a gateway service account, grant it container invoker access, fill `<service-account-id>` in the spec, and retry gateway creation.
+
 ## 2026-09-21 - Add Yandex API Gateway staging template
 
 - Files:

@@ -131,6 +131,17 @@ Expected result:
 ## 7. Move To API Gateway Only After This Passes
 
 Do not create or debug API Gateway routes until the direct container URL passes the deployed smoke.
+
+API Gateway requires a service account for Serverless Container integrations.
+Create or select a gateway service account, grant it
+`serverless-containers.containerInvoker` for the target container, and use it in
+`deploy/yandex/api-gateway-openapi.example.yaml` as:
+
+```yaml
+x-yc-apigateway:
+  service_account_id: <service-account-id>
+```
+
 When API Gateway is reachable, run the same check:
 
 ```powershell

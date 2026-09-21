@@ -4,8 +4,11 @@ info:
   version: 1.0.0
 
 # Replace <container-id> with the Serverless Container ID.
-# For the first staging gateway, keep the container public and omit service_account_id.
-# When the container is made private, add service_account_id with containerInvoker rights.
+# Replace <service-account-id> with the service account used by API Gateway.
+# The service account must have serverless-containers.containerInvoker for the target container.
+x-yc-apigateway:
+  service_account_id: <service-account-id>
+
 paths:
   /:
     x-yc-apigateway-any-method:
