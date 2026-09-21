@@ -4,7 +4,7 @@ Last updated: 2026-09-21.
 
 ## Purpose
 
-Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, reviews, comments, profile pages, notifications, manual similar movies, and person/director pages. It is currently deployed on Cloudflare Pages with Supabase as backend, and now has a provider-independent Node HTTP runtime as the base for future Docker/container hosting.
+Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, reviews, comments, profile pages, notifications, manual similar movies, and person/director pages. Production is served from Yandex Cloud through API Gateway and a private Serverless Container, with Supabase as backend. The older Cloudflare Pages/Worker deployment should be kept temporarily as a rollback path after the migration.
 
 ## Read Order For New Work
 
@@ -36,6 +36,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 - Active working branch: `dev`.
 - Production branch for `horroreiro.ru`: `main`.
 - Normal release flow: changes are accumulated and pushed on `dev`; the user promotes them to `main`, then merges `main` back into `dev`. Production Yandex images must be built from the exact `main` commit after that promotion, not from an unmerged `dev` commit.
+- Yandex production cutover completed on 2026-09-21. `horroreiro.ru` and `www.horroreiro.ru` should resolve to the Yandex production API Gateway; the production Serverless Container should stay private and callable only through the gateway service account.
 - Portable hosting migration starts in `server/runtime.js`, not in host-specific config. The runtime reuses existing `functions/*` handlers behind a normal Node HTTP router and should stay free of Yandex/VPS/provider SDKs. Future Docker/Yandex/VPS adapters should wrap this runtime rather than duplicating route logic.
 - `Dockerfile` is the first portable wrapper around `server/server.mjs`; keep container changes generic and provider-independent.
 - `tools/deployed-runtime-smoke.mjs` is the provider-neutral external smoke for deployed staging/production URLs. Use `npm run smoke:deployed -- --base-url <url> --expected-version <APP_BUILD_VERSION>` after a host is reachable.

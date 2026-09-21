@@ -12,6 +12,24 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-21 - Record Yandex production cutover completion
+
+- Files:
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/YANDEX_PRODUCTION_CUTOVER.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Updated project context to state that production is now served by Yandex API Gateway and a private Serverless Container.
+  - Added production cutover status notes: both apex and `www` passed deployed smoke, while the direct production container URL should remain private.
+  - Kept Cloudflare as a temporary rollback path rather than the primary host.
+- Checks:
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+  - `npm run smoke:deployed -- --base-url "https://horroreiro.ru" --expected-version <main-sha>`
+  - `npm run smoke:deployed -- --base-url "https://www.horroreiro.ru" --expected-version <main-sha>`
+- Follow-up:
+  - Monitor production logs and keep Cloudflare rollback available for several days before removing old routes/resources.
+
 ## 2026-09-21 - Add Yandex production cutover runbook
 
 - Files:

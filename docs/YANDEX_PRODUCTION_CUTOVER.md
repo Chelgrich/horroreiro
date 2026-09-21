@@ -6,6 +6,17 @@ Yandex production domain has worked for several days.
 
 Do not commit real Yandex ids, DNS tokens, service-account ids, or secrets.
 
+## Current Status
+
+Production cutover completed on 2026-09-21.
+
+- `horroreiro.ru` smoke passed on the Yandex production gateway.
+- `www.horroreiro.ru` smoke passed on the Yandex production gateway.
+- The production Serverless Container is private and should return `403` on its
+  direct `containers.yandexcloud.net` URL.
+- Keep the old Cloudflare deployment alive for several days as a DNS rollback
+  target.
+
 ## Architecture Choice
 
 Production should use a separate Yandex Serverless Container and API Gateway:
