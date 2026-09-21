@@ -12,6 +12,24 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-21 - Add Yandex API Gateway staging template
+
+- Files:
+  - `deploy/yandex/api-gateway-openapi.example.yaml`
+  - `docs/YANDEX_CONTAINER_RELEASE.md`
+  - `docs/YANDEX_STAGING_PLAN.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a minimal OpenAPI spec for the first Yandex API Gateway staging proxy.
+  - Documented the proven PowerShell `docker buildx` command for Yandex images with `linux/amd64`, no provenance, and no SBOM.
+  - Linked the API Gateway staging plan to the reusable root plus greedy proxy spec.
+- Checks:
+  - `node --check tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Create the first gateway with the template, run deployed smoke against its public gateway URL, and only then move on to domain/TLS.
+
 ## 2026-09-21 - Fix Yandex PORT environment guidance
 
 - Files:

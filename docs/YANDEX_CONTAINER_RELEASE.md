@@ -39,15 +39,29 @@ git diff --check
 
 ## 3. Build And Tag The Image
 
-Local generic tag:
+Recommended Windows/PowerShell build command for Yandex Serverless Containers:
+
+```powershell
+$REGISTRY_ID = "<registry-id>"
+$VERSION = (git rev-parse HEAD).Trim()
+$IMAGE = "cr.yandex/$REGISTRY_ID/horroreiro"
+
+docker buildx build `
+  --platform linux/amd64 `
+  --provenance=false `
+  --sbom=false `
+  --load `
+  -t "${IMAGE}:${VERSION}" .
+
+docker image inspect "${IMAGE}:${VERSION}" --format '{{.Os}}/{{.Architecture}}'
+```
+
+The inspected architecture must be `linux/amd64`.
+
+Generic Docker build/tag equivalent:
 
 ```powershell
 docker build -t horroreiro-portable:<full-git-sha> .
-```
-
-Yandex Container Registry tag:
-
-```powershell
 docker tag horroreiro-portable:<full-git-sha> cr.yandex/<registry-id>/horroreiro:<full-git-sha>
 ```
 

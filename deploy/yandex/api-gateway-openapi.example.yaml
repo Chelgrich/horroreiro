@@ -1,0 +1,33 @@
+openapi: 3.0.0
+info:
+  title: horroreiro-staging-gateway
+  version: 1.0.0
+
+# Replace <container-id> with the Serverless Container ID.
+# For the first staging gateway, keep the container public and omit service_account_id.
+# When the container is made private, add service_account_id with containerInvoker rights.
+paths:
+  /:
+    x-yc-apigateway-any-method:
+      summary: Proxy root to Horroreiro container
+      operationId: proxyRoot
+      x-yc-apigateway-integration:
+        type: serverless_containers
+        container_id: <container-id>
+
+  /{proxy+}:
+    x-yc-apigateway-any-method:
+      summary: Proxy all routes to Horroreiro container
+      operationId: proxyAnyRoute
+      parameters:
+        - name: proxy
+          in: path
+          required: false
+          schema:
+            type: string
+            default: "-"
+          style: simple
+          explode: false
+      x-yc-apigateway-integration:
+        type: serverless_containers
+        container_id: <container-id>

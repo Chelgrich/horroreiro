@@ -184,6 +184,10 @@ First gateway spec should be boring:
 - do not split Object Storage yet;
 - add CORS only if a real browser check shows it is needed.
 
+Use `deploy/yandex/api-gateway-openapi.example.yaml` as the initial spec. It has
+separate root and greedy proxy routes so both `/` and clean app URLs are routed to
+the same Serverless Container.
+
 Gateway checks:
 
 - `/env` returns a valid JS env payload;
