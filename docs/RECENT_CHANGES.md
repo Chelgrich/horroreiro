@@ -12,6 +12,20 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-21 - Record PowerShell placeholder rule
+
+- Files:
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a workflow trap explaining that user-facing PowerShell commands should not include angle-bracket placeholders like `<url>` or `<id>`.
+  - Future executable commands should use concrete known values or quoted variables to avoid PowerShell redirection parser errors.
+- Checks:
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Use concrete Yandex Gateway/container values in the next migration commands.
+
 ## 2026-09-21 - Require API Gateway service account in Yandex template
 
 - Files:

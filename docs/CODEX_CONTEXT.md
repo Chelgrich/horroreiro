@@ -28,6 +28,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 - Do not pass bare `*.js` path globs to `rg` in PowerShell. Use exact files or `rg "pattern" -g "*.js"` to avoid path syntax errors.
 - When an `rg` pattern contains literal quotes or several `|` alternatives in PowerShell, prefer simple separate `rg` calls or a single-quoted pattern without backslash-escaped quotes. PowerShell does not treat `\"` as a string escape, so complex double-quoted regex commands can split into broken pipeline fragments.
 - Do not chain PowerShell commands with `&&`; this shell can reject it as an invalid statement separator. Run `git add`, `git commit`, and similar steps as separate tool calls.
+- When giving PowerShell commands for the user to run, avoid angle-bracket placeholders such as `<url>` or `<id>` because PowerShell treats `<` as redirection syntax. Prefer concrete known values or assign named variables with quoted values.
 - When a browser-console command is needed for the user, prefer a compact single-line IIFE or clear snippet instructions; if clipboard/browser focus blocks access, switch to a textarea/manual-paste path instead of retrying the same command.
 
 ## Branches And Deploy
