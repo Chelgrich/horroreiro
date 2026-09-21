@@ -12,6 +12,30 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-21 - Fix Yandex PORT environment guidance
+
+- Files:
+  - `deploy/yandex/serverless-container.env.example`
+  - `tools/container-release-preflight.mjs`
+  - `docs/DEPLOYMENT_INVENTORY.md`
+  - `docs/YANDEX_CONTAINER_RELEASE.md`
+  - `docs/YANDEX_STAGING_PLAN.md`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Removed `PORT=8080` from the Yandex Serverless Container env example.
+  - Updated release preflight so Yandex env examples must not define `PORT`.
+  - Clarified that Yandex injects `PORT` automatically in HTTP-server mode and rejects user-defined `PORT` variables.
+  - Kept Dockerfile `PORT=8080` as the local/generic-container fallback.
+- Checks:
+  - `node --check tools/container-release-preflight.mjs`
+  - `npm run release:container:preflight -- --expected-version <current-head> --allow-dirty`
+  - `node --check tools/smoke-check.mjs`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - In Yandex revision UI, remove the `PORT` environment variable and save the revision again.
+
 ## 2026-09-21 - Add Yandex container release preflight
 
 - Files:

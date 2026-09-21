@@ -92,7 +92,10 @@ Keep:
 
 - `NODE_ENV=production`
 - `HOST=0.0.0.0`
-- `PORT=8080`
+
+Do not set `PORT` manually in Yandex Serverless Containers. In HTTP-server mode,
+Yandex injects `PORT` automatically and rejects user-defined `PORT` variables.
+The Dockerfile default `PORT=8080` is only a local/generic-container fallback.
 
 Initial resource settings should be conservative. Measure after the staging smoke passes.
 

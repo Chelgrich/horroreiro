@@ -1594,7 +1594,8 @@ async function checkStaticGuards() {
   [
     'NODE_ENV=production',
     'HOST=0.0.0.0',
-    'PORT=8080',
+    'Do not set PORT in Yandex Serverless Containers.',
+    'Yandex injects PORT automatically',
     'APP_BUILD_VERSION=<full-git-sha>',
     'SUPABASE_URL=https://<project-ref>.supabase.co',
     'SUPABASE_ANON_KEY=<supabase-anon-or-publishable-key>',
@@ -1608,6 +1609,10 @@ async function checkStaticGuards() {
   assert(
     !/eyJ[a-zA-Z0-9_-]{20,}|sb_secret_/i.test(yandexContainerEnvExample),
     'deploy/yandex/serverless-container.env.example must not contain real secrets'
+  );
+  assert(
+    !/^PORT=/m.test(yandexContainerEnvExample),
+    'deploy/yandex/serverless-container.env.example must not define PORT because Yandex injects it'
   );
   const deployedRuntimeSmoke = await readText('tools/deployed-runtime-smoke.mjs');
 
@@ -1673,6 +1678,7 @@ async function checkStaticGuards() {
   [
     'npm run release:container:preflight -- --expected-version <full-git-sha>',
     'deploy/yandex/serverless-container.env.example',
+    'Do not set `PORT` manually in Yandex Serverless Containers',
     'docker build -t horroreiro-portable:<full-git-sha> .',
     'cr.yandex/<registry-id>/horroreiro:<full-git-sha>',
     'npm run smoke:deployed -- --base-url <direct-container-url> --expected-version <full-git-sha>'

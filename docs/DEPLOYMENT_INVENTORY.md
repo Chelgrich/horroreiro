@@ -36,6 +36,10 @@ Required environment variables:
 - `HOST`
 - `NODE_ENV=production`
 
+Host-specific note: Yandex Serverless Containers inject `PORT` automatically in
+HTTP-server mode and reject user-defined `PORT` variables. Keep `PORT` in the
+generic Docker runtime contract, but do not add it to Yandex revision env.
+
 Server-only environment variables:
 
 - `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SERVICE_KEY`

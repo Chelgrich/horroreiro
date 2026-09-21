@@ -106,7 +106,6 @@ function assertEnvExampleSafe(text, values, expectedVersion) {
   const requiredKeys = [
     'NODE_ENV',
     'HOST',
-    'PORT',
     'APP_BUILD_VERSION',
     'SUPABASE_URL',
     'SUPABASE_ANON_KEY',
@@ -119,7 +118,7 @@ function assertEnvExampleSafe(text, values, expectedVersion) {
 
   assert(values.get('NODE_ENV') === 'production', 'env example: NODE_ENV must be production');
   assert(values.get('HOST') === '0.0.0.0', 'env example: HOST must be 0.0.0.0');
-  assert(values.get('PORT') === '8080', 'env example: PORT must be 8080');
+  assert(!values.has('PORT'), 'env example: do not set PORT for Yandex Serverless Containers');
 
   if (expectedVersion) {
     assert(

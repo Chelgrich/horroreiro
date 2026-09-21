@@ -136,10 +136,13 @@ Runtime env:
 
 - `NODE_ENV=production`
 - `HOST=0.0.0.0`
-- `PORT=8080`
 - `APP_BUILD_VERSION=<full-git-sha>`
 - `SUPABASE_URL=<public project url>`
 - `SUPABASE_ANON_KEY=<public anon key>`
+
+Do not set `PORT` manually in the Yandex Serverless Container revision.
+Yandex injects `PORT` automatically in HTTP-server mode and rejects user-defined
+`PORT` variables. The Dockerfile default `PORT=8080` remains only a local/generic-container fallback.
 
 Server-only env:
 
