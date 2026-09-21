@@ -187,7 +187,10 @@ First gateway spec should be boring:
 API Gateway requires a service account for Serverless Container integrations. Create
 or select a service account for the gateway and grant it
 `serverless-containers.containerInvoker` for the target container before creating
-the gateway.
+the gateway. Replace `<service-account-id>` with the real ID, for example `aje...`;
+angle brackets are placeholders, not valid deployment values. The account creating
+the gateway must be allowed to use this service account, for example via
+`iam.serviceAccounts.user` or a broader owner/admin role.
 
 Use `deploy/yandex/api-gateway-openapi.example.yaml` as the initial spec. It has
 separate root and greedy proxy routes so both `/` and clean app URLs are routed to

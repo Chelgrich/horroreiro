@@ -142,6 +142,11 @@ x-yc-apigateway:
   service_account_id: <service-account-id>
 ```
 
+Replace `<service-account-id>` with the real ID, for example `aje...`; angle
+brackets are placeholders, not valid YAML values for a deployment. The account
+creating the gateway must be allowed to use the service account, for example via
+`iam.serviceAccounts.user` or a broader owner/admin role.
+
 When API Gateway is reachable, run the same check:
 
 ```powershell

@@ -4,8 +4,10 @@ info:
   version: 1.0.0
 
 # Replace <container-id> with the Serverless Container ID.
-# Replace <service-account-id> with the service account used by API Gateway.
+# Replace <service-account-id> with the real service account ID, for example aje...
+# Do not leave angle-bracket placeholders in the deployed spec.
 # The service account must have serverless-containers.containerInvoker for the target container.
+# The account/user creating the gateway must also be allowed to use this service account.
 x-yc-apigateway:
   service_account_id: <service-account-id>
 

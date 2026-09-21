@@ -22,6 +22,7 @@ Format:
 - Summary:
   - Updated the initial Yandex API Gateway OpenAPI template to include a top-level `service_account_id`.
   - Documented that Serverless Container integrations require a gateway service account with `serverless-containers.containerInvoker` for the target container.
+  - Clarified that `<service-account-id>` is a placeholder and the gateway creator must be allowed to use the chosen service account.
 - Checks:
   - `git diff --check`
   - `node tools/smoke-check.mjs`
