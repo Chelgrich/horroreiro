@@ -15,6 +15,7 @@ Provider-specific deployment files should live outside the runtime. The runtime 
 - `tools/portable-runtime-smoke.mjs` verifies that the portable runtime answers the important public routes without Cloudflare Pages.
 - `Dockerfile` wraps the same runtime in a minimal Node image.
 - `tools/docker-runtime-smoke.mjs` optionally builds and runs the Docker image when Docker is available.
+- `tools/container-release-preflight.mjs` checks a container release candidate before the image is built/pushed.
 
 The runtime currently reuses the existing `functions/*` handlers by providing:
 

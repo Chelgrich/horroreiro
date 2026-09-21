@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "docker:build": "docker build -t horroreiro-portable .",
+    "release:container:preflight": "node tools/container-release-preflight.mjs",
     "smoke": "node tools/smoke-check.mjs",
     "smoke:docker": "node tools/docker-runtime-smoke.mjs",
     "smoke:deployed": "node tools/deployed-runtime-smoke.mjs",

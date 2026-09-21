@@ -12,6 +12,35 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-21 - Add Yandex container release preflight
+
+- Files:
+  - `tools/container-release-preflight.mjs`
+  - `deploy/yandex/serverless-container.env.example`
+  - `docs/YANDEX_CONTAINER_RELEASE.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DEPLOYMENT_INVENTORY.md`
+  - `docs/SERVER_RUNTIME.md`
+  - `docs/YANDEX_STAGING_PLAN.md`
+  - `package.json`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a provider-neutral container release preflight script for Docker/Yandex release candidates.
+  - Added a safe Yandex Serverless Container env example with placeholders only.
+  - Added a manual Yandex container release checklist covering build version, local checks, image tagging, registry push, Serverless Container env, and deployed smoke.
+  - Smoke guards now keep the release preflight, env example, checklist, and package command present.
+- Checks:
+  - `node --check tools/container-release-preflight.mjs`
+  - `node --check tools/smoke-check.mjs`
+  - `npm run release:container:preflight -- --expected-version <current-head> --allow-dirty`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+  - `npm run smoke:portable`
+  - `npm run smoke:docker` (skipped because Docker is not available in this environment)
+- Follow-up:
+  - Use `docs/YANDEX_CONTAINER_RELEASE.md` for the first manual Yandex image build/push attempt.
+
 ## 2026-09-21 - Add deployed runtime smoke
 
 - Files:

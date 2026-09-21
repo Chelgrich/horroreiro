@@ -7,6 +7,7 @@ Read first:
 - `docs/DEPLOYMENT_INVENTORY.md`
 - `docs/SERVER_RUNTIME.md`
 - `docs/CODEX_CONTEXT.md`
+- `docs/YANDEX_CONTAINER_RELEASE.md`
 
 Official service references checked on 2026-09-21:
 
@@ -65,6 +66,7 @@ Object Storage is useful later, but the current app-assets URL contract uses a q
 Preflight:
 
 ```powershell
+npm run release:container:preflight -- --expected-version <APP_BUILD_VERSION>
 npm run smoke:portable
 npm run smoke:docker:required
 node tools/smoke-check.mjs
@@ -100,6 +102,8 @@ Manual record to keep outside git:
 Do not commit those ids unless they are intentionally public and non-sensitive.
 
 ## Phase 2 - Build And Push Image
+
+Use `docs/YANDEX_CONTAINER_RELEASE.md` as the operational checklist for this phase.
 
 Local or CI build:
 
@@ -140,6 +144,8 @@ Runtime env:
 Server-only env:
 
 - `SUPABASE_SERVICE_ROLE_KEY=<service role key>` or `SUPABASE_SERVICE_KEY=<service role key>`
+
+Use `deploy/yandex/serverless-container.env.example` as the safe key list. Fill real values only in Yandex Cloud UI/CLI or a local untracked secret store, never in git.
 
 Initial resource settings should be conservative and then measured. Do not optimize CPU/RAM before the staging smoke passes.
 
@@ -225,6 +231,7 @@ Automated checks from a machine that can reach staging:
 ```powershell
 npm run smoke:portable
 npm run smoke:docker:required
+npm run release:container:preflight -- --expected-version <APP_BUILD_VERSION>
 npm run smoke:deployed -- --base-url https://staging.horroreiro.ru --expected-version <APP_BUILD_VERSION>
 node tools/smoke-check.mjs
 ```

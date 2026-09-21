@@ -37,8 +37,10 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 - Portable hosting migration starts in `server/runtime.js`, not in host-specific config. The runtime reuses existing `functions/*` handlers behind a normal Node HTTP router and should stay free of Yandex/VPS/provider SDKs. Future Docker/Yandex/VPS adapters should wrap this runtime rather than duplicating route logic.
 - `Dockerfile` is the first portable wrapper around `server/server.mjs`; keep container changes generic and provider-independent.
 - `tools/deployed-runtime-smoke.mjs` is the provider-neutral external smoke for deployed staging/production URLs. Use `npm run smoke:deployed -- --base-url <url> --expected-version <APP_BUILD_VERSION>` after a host is reachable.
+- `tools/container-release-preflight.mjs` is the provider-neutral preflight for a container release candidate. Use it before building/pushing a Yandex Serverless Container image.
 - Read `docs/DEPLOYMENT_INVENTORY.md` before adding staging, DNS, object-storage, Docker hosting, or provider-specific deployment files. It is the provider-neutral checklist for env vars, routes, assets, DNS/TLS, observability, and parity checks.
 - Read `docs/YANDEX_STAGING_PLAN.md` before creating Yandex API Gateway, Serverless Container, Object Storage, Cloud DNS, Certificate Manager, or Container Registry artifacts. The first Yandex staging should route through the single portable container; split `/app-assets/*` to Object Storage only after the current query-string asset contract is explicitly tested.
+- Read `docs/YANDEX_CONTAINER_RELEASE.md` before building, tagging, pushing, or configuring the first Yandex Serverless Container revision.
 - Recent production cache incident showed that `/env` can point to the current commit while old static assets are still served if assets are cached too aggressively. Core app assets now go through `/app-assets/<commit>?file=...` and are returned with `no-store`.
 - If the user reports a production-only issue, verify:
   - `https://horroreiro.ru/env`
@@ -147,8 +149,9 @@ All HTML-like app shell responses should be no-store.
 - serves static fallback files from the project root;
 - is started locally by `server/server.mjs`, wrapped by `Dockerfile`, and checked by `tools/portable-runtime-smoke.mjs` plus optional `tools/docker-runtime-smoke.mjs`.
 - can be checked from the outside after deployment with `tools/deployed-runtime-smoke.mjs`.
+- release candidates can be statically preflighted with `tools/container-release-preflight.mjs`.
 
-Read `docs/SERVER_RUNTIME.md` before changing portable routing, Docker migration, or host adapters. Read `docs/DEPLOYMENT_INVENTORY.md` before planning or implementing a target-host deployment. Read `docs/YANDEX_STAGING_PLAN.md` before any Yandex-specific staging or cutover work.
+Read `docs/SERVER_RUNTIME.md` before changing portable routing, Docker migration, or host adapters. Read `docs/DEPLOYMENT_INVENTORY.md` before planning or implementing a target-host deployment. Read `docs/YANDEX_STAGING_PLAN.md` and `docs/YANDEX_CONTAINER_RELEASE.md` before any Yandex-specific staging or cutover work.
 
 ## Client Ownership
 

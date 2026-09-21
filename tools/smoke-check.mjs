@@ -56,6 +56,7 @@ const syntaxFiles = [
   'vite.config.mjs',
   'server/runtime.js',
   'server/server.mjs',
+  'tools/container-release-preflight.mjs',
   'tools/deployed-runtime-smoke.mjs',
   'functions/app-assets/[version].js',
   'functions/profile-activity-ranks/[userId].js',
@@ -95,6 +96,7 @@ const contextSensitiveExactFiles = new Set([
   'docs/DATA_MODEL.md',
   'docs/DEPLOYMENT_INVENTORY.md',
   'docs/SERVER_RUNTIME.md',
+  'docs/YANDEX_CONTAINER_RELEASE.md',
   'docs/YANDEX_STAGING_PLAN.md',
   'director-form.css',
   'director-page.js',
@@ -129,6 +131,7 @@ const contextSensitiveExactFiles = new Set([
 ]);
 const contextSensitivePrefixes = [
   'assets/',
+  'deploy/',
   'functions/',
   'server/',
   'src/',
@@ -787,6 +790,7 @@ async function checkStaticGuards() {
     'boot-loader.js',
     'server/runtime.js',
     'server/server.mjs',
+    'tools/container-release-preflight.mjs',
     'tools/deployed-runtime-smoke.mjs',
     'tools/docker-runtime-smoke.mjs',
     'tools/portable-runtime-smoke.mjs'
@@ -1529,14 +1533,19 @@ async function checkStaticGuards() {
   assert(await fileExists('docs/DEPLOYMENT_INVENTORY.md'), 'missing portable deployment inventory');
   assert(await fileExists('docs/SERVER_RUNTIME.md'), 'missing portable server runtime context');
   assert(await fileExists('docs/YANDEX_STAGING_PLAN.md'), 'missing Yandex staging plan');
+  assert(await fileExists('docs/YANDEX_CONTAINER_RELEASE.md'), 'missing Yandex container release checklist');
+  assert(await fileExists('deploy/yandex/serverless-container.env.example'), 'missing Yandex Serverless Container env example');
   assert(await fileExists('Dockerfile'), 'missing portable Dockerfile');
   assert(await fileExists('.dockerignore'), 'missing Docker build ignore file');
+  assert(await fileExists('tools/container-release-preflight.mjs'), 'missing container release preflight');
   assert(await fileExists('tools/deployed-runtime-smoke.mjs'), 'missing deployed runtime smoke');
   assert(await fileExists('tools/docker-runtime-smoke.mjs'), 'missing Docker runtime smoke');
   assert(await fileExists(contextJournalFile), 'missing Codex recent changes journal');
 
   const dockerfile = await readText('Dockerfile');
   const dockerignore = await readText('.dockerignore');
+  const yandexContainerRelease = await readText('docs/YANDEX_CONTAINER_RELEASE.md');
+  const yandexContainerEnvExample = await readText('deploy/yandex/serverless-container.env.example');
   const deploymentInventory = await readText('docs/DEPLOYMENT_INVENTORY.md');
   const yandexStagingPlan = await readText('docs/YANDEX_STAGING_PLAN.md');
   const packageJson = await readText('package.json');
@@ -1561,10 +1570,44 @@ async function checkStaticGuards() {
   );
   assert(
     packageJson.includes('"docker:build": "docker build -t horroreiro-portable ."') &&
+      packageJson.includes('"release:container:preflight": "node tools/container-release-preflight.mjs"') &&
       packageJson.includes('"smoke:deployed": "node tools/deployed-runtime-smoke.mjs"') &&
       packageJson.includes('"smoke:docker": "node tools/docker-runtime-smoke.mjs"') &&
       packageJson.includes('"smoke:docker:required": "node tools/docker-runtime-smoke.mjs --require-docker"'),
     'package.json: missing Docker build/smoke scripts'
+  );
+  const containerReleasePreflight = await readText('tools/container-release-preflight.mjs');
+
+  [
+    '--expected-version',
+    '--allow-dirty',
+    'serverless-container.env.example',
+    'APP_BUILD_VERSION',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'Dockerfile should stay provider-independent'
+  ].forEach(fragment => {
+    assert(
+      containerReleasePreflight.includes(fragment),
+      `tools/container-release-preflight.mjs: missing release preflight fragment "${fragment}"`
+    );
+  });
+  [
+    'NODE_ENV=production',
+    'HOST=0.0.0.0',
+    'PORT=8080',
+    'APP_BUILD_VERSION=<full-git-sha>',
+    'SUPABASE_URL=https://<project-ref>.supabase.co',
+    'SUPABASE_ANON_KEY=<supabase-anon-or-publishable-key>',
+    'SUPABASE_SERVICE_ROLE_KEY=<service-role-key>'
+  ].forEach(fragment => {
+    assert(
+      yandexContainerEnvExample.includes(fragment),
+      `deploy/yandex/serverless-container.env.example: missing env fragment "${fragment}"`
+    );
+  });
+  assert(
+    !/eyJ[a-zA-Z0-9_-]{20,}|sb_secret_/i.test(yandexContainerEnvExample),
+    'deploy/yandex/serverless-container.env.example must not contain real secrets'
   );
   const deployedRuntimeSmoke = await readText('tools/deployed-runtime-smoke.mjs');
 
@@ -1591,6 +1634,7 @@ async function checkStaticGuards() {
   [
     'server/runtime.js',
     'Dockerfile',
+    'docs/YANDEX_CONTAINER_RELEASE.md',
     'SUPABASE_URL',
     'SUPABASE_ANON_KEY',
     'SUPABASE_SERVICE_ROLE_KEY',
@@ -1612,6 +1656,8 @@ async function checkStaticGuards() {
     'Yandex Object Storage',
     'Yandex Cloud DNS',
     'Yandex Certificate Manager',
+    'docs/YANDEX_CONTAINER_RELEASE.md',
+    'deploy/yandex/serverless-container.env.example',
     'single-container staging',
     '/app-assets/<APP_BUILD_VERSION>?file=<asset>',
     'Supabase Auth',
@@ -1622,6 +1668,18 @@ async function checkStaticGuards() {
     assert(
       yandexStagingPlan.includes(fragment),
       `docs/YANDEX_STAGING_PLAN.md: missing Yandex staging fragment "${fragment}"`
+    );
+  });
+  [
+    'npm run release:container:preflight -- --expected-version <full-git-sha>',
+    'deploy/yandex/serverless-container.env.example',
+    'docker build -t horroreiro-portable:<full-git-sha> .',
+    'cr.yandex/<registry-id>/horroreiro:<full-git-sha>',
+    'npm run smoke:deployed -- --base-url <direct-container-url> --expected-version <full-git-sha>'
+  ].forEach(fragment => {
+    assert(
+      yandexContainerRelease.includes(fragment),
+      `docs/YANDEX_CONTAINER_RELEASE.md: missing release checklist fragment "${fragment}"`
     );
   });
 
