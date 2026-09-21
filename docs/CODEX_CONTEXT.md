@@ -35,6 +35,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 
 - Active working branch: `dev`.
 - Production branch for `horroreiro.ru`: `main`.
+- Normal release flow: changes are accumulated and pushed on `dev`; the user promotes them to `main`, then merges `main` back into `dev`. Production Yandex images must be built from the exact `main` commit after that promotion, not from an unmerged `dev` commit.
 - Portable hosting migration starts in `server/runtime.js`, not in host-specific config. The runtime reuses existing `functions/*` handlers behind a normal Node HTTP router and should stay free of Yandex/VPS/provider SDKs. Future Docker/Yandex/VPS adapters should wrap this runtime rather than duplicating route logic.
 - `Dockerfile` is the first portable wrapper around `server/server.mjs`; keep container changes generic and provider-independent.
 - `tools/deployed-runtime-smoke.mjs` is the provider-neutral external smoke for deployed staging/production URLs. Use `npm run smoke:deployed -- --base-url <url> --expected-version <APP_BUILD_VERSION>` after a host is reachable.
@@ -42,6 +43,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 - Read `docs/DEPLOYMENT_INVENTORY.md` before adding staging, DNS, object-storage, Docker hosting, or provider-specific deployment files. It is the provider-neutral checklist for env vars, routes, assets, DNS/TLS, observability, and parity checks.
 - Read `docs/YANDEX_STAGING_PLAN.md` before creating Yandex API Gateway, Serverless Container, Object Storage, Cloud DNS, Certificate Manager, or Container Registry artifacts. The first Yandex staging should route through the single portable container; split `/app-assets/*` to Object Storage only after the current query-string asset contract is explicitly tested.
 - Read `docs/YANDEX_CONTAINER_RELEASE.md` before building, tagging, pushing, or configuring the first Yandex Serverless Container revision.
+- Read `docs/YANDEX_PRODUCTION_CUTOVER.md` before changing production DNS, creating production Yandex resources, or moving `horroreiro.ru` traffic away from Cloudflare.
 - Recent production cache incident showed that `/env` can point to the current commit while old static assets are still served if assets are cached too aggressively. Core app assets now go through `/app-assets/<commit>?file=...` and are returned with `no-store`.
 - If the user reports a production-only issue, verify:
   - `https://horroreiro.ru/env`

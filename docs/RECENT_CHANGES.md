@@ -12,6 +12,22 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-21 - Add Yandex production cutover runbook
+
+- Files:
+  - `docs/YANDEX_PRODUCTION_CUTOVER.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a production cutover runbook for moving `horroreiro.ru` from Cloudflare to Yandex after staging validation.
+  - Documented the decision to use separate staging and production Serverless Container/API Gateway resources.
+  - Captured the existing `dev` -> `main` -> `dev` promotion flow, Supabase Auth, DNS, smoke-check, and rollback guardrails.
+- Checks:
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Before DNS cutover, promote the approved `dev` changes into `main`, build the production image from the resulting `main` commit, and verify a separate Yandex production gateway.
+
 ## 2026-09-21 - Record PowerShell placeholder rule
 
 - Files:
