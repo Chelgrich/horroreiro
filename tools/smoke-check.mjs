@@ -94,6 +94,7 @@ const contextSensitiveExactFiles = new Set([
   'docs/DATA_MODEL.md',
   'docs/DEPLOYMENT_INVENTORY.md',
   'docs/SERVER_RUNTIME.md',
+  'docs/YANDEX_STAGING_PLAN.md',
   'director-form.css',
   'director-page.js',
   'director-page.css',
@@ -723,6 +724,7 @@ async function checkStaticGuards() {
     'Dockerfile',
     'docs/DEPLOYMENT_INVENTORY.md',
     'docs/SERVER_RUNTIME.md',
+    'docs/YANDEX_STAGING_PLAN.md',
     'index.html',
     'movie.html',
     'user.html',
@@ -1524,6 +1526,7 @@ async function checkStaticGuards() {
   assert(await fileExists('docs/DATA_MODEL.md'), 'missing Codex data model context');
   assert(await fileExists('docs/DEPLOYMENT_INVENTORY.md'), 'missing portable deployment inventory');
   assert(await fileExists('docs/SERVER_RUNTIME.md'), 'missing portable server runtime context');
+  assert(await fileExists('docs/YANDEX_STAGING_PLAN.md'), 'missing Yandex staging plan');
   assert(await fileExists('Dockerfile'), 'missing portable Dockerfile');
   assert(await fileExists('.dockerignore'), 'missing Docker build ignore file');
   assert(await fileExists('tools/docker-runtime-smoke.mjs'), 'missing Docker runtime smoke');
@@ -1532,6 +1535,7 @@ async function checkStaticGuards() {
   const dockerfile = await readText('Dockerfile');
   const dockerignore = await readText('.dockerignore');
   const deploymentInventory = await readText('docs/DEPLOYMENT_INVENTORY.md');
+  const yandexStagingPlan = await readText('docs/YANDEX_STAGING_PLAN.md');
   const packageJson = await readText('package.json');
 
   assert(
@@ -1573,6 +1577,25 @@ async function checkStaticGuards() {
     assert(
       deploymentInventory.includes(fragment),
       `docs/DEPLOYMENT_INVENTORY.md: missing deployment checklist fragment "${fragment}"`
+    );
+  });
+  [
+    'Yandex API Gateway',
+    'Yandex Serverless Container',
+    'Yandex Container Registry',
+    'Yandex Object Storage',
+    'Yandex Cloud DNS',
+    'Yandex Certificate Manager',
+    'single-container staging',
+    '/app-assets/<APP_BUILD_VERSION>?file=<asset>',
+    'Supabase Auth',
+    'staging.horroreiro.ru',
+    'Cloudflare production',
+    'Rollback'
+  ].forEach(fragment => {
+    assert(
+      yandexStagingPlan.includes(fragment),
+      `docs/YANDEX_STAGING_PLAN.md: missing Yandex staging fragment "${fragment}"`
     );
   });
 

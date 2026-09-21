@@ -12,6 +12,30 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-21 - Document Yandex staging plan
+
+- Files:
+  - `docs/YANDEX_STAGING_PLAN.md`
+  - `docs/DEPLOYMENT_INVENTORY.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `tools/smoke-check.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a documentation-only Yandex staging and production cutover plan.
+  - The plan starts with a single Serverless Container behind API Gateway to preserve the existing `/app-assets/<APP_BUILD_VERSION>?file=<asset>` contract.
+  - Documented when to introduce Object Storage, how to handle Container Registry, Certificate Manager, Cloud DNS, Supabase Auth redirects, parity checks, production cutover, and rollback.
+  - Added smoke guards so the Yandex plan remains present and keeps the critical single-container-first, app-assets, DNS/TLS, Supabase Auth, and rollback constraints.
+- Checks:
+  - `node --check tools/smoke-check.mjs`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+  - `npm run smoke:portable`
+  - `npm run smoke:docker` (skipped because Docker is not available in this environment)
+  - `node --check server/runtime.js`
+  - `node --check server/server.mjs`
+- Follow-up:
+  - Use the plan for manual staging; do not add Yandex manifests until staging IDs, DNS model, and app-assets compatibility are confirmed.
+
 ## 2026-09-21 - Add portable deployment inventory
 
 - Files:

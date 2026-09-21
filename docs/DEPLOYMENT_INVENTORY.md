@@ -4,6 +4,8 @@ This inventory is the provider-neutral checklist for moving Horroreiro from the 
 
 It is not a Yandex, VPS, or Cloud.ru manifest. Provider-specific files should be added only after the portable runtime, Docker image, route inventory, DNS, and smoke checks are understood here.
 
+For the current Yandex candidate path, read `docs/YANDEX_STAGING_PLAN.md` after this inventory. That plan is documentation-only and should not be treated as deployed infrastructure.
+
 ## Deployment Rules
 
 - Keep `server/runtime.js` as the server routing source of truth.
