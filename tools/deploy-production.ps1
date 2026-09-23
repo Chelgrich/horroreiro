@@ -93,16 +93,16 @@ function Read-SecretFromPrompt($Name) {
 function Get-RequiredDeployValue($Name, $LocalEnvValues, [switch]$Secret) {
   $value = [Environment]::GetEnvironmentVariable($Name, "Process")
 
+  if ([string]::IsNullOrWhiteSpace($value) -and $LocalEnvValues.ContainsKey($Name)) {
+    $value = [string]$LocalEnvValues[$Name]
+  }
+
   if ([string]::IsNullOrWhiteSpace($value)) {
     $value = [Environment]::GetEnvironmentVariable($Name, "User")
   }
 
   if ([string]::IsNullOrWhiteSpace($value)) {
     $value = [Environment]::GetEnvironmentVariable($Name, "Machine")
-  }
-
-  if ([string]::IsNullOrWhiteSpace($value) -and $LocalEnvValues.ContainsKey($Name)) {
-    $value = [string]$LocalEnvValues[$Name]
   }
 
   if (-not [string]::IsNullOrWhiteSpace($value) -and $value -notmatch '<.*>') {
@@ -114,6 +114,12 @@ function Get-RequiredDeployValue($Name, $LocalEnvValues, [switch]$Secret) {
   }
 
   return Read-Host $Name
+}
+
+function Assert-DeploySecretShape($Name, $Value, $Pattern, $Hint) {
+  if ([string]::IsNullOrWhiteSpace($Value) -or $Value -notmatch $Pattern) {
+    throw "$Name looks invalid. $Hint"
+  }
 }
 
 function Run-DeployedSmoke($Label, $BaseUrl, $ExpectedVersion) {
@@ -140,6 +146,10 @@ $localEnvValues = Read-LocalEnvFile $EnvFile
 $supabaseUrl = Get-RequiredDeployValue "SUPABASE_URL" $localEnvValues
 $supabaseAnonKey = Get-RequiredDeployValue "SUPABASE_ANON_KEY" $localEnvValues
 $supabaseServiceRoleKey = Get-RequiredDeployValue "SUPABASE_SERVICE_ROLE_KEY" $localEnvValues -Secret
+
+Assert-DeploySecretShape "SUPABASE_URL" $supabaseUrl '^https://[^/]+\.supabase\.co/?$' "Expected a Supabase project URL like https://project.supabase.co."
+Assert-DeploySecretShape "SUPABASE_ANON_KEY" $supabaseAnonKey '^(sb_publishable_|eyJ)' "Expected a publishable/anon key."
+Assert-DeploySecretShape "SUPABASE_SERVICE_ROLE_KEY" $supabaseServiceRoleKey '^(sb_secret_|eyJ)' "Expected a service-role secret key."
 
 $image = "cr.yandex/$RegistryId/horroreiro"
 
@@ -176,9 +186,36 @@ if ($imageArchitecture -ne "linux/amd64") {
 
 Run-Step "Push image" { docker push "${image}:${version}" }
 
-$latestRevision = yc serverless container revision list --container-id $ProductionContainerId --format json |
-  ConvertFrom-Json |
-  Sort-Object { [datetime]$_.created_at } -Descending |
+$revisionListRaw = yc serverless container revision list --container-id $ProductionContainerId --format json | ConvertFrom-Json
+$revisionList = @()
+
+foreach ($revision in @($revisionListRaw)) {
+  if ($revision -is [System.Array]) {
+    foreach ($nestedRevision in $revision) {
+      $revisionList += $nestedRevision
+    }
+  } else {
+    $revisionList += $revision
+  }
+}
+
+$latestRevision = $revisionList |
+  Sort-Object -Property @{
+    Expression = {
+      $createdAt = $_.created_at
+
+      if ($createdAt -is [System.Array]) {
+        $createdAt = $createdAt[0]
+      }
+
+      [datetime]::Parse(
+        [string]$createdAt,
+        [System.Globalization.CultureInfo]::InvariantCulture,
+        [System.Globalization.DateTimeStyles]::RoundtripKind
+      )
+    }
+    Descending = $true
+  } |
   Select-Object -First 1
 
 if (-not $latestRevision) {

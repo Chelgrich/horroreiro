@@ -12,6 +12,24 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-23 - Harden production deploy script
+
+- Files:
+  - `tools/deploy-production.ps1`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Fixed production revision lookup after Docker image push by normalizing Yandex CLI JSON output before sorting revisions by `created_at`.
+  - Made local `deploy/yandex/production.env.local` values take priority over persistent user/machine environment variables, while keeping explicit process env overrides.
+  - Added lightweight Supabase URL/key shape validation so a production revision is not deployed with an accidentally corrupted secret value.
+  - Documented the PowerShell `ConvertFrom-Json` array sorting trap in the project context.
+- Checks:
+  - `$tokens = $null; $errors = $null; [System.Management.Automation.Language.Parser]::ParseFile('tools/deploy-production.ps1', [ref]$tokens, [ref]$errors) | Out-Null; if ($errors.Count) { $errors | Format-List; exit 1 }`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+- Follow-up:
+  - Rerun `npm run deploy:production` after filling `deploy/yandex/production.env.local`; the previous failed run had already pushed the Docker image but stopped before deploying the new revision.
+
 ## 2026-09-23 - Add production deploy script
 
 - Files:
