@@ -12,6 +12,28 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-23 - Add production deploy script
+
+- Files:
+  - `.gitignore`
+  - `package.json`
+  - `tools/deploy-production.ps1`
+  - `deploy/yandex/production.env.local.example`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/YANDEX_CONTAINER_RELEASE.md`
+  - `docs/YANDEX_PRODUCTION_CUTOVER.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added `npm run deploy:production` as the one-command release path for promoting `dev` to `main`, building/pushing the Yandex Docker image, deploying the production Serverless Container revision, running deployed smoke checks with retries, and merging `main` back into `dev`.
+  - Added an ignored local env file path for production Supabase deploy secrets so the keys do not need to be entered every release.
+  - Documented that only `production.env.local.example` is committed; the filled `production.env.local` must stay local because it contains the service-role key.
+- Checks:
+  - `$tokens = $null; $errors = $null; [System.Management.Automation.Language.Parser]::ParseFile('tools/deploy-production.ps1', [ref]$tokens, [ref]$errors) | Out-Null; if ($errors.Count) { $errors | Format-List; exit 1 }`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+- Follow-up:
+  - Use `npm run deploy:production` for the next production release and keep Docker Desktop running before starting the command.
+
 ## 2026-09-23 - Harden boot CSS and refresh warm catalog snapshots
 
 - Files:

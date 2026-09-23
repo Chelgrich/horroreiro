@@ -35,6 +35,33 @@ Production `horroreiro.ru` follows the `main` branch. Normal release flow is:
 changes are accumulated and validated on `dev`, then promoted to `main`, then
 `main` is merged back into `dev` so both branches stay aligned.
 
+The preferred command is:
+
+```powershell
+npm run deploy:production
+```
+
+This calls `tools/deploy-production.ps1`. The script:
+
+- verifies that the working tree is clean;
+- promotes `dev` into `main`;
+- pushes `main`;
+- builds and pushes a Linux AMD64 Docker image tagged with the exact `main` SHA;
+- deploys a new Yandex production Serverless Container revision;
+- keeps the production container private;
+- retries deployed smoke checks for the production gateway, `horroreiro.ru`, and `www.horroreiro.ru`;
+- merges `main` back into `dev` and pushes `dev`.
+
+Production deploy secrets may be stored locally in:
+
+```text
+deploy/yandex/production.env.local
+```
+
+Create it from `deploy/yandex/production.env.local.example`. The filled file is
+ignored by git and must never be committed because it contains the server-only
+Supabase service-role key.
+
 The user's existing shell flow is:
 
 ```bash

@@ -9,6 +9,16 @@ Use this checklist only after reading:
 This is a manual release checklist, not an automated deploy script. Keep Cloudflare production running.
 Do not put real cloud ids, registry ids, service-account ids, or secrets into git.
 
+For the current production path, prefer the repository script:
+
+```powershell
+npm run deploy:production
+```
+
+It wraps the manual flow below, reads ignored local secrets from
+`deploy/yandex/production.env.local` when present, and retries deployed smoke
+checks for the gateway, apex domain, and `www` domain.
+
 ## 1. Pick The Build
 
 Use the exact git commit as the runtime build version:
