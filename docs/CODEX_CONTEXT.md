@@ -62,6 +62,7 @@ Page HTML is static shell plus shared scripts:
   - loads versioned `styles.css`;
   - loads page-specific CSS such as `catalog-page.css`, `movie-page.css`, shared `secondary-pages.css`, and secondary page-only CSS before app startup when the current shell needs it;
   - caches successfully loaded same-build page stylesheet bundles in `sessionStorage` and injects that cached CSS on later same-tab warm returns so restored catalog/movie DOM can become visible before live CSS requests finish;
+  - retries failed stylesheet links once with a cache-busting query and, when a complete same-build stylesheet cache is already applied, does not block app startup on a transient live stylesheet failure;
   - marks `app-styles-ready` or `app-load-failed`.
 - `catalog-warm-start.js`
   - is loaded only by `index.html`, before Supabase and the main app loader;
@@ -99,7 +100,7 @@ Startup shell visibility rule:
 - While `app-page-warm-started` is hydrating, secondary page controllers must not replace the restored DOM with their initial loading state. `app.js` exposes `hasWarmStartedPageDom` to those controllers as a one-init-cycle flag; after page init completes, loading states work normally again.
 - Warm-start redisplay rules should match the final page scrollbar policy (`overflow-y: scroll`) so a restored shell does not shift when `app-ready` lands.
 - Warm-started catalog/movie shells hide the boot loader only after `app-styles-ready`. If a DOM snapshot is restored before styles are usable, keep the loader rather than showing an empty dark page.
-- The boot loader may set `app-styles-ready` from a same-build cached stylesheet bundle before `/env` and live CSS complete. The live `<link>` stylesheets remain the source of truth and remove the cached inline styles after they load.
+- The boot loader may set `app-styles-ready` from a same-build cached stylesheet bundle before `/env` and live CSS complete. The live `<link>` stylesheets remain the source of truth and remove the cached inline styles after they load. If live CSS has a transient failure while a complete cached bundle is already applied, continue startup instead of showing a permanent style-load error.
 - Warm-start scripts must bind the shared early scroll-intent tracker before revealing/restoring a page. After a restored page is visible, full hydration must not force an old saved scroll position over a user who already started scrolling; preserve the live position instead.
 - Future app pages with their own HTML shell must either use the shared `page-warm-start.js` contract or explicitly document why they need a page-specific warm-start script. Do not introduce a new shell that exposes static HTML or waits for full data reload when a valid same-tab DOM snapshot can be restored.
 
@@ -240,7 +241,7 @@ Profile ranking note:
 
 `catalog-filters.js` is lazy-loaded only on catalog pages and owns catalog filter state shaping, movie filter matching, numeric range matching, dynamic filter option counts, and filter-modal chip scoping. `app.js` keeps reading filter controls, building user-facing chip labels, refreshing select/range UI, sorting, pagination slicing, and rendering.
 
-`catalog-return-cache.js` is lazy-loaded on catalog pages and movie detail pages. It owns the catalog fast-return flag, session/DOM snapshot storage reads and writes, snapshot validity envelopes, catalog snapshot signatures, data-signature hashes, and DOM snapshot payload shaping. `app.js` keeps the concrete catalog payload composition, DOM hydration, scroll/anchor restore, and local data state mutation bridges. Catalog startup is snapshot-first: `initCatalogPage()` should try a valid session/DOM snapshot before rendering skeletons or reloading data. A valid same-user snapshot can skip the initial catalog network reload until build version, user id, poster preference, age, or local `DATA_MUTATION_STAMP` invalidates it.
+`catalog-return-cache.js` is lazy-loaded on catalog pages and movie detail pages. It owns the catalog fast-return flag, session/DOM snapshot storage reads and writes, snapshot validity envelopes, catalog snapshot signatures, data-signature hashes, and DOM snapshot payload shaping. `app.js` keeps the concrete catalog payload composition, DOM hydration, scroll/anchor restore, and local data state mutation bridges. Catalog startup is snapshot-first: `initCatalogPage()` should try a valid session/DOM snapshot before rendering skeletons or reloading data. A valid same-user snapshot can reveal the catalog immediately, but must still trigger a background server refresh without skeleton; re-render only when the fresh data signature differs. This prevents cross-device movie additions from being hidden behind an old same-tab snapshot.
 
 Catalog fast-return startup:
 

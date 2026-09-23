@@ -12,6 +12,27 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-23 - Harden boot CSS and refresh warm catalog snapshots
+
+- Files:
+  - `*.html`
+  - `boot-loader.js`
+  - `app.js`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Made stylesheet boot more resilient: stylesheet links retry once, cached same-build CSS can unblock startup during transient live CSS failures, and fallback timers are less aggressive.
+  - Kept catalog warm returns instant from a valid snapshot, but added a background Supabase refresh that re-renders only when the fresh data signature differs.
+  - This prevents movies added on another device from staying hidden behind an old same-tab catalog snapshot.
+  - Bumped the shared `boot-loader.js` query version in every HTML shell so browsers pick up the safer bootstrap code.
+- Checks:
+  - `node --check boot-loader.js`
+  - `node --check app.js`
+  - `node tools/smoke-check.mjs`
+  - `npm run smoke:portable`
+- Follow-up:
+  - Watch production complaints for remaining app-start failures; if any persist, split the boot error text into CSS-load and app-start variants.
+
 ## 2026-09-21 - Record Yandex production cutover completion
 
 - Files:

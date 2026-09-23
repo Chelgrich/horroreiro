@@ -18019,6 +18019,56 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     }
   });
 
+  const loadDeferredInitialUserState = catalogLoadState => {
+    if (catalogLoadState?.didAwaitUserState || !shouldUseAuthenticatedUi()) {
+      return;
+    }
+
+    loadDeferredCatalogUserState({
+      userIdAtLoadStart: currentUser?.id || null,
+      skipCurrentUserRatings: Boolean(catalogLoadState?.hasFullRatingRows)
+    });
+  };
+
+  const refreshHydratedCatalogInBackground = () => {
+    const userIdAtRefreshStart = currentUser?.id || null;
+
+    window.setTimeout(async () => {
+      try {
+        if (!isCatalogPage() || userIdAtRefreshStart !== (currentUser?.id || null)) {
+          return;
+        }
+
+        const backgroundCatalogLoadState = await reloadCatalogData({
+          showSkeleton: false,
+          refreshFilters: true,
+          awaitUserState: shouldAwaitInitialUserCatalogState,
+          loadDeferredUserState: false
+        });
+
+        if (!isCatalogPage() || userIdAtRefreshStart !== (currentUser?.id || null)) {
+          return;
+        }
+
+        const refreshedCatalogSignature = getCatalogDataSignatureHash(createCatalogSessionSnapshotPayload());
+        const canReuseHydratedCatalog = (
+          hydrationState.didHydrateCatalogFromSnapshot &&
+          hydrationState.hydratedCatalogSignature &&
+          hydrationState.hydratedCatalogSignature === refreshedCatalogSignature
+        );
+
+        if (!canReuseHydratedCatalog) {
+          preserveWindowScrollPosition(renderMovies);
+        }
+
+        updateFiltersButtonLabel();
+        loadDeferredInitialUserState(backgroundCatalogLoadState);
+      } catch (error) {
+        console.error('Ошибка фонового обновления каталога после тёплого старта:', error);
+      }
+    }, 0);
+  };
+
   if (canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot)) {
     applySavedCatalogState();
     await syncCatalogProfileActivityContextBeforeRender();
@@ -18032,12 +18082,14 @@ async function initCatalogPage({ onShellReady = null } = {}) {
       if (didApplyRoutePreset) {
         updateFiltersButtonLabel();
         signalCatalogShellReady();
+        refreshHydratedCatalogInBackground();
         return;
       }
     }
 
     updateFiltersButtonLabel();
     signalCatalogShellReady();
+    refreshHydratedCatalogInBackground();
     return;
   }
 
@@ -18047,17 +18099,6 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     awaitUserState: shouldAwaitInitialUserCatalogState,
     loadDeferredUserState: false
   });
-
-  const loadDeferredInitialUserState = () => {
-    if (catalogLoadState?.didAwaitUserState || !shouldUseAuthenticatedUi()) {
-      return;
-    }
-
-    loadDeferredCatalogUserState({
-      userIdAtLoadStart: activeUserId,
-      skipCurrentUserRatings: Boolean(catalogLoadState?.hasFullRatingRows)
-    });
-  };
 
   applySavedCatalogState();
   await syncCatalogProfileActivityContextBeforeRender();
@@ -18070,7 +18111,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
 
     if (didApplyRoutePreset) {
       updateFiltersButtonLabel();
-      loadDeferredInitialUserState();
+      loadDeferredInitialUserState(catalogLoadState);
       signalCatalogShellReady();
       return;
     }
@@ -18085,7 +18126,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
 
   if (canReuseHydratedCatalog) {
     updateFiltersButtonLabel();
-    loadDeferredInitialUserState();
+    loadDeferredInitialUserState(catalogLoadState);
     signalCatalogShellReady();
     return;
   }
@@ -18106,7 +18147,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     });
   }
 
-  loadDeferredInitialUserState();
+  loadDeferredInitialUserState(catalogLoadState);
   signalCatalogShellReady();
 }
 

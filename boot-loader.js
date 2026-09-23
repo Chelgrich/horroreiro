@@ -23,6 +23,8 @@
     const STYLESHEET_CACHE_KEY = 'horroreiro_stylesheet_cache_v1';
     const STYLESHEET_CACHE_MAX_ENTRIES = 6;
     const STYLESHEET_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+    const STYLESHEET_FALLBACK_TIMEOUT_MS = 30000;
+    const APP_STARTUP_FALLBACK_TIMEOUT_MS = 60000;
 
     function getVersionedAssetUrl(src, buildVersion) {
       if (shouldUseLocalDevEnv) {
@@ -294,7 +296,7 @@
     }
 
     markCatalogFastReturnStartupHint();
-    applyCachedStylesheets();
+    const hasAppliedCachedStylesheets = applyCachedStylesheets();
 
     function finishEnvReady() {
       if (isEnvReadyResolved) {
@@ -309,7 +311,7 @@
         if (!document.documentElement.classList.contains('app-ready')) {
           document.documentElement.classList.add('app-load-failed');
         }
-      }, 20000);
+      }, APP_STARTUP_FALLBACK_TIMEOUT_MS);
       resolve();
     }
 
@@ -318,7 +320,25 @@
         return;
       }
 
+      if (hasAppliedCachedStylesheets) {
+        finishEnvReady();
+        return;
+      }
+
       document.documentElement.classList.add('app-load-failed');
+    }
+
+    function getRetryStylesheetUrl(href) {
+      try {
+        const url = new URL(href, window.location.href);
+
+        url.searchParams.set('_retry', Date.now().toString(36));
+        return url.href;
+      } catch (error) {
+        const separator = String(href || '').includes('?') ? '&' : '?';
+
+        return `${href}${separator}_retry=${Date.now().toString(36)}`;
+      }
     }
 
     function applyEnvAndLoadStyles() {
@@ -333,31 +353,63 @@
       const stylesheetAssets = getPageStylesheetAssets();
       const stylesheetLinks = [];
       let pendingStylesheets = stylesheetAssets.length;
-      let hasFailedStylesheetLoad = false;
+      const failedStylesheetAssets = new Set();
+      const settledStylesheets = new WeakSet();
 
-      const handleStylesheetLoad = () => {
-        if (hasFailedStylesheetLoad) {
+      const settleStylesheet = (stylesheet, { failed = false } = {}) => {
+        if (settledStylesheets.has(stylesheet)) {
           return;
+        }
+
+        settledStylesheets.add(stylesheet);
+
+        if (failed) {
+          failedStylesheetAssets.add(stylesheet?.dataset?.asset || stylesheet?.href || 'stylesheet');
         }
 
         pendingStylesheets -= 1;
 
-        if (pendingStylesheets <= 0) {
+        if (pendingStylesheets > 0) {
+          return;
+        }
+
+        if (failedStylesheetAssets.size === 0) {
           cacheLoadedStylesheets(buildVersion, stylesheetAssets, stylesheetLinks);
           removeCachedStylesheets();
           finishEnvReady();
+          return;
         }
+
+        if (hasAppliedCachedStylesheets) {
+          finishEnvReady();
+          return;
+        }
+
+        markStylesheetFailure();
       };
 
-      const handleStylesheetError = () => {
-        hasFailedStylesheetLoad = true;
-        markStylesheetFailure();
+      const handleStylesheetLoad = event => {
+        settleStylesheet(event?.currentTarget || event?.target);
+      };
+
+      const handleStylesheetError = event => {
+        const stylesheet = event?.currentTarget || event?.target;
+        const retryCount = Number(stylesheet?.dataset?.retryCount || 0);
+
+        if (stylesheet && retryCount < 1) {
+          stylesheet.dataset.retryCount = '1';
+          stylesheet.href = getRetryStylesheetUrl(stylesheet.href);
+          return;
+        }
+
+        settleStylesheet(stylesheet, { failed: true });
       };
 
       stylesheetAssets.forEach(assetName => {
         const stylesheet = document.createElement('link');
 
         stylesheet.rel = 'stylesheet';
+        stylesheet.dataset.asset = assetName;
         stylesheet.href = getVersionedAssetUrl(assetName, buildVersion);
         stylesheet.onload = handleStylesheetLoad;
         stylesheet.onerror = handleStylesheetError;
@@ -365,7 +417,7 @@
         document.head.appendChild(stylesheet);
       });
 
-      stylesheetFallbackTimer = window.setTimeout(markStylesheetFailure, 10000);
+      stylesheetFallbackTimer = window.setTimeout(markStylesheetFailure, STYLESHEET_FALLBACK_TIMEOUT_MS);
     }
 
     function applyFallbackEnvAndLoadStyles() {
