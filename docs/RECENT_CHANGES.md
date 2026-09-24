@@ -12,6 +12,23 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-24 - Enable movie card admin actions on people and company pages
+
+- Files:
+  - `app.js`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Generalized movie-card click, aux-click, external-links, and rating-hover handlers so reused movie cards are not tied only to the catalog container.
+  - Wired person detail and company detail movie grids to the shared movie-card handlers with page-local movie lookup.
+  - Admin edit buttons on those cards now open the movie editor with full editor payload, and delete buttons remove the movie then refresh the current person/company page.
+  - Movie saves from person/company pages now reload the current secondary page after a successful update, keeping filmography/company sections current.
+- Checks:
+  - `node --check app.js`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+- Follow-up:
+  - Verify as admin on a person page and a company page: edit opens the film modal, delete asks for confirmation and refreshes the same page.
+
 ## 2026-09-24 - Invalidate profile cache without ranks
 
 - Files:

@@ -1700,10 +1700,29 @@ function getDirectorPageControllerContext() {
     createMovieCard,
     bindMoviePosterLoadStates,
     bindPosterFallbackImages,
-    handleCatalogCardClick,
-    handleCatalogCardAuxClick,
-    handleCatalogRatingStarMouseOver,
-    handleCatalogRatingStarMouseOut,
+    handleCatalogCardClick: createSecondaryMovieCardClickHandler({
+      getRootElement: () => directorPage,
+      getMovieById: movieId => (
+        (Array.isArray(currentDirectorPageData?.movies) ? currentDirectorPageData.movies : [])
+          .find(movie => String(movie?.id || '') === String(movieId)) ||
+        getCatalogMovieById(movieId)
+      ),
+      reloadPage: async () => {
+        const controller = await loadDirectorPageController();
+        await controller?.loadDirectorPage?.();
+        persistCurrentSecondaryPageDomSnapshot();
+      },
+      sourceLabel: 'director page'
+    }),
+    handleCatalogCardAuxClick: createSecondaryMovieCardAuxClickHandler({
+      getRootElement: () => directorPage
+    }),
+    handleCatalogRatingStarMouseOver: createSecondaryMovieCardRatingStarMouseOverHandler({
+      getRootElement: () => directorPage
+    }),
+    handleCatalogRatingStarMouseOut: createSecondaryMovieCardRatingStarMouseOutHandler({
+      getRootElement: () => directorPage
+    }),
     openDirectorModalById,
     fetchMovieRatings,
     fetchCurrentUserRatings,
@@ -1807,10 +1826,28 @@ function getCompanyPagesControllerContext() {
     createMovieCard,
     bindMoviePosterLoadStates,
     bindPosterFallbackImages,
-    handleCatalogCardClick,
-    handleCatalogCardAuxClick,
-    handleCatalogRatingStarMouseOver,
-    handleCatalogRatingStarMouseOut,
+    handleCatalogCardClick: createSecondaryMovieCardClickHandler({
+      getRootElement: () => companyPage,
+      getMovieById: movieId => (
+        currentCompanyPageData?.moviesById?.get?.(String(movieId)) ||
+        getCatalogMovieById(movieId)
+      ),
+      reloadPage: async () => {
+        const controller = await loadCompanyPagesController();
+        await controller?.loadCompanyPage?.();
+        persistCurrentSecondaryPageDomSnapshot();
+      },
+      sourceLabel: 'company page'
+    }),
+    handleCatalogCardAuxClick: createSecondaryMovieCardAuxClickHandler({
+      getRootElement: () => companyPage
+    }),
+    handleCatalogRatingStarMouseOver: createSecondaryMovieCardRatingStarMouseOverHandler({
+      getRootElement: () => companyPage
+    }),
+    handleCatalogRatingStarMouseOut: createSecondaryMovieCardRatingStarMouseOutHandler({
+      getRootElement: () => companyPage
+    }),
     showAppMessage,
     markLocalDataMutation,
     persistCurrentSecondaryPageDomSnapshot
@@ -10977,6 +11014,26 @@ function getCatalogMovieById(movieId) {
   return catalogMoviesById.get(String(movieId)) || null;
 }
 
+function getCurrentSecondaryPageMovieById(movieId) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!normalizedMovieId) {
+    return null;
+  }
+
+  if (Array.isArray(currentDirectorPageData?.movies)) {
+    const directorMovie = currentDirectorPageData.movies.find(movie => (
+      String(movie?.id || '') === normalizedMovieId
+    ));
+
+    if (directorMovie) {
+      return directorMovie;
+    }
+  }
+
+  return currentCompanyPageData?.moviesById?.get?.(normalizedMovieId) || null;
+}
+
 function buildCatalogMovieMeta(movie) {
   const movieGenres = Array.isArray(movie?.movie_genres) ? movie.movie_genres : [];
   const movieCountries = Array.isArray(movie?.movie_countries) ? movie.movie_countries : [];
@@ -14351,6 +14408,7 @@ async function addMovie(movieEditor) {
 
 async function updateMovie(movieEditor) {
   const existingMovie = getCatalogMovieById(editingMovieId)
+    || getCurrentSecondaryPageMovieById(editingMovieId)
     || (currentMoviePageMovieData && currentMoviePageMovieData.id === editingMovieId
       ? currentMoviePageMovieData
       : null);
@@ -14408,6 +14466,20 @@ async function updateMovie(movieEditor) {
       resetFormToCreateMode
     }
   });
+
+  if (!updateResult?.shouldExit) {
+    if (isDirectorPage() && currentDirectorPageData?.director) {
+      const controller = await loadDirectorPageController();
+      await controller?.loadDirectorPage?.();
+      persistCurrentSecondaryPageDomSnapshot();
+    }
+
+    if (isCompanyPage() && currentCompanyPageData?.company) {
+      const controller = await loadCompanyPagesController();
+      await controller?.loadCompanyPage?.();
+      persistCurrentSecondaryPageDomSnapshot();
+    }
+  }
 
   return updateResult;
 }
@@ -16521,9 +16593,15 @@ function bindPosterLoadState(posterImage, posterSkeleton) {
 }
 
 function getCatalogRatingStarContext(target) {
+  return getMovieCardRatingStarContext(target, {
+    rootElement: container
+  });
+}
+
+function getMovieCardRatingStarContext(target, { rootElement = container } = {}) {
   const starButton = target.closest('.rating-star-btn');
 
-  if (!starButton || !container?.contains(starButton)) {
+  if (!starButton || !rootElement?.contains(starButton)) {
     return null;
   }
 
@@ -16574,7 +16652,13 @@ function resetCatalogRatingStarState(starsContainer) {
 }
 
 function handleCatalogRatingStarMouseOver(event) {
-  const context = getCatalogRatingStarContext(event.target);
+  return handleMovieCardRatingStarMouseOver(event, {
+    rootElement: container
+  });
+}
+
+function handleMovieCardRatingStarMouseOver(event, { rootElement = container } = {}) {
+  const context = getMovieCardRatingStarContext(event.target, { rootElement });
 
   if (!context || context.starButton.disabled || ratingRequestInFlight.has(String(context.movieId))) {
     return;
@@ -16588,9 +16672,15 @@ function handleCatalogRatingStarMouseOver(event) {
 }
 
 function handleCatalogRatingStarMouseOut(event) {
+  return handleMovieCardRatingStarMouseOut(event, {
+    rootElement: container
+  });
+}
+
+function handleMovieCardRatingStarMouseOut(event, { rootElement = container } = {}) {
   const starsContainer = event.target.closest('.movie-user-rating-stars');
 
-  if (!starsContainer || !container?.contains(starsContainer)) {
+  if (!starsContainer || !rootElement?.contains(starsContainer)) {
     return;
   }
 
@@ -16601,15 +16691,27 @@ function handleCatalogRatingStarMouseOut(event) {
   resetCatalogRatingStarState(starsContainer);
 }
 
-function syncOpenExternalLinksLayouts() {
-  if (!container) {
+function createSecondaryMovieCardRatingStarMouseOverHandler({ getRootElement } = {}) {
+  return event => handleMovieCardRatingStarMouseOver(event, {
+    rootElement: getRootElement?.() || null
+  });
+}
+
+function createSecondaryMovieCardRatingStarMouseOutHandler({ getRootElement } = {}) {
+  return event => handleMovieCardRatingStarMouseOut(event, {
+    rootElement: getRootElement?.() || null
+  });
+}
+
+function syncOpenExternalLinksLayouts(rootElement = container) {
+  if (!rootElement) {
     return;
   }
 
   const overlayHorizontalPadding = 24;
   const oneRowWidth = (36 * 4) + (6 * 3);
 
-  container.querySelectorAll('[data-external-links-collapsible].is-open').forEach(panel => {
+  rootElement.querySelectorAll('[data-external-links-collapsible].is-open').forEach(panel => {
     const externalLinksGrid = panel.querySelector('.movie-external-links');
 
     if (!externalLinksGrid) {
@@ -16701,13 +16803,23 @@ function resetMovieCardFocusAfterLinkOpen(event, link = event.currentTarget) {
 }
 
 function getCatalogCardActionContext(target) {
-  if (!container || !target) {
+  return getMovieCardActionContext(target, {
+    rootElement: container,
+    getMovieById: getCatalogMovieById
+  });
+}
+
+function getMovieCardActionContext(target, {
+  rootElement = container,
+  getMovieById = getCatalogMovieById
+} = {}) {
+  if (!rootElement || !target) {
     return null;
   }
 
   const card = target.closest('.movie-card[data-movie-id]');
 
-  if (!card || !container.contains(card)) {
+  if (!card || !rootElement.contains(card)) {
     return null;
   }
 
@@ -16720,7 +16832,7 @@ function getCatalogCardActionContext(target) {
   return {
     card,
     movieId,
-    movie: getCatalogMovieById(movieId)
+    movie: getMovieById(movieId)
   };
 }
 
@@ -16751,7 +16863,7 @@ function closeCatalogExternalLinksCard(card) {
   card.classList.remove('has-open-external-links');
 }
 
-function toggleCatalogExternalLinksPanel(toggleButton, card) {
+function toggleCatalogExternalLinksPanel(toggleButton, card, rootElement = container) {
   const panel = card?.querySelector('[data-external-links-collapsible]');
 
   if (!toggleButton || !card || !panel) {
@@ -16759,7 +16871,7 @@ function toggleCatalogExternalLinksPanel(toggleButton, card) {
   }
 
   const isExpanded = toggleButton.getAttribute('aria-expanded') === 'true';
-  const openedCard = container.querySelector('.movie-card.has-open-external-links');
+  const openedCard = rootElement?.querySelector?.('.movie-card.has-open-external-links');
 
   if (openedCard && openedCard !== card) {
     closeCatalogExternalLinksCard(openedCard);
@@ -16781,38 +16893,63 @@ function toggleCatalogExternalLinksPanel(toggleButton, card) {
   panel.classList.add('is-open');
   card.classList.add('has-open-external-links');
 
-  requestAnimationFrame(syncOpenExternalLinksLayouts);
+  requestAnimationFrame(() => syncOpenExternalLinksLayouts(rootElement));
 }
 
 function handleCatalogCardAuxClick(event) {
+  return handleMovieCardAuxClick(event, {
+    rootElement: container
+  });
+}
+
+function handleMovieCardAuxClick(event, { rootElement = container } = {}) {
   const link = event.target.closest('.movie-poster-link, .movie-title-link, .movie-external-link');
 
-  if (link && container?.contains(link)) {
+  if (link && rootElement?.contains(link)) {
     resetMovieCardFocusAfterLinkOpen(event, link);
   }
 }
 
 async function handleCatalogCardClick(event) {
+  return handleMovieCardClick(event, {
+    rootElement: container,
+    getMovieById: getCatalogMovieById,
+    onSameTabMovieLinkNavigation: () => {
+      markCatalogFastReturnPending();
+      persistCatalogSessionSnapshot({
+        persistDomSnapshotImmediately: true
+      });
+    },
+    onDeleteMovie: deleteMovie
+  });
+}
+
+async function handleMovieCardClick(event, {
+  rootElement = container,
+  getMovieById = getCatalogMovieById,
+  onSameTabMovieLinkNavigation = null,
+  onDeleteMovie = deleteMovie
+} = {}) {
   const target = event.target;
 
-  if (!container || !container.contains(target)) {
+  if (!rootElement || !rootElement.contains(target)) {
     return;
   }
 
   const link = target.closest('.movie-poster-link, .movie-title-link, .movie-external-link');
 
   if (link) {
-    if (isSameTabCatalogMovieLinkNavigation(event, link)) {
-      markCatalogFastReturnPending();
-      persistCatalogSessionSnapshot({
-        persistDomSnapshotImmediately: true
-      });
+    if (isSameTabCatalogMovieLinkNavigation(event, link) && typeof onSameTabMovieLinkNavigation === 'function') {
+      onSameTabMovieLinkNavigation(event, link);
     }
 
     resetMovieCardFocusAfterLinkOpen(event, link);
   }
 
-  const context = getCatalogCardActionContext(target);
+  const context = getMovieCardActionContext(target, {
+    rootElement,
+    getMovieById
+  });
 
   if (!context) {
     return;
@@ -16845,7 +16982,7 @@ async function handleCatalogCardClick(event) {
   const externalLinksToggleBtn = target.closest('[data-external-links-toggle="true"]');
 
   if (externalLinksToggleBtn) {
-    toggleCatalogExternalLinksPanel(externalLinksToggleBtn, card);
+    toggleCatalogExternalLinksPanel(externalLinksToggleBtn, card, rootElement);
     return;
   }
 
@@ -16887,9 +17024,42 @@ async function handleCatalogCardClick(event) {
 
   if (deleteBtn && isAdmin && movie) {
     armDeleteMovieButton(deleteBtn, () => {
-      deleteMovie(movieId, movie.title);
+      onDeleteMovie(movieId, movie.title);
     }, `Удалить фильм "${movie.title}"?`);
   }
+}
+
+function createSecondaryMovieCardClickHandler({
+  getRootElement,
+  getMovieById,
+  reloadPage,
+  sourceLabel = 'secondary page'
+} = {}) {
+  return event => handleMovieCardClick(event, {
+    rootElement: getRootElement?.() || null,
+    getMovieById,
+    onDeleteMovie: async (movieId, movieTitle) => {
+      try {
+        await deleteMovieRecord(movieId);
+        removeMovieFromCatalogSessionSnapshot(movieId);
+        removeMoviePageSessionCacheForMovie({ id: movieId });
+        setMovieFormStatus(`Р¤РёР»СЊРј "${movieTitle}" СѓРґР°Р»С‘РЅ.`);
+
+        if (typeof reloadPage === 'function') {
+          await reloadPage();
+        }
+      } catch (error) {
+        console.error(`РћС€РёР±РєР° РїСЂРё СѓРґР°Р»РµРЅРёРё С„РёР»СЊРјР° СЃРѕ СЃС‚СЂР°РЅРёС†С‹ ${sourceLabel}:`, error);
+        setMovieFormStatus('РћС€РёР±РєР° РїСЂРё СѓРґР°Р»РµРЅРёРё С„РёР»СЊРјР°. РЎРјРѕС‚СЂРё РєРѕРЅСЃРѕР»СЊ F12.');
+      }
+    }
+  });
+}
+
+function createSecondaryMovieCardAuxClickHandler({ getRootElement } = {}) {
+  return event => handleMovieCardAuxClick(event, {
+    rootElement: getRootElement?.() || null
+  });
 }
 
 function createMovieCardRenderContext(searchQuery = searchInput?.value || '') {
