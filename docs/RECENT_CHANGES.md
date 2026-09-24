@@ -12,6 +12,22 @@ Format:
 - Follow-up:
 ```
 
+## 2026-09-24 - Invalidate profile cache without ranks
+
+- Files:
+  - `user-page.js`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Bumped the profile page data cache version so profile stats cached during the broken production rank endpoint window are discarded.
+  - Profile page data is no longer cached or reused when a stat count is nonzero but the corresponding activity rank is missing.
+  - This keeps transient `/profile-activity-ranks` failures from persisting as missing medals in `user-page-stats`.
+- Checks:
+  - `node --check user-page.js`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+- Follow-up:
+  - Deploy to production and verify `/user/profile000` and `/user/profile001` show rank medals after the first fresh load.
+
 ## 2026-09-23 - Harden production deploy script
 
 - Files:

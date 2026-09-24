@@ -1,7 +1,7 @@
 const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_VERSION = 1;
 const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 const USER_PAGE_ACTIVITY_AGGREGATE_LIMIT = 10000;
-const USER_PAGE_DATA_CACHE_VERSION = 1;
+const USER_PAGE_DATA_CACHE_VERSION = 2;
 const USER_PAGE_DATA_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
 const USER_PAGE_DATA_CACHE_MAX_ENTRIES = 12;
 
@@ -320,7 +320,36 @@ export function createUserPageController(context = {}) {
       return false;
     }
 
+    if (!hasExpectedUserPageActivityRanks(entry.data)) {
+      return false;
+    }
+
     return isPageDependencySnapshotFresh(entry.dependencySnapshot || {});
+  }
+
+  function hasExpectedUserPageActivityRanks(data) {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+
+    const activityRanks = data.activityRanks || {};
+    const expectations = [
+      ['ratingCount', 'ratings'],
+      ['watchlistCount', 'watchlist'],
+      ['reviewCount', 'reviews']
+    ];
+
+    return expectations.every(([countKey, rankKey]) => {
+      const count = Number(data[countKey] || 0);
+
+      if (!Number.isFinite(count) || count <= 0) {
+        return true;
+      }
+
+      const place = Number(activityRanks?.[rankKey]?.place);
+
+      return Number.isFinite(place) && place > 0;
+    });
   }
 
   function readUserPageDataCacheEntry(handle) {
@@ -342,6 +371,10 @@ export function createUserPageController(context = {}) {
 
   function writeUserPageDataCacheEntry(handle, data) {
     if (!data?.profile) {
+      return;
+    }
+
+    if (!hasExpectedUserPageActivityRanks(data)) {
       return;
     }
 
