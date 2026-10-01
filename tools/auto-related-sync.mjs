@@ -80,13 +80,14 @@ function printHelp() {
     'Usage:',
     '  npm run auto-related:sync -- --slug movie-slug',
     '  npm run auto-related:sync -- --movie-id movie-uuid --write',
-    '  npm run auto-related:sync -- --limit 20 --write --force',
+    '  npm run auto-related:sync -- --limit 20 --unsynced-only --write --force',
     '  npm run auto-related:sync -- --report',
     '',
     'Options:',
     '  --slug VALUE        Movie slug to sync.',
     '  --movie-id VALUE    Movie UUID to sync.',
     '  --limit VALUE       Batch-sync the least recently synced movies.',
+    '  --unsynced-only     Batch-sync only movies without previous recommendation sync state.',
     '  --delay-ms VALUE    Delay between batch items. Default: 1000 for batch, 0 for single.',
     '  --write             Persist provider evidence, sync state, and materialized related rows.',
     '  --force             Allow writes without AUTO_RELATED_MOVIES=true.',
@@ -115,6 +116,7 @@ function parseArgs(argv) {
     movieId: '',
     report: false,
     slug: '',
+    unsyncedOnly: false,
     write: false
   };
 
@@ -131,6 +133,8 @@ function parseArgs(argv) {
       options.full = true;
     } else if (arg === '--report') {
       options.report = true;
+    } else if (arg === '--unsynced-only') {
+      options.unsyncedOnly = true;
     } else if (arg === '--limit') {
       options.limit = parseNonNegativeIntegerOption('--limit', argv[index + 1], 0);
       index += 1;

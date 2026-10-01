@@ -86,7 +86,7 @@ CLI entrypoint:
 npm run auto-related:sync
 ```
 
-The CLI is dry-run by default. Real writes require `--write` and `AUTO_RELATED_MOVIES=true`; `--force` is reserved for deliberate one-off operational runs.
+The CLI is dry-run by default. Real writes require `--write` and `AUTO_RELATED_MOVIES=true`; `--force` is reserved for deliberate one-off operational runs. Batch backfills can use `--unsynced-only` to skip movies that already have recommendation sync state, which makes a completed one-time cron run a no-op instead of a refresh loop.
 
 For local operator runs, the CLI auto-loads ignored environment values from `deploy/yandex/production.env.local` before reading config. Values already present in the shell take precedence.
 
@@ -361,7 +361,7 @@ Current server/CLI implementation:
 - `tools/auto-related/sync-runner.mjs` fetches provider candidates, strictly matches by local external IDs, writes evidence only after successful provider fetches, scores local evidence, and can materialize `movie_related` rows.
 - `tools/auto-related/scoring.mjs` implements the RRF formula and strict/fallback rank cutoffs.
 - `npm run auto-related:sync` remains dry-run by default and prints `relatedRows`; real writes require `--write` plus `AUTO_RELATED_MOVIES=true` or an explicit one-off `--force`.
-- Batch mode uses `--limit` to process least recently synced movies from one shared match index and `--delay-ms` to pace provider calls. It is intended for small controlled backfill slices before a full scheduled backfill exists.
+- Batch mode uses `--limit` to process least recently synced movies from one shared match index and `--delay-ms` to pace provider calls. It is intended for small controlled backfill slices before a full scheduled backfill exists. Add `--unsynced-only` for one-time backfills where repeat refreshes are not desired.
 - `--report` prints current coverage totals and can be appended to batch runs so cron logs include the final state after each run.
 - The public movie detail page still reads manual similar movies only.
 
@@ -482,7 +482,7 @@ Until quality is verified, keep the current public manual block as-is or make th
 6. Evidence storage.
 7. RRF scoring/materialization.
 8. Single-movie CLI/admin sync. Current CLI: `npm run auto-related:sync`.
-9. Full backfill. Current safe stepping stone: `npm run auto-related:sync -- --limit 20 --delay-ms 1000 --write --force --report`.
+9. Full backfill. Current safe stepping stone: `npm run auto-related:sync -- --limit 20 --delay-ms 1000 --unsynced-only --write --force --report`.
 10. Refresh touched reverse edges after movie creation/edit.
 11. Periodic refresh.
 12. Admin diagnostics.

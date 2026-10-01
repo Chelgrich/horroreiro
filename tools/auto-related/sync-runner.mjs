@@ -66,6 +66,7 @@ function getSyncStateTimestamp(syncState = {}) {
 
 function getBatchCandidateMovies(matchIndex, syncStateRows = [], options = {}) {
   const limit = Math.max(1, Number(options.limit || 1));
+  const unsyncedOnly = Boolean(options.unsyncedOnly);
   const syncStateByMovieId = new Map(
     (syncStateRows || [])
       .filter(row => row?.movie_id)
@@ -78,6 +79,7 @@ function getBatchCandidateMovies(matchIndex, syncStateRows = [], options = {}) {
       movie,
       syncTimestamp: getSyncStateTimestamp(syncStateByMovieId.get(movie.id))
     }))
+    .filter(candidate => !unsyncedOnly || candidate.syncTimestamp === 0)
     .sort((firstCandidate, secondCandidate) =>
       firstCandidate.syncTimestamp - secondCandidate.syncTimestamp ||
       Number(firstCandidate.movie.year || 0) - Number(secondCandidate.movie.year || 0) ||
@@ -357,7 +359,8 @@ export async function syncAutoRelatedMoviesBatch(options = {}) {
   }
 
   const candidates = getBatchCandidateMovies(context.matchIndex, context.syncStateRows, {
-    limit: options.limit
+    limit: options.limit,
+    unsyncedOnly: options.unsyncedOnly
   });
   const delayMs = Math.max(0, Number(options.delayMs || 0));
   const results = [];
@@ -407,6 +410,7 @@ export async function syncAutoRelatedMoviesBatch(options = {}) {
     processed: results.length,
     results,
     totalCandidates: candidates.length,
+    unsyncedOnly: Boolean(options.unsyncedOnly),
     write
   };
 }
@@ -532,6 +536,7 @@ export function formatAutoRelatedBatchSummary(result) {
       };
     }),
     succeeded: successfulResults.length,
+    unsyncedOnly: result.unsyncedOnly,
     write: result.write
   };
 }

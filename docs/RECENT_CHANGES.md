@@ -12,6 +12,32 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-01 - Add unsynced-only auto-related batch mode
+
+- Files:
+  - `tools/auto-related-sync.mjs`
+  - `tools/auto-related/sync-runner.mjs`
+  - `tools/auto-related-smoke.mjs`
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added `--unsynced-only` to auto-related batch sync so one-time backfills process only movies without recommendation sync state.
+  - Documented `--unsynced-only` as the safe cron mode for a full-pass backfill that should not refresh old movies after completion.
+  - Extended smoke coverage to ensure unsynced-only batches skip movies with existing sync state.
+- Checks:
+  - `node --check tools/auto-related/sync-runner.mjs`
+  - `node --check tools/auto-related-sync.mjs`
+  - `node --check tools/auto-related-smoke.mjs`
+  - `npm run smoke:auto-related`
+  - `npm run auto-related:sync -- --help`
+  - `npm run auto-related:sync -- --limit 1 --delay-ms 0 --unsynced-only --report`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Update the auto-related backfill cron to use `--unsynced-only` with a finite run count.
+
 ## 2026-10-01 - Add auto-related scoring materialization
 
 - Files:
