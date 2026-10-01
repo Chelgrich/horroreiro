@@ -12,6 +12,26 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-01 - Auto-load local env for automatic related CLI
+
+- Files:
+  - `tools/auto-related-sync.mjs`
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Updated `npm run auto-related:sync` to auto-load ignored local secrets from `deploy/yandex/production.env.local`.
+  - Existing shell environment variables still take precedence over file values.
+  - Restored `deploy/yandex/production.env.local.example` to an empty committed template after real local keys were accidentally placed there.
+- Checks:
+  - `node --check tools/auto-related-sync.mjs`
+  - `npm run auto-related:sync -- --help`
+  - `npm run smoke:auto-related`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Run a real dry-run against one known movie slug and inspect provider matches before enabling writes.
+
 ## 2026-10-01 - Add automatic related single movie sync runner
 
 - Files:

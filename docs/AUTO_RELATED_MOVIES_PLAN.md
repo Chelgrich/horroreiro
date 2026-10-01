@@ -88,6 +88,8 @@ npm run auto-related:sync
 
 The CLI is dry-run by default. Real writes require `--write` and `AUTO_RELATED_MOVIES=true`; `--force` is reserved for deliberate one-off operational runs.
 
+For local operator runs, the CLI auto-loads ignored environment values from `deploy/yandex/production.env.local` before reading config. Values already present in the shell take precedence.
+
 ## TMDb
 
 Use application-level authentication with the API Read Access Token as a Bearer token. User authorization is not needed for these server-side reads.
