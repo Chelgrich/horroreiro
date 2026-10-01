@@ -48,6 +48,52 @@ function getSourceMovie(index, options = {}) {
   return [...index.byMovieId.values()].find(movie => movie.slug === slug) || null;
 }
 
+function getSyncStateTimestamp(syncState = {}) {
+  const timestamps = [
+    syncState.recommendations_last_success_at,
+    syncState.recommendations_last_synced_at,
+    syncState.tmdb_last_success_at,
+    syncState.trakt_last_success_at
+  ]
+    .map(value => {
+      const timestamp = Date.parse(value || '');
+      return Number.isFinite(timestamp) ? timestamp : null;
+    })
+    .filter(value => value !== null);
+
+  return timestamps.length ? Math.max(...timestamps) : 0;
+}
+
+function getBatchCandidateMovies(matchIndex, syncStateRows = [], options = {}) {
+  const limit = Math.max(1, Number(options.limit || 1));
+  const syncStateByMovieId = new Map(
+    (syncStateRows || [])
+      .filter(row => row?.movie_id)
+      .map(row => [String(row.movie_id), row])
+  );
+
+  return [...matchIndex.byMovieId.values()]
+    .filter(movie => movie.tmdb || movie.trakt || movie.imdb)
+    .map(movie => ({
+      movie,
+      syncTimestamp: getSyncStateTimestamp(syncStateByMovieId.get(movie.id))
+    }))
+    .sort((firstCandidate, secondCandidate) =>
+      firstCandidate.syncTimestamp - secondCandidate.syncTimestamp ||
+      Number(firstCandidate.movie.year || 0) - Number(secondCandidate.movie.year || 0) ||
+      String(firstCandidate.movie.title || '').localeCompare(String(secondCandidate.movie.title || '')) ||
+      String(firstCandidate.movie.id).localeCompare(String(secondCandidate.movie.id))
+    )
+    .slice(0, limit)
+    .map(candidate => candidate.movie);
+}
+
+function sleep(delayMs) {
+  return new Promise(resolve => {
+    setTimeout(resolve, Math.max(0, Number(delayMs || 0)));
+  });
+}
+
 function toProviderMovie(sourceMovie) {
   return compactObject({
     id: sourceMovie.id,
@@ -141,8 +187,8 @@ async function resolveProviderMovieIds(provider, providerMovie) {
   return providerMovie;
 }
 
-export async function syncOneAutoRelatedMovie(options = {}) {
-  const config = options.config || readAutoRelatedConfig();
+async function syncOneAutoRelatedMovieWithContext(context, options = {}) {
+  const { adapter, config, matchIndex, providers } = context;
   const write = Boolean(options.write);
   const force = Boolean(options.force);
 
@@ -150,15 +196,8 @@ export async function syncOneAutoRelatedMovie(options = {}) {
     throw new Error('AUTO_RELATED_MOVIES=true is required for writes. Pass --force only for a deliberate one-off sync.');
   }
 
-  const adapter = options.adapter || createSupabaseAutoRelatedAdapter(config);
-  const providers = options.providers || createRecommendationProviders(config, options.providerOptions);
   const now = options.now || new Date();
   const nowIso = now.toISOString();
-  const [movieRows, syncStateRows] = await Promise.all([
-    adapter.fetchMovieMatchRows(),
-    adapter.fetchRecommendationSyncStates()
-  ]);
-  const matchIndex = buildMovieMatchIndex(movieRows, syncStateRows);
   const sourceMovie = getSourceMovie(matchIndex, options);
 
   if (!sourceMovie) {
@@ -166,6 +205,49 @@ export async function syncOneAutoRelatedMovie(options = {}) {
     throw new Error(`Source movie not found in match index (${identity}).`);
   }
 
+  return syncResolvedAutoRelatedMovie({
+    adapter,
+    config,
+    force,
+    matchIndex,
+    nowIso,
+    providers,
+    sourceMovie,
+    write
+  });
+}
+
+async function createAutoRelatedSyncContext(options = {}) {
+  const config = options.config || readAutoRelatedConfig();
+  const adapter = options.adapter || createSupabaseAutoRelatedAdapter(config);
+  const providers = options.providers || createRecommendationProviders(config, options.providerOptions);
+  const [movieRows, syncStateRows] = await Promise.all([
+    adapter.fetchMovieMatchRows(),
+    adapter.fetchRecommendationSyncStates()
+  ]);
+  const matchIndex = buildMovieMatchIndex(movieRows, syncStateRows);
+
+  return {
+    adapter,
+    config,
+    matchIndex,
+    movieRows,
+    providers,
+    syncStateRows
+  };
+}
+
+async function syncResolvedAutoRelatedMovie(options = {}) {
+  const {
+    adapter,
+    config,
+    force,
+    matchIndex,
+    nowIso,
+    providers,
+    sourceMovie,
+    write
+  } = options;
   const providerMovie = toProviderMovie(sourceMovie);
   const providerResults = [];
   const evidenceRows = [];
@@ -255,6 +337,76 @@ export async function syncOneAutoRelatedMovie(options = {}) {
   };
 }
 
+export async function syncOneAutoRelatedMovie(options = {}) {
+  const context = await createAutoRelatedSyncContext(options);
+
+  return syncOneAutoRelatedMovieWithContext(context, options);
+}
+
+export async function syncAutoRelatedMoviesBatch(options = {}) {
+  const context = await createAutoRelatedSyncContext(options);
+  const write = Boolean(options.write);
+  const force = Boolean(options.force);
+
+  if (write && !context.config.enabled && !force) {
+    throw new Error('AUTO_RELATED_MOVIES=true is required for writes. Pass --force only for a deliberate one-off batch sync.');
+  }
+
+  const candidates = getBatchCandidateMovies(context.matchIndex, context.syncStateRows, {
+    limit: options.limit
+  });
+  const delayMs = Math.max(0, Number(options.delayMs || 0));
+  const results = [];
+
+  for (let index = 0; index < candidates.length; index += 1) {
+    const sourceMovie = candidates[index];
+
+    try {
+      const result = await syncResolvedAutoRelatedMovie({
+        adapter: context.adapter,
+        config: context.config,
+        force,
+        matchIndex: context.matchIndex,
+        nowIso: (options.now || new Date()).toISOString(),
+        providers: context.providers,
+        sourceMovie,
+        write
+      });
+
+      results.push({
+        result,
+        status: 'success'
+      });
+    } catch (error) {
+      results.push({
+        error: error.message || String(error),
+        sourceMovie: {
+          id: sourceMovie.id,
+          slug: sourceMovie.slug,
+          title: sourceMovie.title,
+          year: sourceMovie.year
+        },
+        status: 'error'
+      });
+    }
+
+    if (delayMs && index < candidates.length - 1) {
+      await sleep(delayMs);
+    }
+  }
+
+  return {
+    delayMs,
+    dryRun: !write,
+    limit: Math.max(1, Number(options.limit || 1)),
+    matchIndex: getMatchIndexSummary(context.matchIndex),
+    processed: results.length,
+    results,
+    totalCandidates: candidates.length,
+    write
+  };
+}
+
 export function formatAutoRelatedSyncSummary(result) {
   return {
     dryRun: result.dryRun,
@@ -265,5 +417,35 @@ export function formatAutoRelatedSyncSummary(result) {
     relatedWritten: result.relatedWritten,
     sourceMovie: result.sourceMovie,
     syncStateWritten: result.syncStateWritten
+  };
+}
+
+export function formatAutoRelatedBatchSummary(result) {
+  const successfulResults = result.results.filter(item => item.status === 'success');
+  const failedResults = result.results.filter(item => item.status === 'error');
+
+  return {
+    delayMs: result.delayMs,
+    dryRun: result.dryRun,
+    failed: failedResults.length,
+    limit: result.limit,
+    matchIndex: result.matchIndex,
+    processed: result.processed,
+    results: result.results.map(item => {
+      if (item.status === 'error') {
+        return item;
+      }
+
+      return {
+        evidenceRows: item.result.evidenceRows.length,
+        providers: item.result.providers,
+        relatedRows: item.result.relatedRows.length,
+        sourceMovie: item.result.sourceMovie,
+        status: item.status,
+        syncStateWritten: item.result.syncStateWritten
+      };
+    }),
+    succeeded: successfulResults.length,
+    write: result.write
   };
 }

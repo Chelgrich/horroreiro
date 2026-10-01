@@ -64,7 +64,7 @@ Automatic related movies:
 - `tools/auto-related/matching.mjs` strictly matches provider candidates to local movies by normalized TMDb/IMDb/Trakt IDs and treats duplicate external IDs as ambiguous, not as a match.
 - `tools/auto-related/scoring.mjs` scores local evidence with RRF only. Direct signals use `directRankCutoff`; reverse signals use `reverseRankCutoff` with `reverseWeight`; fallback cutoffs are used only when strict scoring returns fewer than the configured minimum.
 - `tools/auto-related/supabase-adapter.mjs` uses server-only Supabase REST/RPC access for movie match index reads, sync state upserts, evidence reads, atomic evidence replacement, and materialized related-row replacement. It must not be imported by browser code.
-- `tools/auto-related/sync-runner.mjs` is the server/CLI-only single-movie sync layer. It is dry-run by default through `npm run auto-related:sync`; real writes require `--write` plus `AUTO_RELATED_MOVIES=true` unless an operator intentionally passes `--force`. Dry-runs include `relatedRows` so scoring can be reviewed before applying the materialization RPC.
+- `tools/auto-related/sync-runner.mjs` is the server/CLI-only single-movie and batch sync layer. It is dry-run by default through `npm run auto-related:sync`; real writes require `--write` plus `AUTO_RELATED_MOVIES=true` unless an operator intentionally passes `--force`. Dry-runs include `relatedRows` so scoring can be reviewed before writes. Batch mode uses `--limit` to process least recently synced movies from one shared match index and `--delay-ms` to pace external provider calls.
 
 Runtime display:
 

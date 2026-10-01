@@ -43,6 +43,33 @@ Format:
 - Follow-up:
   - Apply `movie-auto-related-materialization-rpc-setup.sql` manually in Supabase before using `--write`, then run one forced write for a known movie and inspect `movie_related`.
 
+## 2026-10-01 - Add auto-related batch sync mode
+
+- Files:
+  - `tools/auto-related-sync.mjs`
+  - `tools/auto-related/sync-runner.mjs`
+  - `tools/auto-related-smoke.mjs`
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added `--limit` batch mode to `npm run auto-related:sync` for controlled slices of least recently synced movies.
+  - Batch sync builds the movie match index once per run, supports `--delay-ms`, remains dry-run by default, and uses the same gated write rules as one-movie sync.
+  - Extended auto-related smoke coverage for batch candidate order, dry-run safety, materialization calls, and batch summaries.
+- Checks:
+  - `node --check tools/auto-related/sync-runner.mjs`
+  - `node --check tools/auto-related-sync.mjs`
+  - `node --check tools/auto-related-smoke.mjs`
+  - `npm run smoke:auto-related`
+  - `npm run auto-related:sync -- --help`
+  - `npm run auto-related:sync -- --limit 3 --delay-ms 0`
+  - `npm run auto-related:sync -- --limit 3 --delay-ms 1000 --write --force`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Use small `--limit` batches for gradual `movie_related` backfill; public UI still reads manual similar movies.
+
 ## 2026-10-01 - Fix auto-related materialization RPC return column
 
 - Files:

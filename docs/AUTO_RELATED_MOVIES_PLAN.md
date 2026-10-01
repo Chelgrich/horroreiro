@@ -361,6 +361,7 @@ Current server/CLI implementation:
 - `tools/auto-related/sync-runner.mjs` fetches provider candidates, strictly matches by local external IDs, writes evidence only after successful provider fetches, scores local evidence, and can materialize `movie_related` rows.
 - `tools/auto-related/scoring.mjs` implements the RRF formula and strict/fallback rank cutoffs.
 - `npm run auto-related:sync` remains dry-run by default and prints `relatedRows`; real writes require `--write` plus `AUTO_RELATED_MOVIES=true` or an explicit one-off `--force`.
+- Batch mode uses `--limit` to process least recently synced movies from one shared match index and `--delay-ms` to pace provider calls. It is intended for small controlled backfill slices before a full scheduled backfill exists.
 - The public movie detail page still reads manual similar movies only.
 
 New movie flow:
@@ -480,7 +481,7 @@ Until quality is verified, keep the current public manual block as-is or make th
 6. Evidence storage.
 7. RRF scoring/materialization.
 8. Single-movie CLI/admin sync. Current CLI: `npm run auto-related:sync`.
-9. Full backfill.
+9. Full backfill. Current safe stepping stone: `npm run auto-related:sync -- --limit 20`.
 10. Refresh touched reverse edges after movie creation/edit.
 11. Periodic refresh.
 12. Admin diagnostics.
