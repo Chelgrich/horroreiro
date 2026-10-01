@@ -181,7 +181,7 @@ Current `tmdb_url` can be used to derive `tmdb_id` in the first pass, but the im
 
 ## Planned Tables
 
-The first setup SQL is `movie-auto-related-setup.sql`. Apply it manually in Supabase before running provider sync code. It creates storage/RLS only and does not change the current public manual related-movie behavior. `movie-auto-related-rpc-setup.sql` adds the atomic provider-evidence replacement RPC used by the server/CLI adapter and single-movie sync runner.
+The first setup SQL is `movie-auto-related-setup.sql`. Apply it manually in Supabase before running provider sync code. It creates storage/RLS only and does not change the current public manual related-movie behavior. `movie-auto-related-rpc-setup.sql` adds the atomic provider-evidence replacement RPC used by the server/CLI adapter and single-movie sync runner. `movie-auto-related-materialization-rpc-setup.sql` adds the atomic `movie_related` replacement RPC used after local RRF scoring.
 
 ### Evidence
 
@@ -355,6 +355,13 @@ Manual relations should either be mirrored into evidence with `provider = manual
 - if manual items exceed `MAX_RELATED`, preserve current position-based behavior.
 
 ## Sync Flow
+
+Current server/CLI implementation:
+
+- `tools/auto-related/sync-runner.mjs` fetches provider candidates, strictly matches by local external IDs, writes evidence only after successful provider fetches, scores local evidence, and can materialize `movie_related` rows.
+- `tools/auto-related/scoring.mjs` implements the RRF formula and strict/fallback rank cutoffs.
+- `npm run auto-related:sync` remains dry-run by default and prints `relatedRows`; real writes require `--write` plus `AUTO_RELATED_MOVIES=true` or an explicit one-off `--force`.
+- The public movie detail page still reads manual similar movies only.
 
 New movie flow:
 

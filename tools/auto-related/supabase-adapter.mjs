@@ -22,6 +22,13 @@ const DEFAULT_SYNC_STATE_SELECT = [
   'tmdb_last_success_at'
 ].join(',');
 
+const DEFAULT_EVIDENCE_SELECT = [
+  'source_movie_id',
+  'target_movie_id',
+  'provider',
+  'provider_rank'
+].join(',');
+
 export class SupabaseAutoRelatedError extends Error {
   constructor(message, details = {}) {
     super(message);
@@ -154,6 +161,20 @@ export class SupabaseAutoRelatedAdapter {
     });
   }
 
+  async fetchRecommendationEvidenceForMovie(movieId) {
+    const normalizedMovieId = String(movieId || '').trim();
+
+    if (!normalizedMovieId) {
+      throw new Error('movieId is required to fetch recommendation evidence.');
+    }
+
+    return this.fetchAllRows('movie_recommendation_evidence', {
+      or: `(source_movie_id.eq.${normalizedMovieId},target_movie_id.eq.${normalizedMovieId})`,
+      order: 'provider.asc,provider_rank.asc,target_movie_id.asc',
+      select: DEFAULT_EVIDENCE_SELECT
+    });
+  }
+
   async upsertRecommendationSyncState(row) {
     if (!row?.movie_id) {
       throw new Error('movie_id is required to upsert recommendation sync state.');
@@ -202,6 +223,23 @@ export class SupabaseAutoRelatedAdapter {
         p_provider: provider,
         p_rows: rows,
         p_source_movie_id: sourceMovieId
+      }),
+      method: 'POST'
+    });
+  }
+
+  async replaceRelatedRows(movieId, relatedRows = []) {
+    const rows = relatedRows.map(row => ({
+      confidence: row.confidence,
+      position: row.position,
+      related_movie_id: row.related_movie_id,
+      score: row.score
+    }));
+
+    return this.request('rpc/replace_movie_related_rows', {
+      body: JSON.stringify({
+        p_movie_id: movieId,
+        p_rows: rows
       }),
       method: 'POST'
     });

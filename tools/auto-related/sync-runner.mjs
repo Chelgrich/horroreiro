@@ -7,6 +7,7 @@ import {
   matchRecommendationCandidates
 } from './matching.mjs';
 import { createRecommendationProviders } from './providers.mjs';
+import { mergeEvidenceRowsForScoring, scoreRelatedMovies } from './scoring.mjs';
 import { createSupabaseAutoRelatedAdapter } from './supabase-adapter.mjs';
 
 const PROVIDER_SYNC_FIELDS = Object.freeze({
@@ -168,6 +169,7 @@ export async function syncOneAutoRelatedMovie(options = {}) {
   const providerMovie = toProviderMovie(sourceMovie);
   const providerResults = [];
   const evidenceRows = [];
+  const successfulProviders = [];
 
   for (const provider of providers) {
     try {
@@ -185,6 +187,7 @@ export async function syncOneAutoRelatedMovie(options = {}) {
       }
 
       evidenceRows.push(...providerEvidenceRows);
+      successfulProviders.push(provider.name);
       providerResults.push({
         externalCount: candidates.length,
         matchedCount: providerMatches.length,
@@ -208,9 +211,26 @@ export async function syncOneAutoRelatedMovie(options = {}) {
   }
 
   const syncStatePatch = getSyncStatePatch(sourceMovie, providerMovie, providerResults, nowIso);
+  const existingEvidenceRows = typeof adapter.fetchRecommendationEvidenceForMovie === 'function'
+    ? await adapter.fetchRecommendationEvidenceForMovie(sourceMovie.id)
+    : [];
+  const scoringEvidenceRows = mergeEvidenceRowsForScoring(
+    existingEvidenceRows,
+    evidenceRows,
+    successfulProviders
+  );
+  const relatedRows = scoreRelatedMovies({
+    config,
+    evidenceRows: scoringEvidenceRows,
+    sourceMovieId: sourceMovie.id
+  });
+  let materializedRows = [];
 
   if (write) {
     await adapter.upsertRecommendationSyncState(syncStatePatch);
+    materializedRows = typeof adapter.replaceRelatedRows === 'function'
+      ? await adapter.replaceRelatedRows(sourceMovie.id, relatedRows)
+      : [];
   }
 
   return {
@@ -227,6 +247,9 @@ export async function syncOneAutoRelatedMovie(options = {}) {
       trakt: sourceMovie.trakt || null,
       year: sourceMovie.year
     },
+    relatedRows,
+    relatedWritten: write,
+    savedRelatedRows: materializedRows,
     syncStatePatch,
     syncStateWritten: write
   };
@@ -238,6 +261,8 @@ export function formatAutoRelatedSyncSummary(result) {
     evidenceRows: result.evidenceRows.length,
     matchIndex: result.matchIndex,
     providers: result.providers,
+    relatedRows: result.relatedRows.length,
+    relatedWritten: result.relatedWritten,
     sourceMovie: result.sourceMovie,
     syncStateWritten: result.syncStateWritten
   };

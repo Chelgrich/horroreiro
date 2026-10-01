@@ -10,6 +10,7 @@ import {
   matchRecommendationCandidates
 } from './auto-related/matching.mjs';
 import { getProviderRecommendations } from './auto-related/providers.mjs';
+import { mergeEvidenceRowsForScoring, scoreRelatedMovies } from './auto-related/scoring.mjs';
 import { SupabaseAutoRelatedAdapter } from './auto-related/supabase-adapter.mjs';
 import { syncOneAutoRelatedMovie } from './auto-related/sync-runner.mjs';
 import { TmdbRecommendationProvider } from './auto-related/tmdb-provider.mjs';
@@ -290,8 +291,23 @@ async function checkSupabaseAdapter() {
         return createJsonResponse([{ movie_id: 'movie-a', tmdb_id: 100 }]);
       }
 
+      if (parsedUrl.pathname.endsWith('/movie_recommendation_evidence')) {
+        return createJsonResponse([
+          {
+            provider: 'tmdb_recommendations',
+            provider_rank: 3,
+            source_movie_id: 'movie-a',
+            target_movie_id: 'movie-b'
+          }
+        ]);
+      }
+
       if (parsedUrl.pathname.endsWith('/rpc/replace_movie_recommendation_provider_evidence')) {
         return createJsonResponse([{ source_movie_id: 'movie-a', target_movie_id: 'movie-b' }]);
+      }
+
+      if (parsedUrl.pathname.endsWith('/rpc/replace_movie_related_rows')) {
+        return createJsonResponse([{ movie_id: 'movie-a', related_movie_id: 'movie-b' }]);
       }
 
       return createJsonResponse([{ movie_id: 'movie-a' }]);
@@ -302,6 +318,7 @@ async function checkSupabaseAdapter() {
 
   const movies = await adapter.fetchMovieMatchRows();
   const syncStates = await adapter.fetchRecommendationSyncStates();
+  const evidence = await adapter.fetchRecommendationEvidenceForMovie('movie-a');
   await adapter.upsertRecommendationSyncState({
     movie_id: 'movie-a',
     tmdb_id: 100,
@@ -313,9 +330,18 @@ async function checkSupabaseAdapter() {
       target_movie_id: 'movie-b'
     }
   ]);
+  await adapter.replaceRelatedRows('movie-a', [
+    {
+      confidence: 'normal',
+      position: 0,
+      related_movie_id: 'movie-b',
+      score: 0.05
+    }
+  ]);
 
   assert.equal(movies.length, 2);
   assert.equal(syncStates.length, 1);
+  assert.equal(evidence.length, 1);
   assert(requests.every(request => request.headers.Authorization === 'Bearer service-role-key'));
   assert(requests.some(request => request.url.includes('select=id%2Cslug%2Ctitle')));
   assert(requests.some(request => request.url.includes('on_conflict=movie_id')));
@@ -323,6 +349,57 @@ async function checkSupabaseAdapter() {
     request.url.includes('/rpc/replace_movie_recommendation_provider_evidence') &&
     JSON.parse(request.body).p_provider === 'tmdb_recommendations'
   ));
+  assert(requests.some(request =>
+    request.url.includes('/rpc/replace_movie_related_rows') &&
+    JSON.parse(request.body).p_rows[0].confidence === 'normal'
+  ));
+}
+
+function checkRelatedScoring() {
+  const mergedEvidence = mergeEvidenceRowsForScoring(
+    [
+      {
+        provider: 'tmdb_recommendations',
+        provider_rank: 20,
+        source_movie_id: 'source-movie',
+        target_movie_id: 'old-target'
+      },
+      {
+        provider: 'trakt_related',
+        provider_rank: 2,
+        source_movie_id: 'reverse-target',
+        target_movie_id: 'source-movie'
+      }
+    ],
+    [
+      {
+        provider: 'tmdb_recommendations',
+        provider_rank: 1,
+        source_movie_id: 'source-movie',
+        target_movie_id: 'direct-target'
+      },
+      {
+        provider: 'trakt_related',
+        provider_rank: 4,
+        source_movie_id: 'source-movie',
+        target_movie_id: 'direct-target'
+      }
+    ],
+    ['tmdb_recommendations', 'trakt_related']
+  );
+  const scored = scoreRelatedMovies({
+    config: readAutoRelatedConfig({
+      AUTO_RELATED_MAX_RELATED: '8',
+      AUTO_RELATED_MIN_RELATED: '4'
+    }),
+    evidenceRows: mergedEvidence,
+    sourceMovieId: 'source-movie'
+  });
+
+  assert.equal(mergedEvidence.some(row => row.target_movie_id === 'old-target'), false);
+  assert.equal(scored[0].related_movie_id, 'direct-target');
+  assert.equal(scored[0].confidence, 'strong');
+  assert(scored.some(row => row.related_movie_id === 'reverse-target'));
 }
 
 async function checkSingleMovieSyncRunner() {
@@ -351,6 +428,16 @@ async function checkSingleMovieSyncRunner() {
     async fetchRecommendationSyncStates() {
       return [];
     },
+    async fetchRecommendationEvidenceForMovie() {
+      return [
+        {
+          provider: 'tmdb_recommendations',
+          provider_rank: 3,
+          source_movie_id: 'reverse-source',
+          target_movie_id: 'source-movie'
+        }
+      ];
+    },
     async replaceProviderEvidence(sourceMovieId, provider, evidenceRows) {
       calls.push({
         evidenceRows,
@@ -364,6 +451,14 @@ async function checkSingleMovieSyncRunner() {
         row,
         type: 'sync-state'
       });
+    },
+    async replaceRelatedRows(sourceMovieId, relatedRows) {
+      calls.push({
+        relatedRows,
+        sourceMovieId,
+        type: 'related'
+      });
+      return relatedRows;
     }
   };
   const providers = [
@@ -400,6 +495,8 @@ async function checkSingleMovieSyncRunner() {
 
   assert.equal(dryRunResult.dryRun, true);
   assert.equal(dryRunResult.evidenceRows.length, 2);
+  assert(dryRunResult.relatedRows.length >= 1);
+  assert.equal(dryRunResult.relatedWritten, false);
   assert.equal(dryRunResult.syncStateWritten, false);
   assert.equal(calls.length, 0);
 
@@ -426,8 +523,10 @@ async function checkSingleMovieSyncRunner() {
   assert.equal(writeResult.dryRun, false);
   assert.equal(writeResult.syncStatePatch.trakt_id, 777);
   assert.equal(calls.filter(call => call.type === 'replace').length, 2);
+  assert.equal(calls.filter(call => call.type === 'related').length, 1);
   assert.equal(calls.find(call => call.provider === 'tmdb_recommendations').evidenceRows.length, 1);
   assert.equal(calls.find(call => call.provider === 'trakt_related').evidenceRows.length, 1);
+  assert.equal(calls.find(call => call.type === 'related').relatedRows[0].related_movie_id, 'target-movie');
   assert.equal(calls.find(call => call.type === 'sync-state').row.movie_id, 'source-movie');
 }
 
@@ -440,6 +539,7 @@ await checkRetryAfter();
 await checkProviderAggregation();
 checkCandidateMatching();
 await checkSupabaseAdapter();
+checkRelatedScoring();
 await checkSingleMovieSyncRunner();
 
 console.log('Auto-related provider smoke passed.');

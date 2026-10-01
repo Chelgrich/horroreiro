@@ -12,6 +12,37 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-01 - Add auto-related scoring materialization
+
+- Files:
+  - `movie-auto-related-materialization-rpc-setup.sql`
+  - `tools/auto-related/scoring.mjs`
+  - `tools/auto-related/supabase-adapter.mjs`
+  - `tools/auto-related/sync-runner.mjs`
+  - `tools/auto-related-smoke.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added local RRF scoring for automatic related movies with strict and fallback cutoffs, direct/reverse evidence weights, and confidence labels.
+  - Added the materialization RPC SQL for replacing `movie_related` rows for one movie after scoring.
+  - Extended the single-movie sync runner so dry-runs print `relatedRows` and gated writes can persist materialized related rows after provider evidence and sync-state updates.
+  - Kept the public movie detail related block on the existing manual similar source.
+- Checks:
+  - `node --check tools/auto-related/scoring.mjs`
+  - `node --check tools/auto-related/supabase-adapter.mjs`
+  - `node --check tools/auto-related/sync-runner.mjs`
+  - `node --check tools/auto-related-smoke.mjs`
+  - `node --check tools/smoke-check.mjs`
+  - `npm run smoke:auto-related`
+  - `npm run auto-related:sync -- --slug zloveschie-mertvetsy-peklo-2026 --full`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Apply `movie-auto-related-materialization-rpc-setup.sql` manually in Supabase before using `--write`, then run one forced write for a known movie and inspect `movie_related`.
+
 ## 2026-10-01 - Add TMDb DNS fallback for auto-related CLI
 
 - Files:
