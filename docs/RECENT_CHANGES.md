@@ -12,6 +12,26 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-01 - Add TMDb DNS fallback for auto-related CLI
+
+- Files:
+  - `tools/auto-related/http-client.mjs`
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Diagnosed local Happ/Xray DNS poisoning where `api.themoviedb.org` resolved to `127.0.0.1` even through explicit `1.1.1.1`/`8.8.8.8` DNS queries.
+  - Added a targeted DNS-over-HTTPS fallback for TMDb provider requests in the server/CLI auto-related HTTP client.
+  - Re-ran the dry-run for `zloveschie-mertvetsy-peklo-2026`; TMDb and Trakt both succeeded without writing to Supabase.
+- Checks:
+  - `node --check tools/auto-related/http-client.mjs`
+  - `npm run auto-related:sync -- --slug zloveschie-mertvetsy-peklo-2026 --full`
+  - `npm run smoke:auto-related`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Use the dry-run output to design scoring/materialization cutoffs before enabling writes or public display.
+
 ## 2026-10-01 - Auto-load local env for automatic related CLI
 
 - Files:

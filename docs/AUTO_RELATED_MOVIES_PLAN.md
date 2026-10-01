@@ -90,6 +90,8 @@ The CLI is dry-run by default. Real writes require `--write` and `AUTO_RELATED_M
 
 For local operator runs, the CLI auto-loads ignored environment values from `deploy/yandex/production.env.local` before reading config. Values already present in the shell take precedence.
 
+The provider HTTP client also has a targeted DNS-over-HTTPS fallback for TMDb, because local Windows DNS can be hijacked by Happ/Xray and resolve `api.themoviedb.org` to `127.0.0.1`. This fallback is for server/CLI sync only and must not be copied into browser code.
+
 ## TMDb
 
 Use application-level authentication with the API Read Access Token as a Bearer token. User authorization is not needed for these server-side reads.
