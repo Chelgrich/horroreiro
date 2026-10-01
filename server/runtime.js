@@ -3,6 +3,7 @@ import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { onRequest as envOnRequest } from '../functions/env.js';
+import { onRequestPost as adminAutoRelatedOnRequestPost } from '../functions/admin/auto-related/[movieId].js';
 import { onRequestGet as appAssetsOnRequestGet } from '../functions/app-assets/[version].js';
 import { onRequestPost as adminPasswordOnRequestPost } from '../functions/admin/users/[userId]/password.js';
 import { onRequestGet as companyHtmlOnRequestGet } from '../functions/company.html.js';
@@ -250,6 +251,12 @@ function getAdminPasswordUserId(pathname) {
   return match ? decodeURIComponent(match[1]) : '';
 }
 
+function getAdminAutoRelatedMovieId(pathname) {
+  const match = pathname.match(/^\/admin\/auto-related\/([^/]+)$/);
+
+  return match ? decodeURIComponent(match[1]) : '';
+}
+
 export function createPortableRuntime(options = {}) {
   const rootDir = resolve(options.rootDir || defaultRootDir);
   const baseEnv = {
@@ -294,6 +301,17 @@ export function createPortableRuntime(options = {}) {
       return invokeGetHandler(appAssetsOnRequestGet, request, {
         version: getSingleSegmentParam(pathname, '/app-assets/')
       });
+    }
+
+    const adminAutoRelatedMovieId = getAdminAutoRelatedMovieId(pathname);
+    if (adminAutoRelatedMovieId) {
+      if (request.method !== 'POST') {
+        return methodNotAllowed('POST');
+      }
+
+      return adminAutoRelatedOnRequestPost(createContext(request, {
+        movieId: adminAutoRelatedMovieId
+      }));
     }
 
     const adminPasswordUserId = getAdminPasswordUserId(pathname);

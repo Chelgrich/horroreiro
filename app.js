@@ -8404,6 +8404,46 @@ function ensureActiveSessionForWrite() {
   return currentUser;
 }
 
+async function syncAutoRelatedMovieAfterAdminSave(movieId) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!isAdmin || !normalizedMovieId || !supabaseClient?.auth) {
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    const accessToken = data?.session?.access_token || '';
+
+    if (error || !accessToken) {
+      return;
+    }
+
+    const response = await fetch(`/admin/auto-related/${encodeURIComponent(normalizedMovieId)}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      keepalive: true,
+      method: 'POST'
+    });
+
+    if (!response.ok) {
+      let payload = null;
+
+      try {
+        payload = await response.json();
+      } catch {
+        payload = null;
+      }
+
+      console.warn('Auto-related sync after movie save failed:', payload?.message || response.statusText);
+    }
+  } catch (error) {
+    console.warn('Auto-related sync after movie save failed:', error);
+  }
+}
+
 async function withPendingRequestTimeout(promise, timeoutMs, timeoutMessage) {
   let timeoutId = null;
 
@@ -14403,17 +14443,22 @@ async function addMovie(movieEditor) {
     }
   });
 
+  if (createResult?.insertedMovie?.id) {
+    void syncAutoRelatedMovieAfterAdminSave(createResult.insertedMovie.id);
+  }
+
   return createResult;
 }
 
 async function updateMovie(movieEditor) {
-  const existingMovie = getCatalogMovieById(editingMovieId)
-    || getCurrentSecondaryPageMovieById(editingMovieId)
-    || (currentMoviePageMovieData && currentMoviePageMovieData.id === editingMovieId
+  const movieId = editingMovieId;
+  const existingMovie = getCatalogMovieById(movieId)
+    || getCurrentSecondaryPageMovieById(movieId)
+    || (currentMoviePageMovieData && currentMoviePageMovieData.id === movieId
       ? currentMoviePageMovieData
       : null);
   const updateResult = await movieEditor.submitMovieUpdate({
-    movieId: editingMovieId,
+    movieId,
     existingMovie,
     manualSimilarMovieIdsDraft,
     moviePosterImagesDraft,
@@ -14479,6 +14524,10 @@ async function updateMovie(movieEditor) {
       await controller?.loadCompanyPage?.();
       persistCurrentSecondaryPageDomSnapshot();
     }
+  }
+
+  if (movieId && updateResult?.updateSavePlan?.hasAnyChanges && !updateResult?.validationFailed && !updateResult?.missingMovie) {
+    void syncAutoRelatedMovieAfterAdminSave(movieId);
   }
 
   return updateResult;

@@ -419,6 +419,22 @@ function checkRelatedScoring() {
   assert.equal(scored[0].related_movie_id, 'direct-target');
   assert.equal(scored[0].confidence, 'strong');
   assert(scored.some(row => row.related_movie_id === 'reverse-target'));
+
+  const clearedEvidence = mergeEvidenceRowsForScoring(
+    [
+      {
+        provider: 'tmdb_recommendations',
+        provider_rank: 1,
+        source_movie_id: 'source-movie',
+        target_movie_id: 'stale-target'
+      }
+    ],
+    [],
+    ['tmdb_recommendations'],
+    { sourceMovieId: 'source-movie' }
+  );
+
+  assert.equal(clearedEvidence.length, 0);
 }
 
 async function checkSingleMovieSyncRunner() {
@@ -447,7 +463,24 @@ async function checkSingleMovieSyncRunner() {
     async fetchRecommendationSyncStates() {
       return [];
     },
-    async fetchRecommendationEvidenceForMovie() {
+    async fetchRecommendationEvidenceForMovie(movieId) {
+      if (movieId === 'target-movie') {
+        return [
+          {
+            provider: 'tmdb_recommendations',
+            provider_rank: 1,
+            source_movie_id: 'source-movie',
+            target_movie_id: 'target-movie'
+          },
+          {
+            provider: 'trakt_related',
+            provider_rank: 1,
+            source_movie_id: 'source-movie',
+            target_movie_id: 'target-movie'
+          }
+        ];
+      }
+
       return [
         {
           provider: 'tmdb_recommendations',
@@ -542,11 +575,14 @@ async function checkSingleMovieSyncRunner() {
   assert.equal(writeResult.dryRun, false);
   assert.equal(writeResult.syncStatePatch.trakt_id, 777);
   assert.equal(calls.filter(call => call.type === 'replace').length, 2);
-  assert.equal(calls.filter(call => call.type === 'related').length, 1);
+  assert.equal(calls.filter(call => call.type === 'related').length, 2);
   assert.equal(calls.find(call => call.provider === 'tmdb_recommendations').evidenceRows.length, 1);
   assert.equal(calls.find(call => call.provider === 'trakt_related').evidenceRows.length, 1);
   assert.equal(calls.find(call => call.type === 'related').relatedRows[0].related_movie_id, 'target-movie');
+  assert.equal(calls.filter(call => call.type === 'related')[1].sourceMovieId, 'target-movie');
+  assert.equal(calls.filter(call => call.type === 'related')[1].relatedRows[0].related_movie_id, 'source-movie');
   assert.equal(calls.find(call => call.type === 'sync-state').row.movie_id, 'source-movie');
+  assert.equal(writeResult.touchedMaterializedRows.length, 1);
 }
 
 async function checkBatchSyncRunner() {
@@ -677,7 +713,7 @@ async function checkBatchSyncRunner() {
   assert.equal(summary.unsyncedOnly, false);
   assert.equal(summary.succeeded, 2);
   assert.equal(summary.failed, 0);
-  assert.equal(calls.filter(call => call.type === 'related').length, 2);
+  assert.equal(calls.filter(call => call.type === 'related').length, 4);
   assert.equal(calls.filter(call => call.type === 'sync-state').length, 2);
 }
 

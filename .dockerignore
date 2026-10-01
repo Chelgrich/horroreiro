@@ -10,7 +10,9 @@ npm-debug.log*
 archive
 docs
 src
-tools
+tools/*
+!tools/auto-related/
+!tools/auto-related/**
 
 horroreiro-*.json
 horroreiro-*.txt

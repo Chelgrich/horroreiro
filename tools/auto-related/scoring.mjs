@@ -129,8 +129,24 @@ function sortCandidates(candidates, maxRelated) {
     }));
 }
 
-export function mergeEvidenceRowsForScoring(existingEvidenceRows = [], freshEvidenceRows = [], replacedProviders = []) {
+export function mergeEvidenceRowsForScoring(
+  existingEvidenceRows = [],
+  freshEvidenceRows = [],
+  replacedProviders = [],
+  options = {}
+) {
   const replacedProviderSet = new Set(replacedProviders.map(provider => String(provider || '').trim()).filter(Boolean));
+  const replacedSourceMovieIds = new Set(
+    freshEvidenceRows
+      .map(row => String(row?.source_movie_id || '').trim())
+      .filter(Boolean)
+  );
+  const explicitSourceMovieId = String(options.sourceMovieId || '').trim();
+
+  if (explicitSourceMovieId) {
+    replacedSourceMovieIds.add(explicitSourceMovieId);
+  }
+
   const rowsByKey = new Map();
 
   [...existingEvidenceRows, ...freshEvidenceRows].forEach(rawRow => {
@@ -143,10 +159,7 @@ export function mergeEvidenceRowsForScoring(existingEvidenceRows = [], freshEvid
     if (
       replacedProviderSet.has(row.provider) &&
       existingEvidenceRows.includes(rawRow) &&
-      freshEvidenceRows.some(freshRow =>
-        String(freshRow?.provider || '') === row.provider &&
-        String(freshRow?.source_movie_id || '') === row.source_movie_id
-      )
+      replacedSourceMovieIds.has(row.source_movie_id)
     ) {
       return;
     }

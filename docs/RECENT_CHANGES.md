@@ -12,6 +12,44 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-01 - Add admin post-save auto-related sync
+
+- Files:
+  - `.dockerignore`
+  - `Dockerfile`
+  - `app.js`
+  - `functions/admin/auto-related/[movieId].js`
+  - `server/runtime.js`
+  - `tools/container-release-preflight.mjs`
+  - `tools/auto-related/scoring.mjs`
+  - `tools/auto-related/sync-runner.mjs`
+  - `tools/auto-related-smoke.mjs`
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a protected `POST /admin/auto-related/:movieId` endpoint that verifies the caller as an admin and runs a one-movie provider sync/materialization server-side.
+  - Triggered the endpoint as a best-effort background action after successful admin movie create/update, without blocking the save flow or exposing provider/service-role secrets to the browser.
+  - Extended auto-related write syncs to refresh touched reverse materialized rows, so new/edited movies can appear in older movies' automatic related rows without a full backfill.
+  - Fixed stale provider evidence merging when a successful provider refresh returns no fresh rows for the source movie.
+  - Included only `tools/auto-related` in the production Docker image and strengthened release preflight so the runtime endpoint can import the server-only sync modules.
+- Checks:
+  - `node --check app.js`
+  - `node --check server/runtime.js`
+  - `node --check "functions/admin/auto-related/[movieId].js"`
+  - `node --check tools/auto-related/scoring.mjs`
+  - `node --check tools/auto-related/sync-runner.mjs`
+  - `node --check tools/auto-related-smoke.mjs`
+  - `node --check tools/container-release-preflight.mjs`
+  - `npm run smoke:auto-related`
+  - `npm run smoke:portable`
+  - `npm run release:container:preflight -- --allow-dirty`
+  - `node tools/smoke-check.mjs`
+  - `git diff --check`
+- Follow-up:
+  - Add periodic refresh/admin diagnostics before considering any public UI switch from manual similar movies to automatic results.
+
 ## 2026-10-01 - Add unsynced-only auto-related batch mode
 
 - Files:

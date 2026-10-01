@@ -114,6 +114,52 @@ function toProviderMovie(sourceMovie) {
   });
 }
 
+function getTouchedMaterializationMovieIds(sourceMovieId, existingEvidenceRows = [], freshEvidenceRows = [], replacedProviders = []) {
+  const sourceId = String(sourceMovieId || '').trim();
+  const replacedProviderSet = new Set(
+    replacedProviders.map(provider => String(provider || '').trim()).filter(Boolean)
+  );
+  const touchedMovieIds = new Set(sourceId ? [sourceId] : []);
+
+  freshEvidenceRows.forEach(row => {
+    if (String(row?.source_movie_id || '') === sourceId && row?.target_movie_id) {
+      touchedMovieIds.add(String(row.target_movie_id));
+    }
+  });
+
+  existingEvidenceRows.forEach(row => {
+    if (
+      String(row?.source_movie_id || '') === sourceId &&
+      replacedProviderSet.has(String(row?.provider || '')) &&
+      row?.target_movie_id
+    ) {
+      touchedMovieIds.add(String(row.target_movie_id));
+    }
+  });
+
+  return [...touchedMovieIds];
+}
+
+async function materializeRelatedRowsForMovie(adapter, config, movieId) {
+  const evidenceRows = typeof adapter.fetchRecommendationEvidenceForMovie === 'function'
+    ? await adapter.fetchRecommendationEvidenceForMovie(movieId)
+    : [];
+  const relatedRows = scoreRelatedMovies({
+    config,
+    evidenceRows,
+    sourceMovieId: movieId
+  });
+  const savedRelatedRows = typeof adapter.replaceRelatedRows === 'function'
+    ? await adapter.replaceRelatedRows(movieId, relatedRows)
+    : [];
+
+  return {
+    movieId,
+    relatedRows,
+    savedRelatedRows
+  };
+}
+
 function getProviderSyncPatch(providerName, result, nowIso) {
   const fields = PROVIDER_SYNC_FIELDS[providerName];
 
@@ -305,7 +351,8 @@ async function syncResolvedAutoRelatedMovie(options = {}) {
   const scoringEvidenceRows = mergeEvidenceRowsForScoring(
     existingEvidenceRows,
     evidenceRows,
-    successfulProviders
+    successfulProviders,
+    { sourceMovieId: sourceMovie.id }
   );
   const relatedRows = scoreRelatedMovies({
     config,
@@ -313,12 +360,29 @@ async function syncResolvedAutoRelatedMovie(options = {}) {
     sourceMovieId: sourceMovie.id
   });
   let materializedRows = [];
+  let touchedMaterializedRows = [];
 
   if (write) {
     await adapter.upsertRecommendationSyncState(syncStatePatch);
     materializedRows = typeof adapter.replaceRelatedRows === 'function'
       ? await adapter.replaceRelatedRows(sourceMovie.id, relatedRows)
       : [];
+    const touchedMovieIds = getTouchedMaterializationMovieIds(
+      sourceMovie.id,
+      existingEvidenceRows,
+      evidenceRows,
+      successfulProviders
+    ).filter(movieId => movieId !== sourceMovie.id);
+
+    touchedMaterializedRows = [];
+
+    for (const touchedMovieId of touchedMovieIds) {
+      touchedMaterializedRows.push(await materializeRelatedRowsForMovie(
+        adapter,
+        config,
+        touchedMovieId
+      ));
+    }
   }
 
   return {
@@ -339,7 +403,8 @@ async function syncResolvedAutoRelatedMovie(options = {}) {
     relatedWritten: write,
     savedRelatedRows: materializedRows,
     syncStatePatch,
-    syncStateWritten: write
+    syncStateWritten: write,
+    touchedMaterializedRows
   };
 }
 
@@ -506,7 +571,10 @@ export function formatAutoRelatedSyncSummary(result) {
     relatedRows: result.relatedRows.length,
     relatedWritten: result.relatedWritten,
     sourceMovie: result.sourceMovie,
-    syncStateWritten: result.syncStateWritten
+    syncStateWritten: result.syncStateWritten,
+    touchedMaterializedMovies: Array.isArray(result.touchedMaterializedRows)
+      ? result.touchedMaterializedRows.length
+      : 0
   };
 }
 
@@ -532,7 +600,10 @@ export function formatAutoRelatedBatchSummary(result) {
         relatedRows: item.result.relatedRows.length,
         sourceMovie: item.result.sourceMovie,
         status: item.status,
-        syncStateWritten: item.result.syncStateWritten
+        syncStateWritten: item.result.syncStateWritten,
+        touchedMaterializedMovies: Array.isArray(item.result.touchedMaterializedRows)
+          ? item.result.touchedMaterializedRows.length
+          : 0
       };
     }),
     succeeded: successfulResults.length,

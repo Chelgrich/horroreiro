@@ -1,6 +1,6 @@
 # Automatic Related Movies Plan
 
-Status: planned architecture, not implemented.
+Status: partially implemented. Storage/RPCs, provider sync, scoring/materialization, backfill/reporting, and a protected single-movie admin sync endpoint exist. The public movie detail page still uses manual similar movies.
 
 This document captures the target design for an automatic related-movies pipeline. It must not be treated as a description of current database tables until the implementation and Supabase changes are actually applied.
 
@@ -358,11 +358,13 @@ Manual relations should either be mirrored into evidence with `provider = manual
 
 Current server/CLI implementation:
 
-- `tools/auto-related/sync-runner.mjs` fetches provider candidates, strictly matches by local external IDs, writes evidence only after successful provider fetches, scores local evidence, and can materialize `movie_related` rows.
+- `tools/auto-related/sync-runner.mjs` fetches provider candidates, strictly matches by local external IDs, writes evidence only after successful provider fetches, scores local evidence, materializes `movie_related` rows, and refreshes touched reverse materializations after a write.
 - `tools/auto-related/scoring.mjs` implements the RRF formula and strict/fallback rank cutoffs.
 - `npm run auto-related:sync` remains dry-run by default and prints `relatedRows`; real writes require `--write` plus `AUTO_RELATED_MOVIES=true` or an explicit one-off `--force`.
 - Batch mode uses `--limit` to process least recently synced movies from one shared match index and `--delay-ms` to pace provider calls. It is intended for small controlled backfill slices before a full scheduled backfill exists. Add `--unsynced-only` for one-time backfills where repeat refreshes are not desired.
 - `--report` prints current coverage totals and can be appended to batch runs so cron logs include the final state after each run.
+- `POST /admin/auto-related/:movieId` is a protected admin endpoint that verifies the caller through Supabase Auth, checks the `profiles.role = admin` server-side, then writes a one-movie sync with touched reverse materialization refreshes.
+- `app.js` triggers that endpoint as a best-effort background action after successful admin movie create/update. The save operation does not wait on external providers and does not fail if the background sync fails.
 - The public movie detail page still reads manual similar movies only.
 
 New movie flow:
@@ -481,9 +483,9 @@ Until quality is verified, keep the current public manual block as-is or make th
 5. External ID resolver.
 6. Evidence storage.
 7. RRF scoring/materialization.
-8. Single-movie CLI/admin sync. Current CLI: `npm run auto-related:sync`.
+8. Single-movie CLI/admin sync. Current CLI: `npm run auto-related:sync`; current protected admin endpoint: `POST /admin/auto-related/:movieId`.
 9. Full backfill. Current safe stepping stone: `npm run auto-related:sync -- --limit 20 --delay-ms 1000 --unsynced-only --write --force --report`.
-10. Refresh touched reverse edges after movie creation/edit.
+10. Refresh touched reverse edges after movie creation/edit. Implemented for sync writes and the admin post-save endpoint.
 11. Periodic refresh.
 12. Admin diagnostics.
 13. Public UI switch after quality review.

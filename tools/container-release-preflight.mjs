@@ -165,6 +165,7 @@ async function checkDockerBoundary() {
     'ENV NODE_ENV=production',
     'ENV HOST=0.0.0.0',
     'ENV PORT=8080',
+    'COPY tools/auto-related ./tools/auto-related',
     'USER node',
     'EXPOSE 8080',
     'CMD ["node", "server/server.mjs"]'
@@ -178,7 +179,8 @@ async function checkDockerBoundary() {
     'node_modules',
     'docs',
     'src',
-    'tools'
+    'tools/*',
+    '!tools/auto-related/'
   ].forEach(fragment => {
     assert(dockerignore.includes(fragment), `.dockerignore: missing "${fragment}"`);
   });
