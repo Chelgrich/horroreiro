@@ -66,6 +66,17 @@ Planned providers:
 
 This keeps the business logic independent from Trakt and allows adding or removing providers without rewriting scoring.
 
+Current skeleton modules live under `tools/auto-related/` and are server/CLI-only:
+
+- `config.mjs`;
+- `ids.mjs`;
+- `http-client.mjs`;
+- `tmdb-provider.mjs`;
+- `trakt-provider.mjs`;
+- `providers.mjs`.
+
+They are not wired to Supabase writes or the public UI yet.
+
 ## TMDb
 
 Use application-level authentication with the API Read Access Token as a Bearer token. User authorization is not needed for these server-side reads.

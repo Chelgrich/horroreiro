@@ -8,6 +8,7 @@
     "smoke:docker": "node tools/docker-runtime-smoke.mjs",
     "smoke:deployed": "node tools/deployed-runtime-smoke.mjs",
     "smoke:docker:required": "node tools/docker-runtime-smoke.mjs --require-docker",
+    "smoke:auto-related": "node tools/auto-related-smoke.mjs",
     "smoke:portable": "node tools/portable-runtime-smoke.mjs",
     "deploy:production": "powershell -ExecutionPolicy Bypass -File tools/deploy-production.ps1",
     "start:portable": "node server/server.mjs",

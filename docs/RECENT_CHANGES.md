@@ -12,6 +12,42 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-01 - Add automatic related provider skeleton
+
+- Files:
+  - `tools/auto-related/config.mjs`
+  - `tools/auto-related/http-client.mjs`
+  - `tools/auto-related/ids.mjs`
+  - `tools/auto-related/providers.mjs`
+  - `tools/auto-related/tmdb-provider.mjs`
+  - `tools/auto-related/trakt-provider.mjs`
+  - `tools/auto-related-smoke.mjs`
+  - `tools/smoke-check.mjs`
+  - `package.json`
+  - `deploy/yandex/production.env.local.example`
+  - `deploy/yandex/serverless-container.env.example`
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added server/CLI-only automatic related provider skeleton modules for env config, external ID normalization, retry/`429`-aware JSON fetches, provider creation, TMDb Recommendations, and Trakt Related.
+  - Added `npm run smoke:auto-related` with mocked provider responses to verify Bearer/app-key headers, retry-after handling, provider isolation, and candidate normalization without leaking overview/title fields.
+  - Documented optional server-only `TMDB_READ_ACCESS_TOKEN` and `TRAKT_API_KEY` env values in Yandex env examples without enabling any public UI or Supabase writes.
+- Checks:
+  - `node --check tools/auto-related/config.mjs`
+  - `node --check tools/auto-related/http-client.mjs`
+  - `node --check tools/auto-related/ids.mjs`
+  - `node --check tools/auto-related/providers.mjs`
+  - `node --check tools/auto-related/tmdb-provider.mjs`
+  - `node --check tools/auto-related/trakt-provider.mjs`
+  - `node --check tools/auto-related-smoke.mjs`
+  - `npm run smoke:auto-related`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Build the next layer: Supabase read/write adapter plus ID matching from provider candidates to local movies, still without switching the public related block.
+
 ## 2026-10-01 - Add automatic related movies schema plan
 
 - Files:

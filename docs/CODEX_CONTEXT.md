@@ -295,6 +295,8 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 Planned automatic related movies are documented in `docs/AUTO_RELATED_MOVIES_PLAN.md`. The first setup SQL is `movie-auto-related-setup.sql`; until it is applied and sync code is implemented, the current public related-movie source remains `movie_manual_similar`. The target design is a server-only, feature-flagged pipeline that stores local evidence/materialized related rows from TMDb Recommendations and Trakt Related Movies, preserves current manual related movies, keeps external API secrets out of frontend JS, handles provider 429/failures without deleting old cached evidence, and never calls TMDb/Trakt while opening a movie detail page.
 
+`tools/auto-related/*` is the server/CLI-only skeleton for that future pipeline. It owns env-driven sync config, external id normalization, retry/`429`-aware JSON fetches, provider factories, `TmdbRecommendationProvider`, and `TraktRelatedProvider`. Keep these modules out of browser asset allowlists and do not import them from frontend code. Use `npm run smoke:auto-related` to test the provider skeleton with mocked external APIs.
+
 `movie-user-state.js` is lazy-loaded on first rating/watchlist action and owns rating/watchlist mutation orchestration: duplicate-request guards, rating validation, watchlist add/remove branching, local mutation stamps, catalog snapshot sync, rerender callbacks, feedback callbacks, and optional scroll preservation. `app.js` keeps shared rating/watchlist arrays, request sets used by render busy states, Supabase write callbacks, local index/stat updates, and catalog/detail rerender bridges.
 
 `movie-social.js` is lazy-loaded only for movie detail pages and owns the detail social block:

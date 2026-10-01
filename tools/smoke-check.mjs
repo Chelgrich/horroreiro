@@ -62,7 +62,14 @@ const syntaxFiles = [
   'functions/profile-activity-ranks/[userId].js',
   'tools/docker-runtime-smoke.mjs',
   'tools/portable-runtime-smoke.mjs',
-  'tools/asset-size-report.mjs'
+  'tools/asset-size-report.mjs',
+  'tools/auto-related/config.mjs',
+  'tools/auto-related/http-client.mjs',
+  'tools/auto-related/ids.mjs',
+  'tools/auto-related/providers.mjs',
+  'tools/auto-related/tmdb-provider.mjs',
+  'tools/auto-related/trakt-provider.mjs',
+  'tools/auto-related-smoke.mjs'
 ];
 
 const contextJournalFile = 'docs/RECENT_CHANGES.md';

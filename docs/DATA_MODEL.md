@@ -58,6 +58,7 @@ Automatic related movies:
 - `movie_recommendation_sync_state`, `movie_recommendation_evidence`, and `movie_recommendation_overrides` are admin-only through RLS. They are for server/admin sync diagnostics and must not be used as public page payloads.
 - Current `movie_manual_similar` remains the live public source for related movies until the automatic pipeline is explicitly implemented and switched on.
 - External providers must be called only by server/CLI sync code with server-side env secrets. Movie detail pages must not call TMDb or Trakt directly.
+- Provider skeleton modules live under `tools/auto-related/` and are tested with `npm run smoke:auto-related`.
 
 Runtime display:
 
