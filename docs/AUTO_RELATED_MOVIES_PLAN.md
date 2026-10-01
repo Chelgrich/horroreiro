@@ -155,7 +155,7 @@ Current `tmdb_url` can be used to derive `tmdb_id` in the first pass, but the im
 
 ## Planned Tables
 
-Names are provisional until the Supabase migration is written.
+The first setup SQL is `movie-auto-related-setup.sql`. Apply it manually in Supabase before implementing provider sync code. It creates storage/RLS only and does not change the current public manual related-movie behavior.
 
 ### Evidence
 
@@ -314,7 +314,8 @@ Confidence for admin/debug only:
 
 - `strong`: both providers signal the pair, or both directions exist;
 - `normal`: one direct signal with rank <= 10;
-- `fallback`: other candidates that pass cutoffs.
+- `fallback`: other candidates that pass cutoffs;
+- `manual`: materialized manual recommendation.
 
 ## Manual Relations
 

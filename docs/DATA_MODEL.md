@@ -32,6 +32,11 @@ Related movie data:
 - `countries`
 - poster gallery rows, used by detail gallery and admin poster editor;
 - manual similar movie rows.
+- planned automatic related movie rows, after applying `movie-auto-related-setup.sql`:
+  - `movie_recommendation_sync_state`;
+  - `movie_recommendation_evidence`;
+  - `movie_recommendation_overrides`;
+  - `movie_related`.
 
 Poster gallery display reads use `MOVIE_POSTER_IMAGE_DISPLAY_SELECT` (`movie_id`, `image_url`, `position`). Public display, detail gallery, and Russian-poster preference do not need `movie_poster_images.id`.
 
@@ -45,6 +50,14 @@ Client movie select profiles:
 - `MOVIE_NOTIFICATION_LINK_SELECT`: lightweight movie links in non-digest notifications.
 - `MOVIE_USER_PAGE_TASTE_SELECT`: profile taste statistics.
 - `MOVIE_SIMILAR_CARD_SELECT`: movie detail manual similar cards; use this instead of full catalog payload when only similar-card fields are needed.
+
+Automatic related movies:
+
+- `movie-auto-related-setup.sql` creates the first storage/RLS layer for future automatic related movies. It is not wired into the UI or sync pipeline yet.
+- `movie_related` is the only planned public read table in this contour. It should contain materialized local results and is safe for `anon`/`authenticated` `select`.
+- `movie_recommendation_sync_state`, `movie_recommendation_evidence`, and `movie_recommendation_overrides` are admin-only through RLS. They are for server/admin sync diagnostics and must not be used as public page payloads.
+- Current `movie_manual_similar` remains the live public source for related movies until the automatic pipeline is explicitly implemented and switched on.
+- External providers must be called only by server/CLI sync code with server-side env secrets. Movie detail pages must not call TMDb or Trakt directly.
 
 Runtime display:
 

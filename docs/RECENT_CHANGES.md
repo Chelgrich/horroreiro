@@ -12,6 +12,24 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-01 - Add automatic related movies schema plan
+
+- Files:
+  - `movie-auto-related-setup.sql`
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added the first manually applied Supabase setup SQL for future automatic related movies.
+  - The SQL creates admin-only sync/evidence/override tables plus public-read `movie_related`, with RLS and explicit grants for Supabase Data API compatibility.
+  - Documented that the current public related-movie flow still uses `movie_manual_similar` until provider sync/materialization code is implemented.
+- Checks:
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - After applying the SQL manually in Supabase, build the server-only provider abstraction skeleton and sync config without touching the public UI.
+
 ## 2026-10-01 - Document automatic related movies architecture
 
 - Files:
