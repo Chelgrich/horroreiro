@@ -69,8 +69,10 @@ const syntaxFiles = [
   'tools/auto-related/matching.mjs',
   'tools/auto-related/providers.mjs',
   'tools/auto-related/supabase-adapter.mjs',
+  'tools/auto-related/sync-runner.mjs',
   'tools/auto-related/tmdb-provider.mjs',
   'tools/auto-related/trakt-provider.mjs',
+  'tools/auto-related-sync.mjs',
   'tools/auto-related-smoke.mjs'
 ];
 

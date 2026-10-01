@@ -11,6 +11,7 @@ import {
 } from './auto-related/matching.mjs';
 import { getProviderRecommendations } from './auto-related/providers.mjs';
 import { SupabaseAutoRelatedAdapter } from './auto-related/supabase-adapter.mjs';
+import { syncOneAutoRelatedMovie } from './auto-related/sync-runner.mjs';
 import { TmdbRecommendationProvider } from './auto-related/tmdb-provider.mjs';
 import { TraktRelatedProvider } from './auto-related/trakt-provider.mjs';
 
@@ -324,6 +325,112 @@ async function checkSupabaseAdapter() {
   ));
 }
 
+async function checkSingleMovieSyncRunner() {
+  const calls = [];
+  const adapter = {
+    async fetchMovieMatchRows() {
+      return [
+        {
+          id: 'source-movie',
+          imdb_url: 'https://www.imdb.com/title/tt1111111/',
+          slug: 'source-slug',
+          title: 'Source',
+          tmdb_url: 'https://www.themoviedb.org/movie/100-source',
+          year: 2026
+        },
+        {
+          id: 'target-movie',
+          imdb_url: 'https://www.imdb.com/title/tt2222222/',
+          slug: 'target-slug',
+          title: 'Target',
+          tmdb_url: 'https://www.themoviedb.org/movie/200-target',
+          year: 2026
+        }
+      ];
+    },
+    async fetchRecommendationSyncStates() {
+      return [];
+    },
+    async replaceProviderEvidence(sourceMovieId, provider, evidenceRows) {
+      calls.push({
+        evidenceRows,
+        provider,
+        sourceMovieId,
+        type: 'replace'
+      });
+    },
+    async upsertRecommendationSyncState(row) {
+      calls.push({
+        row,
+        type: 'sync-state'
+      });
+    }
+  };
+  const providers = [
+    {
+      name: 'tmdb_recommendations',
+      async getRecommendations() {
+        return [
+          { externalIds: { tmdb: 200 }, provider: 'tmdb_recommendations', rank: 1 },
+          { externalIds: { tmdb: 999999 }, provider: 'tmdb_recommendations', rank: 2 }
+        ];
+      }
+    },
+    {
+      name: 'trakt_related',
+      async resolveTraktId() {
+        return 777;
+      },
+      async getRecommendations(movie) {
+        assert.equal(movie.trakt_id, 777);
+        return [
+          { externalIds: { imdb: 'tt2222222', trakt: 888 }, provider: 'trakt_related', rank: 1 }
+        ];
+      }
+    }
+  ];
+
+  const dryRunResult = await syncOneAutoRelatedMovie({
+    adapter,
+    config: readAutoRelatedConfig({ AUTO_RELATED_MOVIES: 'false' }),
+    now: new Date('2026-10-01T00:00:00Z'),
+    providers,
+    slug: 'source-slug'
+  });
+
+  assert.equal(dryRunResult.dryRun, true);
+  assert.equal(dryRunResult.evidenceRows.length, 2);
+  assert.equal(dryRunResult.syncStateWritten, false);
+  assert.equal(calls.length, 0);
+
+  await assert.rejects(
+    () => syncOneAutoRelatedMovie({
+      adapter,
+      config: readAutoRelatedConfig({ AUTO_RELATED_MOVIES: 'false' }),
+      providers,
+      slug: 'source-slug',
+      write: true
+    }),
+    /AUTO_RELATED_MOVIES=true/
+  );
+
+  const writeResult = await syncOneAutoRelatedMovie({
+    adapter,
+    config: readAutoRelatedConfig({ AUTO_RELATED_MOVIES: 'true' }),
+    now: new Date('2026-10-01T00:00:00Z'),
+    providers,
+    slug: 'source-slug',
+    write: true
+  });
+
+  assert.equal(writeResult.dryRun, false);
+  assert.equal(writeResult.syncStatePatch.trakt_id, 777);
+  assert.equal(calls.filter(call => call.type === 'replace').length, 2);
+  assert.equal(calls.find(call => call.provider === 'tmdb_recommendations').evidenceRows.length, 1);
+  assert.equal(calls.find(call => call.provider === 'trakt_related').evidenceRows.length, 1);
+  assert.equal(calls.find(call => call.type === 'sync-state').row.movie_id, 'source-movie');
+}
+
 assert.equal(extractTmdbMovieId('https://www.themoviedb.org/movie/4692608-aaron-winsal'), 4692608);
 assert.equal(extractImdbId('https://www.imdb.com/title/tt1234567/?ref_=fn'), 'tt1234567');
 
@@ -333,5 +440,6 @@ await checkRetryAfter();
 await checkProviderAggregation();
 checkCandidateMatching();
 await checkSupabaseAdapter();
+await checkSingleMovieSyncRunner();
 
 console.log('Auto-related provider smoke passed.');

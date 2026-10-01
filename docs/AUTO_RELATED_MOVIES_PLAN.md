@@ -75,9 +75,18 @@ Current skeleton modules live under `tools/auto-related/` and are server/CLI-onl
 - `trakt-provider.mjs`;
 - `providers.mjs`;
 - `matching.mjs`;
-- `supabase-adapter.mjs`.
+- `supabase-adapter.mjs`;
+- `sync-runner.mjs`.
 
-They are not wired to the public UI yet. `supabase-adapter.mjs` is prepared for server-side REST/RPC reads and writes after the setup SQL files are applied.
+They are not wired to the public UI yet. `supabase-adapter.mjs` owns server-side REST/RPC reads and writes. `sync-runner.mjs` combines provider fetches, strict local matching, provider evidence replacement, and sync-state updates for one source movie.
+
+CLI entrypoint:
+
+```text
+npm run auto-related:sync
+```
+
+The CLI is dry-run by default. Real writes require `--write` and `AUTO_RELATED_MOVIES=true`; `--force` is reserved for deliberate one-off operational runs.
 
 ## TMDb
 
@@ -168,7 +177,7 @@ Current `tmdb_url` can be used to derive `tmdb_id` in the first pass, but the im
 
 ## Planned Tables
 
-The first setup SQL is `movie-auto-related-setup.sql`. Apply it manually in Supabase before implementing provider sync code. It creates storage/RLS only and does not change the current public manual related-movie behavior. `movie-auto-related-rpc-setup.sql` adds the atomic provider-evidence replacement RPC used by the server/CLI adapter.
+The first setup SQL is `movie-auto-related-setup.sql`. Apply it manually in Supabase before running provider sync code. It creates storage/RLS only and does not change the current public manual related-movie behavior. `movie-auto-related-rpc-setup.sql` adds the atomic provider-evidence replacement RPC used by the server/CLI adapter and single-movie sync runner.
 
 ### Evidence
 
@@ -459,7 +468,7 @@ Until quality is verified, keep the current public manual block as-is or make th
 5. External ID resolver.
 6. Evidence storage.
 7. RRF scoring/materialization.
-8. Single-movie CLI/admin sync.
+8. Single-movie CLI/admin sync. Current CLI: `npm run auto-related:sync`.
 9. Full backfill.
 10. Refresh touched reverse edges after movie creation/edit.
 11. Periodic refresh.

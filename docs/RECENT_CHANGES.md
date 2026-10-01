@@ -12,6 +12,33 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-01 - Add automatic related single movie sync runner
+
+- Files:
+  - `tools/auto-related/sync-runner.mjs`
+  - `tools/auto-related-sync.mjs`
+  - `tools/auto-related-smoke.mjs`
+  - `tools/smoke-check.mjs`
+  - `package.json`
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a server/CLI-only one-movie automatic related sync runner that combines provider fetches, strict ID matching, atomic evidence replacement, and recommendation sync-state updates.
+  - Added `npm run auto-related:sync`, dry-run by default, with real writes gated by `--write` plus `AUTO_RELATED_MOVIES=true` or an explicit one-off `--force`.
+  - Extended auto-related smoke coverage for dry-run safety, write gating, Trakt ID resolution, per-provider evidence replacement, and sync-state upsert shape.
+- Checks:
+  - `node --check tools/auto-related/sync-runner.mjs`
+  - `node --check tools/auto-related-sync.mjs`
+  - `node --check tools/auto-related-smoke.mjs`
+  - `node --check tools/smoke-check.mjs`
+  - `npm run smoke:auto-related`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Run the new CLI against one real movie in dry-run mode with production provider keys, then add scoring/materialization into `movie_related`.
+
 ## 2026-10-01 - Add automatic related Supabase adapter
 
 - Files:

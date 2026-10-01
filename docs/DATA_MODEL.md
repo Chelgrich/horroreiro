@@ -53,15 +53,16 @@ Client movie select profiles:
 
 Automatic related movies:
 
-- `movie-auto-related-setup.sql` creates the first storage/RLS layer for future automatic related movies. It is not wired into the UI or sync pipeline yet.
+- `movie-auto-related-setup.sql` creates the first storage/RLS layer for future automatic related movies. It is not wired into the UI yet.
 - `movie-auto-related-rpc-setup.sql` creates `replace_movie_recommendation_provider_evidence`, the atomic RPC that replaces evidence rows for one `source_movie_id + provider` after a successful provider fetch.
 - `movie_related` is the only planned public read table in this contour. It should contain materialized local results and is safe for `anon`/`authenticated` `select`.
 - `movie_recommendation_sync_state`, `movie_recommendation_evidence`, and `movie_recommendation_overrides` are admin-only through RLS. They are for server/admin sync diagnostics and must not be used as public page payloads.
 - Current `movie_manual_similar` remains the live public source for related movies until the automatic pipeline is explicitly implemented and switched on.
 - External providers must be called only by server/CLI sync code with server-side env secrets. Movie detail pages must not call TMDb or Trakt directly.
-- Provider/sync skeleton modules live under `tools/auto-related/` and are tested with `npm run smoke:auto-related`.
+- Provider/sync modules live under `tools/auto-related/` and are tested with `npm run smoke:auto-related`.
 - `tools/auto-related/matching.mjs` strictly matches provider candidates to local movies by normalized TMDb/IMDb/Trakt IDs and treats duplicate external IDs as ambiguous, not as a match.
 - `tools/auto-related/supabase-adapter.mjs` uses server-only Supabase REST/RPC access for movie match index reads, sync state upserts, and atomic evidence replacement. It must not be imported by browser code.
+- `tools/auto-related/sync-runner.mjs` is the server/CLI-only single-movie sync layer. It is dry-run by default through `npm run auto-related:sync`; real writes require `--write` plus `AUTO_RELATED_MOVIES=true` unless an operator intentionally passes `--force`.
 
 Runtime display:
 
