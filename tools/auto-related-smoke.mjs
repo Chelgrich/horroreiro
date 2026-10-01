@@ -14,6 +14,7 @@ import { mergeEvidenceRowsForScoring, scoreRelatedMovies } from './auto-related/
 import { SupabaseAutoRelatedAdapter } from './auto-related/supabase-adapter.mjs';
 import {
   formatAutoRelatedBatchSummary,
+  getAutoRelatedCoverageReport,
   syncAutoRelatedMoviesBatch,
   syncOneAutoRelatedMovie
 } from './auto-related/sync-runner.mjs';
@@ -306,6 +307,16 @@ async function checkSupabaseAdapter() {
         ]);
       }
 
+      if (parsedUrl.pathname.endsWith('/movie_related')) {
+        return createJsonResponse([
+          {
+            confidence: 'normal',
+            movie_id: 'movie-a',
+            related_movie_id: 'movie-b'
+          }
+        ]);
+      }
+
       if (parsedUrl.pathname.endsWith('/rpc/replace_movie_recommendation_provider_evidence')) {
         return createJsonResponse([{ source_movie_id: 'movie-a', target_movie_id: 'movie-b' }]);
       }
@@ -323,6 +334,8 @@ async function checkSupabaseAdapter() {
   const movies = await adapter.fetchMovieMatchRows();
   const syncStates = await adapter.fetchRecommendationSyncStates();
   const evidence = await adapter.fetchRecommendationEvidenceForMovie('movie-a');
+  const allEvidence = await adapter.fetchAllRecommendationEvidenceRows();
+  const related = await adapter.fetchAllRelatedRows();
   await adapter.upsertRecommendationSyncState({
     movie_id: 'movie-a',
     tmdb_id: 100,
@@ -346,6 +359,8 @@ async function checkSupabaseAdapter() {
   assert.equal(movies.length, 2);
   assert.equal(syncStates.length, 1);
   assert.equal(evidence.length, 1);
+  assert.equal(allEvidence.length, 1);
+  assert.equal(related.length, 1);
   assert(requests.every(request => request.headers.Authorization === 'Bearer service-role-key'));
   assert(requests.some(request => request.url.includes('select=id%2Cslug%2Ctitle')));
   assert(requests.some(request => request.url.includes('on_conflict=movie_id')));
@@ -649,6 +664,97 @@ async function checkBatchSyncRunner() {
   assert.equal(calls.filter(call => call.type === 'sync-state').length, 2);
 }
 
+async function checkCoverageReport() {
+  const adapter = {
+    async fetchMovieMatchRows() {
+      return [
+        {
+          id: 'movie-a',
+          imdb_url: 'https://www.imdb.com/title/tt1111111/',
+          slug: 'movie-a',
+          title: 'Movie A',
+          tmdb_url: 'https://www.themoviedb.org/movie/100-movie-a',
+          year: 2025
+        },
+        {
+          id: 'movie-b',
+          imdb_url: 'https://www.imdb.com/title/tt2222222/',
+          slug: 'movie-b',
+          title: 'Movie B',
+          tmdb_url: 'https://www.themoviedb.org/movie/200-movie-b',
+          year: 2025
+        },
+        {
+          id: 'movie-c',
+          imdb_url: 'https://www.imdb.com/title/tt3333333/',
+          slug: 'movie-c',
+          title: 'Movie C',
+          tmdb_url: 'https://www.themoviedb.org/movie/300-movie-c',
+          year: 2026
+        }
+      ];
+    },
+    async fetchRecommendationSyncStates() {
+      return [
+        {
+          movie_id: 'movie-a',
+          recommendations_last_success_at: '2026-10-01T00:00:00Z',
+          recommendations_last_synced_at: '2026-10-01T00:00:00Z'
+        },
+        {
+          movie_id: 'movie-b',
+          recommendations_last_error: 'provider failed',
+          recommendations_last_synced_at: '2026-10-01T00:00:00Z'
+        }
+      ];
+    },
+    async fetchAllRecommendationEvidenceRows() {
+      return [
+        {
+          provider: 'tmdb_recommendations',
+          provider_rank: 1,
+          source_movie_id: 'movie-a',
+          target_movie_id: 'movie-b'
+        },
+        {
+          provider: 'trakt_related',
+          provider_rank: 2,
+          source_movie_id: 'movie-a',
+          target_movie_id: 'movie-c'
+        }
+      ];
+    },
+    async fetchAllRelatedRows() {
+      return [
+        { confidence: 'normal', movie_id: 'movie-a', related_movie_id: 'movie-b' },
+        { confidence: 'strong', movie_id: 'movie-a', related_movie_id: 'movie-c' },
+        { confidence: 'fallback', movie_id: 'movie-b', related_movie_id: 'movie-a' }
+      ];
+    }
+  };
+
+  const report = await getAutoRelatedCoverageReport({
+    adapter,
+    config: readAutoRelatedConfig({ AUTO_RELATED_MAX_RELATED: '2' }),
+    providers: []
+  });
+
+  assert.equal(report.movies, 3);
+  assert.equal(report.moviesSynced, 2);
+  assert.equal(report.moviesSyncedSuccessfully, 1);
+  assert.equal(report.moviesNeverSynced, 1);
+  assert.equal(report.failedSyncStates, 1);
+  assert.deepEqual(report.relatedDistribution, {
+    fourPlus: 0,
+    maxed: 1,
+    oneToThree: 2,
+    zero: 1
+  });
+  assert.equal(report.evidenceRowsByProvider.tmdb_recommendations, 1);
+  assert.equal(report.evidenceRowsByProvider.trakt_related, 1);
+  assert.equal(report.relatedConfidenceCounts.normal, 1);
+}
+
 assert.equal(extractTmdbMovieId('https://www.themoviedb.org/movie/4692608-aaron-winsal'), 4692608);
 assert.equal(extractImdbId('https://www.imdb.com/title/tt1234567/?ref_=fn'), 'tt1234567');
 
@@ -661,5 +767,6 @@ await checkSupabaseAdapter();
 checkRelatedScoring();
 await checkSingleMovieSyncRunner();
 await checkBatchSyncRunner();
+await checkCoverageReport();
 
 console.log('Auto-related provider smoke passed.');

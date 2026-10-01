@@ -70,6 +70,34 @@ Format:
 - Follow-up:
   - Use small `--limit` batches for gradual `movie_related` backfill; public UI still reads manual similar movies.
 
+## 2026-10-01 - Add auto-related coverage report
+
+- Files:
+  - `tools/auto-related-sync.mjs`
+  - `tools/auto-related/supabase-adapter.mjs`
+  - `tools/auto-related/sync-runner.mjs`
+  - `tools/auto-related-smoke.mjs`
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added `--report` to print automatic related coverage totals, provider evidence counts, confidence counts, sync coverage, and related-count distribution.
+  - `--report` can run by itself or be appended to batch sync, making it suitable for cron logs after each run.
+  - Extended adapter and smoke coverage for global evidence/related reads and report aggregation.
+- Checks:
+  - `node --check tools/auto-related/supabase-adapter.mjs`
+  - `node --check tools/auto-related/sync-runner.mjs`
+  - `node --check tools/auto-related-sync.mjs`
+  - `node --check tools/auto-related-smoke.mjs`
+  - `npm run smoke:auto-related`
+  - `npm run auto-related:sync -- --report`
+  - `npm run auto-related:sync -- --limit 1 --delay-ms 0 --report`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Put `npm run auto-related:sync -- --limit 20 --delay-ms 1000 --write --force --report` on the chosen scheduler if automatic backfill cadence is desired.
+
 ## 2026-10-01 - Fix auto-related materialization RPC return column
 
 - Files:

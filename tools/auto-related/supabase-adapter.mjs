@@ -29,6 +29,12 @@ const DEFAULT_EVIDENCE_SELECT = [
   'provider_rank'
 ].join(',');
 
+const DEFAULT_RELATED_SELECT = [
+  'movie_id',
+  'related_movie_id',
+  'confidence'
+].join(',');
+
 export class SupabaseAutoRelatedError extends Error {
   constructor(message, details = {}) {
     super(message);
@@ -172,6 +178,20 @@ export class SupabaseAutoRelatedAdapter {
       or: `(source_movie_id.eq.${normalizedMovieId},target_movie_id.eq.${normalizedMovieId})`,
       order: 'provider.asc,provider_rank.asc,target_movie_id.asc',
       select: DEFAULT_EVIDENCE_SELECT
+    });
+  }
+
+  async fetchAllRecommendationEvidenceRows() {
+    return this.fetchAllRows('movie_recommendation_evidence', {
+      order: 'provider.asc,source_movie_id.asc,target_movie_id.asc',
+      select: DEFAULT_EVIDENCE_SELECT
+    });
+  }
+
+  async fetchAllRelatedRows() {
+    return this.fetchAllRows('movie_related', {
+      order: 'movie_id.asc,position.asc,related_movie_id.asc',
+      select: DEFAULT_RELATED_SELECT
     });
   }
 

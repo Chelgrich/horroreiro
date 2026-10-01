@@ -88,6 +88,10 @@ function getBatchCandidateMovies(matchIndex, syncStateRows = [], options = {}) {
     .map(candidate => candidate.movie);
 }
 
+function incrementCount(map, key, amount = 1) {
+  map.set(key, (map.get(key) || 0) + amount);
+}
+
 function sleep(delayMs) {
   return new Promise(resolve => {
     setTimeout(resolve, Math.max(0, Number(delayMs || 0)));
@@ -404,6 +408,88 @@ export async function syncAutoRelatedMoviesBatch(options = {}) {
     results,
     totalCandidates: candidates.length,
     write
+  };
+}
+
+export async function getAutoRelatedCoverageReport(options = {}) {
+  const context = await createAutoRelatedSyncContext(options);
+  const [evidenceRows, relatedRows] = await Promise.all([
+    typeof context.adapter.fetchAllRecommendationEvidenceRows === 'function'
+      ? context.adapter.fetchAllRecommendationEvidenceRows()
+      : [],
+    typeof context.adapter.fetchAllRelatedRows === 'function'
+      ? context.adapter.fetchAllRelatedRows()
+      : []
+  ]);
+  const syncedMovieIds = new Set(
+    context.syncStateRows
+      .filter(row => row?.recommendations_last_synced_at || row?.recommendations_last_success_at)
+      .map(row => String(row.movie_id))
+  );
+  const successfulMovieIds = new Set(
+    context.syncStateRows
+      .filter(row => row?.recommendations_last_success_at)
+      .map(row => String(row.movie_id))
+  );
+  const errorRows = context.syncStateRows.filter(row => row?.recommendations_last_error);
+  const relatedCountByMovie = new Map();
+  const evidenceCountByProvider = new Map();
+  const confidenceCounts = new Map();
+
+  relatedRows.forEach(row => {
+    if (row?.movie_id) {
+      incrementCount(relatedCountByMovie, String(row.movie_id));
+    }
+
+    if (row?.confidence) {
+      incrementCount(confidenceCounts, String(row.confidence));
+    }
+  });
+
+  evidenceRows.forEach(row => {
+    if (row?.provider) {
+      incrementCount(evidenceCountByProvider, String(row.provider));
+    }
+  });
+
+  let zeroRelated = 0;
+  let oneToThreeRelated = 0;
+  let fourPlusRelated = 0;
+  let maxRelated = 0;
+
+  context.matchIndex.byMovieId.forEach(movie => {
+    const relatedCount = relatedCountByMovie.get(movie.id) || 0;
+
+    if (relatedCount === 0) {
+      zeroRelated += 1;
+    } else if (relatedCount <= 3) {
+      oneToThreeRelated += 1;
+    } else {
+      fourPlusRelated += 1;
+    }
+
+    if (relatedCount >= context.config.maxRelated) {
+      maxRelated += 1;
+    }
+  });
+
+  return {
+    evidenceRows: evidenceRows.length,
+    evidenceRowsByProvider: Object.fromEntries([...evidenceCountByProvider.entries()].sort()),
+    failedSyncStates: errorRows.length,
+    matchIndex: getMatchIndexSummary(context.matchIndex),
+    movies: context.matchIndex.byMovieId.size,
+    moviesNeverSynced: Math.max(0, context.matchIndex.byMovieId.size - syncedMovieIds.size),
+    moviesSynced: syncedMovieIds.size,
+    moviesSyncedSuccessfully: successfulMovieIds.size,
+    relatedConfidenceCounts: Object.fromEntries([...confidenceCounts.entries()].sort()),
+    relatedDistribution: {
+      fourPlus: fourPlusRelated,
+      maxed: maxRelated,
+      oneToThree: oneToThreeRelated,
+      zero: zeroRelated
+    },
+    relatedRows: relatedRows.length
   };
 }
 
