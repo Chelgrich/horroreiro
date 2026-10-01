@@ -12,6 +12,22 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-01 - Document automatic related movies architecture
+
+- Files:
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a planned architecture document for automatic related movies, keeping the current manual similar system intact.
+  - Captured the server-only provider abstraction for TMDb Recommendations and Trakt Related Movies, including Bearer/app-key auth, 429/retry/cache behavior, directed evidence, RRF scoring, materialized local results, feature flagging, and admin diagnostics.
+  - Documented that TMDb/Trakt must never be called from the frontend or during movie page opening, and that no synopsis/overview/keyword/ML analysis belongs in v1.
+- Checks:
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Start implementation only after approving the first phase: Supabase migration/RLS plan plus provider abstraction skeleton.
+
 ## 2026-09-24 - Enable movie card admin actions on people and company pages
 
 - Files:

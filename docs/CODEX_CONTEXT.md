@@ -293,6 +293,8 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `movie-page-similar.js` is lazy-loaded only for movie detail pages and owns manual-similar search/order helpers, similar section/editor/card HTML rendering, editor DOM event binding, deferred similar loading, and optimistic save/status/rollback orchestration. `app.js` keeps manual similar state storage, the section wrapper, and Supabase/data callbacks.
 
+Planned automatic related movies are documented in `docs/AUTO_RELATED_MOVIES_PLAN.md`. That plan is not implemented yet. The target design is a server-only, feature-flagged pipeline that stores local evidence/materialized related rows from TMDb Recommendations and Trakt Related Movies, preserves current manual related movies, keeps external API secrets out of frontend JS, handles provider 429/failures without deleting old cached evidence, and never calls TMDb/Trakt while opening a movie detail page.
+
 `movie-user-state.js` is lazy-loaded on first rating/watchlist action and owns rating/watchlist mutation orchestration: duplicate-request guards, rating validation, watchlist add/remove branching, local mutation stamps, catalog snapshot sync, rerender callbacks, feedback callbacks, and optional scroll preservation. `app.js` keeps shared rating/watchlist arrays, request sets used by render busy states, Supabase write callbacks, local index/stat updates, and catalog/detail rerender bridges.
 
 `movie-social.js` is lazy-loaded only for movie detail pages and owns the detail social block:
