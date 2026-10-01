@@ -73,9 +73,11 @@ Current skeleton modules live under `tools/auto-related/` and are server/CLI-onl
 - `http-client.mjs`;
 - `tmdb-provider.mjs`;
 - `trakt-provider.mjs`;
-- `providers.mjs`.
+- `providers.mjs`;
+- `matching.mjs`;
+- `supabase-adapter.mjs`.
 
-They are not wired to Supabase writes or the public UI yet.
+They are not wired to the public UI yet. `supabase-adapter.mjs` is prepared for server-side REST/RPC reads and writes after the setup SQL files are applied.
 
 ## TMDb
 
@@ -166,7 +168,7 @@ Current `tmdb_url` can be used to derive `tmdb_id` in the first pass, but the im
 
 ## Planned Tables
 
-The first setup SQL is `movie-auto-related-setup.sql`. Apply it manually in Supabase before implementing provider sync code. It creates storage/RLS only and does not change the current public manual related-movie behavior.
+The first setup SQL is `movie-auto-related-setup.sql`. Apply it manually in Supabase before implementing provider sync code. It creates storage/RLS only and does not change the current public manual related-movie behavior. `movie-auto-related-rpc-setup.sql` adds the atomic provider-evidence replacement RPC used by the server/CLI adapter.
 
 ### Evidence
 

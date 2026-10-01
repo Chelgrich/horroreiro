@@ -1,6 +1,7 @@
 const TMDB_MOVIE_PATH_PATTERN = /\/movie\/(\d+)(?:[/?#-]|$)/i;
 const TMDB_SHORT_MOVIE_PATTERN = /^(\d+)(?:[/?#-]|$)/;
 const IMDB_ID_PATTERN = /^tt\d{5,12}$/i;
+const IMDB_URL_PATTERN = /\/title\/(tt\d{5,12})(?:[/?#]|$)/i;
 
 export function normalizePositiveInteger(value) {
   if (value === null || value === undefined || value === '') {
@@ -24,6 +25,33 @@ export function normalizeImdbId(value) {
   }
 
   return normalizedValue.toLowerCase();
+}
+
+export function extractImdbId(value) {
+  const rawValue = String(value || '').trim();
+  const directId = normalizeImdbId(rawValue);
+
+  if (directId) {
+    return directId;
+  }
+
+  let parsedUrl;
+
+  try {
+    parsedUrl = new URL(rawValue);
+  } catch (error) {
+    const looseMatch = rawValue.match(IMDB_URL_PATTERN);
+    return normalizeImdbId(looseMatch?.[1]);
+  }
+
+  const host = parsedUrl.hostname.replace(/^www\./i, '').toLowerCase();
+
+  if (host !== 'imdb.com') {
+    return '';
+  }
+
+  const match = parsedUrl.pathname.match(IMDB_URL_PATTERN);
+  return normalizeImdbId(match?.[1]);
 }
 
 export function extractTmdbMovieId(value) {
@@ -61,7 +89,7 @@ export function extractTmdbMovieId(value) {
 export function getMovieExternalIds(movie = {}) {
   return {
     tmdb: normalizePositiveInteger(movie.tmdb_id) || extractTmdbMovieId(movie.tmdb_url),
-    imdb: normalizeImdbId(movie.imdb_id || movie.imdb_url),
+    imdb: normalizeImdbId(movie.imdb_id) || extractImdbId(movie.imdb_url),
     trakt: normalizePositiveInteger(movie.trakt_id)
   };
 }

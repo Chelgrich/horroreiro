@@ -12,6 +12,41 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-01 - Add automatic related Supabase adapter
+
+- Files:
+  - `movie-auto-related-rpc-setup.sql`
+  - `tools/auto-related/ids.mjs`
+  - `tools/auto-related/matching.mjs`
+  - `tools/auto-related/supabase-adapter.mjs`
+  - `tools/auto-related-smoke.mjs`
+  - `tools/auto-related/config.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added `movie-auto-related-rpc-setup.sql` with `replace_movie_recommendation_provider_evidence`, an atomic RPC for replacing one provider's evidence rows after a successful fetch.
+  - Added strict local candidate matching by TMDb/IMDb/Trakt IDs, treating duplicate external IDs as ambiguous instead of guessing.
+  - Added a server-only Supabase REST/RPC adapter for movie match index reads, sync-state upserts, and atomic evidence replacement.
+  - Extended the auto-related smoke test to cover IMDb URL extraction, matching, self-match rejection, ambiguous IDs, Supabase pagination, sync-state upsert, and RPC payload shape.
+- Checks:
+  - `node --check tools/auto-related/config.mjs`
+  - `node --check tools/auto-related/http-client.mjs`
+  - `node --check tools/auto-related/ids.mjs`
+  - `node --check tools/auto-related/matching.mjs`
+  - `node --check tools/auto-related/providers.mjs`
+  - `node --check tools/auto-related/supabase-adapter.mjs`
+  - `node --check tools/auto-related/tmdb-provider.mjs`
+  - `node --check tools/auto-related/trakt-provider.mjs`
+  - `node --check tools/auto-related-smoke.mjs`
+  - `npm run smoke:auto-related`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Apply `movie-auto-related-rpc-setup.sql` manually in Supabase, then build the single-movie sync runner that combines providers, matching, sync-state updates, and evidence persistence.
+
 ## 2026-10-01 - Add automatic related provider skeleton
 
 - Files:

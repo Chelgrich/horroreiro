@@ -12,6 +12,7 @@ export const DEFAULT_AUTO_RELATED_CONFIG = Object.freeze({
   retryDelaysMs: [1000, 3000, 10000],
   tmdbPages: 2,
   traktRelatedLimit: 50,
+  supabaseRestPageSize: 1000,
   rrfK: 20,
   traktWeight: 1,
   tmdbWeight: 1,
@@ -67,10 +68,16 @@ export function readAutoRelatedConfig(env = process.env) {
   const baseConfig = DEFAULT_AUTO_RELATED_CONFIG;
   const tmdbReadAccessToken = String(env.TMDB_READ_ACCESS_TOKEN || env.TMDB_ACCESS_TOKEN || '').trim();
   const traktApiKey = String(env.TRAKT_API_KEY || env.TRAKT_CLIENT_ID || '').trim();
+  const supabaseUrl = String(env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
+  const supabaseServiceRoleKey = String(env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
+  const supabaseAnonKey = String(env.SUPABASE_ANON_KEY || '').trim();
 
   return {
     ...baseConfig,
     enabled: parseBoolean(env.AUTO_RELATED_MOVIES, baseConfig.enabled),
+    supabaseUrl,
+    supabaseServiceRoleKey,
+    supabaseAnonKey,
     tmdbReadAccessToken,
     traktApiKey,
     tmdbBaseUrl: String(env.TMDB_BASE_URL || baseConfig.tmdbBaseUrl).replace(/\/+$/, ''),
@@ -78,6 +85,7 @@ export function readAutoRelatedConfig(env = process.env) {
     timeoutMs: parsePositiveInteger(env.AUTO_RELATED_TIMEOUT_MS, baseConfig.timeoutMs),
     maxAttempts: parsePositiveInteger(env.AUTO_RELATED_MAX_ATTEMPTS, baseConfig.maxAttempts),
     retryDelaysMs: parseRetryDelays(env.AUTO_RELATED_RETRY_DELAYS_MS, baseConfig.retryDelaysMs),
+    supabaseRestPageSize: parsePositiveInteger(env.AUTO_RELATED_SUPABASE_PAGE_SIZE, baseConfig.supabaseRestPageSize),
     tmdbPages: parsePositiveInteger(env.AUTO_RELATED_TMDB_PAGES, baseConfig.tmdbPages),
     traktRelatedLimit: parsePositiveInteger(env.AUTO_RELATED_TRAKT_LIMIT, baseConfig.traktRelatedLimit),
     rrfK: parsePositiveNumber(env.AUTO_RELATED_RRF_K, baseConfig.rrfK),

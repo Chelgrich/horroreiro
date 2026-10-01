@@ -2,8 +2,15 @@ import { strict as assert } from 'node:assert';
 
 import { readAutoRelatedConfig } from './auto-related/config.mjs';
 import { fetchJsonWithRetry } from './auto-related/http-client.mjs';
-import { extractTmdbMovieId } from './auto-related/ids.mjs';
+import { extractImdbId, extractTmdbMovieId } from './auto-related/ids.mjs';
+import {
+  buildEvidenceRowsFromMatches,
+  buildMovieMatchIndex,
+  getMatchIndexSummary,
+  matchRecommendationCandidates
+} from './auto-related/matching.mjs';
 import { getProviderRecommendations } from './auto-related/providers.mjs';
+import { SupabaseAutoRelatedAdapter } from './auto-related/supabase-adapter.mjs';
 import { TmdbRecommendationProvider } from './auto-related/tmdb-provider.mjs';
 import { TraktRelatedProvider } from './auto-related/trakt-provider.mjs';
 
@@ -172,11 +179,159 @@ async function checkProviderAggregation() {
   ]);
 }
 
+function checkCandidateMatching() {
+  const index = buildMovieMatchIndex(
+    [
+      {
+        id: 'movie-a',
+        imdb_url: 'https://www.imdb.com/title/tt1111111/',
+        title: 'A',
+        tmdb_url: 'https://www.themoviedb.org/movie/100-a'
+      },
+      {
+        id: 'movie-b',
+        imdb_url: 'https://www.imdb.com/title/tt2222222/',
+        title: 'B',
+        tmdb_url: 'https://www.themoviedb.org/movie/200-b'
+      },
+      {
+        id: 'movie-c',
+        imdb_url: 'https://www.imdb.com/title/tt3333333/',
+        title: 'C',
+        tmdb_url: 'https://www.themoviedb.org/movie/300-c'
+      },
+      {
+        id: 'movie-d',
+        imdb_url: 'https://www.imdb.com/title/tt3333333/',
+        title: 'D',
+        tmdb_url: 'https://www.themoviedb.org/movie/400-d'
+      }
+    ],
+    [
+      {
+        movie_id: 'movie-b',
+        trakt_id: 900
+      }
+    ]
+  );
+
+  assert.deepEqual(getMatchIndexSummary(index), {
+    movies: 4,
+    tmdbIds: 4,
+    imdbIds: 2,
+    traktIds: 1,
+    ambiguousTmdbIds: 0,
+    ambiguousImdbIds: 1,
+    ambiguousTraktIds: 0
+  });
+
+  const result = matchRecommendationCandidates(
+    [
+      { externalIds: { tmdb: 200 }, provider: 'tmdb_recommendations', rank: 3 },
+      { externalIds: { trakt: 900 }, provider: 'trakt_related', rank: 4 },
+      { externalIds: { imdb: 'tt3333333' }, provider: 'trakt_related', rank: 5 },
+      { externalIds: { tmdb: 100 }, provider: 'tmdb_recommendations', rank: 1 },
+      { externalIds: { tmdb: 999999 }, provider: 'tmdb_recommendations', rank: 8 }
+    ],
+    index,
+    { sourceMovieId: 'movie-a' }
+  );
+
+  assert.equal(result.matches.length, 2);
+  assert.deepEqual(
+    buildEvidenceRowsFromMatches('movie-a', result.matches),
+    [
+      {
+        source_movie_id: 'movie-a',
+        target_movie_id: 'movie-b',
+        provider: 'tmdb_recommendations',
+        provider_rank: 3
+      },
+      {
+        source_movie_id: 'movie-a',
+        target_movie_id: 'movie-b',
+        provider: 'trakt_related',
+        provider_rank: 4
+      }
+    ]
+  );
+  assert(result.unmatched.some(item => item.reason === 'ambiguous_external_id'));
+  assert(result.unmatched.some(item => item.reason === 'self_match'));
+  assert(result.unmatched.some(item => item.reason === 'not_in_catalog'));
+}
+
+async function checkSupabaseAdapter() {
+  const requests = [];
+  const config = readAutoRelatedConfig({
+    SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
+    SUPABASE_URL: 'https://example.supabase.co'
+  });
+
+  const adapter = new SupabaseAutoRelatedAdapter(config, {
+    async fetchImpl(url, options) {
+      requests.push({
+        body: options.body || '',
+        headers: options.headers || {},
+        method: options.method || 'GET',
+        url: url.toString()
+      });
+
+      const parsedUrl = new URL(url);
+
+      if (parsedUrl.pathname.endsWith('/movies')) {
+        const range = options.headers.Range;
+        return createJsonResponse(range === '0-1'
+          ? [{ id: 'movie-a' }, { id: 'movie-b' }]
+          : []);
+      }
+
+      if (parsedUrl.pathname.endsWith('/movie_recommendation_sync_state')) {
+        return createJsonResponse([{ movie_id: 'movie-a', tmdb_id: 100 }]);
+      }
+
+      if (parsedUrl.pathname.endsWith('/rpc/replace_movie_recommendation_provider_evidence')) {
+        return createJsonResponse([{ source_movie_id: 'movie-a', target_movie_id: 'movie-b' }]);
+      }
+
+      return createJsonResponse([{ movie_id: 'movie-a' }]);
+    }
+  });
+
+  adapter.pageSize = 2;
+
+  const movies = await adapter.fetchMovieMatchRows();
+  const syncStates = await adapter.fetchRecommendationSyncStates();
+  await adapter.upsertRecommendationSyncState({
+    movie_id: 'movie-a',
+    tmdb_id: 100,
+    trakt_matched_count: 2
+  });
+  await adapter.replaceProviderEvidence('movie-a', 'tmdb_recommendations', [
+    {
+      provider_rank: 1,
+      target_movie_id: 'movie-b'
+    }
+  ]);
+
+  assert.equal(movies.length, 2);
+  assert.equal(syncStates.length, 1);
+  assert(requests.every(request => request.headers.Authorization === 'Bearer service-role-key'));
+  assert(requests.some(request => request.url.includes('select=id%2Cslug%2Ctitle')));
+  assert(requests.some(request => request.url.includes('on_conflict=movie_id')));
+  assert(requests.some(request =>
+    request.url.includes('/rpc/replace_movie_recommendation_provider_evidence') &&
+    JSON.parse(request.body).p_provider === 'tmdb_recommendations'
+  ));
+}
+
 assert.equal(extractTmdbMovieId('https://www.themoviedb.org/movie/4692608-aaron-winsal'), 4692608);
+assert.equal(extractImdbId('https://www.imdb.com/title/tt1234567/?ref_=fn'), 'tt1234567');
 
 await checkTmdbProvider();
 await checkTraktProvider();
 await checkRetryAfter();
 await checkProviderAggregation();
+checkCandidateMatching();
+await checkSupabaseAdapter();
 
 console.log('Auto-related provider smoke passed.');
