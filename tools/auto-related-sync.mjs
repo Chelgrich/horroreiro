@@ -81,6 +81,7 @@ function printHelp() {
     '  npm run auto-related:sync -- --slug movie-slug',
     '  npm run auto-related:sync -- --movie-id movie-uuid --write',
     '  npm run auto-related:sync -- --limit 20 --unsynced-only --write --force',
+    '  npm run auto-related:refresh -- --write --force',
     '  npm run auto-related:sync -- --report',
     '',
     'Options:',
@@ -88,6 +89,7 @@ function printHelp() {
     '  --movie-id VALUE    Movie UUID to sync.',
     '  --limit VALUE       Batch-sync the least recently synced movies.',
     '  --unsynced-only     Batch-sync only movies without previous recommendation sync state.',
+    '  --periodic-refresh  Batch-refresh least recently synced movies. Defaults: --limit 30 --delay-ms 1000 --report.',
     '  --delay-ms VALUE    Delay between batch items. Default: 1000 for batch, 0 for single.',
     '  --write             Persist provider evidence, sync state, and materialized related rows.',
     '  --force             Allow writes without AUTO_RELATED_MOVIES=true.',
@@ -114,6 +116,7 @@ function parseArgs(argv) {
     full: false,
     limit: 0,
     movieId: '',
+    periodicRefresh: false,
     report: false,
     slug: '',
     unsyncedOnly: false,
@@ -135,6 +138,8 @@ function parseArgs(argv) {
       options.report = true;
     } else if (arg === '--unsynced-only') {
       options.unsyncedOnly = true;
+    } else if (arg === '--periodic-refresh') {
+      options.periodicRefresh = true;
     } else if (arg === '--limit') {
       options.limit = parseNonNegativeIntegerOption('--limit', argv[index + 1], 0);
       index += 1;
@@ -160,6 +165,22 @@ const options = parseArgs(process.argv.slice(2));
 if (options.help) {
   printHelp();
   process.exit(0);
+}
+
+if (options.periodicRefresh) {
+  if (options.movieId || options.slug) {
+    printHelp();
+    throw new Error('Use --periodic-refresh with batch mode only, not with --slug or --movie-id.');
+  }
+
+  if (options.unsyncedOnly) {
+    printHelp();
+    throw new Error('Use either --periodic-refresh for maintenance refresh or --unsynced-only for one-time backfill, not both.');
+  }
+
+  options.limit = options.limit || 30;
+  options.delayMs = options.delayMs ?? 1000;
+  options.report = true;
 }
 
 if (options.limit && (options.movieId || options.slug)) {

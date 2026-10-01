@@ -699,6 +699,22 @@ async function checkBatchSyncRunner() {
   assert.equal(adapter.fetchMovieMatchRowsCalls, 2);
   assert.equal(calls.length, 0);
 
+  const periodicRefreshResult = await syncAutoRelatedMoviesBatch({
+    adapter,
+    config: readAutoRelatedConfig({ AUTO_RELATED_MOVIES: 'false' }),
+    delayMs: 0,
+    limit: 2,
+    periodicRefresh: true,
+    providers
+  });
+
+  assert.equal(periodicRefreshResult.dryRun, true);
+  assert.equal(periodicRefreshResult.periodicRefresh, true);
+  assert.equal(periodicRefreshResult.processed, 2);
+  assert.equal(periodicRefreshResult.results[0].result.sourceMovie.id, 'movie-a');
+  assert.equal(adapter.fetchMovieMatchRowsCalls, 3);
+  assert.equal(calls.length, 0);
+
   const writeResult = await syncAutoRelatedMoviesBatch({
     adapter,
     config: readAutoRelatedConfig({ AUTO_RELATED_MOVIES: 'true' }),
@@ -710,6 +726,7 @@ async function checkBatchSyncRunner() {
   const summary = formatAutoRelatedBatchSummary(writeResult);
 
   assert.equal(writeResult.dryRun, false);
+  assert.equal(summary.periodicRefresh, false);
   assert.equal(summary.unsyncedOnly, false);
   assert.equal(summary.succeeded, 2);
   assert.equal(summary.failed, 0);

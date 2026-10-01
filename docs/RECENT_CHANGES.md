@@ -12,6 +12,35 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-02 - Add periodic auto-related refresh mode
+
+- Files:
+  - `package.json`
+  - `tools/auto-related-sync.mjs`
+  - `tools/auto-related/sync-runner.mjs`
+  - `tools/auto-related-smoke.mjs`
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added `npm run auto-related:refresh` as a dedicated periodic-maintenance wrapper over the existing batch sync runner.
+  - The refresh mode defaults to 30 least recently synced movies, a 1000ms provider delay, dry-run mode, and an appended coverage report.
+  - Kept write refreshes gated behind explicit `--write --force`, while preserving `--unsynced-only` as the separate one-time backfill mode.
+  - Extended smoke coverage so periodic refresh mode remains visible in batch results and summaries.
+- Checks:
+  - `node --check tools/auto-related-sync.mjs`
+  - `node --check tools/auto-related/sync-runner.mjs`
+  - `node --check tools/auto-related-smoke.mjs`
+  - `npm run auto-related:sync -- --help`
+  - `npm run auto-related:refresh -- --help`
+  - `npm run smoke:auto-related`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+  - `npm run release:container:preflight -- --allow-dirty`
+- Follow-up:
+  - Continue with admin diagnostics before any public UI switch to automatic related movies.
+
 ## 2026-10-01 - Add admin post-save auto-related sync
 
 - Files:

@@ -88,6 +88,20 @@ npm run auto-related:sync
 
 The CLI is dry-run by default. Real writes require `--write` and `AUTO_RELATED_MOVIES=true`; `--force` is reserved for deliberate one-off operational runs. Batch backfills can use `--unsynced-only` to skip movies that already have recommendation sync state, which makes a completed one-time cron run a no-op instead of a refresh loop.
 
+Periodic maintenance refresh has a dedicated script:
+
+```text
+npm run auto-related:refresh
+```
+
+It is a dry-run by default and expands to `--periodic-refresh --limit 30 --delay-ms 1000 --report`. Real maintenance writes require an explicit:
+
+```text
+npm run auto-related:refresh -- --write --force
+```
+
+This mode refreshes least recently synced movies, including any never-synced movies that still need self-healing. Use `--unsynced-only` only for one-time backfill passes.
+
 For local operator runs, the CLI auto-loads ignored environment values from `deploy/yandex/production.env.local` before reading config. Values already present in the shell take precedence.
 
 The provider HTTP client also has a targeted DNS-over-HTTPS fallback for TMDb, because local Windows DNS can be hijacked by Happ/Xray and resolve `api.themoviedb.org` to `127.0.0.1`. This fallback is for server/CLI sync only and must not be copied into browser code.
@@ -382,6 +396,7 @@ Periodic refresh:
 - refresh 25-30 least recently refreshed movies per day;
 - allow admin/CLI refresh for one movie;
 - allow admin/CLI refresh-all for maintenance/backfill.
+- current CLI: `npm run auto-related:refresh` for a dry-run, `npm run auto-related:refresh -- --write --force` for a deliberate write run.
 
 Backfill must be restart-safe: repeated runs must not create duplicates, clear good cached data after failures, or require always starting from the first movie.
 
@@ -486,6 +501,6 @@ Until quality is verified, keep the current public manual block as-is or make th
 8. Single-movie CLI/admin sync. Current CLI: `npm run auto-related:sync`; current protected admin endpoint: `POST /admin/auto-related/:movieId`.
 9. Full backfill. Current safe stepping stone: `npm run auto-related:sync -- --limit 20 --delay-ms 1000 --unsynced-only --write --force --report`.
 10. Refresh touched reverse edges after movie creation/edit. Implemented for sync writes and the admin post-save endpoint.
-11. Periodic refresh.
+11. Periodic refresh. Current CLI: `npm run auto-related:refresh`, dry-run by default, with explicit `--write --force` for maintenance writes.
 12. Admin diagnostics.
 13. Public UI switch after quality review.

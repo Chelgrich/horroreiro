@@ -473,6 +473,7 @@ export async function syncAutoRelatedMoviesBatch(options = {}) {
     limit: Math.max(1, Number(options.limit || 1)),
     matchIndex: getMatchIndexSummary(context.matchIndex),
     processed: results.length,
+    periodicRefresh: Boolean(options.periodicRefresh),
     results,
     totalCandidates: candidates.length,
     unsyncedOnly: Boolean(options.unsyncedOnly),
@@ -588,6 +589,7 @@ export function formatAutoRelatedBatchSummary(result) {
     failed: failedResults.length,
     limit: result.limit,
     matchIndex: result.matchIndex,
+    periodicRefresh: result.periodicRefresh,
     processed: result.processed,
     results: result.results.map(item => {
       if (item.status === 'error') {
