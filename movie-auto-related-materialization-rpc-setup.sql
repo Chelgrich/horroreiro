@@ -10,7 +10,7 @@ returns table (
   movie_id uuid,
   related_movie_id uuid,
   score double precision,
-  position integer,
+  related_position integer,
   confidence text
 )
 language plpgsql
@@ -65,7 +65,7 @@ begin
     saved_related.movie_id,
     saved_related.related_movie_id,
     saved_related.score,
-    saved_related.position,
+    saved_related.position as related_position,
     saved_related.confidence
   from public.movie_related saved_related
   where saved_related.movie_id = p_movie_id

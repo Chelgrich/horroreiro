@@ -43,6 +43,20 @@ Format:
 - Follow-up:
   - Apply `movie-auto-related-materialization-rpc-setup.sql` manually in Supabase before using `--write`, then run one forced write for a known movie and inspect `movie_related`.
 
+## 2026-10-01 - Fix auto-related materialization RPC return column
+
+- Files:
+  - `movie-auto-related-materialization-rpc-setup.sql`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Renamed the materialization RPC output column from `position` to `related_position` to avoid a PostgreSQL syntax conflict in `returns table`.
+  - The function still writes to the existing `movie_related.position` column.
+- Checks:
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Re-apply `movie-auto-related-materialization-rpc-setup.sql` manually in Supabase.
+
 ## 2026-10-01 - Add TMDb DNS fallback for auto-related CLI
 
 - Files:
