@@ -1,8 +1,6 @@
 import { readAutoRelatedConfig } from '../../../tools/auto-related/config.mjs';
-import {
-  formatAutoRelatedSyncSummary,
-  syncOneAutoRelatedMovie
-} from '../../../tools/auto-related/sync-runner.mjs';
+
+const SYNC_RUNNER_MODULE_URL = new URL('../../../tools/auto-related/sync-runner.mjs', import.meta.url).href;
 
 const JSON_HEADERS = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
@@ -95,6 +93,14 @@ async function fetchRequesterRole(supabaseUrl, serviceRoleKey, requesterId) {
   };
 }
 
+async function loadAutoRelatedSyncRunner() {
+  // Keep the Node-only provider sync stack out of Cloudflare Pages' static bundle.
+  // Yandex/portable Node runtime resolves the file URL at request time.
+  const importModule = new Function('specifier', 'return import(specifier);');
+
+  return importModule(SYNC_RUNNER_MODULE_URL);
+}
+
 export async function onRequestPost(context) {
   const { env, params, request } = context;
   const supabaseUrl = getSupabaseBaseUrl(env);
@@ -150,6 +156,10 @@ export async function onRequestPost(context) {
   }
 
   try {
+    const {
+      formatAutoRelatedSyncSummary,
+      syncOneAutoRelatedMovie
+    } = await loadAutoRelatedSyncRunner();
     const config = readAutoRelatedConfig({
       ...env,
       AUTO_RELATED_MOVIES: 'true'

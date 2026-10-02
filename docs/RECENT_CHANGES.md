@@ -12,6 +12,22 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-02 - Restore Cloudflare dev auto-related deploy compatibility
+
+- Files:
+  - `functions/admin/auto-related/[movieId].js`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Changed the admin post-save auto-related endpoint to lazy-load the Node-only sync runner at request time through a file URL.
+  - Kept Yandex/portable Node behavior intact while preventing Cloudflare Pages preview builds from statically bundling `tools/auto-related/http-client.mjs`, which imports `node:https`.
+- Checks:
+  - `node --check functions/admin/auto-related/[movieId].js`
+  - `npm run smoke:portable`
+  - `npm run smoke:auto-related`
+- Follow-up:
+  - Let Cloudflare Pages redeploy `dev`; if preview still fails, inspect the Cloudflare deployment details log.
+
 ## 2026-10-02 - Add admin auto-related diagnostics
 
 - Files:
