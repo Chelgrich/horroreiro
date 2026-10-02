@@ -21,6 +21,28 @@ function getServiceRoleKey(env) {
   return env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '';
 }
 
+function getMissingSupabaseServerVariableLabels({
+  anonKey,
+  serviceRoleKey,
+  supabaseUrl
+}) {
+  const missingLabels = [];
+
+  if (!supabaseUrl) {
+    missingLabels.push('SUPABASE_URL');
+  }
+
+  if (!anonKey) {
+    missingLabels.push('SUPABASE_ANON_KEY');
+  }
+
+  if (!serviceRoleKey) {
+    missingLabels.push('SUPABASE_SERVICE_ROLE_KEY или SUPABASE_SERVICE_KEY');
+  }
+
+  return missingLabels;
+}
+
 function getBearerToken(request) {
   const authorization = request.headers.get('Authorization') || '';
   const match = authorization.match(/^Bearer\s+(.+)$/i);
@@ -360,9 +382,15 @@ export async function onRequestGet(context) {
   const serviceRoleKey = getServiceRoleKey(env);
   const accessToken = getBearerToken(request);
 
-  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+  const missingSupabaseServerVariables = getMissingSupabaseServerVariableLabels({
+    anonKey,
+    serviceRoleKey,
+    supabaseUrl
+  });
+
+  if (missingSupabaseServerVariables.length) {
     return jsonResponse(500, {
-      message: 'Supabase server variables are not configured for auto-related diagnostics.',
+      message: `Не настроены серверные переменные Supabase для диагностики автопохожих: ${missingSupabaseServerVariables.join(', ')}.`,
       ok: false
     });
   }

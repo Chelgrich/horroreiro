@@ -12,6 +12,20 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-02 - Clarify auto-related diagnostics env errors
+
+- Files:
+  - `functions/admin/auto-related/diagnostics.js`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Made `/admin/auto-related/diagnostics` report which Supabase server variable group is missing instead of returning a generic configuration error.
+  - The message exposes only variable names, never secret values, so Cloudflare Preview/Production env mismatches are easier to diagnose.
+- Checks:
+  - `node --check functions/admin/auto-related/diagnostics.js`
+  - `npm run smoke:portable`
+- Follow-up:
+  - Redeploy dev and use the clearer error to verify whether Cloudflare Preview receives `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SERVICE_KEY`.
+
 ## 2026-10-02 - Restore Cloudflare dev auto-related deploy compatibility
 
 - Files:
