@@ -12,6 +12,41 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-02 - Add admin auto-related diagnostics
+
+- Files:
+  - `app.js`
+  - `editor-page.js`
+  - `editor-page.css`
+  - `functions/admin/auto-related/diagnostics.js`
+  - `server/runtime.js`
+  - `tools/auto-related/supabase-adapter.mjs`
+  - `tools/smoke-check.mjs`
+  - `docs/AUTO_RELATED_MOVIES_PLAN.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added protected `GET /admin/auto-related/diagnostics`, which verifies the current Supabase user as admin server-side before reading recommendation sync/evidence/materialized tables with the service role.
+  - Added an `/editor` diagnostics section for automatic related movies: sync coverage, distribution by related count, provider-consensus metrics, low-coverage movies, and weak materialized pairs with evidence summaries.
+  - Extended the server-only Supabase adapter related-row select with score, position, and calculated timestamp for diagnostics without exposing service-role data to browser code.
+  - Included the new endpoint in portable runtime routing and smoke syntax coverage.
+- Checks:
+  - `node --check app.js`
+  - `node --check editor-page.js`
+  - `node --check server/runtime.js`
+  - `node --check functions/admin/auto-related/diagnostics.js`
+  - `node --check tools/auto-related/supabase-adapter.mjs`
+  - `node --check tools/smoke-check.mjs`
+  - `npm run smoke:auto-related`
+  - `npm run smoke:portable`
+  - `git diff --check`
+  - `node tools/smoke-check.mjs`
+  - `npm run release:container:preflight -- --allow-dirty`
+  - `npm run size:compare`
+- Follow-up:
+  - Use the diagnostics output to review automatic related quality before any public UI switch.
+
 ## 2026-10-02 - Add periodic auto-related refresh mode
 
 - Files:

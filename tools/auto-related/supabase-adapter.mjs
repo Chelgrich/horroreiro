@@ -32,7 +32,10 @@ const DEFAULT_EVIDENCE_SELECT = [
 const DEFAULT_RELATED_SELECT = [
   'movie_id',
   'related_movie_id',
-  'confidence'
+  'score',
+  'position',
+  'confidence',
+  'calculated_at'
 ].join(',');
 
 export class SupabaseAutoRelatedError extends Error {

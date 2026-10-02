@@ -13,6 +13,7 @@ export function createEditorPageController(context = {}) {
     bindSharedAuthStateListener = () => {},
     openAuthModal = () => {},
     escapeHtml = value => String(value ?? ''),
+    fetchAdminAutoRelatedDiagnostics = async () => null,
     fetchAdminCompletenessMovieRows = async () => [],
     fetchAdminMoviePosterImageRows = async () => [],
     groupRowsByMovieId = () => new Map(),
@@ -103,7 +104,8 @@ export function createEditorPageController(context = {}) {
 
   function buildEditorCenterData({
     movies = [],
-    posterRows = []
+    posterRows = [],
+    autoRelatedDiagnostics = null
   } = {}) {
     const sortedMovies = [...movies].sort(compareManualSimilarAuditMovies);
     const posterRowsByMovieId = groupRowsByMovieId(posterRows);
@@ -137,6 +139,7 @@ export function createEditorPageController(context = {}) {
     return {
       moviesCount: sortedMovies.length,
       updatedAt: new Date(),
+      autoRelatedDiagnostics,
       issues: issueConfigs.map(config => issueMap.get(config.key)),
       movieIssueEntries: movieIssueEntries.sort((firstEntry, secondEntry) => (
         secondEntry.issueKeys.length - firstEntry.issueKeys.length ||
@@ -148,15 +151,20 @@ export function createEditorPageController(context = {}) {
   async function fetchEditorCenterData() {
     const [
       movies,
-      posterRows
+      posterRows,
+      autoRelatedDiagnostics
     ] = await Promise.all([
       fetchAdminCompletenessMovieRows(),
-      fetchAdminMoviePosterImageRows()
+      fetchAdminMoviePosterImageRows(),
+      fetchAdminAutoRelatedDiagnostics().catch(error => ({
+        error: error.message || 'Не удалось загрузить диагностику автопохожих.'
+      }))
     ]);
 
     return buildEditorCenterData({
       movies,
-      posterRows
+      posterRows,
+      autoRelatedDiagnostics
     });
   }
 
@@ -304,6 +312,189 @@ export function createEditorPageController(context = {}) {
     `;
   }
 
+  function formatEditorAutoRelatedInteger(value) {
+    const number = Number(value || 0);
+
+    return String(Number.isFinite(number) ? number : 0);
+  }
+
+  function formatEditorAutoRelatedAverage(value) {
+    const number = Number(value || 0);
+
+    return Number.isFinite(number) ? number.toFixed(1) : '0.0';
+  }
+
+  function formatEditorAutoRelatedScore(value) {
+    const number = Number(value || 0);
+
+    return Number.isFinite(number) ? number.toFixed(4) : '0.0000';
+  }
+
+  function getEditorAutoRelatedProviderLabel(provider) {
+    const normalizedProvider = String(provider || '').trim().toLowerCase();
+
+    if (normalizedProvider === 'tmdb' || normalizedProvider.startsWith('tmdb_')) {
+      return 'TMDb';
+    }
+
+    if (normalizedProvider === 'trakt' || normalizedProvider.startsWith('trakt_')) {
+      return 'Trakt';
+    }
+
+    return provider || 'Источник';
+  }
+
+  function renderEditorAutoRelatedEvidenceRows(rows = [], directionLabel = '') {
+    if (!rows.length) {
+      return '';
+    }
+
+    return rows
+      .map(row => {
+        const providerLabel = getEditorAutoRelatedProviderLabel(row.provider);
+        const rankLabel = row.rank ? ` #${row.rank}` : '';
+        const prefix = directionLabel ? `${directionLabel} ` : '';
+
+        return `${prefix}${providerLabel}${rankLabel}`;
+      })
+      .join(', ');
+  }
+
+  function renderEditorAutoRelatedEvidenceSummary(evidence = {}) {
+    const parts = [
+      renderEditorAutoRelatedEvidenceRows(evidence.direct, ''),
+      renderEditorAutoRelatedEvidenceRows(evidence.reverse, 'обратно')
+    ].filter(Boolean);
+
+    return parts.length ? parts.join(' · ') : 'нет evidence';
+  }
+
+  function renderEditorAutoRelatedLowCoverageItem(item = {}) {
+    const metaParts = [
+      `${formatEditorAutoRelatedInteger(item.relatedCount)} похожих`,
+      item.syncedAt ? `синхр. ${new Date(item.syncedAt).toLocaleDateString('ru-RU')}` : 'ещё не синхронизирован'
+    ];
+
+    return `
+      <a class="editor-page-auto-related-item" href="${escapeHtml(item.path || '')}">
+        <span class="editor-page-auto-related-title">${escapeHtml(item.label || '')}</span>
+        <span class="editor-page-auto-related-meta">${escapeHtml(metaParts.join(' · '))}</span>
+        ${item.syncError ? `<span class="editor-page-auto-related-error">${escapeHtml(item.syncError)}</span>` : ''}
+      </a>
+    `;
+  }
+
+  function renderEditorAutoRelatedPairDiagnostic(pair = {}) {
+    return `
+      <article class="editor-page-auto-related-pair">
+        <div class="editor-page-auto-related-pair-links">
+          <a href="${escapeHtml(pair.source?.path || '')}">${escapeHtml(pair.source?.label || '')}</a>
+          <span>→</span>
+          <a href="${escapeHtml(pair.target?.path || '')}">${escapeHtml(pair.target?.label || '')}</a>
+        </div>
+        <div class="editor-page-auto-related-pair-meta">
+          <span>${escapeHtml(pair.confidence || 'confidence?')}</span>
+          <span>score ${escapeHtml(formatEditorAutoRelatedScore(pair.score))}</span>
+          <span>#${escapeHtml(formatEditorAutoRelatedInteger(pair.position))}</span>
+        </div>
+        <p>${escapeHtml(renderEditorAutoRelatedEvidenceSummary(pair.evidence))}</p>
+      </article>
+    `;
+  }
+
+  function renderEditorAutoRelatedPanel(title, subtitle, contentHtml) {
+    return `
+      <article class="editor-page-auto-related-panel">
+        <div class="editor-page-auto-related-panel-header">
+          <h3>${escapeHtml(title)}</h3>
+          <span>${escapeHtml(subtitle)}</span>
+        </div>
+        ${contentHtml}
+      </article>
+    `;
+  }
+
+  function renderEditorAutoRelatedDiagnostics(diagnostics) {
+    if (!diagnostics) {
+      return '';
+    }
+
+    if (diagnostics.error) {
+      return `
+        <section class="editor-page-block editor-page-auto-related-block">
+          <div class="editor-page-section-header">
+            <h2>Автопохожие</h2>
+            <span>диагностика недоступна</span>
+          </div>
+          <p class="editor-page-empty-state">${escapeHtml(diagnostics.error)}</p>
+        </section>
+      `;
+    }
+
+    const summary = diagnostics.summary || {};
+    const distribution = summary.relatedDistribution || {};
+    const confidenceCounts = summary.relatedConfidenceCounts || {};
+    const confidenceText = Object.entries(confidenceCounts)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(' · ') || 'нет данных';
+    const lowCoverageMovies = diagnostics.lowCoverageMovies || [];
+    const diagnosticPairs = diagnostics.diagnosticPairs || [];
+
+    return `
+      <section class="editor-page-block editor-page-auto-related-block">
+        <div class="editor-page-section-header">
+          <h2>Автопохожие</h2>
+          <span>серверная диагностика materialized-связей</span>
+        </div>
+        <div class="editor-page-auto-related-summary-grid" aria-label="Диагностика автопохожих">
+          <article class="editor-page-auto-related-stat">
+            <span>${escapeHtml(formatEditorAutoRelatedInteger(summary.moviesSyncedSuccessfully))}/${escapeHtml(formatEditorAutoRelatedInteger(summary.movies))}</span>
+            <p>Синхронизировано успешно</p>
+          </article>
+          <article class="editor-page-auto-related-stat">
+            <span>${escapeHtml(formatEditorAutoRelatedInteger(distribution.zero))}</span>
+            <p>Без автопохожих</p>
+          </article>
+          <article class="editor-page-auto-related-stat">
+            <span>${escapeHtml(formatEditorAutoRelatedInteger(distribution.oneToThree))}</span>
+            <p>1-3 автопохожих</p>
+          </article>
+          <article class="editor-page-auto-related-stat">
+            <span>${escapeHtml(formatEditorAutoRelatedAverage(summary.averageRelatedCount))}</span>
+            <p>Среднее на фильм</p>
+          </article>
+          <article class="editor-page-auto-related-stat">
+            <span>${escapeHtml(formatEditorAutoRelatedInteger(summary.bothProvidersDirectedPairs))}</span>
+            <p>Пары от TMDb + Trakt</p>
+          </article>
+          <article class="editor-page-auto-related-stat">
+            <span>${escapeHtml(formatEditorAutoRelatedInteger(summary.failedSyncStates))}</span>
+            <p>Ошибок синхронизации</p>
+          </article>
+        </div>
+        <p class="editor-page-auto-related-note">
+          Evidence: ${escapeHtml(formatEditorAutoRelatedInteger(summary.evidenceRows))} · materialized: ${escapeHtml(formatEditorAutoRelatedInteger(summary.relatedRows))} · confidence: ${escapeHtml(confidenceText)}
+        </p>
+        <div class="editor-page-auto-related-columns">
+          ${renderEditorAutoRelatedPanel(
+            'На проверку',
+            'меньше 4 похожих или ошибка sync',
+            lowCoverageMovies.length
+              ? `<div class="editor-page-auto-related-list">${lowCoverageMovies.map(renderEditorAutoRelatedLowCoverageItem).join('')}</div>`
+              : '<p class="editor-page-issue-empty">Готово.</p>'
+          )}
+          ${renderEditorAutoRelatedPanel(
+            'Слабые пары',
+            'первые 24 по confidence/score',
+            diagnosticPairs.length
+              ? `<div class="editor-page-auto-related-list">${diagnosticPairs.map(renderEditorAutoRelatedPairDiagnostic).join('')}</div>`
+              : '<p class="editor-page-issue-empty">Пары не найдены.</p>'
+          )}
+        </div>
+      </section>
+    `;
+  }
+
   function renderEditorPage(data) {
     if (!editorPage) {
       return;
@@ -341,6 +532,8 @@ export function createEditorPageController(context = {}) {
           <p>Карточек с 2+ хвостами</p>
         </article>
       </section>
+
+      ${renderEditorAutoRelatedDiagnostics(data.autoRelatedDiagnostics)}
 
       <section class="editor-page-block">
         <div class="editor-page-section-header">

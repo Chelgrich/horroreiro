@@ -216,6 +216,184 @@
   line-height: var(--line-height-snug);
 }
 
+.editor-page-auto-related-summary-grid{
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.editor-page-auto-related-stat{
+  min-width: 0;
+  min-height: 92px;
+  padding: 14px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  background: var(--surface-card);
+  border: 1px solid var(--content-card-border);
+  border-radius: var(--radius-lg);
+}
+
+.editor-page-auto-related-stat span{
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-title-sm);
+  line-height: var(--line-height-none);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-page-auto-related-stat p,
+.editor-page-auto-related-note{
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+.editor-page-auto-related-note{
+  margin-top: 10px;
+}
+
+.editor-page-auto-related-columns{
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.editor-page-auto-related-panel{
+  min-width: 0;
+  padding: 16px;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  background: var(--surface-card);
+  border: 1px solid var(--content-card-border);
+  border-radius: var(--radius-lg);
+}
+
+.editor-page-auto-related-panel-header{
+  display: grid;
+  gap: 3px;
+}
+
+.editor-page-auto-related-panel-header h3{
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-snug);
+}
+
+.editor-page-auto-related-panel-header span{
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+.editor-page-auto-related-list{
+  display: grid;
+  gap: 8px;
+}
+
+.editor-page-auto-related-item,
+.editor-page-auto-related-pair{
+  min-width: 0;
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+  color: var(--color-text-secondary);
+  background: var(--surface-control);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+}
+
+.editor-page-auto-related-item:hover,
+.editor-page-auto-related-item:focus-visible{
+  color: var(--color-text-primary);
+  background: var(--surface-control-hover);
+  outline: none;
+}
+
+.editor-page-auto-related-title,
+.editor-page-auto-related-meta,
+.editor-page-auto-related-error,
+.editor-page-auto-related-pair-links,
+.editor-page-auto-related-pair-meta,
+.editor-page-auto-related-pair p{
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-page-auto-related-title{
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-snug);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.editor-page-auto-related-meta,
+.editor-page-auto-related-error,
+.editor-page-auto-related-pair-meta,
+.editor-page-auto-related-pair p{
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+.editor-page-auto-related-meta,
+.editor-page-auto-related-pair-meta,
+.editor-page-auto-related-pair p{
+  color: var(--color-text-muted);
+}
+
+.editor-page-auto-related-error{
+  color: var(--color-danger-text);
+}
+
+.editor-page-auto-related-pair-links{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-snug);
+  font-weight: 800;
+}
+
+.editor-page-auto-related-pair-links a{
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-page-auto-related-pair-links span{
+  color: var(--color-text-muted);
+}
+
+.editor-page-auto-related-pair-meta{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.editor-page-auto-related-pair-meta span{
+  padding: 2px 7px;
+  color: var(--accent-soft-text);
+  background: var(--accent-soft-bg);
+  border-radius: 999px;
+}
+
+.editor-page-auto-related-pair p{
+  margin: 0;
+  white-space: nowrap;
+}
+
 @media (max-width: 900px) {
 
 .editor-page-toolbar{
@@ -232,6 +410,14 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+.editor-page-auto-related-summary-grid{
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+.editor-page-auto-related-columns{
+    grid-template-columns: 1fr;
+  }
+
 .editor-page-priority-list{
     grid-template-columns: 1fr;
   }
@@ -242,6 +428,10 @@
 .editor-page-summary-grid,
 .editor-page-issue-grid{
     grid-template-columns: 1fr;
+  }
+
+.editor-page-auto-related-summary-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
 .editor-page-section-header{

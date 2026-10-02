@@ -3,6 +3,7 @@ import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { onRequest as envOnRequest } from '../functions/env.js';
+import { onRequestGet as adminAutoRelatedDiagnosticsOnRequestGet } from '../functions/admin/auto-related/diagnostics.js';
 import { onRequestPost as adminAutoRelatedOnRequestPost } from '../functions/admin/auto-related/[movieId].js';
 import { onRequestGet as appAssetsOnRequestGet } from '../functions/app-assets/[version].js';
 import { onRequestPost as adminPasswordOnRequestPost } from '../functions/admin/users/[userId]/password.js';
@@ -301,6 +302,10 @@ export function createPortableRuntime(options = {}) {
       return invokeGetHandler(appAssetsOnRequestGet, request, {
         version: getSingleSegmentParam(pathname, '/app-assets/')
       });
+    }
+
+    if (pathname === '/admin/auto-related/diagnostics') {
+      return invokeGetHandler(adminAutoRelatedDiagnosticsOnRequestGet, request);
     }
 
     const adminAutoRelatedMovieId = getAdminAutoRelatedMovieId(pathname);

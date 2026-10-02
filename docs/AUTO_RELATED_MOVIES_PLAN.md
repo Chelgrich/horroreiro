@@ -1,6 +1,6 @@
 # Automatic Related Movies Plan
 
-Status: partially implemented. Storage/RPCs, provider sync, scoring/materialization, backfill/reporting, and a protected single-movie admin sync endpoint exist. The public movie detail page still uses manual similar movies.
+Status: partially implemented. Storage/RPCs, provider sync, scoring/materialization, backfill/reporting, a protected single-movie admin sync endpoint, and admin diagnostics exist. The public movie detail page still uses manual similar movies.
 
 This document captures the target design for an automatic related-movies pipeline. It must not be treated as a description of current database tables until the implementation and Supabase changes are actually applied.
 
@@ -438,7 +438,12 @@ These may live on a per-movie sync table instead of `movies`.
 
 ## Admin Diagnostics
 
-Add admin-only inspection after the pipeline works:
+Current admin-only inspection:
+
+- `GET /admin/auto-related/diagnostics` verifies the current Supabase access token and `profiles.role = admin`, then reads sync/evidence/materialized rows server-side.
+- `/editor` renders aggregate coverage, low-coverage movies, and weak materialized pairs from that endpoint.
+
+The diagnostic pair payload includes:
 
 ```text
 Related movie
@@ -502,5 +507,5 @@ Until quality is verified, keep the current public manual block as-is or make th
 9. Full backfill. Current safe stepping stone: `npm run auto-related:sync -- --limit 20 --delay-ms 1000 --unsynced-only --write --force --report`.
 10. Refresh touched reverse edges after movie creation/edit. Implemented for sync writes and the admin post-save endpoint.
 11. Periodic refresh. Current CLI: `npm run auto-related:refresh`, dry-run by default, with explicit `--write --force` for maintenance writes.
-12. Admin diagnostics.
+12. Admin diagnostics. Implemented as `GET /admin/auto-related/diagnostics` plus the `/editor` diagnostics block.
 13. Public UI switch after quality review.

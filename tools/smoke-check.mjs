@@ -74,7 +74,8 @@ const syntaxFiles = [
   'tools/auto-related/tmdb-provider.mjs',
   'tools/auto-related/trakt-provider.mjs',
   'tools/auto-related-sync.mjs',
-  'tools/auto-related-smoke.mjs'
+  'tools/auto-related-smoke.mjs',
+  'functions/admin/auto-related/diagnostics.js'
 ];
 
 const contextJournalFile = 'docs/RECENT_CHANGES.md';
