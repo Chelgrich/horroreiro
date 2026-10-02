@@ -20,6 +20,7 @@ Format:
   - `docs/RECENT_CHANGES.md`
 - Summary:
   - Changed the admin post-save auto-related endpoint to lazy-load the Node-only sync runner at request time through a file URL.
+  - Moved the file-URL construction behind a Node-runtime guard so Cloudflare Pages does not evaluate it during Function publishing.
   - Kept Yandex/portable Node behavior intact while preventing Cloudflare Pages preview builds from statically bundling `tools/auto-related/http-client.mjs`, which imports `node:https`.
 - Checks:
   - `node --check functions/admin/auto-related/[movieId].js`

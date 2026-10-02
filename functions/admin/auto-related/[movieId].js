@@ -1,7 +1,5 @@
 import { readAutoRelatedConfig } from '../../../tools/auto-related/config.mjs';
 
-const SYNC_RUNNER_MODULE_URL = new URL('../../../tools/auto-related/sync-runner.mjs', import.meta.url).href;
-
 const JSON_HEADERS = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
   'Content-Type': 'application/json; charset=UTF-8'
@@ -96,9 +94,14 @@ async function fetchRequesterRole(supabaseUrl, serviceRoleKey, requesterId) {
 async function loadAutoRelatedSyncRunner() {
   // Keep the Node-only provider sync stack out of Cloudflare Pages' static bundle.
   // Yandex/portable Node runtime resolves the file URL at request time.
+  if (typeof process === 'undefined' || !process.versions?.node) {
+    throw new Error('Admin auto-related sync requires the portable Node runtime.');
+  }
+
+  const syncRunnerModuleUrl = new URL('../../../tools/auto-related/sync-runner.mjs', import.meta.url).href;
   const importModule = new Function('specifier', 'return import(specifier);');
 
-  return importModule(SYNC_RUNNER_MODULE_URL);
+  return importModule(syncRunnerModuleUrl);
 }
 
 export async function onRequestPost(context) {
