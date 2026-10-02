@@ -12,6 +12,22 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-02 - Bind auto-related Supabase fetch for Cloudflare
+
+- Files:
+  - `tools/auto-related/supabase-adapter.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Bound the default `globalThis.fetch` implementation before storing it in the server-only auto-related Supabase adapter.
+  - Fixes Cloudflare Pages Functions `Illegal invocation` errors caused by calling the native fetch with an incorrect `this` reference.
+- Checks:
+  - `node --check tools/auto-related/supabase-adapter.mjs`
+  - `npm run smoke:auto-related`
+  - `npm run smoke:portable`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Redeploy Cloudflare dev and verify `/editor` auto-related diagnostics now reaches Supabase instead of failing at runtime.
+
 ## 2026-10-02 - Clarify auto-related diagnostics env errors
 
 - Files:

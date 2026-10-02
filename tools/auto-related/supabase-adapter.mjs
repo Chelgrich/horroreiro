@@ -74,13 +74,25 @@ function getRangeHeader(offset, limit) {
   return `${offset}-${offset + limit - 1}`;
 }
 
+function getDefaultFetchImpl() {
+  if (typeof globalThis.fetch !== 'function') {
+    return null;
+  }
+
+  return globalThis.fetch.bind(globalThis);
+}
+
 export class SupabaseAutoRelatedAdapter {
   constructor(config = readAutoRelatedConfig(), options = {}) {
     assertSupabaseConfig(config);
 
     this.config = config;
-    this.fetchImpl = options.fetchImpl || globalThis.fetch;
+    this.fetchImpl = options.fetchImpl || getDefaultFetchImpl();
     this.pageSize = config.supabaseRestPageSize || 1000;
+
+    if (typeof this.fetchImpl !== 'function') {
+      throw new Error('A fetch implementation is required for automatic related Supabase adapter.');
+    }
   }
 
   getHeaders(extraHeaders = {}) {
