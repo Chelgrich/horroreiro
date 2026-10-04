@@ -158,6 +158,36 @@ function getSyncStateTimestamp(syncState = {}) {
   return timestamps.length ? Math.max(...timestamps) : 0;
 }
 
+function getNumberOrNull(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const number = Number(value);
+
+  return Number.isFinite(number) ? number : null;
+}
+
+function buildProviderSummary(syncState = {}, provider) {
+  const normalizedProvider = String(provider || '').trim().toLowerCase();
+  const prefix = normalizedProvider === 'trakt' ? 'trakt' : 'tmdb';
+  const successAt = syncState?.[`${prefix}_last_success_at`] || null;
+  const error = syncState?.[`${prefix}_last_error`] || '';
+  const statusCode = getNumberOrNull(syncState?.[`${prefix}_last_status_code`]);
+  const externalCount = getNumberOrNull(syncState?.[`${prefix}_external_count`]);
+  const matchedCount = getNumberOrNull(syncState?.[`${prefix}_matched_count`]);
+
+  return {
+    error,
+    externalCount,
+    hasRun: Boolean(successAt || error || statusCode !== null || externalCount !== null || matchedCount !== null),
+    matchedCount,
+    provider: prefix,
+    statusCode,
+    successAt
+  };
+}
+
 function getPairKey(sourceMovieId, targetMovieId) {
   return `${sourceMovieId}->${targetMovieId}`;
 }
@@ -216,11 +246,19 @@ function getRelatedCountBucket(count) {
 
 function buildMovieSummary(movie, relatedCount, syncState) {
   const timestamp = getSyncStateTimestamp(syncState);
+  const lastSuccessTimestamp = Date.parse(syncState?.recommendations_last_success_at || '');
+  const lastSyncedTimestamp = Date.parse(syncState?.recommendations_last_synced_at || '');
 
   return {
     id: movie.id,
+    lastSuccessAt: Number.isFinite(lastSuccessTimestamp) ? new Date(lastSuccessTimestamp).toISOString() : null,
+    lastSyncedAt: Number.isFinite(lastSyncedTimestamp) ? new Date(lastSyncedTimestamp).toISOString() : null,
     label: getMovieLabel(movie),
     path: getMoviePath(movie),
+    providers: [
+      buildProviderSummary(syncState, 'tmdb'),
+      buildProviderSummary(syncState, 'trakt')
+    ],
     relatedCount,
     syncError: syncState?.recommendations_last_error || '',
     synced: Boolean(timestamp),

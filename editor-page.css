@@ -262,6 +262,13 @@
   justify-content: space-between;
 }
 
+.editor-page-auto-related-header-actions{
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .editor-page-auto-related-batch-button{
   min-height: 34px;
   color: var(--ui-action-color);
@@ -415,6 +422,42 @@
 
 .editor-page-auto-related-error{
   color: var(--color-danger-text);
+}
+
+.editor-page-auto-related-provider-row{
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.editor-page-auto-related-provider-pill{
+  min-width: 0;
+  padding: 2px 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent-soft-text);
+  background: var(--accent-soft-bg);
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  white-space: nowrap;
+}
+
+.editor-page-auto-related-provider-pill.is-muted{
+  color: var(--color-text-muted);
+  background: var(--surface-control-hover);
+}
+
+.editor-page-auto-related-provider-pill.is-error{
+  color: var(--color-danger-text);
+  background: var(--danger-alpha-10);
+}
+
+.editor-page-auto-related-provider-pill strong{
+  color: inherit;
+  font-weight: 800;
 }
 
 .editor-page-auto-related-pair-links{

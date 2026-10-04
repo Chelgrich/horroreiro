@@ -12,6 +12,28 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-04 - Improve editor auto-related diagnostics
+
+- Files:
+  - `editor-page.js`
+  - `editor-page.css`
+  - `functions/admin/auto-related/diagnostics.js`
+  - `tools/auto-related/supabase-adapter.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - `/editor` auto-related review cards now show per-provider TMDb/Trakt status pills with matched/external candidate counts, last success details, HTTP status, and provider errors from sync state.
+  - Added a one-click weak-pair sync action and a batch action for all visible weak-pair movies, alongside the existing low-coverage batch sync.
+  - Expanded server diagnostics to return already-stored provider sync counters/errors without changing the Supabase schema.
+- Checks:
+  - `node --check editor-page.js`
+  - `node --check functions/admin/auto-related/diagnostics.js`
+  - `node --check tools/auto-related/supabase-adapter.mjs`
+  - `npm run smoke:auto-related`
+  - `npm run smoke:portable`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Verify active sync buttons on Yandex/Node runtime and read-only disabled controls on Cloudflare preview.
+
 ## 2026-10-04 - Harden password recovery sessions
 
 - Files:

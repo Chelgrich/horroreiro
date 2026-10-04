@@ -18,7 +18,15 @@ const DEFAULT_SYNC_STATE_SELECT = [
   'recommendations_last_synced_at',
   'recommendations_last_success_at',
   'recommendations_last_error',
+  'trakt_last_error',
+  'trakt_last_status_code',
+  'trakt_external_count',
+  'trakt_matched_count',
   'trakt_last_success_at',
+  'tmdb_last_error',
+  'tmdb_last_status_code',
+  'tmdb_external_count',
+  'tmdb_matched_count',
   'tmdb_last_success_at'
 ].join(',');
 

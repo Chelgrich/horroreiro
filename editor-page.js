@@ -329,6 +329,21 @@ export function createEditorPageController(context = {}) {
     return Number.isFinite(number) ? number.toFixed(1) : '0.0';
   }
 
+  function formatEditorAutoRelatedDateTime(value) {
+    const date = new Date(value || '');
+
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
+    return date.toLocaleString('ru-RU', {
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      month: 'short'
+    });
+  }
+
   function formatEditorAutoRelatedScore(value) {
     const number = Number(value || 0);
 
@@ -347,6 +362,71 @@ export function createEditorPageController(context = {}) {
     }
 
     return provider || 'Источник';
+  }
+
+  function formatEditorAutoRelatedProviderCounts(provider = {}) {
+    const hasMatchedCount = provider.matchedCount !== null && provider.matchedCount !== undefined && provider.matchedCount !== '';
+    const hasExternalCount = provider.externalCount !== null && provider.externalCount !== undefined && provider.externalCount !== '';
+    const matchedCount = Number(provider.matchedCount);
+    const externalCount = Number(provider.externalCount);
+    const hasValidMatchedCount = hasMatchedCount && Number.isFinite(matchedCount);
+    const hasValidExternalCount = hasExternalCount && Number.isFinite(externalCount);
+
+    if (hasValidMatchedCount && hasValidExternalCount) {
+      return `${matchedCount}/${externalCount}`;
+    }
+
+    if (hasValidMatchedCount) {
+      return String(matchedCount);
+    }
+
+    if (hasValidExternalCount) {
+      return `0/${externalCount}`;
+    }
+
+    return provider.hasRun ? '0/0' : 'нет запуска';
+  }
+
+  function getEditorAutoRelatedProviderClass(provider = {}) {
+    if (provider.error) {
+      return 'is-error';
+    }
+
+    if (!provider.hasRun) {
+      return 'is-muted';
+    }
+
+    return 'is-ok';
+  }
+
+  function renderEditorAutoRelatedProviderPills(providers = []) {
+    const normalizedProviders = Array.isArray(providers) ? providers : [];
+
+    if (!normalizedProviders.length) {
+      return '';
+    }
+
+    return `
+      <div class="editor-page-auto-related-provider-row" aria-label="Статус провайдеров">
+        ${normalizedProviders.map(provider => {
+          const providerLabel = getEditorAutoRelatedProviderLabel(provider.provider);
+          const countsLabel = formatEditorAutoRelatedProviderCounts(provider);
+          const statusParts = [
+            provider.successAt ? `успех ${formatEditorAutoRelatedDateTime(provider.successAt)}` : '',
+            provider.statusCode ? `HTTP ${provider.statusCode}` : '',
+            provider.error || ''
+          ].filter(Boolean);
+          const title = statusParts.length ? statusParts.join(' · ') : 'Провайдер ещё не запускался';
+
+          return `
+            <span class="editor-page-auto-related-provider-pill ${escapeHtml(getEditorAutoRelatedProviderClass(provider))}" title="${escapeHtml(title)}">
+              <span>${escapeHtml(providerLabel)}</span>
+              <strong>${escapeHtml(countsLabel)}</strong>
+            </span>
+          `;
+        }).join('')}
+      </div>
+    `;
   }
 
   function renderEditorAutoRelatedEvidenceRows(rows = [], directionLabel = '') {
@@ -402,10 +482,40 @@ export function createEditorPageController(context = {}) {
     `;
   }
 
+  function renderEditorAutoRelatedPairSyncButton(pair = {}, { canSync = true } = {}) {
+    const sourceMovieId = String(pair.source?.id || '').trim();
+    const targetMovieId = String(pair.target?.id || '').trim();
+
+    if (!sourceMovieId && !targetMovieId) {
+      return '';
+    }
+
+    const isSyncing = [sourceMovieId, targetMovieId].some(isAutoRelatedMovieSyncing);
+    const isDisabled = !canSync || isSyncing;
+
+    return `
+      <button
+        type="button"
+        class="secondary-button editor-page-auto-related-sync-button"
+        data-editor-action="auto-related-sync-pair"
+        data-source-movie-id="${escapeHtml(sourceMovieId)}"
+        data-target-movie-id="${escapeHtml(targetMovieId)}"
+        ${!canSync ? 'title="Синхронизация доступна только в Node/Yandex runtime."' : ''}
+        ${isDisabled ? 'disabled' : ''}
+      >
+        ${escapeHtml(isSyncing ? 'Синхронизируем...' : 'Синхр. пару')}
+      </button>
+    `;
+  }
+
   function renderEditorAutoRelatedLowCoverageItem(item = {}, { canSync = true } = {}) {
     const metaParts = [
       `${formatEditorAutoRelatedInteger(item.relatedCount)} похожих`,
-      item.syncedAt ? `синхр. ${new Date(item.syncedAt).toLocaleDateString('ru-RU')}` : 'ещё не синхронизирован'
+      item.lastSuccessAt
+        ? `успех ${formatEditorAutoRelatedDateTime(item.lastSuccessAt)}`
+        : item.lastSyncedAt
+          ? `синхр. ${formatEditorAutoRelatedDateTime(item.lastSyncedAt)}`
+          : 'ещё не синхронизирован'
     ];
 
     return `
@@ -413,6 +523,7 @@ export function createEditorPageController(context = {}) {
         <a class="editor-page-auto-related-item-link" href="${escapeHtml(item.path || '')}">
         <span class="editor-page-auto-related-title">${escapeHtml(item.label || '')}</span>
         <span class="editor-page-auto-related-meta">${escapeHtml(metaParts.join(' · '))}</span>
+        ${renderEditorAutoRelatedProviderPills(item.providers)}
         ${item.syncError ? `<span class="editor-page-auto-related-error">${escapeHtml(item.syncError)}</span>` : ''}
         </a>
         ${renderEditorAutoRelatedSyncButton(item.id, 'Синхронизировать', { canSync })}
@@ -435,6 +546,7 @@ export function createEditorPageController(context = {}) {
         </div>
         <p>${escapeHtml(renderEditorAutoRelatedEvidenceSummary(pair.evidence))}</p>
         <div class="editor-page-auto-related-actions">
+          ${renderEditorAutoRelatedPairSyncButton(pair, { canSync })}
           ${renderEditorAutoRelatedSyncButton(pair.source?.id, 'Синхр. источник', { canSync })}
           ${renderEditorAutoRelatedSyncButton(pair.target?.id, 'Синхр. цель', { canSync })}
         </div>
@@ -452,6 +564,17 @@ export function createEditorPageController(context = {}) {
         ${contentHtml}
       </article>
     `;
+  }
+
+  function getEditorAutoRelatedWeakPairMovieIds(diagnosticPairs = []) {
+    return [
+      ...new Set((Array.isArray(diagnosticPairs) ? diagnosticPairs : [])
+        .flatMap(pair => [
+          String(pair?.source?.id || '').trim(),
+          String(pair?.target?.id || '').trim()
+        ])
+        .filter(Boolean))
+    ];
   }
 
   function renderEditorAutoRelatedDiagnostics(diagnostics) {
@@ -479,23 +602,36 @@ export function createEditorPageController(context = {}) {
       .join(' · ') || 'нет данных';
     const lowCoverageMovies = diagnostics.lowCoverageMovies || [];
     const diagnosticPairs = diagnostics.diagnosticPairs || [];
+    const weakPairMovieIds = getEditorAutoRelatedWeakPairMovieIds(diagnosticPairs);
     const canRunProviderSync = Boolean(diagnostics.capabilities?.canRunProviderSync);
-    const canBatchSync = canRunProviderSync && lowCoverageMovies.some(item => item.id);
+    const canBatchSyncLowCoverage = canRunProviderSync && lowCoverageMovies.some(item => item.id);
+    const canBatchSyncWeakPairs = canRunProviderSync && weakPairMovieIds.length > 0;
 
     return `
       <section class="editor-page-block editor-page-auto-related-block">
         <div class="editor-page-section-header">
           <h2>Автопохожие</h2>
           <span>серверная диагностика materialized-связей</span>
-          <button
-            type="button"
-            class="secondary-button editor-page-auto-related-batch-button"
-            data-editor-action="auto-related-sync-visible"
-            ${!canBatchSync || isSyncingAutoRelatedBatch ? 'disabled' : ''}
-            ${!canRunProviderSync ? 'title="Синхронизация доступна только в Node/Yandex runtime."' : ''}
-          >
-            ${escapeHtml(isSyncingAutoRelatedBatch ? 'Синхронизируем...' : 'Синхр. на проверку')}
-          </button>
+          <div class="editor-page-auto-related-header-actions">
+            <button
+              type="button"
+              class="secondary-button editor-page-auto-related-batch-button"
+              data-editor-action="auto-related-sync-low-coverage"
+              ${!canBatchSyncLowCoverage || isSyncingAutoRelatedBatch ? 'disabled' : ''}
+              ${!canRunProviderSync ? 'title="Синхронизация доступна только в Node/Yandex runtime."' : ''}
+            >
+              ${escapeHtml(isSyncingAutoRelatedBatch ? 'Синхронизируем...' : 'Синхр. на проверку')}
+            </button>
+            <button
+              type="button"
+              class="secondary-button editor-page-auto-related-batch-button"
+              data-editor-action="auto-related-sync-weak-pairs"
+              ${!canBatchSyncWeakPairs || isSyncingAutoRelatedBatch ? 'disabled' : ''}
+              ${!canRunProviderSync ? 'title="Синхронизация доступна только в Node/Yandex runtime."' : ''}
+            >
+              ${escapeHtml(isSyncingAutoRelatedBatch ? 'Синхронизируем...' : 'Синхр. слабые пары')}
+            </button>
+          </div>
         </div>
         <div class="editor-page-auto-related-summary-grid" aria-label="Диагностика автопохожих">
           <article class="editor-page-auto-related-stat">
@@ -684,8 +820,21 @@ export function createEditorPageController(context = {}) {
       return true;
     }
 
-    if (action === 'auto-related-sync-visible') {
-      void syncVisibleEditorAutoRelatedMovies();
+    if (action === 'auto-related-sync-pair') {
+      void syncEditorAutoRelatedMovieIds([
+        actionButton.dataset.sourceMovieId,
+        actionButton.dataset.targetMovieId
+      ], 'Синхронизация пары завершена');
+      return true;
+    }
+
+    if (action === 'auto-related-sync-visible' || action === 'auto-related-sync-low-coverage') {
+      void syncVisibleEditorAutoRelatedLowCoverageMovies();
+      return true;
+    }
+
+    if (action === 'auto-related-sync-weak-pairs') {
+      void syncVisibleEditorAutoRelatedWeakPairMovies();
       return true;
     }
 
@@ -738,18 +887,18 @@ export function createEditorPageController(context = {}) {
     }
   }
 
-  async function syncVisibleEditorAutoRelatedMovies() {
+  async function syncEditorAutoRelatedMovieIds(movieIds, completeMessage = 'Синхронизация завершена') {
     if (isSyncingAutoRelatedBatch) {
       return;
     }
 
-    const movieIds = [
-      ...new Set((currentEditorPageData?.autoRelatedDiagnostics?.lowCoverageMovies || [])
-        .map(item => String(item?.id || '').trim())
+    const normalizedMovieIds = [
+      ...new Set((Array.isArray(movieIds) ? movieIds : [])
+        .map(movieId => String(movieId || '').trim())
         .filter(Boolean))
     ];
 
-    if (!movieIds.length) {
+    if (!normalizedMovieIds.length) {
       return;
     }
 
@@ -762,7 +911,7 @@ export function createEditorPageController(context = {}) {
     let successCount = 0;
 
     try {
-      for (const movieId of movieIds) {
+      for (const movieId of normalizedMovieIds) {
         const result = await syncEditorAutoRelatedMovie(movieId, {
           notify: false,
           refresh: false
@@ -773,12 +922,27 @@ export function createEditorPageController(context = {}) {
         }
       }
 
-      showAppMessage(`Синхронизация завершена: ${successCount} из ${movieIds.length}.`, successCount ? 'success' : 'error', true);
+      showAppMessage(`${completeMessage}: ${successCount} из ${normalizedMovieIds.length}.`, successCount ? 'success' : 'error', true);
       isSyncingAutoRelatedBatch = false;
       await loadEditorPage();
     } finally {
       isSyncingAutoRelatedBatch = false;
     }
+  }
+
+  async function syncVisibleEditorAutoRelatedLowCoverageMovies() {
+    const movieIds = (currentEditorPageData?.autoRelatedDiagnostics?.lowCoverageMovies || [])
+      .map(item => item?.id);
+
+    await syncEditorAutoRelatedMovieIds(movieIds, 'Синхронизация контура проверки завершена');
+  }
+
+  async function syncVisibleEditorAutoRelatedWeakPairMovies() {
+    const movieIds = getEditorAutoRelatedWeakPairMovieIds(
+      currentEditorPageData?.autoRelatedDiagnostics?.diagnosticPairs || []
+    );
+
+    await syncEditorAutoRelatedMovieIds(movieIds, 'Синхронизация слабых пар завершена');
   }
 
   return {
