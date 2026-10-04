@@ -6,6 +6,8 @@ const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=UTF-8'
 };
 
+const CAN_RUN_PROVIDER_SYNC = typeof process !== 'undefined' && Boolean(process.versions?.node);
+
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -355,6 +357,9 @@ function buildDiagnosticsPayload({
     : 0;
 
   return {
+    capabilities: {
+      canRunProviderSync: CAN_RUN_PROVIDER_SYNC
+    },
     diagnosticPairs,
     lowCoverageMovies,
     summary: {

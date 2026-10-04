@@ -257,6 +257,28 @@
   margin-top: 10px;
 }
 
+.editor-page-auto-related-block .editor-page-section-header{
+  align-items: center;
+  justify-content: space-between;
+}
+
+.editor-page-auto-related-batch-button{
+  min-height: 34px;
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+}
+
+.editor-page-auto-related-batch-button:hover,
+.editor-page-auto-related-batch-button:focus-visible{
+  background: var(--ui-action-bg-hover);
+}
+
+.editor-page-auto-related-batch-button:disabled{
+  color: var(--color-text-muted);
+  background: var(--surface-control);
+  cursor: default;
+}
+
 .editor-page-auto-related-columns{
   margin-top: 14px;
   display: grid;
@@ -310,11 +332,52 @@
   text-decoration: none;
 }
 
-.editor-page-auto-related-item:hover,
-.editor-page-auto-related-item:focus-visible{
+.editor-page-auto-related-item{
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.editor-page-auto-related-item-link{
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.editor-page-auto-related-item:hover{
   color: var(--color-text-primary);
   background: var(--surface-control-hover);
+}
+
+.editor-page-auto-related-item-link:focus-visible{
   outline: none;
+}
+
+.editor-page-auto-related-actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.editor-page-auto-related-sync-button{
+  min-height: 30px;
+  padding: 0 10px;
+  color: var(--ui-action-color);
+  background: var(--ui-action-bg);
+  font-size: var(--font-size-sm);
+}
+
+.editor-page-auto-related-sync-button:hover,
+.editor-page-auto-related-sync-button:focus-visible{
+  background: var(--ui-action-bg-hover);
+}
+
+.editor-page-auto-related-sync-button:disabled{
+  color: var(--color-text-muted);
+  background: var(--surface-control-hover);
+  cursor: default;
 }
 
 .editor-page-auto-related-title,
@@ -416,6 +479,15 @@
 
 .editor-page-auto-related-columns{
     grid-template-columns: 1fr;
+  }
+
+.editor-page-auto-related-block .editor-page-section-header{
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+.editor-page-auto-related-batch-button{
+    width: 100%;
   }
 
 .editor-page-priority-list{

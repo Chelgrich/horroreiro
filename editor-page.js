@@ -14,6 +14,8 @@ export function createEditorPageController(context = {}) {
     openAuthModal = () => {},
     escapeHtml = value => String(value ?? ''),
     fetchAdminAutoRelatedDiagnostics = async () => null,
+    syncAdminAutoRelatedMovie = async () => null,
+    showAppMessage = () => {},
     fetchAdminCompletenessMovieRows = async () => [],
     fetchAdminMoviePosterImageRows = async () => [],
     groupRowsByMovieId = () => new Map(),
@@ -26,6 +28,9 @@ export function createEditorPageController(context = {}) {
     runCompletenessAudit = async () => {},
     exportDatabase = async () => {}
   } = context;
+  let currentEditorPageData = null;
+  const syncingAutoRelatedMovieIds = new Set();
+  let isSyncingAutoRelatedBatch = false;
 
   function getEditorCenterIssueConfigs() {
     return [
@@ -369,22 +374,53 @@ export function createEditorPageController(context = {}) {
     return parts.length ? parts.join(' · ') : 'нет evidence';
   }
 
-  function renderEditorAutoRelatedLowCoverageItem(item = {}) {
+  function isAutoRelatedMovieSyncing(movieId) {
+    return syncingAutoRelatedMovieIds.has(String(movieId || '').trim());
+  }
+
+  function renderEditorAutoRelatedSyncButton(movieId, label = 'Синхронизировать', { canSync = true } = {}) {
+    const normalizedMovieId = String(movieId || '').trim();
+
+    if (!normalizedMovieId) {
+      return '';
+    }
+
+    const isSyncing = isAutoRelatedMovieSyncing(normalizedMovieId);
+    const isDisabled = !canSync || isSyncing;
+
+    return `
+      <button
+        type="button"
+        class="secondary-button editor-page-auto-related-sync-button"
+        data-editor-action="auto-related-sync"
+        data-movie-id="${escapeHtml(normalizedMovieId)}"
+        ${!canSync ? 'title="Синхронизация доступна только в Node/Yandex runtime."' : ''}
+        ${isDisabled ? 'disabled' : ''}
+      >
+        ${escapeHtml(isSyncing ? 'Синхронизируем...' : label)}
+      </button>
+    `;
+  }
+
+  function renderEditorAutoRelatedLowCoverageItem(item = {}, { canSync = true } = {}) {
     const metaParts = [
       `${formatEditorAutoRelatedInteger(item.relatedCount)} похожих`,
       item.syncedAt ? `синхр. ${new Date(item.syncedAt).toLocaleDateString('ru-RU')}` : 'ещё не синхронизирован'
     ];
 
     return `
-      <a class="editor-page-auto-related-item" href="${escapeHtml(item.path || '')}">
+      <article class="editor-page-auto-related-item">
+        <a class="editor-page-auto-related-item-link" href="${escapeHtml(item.path || '')}">
         <span class="editor-page-auto-related-title">${escapeHtml(item.label || '')}</span>
         <span class="editor-page-auto-related-meta">${escapeHtml(metaParts.join(' · '))}</span>
         ${item.syncError ? `<span class="editor-page-auto-related-error">${escapeHtml(item.syncError)}</span>` : ''}
-      </a>
+        </a>
+        ${renderEditorAutoRelatedSyncButton(item.id, 'Синхронизировать', { canSync })}
+      </article>
     `;
   }
 
-  function renderEditorAutoRelatedPairDiagnostic(pair = {}) {
+  function renderEditorAutoRelatedPairDiagnostic(pair = {}, { canSync = true } = {}) {
     return `
       <article class="editor-page-auto-related-pair">
         <div class="editor-page-auto-related-pair-links">
@@ -398,6 +434,10 @@ export function createEditorPageController(context = {}) {
           <span>#${escapeHtml(formatEditorAutoRelatedInteger(pair.position))}</span>
         </div>
         <p>${escapeHtml(renderEditorAutoRelatedEvidenceSummary(pair.evidence))}</p>
+        <div class="editor-page-auto-related-actions">
+          ${renderEditorAutoRelatedSyncButton(pair.source?.id, 'Синхр. источник', { canSync })}
+          ${renderEditorAutoRelatedSyncButton(pair.target?.id, 'Синхр. цель', { canSync })}
+        </div>
       </article>
     `;
   }
@@ -439,12 +479,23 @@ export function createEditorPageController(context = {}) {
       .join(' · ') || 'нет данных';
     const lowCoverageMovies = diagnostics.lowCoverageMovies || [];
     const diagnosticPairs = diagnostics.diagnosticPairs || [];
+    const canRunProviderSync = Boolean(diagnostics.capabilities?.canRunProviderSync);
+    const canBatchSync = canRunProviderSync && lowCoverageMovies.some(item => item.id);
 
     return `
       <section class="editor-page-block editor-page-auto-related-block">
         <div class="editor-page-section-header">
           <h2>Автопохожие</h2>
           <span>серверная диагностика materialized-связей</span>
+          <button
+            type="button"
+            class="secondary-button editor-page-auto-related-batch-button"
+            data-editor-action="auto-related-sync-visible"
+            ${!canBatchSync || isSyncingAutoRelatedBatch ? 'disabled' : ''}
+            ${!canRunProviderSync ? 'title="Синхронизация доступна только в Node/Yandex runtime."' : ''}
+          >
+            ${escapeHtml(isSyncingAutoRelatedBatch ? 'Синхронизируем...' : 'Синхр. на проверку')}
+          </button>
         </div>
         <div class="editor-page-auto-related-summary-grid" aria-label="Диагностика автопохожих">
           <article class="editor-page-auto-related-stat">
@@ -480,14 +531,14 @@ export function createEditorPageController(context = {}) {
             'На проверку',
             'меньше 4 похожих или ошибка sync',
             lowCoverageMovies.length
-              ? `<div class="editor-page-auto-related-list">${lowCoverageMovies.map(renderEditorAutoRelatedLowCoverageItem).join('')}</div>`
+              ? `<div class="editor-page-auto-related-list">${lowCoverageMovies.map(item => renderEditorAutoRelatedLowCoverageItem(item, { canSync: canRunProviderSync })).join('')}</div>`
               : '<p class="editor-page-issue-empty">Готово.</p>'
           )}
           ${renderEditorAutoRelatedPanel(
             'Слабые пары',
             'первые 24 по confidence/score',
             diagnosticPairs.length
-              ? `<div class="editor-page-auto-related-list">${diagnosticPairs.map(renderEditorAutoRelatedPairDiagnostic).join('')}</div>`
+              ? `<div class="editor-page-auto-related-list">${diagnosticPairs.map(pair => renderEditorAutoRelatedPairDiagnostic(pair, { canSync: canRunProviderSync })).join('')}</div>`
               : '<p class="editor-page-issue-empty">Пары не найдены.</p>'
           )}
         </div>
@@ -505,6 +556,7 @@ export function createEditorPageController(context = {}) {
     const multiIssueCount = data.movieIssueEntries.filter(entry => getEditorSummaryIssueKeys(entry.issueKeys).length > 1).length;
 
     document.title = 'Центр редактора — Хоррорейро';
+    currentEditorPageData = data;
     editorPage.innerHTML = `
       <section class="editor-page-toolbar" aria-label="Действия редактора">
         <div>
@@ -627,7 +679,106 @@ export function createEditorPageController(context = {}) {
       return true;
     }
 
+    if (action === 'auto-related-sync') {
+      void syncEditorAutoRelatedMovie(actionButton.dataset.movieId);
+      return true;
+    }
+
+    if (action === 'auto-related-sync-visible') {
+      void syncVisibleEditorAutoRelatedMovies();
+      return true;
+    }
+
     return false;
+  }
+
+  async function syncEditorAutoRelatedMovie(movieId, { notify = true, refresh = true } = {}) {
+    const normalizedMovieId = String(movieId || '').trim();
+
+    if (!normalizedMovieId || isAutoRelatedMovieSyncing(normalizedMovieId)) {
+      return null;
+    }
+
+    syncingAutoRelatedMovieIds.add(normalizedMovieId);
+
+    if (currentEditorPageData) {
+      renderEditorPage(currentEditorPageData);
+    }
+
+    try {
+      const result = await syncAdminAutoRelatedMovie(normalizedMovieId);
+
+      syncingAutoRelatedMovieIds.delete(normalizedMovieId);
+      if (notify) {
+        showAppMessage('Автопохожие синхронизированы.', 'success', true);
+      }
+
+      if (refresh) {
+        await loadEditorPage();
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Ошибка синхронизации автопохожих:', error);
+      if (notify) {
+        showAppMessage(`Не удалось синхронизировать автопохожие: ${error.message || 'смотри консоль F12.'}`, 'error', true);
+      }
+
+      if (refresh && currentEditorPageData) {
+        renderEditorPage(currentEditorPageData);
+      }
+
+      return null;
+    } finally {
+      syncingAutoRelatedMovieIds.delete(normalizedMovieId);
+
+      if (!refresh && currentEditorPageData) {
+        renderEditorPage(currentEditorPageData);
+      }
+    }
+  }
+
+  async function syncVisibleEditorAutoRelatedMovies() {
+    if (isSyncingAutoRelatedBatch) {
+      return;
+    }
+
+    const movieIds = [
+      ...new Set((currentEditorPageData?.autoRelatedDiagnostics?.lowCoverageMovies || [])
+        .map(item => String(item?.id || '').trim())
+        .filter(Boolean))
+    ];
+
+    if (!movieIds.length) {
+      return;
+    }
+
+    isSyncingAutoRelatedBatch = true;
+
+    if (currentEditorPageData) {
+      renderEditorPage(currentEditorPageData);
+    }
+
+    let successCount = 0;
+
+    try {
+      for (const movieId of movieIds) {
+        const result = await syncEditorAutoRelatedMovie(movieId, {
+          notify: false,
+          refresh: false
+        });
+
+        if (result) {
+          successCount += 1;
+        }
+      }
+
+      showAppMessage(`Синхронизация завершена: ${successCount} из ${movieIds.length}.`, successCount ? 'success' : 'error', true);
+      isSyncingAutoRelatedBatch = false;
+      await loadEditorPage();
+    } finally {
+      isSyncingAutoRelatedBatch = false;
+    }
   }
 
   return {

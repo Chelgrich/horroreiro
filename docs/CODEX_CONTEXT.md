@@ -267,7 +267,7 @@ Movie detail warm-start startup:
 - `movie-warm-start.js` restores the saved DOM before the full app starts; `movie.html` reveals the restored page after styles are ready and reserves shared-header space until shared UI mounts.
 - `initMoviePage({ onShellReady })` must signal shell-ready after choosing warm DOM or rendering a skeleton/not-found state, not immediately when app JS starts.
 
-`editor-page.js` is lazy-loaded only for `/editor` and owns editor-center completeness summary rendering, auto-related diagnostics rendering, auth/forbidden/loading states, and page toolbar click handling. `app.js` provides shared auth, admin state, completeness data fetchers, the protected auto-related diagnostics fetcher, and download actions.
+`editor-page.js` is lazy-loaded only for `/editor` and owns editor-center completeness summary rendering, auto-related diagnostics rendering, single/visible-list auto-related sync controls, auth/forbidden/loading states, and page toolbar click handling. `app.js` provides shared auth, admin state, completeness data fetchers, protected auto-related diagnostics/sync fetchers, toast feedback, and download actions. Cloudflare dev can show diagnostics but cannot run the Node-only provider sync stack; the diagnostics payload exposes that capability so sync controls can be disabled outside the Node/Yandex runtime.
 
 `director-page.js` is lazy-loaded only for `/name/*` and owns public person/director page route parsing, person-page data fetching, legacy director fallback matching, page rendering, photo transforms, and the director movie grid. `app.js` keeps shared people helpers, movie-card helpers, the director add/edit modal, and `/directors` admin bridge.
 
@@ -340,6 +340,7 @@ After editing `src/directors-admin-app.jsx`, run `npm run build:directors` and c
 ## Auth And Admin
 
 - User session comes from Supabase Auth.
+- Password recovery emails use an explicit `auth_action=password-recovery` redirect marker in addition to Supabase's own auth params. This keeps recovery links self-identifying across browsers/devices instead of relying only on localStorage set by the browser that requested the email. Before showing/saving the new-password form, the app verifies that a real Supabase recovery session exists and tries one `refreshSession()` fallback.
 - Role is loaded into `currentUserRole`; `isAdmin = currentUserRole === 'admin'`.
 - Admin-only UI must be hidden both structurally and visually.
 - Account menu admin-only items use `data-admin-only-menu-item="true"` and `hidden`.

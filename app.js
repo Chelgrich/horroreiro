@@ -260,6 +260,8 @@ const CATALOG_STATE_STORAGE_KEY = 'horroreiro_catalog_state';
 const EMAIL_CONFIRMATION_PENDING_KEY = 'horroreiro_email_confirmation_pending';
 const EMAIL_CONFIRMATION_TRACKED_KEY = 'horroreiro_email_confirmation_tracked';
 const PASSWORD_RECOVERY_PENDING_KEY = 'horroreiro_password_recovery_pending';
+const PASSWORD_RECOVERY_ACTION_PARAM = 'auth_action';
+const PASSWORD_RECOVERY_ACTION_VALUE = 'password-recovery';
 const CATALOG_SCROLL_POSITION_KEY = 'horroreiro_catalog_scroll_position';
 const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
 const CATALOG_FAST_RETURN_PENDING_KEY = 'horroreiro_catalog_fast_return_pending';
@@ -1599,6 +1601,8 @@ function getEditorPageControllerContext() {
     openAuthModal,
     escapeHtml,
     fetchAdminAutoRelatedDiagnostics,
+    syncAdminAutoRelatedMovie,
+    showAppMessage,
     fetchAdminCompletenessMovieRows,
     fetchAdminMoviePosterImageRows,
     groupRowsByMovieId,
@@ -8445,6 +8449,43 @@ async function syncAutoRelatedMovieAfterAdminSave(movieId) {
   }
 }
 
+async function syncAdminAutoRelatedMovie(movieId) {
+  const normalizedMovieId = String(movieId || '').trim();
+
+  if (!isAdmin || !normalizedMovieId || !supabaseClient?.auth) {
+    throw new Error('Админская синхронизация автопохожих недоступна.');
+  }
+
+  const { data, error } = await supabaseClient.auth.getSession();
+  const accessToken = data?.session?.access_token || '';
+
+  if (error || !accessToken) {
+    throw new Error('Не удалось подтвердить активную админскую сессию.');
+  }
+
+  const response = await fetch(`/admin/auto-related/${encodeURIComponent(normalizedMovieId)}`, {
+    cache: 'no-store',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    method: 'POST'
+  });
+  let payload = null;
+
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.message || 'Не удалось синхронизировать автопохожие.');
+  }
+
+  return payload?.result || null;
+}
+
 async function fetchAdminAutoRelatedDiagnostics() {
   if (!isAdmin || !supabaseClient?.auth) {
     return null;
@@ -8857,6 +8898,7 @@ function getAuthRedirectInfo() {
   const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   const getParam = name => searchParams.get(name) || hashParams.get(name) || '';
   const type = getParam('type');
+  const authAction = getParam(PASSWORD_RECOVERY_ACTION_PARAM);
   const code = getParam('code');
   const tokenHash = getParam('token_hash');
   const accessToken = getParam('access_token');
@@ -8874,7 +8916,12 @@ function getAuthRedirectInfo() {
     errorDescription
   );
   const normalizedType = String(type || '').toLowerCase();
-  const isRecovery = normalizedType === 'recovery' || (hasPendingRecovery && hasAuthReturnParams);
+  const normalizedAuthAction = String(authAction || '').toLowerCase();
+  const isRecovery = (
+    normalizedType === 'recovery' ||
+    normalizedAuthAction === PASSWORD_RECOVERY_ACTION_VALUE ||
+    (hasPendingRecovery && hasAuthReturnParams)
+  );
   const isEmailConfirmation = (
     normalizedType === 'signup' ||
     normalizedType === 'email' ||
@@ -8885,6 +8932,7 @@ function getAuthRedirectInfo() {
 
   return {
     type: normalizedType,
+    authAction: normalizedAuthAction,
     code,
     tokenHash,
     accessToken,
@@ -8905,6 +8953,14 @@ function isPasswordRecoveryRedirect() {
   return getAuthRedirectInfo().isRecovery;
 }
 
+function getPasswordRecoveryRedirectUrl() {
+  const url = new URL('/', window.location.origin);
+
+  url.searchParams.set(PASSWORD_RECOVERY_ACTION_PARAM, PASSWORD_RECOVERY_ACTION_VALUE);
+
+  return url.toString();
+}
+
 function clearEmailConfirmationParamsFromUrl() {
   const url = new URL(window.location.href);
   let wasChanged = false;
@@ -8921,7 +8977,8 @@ function clearEmailConfirmationParamsFromUrl() {
     'provider_refresh_token',
     'error',
     'error_code',
-    'error_description'
+    'error_description',
+    PASSWORD_RECOVERY_ACTION_PARAM
   ];
 
   authParamNames.forEach(paramName => {
@@ -9027,6 +9084,11 @@ async function consumeAuthRedirectFromUrl(authRedirectInfo = getAuthRedirectInfo
 
     if (authRedirectInfo.isRecovery) {
       localStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1');
+      const recoverySessionResult = await getPasswordRecoverySessionForUpdate();
+
+      if (!recoverySessionResult.session) {
+        throw recoverySessionResult.error || new Error('Ссылка для сброса пароля не создала активную recovery-сессию.');
+      }
     }
 
     if (authRedirectInfo.isEmailConfirmation) {
@@ -14976,7 +15038,7 @@ async function sendPasswordResetEmail() {
   try {
     const { error } = await withAuthRequestTimeout(
       supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin
+        redirectTo: getPasswordRecoveryRedirectUrl()
       }),
       'Не удалось отправить письмо для сброса пароля. Проверь соединение и попробуй снова.'
     );
@@ -15005,6 +15067,37 @@ async function sendPasswordResetEmail() {
   } finally {
     setAuthSubmittingState(false);
   }
+}
+
+async function getPasswordRecoverySessionForUpdate() {
+  const { data: sessionData, error: sessionError } = await withAuthRequestTimeout(
+    supabaseClient.auth.getSession(),
+    'Не удалось проверить recovery-сессию. Проверь соединение и попробуй открыть ссылку ещё раз.'
+  );
+
+  if (sessionData?.session?.user) {
+    return {
+      error: null,
+      session: sessionData.session
+    };
+  }
+
+  const { data: refreshedData, error: refreshError } = await withAuthRequestTimeout(
+    supabaseClient.auth.refreshSession(),
+    'Не удалось восстановить recovery-сессию. Проверь соединение и попробуй открыть ссылку ещё раз.'
+  );
+
+  if (refreshedData?.session?.user) {
+    return {
+      error: null,
+      session: refreshedData.session
+    };
+  }
+
+  return {
+    error: refreshError || sessionError || null,
+    session: null
+  };
 }
 
 function getProfilePasswordErrorMessage(error, fallbackMessage) {
@@ -15151,12 +15244,12 @@ async function saveNewPassword() {
   showAuthMessage('Сохраняю новый пароль...');
 
   try {
-    const { data: sessionData, error: sessionError } = await withAuthRequestTimeout(
-      supabaseClient.auth.getSession(),
-      'Не удалось проверить recovery-сессию. Проверь соединение и попробуй открыть ссылку ещё раз.'
-    );
+    const {
+      error: sessionError,
+      session
+    } = await getPasswordRecoverySessionForUpdate();
 
-    if (sessionError || !sessionData?.session?.user) {
+    if (sessionError || !session?.user) {
       console.error('Recovery-сессия не найдена:', sessionError);
       showAuthMessage(
         'Ссылка для сброса пароля не создала активную сессию. Запроси новое письмо и открой свежую ссылку.',

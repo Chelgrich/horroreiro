@@ -12,6 +12,45 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-04 - Harden password recovery sessions
+
+- Files:
+  - `app.js`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Password reset emails now redirect with an explicit `auth_action=password-recovery` marker so recovery links are recognized even when opened in a different browser/device from the one that requested the email.
+  - Recovery redirects now verify that Supabase actually created a session before showing the new-password form.
+  - Saving a new password now retries session recovery through `refreshSession()` before telling the user that the reset link did not create an active session.
+- Checks:
+  - `node --check app.js`
+  - `npm run smoke:portable`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Test a fresh password reset email in an incognito browser and on a second device.
+
+## 2026-10-04 - Add editor auto-related sync controls
+
+- Files:
+  - `app.js`
+  - `editor-page.js`
+  - `editor-page.css`
+  - `functions/admin/auto-related/diagnostics.js`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added `/editor` controls to sync one auto-related movie from the low-coverage/weak-pair diagnostics and to sync the currently visible "На проверку" list sequentially.
+  - Diagnostics now reports whether the current runtime can run the Node-only provider sync stack, so Cloudflare dev shows read-only diagnostics while Yandex/Node can expose active sync controls.
+- Checks:
+  - `node --check app.js`
+  - `node --check editor-page.js`
+  - `node --check functions/admin/auto-related/diagnostics.js`
+  - `npm run smoke:auto-related`
+  - `npm run smoke:portable`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Verify active sync controls on the Yandex runtime; Cloudflare dev should keep them disabled.
+
 ## 2026-10-02 - Bind auto-related Supabase fetch for Cloudflare
 
 - Files:
