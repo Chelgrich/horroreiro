@@ -46,6 +46,14 @@ const DEFAULT_RELATED_SELECT = [
   'calculated_at'
 ].join(',');
 
+const DEFAULT_OVERRIDE_SELECT = [
+  'movie_id',
+  'related_movie_id',
+  'action',
+  'created_at',
+  'updated_at'
+].join(',');
+
 export class SupabaseAutoRelatedError extends Error {
   constructor(message, details = {}) {
     super(message);
@@ -215,6 +223,74 @@ export class SupabaseAutoRelatedAdapter {
     return this.fetchAllRows('movie_related', {
       order: 'movie_id.asc,position.asc,related_movie_id.asc',
       select: DEFAULT_RELATED_SELECT
+    });
+  }
+
+  async fetchRecommendationOverridesForMovie(movieId) {
+    const normalizedMovieId = String(movieId || '').trim();
+
+    if (!normalizedMovieId) {
+      throw new Error('movieId is required to fetch recommendation overrides.');
+    }
+
+    return this.fetchAllRows('movie_recommendation_overrides', {
+      movie_id: `eq.${normalizedMovieId}`,
+      order: 'related_movie_id.asc',
+      select: DEFAULT_OVERRIDE_SELECT
+    });
+  }
+
+  async fetchAllRecommendationOverrides() {
+    return this.fetchAllRows('movie_recommendation_overrides', {
+      order: 'movie_id.asc,related_movie_id.asc',
+      select: DEFAULT_OVERRIDE_SELECT
+    });
+  }
+
+  async upsertRecommendationOverride(row) {
+    const movieId = String(row?.movie_id || '').trim();
+    const relatedMovieId = String(row?.related_movie_id || '').trim();
+    const action = String(row?.action || '').trim();
+
+    if (!movieId || !relatedMovieId || !action) {
+      throw new Error('movie_id, related_movie_id and action are required to upsert recommendation override.');
+    }
+
+    return this.request('movie_recommendation_overrides', {
+      body: JSON.stringify({
+        action,
+        movie_id: movieId,
+        related_movie_id: relatedMovieId,
+        ...(row.created_by !== undefined ? { created_by: row.created_by || null } : {})
+      }),
+      headers: {
+        Prefer: 'resolution=merge-duplicates,return=representation'
+      },
+      method: 'POST',
+      searchParams: {
+        on_conflict: 'movie_id,related_movie_id'
+      }
+    });
+  }
+
+  async deleteRecommendationOverride(movieId, relatedMovieId) {
+    const normalizedMovieId = String(movieId || '').trim();
+    const normalizedRelatedMovieId = String(relatedMovieId || '').trim();
+
+    if (!normalizedMovieId || !normalizedRelatedMovieId) {
+      throw new Error('movieId and relatedMovieId are required to delete recommendation override.');
+    }
+
+    return this.request('movie_recommendation_overrides', {
+      headers: {
+        Prefer: 'return=representation'
+      },
+      method: 'DELETE',
+      searchParams: {
+        movie_id: `eq.${normalizedMovieId}`,
+        related_movie_id: `eq.${normalizedRelatedMovieId}`,
+        select: DEFAULT_OVERRIDE_SELECT
+      }
     });
   }
 

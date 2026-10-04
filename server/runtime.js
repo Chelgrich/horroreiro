@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { onRequest as envOnRequest } from '../functions/env.js';
 import { onRequestGet as adminAutoRelatedDiagnosticsOnRequestGet } from '../functions/admin/auto-related/diagnostics.js';
+import { onRequestPost as adminAutoRelatedOverridesOnRequestPost } from '../functions/admin/auto-related/overrides.js';
 import { onRequestPost as adminAutoRelatedOnRequestPost } from '../functions/admin/auto-related/[movieId].js';
 import { onRequestGet as appAssetsOnRequestGet } from '../functions/app-assets/[version].js';
 import { onRequestPost as adminPasswordOnRequestPost } from '../functions/admin/users/[userId]/password.js';
@@ -306,6 +307,14 @@ export function createPortableRuntime(options = {}) {
 
     if (pathname === '/admin/auto-related/diagnostics') {
       return invokeGetHandler(adminAutoRelatedDiagnosticsOnRequestGet, request);
+    }
+
+    if (pathname === '/admin/auto-related/overrides') {
+      if (request.method !== 'POST') {
+        return methodNotAllowed('POST');
+      }
+
+      return adminAutoRelatedOverridesOnRequestPost(createContext(request));
     }
 
     const adminAutoRelatedMovieId = getAdminAutoRelatedMovieId(pathname);

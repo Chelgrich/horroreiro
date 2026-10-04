@@ -269,11 +269,17 @@ function buildMovieSummary(movie, relatedCount, syncState) {
 function buildDiagnosticsPayload({
   evidenceRows,
   movieRows,
+  overrideRows = [],
   relatedRows,
   syncStateRows
 }) {
   const moviesById = new Map(movieRows.map(movie => [String(movie.id), movie]));
   const syncStateByMovieId = new Map(syncStateRows.map(row => [String(row.movie_id), row]));
+  const overrideByDirectedPair = new Map(
+    (overrideRows || [])
+      .filter(row => row?.movie_id && row?.related_movie_id && row?.action)
+      .map(row => [getPairKey(String(row.movie_id), String(row.related_movie_id)), row])
+  );
   const relatedRowsByMovieId = new Map();
   const evidenceByDirectedPair = new Map();
   const relatedConfidenceCounts = new Map();
@@ -360,12 +366,53 @@ function buildDiagnosticsPayload({
       const targetMovieId = String(row.related_movie_id);
       const sourceMovie = moviesById.get(sourceMovieId);
       const targetMovie = moviesById.get(targetMovieId);
+      const override = overrideByDirectedPair.get(getPairKey(sourceMovieId, targetMovieId));
 
       return {
         confidence: row.confidence || '',
         evidence: formatEvidenceSummary(evidenceRows, sourceMovieId, targetMovieId),
+        overrideAction: override?.action || '',
         position: Number(row.position || 0),
         score: Number(row.score || 0),
+        source: {
+          id: sourceMovieId,
+          label: getMovieLabel(sourceMovie),
+          path: getMoviePath(sourceMovie)
+        },
+        target: {
+          id: targetMovieId,
+          label: getMovieLabel(targetMovie),
+          path: getMoviePath(targetMovie)
+        }
+      };
+    });
+  const hiddenPairs = (overrideRows || [])
+    .filter(row => row?.action === 'hide')
+    .filter(row => moviesById.has(String(row.movie_id)) && moviesById.has(String(row.related_movie_id)))
+    .slice()
+    .sort((firstRow, secondRow) => (
+      getMovieLabel(moviesById.get(String(firstRow.movie_id))).localeCompare(
+        getMovieLabel(moviesById.get(String(secondRow.movie_id))),
+        'ru'
+      ) ||
+      getMovieLabel(moviesById.get(String(firstRow.related_movie_id))).localeCompare(
+        getMovieLabel(moviesById.get(String(secondRow.related_movie_id))),
+        'ru'
+      )
+    ))
+    .slice(0, 24)
+    .map(row => {
+      const sourceMovieId = String(row.movie_id);
+      const targetMovieId = String(row.related_movie_id);
+      const sourceMovie = moviesById.get(sourceMovieId);
+      const targetMovie = moviesById.get(targetMovieId);
+
+      return {
+        confidence: 'hidden',
+        evidence: formatEvidenceSummary(evidenceRows, sourceMovieId, targetMovieId),
+        overrideAction: 'hide',
+        position: null,
+        score: null,
         source: {
           id: sourceMovieId,
           label: getMovieLabel(sourceMovie),
@@ -399,6 +446,7 @@ function buildDiagnosticsPayload({
       canRunProviderSync: CAN_RUN_PROVIDER_SYNC
     },
     diagnosticPairs,
+    hiddenPairs,
     lowCoverageMovies,
     summary: {
       averageRelatedCount,
@@ -410,6 +458,16 @@ function buildDiagnosticsPayload({
       moviesSynced: syncedMovieIds.size,
       moviesSyncedSuccessfully: successfulMovieIds.size,
       reciprocalPairs: reciprocalPairs.size,
+      recommendationOverrides: overrideRows.length,
+      recommendationOverridesByAction: Object.fromEntries(
+        [...(overrideRows || []).reduce((map, row) => {
+          if (row?.action) {
+            incrementCount(map, String(row.action));
+          }
+
+          return map;
+        }, new Map()).entries()].sort()
+      ),
       relatedConfidenceCounts: Object.fromEntries([...relatedConfidenceCounts.entries()].sort()),
       relatedDistribution: relatedCountDistribution,
       relatedRows: relatedRows.length
@@ -477,11 +535,13 @@ export async function onRequestGet(context) {
       movieRows,
       syncStateRows,
       evidenceRows,
+      overrideRows,
       relatedRows
     ] = await Promise.all([
       adapter.fetchMovieMatchRows(),
       adapter.fetchRecommendationSyncStates(),
       adapter.fetchAllRecommendationEvidenceRows(),
+      adapter.fetchAllRecommendationOverrides(),
       adapter.fetchAllRelatedRows()
     ]);
 
@@ -490,6 +550,7 @@ export async function onRequestGet(context) {
       result: buildDiagnosticsPayload({
         evidenceRows,
         movieRows,
+        overrideRows,
         relatedRows,
         syncStateRows
       })

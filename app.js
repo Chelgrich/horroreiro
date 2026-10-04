@@ -1601,6 +1601,7 @@ function getEditorPageControllerContext() {
     openAuthModal,
     escapeHtml,
     fetchAdminAutoRelatedDiagnostics,
+    saveAdminAutoRelatedOverride,
     syncAdminAutoRelatedMovie,
     showAppMessage,
     fetchAdminCompletenessMovieRows,
@@ -8481,6 +8482,54 @@ async function syncAdminAutoRelatedMovie(movieId) {
 
   if (!response.ok || payload?.ok === false) {
     throw new Error(payload?.message || 'Не удалось синхронизировать автопохожие.');
+  }
+
+  return payload?.result || null;
+}
+
+async function saveAdminAutoRelatedOverride({
+  action,
+  movieId,
+  relatedMovieId
+} = {}) {
+  const normalizedMovieId = String(movieId || '').trim();
+  const normalizedRelatedMovieId = String(relatedMovieId || '').trim();
+  const normalizedAction = String(action || '').trim();
+
+  if (!isAdmin || !normalizedMovieId || !normalizedRelatedMovieId || !normalizedAction || !supabaseClient?.auth) {
+    throw new Error('Админское управление автопохожими недоступно.');
+  }
+
+  const { data, error } = await supabaseClient.auth.getSession();
+  const accessToken = data?.session?.access_token || '';
+
+  if (error || !accessToken) {
+    throw new Error('Не удалось подтвердить активную админскую сессию.');
+  }
+
+  const response = await fetch('/admin/auto-related/overrides', {
+    body: JSON.stringify({
+      action: normalizedAction,
+      movieId: normalizedMovieId,
+      relatedMovieId: normalizedRelatedMovieId
+    }),
+    cache: 'no-store',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    method: 'POST'
+  });
+  let payload = null;
+
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.message || 'Не удалось обновить правило автопохожих.');
   }
 
   return payload?.result || null;

@@ -141,12 +141,18 @@ function getTouchedMaterializationMovieIds(sourceMovieId, existingEvidenceRows =
 }
 
 async function materializeRelatedRowsForMovie(adapter, config, movieId) {
-  const evidenceRows = typeof adapter.fetchRecommendationEvidenceForMovie === 'function'
-    ? await adapter.fetchRecommendationEvidenceForMovie(movieId)
-    : [];
+  const [evidenceRows, overrides] = await Promise.all([
+    typeof adapter.fetchRecommendationEvidenceForMovie === 'function'
+      ? adapter.fetchRecommendationEvidenceForMovie(movieId)
+      : [],
+    typeof adapter.fetchRecommendationOverridesForMovie === 'function'
+      ? adapter.fetchRecommendationOverridesForMovie(movieId)
+      : []
+  ]);
   const relatedRows = scoreRelatedMovies({
     config,
     evidenceRows,
+    overrides,
     sourceMovieId: movieId
   });
   const savedRelatedRows = typeof adapter.replaceRelatedRows === 'function'
@@ -354,9 +360,13 @@ async function syncResolvedAutoRelatedMovie(options = {}) {
     successfulProviders,
     { sourceMovieId: sourceMovie.id }
   );
+  const sourceOverrides = typeof adapter.fetchRecommendationOverridesForMovie === 'function'
+    ? await adapter.fetchRecommendationOverridesForMovie(sourceMovie.id)
+    : [];
   const relatedRows = scoreRelatedMovies({
     config,
     evidenceRows: scoringEvidenceRows,
+    overrides: sourceOverrides,
     sourceMovieId: sourceMovie.id
   });
   let materializedRows = [];

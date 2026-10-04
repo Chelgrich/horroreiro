@@ -387,6 +387,30 @@
   cursor: default;
 }
 
+.editor-page-auto-related-override-button{
+  min-height: 30px;
+  padding: 0 10px;
+  color: var(--color-text-secondary);
+  background: var(--ui-neutral-action-bg);
+  font-size: var(--font-size-sm);
+}
+
+.editor-page-auto-related-override-button:hover,
+.editor-page-auto-related-override-button:focus-visible{
+  color: var(--color-text-primary);
+  background: var(--ui-neutral-action-bg-hover);
+}
+
+.editor-page-auto-related-override-button.is-danger{
+  color: var(--color-danger-text);
+  background: var(--ui-danger-action-bg);
+}
+
+.editor-page-auto-related-override-button.is-danger:hover,
+.editor-page-auto-related-override-button.is-danger:focus-visible{
+  background: var(--ui-danger-action-bg-hover);
+}
+
 .editor-page-auto-related-title,
 .editor-page-auto-related-meta,
 .editor-page-auto-related-error,

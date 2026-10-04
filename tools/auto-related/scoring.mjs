@@ -129,6 +129,59 @@ function sortCandidates(candidates, maxRelated) {
     }));
 }
 
+function normalizeOverrideRow(row = {}) {
+  const movieId = String(row.movie_id || '').trim();
+  const relatedMovieId = String(row.related_movie_id || '').trim();
+  const action = String(row.action || '').trim();
+
+  if (!movieId || !relatedMovieId || movieId === relatedMovieId || !action) {
+    return null;
+  }
+
+  return {
+    action,
+    movie_id: movieId,
+    related_movie_id: relatedMovieId
+  };
+}
+
+function applyRecommendationOverrides(sourceMovieId, relatedRows = [], overrides = [], maxRelated) {
+  const sourceOverrides = (overrides || [])
+    .map(normalizeOverrideRow)
+    .filter(row => row && row.movie_id === sourceMovieId);
+  const hiddenMovieIds = new Set(
+    sourceOverrides
+      .filter(row => row.action === 'hide')
+      .map(row => row.related_movie_id)
+  );
+  const includedMovieIds = [
+    ...new Set(sourceOverrides
+      .filter(row => row.action === 'include' && !hiddenMovieIds.has(row.related_movie_id))
+      .map(row => row.related_movie_id))
+  ];
+  const rowsByRelatedMovieId = new Map(
+    relatedRows
+      .filter(row => !hiddenMovieIds.has(String(row.related_movie_id || '')))
+      .map(row => [String(row.related_movie_id), row])
+  );
+  const maxScore = [...rowsByRelatedMovieId.values()]
+    .reduce((score, row) => Math.max(score, Number(row.score || 0)), 0);
+  const includedRows = includedMovieIds.map((relatedMovieId, index) => ({
+    confidence: 'manual',
+    related_movie_id: relatedMovieId,
+    score: Number((maxScore + includedMovieIds.length - index + 1).toFixed(8))
+  }));
+  const nonIncludedRows = [...rowsByRelatedMovieId.values()]
+    .filter(row => !includedMovieIds.includes(String(row.related_movie_id || '')));
+
+  return [...includedRows, ...nonIncludedRows]
+    .slice(0, maxRelated)
+    .map((row, index) => ({
+      ...row,
+      position: index
+    }));
+}
+
 export function mergeEvidenceRowsForScoring(
   existingEvidenceRows = [],
   freshEvidenceRows = [],
@@ -194,7 +247,12 @@ export function scoreRelatedMovies(options = {}) {
   });
 
   if (strictCandidates.size >= minRelated) {
-    return sortCandidates(strictCandidates, maxRelated);
+    return applyRecommendationOverrides(
+      sourceMovieId,
+      sortCandidates(strictCandidates, maxRelated),
+      options.overrides || [],
+      maxRelated
+    );
   }
 
   const fallbackCandidates = buildCandidates(sourceMovieId, options.evidenceRows || [], config, {
@@ -202,5 +260,10 @@ export function scoreRelatedMovies(options = {}) {
     reverse: Number(config.fallbackReverseRankCutoff || DEFAULT_AUTO_RELATED_CONFIG.fallbackReverseRankCutoff)
   });
 
-  return sortCandidates(fallbackCandidates, maxRelated);
+  return applyRecommendationOverrides(
+    sourceMovieId,
+    sortCandidates(fallbackCandidates, maxRelated),
+    options.overrides || [],
+    maxRelated
+  );
 }

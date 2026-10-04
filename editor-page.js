@@ -14,6 +14,7 @@ export function createEditorPageController(context = {}) {
     openAuthModal = () => {},
     escapeHtml = value => String(value ?? ''),
     fetchAdminAutoRelatedDiagnostics = async () => null,
+    saveAdminAutoRelatedOverride = async () => null,
     syncAdminAutoRelatedMovie = async () => null,
     showAppMessage = () => {},
     fetchAdminCompletenessMovieRows = async () => [],
@@ -508,6 +509,44 @@ export function createEditorPageController(context = {}) {
     `;
   }
 
+  function renderEditorAutoRelatedOverrideButton(pair = {}) {
+    const sourceMovieId = String(pair.source?.id || '').trim();
+    const targetMovieId = String(pair.target?.id || '').trim();
+    const overrideAction = String(pair.overrideAction || '').trim();
+
+    if (!sourceMovieId || !targetMovieId) {
+      return '';
+    }
+
+    if (overrideAction === 'hide') {
+      return `
+        <button
+          type="button"
+          class="secondary-button editor-page-auto-related-override-button"
+          data-editor-action="auto-related-override-remove"
+          data-source-movie-id="${escapeHtml(sourceMovieId)}"
+          data-target-movie-id="${escapeHtml(targetMovieId)}"
+          title="Убрать directed-исключение для этой пары."
+        >
+          Убрать исключение
+        </button>
+      `;
+    }
+
+    return `
+      <button
+        type="button"
+        class="secondary-button editor-page-auto-related-override-button is-danger"
+        data-editor-action="auto-related-override-hide"
+        data-source-movie-id="${escapeHtml(sourceMovieId)}"
+        data-target-movie-id="${escapeHtml(targetMovieId)}"
+        title="Исключить эту directed-пару из автопохожих."
+      >
+        Исключить
+      </button>
+    `;
+  }
+
   function renderEditorAutoRelatedLowCoverageItem(item = {}, { canSync = true } = {}) {
     const metaParts = [
       `${formatEditorAutoRelatedInteger(item.relatedCount)} похожих`,
@@ -532,6 +571,13 @@ export function createEditorPageController(context = {}) {
   }
 
   function renderEditorAutoRelatedPairDiagnostic(pair = {}, { canSync = true } = {}) {
+    const metaItems = [
+      pair.confidence || 'confidence?',
+      Number.isFinite(Number(pair.score)) ? `score ${formatEditorAutoRelatedScore(pair.score)}` : '',
+      Number.isFinite(Number(pair.position)) ? `#${formatEditorAutoRelatedInteger(pair.position)}` : '',
+      pair.overrideAction ? `override: ${pair.overrideAction}` : ''
+    ].filter(Boolean);
+
     return `
       <article class="editor-page-auto-related-pair">
         <div class="editor-page-auto-related-pair-links">
@@ -540,12 +586,11 @@ export function createEditorPageController(context = {}) {
           <a href="${escapeHtml(pair.target?.path || '')}">${escapeHtml(pair.target?.label || '')}</a>
         </div>
         <div class="editor-page-auto-related-pair-meta">
-          <span>${escapeHtml(pair.confidence || 'confidence?')}</span>
-          <span>score ${escapeHtml(formatEditorAutoRelatedScore(pair.score))}</span>
-          <span>#${escapeHtml(formatEditorAutoRelatedInteger(pair.position))}</span>
+          ${metaItems.map(item => `<span>${escapeHtml(item)}</span>`).join('')}
         </div>
         <p>${escapeHtml(renderEditorAutoRelatedEvidenceSummary(pair.evidence))}</p>
         <div class="editor-page-auto-related-actions">
+          ${renderEditorAutoRelatedOverrideButton(pair)}
           ${renderEditorAutoRelatedPairSyncButton(pair, { canSync })}
           ${renderEditorAutoRelatedSyncButton(pair.source?.id, 'Синхр. источник', { canSync })}
           ${renderEditorAutoRelatedSyncButton(pair.target?.id, 'Синхр. цель', { canSync })}
@@ -602,6 +647,7 @@ export function createEditorPageController(context = {}) {
       .join(' · ') || 'нет данных';
     const lowCoverageMovies = diagnostics.lowCoverageMovies || [];
     const diagnosticPairs = diagnostics.diagnosticPairs || [];
+    const hiddenPairs = diagnostics.hiddenPairs || [];
     const weakPairMovieIds = getEditorAutoRelatedWeakPairMovieIds(diagnosticPairs);
     const canRunProviderSync = Boolean(diagnostics.capabilities?.canRunProviderSync);
     const canBatchSyncLowCoverage = canRunProviderSync && lowCoverageMovies.some(item => item.id);
@@ -676,6 +722,13 @@ export function createEditorPageController(context = {}) {
             diagnosticPairs.length
               ? `<div class="editor-page-auto-related-list">${diagnosticPairs.map(pair => renderEditorAutoRelatedPairDiagnostic(pair, { canSync: canRunProviderSync })).join('')}</div>`
               : '<p class="editor-page-issue-empty">Пары не найдены.</p>'
+          )}
+          ${renderEditorAutoRelatedPanel(
+            'Исключённые пары',
+            'первые 24 directed-исключения',
+            hiddenPairs.length
+              ? `<div class="editor-page-auto-related-list">${hiddenPairs.map(pair => renderEditorAutoRelatedPairDiagnostic(pair, { canSync: canRunProviderSync })).join('')}</div>`
+              : '<p class="editor-page-issue-empty">Исключений нет.</p>'
           )}
         </div>
       </section>
@@ -838,6 +891,15 @@ export function createEditorPageController(context = {}) {
       return true;
     }
 
+    if (action === 'auto-related-override-hide' || action === 'auto-related-override-remove') {
+      void saveEditorAutoRelatedOverride({
+        action: action === 'auto-related-override-hide' ? 'hide' : 'remove',
+        movieId: actionButton.dataset.sourceMovieId,
+        relatedMovieId: actionButton.dataset.targetMovieId
+      });
+      return true;
+    }
+
     return false;
   }
 
@@ -943,6 +1005,28 @@ export function createEditorPageController(context = {}) {
     );
 
     await syncEditorAutoRelatedMovieIds(movieIds, 'Синхронизация слабых пар завершена');
+  }
+
+  async function saveEditorAutoRelatedOverride({
+    action,
+    movieId,
+    relatedMovieId
+  } = {}) {
+    try {
+      await saveAdminAutoRelatedOverride({
+        action,
+        movieId,
+        relatedMovieId
+      });
+
+      showAppMessage(action === 'hide'
+        ? 'Пара исключена из автопохожих.'
+        : 'Исключение автопохожих снято.', 'success', true);
+      await loadEditorPage();
+    } catch (error) {
+      console.error('Ошибка обновления override автопохожих:', error);
+      showAppMessage(`Не удалось обновить правило автопохожих: ${error.message || 'смотри консоль F12.'}`, 'error', true);
+    }
   }
 
   return {

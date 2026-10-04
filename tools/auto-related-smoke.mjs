@@ -317,6 +317,10 @@ async function checkSupabaseAdapter() {
         ]);
       }
 
+      if (parsedUrl.pathname.endsWith('/movie_recommendation_overrides')) {
+        return createJsonResponse([{ action: 'hide', movie_id: 'movie-a', related_movie_id: 'movie-b' }]);
+      }
+
       if (parsedUrl.pathname.endsWith('/rpc/replace_movie_recommendation_provider_evidence')) {
         return createJsonResponse([{ source_movie_id: 'movie-a', target_movie_id: 'movie-b' }]);
       }
@@ -336,11 +340,20 @@ async function checkSupabaseAdapter() {
   const evidence = await adapter.fetchRecommendationEvidenceForMovie('movie-a');
   const allEvidence = await adapter.fetchAllRecommendationEvidenceRows();
   const related = await adapter.fetchAllRelatedRows();
+  const overrides = await adapter.fetchRecommendationOverridesForMovie('movie-a');
+  const allOverrides = await adapter.fetchAllRecommendationOverrides();
   await adapter.upsertRecommendationSyncState({
     movie_id: 'movie-a',
     tmdb_id: 100,
     trakt_matched_count: 2
   });
+  await adapter.upsertRecommendationOverride({
+    action: 'hide',
+    created_by: 'admin-user',
+    movie_id: 'movie-a',
+    related_movie_id: 'movie-b'
+  });
+  await adapter.deleteRecommendationOverride('movie-a', 'movie-b');
   await adapter.replaceProviderEvidence('movie-a', 'tmdb_recommendations', [
     {
       provider_rank: 1,
@@ -361,6 +374,8 @@ async function checkSupabaseAdapter() {
   assert.equal(evidence.length, 1);
   assert.equal(allEvidence.length, 1);
   assert.equal(related.length, 1);
+  assert.equal(overrides.length, 1);
+  assert.equal(allOverrides.length, 1);
   assert(requests.every(request => request.headers.Authorization === 'Bearer service-role-key'));
   assert(requests.some(request => request.url.includes('select=id%2Cslug%2Ctitle')));
   assert(requests.some(request => request.url.includes('on_conflict=movie_id')));
@@ -371,6 +386,15 @@ async function checkSupabaseAdapter() {
   assert(requests.some(request =>
     request.url.includes('/rpc/replace_movie_related_rows') &&
     JSON.parse(request.body).p_rows[0].confidence === 'normal'
+  ));
+  assert(requests.some(request =>
+    request.url.includes('/movie_recommendation_overrides') &&
+    request.url.includes('on_conflict=movie_id%2Crelated_movie_id') &&
+    JSON.parse(request.body).action === 'hide'
+  ));
+  assert(requests.some(request =>
+    request.url.includes('/movie_recommendation_overrides') &&
+    request.method === 'DELETE'
   ));
 }
 
@@ -419,6 +443,31 @@ function checkRelatedScoring() {
   assert.equal(scored[0].related_movie_id, 'direct-target');
   assert.equal(scored[0].confidence, 'strong');
   assert(scored.some(row => row.related_movie_id === 'reverse-target'));
+
+  const overridden = scoreRelatedMovies({
+    config: readAutoRelatedConfig({
+      AUTO_RELATED_MAX_RELATED: '8',
+      AUTO_RELATED_MIN_RELATED: '4'
+    }),
+    evidenceRows: mergedEvidence,
+    overrides: [
+      {
+        action: 'hide',
+        movie_id: 'source-movie',
+        related_movie_id: 'direct-target'
+      },
+      {
+        action: 'include',
+        movie_id: 'source-movie',
+        related_movie_id: 'manual-target'
+      }
+    ],
+    sourceMovieId: 'source-movie'
+  });
+
+  assert.equal(overridden[0].related_movie_id, 'manual-target');
+  assert.equal(overridden[0].confidence, 'manual');
+  assert.equal(overridden.some(row => row.related_movie_id === 'direct-target'), false);
 
   const clearedEvidence = mergeEvidenceRowsForScoring(
     [

@@ -12,6 +12,41 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-04 - Add editor auto-related overrides
+
+- Files:
+  - `app.js`
+  - `editor-page.js`
+  - `editor-page.css`
+  - `functions/admin/auto-related/diagnostics.js`
+  - `functions/admin/auto-related/overrides.js`
+  - `server/runtime.js`
+  - `tools/auto-related/scoring.mjs`
+  - `tools/auto-related/supabase-adapter.mjs`
+  - `tools/auto-related/sync-runner.mjs`
+  - `tools/auto-related-smoke.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added admin-only directed auto-related override writes through `POST /admin/auto-related/overrides`.
+  - `/editor` weak-pair cards now expose "Исключить" and "Убрать исключение" actions, plus a separate "Исключённые пары" panel so hidden pairs can be restored later.
+  - Automatic related scoring/materialization now respects `movie_recommendation_overrides`: `hide` removes directed pairs and `include` is supported as a forced manual automatic recommendation for future UI.
+- Checks:
+  - `node --check app.js`
+  - `node --check editor-page.js`
+  - `node --check functions/admin/auto-related/diagnostics.js`
+  - `node --check functions/admin/auto-related/overrides.js`
+  - `node --check server/runtime.js`
+  - `node --check tools/auto-related/scoring.mjs`
+  - `node --check tools/auto-related/supabase-adapter.mjs`
+  - `node --check tools/auto-related/sync-runner.mjs`
+  - `npm run smoke:auto-related`
+  - `npm run smoke:portable`
+  - `node tools/smoke-check.mjs`
+- Follow-up:
+  - Test excluding a weak pair on the Yandex runtime and confirm it disappears from materialized diagnostics after refresh.
+
 ## 2026-10-04 - Improve editor auto-related diagnostics
 
 - Files:
