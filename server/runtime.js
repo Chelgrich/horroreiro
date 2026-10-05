@@ -437,13 +437,23 @@ export async function writeResponseToNodeMessage(nodeResponse, response, options
     headers[key] = value;
   });
 
-  nodeResponse.writeHead(response.status, response.statusText, headers);
-
   if (options.head) {
+    const body = Buffer.from(await response.arrayBuffer());
+
+    if (!Object.prototype.hasOwnProperty.call(headers, 'content-length')) {
+      headers['content-length'] = String(body.length);
+    }
+
+    nodeResponse.writeHead(response.status, response.statusText, headers);
     nodeResponse.end();
     return;
   }
 
   const body = Buffer.from(await response.arrayBuffer());
+  if (!Object.prototype.hasOwnProperty.call(headers, 'content-length')) {
+    headers['content-length'] = String(body.length);
+  }
+
+  nodeResponse.writeHead(response.status, response.statusText, headers);
   nodeResponse.end(body);
 }
