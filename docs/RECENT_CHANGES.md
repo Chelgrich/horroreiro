@@ -12,6 +12,27 @@ Format:
 - Follow-up:
 ```
 
+## 2026-10-05 - Restore social preview poster images
+
+- Files:
+  - `app.js`
+  - `functions/_seo-utils.js`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Movie detail SEO now uses a Supabase-rendered 1200x630 JPEG-compatible poster URL for `og:image` and `twitter:image` instead of the raw WebP poster file.
+  - Added `og:image:secure_url` for movie pages and kept the client-side meta refresh aligned with the server-rendered SEO HTML.
+- Checks:
+  - `node --check app.js`
+  - `node --check functions/_seo-utils.js`
+  - `node --check functions/movie/[slug].js`
+  - `node --check server/runtime.js`
+  - `npm run smoke:portable`
+  - `node tools/smoke-check.mjs`
+  - Local portable runtime check for `/movie/astral-6-oni-uzhe-zdes-2026` social meta.
+  - `git diff --check`
+- Follow-up:
+  - Verify a production movie URL in social preview debuggers after the fix reaches `main`/production.
+
 ## 2026-10-04 - Add editor auto-related overrides
 
 - Files:

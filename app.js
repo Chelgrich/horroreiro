@@ -428,6 +428,8 @@ const MOVIE_COMMENTS_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205'])
 const MOVIE_COMMENT_LIKES_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const SITE_ORIGIN = 'https://horroreiro.ru';
 const DEFAULT_SOCIAL_IMAGE_URL = `${SITE_ORIGIN}/og-preview.jpg`;
+const MOVIE_SOCIAL_IMAGE_WIDTH = 1200;
+const MOVIE_SOCIAL_IMAGE_HEIGHT = 630;
 const MOVIE_STRUCTURED_DATA_SCRIPT_ID = 'movieStructuredData';
 const CATALOG_STRUCTURED_DATA_SCRIPT_ID = 'catalogItemListStructuredData';
 const AUTH_REQUEST_TIMEOUT_MS = 20000;
@@ -14257,7 +14259,7 @@ function setBoundedPosterImageCacheEntry(cache, key, value) {
   }
 }
 
-function getPosterTransformUrl(publicUrl, { width, quality, resize = 'cover' } = {}) {
+function getPosterTransformUrl(publicUrl, { width, height = null, quality, resize = 'cover' } = {}) {
   const originalUrl = String(publicUrl || '').trim();
   const rawWidth = Number(width) || 0;
   const normalizedWidth = rawWidth > 0
@@ -14266,7 +14268,10 @@ function getPosterTransformUrl(publicUrl, { width, quality, resize = 'cover' } =
   const normalizedQuality = quality !== undefined && quality !== null && quality !== ''
     ? Math.round(Math.max(POSTER_IMAGE_MIN_QUALITY, Math.min(100, Number(quality) || POSTER_IMAGE_MIN_QUALITY)))
     : '';
-  const cacheKey = `${originalUrl}|${normalizedWidth}|${normalizedQuality}|${resize}`;
+  const normalizedHeight = height
+    ? Math.max(1, Math.min(2500, Math.round(Number(height) || 0)))
+    : 0;
+  const cacheKey = `${originalUrl}|${normalizedWidth}|${normalizedHeight}|${normalizedQuality}|${resize}`;
   const cachedUrl = posterTransformUrlCache.get(cacheKey);
 
   if (cachedUrl !== undefined) {
@@ -14290,10 +14295,10 @@ function getPosterTransformUrl(publicUrl, { width, quality, resize = 'cover' } =
   }
 
   const transformedUrl = new URL(`${parsedUrl.origin}${POSTER_STORAGE_RENDER_PATH}${storagePath}`);
-  const normalizedHeight = Math.round(normalizedWidth * 1.5);
+  const targetHeight = normalizedHeight || Math.round(normalizedWidth * 1.5);
 
   transformedUrl.searchParams.set('width', String(normalizedWidth));
-  transformedUrl.searchParams.set('height', String(normalizedHeight));
+  transformedUrl.searchParams.set('height', String(targetHeight));
   transformedUrl.searchParams.set('resize', resize);
 
   if (normalizedQuality !== '') {
@@ -19902,7 +19907,13 @@ function getMovieSeoDescription(movie) {
 }
 
 function getMovieSocialImage(movie) {
-  return movie?.poster_url || DEFAULT_SOCIAL_IMAGE_URL;
+  return movie?.poster_url
+    ? getPosterTransformUrl(movie.poster_url, {
+      width: MOVIE_SOCIAL_IMAGE_WIDTH,
+      height: MOVIE_SOCIAL_IMAGE_HEIGHT,
+      quality: POSTER_IMAGE_MIN_QUALITY
+    }) || movie.poster_url
+    : DEFAULT_SOCIAL_IMAGE_URL;
 }
 
 function getMovieSameAsLinks(movie) {
@@ -20122,6 +20133,7 @@ function setMoviePageDocumentMeta(movie) {
   upsertDocumentMeta({ property: 'og:description', content: description });
   upsertDocumentMeta({ property: 'og:url', content: canonicalUrl });
   upsertDocumentMeta({ property: 'og:image', content: imageUrl });
+  upsertDocumentMeta({ property: 'og:image:secure_url', content: imageUrl });
   upsertDocumentMeta({ name: 'twitter:title', content: title });
   upsertDocumentMeta({ name: 'twitter:description', content: description });
   upsertDocumentMeta({ name: 'twitter:image', content: imageUrl });

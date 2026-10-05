@@ -3,6 +3,8 @@ const DEFAULT_SOCIAL_IMAGE = `${SITE_ORIGIN}/og-preview.jpg`;
 const POSTER_STORAGE_PUBLIC_PATH = '/storage/v1/object/public/posters/';
 const POSTER_STORAGE_RENDER_PATH = '/storage/v1/render/image/public/posters/';
 const POSTER_IMAGE_MIN_QUALITY = 90;
+const MOVIE_SOCIAL_IMAGE_WIDTH = 1200;
+const MOVIE_SOCIAL_IMAGE_HEIGHT = 630;
 const INTENTIONAL_EMPTY_FIELD_MARKERS = new Set([
   'не применимо'
 ]);
@@ -167,7 +169,13 @@ function getMovieCanonicalUrl(movie) {
 }
 
 function getMovieSocialImage(movie) {
-  return movie?.poster_url || DEFAULT_SOCIAL_IMAGE;
+  return movie?.poster_url
+    ? getPosterTransformUrl(movie.poster_url, {
+      width: MOVIE_SOCIAL_IMAGE_WIDTH,
+      height: MOVIE_SOCIAL_IMAGE_HEIGHT,
+      quality: POSTER_IMAGE_MIN_QUALITY
+    })
+    : DEFAULT_SOCIAL_IMAGE;
 }
 
 function getPosterStoragePath(publicUrl) {
@@ -195,7 +203,11 @@ function getPosterStoragePath(publicUrl) {
   return pathname.split(marker)[1] || null;
 }
 
-function getPosterTransformUrl(publicUrl, { width = 640, quality = POSTER_IMAGE_MIN_QUALITY } = {}) {
+function getPosterTransformUrl(publicUrl, {
+  width = 640,
+  height = null,
+  quality = POSTER_IMAGE_MIN_QUALITY
+} = {}) {
   const storagePath = getPosterStoragePath(publicUrl);
 
   if (!storagePath) {
@@ -205,12 +217,15 @@ function getPosterTransformUrl(publicUrl, { width = 640, quality = POSTER_IMAGE_
   const parsedUrl = new URL(publicUrl);
   const transformedUrl = new URL(`${parsedUrl.origin}${POSTER_STORAGE_RENDER_PATH}${storagePath}`);
   const normalizedWidth = Math.max(1, Math.min(2500, Number(width) || 640));
+  const normalizedHeight = height
+    ? Math.max(1, Math.min(2500, Math.round(Number(height) || 0)))
+    : Math.round(normalizedWidth * 1.5);
   const normalizedQuality = Math.round(
     Math.max(POSTER_IMAGE_MIN_QUALITY, Math.min(100, Number(quality) || POSTER_IMAGE_MIN_QUALITY))
   );
 
   transformedUrl.searchParams.set('width', String(normalizedWidth));
-  transformedUrl.searchParams.set('height', String(Math.round(normalizedWidth * 1.5)));
+  transformedUrl.searchParams.set('height', String(normalizedHeight));
   transformedUrl.searchParams.set('resize', 'cover');
   transformedUrl.searchParams.set('quality', String(normalizedQuality));
 
@@ -443,6 +458,7 @@ function applyMovieSeoToHtml(html, movie) {
   nextHtml = upsertMetaProperty(nextHtml, 'og:description', description);
   nextHtml = upsertMetaProperty(nextHtml, 'og:url', canonicalUrl);
   nextHtml = upsertMetaProperty(nextHtml, 'og:image', image);
+  nextHtml = upsertMetaProperty(nextHtml, 'og:image:secure_url', image);
   nextHtml = upsertMetaProperty(nextHtml, 'og:site_name', 'Хоррорейро');
   nextHtml = upsertMetaName(nextHtml, 'twitter:card', 'summary_large_image');
   nextHtml = upsertMetaName(nextHtml, 'twitter:title', title);
