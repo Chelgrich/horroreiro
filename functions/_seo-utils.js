@@ -5,6 +5,19 @@ const POSTER_STORAGE_RENDER_PATH = '/storage/v1/render/image/public/posters/';
 const POSTER_IMAGE_MIN_QUALITY = 90;
 const MOVIE_SOCIAL_IMAGE_WIDTH = 1200;
 const MOVIE_SOCIAL_IMAGE_HEIGHT = 630;
+const SOCIAL_PREVIEW_CRAWLER_UA_PATTERNS = [
+  'telegrambot',
+  'twitterbot',
+  'facebookexternalhit',
+  'facebot',
+  'vkshare',
+  'viber',
+  'whatsapp',
+  'discordbot',
+  'slackbot',
+  'linkedinbot',
+  'skypeuripreview'
+];
 const INTENTIONAL_EMPTY_FIELD_MARKERS = new Set([
   'не применимо'
 ]);
@@ -340,6 +353,53 @@ function buildMovieJsonLd(movie) {
   return jsonLd;
 }
 
+function isSocialPreviewCrawler(request) {
+  const userAgent = String(request?.headers?.get?.('user-agent') || '').toLowerCase();
+
+  return SOCIAL_PREVIEW_CRAWLER_UA_PATTERNS.some(pattern => userAgent.includes(pattern));
+}
+
+function createSocialPreviewHtml(movie) {
+  const canonicalUrl = getMovieCanonicalUrl(movie);
+  const title = getMovieSeoTitle(movie);
+  const description = getMovieSeoDescription(movie);
+  const image = getMovieSocialImage(movie);
+  const jsonLd = JSON.stringify(buildMovieJsonLd(movie)).replace(/</g, '\\u003c');
+
+  return `<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(title)}</title>
+  <meta name="description" content="${escapeHtml(description)}">
+  <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="video.movie">
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="${escapeHtml(description)}">
+  <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
+  <meta property="og:image" content="${escapeHtml(image)}">
+  <meta property="og:image:secure_url" content="${escapeHtml(image)}">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="${MOVIE_SOCIAL_IMAGE_WIDTH}">
+  <meta property="og:image:height" content="${MOVIE_SOCIAL_IMAGE_HEIGHT}">
+  <meta property="og:site_name" content="Хоррорейро">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escapeHtml(title)}">
+  <meta name="twitter:description" content="${escapeHtml(description)}">
+  <meta name="twitter:image" content="${escapeHtml(image)}">
+  <meta name="twitter:url" content="${escapeHtml(canonicalUrl)}">
+  <script type="application/ld+json">${jsonLd}</script>
+</head>
+<body>
+  <h1>${escapeHtml(title)}</h1>
+  <p>${escapeHtml(description)}</p>
+  <p><a href="${escapeHtml(canonicalUrl)}">${escapeHtml(canonicalUrl)}</a></p>
+</body>
+</html>`;
+}
+
 function upsertHeadElement(html, pattern, elementHtml) {
   if (pattern.test(html)) {
     return html.replace(pattern, elementHtml);
@@ -507,6 +567,16 @@ async function createMovieHtmlResponse({ env, request, movie, status = 200 }) {
     return createHtmlResponse(applyNotFoundSeoToHtml(html, requestUrl), assetResponse, {
       status,
       cacheControl: 'no-store'
+    });
+  }
+
+  if (isSocialPreviewCrawler(request)) {
+    return new Response(createSocialPreviewHtml(movie), {
+      status,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Content-Type': 'text/html; charset=UTF-8'
+      }
     });
   }
 

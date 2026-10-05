@@ -23,6 +23,7 @@ Format:
   - Movie detail SEO now uses a Supabase-rendered 1200x630 JPEG-compatible poster URL for `og:image` and `twitter:image` instead of the raw WebP poster file.
   - Added `og:image:secure_url` for movie pages and kept the client-side meta refresh aligned with the server-rendered SEO HTML.
   - Portable/Yandex runtime now sets the real `Content-Length` on `HEAD` responses while still omitting the body, so social unfurl bots do not see movie pages as empty.
+  - Movie detail requests from common social preview crawlers now receive a minimal no-JS HTML document with SEO meta at the start of `<head>`, avoiding full app boot scripts before Open Graph data.
 - Checks:
   - `node --check app.js`
   - `node --check functions/_seo-utils.js`
@@ -31,6 +32,7 @@ Format:
   - `npm run smoke:portable`
   - `node tools/smoke-check.mjs`
   - Local portable runtime check for `/movie/astral-6-oni-uzhe-zdes-2026` social meta.
+  - Local portable runtime TelegramBot check for minimal movie preview HTML.
   - Local portable runtime `HEAD /movie/astral-6-oni-uzhe-zdes-2026` content-length check.
   - `git diff --check`
 - Follow-up:
