@@ -7,6 +7,17 @@ async function fetchFallbackImage(env, request) {
   return env.ASSETS.fetch(new URL('/og-preview.jpg', request.url).toString());
 }
 
+export function onRequestHead() {
+  return new Response('Method Not Allowed', {
+    status: 405,
+    headers: {
+      Allow: 'GET',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      'Content-Type': 'text/plain; charset=utf-8'
+    }
+  });
+}
+
 export async function onRequestGet(context) {
   const { env, params, request } = context;
   const rawSlug = Array.isArray(params.slug) ? params.slug[0] : params.slug;

@@ -471,6 +471,7 @@ Following:
 - `movie.html` contains SEO fallback markers.
 - `functions/_seo-utils.js` renders server fallback content for dynamic routes/sitemap.
 - Social preview crawlers for movie detail pages receive a minimal no-JS HTML response from `functions/_seo-utils.js`, and movie preview images should use the first-party `/og/movie/<slug>.jpg` proxy instead of exposing Supabase image URLs directly.
+- The portable Yandex runtime and Cloudflare Pages Functions reject `HEAD` on `/movie/*` and `/og/movie/*` with `Allow: GET`; Yandex API Gateway can report `content-length: 0` on otherwise valid `HEAD` responses, which breaks some social unfurl bots.
 - `sitemap.xml` is dynamic; there must not be a static `sitemap.xml` shadowing it.
 - `robots.txt` is served explicitly by `server/runtime.js` for Yandex/portable production because the Docker image must not rely only on static TXT copy behavior.
 - Logo is text; normal pages have their own `h1`.

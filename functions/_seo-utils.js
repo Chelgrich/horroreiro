@@ -374,7 +374,6 @@ function createSocialPreviewHtml(movie) {
   const title = getMovieSeoTitle(movie);
   const description = getMovieSeoDescription(movie);
   const image = getMovieSocialImage(movie);
-  const jsonLd = JSON.stringify(buildMovieJsonLd(movie)).replace(/</g, '\\u003c');
 
   return `<!doctype html>
 <html lang="ru">
@@ -385,7 +384,7 @@ function createSocialPreviewHtml(movie) {
   <meta name="description" content="${escapeHtml(description)}">
   <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
   <meta name="robots" content="index, follow">
-  <meta property="og:type" content="video.movie">
+  <meta property="og:type" content="website">
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
@@ -395,12 +394,12 @@ function createSocialPreviewHtml(movie) {
   <meta property="og:image:width" content="${MOVIE_SOCIAL_IMAGE_WIDTH}">
   <meta property="og:image:height" content="${MOVIE_SOCIAL_IMAGE_HEIGHT}">
   <meta property="og:site_name" content="Хоррорейро">
+  <meta property="og:locale" content="ru_RU">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(image)}">
   <meta name="twitter:url" content="${escapeHtml(canonicalUrl)}">
-  <script type="application/ld+json">${jsonLd}</script>
 </head>
 <body>
   <h1>${escapeHtml(title)}</h1>
@@ -584,7 +583,7 @@ async function createMovieHtmlResponse({ env, request, movie, status = 200 }) {
     return new Response(createSocialPreviewHtml(movie), {
       status,
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Cache-Control': 'public, max-age=300, s-maxage=300, must-revalidate',
         'Content-Type': 'text/html; charset=UTF-8'
       }
     });

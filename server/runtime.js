@@ -298,6 +298,14 @@ export function createPortableRuntime(options = {}) {
     return handler(createContext(request, params));
   }
 
+  function requirePreviewGet(request) {
+    if (request.method === 'HEAD') {
+      return methodNotAllowed('GET');
+    }
+
+    return null;
+  }
+
   async function handleRequest(request) {
     const url = new URL(request.url);
     const { pathname } = url;
@@ -323,6 +331,11 @@ export function createPortableRuntime(options = {}) {
 
     const movieOgImageSlug = getMovieOgImageSlug(pathname);
     if (movieOgImageSlug) {
+      const methodError = requirePreviewGet(request);
+      if (methodError) {
+        return methodError;
+      }
+
       return invokeGetHandler(movieOgImageOnRequestGet, request, {
         slug: movieOgImageSlug
       });
@@ -371,6 +384,11 @@ export function createPortableRuntime(options = {}) {
 
     const movieSlug = getSingleSegmentParam(pathname, '/movie/');
     if (movieSlug) {
+      const methodError = requirePreviewGet(request);
+      if (methodError) {
+        return methodError;
+      }
+
       return invokeGetHandler(movieSlugOnRequestGet, request, {
         slug: movieSlug
       });
