@@ -475,6 +475,7 @@ Following:
 - Social preview crawlers for movie detail pages receive a minimal no-JS HTML response from `functions/_seo-utils.js`, and movie preview images should use the first-party `/og/movie/<slug>.jpg` route instead of exposing Supabase image URLs directly.
 - The portable Yandex runtime renders `/og/movie/<slug>.jpg` as a generated 1200x630 baseline JPEG with `sharp`; this avoids progressive JPEGs and mismatched dimensions from Supabase image transformations, which Telegram/VK can reject.
 - `/preview-test/*` is a temporary diagnostics-only portable route for social unfurl debugging with static OG images, used to separate crawler/network behavior from dynamic image generation.
+- While the Telegram/VK unfurl issue is being diagnosed, portable runtime logs structured `social_preview_diagnostic` events for `/preview-test/*`, `/assets/og/*`, and `/og/movie/*`. Remove or reduce this logging after the crawler path is understood.
 - `sitemap.xml` is dynamic; there must not be a static `sitemap.xml` shadowing it.
 - `robots.txt` is served explicitly by `server/runtime.js` for Yandex/portable production because the Docker image must not rely only on static TXT copy behavior.
 - Logo is text; normal pages have their own `h1`.

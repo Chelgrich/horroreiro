@@ -196,6 +196,7 @@ function createStaticAssetFetcher(rootDir) {
       return new Response(file, {
         headers: {
           'Cache-Control': getCacheControlForStaticPath(pathname),
+          'Content-Length': String(file.length),
           'Content-Type': contentType
         }
       });
@@ -234,6 +235,54 @@ function methodNotAllowed(allow = 'GET') {
       'Content-Type': 'text/plain; charset=utf-8'
     }
   });
+}
+
+function getDiagnosticHeader(request, name) {
+  return request.headers.get(name) || '';
+}
+
+async function withSocialPreviewDiagnosticLog(label, request, getResponse) {
+  const startedAt = Date.now();
+  const url = new URL(request.url);
+
+  try {
+    const response = await getResponse();
+    const durationMs = Date.now() - startedAt;
+
+    console.info(JSON.stringify({
+      event: 'social_preview_diagnostic',
+      label,
+      method: request.method,
+      path: url.pathname,
+      search: url.search,
+      status: response.status,
+      durationMs,
+      userAgent: getDiagnosticHeader(request, 'user-agent'),
+      xForwardedFor: getDiagnosticHeader(request, 'x-forwarded-for'),
+      xRealIp: getDiagnosticHeader(request, 'x-real-ip'),
+      contentType: response.headers.get('content-type') || '',
+      contentLength: response.headers.get('content-length') || ''
+    }));
+
+    return response;
+  } catch (error) {
+    const durationMs = Date.now() - startedAt;
+
+    console.error(JSON.stringify({
+      event: 'social_preview_diagnostic_error',
+      label,
+      method: request.method,
+      path: url.pathname,
+      search: url.search,
+      durationMs,
+      userAgent: getDiagnosticHeader(request, 'user-agent'),
+      xForwardedFor: getDiagnosticHeader(request, 'x-forwarded-for'),
+      xRealIp: getDiagnosticHeader(request, 'x-real-ip'),
+      error: error?.message || String(error)
+    }));
+
+    throw error;
+  }
 }
 
 function getSingleSegmentParam(pathname, prefix) {
@@ -329,16 +378,24 @@ export function createPortableRuntime(options = {}) {
 
     const movieOgImageSlug = getMovieOgImageSlug(pathname);
     if (movieOgImageSlug) {
-      return handleMovieSocialImageRequest(createContext(request, {
-        slug: movieOgImageSlug
-      }));
+      return withSocialPreviewDiagnosticLog('movie-og-image', request, () => (
+        handleMovieSocialImageRequest(createContext(request, {
+          slug: movieOgImageSlug
+        }))
+      ));
     }
 
     const previewTestSlug = getPreviewTestSlug(pathname);
     if (previewTestSlug) {
-      return handlePreviewTestRequest(createContext(request, {
-        slug: previewTestSlug
-      }));
+      return withSocialPreviewDiagnosticLog('preview-test-html', request, () => (
+        handlePreviewTestRequest(createContext(request, {
+          slug: previewTestSlug
+        }))
+      ));
+    }
+
+    if (pathname.startsWith('/assets/og/') && ['GET', 'HEAD'].includes(request.method)) {
+      return withSocialPreviewDiagnosticLog('preview-test-image', request, () => env.ASSETS.fetch(request));
     }
 
     if (pathname === '/admin/auto-related/diagnostics') {

@@ -43,6 +43,8 @@ Format:
   - Portable/Yandex production now generates first-party movie preview images as 1200x630 baseline JPEGs via `sharp`, avoiding Supabase's progressive JPEG output and mismatched image dimensions that Telegram/VK can reject.
   - `HEAD` handling for movie and OG image routes is back to `200`-style metadata responses instead of `405`, because Telegram/VK may not fallback to `GET` after a rejected `HEAD`.
   - Added diagnostic `/preview-test/astral-20261006-a` route with a static pre-generated baseline JPEG under `/assets/og/astral-20261006-a.jpg`, so Telegram/VK preview behavior can be tested without dynamic Supabase/Sharp work during the crawler request.
+  - Added temporary structured `social_preview_diagnostic` logs for `/preview-test/*`, `/assets/og/*`, and `/og/movie/*` in the portable runtime to see whether Telegram/VK reach HTML and image routes, with method, path, status, duration, user-agent, IP forwarding headers, content type, and content length.
+  - Portable static asset responses now set `Content-Length` directly, so diagnostic static OG images expose the boring 200/JPEG/content-length header set before the Node/Yandex response writer touches them.
 - Checks:
   - `node --check app.js`
   - `node --check functions/_seo-utils.js`
