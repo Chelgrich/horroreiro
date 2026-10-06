@@ -21,6 +21,9 @@ Format:
   - `functions/_seo-utils.js`
   - `functions/movie/[slug].js`
   - `functions/og/movie/[slug].js`
+  - `package-lock.json`
+  - `package.json`
+  - `server/movie-social-image.js`
   - `server/runtime.js`
   - `docs/CODEX_CONTEXT.md`
   - `docs/RECENT_CHANGES.md`
@@ -31,12 +34,15 @@ Format:
   - Movie detail requests from common social preview crawlers now receive a minimal no-JS HTML document with SEO meta at the start of `<head>`, avoiding full app boot scripts before Open Graph data.
   - Added a first-party `/og/movie/<slug>.jpg` poster proxy and switched movie social image meta to it, avoiding Supabase image headers/cookies/query strings in crawler previews.
   - Added an explicit portable `/robots.txt` response and copied `robots.txt` into the production Docker image.
-  - Social crawler HTML now uses the more widely supported `og:type=website`, omits JSON-LD scripts, uses short public cache headers, and the portable runtime plus Cloudflare Pages Functions reject `HEAD` for movie/OG preview routes so bots do not receive empty preview responses.
+  - Social crawler HTML now uses the more widely supported `og:type=website`, omits JSON-LD scripts, and uses short public cache headers.
+  - Portable/Yandex production now generates first-party movie preview images as 1200x630 baseline JPEGs via `sharp`, avoiding Supabase's progressive JPEG output and mismatched image dimensions that Telegram/VK can reject.
+  - `HEAD` handling for movie and OG image routes is back to `200`-style metadata responses instead of `405`, because Telegram/VK may not fallback to `GET` after a rejected `HEAD`.
 - Checks:
   - `node --check app.js`
   - `node --check functions/_seo-utils.js`
   - `node --check functions/og/movie/[slug].js`
   - `node --check functions/movie/[slug].js`
+  - `node --check server/movie-social-image.js`
   - `node --check server/runtime.js`
   - `npm run smoke:portable`
   - `node tools/smoke-check.mjs`
@@ -45,7 +51,7 @@ Format:
   - Local portable runtime `/og/movie/astral-6-oni-uzhe-zdes-2026.jpg` check.
   - Local portable runtime `/robots.txt` check.
   - Local portable runtime `HEAD /movie/astral-6-oni-uzhe-zdes-2026` content-length check.
-  - Local portable runtime `HEAD` rejection check for `/movie/astral-6-oni-uzhe-zdes-2026` and `/og/movie/astral-6-oni-uzhe-zdes-2026.jpg`.
+  - Local portable runtime generated JPEG check for `/og/movie/astral-6-oni-uzhe-zdes-2026.jpg`: 1200x630, baseline JPEG, real `Content-Length`.
   - `git diff --check`
 - Follow-up:
   - Verify a production movie URL in social preview debuggers after the fix reaches `main`/production.

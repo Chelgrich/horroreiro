@@ -7,14 +7,12 @@ async function fetchFallbackImage(env, request) {
   return env.ASSETS.fetch(new URL('/og-preview.jpg', request.url).toString());
 }
 
-export function onRequestHead() {
-  return new Response('Method Not Allowed', {
-    status: 405,
-    headers: {
-      Allow: 'GET',
-      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-      'Content-Type': 'text/plain; charset=utf-8'
-    }
+export async function onRequestHead(context) {
+  const response = await onRequestGet(context);
+
+  return new Response(null, {
+    status: response.status,
+    headers: response.headers
   });
 }
 

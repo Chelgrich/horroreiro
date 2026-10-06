@@ -26,7 +26,6 @@ import { onRequestGet as nameHtmlOnRequestGet } from '../functions/name.html.js'
 import { onRequestGet as nameSlugOnRequestGet } from '../functions/name/[slug].js';
 import { onRequestGet as notificationsHtmlOnRequestGet } from '../functions/notifications.html.js';
 import { onRequestGet as notificationsOnRequestGet } from '../functions/notifications.js';
-import { onRequestGet as movieOgImageOnRequestGet } from '../functions/og/movie/[slug].js';
 import { onRequestGet as productionHtmlOnRequestGet } from '../functions/production.html.js';
 import { onRequestGet as productionOnRequestGet } from '../functions/production.js';
 import { onRequestGet as profileActivityRanksOnRequestGet } from '../functions/profile-activity-ranks/[userId].js';
@@ -35,6 +34,7 @@ import { onRequestGet as russianDistributorsOnRequestGet } from '../functions/ru
 import { onRequestGet as sitemapOnRequestGet } from '../functions/sitemap.xml.js';
 import { onRequestGet as userHtmlOnRequestGet } from '../functions/user.html.js';
 import { onRequestGet as userHandleOnRequestGet } from '../functions/user/[handle].js';
+import { handleMovieSocialImageRequest } from './movie-social-image.js';
 
 const defaultRootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -298,14 +298,6 @@ export function createPortableRuntime(options = {}) {
     return handler(createContext(request, params));
   }
 
-  function requirePreviewGet(request) {
-    if (request.method === 'HEAD') {
-      return methodNotAllowed('GET');
-    }
-
-    return null;
-  }
-
   async function handleRequest(request) {
     const url = new URL(request.url);
     const { pathname } = url;
@@ -331,14 +323,9 @@ export function createPortableRuntime(options = {}) {
 
     const movieOgImageSlug = getMovieOgImageSlug(pathname);
     if (movieOgImageSlug) {
-      const methodError = requirePreviewGet(request);
-      if (methodError) {
-        return methodError;
-      }
-
-      return invokeGetHandler(movieOgImageOnRequestGet, request, {
+      return handleMovieSocialImageRequest(createContext(request, {
         slug: movieOgImageSlug
-      });
+      }));
     }
 
     if (pathname === '/admin/auto-related/diagnostics') {
@@ -384,11 +371,6 @@ export function createPortableRuntime(options = {}) {
 
     const movieSlug = getSingleSegmentParam(pathname, '/movie/');
     if (movieSlug) {
-      const methodError = requirePreviewGet(request);
-      if (methodError) {
-        return methodError;
-      }
-
       return invokeGetHandler(movieSlugOnRequestGet, request, {
         slug: movieSlug
       });

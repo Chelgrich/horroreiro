@@ -644,6 +644,8 @@ function createSitemapXml(movies) {
 }
 
 export {
+  MOVIE_SOCIAL_IMAGE_HEIGHT,
+  MOVIE_SOCIAL_IMAGE_WIDTH,
   SITE_ORIGIN,
   createMovieHtmlResponse,
   createSitemapXml,

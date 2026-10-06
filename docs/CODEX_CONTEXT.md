@@ -30,6 +30,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 - When an `rg` pattern contains literal quotes or several `|` alternatives in PowerShell, prefer simple separate `rg` calls or a single-quoted pattern without backslash-escaped quotes. PowerShell does not treat `\"` as a string escape, so complex double-quoted regex commands can split into broken pipeline fragments.
 - Do not chain PowerShell commands with `&&`; this shell can reject it as an invalid statement separator. Run `git add`, `git commit`, and similar steps as separate tool calls.
 - When giving PowerShell commands for the user to run, avoid angle-bracket placeholders such as `<url>` or `<id>` because PowerShell treats `<` as redirection syntax. Prefer concrete known values or assign named variables with quoted values.
+- Do not pipe arbitrary command output to `cat` in PowerShell as if it were Unix `cat`; `cat` is `Get-Content` and can reject pipeline objects. Use the command directly, `Out-String`, or `Select-Object`/`Set-Content` depending on the goal.
 - When a browser-console command is needed for the user, prefer a compact single-line IIFE or clear snippet instructions; if clipboard/browser focus blocks access, switch to a textarea/manual-paste path instead of retrying the same command.
 - In PowerShell, pass index ranges as expressions, for example `Select-Object -Index (204..304)`. Writing `-Index 204..304` is parsed as a plain string and fails.
 - Local Happ/Xray can route all DNS through the `happ-xray` tunnel and poison `api.themoviedb.org` to `127.0.0.1` even when querying `1.1.1.1` or `8.8.8.8` directly. `tools/auto-related/http-client.mjs` has a targeted DNS-over-HTTPS fallback for TMDb provider requests; do not remove it as redundant unless local TMDb DNS is verified without Happ/Xray.
@@ -470,8 +471,8 @@ Following:
 
 - `movie.html` contains SEO fallback markers.
 - `functions/_seo-utils.js` renders server fallback content for dynamic routes/sitemap.
-- Social preview crawlers for movie detail pages receive a minimal no-JS HTML response from `functions/_seo-utils.js`, and movie preview images should use the first-party `/og/movie/<slug>.jpg` proxy instead of exposing Supabase image URLs directly.
-- The portable Yandex runtime and Cloudflare Pages Functions reject `HEAD` on `/movie/*` and `/og/movie/*` with `Allow: GET`; Yandex API Gateway can report `content-length: 0` on otherwise valid `HEAD` responses, which breaks some social unfurl bots.
+- Social preview crawlers for movie detail pages receive a minimal no-JS HTML response from `functions/_seo-utils.js`, and movie preview images should use the first-party `/og/movie/<slug>.jpg` route instead of exposing Supabase image URLs directly.
+- The portable Yandex runtime renders `/og/movie/<slug>.jpg` as a generated 1200x630 baseline JPEG with `sharp`; this avoids progressive JPEGs and mismatched dimensions from Supabase image transformations, which Telegram/VK can reject.
 - `sitemap.xml` is dynamic; there must not be a static `sitemap.xml` shadowing it.
 - `robots.txt` is served explicitly by `server/runtime.js` for Yandex/portable production because the Docker image must not rely only on static TXT copy behavior.
 - Logo is text; normal pages have their own `h1`.
