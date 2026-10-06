@@ -181,7 +181,13 @@ function getMovieCanonicalUrl(movie) {
   return `${SITE_ORIGIN}${getMoviePagePath(movie)}`;
 }
 
-function getMovieSocialImage(movie) {
+function getMovieSocialImageProxyUrl(movie) {
+  return movie?.slug
+    ? `${SITE_ORIGIN}/og/movie/${encodeURIComponent(movie.slug)}.jpg`
+    : '';
+}
+
+function getMovieRenderedSocialImage(movie) {
   return movie?.poster_url
     ? getPosterTransformUrl(movie.poster_url, {
       width: MOVIE_SOCIAL_IMAGE_WIDTH,
@@ -189,6 +195,10 @@ function getMovieSocialImage(movie) {
       quality: POSTER_IMAGE_MIN_QUALITY
     })
     : DEFAULT_SOCIAL_IMAGE;
+}
+
+function getMovieSocialImage(movie) {
+  return getMovieSocialImageProxyUrl(movie) || getMovieRenderedSocialImage(movie);
 }
 
 function getPosterStoragePath(publicUrl) {
@@ -640,5 +650,6 @@ export {
   createSitemapXml,
   fetchMovieBySlugOrId,
   fetchMoviesForSitemap,
-  getMovieCanonicalUrl
+  getMovieCanonicalUrl,
+  getMovieRenderedSocialImage
 };

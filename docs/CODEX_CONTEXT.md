@@ -146,6 +146,8 @@ Cloudflare Functions route extensionless/detail paths to these shells:
 - `/distributors`, `/distributors.html`
 - `/russian-distributors`, `/russian-distributors.html`
 - `/company/*`, `/company.html`
+- `/og/movie/*`
+- `/robots.txt`
 - `/sitemap.xml`
 
 All HTML-like app shell responses should be no-store.
@@ -468,7 +470,9 @@ Following:
 
 - `movie.html` contains SEO fallback markers.
 - `functions/_seo-utils.js` renders server fallback content for dynamic routes/sitemap.
+- Social preview crawlers for movie detail pages receive a minimal no-JS HTML response from `functions/_seo-utils.js`, and movie preview images should use the first-party `/og/movie/<slug>.jpg` proxy instead of exposing Supabase image URLs directly.
 - `sitemap.xml` is dynamic; there must not be a static `sitemap.xml` shadowing it.
+- `robots.txt` is served explicitly by `server/runtime.js` for Yandex/portable production because the Docker image must not rely only on static TXT copy behavior.
 - Logo is text; normal pages have their own `h1`.
 
 ## Checks

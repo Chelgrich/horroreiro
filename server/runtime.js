@@ -26,6 +26,7 @@ import { onRequestGet as nameHtmlOnRequestGet } from '../functions/name.html.js'
 import { onRequestGet as nameSlugOnRequestGet } from '../functions/name/[slug].js';
 import { onRequestGet as notificationsHtmlOnRequestGet } from '../functions/notifications.html.js';
 import { onRequestGet as notificationsOnRequestGet } from '../functions/notifications.js';
+import { onRequestGet as movieOgImageOnRequestGet } from '../functions/og/movie/[slug].js';
 import { onRequestGet as productionHtmlOnRequestGet } from '../functions/production.html.js';
 import { onRequestGet as productionOnRequestGet } from '../functions/production.js';
 import { onRequestGet as profileActivityRanksOnRequestGet } from '../functions/profile-activity-ranks/[userId].js';
@@ -247,6 +248,12 @@ function getSingleSegmentParam(pathname, prefix) {
   return decodeURIComponent(value);
 }
 
+function getMovieOgImageSlug(pathname) {
+  const value = getSingleSegmentParam(pathname, '/og/movie/');
+
+  return value && value.toLowerCase().endsWith('.jpg') ? value : '';
+}
+
 function getAdminPasswordUserId(pathname) {
   const match = pathname.match(/^\/admin\/users\/([^/]+)\/password$/);
 
@@ -302,6 +309,22 @@ export function createPortableRuntime(options = {}) {
     if (pathname.startsWith('/app-assets/')) {
       return invokeGetHandler(appAssetsOnRequestGet, request, {
         version: getSingleSegmentParam(pathname, '/app-assets/')
+      });
+    }
+
+    if (pathname === '/robots.txt') {
+      return new Response('User-agent: *\nAllow: /\n\nSitemap: https://horroreiro.ru/sitemap.xml\nHost: horroreiro.ru\n', {
+        headers: {
+          'Cache-Control': 'public, max-age=14400, must-revalidate',
+          'Content-Type': 'text/plain; charset=utf-8'
+        }
+      });
+    }
+
+    const movieOgImageSlug = getMovieOgImageSlug(pathname);
+    if (movieOgImageSlug) {
+      return invokeGetHandler(movieOgImageOnRequestGet, request, {
+        slug: movieOgImageSlug
       });
     }
 

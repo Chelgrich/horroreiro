@@ -4,6 +4,7 @@
     "/",
     "/index.html",
     "/env",
+    "/og/movie/*",
     "/app-assets/*",
     "/profile-activity-ranks/*",
     "/editor",

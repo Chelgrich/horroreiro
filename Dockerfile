@@ -12,7 +12,7 @@ COPY functions ./functions
 COPY tools/auto-related ./tools/auto-related
 COPY assets ./assets
 COPY icons ./icons
-COPY *.html *.js *.css *.ico *.webp *.jpg ./
+COPY *.html *.js *.css *.ico *.webp *.jpg robots.txt ./
 
 USER node
 

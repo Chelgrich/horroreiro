@@ -19907,6 +19907,10 @@ function getMovieSeoDescription(movie) {
 }
 
 function getMovieSocialImage(movie) {
+  if (movie?.slug) {
+    return `${SITE_ORIGIN}/og/movie/${encodeURIComponent(movie.slug)}.jpg`;
+  }
+
   return movie?.poster_url
     ? getPosterTransformUrl(movie.poster_url, {
       width: MOVIE_SOCIAL_IMAGE_WIDTH,
