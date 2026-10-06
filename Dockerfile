@@ -7,6 +7,8 @@ ENV HOST=0.0.0.0
 ENV PORT=8080
 
 COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts=false
+
 COPY server ./server
 COPY functions ./functions
 COPY tools/auto-related ./tools/auto-related

@@ -1572,8 +1572,9 @@ async function checkStaticGuards() {
     'Dockerfile: portable runtime image must use Node 24, expose PORT 8080, run as node, and start server/server.mjs'
   );
   assert(
-    !dockerfile.includes('npm install') && !dockerfile.includes('npm ci'),
-    'Dockerfile: portable runtime image should not install dev dependencies'
+    !dockerfile.includes('npm install') &&
+      (!dockerfile.includes('npm ci') || dockerfile.includes('npm ci --omit=dev')),
+    'Dockerfile: portable runtime image should install production dependencies only'
   );
   assert(
     dockerignore.includes('node_modules') &&

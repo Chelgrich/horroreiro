@@ -25,6 +25,7 @@ Format:
   - `package.json`
   - `server/movie-social-image.js`
   - `server/runtime.js`
+  - `tools/smoke-check.mjs`
   - `docs/CODEX_CONTEXT.md`
   - `docs/RECENT_CHANGES.md`
 - Summary:
@@ -34,6 +35,8 @@ Format:
   - Movie detail requests from common social preview crawlers now receive a minimal no-JS HTML document with SEO meta at the start of `<head>`, avoiding full app boot scripts before Open Graph data.
   - Added a first-party `/og/movie/<slug>.jpg` poster proxy and switched movie social image meta to it, avoiding Supabase image headers/cookies/query strings in crawler previews.
   - Added an explicit portable `/robots.txt` response and copied `robots.txt` into the production Docker image.
+  - Production Docker images now run `npm ci --omit=dev` so portable runtime dependencies such as `sharp` are available inside the container.
+  - Updated the Dockerfile smoke guard to allow production-only dependency installation while still blocking dev dependency installs.
   - Social crawler HTML now uses the more widely supported `og:type=website`, omits JSON-LD scripts, and uses short public cache headers.
   - Portable/Yandex production now generates first-party movie preview images as 1200x630 baseline JPEGs via `sharp`, avoiding Supabase's progressive JPEG output and mismatched image dimensions that Telegram/VK can reject.
   - `HEAD` handling for movie and OG image routes is back to `200`-style metadata responses instead of `405`, because Telegram/VK may not fallback to `GET` after a rejected `HEAD`.
