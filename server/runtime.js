@@ -35,6 +35,7 @@ import { onRequestGet as sitemapOnRequestGet } from '../functions/sitemap.xml.js
 import { onRequestGet as userHtmlOnRequestGet } from '../functions/user.html.js';
 import { onRequestGet as userHandleOnRequestGet } from '../functions/user/[handle].js';
 import { handleMovieSocialImageRequest } from './movie-social-image.js';
+import { handlePreviewTestRequest } from './preview-test.js';
 
 const defaultRootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -149,6 +150,7 @@ function getCacheControlForStaticPath(pathname) {
   }
 
   if (
+    pathname.startsWith('/assets/og/') ||
     pathname.startsWith('/icons/') ||
     pathname === '/favicon.ico' ||
     pathname === '/insidious.webp' ||
@@ -254,6 +256,10 @@ function getMovieOgImageSlug(pathname) {
   return value && value.toLowerCase().endsWith('.jpg') ? value : '';
 }
 
+function getPreviewTestSlug(pathname) {
+  return getSingleSegmentParam(pathname, '/preview-test/');
+}
+
 function getAdminPasswordUserId(pathname) {
   const match = pathname.match(/^\/admin\/users\/([^/]+)\/password$/);
 
@@ -325,6 +331,13 @@ export function createPortableRuntime(options = {}) {
     if (movieOgImageSlug) {
       return handleMovieSocialImageRequest(createContext(request, {
         slug: movieOgImageSlug
+      }));
+    }
+
+    const previewTestSlug = getPreviewTestSlug(pathname);
+    if (previewTestSlug) {
+      return handlePreviewTestRequest(createContext(request, {
+        slug: previewTestSlug
       }));
     }
 

@@ -16,6 +16,7 @@ Format:
 
 - Files:
   - `_routes.json`
+  - `assets/og/astral-20261006-a.jpg`
   - `Dockerfile`
   - `app.js`
   - `functions/_seo-utils.js`
@@ -24,6 +25,7 @@ Format:
   - `package-lock.json`
   - `package.json`
   - `server/movie-social-image.js`
+  - `server/preview-test.js`
   - `server/runtime.js`
   - `tools/smoke-check.mjs`
   - `docs/CODEX_CONTEXT.md`
@@ -40,12 +42,14 @@ Format:
   - Social crawler HTML now uses the more widely supported `og:type=website`, omits JSON-LD scripts, and uses short public cache headers.
   - Portable/Yandex production now generates first-party movie preview images as 1200x630 baseline JPEGs via `sharp`, avoiding Supabase's progressive JPEG output and mismatched image dimensions that Telegram/VK can reject.
   - `HEAD` handling for movie and OG image routes is back to `200`-style metadata responses instead of `405`, because Telegram/VK may not fallback to `GET` after a rejected `HEAD`.
+  - Added diagnostic `/preview-test/astral-20261006-a` route with a static pre-generated baseline JPEG under `/assets/og/astral-20261006-a.jpg`, so Telegram/VK preview behavior can be tested without dynamic Supabase/Sharp work during the crawler request.
 - Checks:
   - `node --check app.js`
   - `node --check functions/_seo-utils.js`
   - `node --check functions/og/movie/[slug].js`
   - `node --check functions/movie/[slug].js`
   - `node --check server/movie-social-image.js`
+  - `node --check server/preview-test.js`
   - `node --check server/runtime.js`
   - `npm run smoke:portable`
   - `node tools/smoke-check.mjs`
