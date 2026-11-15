@@ -12,6 +12,25 @@ Format:
 - Follow-up:
 ```
 
+## 2026-11-15 - Reuse public movie SEO reads to reduce Supabase requests
+
+- Files:
+  - `functions/_seo-utils.js`
+  - `tools/portable-runtime-smoke.mjs`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Added a 60-second, 100-entry per-process cache to the existing public movie SEO fetcher, shared by GET/HEAD movie HTML, legacy movie routes, and social preview image handlers. Simultaneous misses reuse one in-flight request. Cache keys include project URL, query, and anon key; no caller session or service-role data is used.
+  - Missing movies and failed requests are not cached. Client detail, ratings, watchlist, auth, and permissions remain live; SEO and social-preview metadata can lag an admin edit by at most one minute while the process stays warm.
+  - Measured baseline: 20 concurrent GET/HEAD requests to one movie triggered 20 Supabase reads. Same runtime smoke after the change: 1 read (95% fewer for this repeated-request scenario, not a claim about total production IO).
+  - Live 24-hour API logs contained 217 `/rest/v1/movies` requests out of 1,205 REST calls; lifetime stats showed 22,325 calls of the server SEO movie select. No background polling loop was found to remove.
+- Checks:
+  - Red/green `npm run smoke:portable`: reproduces duplicate reads before the fix; validates shared GET/HEAD reads, one-minute refresh, project/key isolation, uncached misses/errors, and bounded eviction after the fix.
+  - `node tools/smoke-check.mjs` and `git diff --check` pass.
+  - Linux image check: 20 repeated movie pages plus a social preview share one Supabase read within the same warm process. Production concurrency remains one request per container; cache reuse across separate containers is not assumed.
+- Follow-up:
+  - Deploy the updated server runtime, then compare API request counts and Disk IO balance under comparable traffic. A short local request-count test cannot prove a production RAM/swap reduction.
+
 ## 2026-11-15 - Restrict internal Supabase research access and investigate Disk IO
 
 - Files:

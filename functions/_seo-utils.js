@@ -55,6 +55,9 @@ const MOVIE_SELECT = `
 `;
 
 const SITEMAP_MOVIE_SELECT = 'id, slug, created_at';
+const SEO_MOVIE_CACHE = new Map();
+const SEO_MOVIE_CACHE_TTL_MS = 60000;
+const SEO_MOVIE_CACHE_LIMIT = 100;
 
 function normalizeText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -611,8 +614,37 @@ async function fetchMovieBySlugOrId(env, { slug = '', id = '' } = {}) {
     params.id = `eq.${normalizedId}`;
   }
 
-  const rows = await fetchSupabaseRows(env, 'movies', params);
-  return Array.isArray(rows) ? rows[0] || null : null;
+  const cacheKey = JSON.stringify([getSupabaseTableUrl(env, 'movies', params).toString(), env.SUPABASE_ANON_KEY]);
+  const cached = SEO_MOVIE_CACHE.get(cacheKey);
+
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.promise;
+  }
+
+  // Cache only public SEO data; client movie/user state reads stay fresh.
+  const entry = { expiresAt: Date.now() + SEO_MOVIE_CACHE_TTL_MS, promise: null };
+  entry.promise = fetchSupabaseRows(env, 'movies', params)
+    .then(rows => {
+      const movie = Array.isArray(rows) ? rows[0] || null : null;
+      if (!movie && SEO_MOVIE_CACHE.get(cacheKey) === entry) {
+        SEO_MOVIE_CACHE.delete(cacheKey);
+      }
+      return movie;
+    })
+    .catch(error => {
+      if (SEO_MOVIE_CACHE.get(cacheKey) === entry) {
+        SEO_MOVIE_CACHE.delete(cacheKey);
+      }
+      throw error;
+    });
+  SEO_MOVIE_CACHE.delete(cacheKey);
+  SEO_MOVIE_CACHE.set(cacheKey, entry);
+
+  while (SEO_MOVIE_CACHE.size > SEO_MOVIE_CACHE_LIMIT) {
+    SEO_MOVIE_CACHE.delete(SEO_MOVIE_CACHE.keys().next().value);
+  }
+
+  return entry.promise;
 }
 
 async function fetchMoviesForSitemap(env) {

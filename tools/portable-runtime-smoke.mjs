@@ -1,4 +1,6 @@
 import { createPortableRuntime } from '../server/runtime.js';
+import { fetchMovieBySlugOrId } from '../functions/_seo-utils.js';
+import sharp from 'sharp';
 
 const runtime = createPortableRuntime({
   env: {
@@ -74,4 +76,76 @@ const sitemapText = await sitemapResponse.text();
 assert(sitemapResponse.status === 200, `/sitemap.xml: expected 200, got ${sitemapResponse.status}`);
 assert(sitemapText.includes('<urlset'), '/sitemap.xml: missing urlset');
 
-console.log('Portable runtime smoke passed.');
+// A crawler's concurrent GET/HEAD requests should share one public movie read.
+const originalFetch = globalThis.fetch;
+const originalNow = Date.now;
+let now = 1000000;
+let movieReads = 0;
+let movieTitle = 'Cached movie';
+let movieExists = true;
+let failNextRead = false;
+const cacheEnv = { SUPABASE_URL: 'https://seo-cache.test', SUPABASE_ANON_KEY: 'public-test-key' };
+
+try {
+  Date.now = () => now;
+  globalThis.fetch = async () => {
+    movieReads += 1;
+    if (failNextRead) {
+      failNextRead = false;
+      return new Response('Unavailable', { status: 503 });
+    }
+    return Response.json(movieExists ? [{ id: 'movie-cache-id', slug: 'cached-movie', title: movieTitle }] : []);
+  };
+
+  const cachedRuntime = createPortableRuntime({ env: cacheEnv });
+  const responses = await Promise.all(Array.from({ length: 20 }, (_, i) => (
+    cachedRuntime.handleRequest(new Request('http://portable.test/movie/cached-movie', {
+      method: i % 2 ? 'HEAD' : 'GET'
+    }))
+  )));
+  assert(responses.every(response => response.status === 200), 'cached movie GET/HEAD must succeed');
+  assert(movieReads === 1, `20 concurrent movie GET/HEAD requests made ${movieReads} Supabase reads instead of 1`);
+  assert((await responses[0].text()).includes(movieTitle), 'cached movie must preserve SEO content');
+
+  movieTitle = 'Updated movie';
+  await fetchMovieBySlugOrId(cacheEnv, { slug: 'cached-movie' });
+  assert(movieReads === 1, 'warm SEO read must reuse cached data');
+  now += 60001;
+  const refreshedMovie = await fetchMovieBySlugOrId(cacheEnv, { slug: 'cached-movie' });
+  assert(movieReads === 2 && refreshedMovie.title === movieTitle, 'SEO movie must refresh after one minute');
+
+  await fetchMovieBySlugOrId({ ...cacheEnv, SUPABASE_ANON_KEY: 'other-key' }, { slug: 'cached-movie' });
+  await fetchMovieBySlugOrId({ ...cacheEnv, SUPABASE_URL: 'https://other-project.test' }, { slug: 'cached-movie' });
+  assert(movieReads === 4, 'SEO cache must isolate projects and API keys');
+
+  movieExists = false;
+  assert(await fetchMovieBySlugOrId(cacheEnv, { slug: 'new-movie' }) === null, 'missing movie must remain missing');
+  movieExists = true;
+  const addedMovie = await fetchMovieBySlugOrId(cacheEnv, { slug: 'new-movie' });
+  assert(addedMovie?.title === movieTitle && movieReads === 6, 'a newly added movie must not be hidden by a cached miss');
+
+  failNextRead = true;
+  let readFailed = false;
+  try {
+    await fetchMovieBySlugOrId(cacheEnv, { slug: 'retry-movie' });
+  } catch {
+    readFailed = true;
+  }
+  assert(readFailed, 'Supabase failures must still propagate');
+  await fetchMovieBySlugOrId(cacheEnv, { slug: 'retry-movie' });
+  assert(movieReads === 8, 'a failed read must not poison the cache');
+
+  await fetchMovieBySlugOrId(cacheEnv, { slug: 'oldest-movie' });
+  for (let i = 0; i < 100; i += 1) {
+    await fetchMovieBySlugOrId(cacheEnv, { slug: `bounded-movie-${i}` });
+  }
+  const readsBeforeEvictionCheck = movieReads;
+  await fetchMovieBySlugOrId(cacheEnv, { slug: 'oldest-movie' });
+  assert(movieReads === readsBeforeEvictionCheck + 1, 'SEO cache must evict old entries at its size limit');
+
+} finally {
+  globalThis.fetch = originalFetch;
+  Date.now = originalNow;
+}
+
+console.log('Portable runtime smoke passed (20 concurrent movie GET/HEAD requests: 1 Supabase read).');

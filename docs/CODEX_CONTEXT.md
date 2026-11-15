@@ -113,6 +113,8 @@ Startup shell visibility rule:
 
 Production asset URL strategy:
 
+- `functions/_seo-utils.js` shares public movie SEO reads across movie HTML and social image handlers in a bounded per-process cache (100 entries, 60 seconds). Concurrent reads of the same query share one promise; projects and anon keys are isolated. Missing rows and errors are not retained. Admin SEO/poster changes can take up to one minute to appear here; client detail/user-state queries remain live. This cache does not change the no-store HTML/asset response contract.
+
 - Core JS/CSS and lazy feature modules use `/app-assets/<APP_BUILD_VERSION>?file=<asset>`.
 - `functions/app-assets/[version].js` allowlists app assets and proxies them from current Pages assets with `no-store`.
 - `_headers` sets core app assets to `public, max-age=0, must-revalidate`.
