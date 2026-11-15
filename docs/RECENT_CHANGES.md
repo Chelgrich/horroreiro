@@ -45,8 +45,10 @@ Format:
   - Red/green `npm run smoke:portable`: reproduces duplicate reads before the fix; validates shared GET/HEAD reads, one-minute refresh, project/key isolation, uncached misses/errors, and bounded eviction after the fix.
   - `node tools/smoke-check.mjs` and `git diff --check` pass.
   - Linux image check: 20 repeated movie pages plus a social preview share one Supabase read within the same warm process. Production concurrency remains one request per container; cache reuse across separate containers is not assumed.
+  - Released runtime build `2c23f3a3b5afd7ebe21934a007965cced611024b` through the existing production deployment script; gateway, apex, and www deployed smoke checks passed. Server resource settings and Supabase plan were preserved; `main` and `dev` were synchronized.
+  - Live post-release check: five sequential public movie GET/HEAD requests all succeeded; the matching anonymous SEO statement count rose from 22,328 to 22,330 during the observation window. This is a short unisolated production sample, not a claim of an exact global reduction.
 - Follow-up:
-  - Deploy the updated server runtime, then compare API request counts and Disk IO balance under comparable traffic. A short local request-count test cannot prove a production RAM/swap reduction.
+  - Compare API request counts and Disk IO balance under comparable traffic over the next day. Short request-count tests cannot prove a sustained production RAM/swap reduction. The cache is per warm container and can miss again after a cold start or on another instance.
 
 ## 2026-11-15 - Restrict internal Supabase research access and investigate Disk IO
 

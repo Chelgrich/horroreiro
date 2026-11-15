@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-09-21.
+Last updated: 2026-11-15.
 
 ## Purpose
 
