@@ -1,5 +1,6 @@
 import { createPortableRuntime } from '../server/runtime.js';
 import { fetchMovieBySlugOrId } from '../functions/_seo-utils.js';
+import { handleMovieSocialImageRequest } from '../server/movie-social-image.js';
 import sharp from 'sharp';
 import { mkdtemp, mkdir, writeFile, symlink, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -183,7 +184,7 @@ try {
 
   const poster = await sharp({ create: { width: 32, height: 48, channels: 3, background: '#402020' } }).webp().toBuffer();
   globalThis.fetch = async url => String(url).includes('/rest/v1/')
-    ? Response.json([{ slug: 'preview-smoke', title: 'Preview smoke', poster_url: 'https://posters.test/preview.webp' }])
+    ? Response.json([{ slug: 'preview-smoke', title: 'Preview smoke', poster_url: `${cacheEnv.SUPABASE_URL}/storage/v1/object/public/posters/preview.webp` }])
     : new Response(poster, { headers: { 'Content-Type': 'image/webp' } });
   const previewResponse = await cachedRuntime.handleRequest(new Request('http://portable.test/og/movie/preview-smoke.jpg'));
   const previewBuffer = Buffer.from(await previewResponse.arrayBuffer());
@@ -193,6 +194,87 @@ try {
 } finally {
   globalThis.fetch = originalFetch;
   Date.now = originalNow;
+}
+
+const fallbackImage = 'safe-fallback-image';
+const previewEnv = {
+  ...cacheEnv,
+  ASSETS: { fetch: async () => new Response(fallbackImage, { headers: { 'Content-Type': 'image/jpeg' } }) }
+};
+let previewCase = 0;
+async function expectPreviewFallback(posterUrl, fetchPoster, label) {
+  const slug = `unsafe-preview-${++previewCase}`;
+  let posterReads = 0;
+  globalThis.fetch = async (url, options) => {
+    const parsed = new URL(url);
+    if (parsed.origin === cacheEnv.SUPABASE_URL && parsed.pathname === '/rest/v1/movies') {
+      return Response.json([{ slug, title: label, poster_url: posterUrl }]);
+    }
+    posterReads += 1;
+    return fetchPoster(url, options);
+  };
+  const response = await withMutedConsoleError(() => handleMovieSocialImageRequest({
+    env: previewEnv, params: { slug }, request: new Request(`http://portable.test/og/movie/${slug}.jpg`)
+  }));
+  assert(response.status === 200 && await response.text() === fallbackImage, `${label}: safe fallback missing`);
+  return posterReads;
+}
+
+try {
+  const posterUrl = `${cacheEnv.SUPABASE_URL}/storage/v1/object/public/posters/bounded.webp`;
+  let chunksRead = 0;
+  let cancelled = false;
+  const chunk = new Uint8Array(1024 * 1024);
+  await expectPreviewFallback(posterUrl, () => new Response(new ReadableStream({
+    pull(controller) {
+      if (chunksRead++ < 64) controller.enqueue(chunk);
+      else controller.close();
+    },
+    cancel() { cancelled = true; }
+  })), 'oversized streamed poster');
+  assert(cancelled && chunksRead <= 12, `oversized poster: consumed ${chunksRead} MiB chunks without early cancellation`);
+
+  cancelled = false;
+  await expectPreviewFallback(posterUrl, () => new Response(new ReadableStream({
+    cancel() { cancelled = true; }
+  }), { headers: { 'Content-Length': String(16 * 1024 * 1024) } }), 'oversized declared poster');
+  assert(cancelled, 'oversized Content-Length must cancel the poster body');
+
+  for (const url of [
+    'http://169.254.169.254/latest/meta-data/', 'http://127.0.0.1/private',
+    'https://untrusted.test/poster.jpg', `${cacheEnv.SUPABASE_URL}/rest/v1/profiles`,
+    `${cacheEnv.SUPABASE_URL}/storage/v1/object/public/avatars/test.jpg`
+  ]) {
+    const reads = await expectPreviewFallback(url, () => { throw new Error('Forbidden poster fetch'); }, 'untrusted poster URL');
+    assert(reads === 0, 'untrusted poster URL must be rejected before fetch');
+  }
+  let redirectsRejected = false;
+  await expectPreviewFallback(posterUrl, (url, options) => {
+    redirectsRejected = options.redirect === 'error';
+    return new Response(null, { status: 302, headers: { Location: 'http://169.254.169.254/' } });
+  }, 'redirecting poster');
+  assert(redirectsRejected, 'poster redirects must not be followed');
+
+  const started = performance.now();
+  let deadline;
+  try {
+    await Promise.race([
+      expectPreviewFallback(posterUrl, (url, options) => new Response(new ReadableStream({
+        start(controller) {
+          options.signal?.addEventListener('abort', () => controller.error(options.signal.reason), { once: true });
+        }
+      })), 'stalled poster body'),
+      new Promise((_, reject) => { deadline = setTimeout(() => reject(new Error('Poster body deadline missing')), 8000); })
+    ]);
+  } finally {
+    clearTimeout(deadline);
+  }
+  assert(performance.now() - started < 8000, 'poster deadline must cover body consumption');
+
+  const largePixels = await sharp({ create: { width: 3000, height: 3000, channels: 3, background: '#402020' } }).png().toBuffer();
+  await expectPreviewFallback(posterUrl, () => new Response(largePixels), 'excessive poster pixel count');
+} finally {
+  globalThis.fetch = originalFetch;
 }
 
 console.log('Portable runtime smoke passed (20 concurrent movie GET/HEAD requests: 1 Supabase read).');

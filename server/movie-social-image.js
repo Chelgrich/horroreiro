@@ -8,6 +8,9 @@ import {
 
 const IMAGE_CACHE = new Map();
 const IMAGE_CACHE_LIMIT = 80;
+const MAX_POSTER_BYTES = 8 * 1024 * 1024;
+const MAX_POSTER_PIXELS = 8_000_000;
+const POSTER_TIMEOUT_MS = 5000;
 
 function setCacheValue(key, value) {
   if (IMAGE_CACHE.has(key)) {
@@ -39,26 +42,58 @@ async function getFallbackImageResponse(env, request, method) {
   return response;
 }
 
-async function fetchPosterBuffer(url) {
-  if (!url) {
-    return null;
-  }
-
-  const response = await fetch(url, {
-    headers: {
-      Accept: 'image/avif,image/webp,image/jpeg,image/png,image/*;q=0.8,*/*;q=0.5'
+async function fetchPosterBuffer(url, env) {
+  try {
+    const posterUrl = new URL(url);
+    const storageUrl = new URL(env.SUPABASE_URL);
+    const path = decodeURIComponent(posterUrl.pathname);
+    if (posterUrl.protocol !== 'https:' || storageUrl.protocol !== 'https:' ||
+      posterUrl.origin !== storageUrl.origin || posterUrl.username || posterUrl.password ||
+      !/^\/storage\/v1\/(?:object\/public|render\/image\/public)\/posters\/.+/.test(path) ||
+      path.split('/').some(segment => segment === '..' || segment === '.' || segment.includes('\\'))) {
+      return null;
     }
-  });
-
-  if (!response.ok) {
+  } catch {
     return null;
   }
 
-  return Buffer.from(await response.arrayBuffer());
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), POSTER_TIMEOUT_MS);
+  let response;
+  let reader;
+  try {
+    response = await fetch(url, {
+      redirect: 'error',
+      signal: controller.signal,
+      headers: {
+        Accept: 'image/avif,image/webp,image/jpeg,image/png,image/*;q=0.8,*/*;q=0.5'
+      }
+    });
+    if (!response.ok || !response.body || Number(response.headers.get('content-length')) > MAX_POSTER_BYTES) {
+      return null;
+    }
+    reader = response.body.getReader();
+    const chunks = [];
+    let bytes = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > MAX_POSTER_BYTES) return null;
+      chunks.push(value);
+    }
+    return bytes ? Buffer.concat(chunks, bytes) : null;
+  } finally {
+    clearTimeout(timeout);
+    controller.abort();
+    // Cancellation must not delay the fallback if the remote stream misbehaves.
+    const cancellation = reader ? reader.cancel() : response?.body?.cancel();
+    cancellation?.catch(() => {});
+  }
 }
 
 async function createMovieSocialImage(posterBuffer) {
-  const background = await sharp(posterBuffer)
+  const background = await sharp(posterBuffer, { limitInputPixels: MAX_POSTER_PIXELS })
     .resize(MOVIE_SOCIAL_IMAGE_WIDTH, MOVIE_SOCIAL_IMAGE_HEIGHT, {
       fit: 'cover',
       position: 'centre'
@@ -72,7 +107,7 @@ async function createMovieSocialImage(posterBuffer) {
     })
     .toBuffer();
 
-  const foreground = await sharp(posterBuffer)
+  const foreground = await sharp(posterBuffer, { limitInputPixels: MAX_POSTER_PIXELS })
     .resize(MOVIE_SOCIAL_IMAGE_WIDTH, MOVIE_SOCIAL_IMAGE_HEIGHT, {
       fit: 'contain',
       background: { r: 0, g: 0, b: 0, alpha: 0 },
@@ -136,7 +171,7 @@ export async function handleMovieSocialImageRequest(context) {
       return createImageResponse(cachedBuffer, method);
     }
 
-    const posterBuffer = await fetchPosterBuffer(movie.poster_url);
+    const posterBuffer = await fetchPosterBuffer(movie.poster_url, env);
 
     if (!posterBuffer) {
       return getFallbackImageResponse(env, request, method);

@@ -38,6 +38,7 @@ Dynamic/server-generated:
 - `/sitemap.xml` -> dynamic sitemap XML.
 - `/profile-activity-ranks/:userId` -> server-side profile ranking aggregate.
 - `/admin/users/:userId/password` -> admin password operation, POST only.
+- `/og/movie/:slug.jpg` -> baseline JPEG 1200x630, or the static fallback image. Poster downloads accept only HTTPS public `posters` object/render paths on `SUPABASE_URL`, without redirects; they stop after 8 MiB or five seconds (including the response body). Decoding is limited to 8 million input pixels. These limits do not alter uploaded files or browser poster display.
 
 HTML shells:
 

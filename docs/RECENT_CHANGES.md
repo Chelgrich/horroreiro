@@ -12,6 +12,23 @@ Format:
 - Follow-up:
 ```
 
+## 2026-11-15 - Bound social preview downloads and restrict their origin
+
+- Files:
+  - `server/movie-social-image.js`
+  - `tools/portable-runtime-smoke.mjs`
+  - `docs/SERVER_RUNTIME.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Social preview rendering now fetches only HTTPS public poster object/render URLs on the configured Supabase origin, with redirects disabled. Browser poster display and Storage uploads are unchanged.
+  - Enforces an 8 MiB streamed byte limit even without Content-Length, a five-second fetch/body deadline, cancellation on rejection, and an 8-million-pixel decode limit. Oversized, malformed, stalled, and disallowed inputs use the existing fallback image.
+  - Read-only inventory found all 670 movie posters on the configured project origin; the largest of 1,686 stored poster files was 651,965 bytes, below the byte cap. Dimensions of every stored file were not enumerated.
+- Checks:
+  - Red/green portable smoke: the original fetch consumed all 65 pulls of a synthetic 64 MiB source; the bounded reader cancels after crossing 8 MiB. Tests also cover oversized declared lengths, forbidden origins/paths without fetching, rejected redirects, a stalled response body, a 9M-pixel input, and normal WebP-to-baseline-JPEG rendering.
+  - Independent read-only review and isolated 128 MiB Docker checks rendered 6M-pixel WebP, exactly 8M-pixel PNG, and 90 sequential previews successfully. This is bounded evidence, not a guarantee against all possible resource exhaustion; the existing image cache remains count-bounded.
+  - Decode option verified against the [sharp constructor documentation](https://sharp.pixelplumbing.com/api-constructor/).
+
 ## 2026-11-15 - Restrict portable static serving to published assets
 
 - Files:
