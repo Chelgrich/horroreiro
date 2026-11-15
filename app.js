@@ -782,6 +782,7 @@ let catalogProfileActivityError = null;
 let catalogDataVersion = 0;
 let catalogDerivedStateCache = null;
 let lastCatalogDomRenderSignature = '';
+let catalogDomSnapshotRenderState = null;
 let localDataDependencyStamps = null;
 const catalogSessionSnapshotDataHashCache = new WeakMap();
 
@@ -5986,7 +5987,15 @@ function getCatalogRenderStateSignature() {
     viewMode: viewMode?.value || 'list',
     sortMode: sortMode?.value || 'default',
     page: currentCatalogPage,
-    filterState
+    profileActivityHandle: catalogProfileActivityHandle,
+    profileActivityKey: catalogProfileActivityKey,
+    profileActivityUserId: catalogProfileActivityUserId,
+    profileActivityDisplayName: catalogProfileActivityDisplayName,
+    profileActivityRatings: [...catalogProfileActivityRatingsByMovieId].sort(),
+    filterState: {
+      ...filterState,
+      profileActivityMovieIds: [...(filterState.profileActivityMovieIds || [])].sort()
+    }
   });
 }
 
@@ -6573,7 +6582,16 @@ function writeCatalogDomSnapshot(snapshot) {
   });
 }
 
-function createCatalogDomSnapshotPayload(sessionSnapshot = createCatalogSessionSnapshotPayload()) {
+function recordCatalogDomSnapshotRender(sessionSnapshot = createCatalogSessionSnapshotPayload()) {
+  catalogDomSnapshotRenderState = {
+    dataSignatureHash: getCatalogDataSignatureHash(sessionSnapshot),
+    renderStateSignature: getCatalogRenderStateSignature()
+  };
+}
+
+function createCatalogDomSnapshotPayload(sessionSnapshot = null) {
+  const currentSnapshot = createCatalogSessionSnapshotPayload();
+  sessionSnapshot = sessionSnapshot || currentSnapshot;
   if (
     !isCatalogPage() ||
     !container ||
@@ -6595,9 +6613,19 @@ function createCatalogDomSnapshotPayload(sessionSnapshot = createCatalogSessionS
     return null;
   }
 
+  // Idle writes and navigation can run between a data/control change and its render.
+  if (
+    catalogDomSnapshotRenderState?.renderStateSignature !== getCatalogRenderStateSignature() ||
+    catalogDomSnapshotRenderState?.dataSignatureHash !== getCatalogDataSignatureHash(currentSnapshot) ||
+    getCatalogDataSignatureHash(sessionSnapshot) !== getCatalogDataSignatureHash(currentSnapshot)
+  ) {
+    return null;
+  }
+
   return catalogReturnCacheTools.createCatalogDomSnapshotPayload({
     version: CATALOG_SESSION_SNAPSHOT_VERSION,
     buildVersion: APP_BUILD_VERSION,
+    dataMutationStamp: sessionSnapshot.dataMutationStamp,
     userId: currentUser?.id || null,
     preferRussianPosters: shouldPreferRussianPosters(),
     renderStateSignature: getCatalogRenderStateSignature(),
@@ -6759,13 +6787,18 @@ function hydrateCatalogFromSessionSnapshot(snapshot = readCatalogSessionSnapshot
   return moviesLoadedSuccessfully;
 }
 
-function syncCatalogSessionSnapshotMovieState(movieId, { syncReviews = false, syncMovie = null } = {}) {
-  const snapshot = readCatalogSessionSnapshot({ allowStale: true });
+function syncCatalogSessionSnapshotMovieState(movieId, { syncReviews = false, syncMovie = null, mutationScope = '' } = {}) {
+  const snapshot = readCatalogSessionSnapshot();
+
+  if (mutationScope) {
+    markLocalDataMutation(mutationScope);
+  }
 
   if (!snapshot || !movieId) {
     return;
   }
 
+  snapshot.dataMutationStamp = getDataMutationStamp();
   const movieKey = String(movieId);
   const snapshotUserId = snapshot.userId || null;
   const activeUserId = currentUser?.id || null;
@@ -6960,6 +6993,7 @@ function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
   container.classList.remove('is-catalog-fading', 'is-catalog-visible');
   setCatalogBusyState(false);
   container.innerHTML = domSnapshot.containerHtml;
+  recordCatalogDomSnapshotRender(sessionSnapshot);
   lastCatalogDomRenderSignature = getCatalogDomRenderSignature({
     filteredTotal,
     paginationState,
@@ -9354,7 +9388,6 @@ function getMovieUserStateControllerContext() {
     getCurrentUser: () => currentUser,
     getRatingRequestSet: () => ratingRequestInFlight,
     getWatchlistRequestSet: () => watchlistRequestInFlight,
-    markLocalDataMutation,
     syncCatalogSnapshot: syncCatalogSessionSnapshotMovieState,
     isMovieWatchedByCurrentUser,
     hasMovieWatchlistRecord,
@@ -12454,18 +12487,13 @@ function loadDeferredCatalogUserState({
         return;
       }
 
-      persistCatalogSessionSnapshot();
-
       if (renderedUserStateBeforeLoad.size === 0) {
         rerenderCatalogAfterDataReload(null, FULL_CATALOG_RERENDER_PRESETS.preserveScrollOnly);
+        persistCatalogSessionSnapshot();
         return;
       }
 
       const changedMovieIds = getChangedCatalogUserCardMovieIds(renderedUserStateBeforeLoad);
-
-      if (changedMovieIds.length === 0) {
-        return;
-      }
 
       changedMovieIds.forEach(movieId => {
         rerenderMovieCard(movieId, {
@@ -12473,6 +12501,8 @@ function loadDeferredCatalogUserState({
           animateStateAppearance: false
         });
       });
+
+      persistCatalogSessionSnapshot();
     })
     .catch(error => {
       console.error('Ошибка фоновой загрузки пользовательского слоя каталога:', error);
@@ -16945,6 +16975,7 @@ function renderMovies() {
     updateCatalogStructuredData([], paginationState);
     clearCatalogPagination();
     renderEmptyState();
+    recordCatalogDomSnapshotRender();
     persistCatalogDomSnapshot();
     return;
   }
@@ -16965,6 +16996,7 @@ function renderMovies() {
     container.children.length > 0 &&
     !container.querySelector('.movie-card-skeleton')
   ) {
+    recordCatalogDomSnapshotRender();
     persistCatalogDomSnapshot();
     return;
   }
@@ -16991,6 +17023,7 @@ function renderMovies() {
   );
 
   lastCatalogDomRenderSignature = domRenderSignature;
+  recordCatalogDomSnapshotRender();
   persistCatalogDomSnapshot();
 }
 
@@ -17432,6 +17465,16 @@ function bindCatalogPageEvents() {
 
     saveCatalogScrollPosition();
     saveCatalogAnchorMovieId();
+    // Finish any pending data/filter render while leaving, before capturing its DOM.
+    if (viewMode?.value === 'list' && !createCatalogDomSnapshotPayload()) {
+      const expandedMovieId = container.querySelector('.movie-card.has-open-external-links')?.dataset.movieId;
+      renderMovies();
+      const expandedCard = expandedMovieId && container.querySelector(`[data-movie-id="${expandedMovieId}"]`);
+      const toggle = expandedCard?.querySelector('[data-external-links-toggle="true"]');
+      if (toggle && toggle.getAttribute('aria-expanded') !== 'true') {
+        toggleCatalogExternalLinksPanel(toggle, expandedCard);
+      }
+    }
     persistCatalogSessionSnapshot({
       persistDomSnapshotImmediately: true
     });

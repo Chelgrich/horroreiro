@@ -1262,8 +1262,7 @@ export function createMovieEditorController(context = {}) {
         });
 
         if (!refreshedCatalogMovie) {
-          markLocalDataMutation(`movie-update:${movieId}`);
-          syncCatalogSessionSnapshotMovieState(movieId, { syncMovie: updatedMovie });
+          syncCatalogSessionSnapshotMovieState(movieId, { syncMovie: updatedMovie, mutationScope: `movie-update:${movieId}` });
         }
 
         await loadMoviePageSimilarMovies(updatedMovie);

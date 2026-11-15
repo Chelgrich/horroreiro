@@ -1848,6 +1848,10 @@ const collectionReadsSmoke = spawnSync(process.execPath, ['tools/collection-read
   cwd: rootDir, encoding: 'utf8'
 });
 assert(collectionReadsSmoke.status === 0, `Collection reads smoke failed:\n${collectionReadsSmoke.stderr || collectionReadsSmoke.stdout}`);
+const catalogReturnSmoke = spawnSync(process.execPath, ['tools/catalog-return-smoke.mjs'], {
+  cwd: rootDir, encoding: 'utf8'
+});
+assert(catalogReturnSmoke.status === 0, `Catalog return smoke failed:\n${catalogReturnSmoke.stderr || catalogReturnSmoke.stdout}`);
 checkContextJournalUpdated();
 await checkNoTemporaryRootArtifacts();
 await checkStaticGuards();

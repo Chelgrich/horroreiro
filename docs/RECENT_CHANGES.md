@@ -1,5 +1,14 @@
 # Recent Changes
 
+## 2026-11-15 — Catalog return snapshot correctness and preview diagnosis
+
+- Rating/watchlist and review mutations validate the existing catalog data snapshot before advancing the global mutation stamp, then patch and save it with the new stamp. Expired or previously invalidated snapshots are discarded. Failed writes leave snapshots unchanged.
+- Catalog DOM snapshots now carry the mutation stamp required by the early warm bootstrap. Their data hash and control signature (including profile activity selection, matched movie IDs and displayed ratings) must match a recorded completed render, preventing background data and pending filter changes from relabelling old cards. Identical refreshes can retain the existing DOM despite internal data-version invalidation.
+- Deferred user-state persistence happens after card updates. When leaving without native bfcache, any remaining pending list render completes before the immediate snapshot; the expanded external-links card is retained. Normal navigation preserves existing filters, pagination and scroll behavior, without extending the 30-minute snapshot limit.
+- Movie HTML now declares `Vary: User-Agent` for both browser and crawler representations. Portable tests verify initial Telegram Open Graph HTML without JavaScript and retain baseline JPEG checks. This header fix is not evidence that Telegram previews are resolved.
+- `tools/catalog-return-smoke.mjs` (normal smoke) covers successful/failed mutations, invalid/expired snapshots, render provenance, stale idle writes, departure handling, expanded links and actual early warm bootstrap.
+- Preview diagnosis: the supplied movie URL returns 200 with initial OG metadata and a 1200x630 baseline JPEG. The user confirmed fresh movie, static diagnostic and gateway links hang in Telegram while telegram.org previews work. Production HEAD Content-Length is zero even on direct authenticated container invocation; local Node returns the correct length, isolating that difference to hosting, without establishing Telegram causality. Logging CLI and REST returned Unavailable/503; console investigation is pending. No hosting-plan or schema changes.
+
 ## 2026-11-15 — Complete catalog and profile collections
 
 - Catalog movies, rating aggregates/fallback rows, current-user ratings/watchlist, review summaries, profile-filtered catalog collections, profile activity, and the Letterboxd match index now use complete paged reads with a unique ordering key. The existing 1000-row API cap is unchanged; collections below the cap still take one request.

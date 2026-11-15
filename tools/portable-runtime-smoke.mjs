@@ -175,6 +175,16 @@ try {
   )));
   assert(responses.every(response => response.status === 200), 'cached movie GET/HEAD must succeed');
   assert(movieReads === 1, `20 concurrent movie GET/HEAD requests made ${movieReads} Supabase reads instead of 1`);
+  const browserMovieResponse = await cachedRuntime.handleRequest(new Request('http://portable.test/movie/cached-movie'));
+  const telegramMovieResponse = await cachedRuntime.handleRequest(new Request('http://portable.test/movie/cached-movie', {
+    headers: { 'User-Agent': 'TelegramBot (like TwitterBot)' }
+  }));
+  for (const response of [browserMovieResponse, telegramMovieResponse]) {
+    assert(response.headers.get('vary')?.toLowerCase().split(/\s*,\s*/).includes('user-agent'), 'Different movie HTML representations must vary by User-Agent');
+  }
+  const telegramHtml = await telegramMovieResponse.text();
+  assert(telegramHtml.includes('property="og:title"') && telegramHtml.includes('property="og:image"'), 'Telegram must receive metadata in the initial HTML');
+  assert(!telegramHtml.includes('<script'), 'Telegram preview HTML must work without JavaScript');
   assert((await responses[0].text()).includes(movieTitle), 'cached movie must preserve SEO content');
 
   movieTitle = 'Updated movie';

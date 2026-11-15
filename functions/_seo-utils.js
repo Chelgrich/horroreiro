@@ -562,6 +562,7 @@ function createHtmlResponse(html, assetResponse, { status = 200, cacheControl = 
   const headers = new Headers(assetResponse.headers);
   headers.set('Content-Type', 'text/html; charset=UTF-8');
   headers.set('Cache-Control', cacheControl);
+  headers.append('Vary', 'User-Agent');
   headers.delete('Content-Length');
 
   return new Response(html, {
@@ -587,6 +588,7 @@ async function createMovieHtmlResponse({ env, request, movie, status = 200 }) {
       status,
       headers: {
         'Cache-Control': 'public, max-age=300, s-maxage=300, must-revalidate',
+        'Vary': 'User-Agent',
         'Content-Type': 'text/html; charset=UTF-8'
       }
     });

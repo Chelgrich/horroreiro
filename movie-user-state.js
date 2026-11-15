@@ -56,8 +56,7 @@ export function createMovieUserStateController(context = {}) {
       }
 
       if (actionSucceeded) {
-        context.markLocalDataMutation?.(`movie-user-state:${movieId}`);
-        context.syncCatalogSnapshot?.(movieId);
+        context.syncCatalogSnapshot?.(movieId, { mutationScope: `movie-user-state:${movieId}` });
         rerender?.();
         onSuccess?.();
 

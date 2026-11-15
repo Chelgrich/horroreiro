@@ -1085,14 +1085,13 @@ async function refreshMovieReviewsAfterMutation(movieId, reviewIdToCollapse = nu
   }
 
   await fetchMovieReviews(movieId);
-  markLocalDataMutation(`reviews:${movieId}`);
   if (allMovieReviews.some(review => String(review.movie_id) === String(movieId))) {
     catalogReviewedMovieIds.add(String(movieId));
   } else {
     catalogReviewedMovieIds.delete(String(movieId));
   }
   markCatalogDataChanged();
-  syncCatalogSessionSnapshotMovieState(movieId, { syncReviews: true });
+  syncCatalogSessionSnapshotMovieState(movieId, { syncReviews: true, mutationScope: `reviews:${movieId}` });
 }
 
 async function saveMovieReview(movieId, {

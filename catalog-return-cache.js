@@ -196,6 +196,7 @@ export function writeCatalogSnapshot(snapshot, {
 export function createCatalogDomSnapshotPayload({
   version,
   buildVersion,
+  dataMutationStamp = '',
   userId = null,
   preferRussianPosters = false,
   renderStateSignature = '',
@@ -216,6 +217,7 @@ export function createCatalogDomSnapshotPayload({
   return {
     version,
     buildVersion,
+    dataMutationStamp,
     savedAt,
     userId,
     preferRussianPosters: Boolean(preferRussianPosters),
