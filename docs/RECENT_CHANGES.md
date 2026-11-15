@@ -12,6 +12,21 @@ Format:
 - Follow-up:
 ```
 
+## 2026-11-15 - Keep revision environment secrets out of deploy output
+
+- Files:
+  - `tools/deploy-production.ps1`
+  - `tools/deploy-production-smoke.ps1`
+  - `docs/YANDEX_CONTAINER_RELEASE.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Captures every stream from the `yc` revision deployment command, whose response contains the complete environment. Reports generic success or a checked exit-code error, without returning raw output on failure or invocation errors.
+  - Adds a fake-secret smoke for the actual deployment step, extracted from its PowerShell AST, and runs it before normal production image builds. No new deployment flags or resource settings.
+- Checks:
+  - Baseline fake-secret smoke reproduced the success-output leak. After the fix, success, nonzero exit, thrown invocation errors, PowerShell warnings, and native stdout/stderr success/failure cases pass under Windows PowerShell 5.
+  - Independent read-only review also verified missing-command handling and serialization of thrown errors; no secret escaped the caller-visible error record. No real credentials are used in the regression test.
+
 ## 2026-11-15 - Bound social preview downloads and restrict their origin
 
 - Files:

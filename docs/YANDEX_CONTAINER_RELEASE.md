@@ -19,6 +19,11 @@ It wraps the manual flow below, reads ignored local secrets from
 `deploy/yandex/production.env.local` when present, and retries deployed smoke
 checks for the gateway, apex domain, and `www` domain.
 
+The revision deploy step captures all `yc` output because the response includes
+the server environment. It prints only a generic success or exit-code error.
+`tools/deploy-production-smoke.ps1` checks the actual step with fake CLI output
+(including native stdout/stderr), and runs automatically before the image build.
+
 ## 1. Pick The Build
 
 Use the exact git commit as the runtime build version:

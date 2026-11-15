@@ -43,6 +43,21 @@ function Assert-CleanWorktree {
   }
 }
 
+function Invoke-ProductionRevisionDeploy($DeployArguments) {
+  # yc returns the revision environment, including server secrets, on stdout.
+  $ErrorActionPreference = 'Continue'
+  try {
+    $null = & yc @DeployArguments *>&1
+    $deployExitCode = $LASTEXITCODE
+  } catch {
+    throw 'Production revision deploy could not start.'
+  }
+  if ($deployExitCode -ne 0) {
+    throw "Production revision deploy failed with exit code $deployExitCode."
+  }
+  Write-Host 'Production revision deployed.'
+}
+
 function Read-LocalEnvFile($Path) {
   $values = @{}
 
@@ -166,6 +181,7 @@ $version = (git rev-parse HEAD).Trim()
 Run-Step "Release preflight" { npm run release:container:preflight -- --expected-version $version }
 Run-Step "Portable smoke" { npm run smoke:portable }
 Run-Step "Smoke check" { node tools/smoke-check.mjs }
+Run-Step "Deploy output smoke" { powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'deploy-production-smoke.ps1') }
 Run-Step "Check Docker engine" { docker version }
 Run-Step "Docker auth for Yandex Registry" { yc container registry configure-docker }
 
@@ -245,7 +261,7 @@ if (-not [string]::IsNullOrWhiteSpace($runtimeServiceAccountId)) {
   $deployArgs += @("--service-account-id", $runtimeServiceAccountId)
 }
 
-Run-Step "Deploy production revision" { yc @deployArgs }
+Run-Step "Deploy production revision" { Invoke-ProductionRevisionDeploy $deployArgs }
 Run-Step "Keep production container private" { yc serverless container deny-unauthenticated-invoke --id $ProductionContainerId }
 
 Run-DeployedSmoke "Smoke production gateway" $ProductionGatewayUrl $version
