@@ -1,5 +1,12 @@
 # Recent Changes
 
+## 2026-11-15 — Align early and full catalog scroll restoration
+
+- Browser verification of `e2cfca2` showed the early snapshot aligning the first card to the viewport top, then the browser restoring a different exact scroll offset after startup (observed 68–80 px jump). Both early and full-app restorers now prefer a saved finite nonnegative offset; the card anchor is a fallback when that offset is missing/invalid. Missing position no longer becomes zero through `Number(null)`. User-intent cancellation remains intact.
+- `tools/catalog-return-smoke.mjs` runs both actual restorers, covering exact offset with an anchor, anchor-only fallback, and no stored position.
+- `e2cfca22993edf0a41003d1192d8a44bf7253af6` / Yandex revision `bbakjsmqb4m1bg1ne138` passed release preflight, portable/full/deploy-output smokes and gateway/apex/www checks on attempt 1. Browser restored 40 cards on page 2 (41–80 of 670), and search “Астрал” (19 results), through the early warm bootstrap and then app-ready, with no captured warnings/errors.
+- Telegram remains unresolved: correct-account console access confirmed Cloud Logging is unavailable, matching the official status board's missing logs for API Gateway/Serverless Containers. See `docs/TELEGRAM_PREVIEW_DIAGNOSTICS.md` for evidence, request IDs, cache caveat and a prepared support request. Nothing was sent to support.
+
 ## 2026-11-15 — Catalog return snapshot correctness and preview diagnosis
 
 - Rating/watchlist and review mutations validate the existing catalog data snapshot before advancing the global mutation stamp, then patch and save it with the new stamp. Expired or previously invalidated snapshots are discarded. Failed writes leave snapshots unchanged.

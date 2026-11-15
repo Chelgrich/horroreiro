@@ -217,6 +217,7 @@
   function restoreCatalogScroll() {
     const anchorMovieId = getStorageValue(sessionStorage, CATALOG_ANCHOR_MOVIE_ID_KEY);
     const scrollPosition = getStorageValue(sessionStorage, CATALOG_SCROLL_POSITION_KEY);
+    const scrollY = scrollPosition?.trim() ? Number(scrollPosition) : NaN;
     const scrollIntentBaseline = getWindowScrollIntentVersion();
 
     window[WINDOW_WARM_START_SCROLL_INTENT_BASELINE_KEY] = scrollIntentBaseline;
@@ -225,6 +226,11 @@
 
     const restore = () => {
       if (hasWindowScrollIntentAfter(scrollIntentBaseline)) {
+        return;
+      }
+
+      if (Number.isFinite(scrollY) && scrollY >= 0) {
+        window.scrollTo(0, scrollY);
         return;
       }
 
@@ -238,12 +244,6 @@
         }
 
         return;
-      }
-
-      const scrollY = Number(scrollPosition);
-
-      if (Number.isFinite(scrollY) && scrollY >= 0) {
-        window.scrollTo(0, scrollY);
       }
     };
 

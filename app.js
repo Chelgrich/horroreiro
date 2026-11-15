@@ -5629,8 +5629,9 @@ function restoreCatalogScrollPosition({ skipIfUserScrollIntentAfter = null } = {
   try {
     const savedAnchorMovieId = sessionStorage.getItem(CATALOG_ANCHOR_MOVIE_ID_KEY);
     const savedScrollPosition = sessionStorage.getItem(CATALOG_SCROLL_POSITION_KEY);
+    const scrollY = savedScrollPosition?.trim() ? Number(savedScrollPosition) : NaN;
 
-    if (savedAnchorMovieId) {
+    if (savedAnchorMovieId && (!Number.isFinite(scrollY) || scrollY < 0)) {
       scheduleCatalogAnchorRestore(savedAnchorMovieId, { skipIfUserScrollIntentAfter });
 
       sessionStorage.removeItem(CATALOG_ANCHOR_MOVIE_ID_KEY);
@@ -5641,8 +5642,6 @@ function restoreCatalogScrollPosition({ skipIfUserScrollIntentAfter = null } = {
     if (savedScrollPosition === null) {
       return;
     }
-
-    const scrollY = Number(savedScrollPosition);
 
     if (!Number.isFinite(scrollY) || scrollY < 0) {
       sessionStorage.removeItem(CATALOG_SCROLL_POSITION_KEY);
@@ -5658,6 +5657,7 @@ function restoreCatalogScrollPosition({ skipIfUserScrollIntentAfter = null } = {
     });
 
     sessionStorage.removeItem(CATALOG_SCROLL_POSITION_KEY);
+    sessionStorage.removeItem(CATALOG_ANCHOR_MOVIE_ID_KEY);
   } catch (error) {
     console.warn('Ошибка восстановления позиции каталога:', error);
   }

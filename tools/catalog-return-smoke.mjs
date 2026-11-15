@@ -145,23 +145,64 @@ assert.equal(renders, 1, 'Native back/forward cache must keep the live document 
 
 // Run the actual early bootstrap, rather than repeating its validation in the test.
 const warmSource = await readFile(new URL('../catalog-warm-start.js', import.meta.url), 'utf8');
-function warmStart(payload, currentStamp) {
+function warmStart(payload, currentStamp, { scrollPosition = null, hasAnchor = false } = {}) {
   const localStorage = storage();
   localStorage.setItem('horroreiro_data_mutation_stamp', currentStamp);
   localStorage.setItem('sb-project-auth-token', JSON.stringify({ user: { id: 'user' } }));
   const saved = storage();
   saved.setItem('horroreiro_catalog_dom_snapshot', JSON.stringify(payload));
+  if (scrollPosition !== null) saved.setItem('horroreiro_catalog_scroll_position', scrollPosition);
+  if (hasAnchor) saved.setItem('horroreiro_catalog_anchor_movie_id', 'movie');
   const classes = new Set();
   const movies = { innerHTML: '', removeAttribute() {} };
+  const frames = [];
+  const scrolls = [];
+  let anchorScrolls = 0;
   vm.runInNewContext(warmSource, {
-    localStorage, sessionStorage: saved, requestAnimationFrame() {},
-    window: { __ENV__: { APP_BUILD_VERSION: 'build' }, addEventListener() {} },
+    localStorage, sessionStorage: saved, requestAnimationFrame: callback => frames.push(callback),
+    window: { __ENV__: { APP_BUILD_VERSION: 'build' }, addEventListener() {}, scrollTo: (x, y) => scrolls.push(y) },
     document: { body: { dataset: { appPage: 'catalog' } },
       documentElement: { classList: { add: value => classes.add(value) } },
-      getElementById: id => id === 'movies' ? movies : null, querySelector: () => null }
+      getElementById: id => id === 'movies' ? movies : null, querySelector: () => null,
+      querySelectorAll: () => [{ dataset: { movieId: 'movie' }, scrollIntoView: () => { anchorScrolls += 1; } }] }
   });
-  return classes.has('app-catalog-warm-started');
+  while (frames.length) frames.shift()();
+  return { started: classes.has('app-catalog-warm-started'), scrolls, anchorScrolls };
 }
-assert.equal(warmStart(dom, stamp), true);
-assert.equal(warmStart(dom, 'newer'), false);
+assert.equal(warmStart(dom, stamp).started, true);
+assert.equal(warmStart(dom, 'newer').started, false);
+const exactWarmScroll = warmStart(dom, stamp, { scrollPosition: '386', hasAnchor: true });
+assert.deepEqual(exactWarmScroll.scrolls, [386, 386], 'Early warm restore must preserve the saved offset rather than realign a card');
+assert.equal(exactWarmScroll.anchorScrolls, 0);
+assert.deepEqual(warmStart(dom, stamp, { scrollPosition: '0', hasAnchor: true }).scrolls, [0, 0], 'An explicitly saved zero is valid');
+assert.equal(warmStart(dom, stamp, { hasAnchor: true }).anchorScrolls, 2, 'Anchor remains a fallback without a saved offset');
+for (const scrollPosition of ['', '   ', 'bad', '-1', 'Infinity']) {
+  assert.equal(warmStart(dom, stamp, { scrollPosition, hasAnchor: true }).anchorScrolls, 2, `Invalid offset ${JSON.stringify(scrollPosition)} must use the anchor`);
+}
+assert.deepEqual(warmStart(dom, stamp).scrolls, [], 'Absent position must not force scroll to zero');
+
+const restoreStorage = storage();
+const appScrolls = [];
+const appAnchors = [];
+const restoreSandbox = vm.createContext({
+  console, sessionStorage: restoreStorage,
+  CATALOG_SCROLL_POSITION_KEY: 'scroll', CATALOG_ANCHOR_MOVIE_ID_KEY: 'anchor',
+  requestAnimationFrame: callback => callback(), shouldSkipWindowScrollRestore: () => false,
+  scrollWindowToPosition: y => appScrolls.push(y), scheduleCatalogAnchorRestore: id => appAnchors.push(id)
+});
+vm.runInContext(functionSource('restoreCatalogScrollPosition'), restoreSandbox);
+restoreStorage.setItem('scroll', '386');
+restoreStorage.setItem('anchor', 'movie');
+restoreSandbox.restoreCatalogScrollPosition();
+assert.deepEqual(appScrolls, [386], 'Full app must agree with early warm restoration');
+assert.deepEqual(appAnchors, []);
+assert.equal(restoreStorage.getItem('anchor'), null);
+restoreStorage.setItem('anchor', 'movie');
+restoreSandbox.restoreCatalogScrollPosition();
+assert.deepEqual(appAnchors, ['movie']);
+restoreStorage.setItem('scroll', '   ');
+restoreStorage.setItem('anchor', 'movie');
+restoreSandbox.restoreCatalogScrollPosition();
+assert.deepEqual(appScrolls, [386]);
+assert.deepEqual(appAnchors, ['movie', 'movie']);
 console.log('Catalog return smoke passed.');
