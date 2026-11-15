@@ -1,5 +1,5 @@
-import { readFile, stat } from 'node:fs/promises';
-import { dirname, extname, resolve, sep } from 'node:path';
+import { readFile, realpath, stat } from 'node:fs/promises';
+import { dirname, extname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { onRequest as envOnRequest } from '../functions/env.js';
@@ -53,7 +53,12 @@ const contentTypes = {
   '.xml': 'application/xml; charset=utf-8'
 };
 
-const revalidatedStaticAssets = new Set([
+const publicStaticAssets = new Set([
+  '/index.html', '/movie.html', '/user.html', '/following.html', '/notifications.html',
+  '/editor.html', '/directors.html', '/name.html', '/companies.html', '/company.html',
+  '/favicon.ico', '/insidious.webp', '/og-preview.jpg',
+  '/icons/imdb.svg', '/icons/kp.svg', '/icons/lb.svg', '/icons/rt.svg', '/icons/tmdb.svg',
+  '/assets/og/astral-20261006-a.jpg',
   '/admin-actions.js',
   '/app-page-runtime.js',
   '/app-script-loader.js',
@@ -159,38 +164,33 @@ function getCacheControlForStaticPath(pathname) {
     return 'public, max-age=31536000, immutable';
   }
 
-  if (revalidatedStaticAssets.has(pathname)) {
-    return 'public, max-age=0, must-revalidate';
-  }
-
   return 'public, max-age=0, must-revalidate';
 }
 
 function createStaticAssetFetcher(rootDir) {
+  const canonicalRoot = realpath(rootDir).catch(() => rootDir);
   return async input => {
     const request = input instanceof Request ? input : new Request(input);
     const { pathname } = new URL(request.url);
-    const relativePath = normalizeAssetPathname(pathname);
-    const filePath = resolve(rootDir, relativePath);
-
-    if (!isPathInsideRoot(rootDir, filePath)) {
-      return new Response('Not found', {
-        status: 404,
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-          'Content-Type': 'text/plain; charset=utf-8'
-        }
-      });
-    }
 
     try {
+      const relativePath = normalizeAssetPathname(pathname);
+      const filePath = resolve(rootDir, relativePath);
+      if (!publicStaticAssets.has(`/${relativePath}`) || !isPathInsideRoot(rootDir, filePath)) {
+        throw Object.assign(new Error('Private asset'), { code: 'ENOENT' });
+      }
+      const canonicalFile = await realpath(filePath);
+      // Public filenames must not alias private files through symlinks or junctions.
+      if (relative(await canonicalRoot, canonicalFile).split(sep).join('/') !== relativePath) {
+        throw Object.assign(new Error('Aliased asset'), { code: 'ENOENT' });
+      }
       const fileStats = await stat(filePath);
 
       if (!fileStats.isFile()) {
         throw Object.assign(new Error('Not a file'), { code: 'ENOENT' });
       }
 
-      const file = await readFile(filePath);
+      const file = await readFile(canonicalFile);
       const contentType = contentTypes[extname(filePath).toLowerCase()] || 'application/octet-stream';
 
       return new Response(file, {
@@ -201,7 +201,7 @@ function createStaticAssetFetcher(rootDir) {
         }
       });
     } catch (error) {
-      if (error?.code !== 'ENOENT') {
+      if (error?.code !== 'ENOENT' && !(error instanceof URIError)) {
         console.error('Portable runtime static asset failed:', error);
       }
 

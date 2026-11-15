@@ -98,7 +98,7 @@ HTML shell routes:
 
 Static fallback:
 
-- any existing root file for `GET`/`HEAD`;
+- only explicitly allowlisted public files for `GET`/`HEAD` (see `publicStaticAssets` in `server/runtime.js`);
 - otherwise a normal 404 response.
 
 ## External Dependencies

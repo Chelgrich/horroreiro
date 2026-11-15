@@ -55,7 +55,8 @@ HTML shells:
 
 Static fallback:
 
-- Any other `GET`/`HEAD` path is served from the project root if a matching file exists.
+- Other `GET`/`HEAD` paths are served only when explicitly listed in `publicStaticAssets` in `server/runtime.js`. Keep this list current when publishing an app shell, script, stylesheet, icon, or static OG image.
+- Files in `deploy`, `server`, `functions`, `node_modules`, docs, and unlisted root paths are private even when present on disk. Symlink/junction aliases into private files and malformed URL encodings return 404.
 - HTML files are `no-store`.
 - app JS/CSS assets are `public, max-age=0, must-revalidate`.
 - long-lived immutable headers are kept for `/icons/*`, `/favicon.ico`, `/insidious.webp`, and `/og-preview.jpg`.

@@ -1,6 +1,9 @@
 import { createPortableRuntime } from '../server/runtime.js';
 import { fetchMovieBySlugOrId } from '../functions/_seo-utils.js';
 import sharp from 'sharp';
+import { mkdtemp, mkdir, writeFile, symlink, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { basename, dirname, join, resolve } from 'node:path';
 
 const runtime = createPortableRuntime({
   env: {
@@ -70,6 +73,41 @@ assert(assetText.includes('initCatalogPage'), '/app-assets: app.js payload looks
 
 const missingAssetResponse = await fetchPortable('/app-assets/portable-smoke?file=missing.js');
 assert(missingAssetResponse.status === 404, `/app-assets missing: expected 404, got ${missingAssetResponse.status}`);
+
+// Use fake secrets so a failed assertion never reads real deployment credentials.
+const fixtureRoot = await mkdtemp(join(tmpdir(), 'horroreiro-static-'));
+try {
+  const privatePaths = [
+    '/deploy/yandex/production.env.local', '/.env', '/AGENTS.md', '/package.json',
+    '/server/private.js', '/functions/private.js', '/node_modules/test/private.json',
+    '/unexpected.js', '/assets/unpublished.js'
+  ];
+  for (const path of privatePaths) {
+    const file = join(fixtureRoot, path.slice(1));
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, 'fake-private-content');
+  }
+  await writeFile(join(fixtureRoot, 'app.js'), 'public-app-fixture');
+  await mkdir(join(fixtureRoot, 'private-icons'));
+  await writeFile(join(fixtureRoot, 'private-icons', 'tmdb.svg'), 'fake-private-content');
+  await symlink(join(fixtureRoot, 'private-icons'), join(fixtureRoot, 'icons'), 'junction');
+  const fixtureRuntime = createPortableRuntime({ rootDir: fixtureRoot });
+  for (const path of [...privatePaths, '/icons/tmdb.svg', '/%ZZ', '/server%2Fprivate.js']) {
+    for (const method of ['GET', 'HEAD']) {
+      const response = await fixtureRuntime.handleRequest(new Request(`http://portable.test${path}`, { method }));
+      assert(response.status === 404, `private static ${method} ${path}: expected 404, got ${response.status}`);
+    }
+  }
+  const publicFixture = await fixtureRuntime.handleRequest(new Request('http://portable.test/app.js'));
+  assert(publicFixture.status === 200 && await publicFixture.text() === 'public-app-fixture', 'public app asset must remain accessible');
+} finally {
+  assert(dirname(fixtureRoot) === resolve(tmpdir()) && basename(fixtureRoot).startsWith('horroreiro-static-'), 'unexpected fixture cleanup target');
+  await rm(fixtureRoot, { recursive: true, force: true });
+}
+for (const path of ['/boot-loader.js', '/app-script-loader.js', '/styles.css', '/icons/tmdb.svg', '/assets/og/astral-20261006-a.jpg', '/og-preview.jpg']) {
+  const response = await fetchPortable(path);
+  assert(response.status === 200, `public static ${path}: expected 200, got ${response.status}`);
+}
 
 const sitemapResponse = await withMutedConsoleError(() => fetchPortable('/sitemap.xml'));
 const sitemapText = await sitemapResponse.text();

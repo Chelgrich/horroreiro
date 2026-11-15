@@ -12,6 +12,22 @@ Format:
 - Follow-up:
 ```
 
+## 2026-11-15 - Restrict portable static serving to published assets
+
+- Files:
+  - `server/runtime.js`
+  - `tools/portable-runtime-smoke.mjs`
+  - `docs/SERVER_RUNTIME.md`
+  - `docs/DEPLOYMENT_INVENTORY.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Reuses the runtime's explicit app asset inventory as the static access boundary and adds the actual public shells/media. Unknown root files and deployment, server, function, dependency, and documentation paths return 404.
+  - Canonical path checks also reject symlink/junction aliases to private files; malformed URL encodings return 404. Existing public URLs and cache policies are preserved.
+- Checks:
+  - Added fake-secret fixtures outside the checkout: baseline GET of an existing deployment env path returned 200; after the fix GET/HEAD private paths, encoded paths, and a private icon junction return 404. Public shell, bootstrap, app proxy, CSS, icon, and static OG requests pass `npm run smoke:portable`.
+  - No real secret file contents were read by the regression test.
+
 ## 2026-11-15 - Restrict profile authorization fields and catalog writes
 
 - Files:

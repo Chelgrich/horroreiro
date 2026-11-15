@@ -163,7 +163,7 @@ All HTML-like app shell responses should be no-store.
 - maps the same public routes as the Cloudflare Pages Functions setup;
 - provides a Cloudflare-compatible context to existing `functions/*` handlers;
 - implements `env.ASSETS.fetch` through local file reads;
-- serves static fallback files from the project root;
+- serves only the explicit `publicStaticAssets` inventory from the project root; private files and symlink/junction aliases return 404. Add new published shell/script/style/media paths to this list;
 - is started locally by `server/server.mjs`, wrapped by `Dockerfile`, and checked by `tools/portable-runtime-smoke.mjs` plus optional `tools/docker-runtime-smoke.mjs`.
 - can be checked from the outside after deployment with `tools/deployed-runtime-smoke.mjs`.
 - release candidates can be statically preflighted with `tools/container-release-preflight.mjs`.
