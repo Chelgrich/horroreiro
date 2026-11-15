@@ -8,6 +8,7 @@
 - Hosted migration `atomic_movie_editor_save` adds an admin-guarded SECURITY INVOKER RPC, retains RLS, and removes client TRUNCATE/REFERENCES/TRIGGER on the affected movie/company/gallery/similar tables. The small admin save path is serialized with a transaction advisory lock for reciprocal/shared-name consistency. Only company roles present in the patch are rebuilt; intentional empty markers do not become companies.
 - Regression checks: `tools/movie-editor-smoke.mjs` (included in `npm run smoke`) and rollback-only `tools/supabase-movie-save-smoke.sql`.
 - Verified hosted SQL rollback smoke and existing access smoke; 670 movie rows and their digest were unchanged, no test fixtures remained, and no new Security Advisor findings appeared. The client smoke covers a lost response, a request still running after timeout, upload reuse, and post-commit refresh failure.
+- Production runtime `b904fb7358663f857e7b9d05f4d00907770c6e91` deployed through the normal release script. Preflight, portable/full/deploy-output smokes and gateway/apex/www checks passed. The deployed editor uses the RPC; anonymous REST invocation returns 401/42501. Browser catalog (40 of 670), movie, and company pages reached app-ready without console errors. Admin save behavior was checked by controller tests and authenticated-role SQL rollback tests, without editing real movies through the browser.
 
 Keep this file current. Add a short entry after each behavior, architecture, data, routing, dependency, or important UI change.
 
