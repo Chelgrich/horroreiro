@@ -1,5 +1,14 @@
 # Recent Changes
 
+## 2026-11-15 — Complete catalog and profile collections
+
+- Catalog movies, rating aggregates/fallback rows, current-user ratings/watchlist, review summaries, profile-filtered catalog collections, profile activity, and the Letterboxd match index now use complete paged reads with a unique ordering key. The existing 1000-row API cap is unchanged; collections below the cap still take one request.
+- Reused `fetchAllSupabaseRows`; `fetchAllSupabaseRowsResult` adapts it to existing `{data,error}` consumers without publishing a partial result. Errors preserve the last complete rating/watchlist/review-summary state. Paged personal reads capture the user ID and discard results after an account change.
+- Movie-by-ID lookups for profile taste/rails and notifications split IDs into existing-sized 200-ID batches. Optional-column retries and cache updates apply to the complete batch, preventing truncated data and oversized query URLs.
+- Live baseline: 1963 ratings; an anonymous REST read returned `0-999/1963` (1000 rows), with 963 more on the next page. No schema, API cap, hosting-plan, or production data changes.
+- `tools/collection-reads-smoke.mjs` (included in normal smoke) covers 0/1000/2000/2501 boundaries, tied sort values, profile counts, large ID lookups/import index, late-page failure, and account switching.
+- Verification: full smoke and focused collection smoke passed. The actual shared loader fetched all 1963 public rating rows in two REST pages, matching the server count with no duplicate user/movie pairs. Review also checked the enforced 200-ID bound, optional-column retries, and failure before cache publication. Per-movie social feeds and the local-only ranking fallback remain separate work.
+
 ## 2026-11-15 — Atomic movie editor saves
 
 - Movie creation/updates and manual-similar edits use `horroreiro_save_movie`: fields, director trigger, companies, genres/countries, reciprocal similar links, and gallery rows commit together. No client delete-then-insert fallback remains in these save paths.

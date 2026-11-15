@@ -1844,6 +1844,10 @@ const movieEditorSmoke = spawnSync(process.execPath, ['tools/movie-editor-smoke.
   cwd: rootDir, encoding: 'utf8'
 });
 assert(movieEditorSmoke.status === 0, `Movie editor smoke failed:\n${movieEditorSmoke.stderr || movieEditorSmoke.stdout}`);
+const collectionReadsSmoke = spawnSync(process.execPath, ['tools/collection-reads-smoke.mjs'], {
+  cwd: rootDir, encoding: 'utf8'
+});
+assert(collectionReadsSmoke.status === 0, `Collection reads smoke failed:\n${collectionReadsSmoke.stderr || collectionReadsSmoke.stdout}`);
 checkContextJournalUpdated();
 await checkNoTemporaryRootArtifacts();
 await checkStaticGuards();

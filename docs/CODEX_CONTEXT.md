@@ -175,6 +175,8 @@ Read `docs/SERVER_RUNTIME.md` before changing portable routing, Docker migration
 
 ## Client Ownership
 
+Complete catalog/profile/import reads reuse `fetchAllSupabaseRows` and its `{data,error}` adapter `fetchAllSupabaseRowsResult`, also injected into `user-page.js`. Callers supply a unique parent-row ordering key; movie-by-ID queries use 200-ID batches. Results enter state/caches only after all pages/batches succeed. Personal collection loaders retain their captured user ID throughout paging and check it before updating state.
+
 `app.js` is still the main application file. It owns:
 
 - Supabase client setup;

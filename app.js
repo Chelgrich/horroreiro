@@ -1170,17 +1170,23 @@ async function fetchMoviesByIdsWithSelect(movieIds = [], selectQuery = MOVIE_CAT
   }
 
   const { data, error } = await runMovieSelectWithOptionalColumns(
-    currentSelectQuery => {
-      let query = supabaseClient
-        .from('movies')
-        .select(currentSelectQuery)
-        .in('id', missingMovieIds);
+    async currentSelectQuery => {
+      const rows = [];
+      for (let index = 0; index < missingMovieIds.length; index += SUPABASE_ID_QUERY_CHUNK_SIZE) {
+        let query = supabaseClient
+          .from('movies')
+          .select(currentSelectQuery)
+          .in('id', missingMovieIds.slice(index, index + SUPABASE_ID_QUERY_CHUNK_SIZE))
+          .order('id', { ascending: true });
 
-      if (String(currentSelectQuery || '').includes('movie_genres')) {
-        query = query.order('position', { foreignTable: 'movie_genres', ascending: true });
+        if (String(currentSelectQuery || '').includes('movie_genres')) {
+          query = query.order('position', { foreignTable: 'movie_genres', ascending: true });
+        }
+        const { data, error } = await query;
+        if (error) return { data: null, error };
+        rows.push(...(data || []));
       }
-
-      return query;
+      return { data: rows, error: null };
     },
     selectQuery
   );
@@ -1248,6 +1254,14 @@ async function fetchAllSupabaseRows(createQuery, pageSize = 1000) {
   }
 
   return rows;
+}
+
+async function fetchAllSupabaseRowsResult(createQuery) {
+  try {
+    return { data: await fetchAllSupabaseRows(createQuery), error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
 }
 
 const ADMIN_COMPLETENESS_MOVIE_SELECT = `
@@ -8910,7 +8924,7 @@ function updateLocalMovieRatingStats(movieId, nextRating, previousRating = null)
 }
 
 const LETTERBOXD_IMPORT_PREVIEW_LIMIT = 8;
-const LETTERBOXD_IMPORT_QUERY_CHUNK_SIZE = 200;
+const SUPABASE_ID_QUERY_CHUNK_SIZE = 200;
 let letterboxdImportToolsPromise = null;
 let adminActionToolsPromise = null;
 let personPlaceholderToolsPromise = null;
@@ -9819,15 +9833,12 @@ async function fetchLetterboxdImportMatchMovies() {
     return letterboxdImportMatchMoviesPromise;
   }
 
-  letterboxdImportMatchMoviesPromise = supabaseClient
+  letterboxdImportMatchMoviesPromise = fetchAllSupabaseRows(() => supabaseClient
     .from('movies')
     .select(MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT)
     .order('title', { ascending: true })
-    .then(({ data, error }) => {
-      if (error) {
-        throw error;
-      }
-
+    .order('id', { ascending: true }))
+    .then(data => {
       letterboxdImportMatchMovies = data || [];
       return letterboxdImportMatchMovies;
     })
@@ -9846,8 +9857,8 @@ async function fetchCurrentUserRatingsForMovieIds(movieIds, userId) {
 
   const rows = [];
 
-  for (let index = 0; index < movieIds.length; index += LETTERBOXD_IMPORT_QUERY_CHUNK_SIZE) {
-    const chunk = movieIds.slice(index, index + LETTERBOXD_IMPORT_QUERY_CHUNK_SIZE);
+  for (let index = 0; index < movieIds.length; index += SUPABASE_ID_QUERY_CHUNK_SIZE) {
+    const chunk = movieIds.slice(index, index + SUPABASE_ID_QUERY_CHUNK_SIZE);
     const { data, error } = await supabaseClient
       .from('movie_ratings')
       .select('movie_id, user_id, rating')
@@ -12290,11 +12301,12 @@ function hasMovieEditorPayload(movie) {
 
 async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = 'catalog' } = {}) {
   const { data, error } = await runMovieSelectWithOptionalColumns(
-    selectQuery => supabaseClient
+    selectQuery => fetchAllSupabaseRowsResult(() => supabaseClient
       .from('movies')
       .select(selectQuery)
       .order('title', { ascending: true })
-      .order('position', { foreignTable: 'movie_genres', ascending: true }),
+      .order('id', { ascending: true })
+      .order('position', { foreignTable: 'movie_genres', ascending: true })),
     getMovieSelectByPurpose(purpose)
   );
 
@@ -12468,9 +12480,10 @@ function loadDeferredCatalogUserState({
 }
 
 async function fetchMovieRatingStats() {
-  const { data, error } = await supabaseClient
+  const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
     .from('movie_rating_stats')
-    .select('movie_id, average_rating, votes_count, rating_sum');
+    .select('movie_id, average_rating, votes_count, rating_sum')
+    .order('movie_id', { ascending: true }));
 
   if (error) {
     console.warn('Не удалось загрузить агрегаты оценок, используем fallback:', error);
@@ -12504,14 +12517,13 @@ async function fetchMovieRatingStatsForMovie(movieId) {
 }
 
 async function fetchFullMovieRatingsFallback() {
-  const { data, error } = await supabaseClient
+  const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
     .from('movie_ratings')
-    .select('movie_id, user_id, rating');
+    .select('movie_id, user_id, rating')
+    .order('id', { ascending: true }));
 
   if (error) {
     console.error('Ошибка загрузки оценок фильмов:', error);
-    setKnownMovieRatingRows([]);
-    applyMovieRatingStatsRows([]);
     return false;
   }
 
@@ -12527,15 +12539,14 @@ async function fetchFullMovieRatingsForMovieFallback(movieId) {
     return false;
   }
 
-  const { data, error } = await supabaseClient
+  const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
     .from('movie_ratings')
     .select('movie_id, user_id, rating')
-    .eq('movie_id', normalizedMovieId);
+    .eq('movie_id', normalizedMovieId)
+    .order('id', { ascending: true }));
 
   if (error) {
     console.error('Ошибка загрузки оценок фильма:', error);
-    removeKnownMovieRatingRows(row => String(row.movie_id) === normalizedMovieId);
-    upsertMovieRatingStatsRows([], [normalizedMovieId]);
     return false;
   }
 
@@ -12558,14 +12569,16 @@ async function fetchCurrentUserRatings() {
   }
 
   const activeUserId = currentUser.id;
-  const { data, error } = await supabaseClient
+  const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
     .from('movie_ratings')
     .select('movie_id, user_id, rating')
-    .eq('user_id', activeUserId);
+    .eq('user_id', activeUserId)
+    .order('id', { ascending: true }));
+
+  if (currentUser?.id !== activeUserId) return;
 
   if (error) {
     console.error('Ошибка загрузки оценок текущего пользователя:', error);
-    setKnownMovieRatingRows([]);
     return;
   }
 
@@ -12613,16 +12626,17 @@ async function fetchMovieWatchlist() {
     return;
   }
 
-  const { data, error } = await supabaseClient
+  const activeUserId = currentUser.id;
+  const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
     .from('movie_watchlist')
     .select('movie_id, user_id')
-    .eq('user_id', currentUser.id);
+    .eq('user_id', activeUserId)
+    .order('id', { ascending: true }));
+
+  if (currentUser?.id !== activeUserId) return;
 
   if (error) {
     console.error('Ошибка загрузки watchlist:', error);
-    allMovieWatchlist = [];
-    rebuildCurrentUserWatchlistIndex();
-    markCatalogDataChanged();
     return;
   }
 
@@ -12666,14 +12680,13 @@ async function fetchMovieWatchlistForCurrentUser(movieId) {
 }
 
 async function fetchCatalogReviewSummary() {
-  const { data, error } = await supabaseClient
+  const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
     .from('movie_reviews')
-    .select('movie_id');
+    .select('movie_id')
+    .order('id', { ascending: true }));
 
   if (error) {
     console.error('Ошибка загрузки сводки рецензий:', error);
-    catalogReviewedMovieIds = new Set();
-    markCatalogDataChanged();
     return;
   }
 
@@ -12701,10 +12714,11 @@ async function fetchCatalogProfileActivityMovieIds(userId, activityKey) {
   }
 
   if (activityKey === 'ratings') {
-    const { data, error } = await supabaseClient
+    const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
       .from('movie_ratings')
       .select('movie_id, rating')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .order('id', { ascending: true }));
 
     throwIfSupabaseError(error);
 
@@ -12725,10 +12739,11 @@ async function fetchCatalogProfileActivityMovieIds(userId, activityKey) {
   }
 
   if (activityKey === 'reviews') {
-    const { data, error } = await supabaseClient
+    const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
       .from('movie_reviews')
       .select('movie_id')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .order('id', { ascending: true }));
 
     throwIfSupabaseError(error);
 
@@ -12736,14 +12751,16 @@ async function fetchCatalogProfileActivityMovieIds(userId, activityKey) {
   }
 
   const [watchlistResult, ratingsResult] = await Promise.all([
-    supabaseClient
+    fetchAllSupabaseRowsResult(() => supabaseClient
       .from('movie_watchlist')
       .select('movie_id')
-      .eq('user_id', userId),
-    supabaseClient
+      .eq('user_id', userId)
+      .order('id', { ascending: true })),
+    fetchAllSupabaseRowsResult(() => supabaseClient
       .from('movie_ratings')
       .select('movie_id')
       .eq('user_id', userId)
+      .order('id', { ascending: true }))
   ]);
 
   throwIfSupabaseError(watchlistResult.error);
@@ -18986,6 +19003,7 @@ let userPageController = null;
 function getUserPageControllerContext() {
   return {
     userPage,
+    fetchAllSupabaseRowsResult,
     supabaseClient,
     getCurrentUser: () => currentUser,
     hasWarmStartedPageDom: hasWarmStartedSecondaryPageDom,
