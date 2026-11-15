@@ -120,6 +120,27 @@ try {
   );
   await waitForText(`http://127.0.0.1:${port}/sitemap.xml`, '<urlset', 'sitemap');
 
+  for (const path of ['/package.json', '/server/runtime.js', '/functions/_seo-utils.js', '/node_modules/sharp/package.json']) {
+    const response = await fetch(`http://127.0.0.1:${port}${path}`);
+    assert(response.status === 404, `private container file ${path} must return 404`);
+    await response.body?.cancel();
+  }
+  const declaredLarge = await fetch(`http://127.0.0.1:${port}/env`, { method: 'POST', body: 'x'.repeat(65537) });
+  assert(declaredLarge.status === 413, 'declared large HTTP request must return 413');
+  await declaredLarge.body?.cancel();
+  let sent = 0;
+  const streamedLarge = await fetch(`http://127.0.0.1:${port}/not-a-route`, {
+    method: 'POST', duplex: 'half', body: new ReadableStream({
+      pull(controller) {
+        if (sent++ < 4) controller.enqueue(new Uint8Array(32768));
+        else controller.close();
+      }
+    })
+  });
+  assert(streamedLarge.status === 413, 'chunked large HTTP request must return 413');
+  await streamedLarge.body?.cancel();
+  await waitForText(`http://127.0.0.1:${port}/env`, 'docker-smoke', 'server survives rejected requests');
+
   console.log('Docker runtime smoke passed.');
 } finally {
   if (started) {

@@ -166,6 +166,7 @@ All HTML-like app shell responses should be no-store.
 - provides a Cloudflare-compatible context to existing `functions/*` handlers;
 - implements `env.ASSETS.fetch` through local file reads;
 - serves only the explicit `publicStaticAssets` inventory from the project root; private files and symlink/junction aliases return 404. Add new published shell/script/style/media paths to this list;
+- bounds non-GET/HEAD bodies to 64 KiB before routing; the Node adapter returns 413 and closes oversized requests. Storage uploads bypass this adapter;
 - is started locally by `server/server.mjs`, wrapped by `Dockerfile`, and checked by `tools/portable-runtime-smoke.mjs` plus optional `tools/docker-runtime-smoke.mjs`.
 - can be checked from the outside after deployment with `tools/deployed-runtime-smoke.mjs`.
 - release candidates can be statically preflighted with `tools/container-release-preflight.mjs`.

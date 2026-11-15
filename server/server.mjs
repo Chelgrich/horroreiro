@@ -19,12 +19,14 @@ const server = createServer(async (nodeRequest, nodeResponse) => {
       head: nodeRequest.method === 'HEAD'
     });
   } catch (error) {
-    console.error('Portable runtime request failed:', error);
-    nodeResponse.writeHead(500, {
+    const tooLarge = error?.statusCode === 413;
+    if (!tooLarge) console.error('Portable runtime request failed:', error);
+    nodeResponse.writeHead(tooLarge ? 413 : 500, {
+      ...(tooLarge ? { Connection: 'close' } : {}),
       'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
       'Content-Type': 'text/plain; charset=utf-8'
     });
-    nodeResponse.end('Internal Server Error');
+    nodeResponse.end(tooLarge ? 'Payload Too Large' : 'Internal Server Error');
   }
 });
 

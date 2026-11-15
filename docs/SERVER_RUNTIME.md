@@ -58,6 +58,7 @@ Static fallback:
 
 - Other `GET`/`HEAD` paths are served only when explicitly listed in `publicStaticAssets` in `server/runtime.js`. Keep this list current when publishing an app shell, script, stylesheet, icon, or static OG image.
 - Files in `deploy`, `server`, `functions`, `node_modules`, docs, and unlisted root paths are private even when present on disk. Symlink/junction aliases into private files and malformed URL encodings return 404.
+- The Node HTTP adapter accepts at most 64 KiB for non-GET/HEAD request bodies, checked before routing for both declared and chunked uploads. Oversized requests receive 413 with a closed connection. Current server POSTs are JSON admin operations; browser image uploads go directly to Supabase Storage.
 - HTML files are `no-store`.
 - app JS/CSS assets are `public, max-age=0, must-revalidate`.
 - long-lived immutable headers are kept for `/icons/*`, `/favicon.ico`, `/insidious.webp`, and `/og-preview.jpg`.

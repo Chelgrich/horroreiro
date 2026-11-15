@@ -38,6 +38,7 @@ import { handleMovieSocialImageRequest } from './movie-social-image.js';
 import { handlePreviewTestRequest } from './preview-test.js';
 
 const defaultRootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const MAX_REQUEST_BODY_BYTES = 64 * 1024;
 
 const contentTypes = {
   '.css': 'text/css; charset=utf-8',
@@ -507,9 +508,18 @@ export async function createRequestFromNodeMessage(nodeRequest) {
   };
 
   if (method !== 'GET' && method !== 'HEAD') {
+    if (Number(nodeRequest.headers['content-length']) > MAX_REQUEST_BODY_BYTES) {
+      throw Object.assign(new Error('Payload Too Large'), { statusCode: 413 });
+    }
     const chunks = [];
+    let bytes = 0;
 
-    for await (const chunk of nodeRequest) {
+    // Keep the socket alive long enough for the HTTP adapter to send its 413.
+    for await (const chunk of nodeRequest.iterator({ destroyOnReturn: false })) {
+      bytes += Buffer.byteLength(chunk);
+      if (bytes > MAX_REQUEST_BODY_BYTES) {
+        throw Object.assign(new Error('Payload Too Large'), { statusCode: 413 });
+      }
       chunks.push(Buffer.from(chunk));
     }
 

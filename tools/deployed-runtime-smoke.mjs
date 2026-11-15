@@ -91,6 +91,8 @@ async function fetchWithTimeout(url, options) {
 
   try {
     const response = await fetch(url, {
+      method: options.method || 'GET',
+      body: options.body,
       headers: {
         'Cache-Control': 'no-cache',
         'User-Agent': DEFAULT_USER_AGENT,
@@ -319,6 +321,16 @@ async function checkAssets(baseUrl, version, options) {
   const styleResult = await expectText(baseUrl, '/styles.css', '--color', 'root stylesheet', options);
 
   expectCacheIncludes(styleResult.response, 'must-revalidate', 'root stylesheet');
+
+  for (const path of ['/package.json', '/server/runtime.js', '/functions/_seo-utils.js', '/node_modules/sharp/package.json', '/deploy/yandex/production.env.local']) {
+    const { response } = await requestPath(baseUrl, path, { ...options, method: 'HEAD', readBody: false });
+    assert(response.status === 404, `private file ${path}: expected 404, got ${response.status}`);
+    expectCacheIncludes(response, 'no-store', `private file ${path}`);
+  }
+  const { response: largeBody } = await requestPath(baseUrl, '/env', {
+    ...options, method: 'POST', body: 'x'.repeat(65537), readBody: false
+  });
+  assert(largeBody.status === 413, `large HTTP body: expected 413, got ${largeBody.status}`);
 }
 
 async function checkSitemap(baseUrl, options) {

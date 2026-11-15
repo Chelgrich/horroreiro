@@ -1,10 +1,11 @@
-import { createPortableRuntime } from '../server/runtime.js';
+import { createPortableRuntime, createRequestFromNodeMessage } from '../server/runtime.js';
 import { fetchMovieBySlugOrId } from '../functions/_seo-utils.js';
 import { handleMovieSocialImageRequest } from '../server/movie-social-image.js';
 import sharp from 'sharp';
 import { mkdtemp, mkdir, writeFile, symlink, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
+import { Readable } from 'node:stream';
 
 const runtime = createPortableRuntime({
   env: {
@@ -109,6 +110,36 @@ for (const path of ['/boot-loader.js', '/app-script-loader.js', '/styles.css', '
   const response = await fetchPortable(path);
   assert(response.status === 200, `public static ${path}: expected 200, got ${response.status}`);
 }
+
+function nodeMessage(chunks, headers = {}) {
+  return Object.assign(Readable.from(chunks), { method: 'POST', url: '/env', headers: { host: 'portable.test', ...headers } });
+}
+const smallBody = '{"movieId":"test"}';
+const smallRequest = await createRequestFromNodeMessage(nodeMessage([Buffer.from(smallBody)]));
+assert(await smallRequest.text() === smallBody, 'small HTTP bodies must be preserved');
+const maxBody = await createRequestFromNodeMessage(nodeMessage([Buffer.alloc(64 * 1024)]));
+assert((await maxBody.arrayBuffer()).byteLength === 64 * 1024, '64 KiB HTTP bodies must be accepted');
+let bodyChunks = 0;
+let bodyRejected = false;
+try {
+  await createRequestFromNodeMessage(nodeMessage((function* () {
+    for (let i = 0; i < 128; i += 1) { bodyChunks += 1; yield Buffer.alloc(1024); }
+  })()));
+} catch (error) {
+  bodyRejected = error.statusCode === 413;
+}
+assert(bodyRejected && bodyChunks < 70, 'oversized streamed HTTP bodies must stop early with 413');
+let declaredBodyRead = false;
+bodyRejected = false;
+try {
+  await createRequestFromNodeMessage(nodeMessage((function* () {
+    declaredBodyRead = true;
+    yield Buffer.from('unneeded');
+  })(), { 'content-length': String(1024 * 1024) }));
+} catch (error) {
+  bodyRejected = error.statusCode === 413;
+}
+assert(bodyRejected && !declaredBodyRead, 'oversized declared HTTP bodies must be rejected before reading');
 
 const sitemapResponse = await withMutedConsoleError(() => fetchPortable('/sitemap.xml'));
 const sitemapText = await sitemapResponse.text();

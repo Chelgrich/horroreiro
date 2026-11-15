@@ -12,6 +12,25 @@ Format:
 - Follow-up:
 ```
 
+## 2026-11-15 - Bound Node request bodies before routing
+
+- Files:
+  - `server/runtime.js`
+  - `server/server.mjs`
+  - `tools/portable-runtime-smoke.mjs`
+  - `tools/docker-runtime-smoke.mjs`
+  - `tools/deployed-runtime-smoke.mjs`
+  - `docs/SERVER_RUNTIME.md`
+  - `docs/CODEX_CONTEXT.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Caps non-GET/HEAD bodies at 64 KiB before route/auth dispatch. Rejects large Content-Length without reading and counts actual streamed bytes independently of headers.
+  - Returns 413/Connection: close without destroying the socket before the response is sent. Small JSON admin requests and direct Supabase Storage uploads preserve their existing paths.
+  - Docker and deployed smoke now verify private server/dependency file denial and oversized-request rejection, alongside normal public routes/assets.
+- Checks:
+  - Red/green portable test reproduces unbounded chunk consumption before the fix; checks early streaming rejection, no reads for oversized declared bodies, exact-limit acceptance, and intact small JSON afterward.
+  - `npm run smoke:docker:required` passes against the real Node entry point: declared and chunked oversized HTTP requests return 413, private files return 404, and the server answers normally afterward.
+
 ## 2026-11-15 - Keep revision environment secrets out of deploy output
 
 - Files:
