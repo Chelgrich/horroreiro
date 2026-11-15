@@ -8,6 +8,7 @@
 - Live baseline: 1963 ratings; an anonymous REST read returned `0-999/1963` (1000 rows), with 963 more on the next page. No schema, API cap, hosting-plan, or production data changes.
 - `tools/collection-reads-smoke.mjs` (included in normal smoke) covers 0/1000/2000/2501 boundaries, tied sort values, profile counts, large ID lookups/import index, late-page failure, and account switching.
 - Verification: full smoke and focused collection smoke passed. The actual shared loader fetched all 1963 public rating rows in two REST pages, matching the server count with no duplicate user/movie pairs. Review also checked the enforced 200-ID bound, optional-column retries, and failure before cache publication. Per-movie social feeds and the local-only ranking fallback remain separate work.
+- Production runtime `73447c23ba0fd826e6b6dd60cb0c0249e99cc4e9`, Yandex revision `bbaerc7agplcvmqupn4h`: normal preflight/portable/full/deploy-output checks passed; gateway switched to the expected version on retry 3, apex/www passed on attempt 1. Deployed profile module uses paged reads. Browser catalog showed 40 of 670; public profile counters matched SQL (257 ratings, 6 active watchlist, 47 reviews), with no console errors. Repository dev/main synchronized; database remained read-only throughout this slice.
 
 ## 2026-11-15 — Atomic movie editor saves
 
