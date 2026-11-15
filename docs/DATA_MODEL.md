@@ -1,6 +1,6 @@
 # Horroreiro Data Model Context
 
-Last updated: 2026-09-17.
+Last updated: 2026-11-15.
 
 This document describes the client-visible data model and operational assumptions. Supabase schema SQL has often been applied manually through the Supabase UI; do not assume old setup SQL files exist or are still authoritative.
 
@@ -304,6 +304,44 @@ Cloudflare Functions:
 - dynamic route functions for app pages and SEO/sitemap.
 
 ## Operational Notes
+
+### Internal movie research
+
+- `year_research_staging` and `production_research_staging` hold operational research results, not public movie page data. Both have RLS enabled with no client policies (deny by default).
+- Neither `PUBLIC`, `anon`, nor `authenticated` may access these tables, including `TRUNCATE`. Only privileged SQL operators and server-side `service_role` callers may read/write them.
+- `save_year_research(uuid,integer,integer,date,text,text,jsonb,text)`, `save_production_research(uuid,text[],text,text,text)`, and `get_empty_production_movies(integer,integer)` are internal RPCs. Their `EXECUTE` grants are revoked from `PUBLIC`, `anon`, and `authenticated`, and retained for `service_role`. They use `SECURITY DEFINER`, so table RLS alone does not protect them.
+- Applied to production project `uogzcozbnosfguyfbvhe` through hosted migration `restrict_internal_research_access` on 2026-11-15. No browser callers exist in this repository; future research tools must use server credentials, never a browser key.
+- An advisor `rls_enabled_no_policy` notice on these two tables is intentional. Do not add public policies to silence it.
+
+Reusable SQL self-check (run as a privileged operator; must complete without an assertion error):
+
+```sql
+do $$
+begin
+  assert not exists (
+    select 1
+    from (values ('public.year_research_staging'), ('public.production_research_staging')) t(name)
+    cross join (values ('anon'), ('authenticated')) r(name)
+    where has_table_privilege(r.name, t.name, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
+      or not (select relrowsecurity from pg_class where oid = t.name::regclass)
+      or not has_table_privilege('service_role', t.name, 'SELECT')
+      or not has_table_privilege('service_role', t.name, 'INSERT')
+  ), 'Research table access regression';
+  assert not exists (
+    select 1
+    from (values
+      ('public.save_year_research(uuid,integer,integer,date,text,text,jsonb,text)'),
+      ('public.save_production_research(uuid,text[],text,text,text)'),
+      ('public.get_empty_production_movies(integer,integer)')
+    ) f(signature)
+    where has_function_privilege('anon', f.signature, 'EXECUTE')
+      or has_function_privilege('authenticated', f.signature, 'EXECUTE')
+      or not has_function_privilege('service_role', f.signature, 'EXECUTE')
+  ), 'Research RPC access regression';
+end $$;
+```
+
+### General maintenance
 
 - If Supabase errors mention missing tables/columns, many client features degrade by setting availability flags.
 - When adding fields edited in the movie modal, also update:

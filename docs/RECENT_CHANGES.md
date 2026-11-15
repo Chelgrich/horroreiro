@@ -12,6 +12,28 @@ Format:
 - Follow-up:
 ```
 
+## 2026-11-15 - Restrict internal Supabase research access and investigate Disk IO
+
+- Files:
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Applied hosted migration `restrict_internal_research_access` directly to production Supabase project `uogzcozbnosfguyfbvhe`; no application deployment is required.
+  - Enabled RLS on `year_research_staging`; both research staging tables now deny all client table privileges, including TRUNCATE. Preserved server-side service-role access and existing data.
+  - Removed public/anonymous/authenticated execution of the two unrestricted SECURITY DEFINER research write RPCs and `get_empty_production_movies`. RLS alone would leave these RPCs accessible.
+  - Disk IO investigation: organization is on Free; Metrics API reports 431,304,704 bytes RAM and roughly 407 MiB swap occupied at the end of a 47.5-second sample. Swap counters increased by about 339 pages/s in and 260 pages/s out. Active swapping is a plausible contributor, not proof of the historical alert's cause.
+  - Database is only 32 MB. Application statement statistics show no temporary spills and almost all reads hit shared buffers. Cumulative database temp writes (~914 GB since February) are historical, not current disk occupancy; do not delete data or add speculative indexes based on that counter.
+- Checks:
+  - Before/after role privilege queries: anon/authenticated lose table and research RPC access; service_role retains it.
+  - Live anonymous REST assertions: both staging reads and all three research RPCs denied; public movie read still succeeds.
+  - Re-ran Security Advisor: no `rls_disabled_in_public` error; no public tables without RLS. The two staging `rls_enabled_no_policy` INFO notices are intentional.
+  - Reviewed database logs, cron jobs, active connections, relation sizes, statement stats, and live host metrics.
+  - Dashboard access restored through IAB: Infrastructure shows Nano, 8/60 connections, 46.5 MB database, 0.30 GB total disk usage. Weekly Disk IO balance minimum is 66%; the final plotted balance is approximately 100%. The budget was not exhausted in the displayed Nov 8-15 week.
+  - Database report over the last 24 hours shows Memory commitment 1.31 GB, flagged Problematic. This is promised virtual allocation, not resident RAM. CPU/IOPS/throughput/connection charts returned "Unable to load data"; Infrastructure summaries and Metrics API remain available.
+- Follow-up:
+  - The historical alert's exact cause is unproven; currently the IO budget has recovered. Try measured application-side reductions first. Consider Pro + Micro only if sustained memory/IO pressure continues; no paid plan or compute settings changed.
+  - Existing security WARNs remain: 20 functions without fixed search_path, intentional/admin-checked SECURITY DEFINER helpers, and leaked-password protection disabled. This was a targeted research-access repair, not a full security audit.
+
 ## 2026-10-05 - Restore social preview poster images
 
 - Files:
