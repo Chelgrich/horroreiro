@@ -143,6 +143,15 @@ try {
   await fetchMovieBySlugOrId(cacheEnv, { slug: 'oldest-movie' });
   assert(movieReads === readsBeforeEvictionCheck + 1, 'SEO cache must evict old entries at its size limit');
 
+  const poster = await sharp({ create: { width: 32, height: 48, channels: 3, background: '#402020' } }).webp().toBuffer();
+  globalThis.fetch = async url => String(url).includes('/rest/v1/')
+    ? Response.json([{ slug: 'preview-smoke', title: 'Preview smoke', poster_url: 'https://posters.test/preview.webp' }])
+    : new Response(poster, { headers: { 'Content-Type': 'image/webp' } });
+  const previewResponse = await cachedRuntime.handleRequest(new Request('http://portable.test/og/movie/preview-smoke.jpg'));
+  const previewBuffer = Buffer.from(await previewResponse.arrayBuffer());
+  const previewMetadata = await sharp(previewBuffer).metadata();
+  assert(previewResponse.status === 200 && previewResponse.headers.get('content-type') === 'image/jpeg', 'social preview must return JPEG');
+  assert(previewMetadata.width === 1200 && previewMetadata.height === 630 && !previewMetadata.isProgressive, 'social preview must remain a 1200x630 baseline JPEG');
 } finally {
   globalThis.fetch = originalFetch;
   Date.now = originalNow;

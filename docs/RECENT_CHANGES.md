@@ -12,6 +12,23 @@ Format:
 - Follow-up:
 ```
 
+## 2026-11-15 - Update vulnerable social image runtime dependency
+
+- Files:
+  - `package.json`
+  - `package-lock.json`
+  - `tools/portable-runtime-smoke.mjs`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Release audit found a reachable high-severity advisory in sharp 0.33.5 / its native image decoders, used by `server/movie-social-image.js`. Upgraded and pinned sharp to 0.35.5 (libvips 8.18.7); no application API changes or new dependency added.
+  - Reviewed upstream 0.35 breaking changes: production already uses Node 24; removed legacy sharp options are not used. The package no longer has an install script. Initial install used `--ignore-scripts`.
+- Checks:
+  - `npm audit --omit=dev`: zero production vulnerabilities.
+  - Added a runtime smoke that renders a WebP poster through `/og/movie/*` and decodes the result to verify 1200x630 non-progressive JPEG output.
+  - `npm run smoke:portable`, `npm run smoke:docker:required`, and an actual JPEG rendering check inside the Linux container pass.
+- Follow-up:
+  - Full audit still reports 5 high and 1 moderate findings in dev-only Vite/Browserslist/PostCSS/source-map/nanoid tooling. They are omitted from the production image; this release does not run Vite or rebuild the committed directors island. Review/update the dev toolchain before its next use, by 2026-11-22. Do not use `audit fix --force`.
+
 ## 2026-11-15 - Reuse public movie SEO reads to reduce Supabase requests
 
 - Files:
