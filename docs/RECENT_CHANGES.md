@@ -12,6 +12,22 @@ Format:
 - Follow-up:
 ```
 
+## 2026-11-15 - Verify runtime hardening production release
+
+- Files:
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Released runtime build `a8147e31fa4f83cd048d8624916d1bd5b6f2272d` through the normal production script; active Yandex revision is `bbaoe4q1t6mtkiu55i19`. Includes public-file allowlisting, bounded/allowlisted poster fetching, private deployment output, and HTTP body limits.
+  - Preserved 128 MiB memory, concurrency 1, 300s execution timeout, private container invocation, and existing Supabase/hosting plans. No schema/data changes in this release.
+- Checks:
+  - Release preflight, portable smoke, static smoke, fake-secret deploy-output smoke, and Linux Docker HTTP smoke pass.
+  - New deployed smoke passes on the gateway, apex, and www on the first attempt. It checks the expected build, public routes/assets, HEAD 404 for private deployment/server/function/dependency paths, and 413 for a 65,537-byte POST.
+  - Retested the original 64 MiB poster-stream failure locally in the current image with networking disabled, read-only filesystem, and a 128 MiB/no-swap cgroup: input cancelled after 10 pulls, fallback returned, process exited successfully (reported cgroup peak 23,511,040 bytes in this isolated sample).
+  - A real public movie social image returns a non-fallback 122,632-byte baseline JPEG at 1200x630. Browser catalog renders 670 results / first 40 cards with no captured console warnings/errors.
+  - `main` and `dev` contain the runtime commits. This entry is release verification only; its later documentation commit does not change the active runtime build.
+- Follow-up:
+  - Remaining audit work includes atomic movie saves, paginated collection reads, user-state/cache races, ranks aggregation, eager gallery reads, duplicate CSS fetches, startup size reporting, and dev-toolchain advisories. These changes do not establish sustained-load capacity or resolve the historical Disk IO alert by themselves.
+
 ## 2026-11-15 - Bound Node request bodies before routing
 
 - Files:
