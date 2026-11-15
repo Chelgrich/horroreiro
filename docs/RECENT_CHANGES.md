@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-15 — Director punctuation on movie detail pages
+
+- Removed whitespace inside/between the linked director templates that HTML collapsed into visible spaces before commas. Separators remain comma + one space; names, escaping, links and stored data are unchanged.
+- Checked the actual formatter with two linked directors: visible text changed from `First , Second` to `First, Second`. Full smoke and production verification follow with the release.
+
 ## 2026-11-15 — Align early and full catalog scroll restoration
 
 - Browser verification of `e2cfca2` showed the early snapshot aligning the first card to the viewport top, then the browser restoring a different exact scroll offset after startup (observed 68–80 px jump). Both early and full-app restorers now prefer a saved finite nonnegative offset; the card anchor is a fallback when that offset is missing/invalid. Missing position no longer becomes zero through `Number(null)`. User-intent cancellation remains intact.

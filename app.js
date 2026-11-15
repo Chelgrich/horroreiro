@@ -2168,11 +2168,7 @@ function getMoviePageDirectorHtml(movie) {
     return movie?.director ? escapeHtml(movie.director) : '-';
   }
 
-  return directors.map(director => `
-    <a class="movie-page-meta-link" href="${escapeHtml(buildDirectorPageUrl(director))}">
-      ${escapeHtml(getDirectorDisplayName(director))}
-    </a>
-  `).join(', ');
+  return directors.map(director => `<a class="movie-page-meta-link" href="${escapeHtml(buildDirectorPageUrl(director))}">${escapeHtml(getDirectorDisplayName(director))}</a>`).join(', ');
 }
 
 function getDirectorPlaceholderSvgHtml(director, iconClassName = 'director-page-photo-placeholder-icon') {
