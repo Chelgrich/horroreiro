@@ -3,7 +3,7 @@
 ## 2026-11-15 — Director punctuation on movie detail pages
 
 - Removed whitespace inside/between the linked director templates that HTML collapsed into visible spaces before commas. Separators remain comma + one space; names, escaping, links and stored data are unchanged.
-- Checked the actual formatter with two linked directors: visible text changed from `First , Second` to `First, Second`. Full smoke and production verification follow with the release.
+- Checked the actual formatter with two linked directors: visible text changed from `First , Second` to `First, Second`. Release preflight, portable/full/deploy-output smokes and gateway/apex/www checks passed for runtime `9d902d3aa3b45af58777148cf7e855517ca157d3`, Yandex revision `bba709vtf2hgueaj786b`. The www smoke passed on retry after a transport fetch failure. Browser verification of that deployed build on `/movie/svezhee-myaso-2026` confirmed 14 linked directors and no whitespace before commas; screenshot saved at `C:/Temp/horroreiro-director-spacing.png`.
 
 ## 2026-11-15 — Align early and full catalog scroll restoration
 
