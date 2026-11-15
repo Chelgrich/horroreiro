@@ -1,5 +1,11 @@
 # Recent Changes
 
+## 2026-11-15 — Catalog startup and rating failure recovery
+
+- Fixed both direct `requestAnimationFrame(syncOpenExternalLinksLayouts)` registrations. The browser timestamp was being treated as a DOM root on warm catalog restore and expanded-card rerender, throwing `rootElement.querySelectorAll is not a function`. Frame wrappers now call the layout function with its intended default root.
+- Failed rating/watchlist writes now show an error message rather than only logging to the console. Failed writes retain previous local state and release the request guard for a retry.
+- `tools/catalog-return-smoke.mjs` reproduces the original error using numeric browser timestamps in both actual caller functions. It also exercises the actual cold catalog lazy rating entry/write bridge without detail modules, including a failed write and visible error feedback. Focused smoke passes; network access investigation continues separately.
+
 ## 2026-11-15 — Social module state ownership
 
 - Moved review/comment row ownership and social table-availability flags fully into `movie-social.js`. Removed app-level duplicates, getter/setter bridges, context synchronization and its export wrappers. Auth, role, current movie and author ratings are read from their owners when needed.

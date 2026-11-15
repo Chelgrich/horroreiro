@@ -6941,7 +6941,7 @@ function bindRestoredCatalogDomState() {
   bindRestoredCatalogPosterLoadStates();
   bindCatalogEmptyStateEvents();
 
-  requestAnimationFrame(syncOpenExternalLinksLayouts);
+  requestAnimationFrame(() => syncOpenExternalLinksLayouts());
 }
 
 function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
@@ -9399,12 +9399,15 @@ function getMovieUserStateControllerContext() {
     showWatchlistFeedback: showMovieWatchlistFeedback,
     onWatchlistToggleError: error => {
       console.error('Ошибка переключения watchlist:', error);
+      showAppMessage('Не удалось обновить список. Проверьте соединение и попробуйте ещё раз.', 'error', true);
     },
     onRemoveRatingError: error => {
       console.error('Ошибка удаления оценки фильма:', error);
+      showAppMessage('Не удалось удалить оценку. Проверьте соединение и попробуйте ещё раз.', 'error', true);
     },
     onSaveRatingError: error => {
       console.error('Ошибка сохранения оценки фильма:', error);
+      showAppMessage('Не удалось сохранить оценку. Проверьте соединение и попробуйте ещё раз.', 'error', true);
     }
   };
 }
@@ -16761,7 +16764,7 @@ function rerenderMovieCard(
   existingCard.replaceWith(newCard);
 
   if (wasExternalLinksExpanded) {
-    requestAnimationFrame(syncOpenExternalLinksLayouts);
+    requestAnimationFrame(() => syncOpenExternalLinksLayouts());
   }
 
   if (!preserveCardTop) {

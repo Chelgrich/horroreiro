@@ -11,6 +11,69 @@ function functionSource(name) {
   assert.ok(start > 0 && end > start, `Missing function ${name}`);
   return source.slice(start, end);
 }
+
+// Browser rAF callbacks receive a timestamp, never a DOM root.
+const frames = [];
+let layouts = 0;
+const layoutRoot = { querySelectorAll: () => { layouts += 1; return []; } };
+const layoutSandbox = vm.createContext({
+  container: layoutRoot,
+  bindRestoredCatalogPosterLoadStates() {}, bindCatalogEmptyStateEvents() {},
+  requestAnimationFrame: callback => frames.push(callback)
+});
+for (const name of ['syncOpenExternalLinksLayouts', 'bindRestoredCatalogDomState']) {
+  vm.runInContext(functionSource(name), layoutSandbox);
+}
+layoutSandbox.bindRestoredCatalogDomState();
+for (const callback of frames.splice(0)) callback(1234.5);
+assert.equal(layouts, 1, 'Warm catalog layout must use its DOM root rather than the rAF timestamp');
+const oldCard = { getBoundingClientRect: () => ({ top: 10 }),
+  classList: { contains: name => name === 'has-open-external-links' }, replaceWith() {} };
+const newCard = { classList: { contains: () => false, add() {} },
+  querySelector: () => ({ setAttribute() {}, classList: { add() {} } }) };
+Object.assign(layoutSandbox, {
+  getCatalogMovieById: () => ({ id: 'movie' }), createMovieCard: () => newCard,
+  persistCatalogDomSnapshot() {}
+});
+layoutRoot.querySelector = () => oldCard;
+vm.runInContext(functionSource('rerenderMovieCard'), layoutSandbox);
+layoutSandbox.rerenderMovieCard('movie', { preserveCardTop: false });
+for (const callback of frames.splice(0)) callback(2345.6);
+assert.equal(layouts, 2, 'An expanded card rerender must also discard the rAF timestamp');
+
+// The actual lazy entry and write bridge must work directly from a cold catalog.
+let writeError = null;
+let ratingRenders = 0;
+const messages = [];
+const ratingSandbox = vm.createContext({
+  window: {}, console: { error() {} },
+  movieUserStateController: null, movieUserStateControllerPromise: null,
+  loadUserStateModule: async () => ({ createMovieUserStateController }),
+  currentUser: { id: 'fixture-user' }, allMovieRatings: [],
+  ratingRequestInFlight: new Set(), watchlistRequestInFlight: new Set(),
+  supabaseClient: { from: () => ({ upsert: async () => ({ error: writeError }) }) },
+  syncCatalogSessionSnapshotMovieState() {}, isMovieWatchedByCurrentUser: () => false,
+  hasMovieWatchlistRecord: () => false,
+  getCurrentUserRating: () => ratingSandbox.allMovieRatings[0]?.rating ?? null,
+  addMovieToWatchlist() {}, removeMovieFromWatchlist() {}, deleteCurrentUserMovieRating() {},
+  rebuildMovieRatingIndexes() {}, updateLocalMovieRatingStats() {},
+  MOVIE_MUTATION_RERENDER_PRESETS: { watchlistToggle() {}, ratingChange: () => { ratingRenders += 1; } },
+  showMovieRatingFeedback() {}, showMovieWatchlistFeedback() {},
+  showAppMessage: (...args) => messages.push(args)
+});
+for (const name of ['getMovieUserStateControllerContext', 'ensureMovieUserStateControllerLoaded', 'upsertCurrentUserMovieRating', 'saveUserMovieRating']) {
+  vm.runInContext(functionSource(name).replace("import(getLazyFeatureModuleUrl('movie-user-state.js'))", 'loadUserStateModule()'), ratingSandbox);
+}
+await ratingSandbox.saveUserMovieRating('movie', 8);
+assert.equal(ratingSandbox.allMovieRatings[0].rating, 8, 'Rating must save before any detail-page module is loaded');
+assert.equal(ratingRenders, 1);
+writeError = new TypeError('Failed to fetch');
+await ratingSandbox.saveUserMovieRating('movie', 7);
+assert.equal(ratingSandbox.allMovieRatings[0].rating, 8, 'Failed writes must retain the previous rating');
+assert.equal(ratingRenders, 1, 'A failed write must not report success');
+assert.equal(messages.length, 1, 'A failed rating must show feedback rather than silently do nothing');
+assert.equal(messages[0][1], 'error');
+assert.equal(ratingSandbox.ratingRequestInFlight.size, 0, 'Failed writes must allow a retry');
 const storage = () => {
   const values = new Map();
   return { get length() { return values.size; }, key: index => [...values.keys()][index],
