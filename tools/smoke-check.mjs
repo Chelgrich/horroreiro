@@ -947,7 +947,7 @@ async function checkStaticGuards() {
       appJs.includes('const COMPANY_ADMIN_SELECT = `') &&
       appJs.includes('const COMPANY_ROLES = {') &&
       appJs.includes('function fetchCompanyByNameKey(') &&
-      appJs.includes("String(insertError.code || '') === '23505'") &&
+      appJs.includes("rpc('horroreiro_save_movie'") &&
       appJs.includes('fetchMovieCompanyRowsForRole') &&
       appJs.includes('fetchMovieCompanyRowsForCompany') &&
       appJs.includes('fetchMovieCompanyRowsForMovie') &&
@@ -998,19 +998,17 @@ async function checkStaticGuards() {
     movieEditorJs.includes('function buildMovieChangedFields(') &&
       movieEditorJs.includes('function getMovieUpdateRelationState(') &&
       movieEditorJs.includes('function getMovieUpdateSavePlan(') &&
-      movieEditorJs.includes('async function updateMovieRecord(') &&
+      movieEditorJs.includes('async function saveMovieTransaction(') &&
       !appJs.includes('function buildMovieChangedFields('),
     'movie-editor.js: movie update diff/relation/save-plan/write helpers must stay outside app.js'
   );
   assert(
-    movieEditorJs.includes('async function insertMovieRecord(') &&
-      movieEditorJs.includes('async function saveMovieCreateRelatedData(') &&
-      movieEditorJs.includes('async function saveMovieUpdateRelatedData(') &&
+    movieEditorJs.includes(".rpc('horroreiro_save_movie'") &&
+      !movieEditorJs.includes(".from('movies')") &&
       movieEditorJs.includes('async function handleMovieCreatePostSave(') &&
       movieEditorJs.includes('async function handleMovieUpdatePostSave(') &&
       movieEditorJs.includes('async function submitMovieCreate(') &&
       movieEditorJs.includes('async function submitMovieUpdate(') &&
-      movieEditorJs.includes(".from('movies')") &&
       !appJs.includes('movieEditor.insertMovieRecord(') &&
       !appJs.includes('movieEditor.updateMovieRecord(') &&
       !appJs.includes('movieEditor.saveMovieCreateRelatedData(') &&
@@ -1073,7 +1071,7 @@ async function checkStaticGuards() {
       movieEditorJs.includes('function getMoviePosterImagesDraftDropResult(') &&
       movieEditorJs.includes('function resolveMoviePosterImageDraftEntries(') &&
       movieEditorJs.includes('function resolveMoviePosterImagesForSave(') &&
-      movieEditorJs.includes('function getMovieCreateSavePlan(') &&
+      movieEditorJs.includes('function getMovieUpdateSavePlan(') &&
       movieEditorJs.includes('function splitMoviePosterImageEntriesForSave(') &&
       appJs.includes('movieEditorController?.getMoviePosterImagesDraftListHtml({') &&
       appJs.includes('movieEditorController?.getMoviePosterImagesDraftClickAction(event)') &&
@@ -1842,6 +1840,10 @@ async function checkMovieCommentThreadRenderingContract() {
 checkJavaScriptSyntax();
 checkAssetSizeReport();
 checkPortableRuntimeSmoke();
+const movieEditorSmoke = spawnSync(process.execPath, ['tools/movie-editor-smoke.mjs'], {
+  cwd: rootDir, encoding: 'utf8'
+});
+assert(movieEditorSmoke.status === 0, `Movie editor smoke failed:\n${movieEditorSmoke.stderr || movieEditorSmoke.stdout}`);
 checkContextJournalUpdated();
 await checkNoTemporaryRootArtifacts();
 await checkStaticGuards();

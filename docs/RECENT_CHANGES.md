@@ -1,5 +1,14 @@
 # Recent Changes
 
+## 2026-11-15 — Atomic movie editor saves
+
+- Movie creation/updates and manual-similar edits use `horroreiro_save_movie`: fields, director trigger, companies, genres/countries, reciprocal similar links, and gallery rows commit together. No client delete-then-insert fallback remains in these save paths.
+- Create retries retain the generated movie ID; repeating a committed create returns the existing movie. Pending uploads are reused per File. Refresh errors after commit report that the movie was saved.
+- Storage uploads precede SQL. Old/unattached objects are retained because deleting after an ambiguous response could remove a live poster; cleanup needs a separate reference-aware workflow.
+- Hosted migration `atomic_movie_editor_save` adds an admin-guarded SECURITY INVOKER RPC, retains RLS, and removes client TRUNCATE/REFERENCES/TRIGGER on the affected movie/company/gallery/similar tables. The small admin save path is serialized with a transaction advisory lock for reciprocal/shared-name consistency. Only company roles present in the patch are rebuilt; intentional empty markers do not become companies.
+- Regression checks: `tools/movie-editor-smoke.mjs` (included in `npm run smoke`) and rollback-only `tools/supabase-movie-save-smoke.sql`.
+- Verified hosted SQL rollback smoke and existing access smoke; 670 movie rows and their digest were unchanged, no test fixtures remained, and no new Security Advisor findings appeared. The client smoke covers a lost response, a request still running after timeout, upload reuse, and post-commit refresh failure.
+
 Keep this file current. Add a short entry after each behavior, architecture, data, routing, dependency, or important UI change.
 
 Format:

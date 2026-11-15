@@ -40,6 +40,12 @@ Related movie data:
 
 Catalog lookup and relation writes:
 
+- `horroreiro_save_movie(p_movie_id uuid, p_fields jsonb, p_relations jsonb, p_create boolean)` is the movie editor write boundary. SECURITY INVOKER, fixed empty search path, authenticated EXECUTE, and an `auth.uid()`/`is_admin()` guard preserve table RLS. Allowed field keys are explicit; updates cannot alter ID, owner, timestamps, ratings, or unrelated classification fields.
+- A save locks/serializes the small admin save path and commits movie fields, existing director trigger, company links, genre/country links, reciprocal manual-similar links, and gallery rows together. Omitted fields/relations are preserved; arrays replace those links (empty clears). Relation keys: `genres`, `countries`, `similar` (movie UUID strings), `posters` (additional image URLs). Company links follow movie company arrays; directors follow `movies.director`.
+- Creation uses a client-generated UUID retained for retries. An existing create ID returns its saved `{id, slug}` without applying the payload again. Updating an absent movie raises an error. Use `tools/supabase-movie-save-smoke.sql` for rollback-only admin/user/idempotency/atomicity checks.
+- Storage uploads remain outside PostgreSQL. Files are uploaded before saving rows and reused per File on retries. Old or abandoned objects are retained until a separate reference-aware cleanup; an ambiguous write response must never trigger file deletion.
+- Browser roles lack TRUNCATE/REFERENCES/TRIGGER on `movies`, `companies`, `movie_companies`, `movie_manual_similar`, and `movie_poster_images`; server privileges are preserved.
+
 - `genres`, `countries`, `movie_genres`, and `movie_countries` are publicly readable by `anon` and `authenticated`. Browser INSERT/UPDATE/DELETE is restricted to `(select public.is_admin())` through separate RLS policies; ownership of a movie alone does not authorize editing its links.
 - Client roles do not have TRUNCATE, REFERENCES, or TRIGGER privileges on these tables. Server-side `service_role` access is preserved.
 

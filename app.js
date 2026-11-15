@@ -1941,23 +1941,6 @@ function isDirectorsUnavailableError(error) {
   );
 }
 
-function isMovieDirectorSyncRpcUnavailableError(error) {
-  const code = String(error?.code || '').trim();
-  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
-
-  return (
-    ['42883', 'PGRST202', 'PGRST204'].includes(code) &&
-    message.includes('horroreiro_sync_movie_directors')
-  ) || (
-    message.includes('horroreiro_sync_movie_directors') &&
-    (
-      message.includes('could not find') ||
-      message.includes('schema cache') ||
-      message.includes('does not exist')
-    )
-  );
-}
-
 function normalizeDirectorAliasValues(value) {
   if (Array.isArray(value)) {
     return value
@@ -3245,82 +3228,6 @@ async function saveDirectorFromModal(event) {
   }
 }
 
-async function ensureDirectorsByNames(names = []) {
-  const normalizedNames = parseLineOrCommaSeparatedValues(names.join('\n'));
-
-  if (!areDirectorsAvailable || normalizedNames.length === 0) {
-    return [];
-  }
-
-  const { data, error } = await supabaseClient
-    .from('people')
-    .select(PEOPLE_ADMIN_SELECT)
-    .order('name_ru', { ascending: true });
-
-  if (error) {
-    if (isDirectorsUnavailableError(error)) {
-      areDirectorsAvailable = false;
-      return [];
-    }
-
-    throw error;
-  }
-
-  const directorsByNameKey = (data || [])
-    .map(normalizeDirectorRow)
-    .filter(Boolean)
-    .reduce((directorsMap, director) => {
-      const nameKey = getDirectorNameKey(director.name_ru);
-
-      if (!nameKey) {
-        return directorsMap;
-      }
-
-      directorsMap.set(
-        nameKey,
-        choosePreferredDirectorRow(directorsMap.get(nameKey), director)
-      );
-      return directorsMap;
-    }, new Map());
-  const result = [];
-
-  for (const nameRu of normalizedNames) {
-    const nameKey = getDirectorNameKey(nameRu);
-    let director = directorsByNameKey.get(nameKey);
-
-    if (!director) {
-      const payload = {
-        name_ru: nameRu,
-        slug: await buildUniqueDirectorSlug(nameRu),
-        created_by: currentUser?.id || null
-      };
-      const { data: insertedDirector, error: insertError } = await supabaseClient
-        .from('people')
-        .insert(payload)
-        .select(PEOPLE_ADMIN_SELECT)
-        .single();
-
-      if (insertError) {
-        if (isDirectorsUnavailableError(insertError)) {
-          areDirectorsAvailable = false;
-          return result;
-        }
-
-        throw insertError;
-      }
-
-      director = normalizeDirectorRow(insertedDirector);
-      directorsByNameKey.set(nameKey, director);
-    }
-
-    if (director) {
-      result.push(director);
-    }
-  }
-
-  return result;
-}
-
 async function deleteOrphanPeopleByIds(personIds = []) {
   const uniquePersonIds = Array.from(new Set(
     (Array.isArray(personIds) ? personIds : [])
@@ -3367,104 +3274,6 @@ async function deleteOrphanPeopleByIds(personIds = []) {
 
       throw deleteError;
     }
-  }
-}
-
-async function syncMovieDirectorsViaRpc(movieId) {
-  const { error } = await supabaseClient.rpc('horroreiro_sync_movie_directors', {
-    target_movie_id: movieId
-  });
-
-  throwIfSupabaseError(error);
-  return true;
-}
-
-async function replaceMovieDirectors(movieId, directorNames = []) {
-  const normalizedMovieId = String(movieId || '').trim();
-
-  if (!normalizedMovieId || !areDirectorsAvailable) {
-    return false;
-  }
-
-  try {
-    return await syncMovieDirectorsViaRpc(normalizedMovieId);
-  } catch (error) {
-    if (isMovieDirectorSyncRpcUnavailableError(error)) {
-      return replaceMovieDirectorsClientFallback(normalizedMovieId, directorNames);
-    }
-
-    if (isDirectorsUnavailableError(error)) {
-      areDirectorsAvailable = false;
-      return false;
-    }
-
-    throw error;
-  }
-}
-
-async function replaceMovieDirectorsClientFallback(movieId, directorNames = []) {
-  const normalizedMovieId = String(movieId || '').trim();
-
-  if (!normalizedMovieId || !areDirectorsAvailable) {
-    return false;
-  }
-
-  try {
-    const directors = await ensureDirectorsByNames(directorNames);
-    const nextDirectorIds = new Set(directors.map(director => String(director.id)));
-    const { data: previousLinks, error: previousLinksError } = await supabaseClient
-      .from('movie_people')
-      .select('person_id')
-      .eq('movie_id', normalizedMovieId)
-      .eq('role', 'director');
-
-    if (previousLinksError) {
-      throw previousLinksError;
-    }
-
-    const orphanCandidateIds = (previousLinks || [])
-      .map(row => String(row?.person_id || '').trim())
-      .filter(personId => personId && !nextDirectorIds.has(personId));
-
-    const { error: deleteError } = await supabaseClient
-      .from('movie_people')
-      .delete()
-      .eq('movie_id', normalizedMovieId)
-      .eq('role', 'director');
-
-    if (deleteError) {
-      throw deleteError;
-    }
-
-    if (directors.length === 0) {
-      await deleteOrphanPeopleByIds(orphanCandidateIds);
-      return true;
-    }
-
-    const rows = directors.map((director, index) => ({
-      movie_id: normalizedMovieId,
-      person_id: director.id,
-      role: 'director',
-      position: index
-    }));
-
-    const { error: insertError } = await supabaseClient
-      .from('movie_people')
-      .insert(rows);
-
-    if (insertError) {
-      throw insertError;
-    }
-
-    await deleteOrphanPeopleByIds(orphanCandidateIds);
-    return true;
-  } catch (error) {
-    if (isDirectorsUnavailableError(error)) {
-      areDirectorsAvailable = false;
-      return false;
-    }
-
-    throw error;
   }
 }
 
@@ -3578,28 +3387,6 @@ async function buildUniqueCompanySlug(name, excludeCompanyId = null) {
     slugCandidate = `${baseSlug}-${suffix}`;
     suffix += 1;
   }
-}
-
-function normalizeMovieCompanyRoleValues(roleValues = {}) {
-  return Object.values(COMPANY_ROLES).reduce((normalizedValues, roleConfig) => {
-    const seenNameKeys = new Set();
-
-    normalizedValues[roleConfig.key] = normalizeTextArrayField(
-      roleValues[roleConfig.key],
-      { excludeIntentionalEmpty: true }
-    ).filter(name => {
-      const nameKey = normalizeCompanyNameKey(name);
-
-      if (!nameKey || seenNameKeys.has(nameKey)) {
-        return false;
-      }
-
-      seenNameKeys.add(nameKey);
-      return true;
-    });
-
-    return normalizedValues;
-  }, {});
 }
 
 async function fetchCompanyById(companyId) {
@@ -3774,85 +3561,6 @@ async function fetchMovieCompanyRowsForCompany(companyId) {
   return data || [];
 }
 
-async function ensureCompaniesByNames(names = []) {
-  const normalizedNames = normalizeTextArrayField(names, { excludeIntentionalEmpty: true });
-
-  if (!areCompaniesAvailable || normalizedNames.length === 0) {
-    return [];
-  }
-
-  const rows = await fetchAdminCompanyRows();
-
-  if (!areCompaniesAvailable) {
-    return [];
-  }
-
-  const companiesByNameKey = rows.reduce((companiesMap, company) => {
-    const nameKey = getCompanyNameKey(company);
-
-    if (nameKey && !companiesMap.has(nameKey)) {
-      companiesMap.set(nameKey, company);
-    }
-
-    return companiesMap;
-  }, new Map());
-  const result = [];
-
-  for (const name of normalizedNames) {
-    const nameKey = normalizeCompanyNameKey(name);
-    let company = companiesByNameKey.get(nameKey);
-
-    if (!company) {
-      const payload = {
-        name,
-        name_key: nameKey,
-        slug: await buildUniqueCompanySlug(name),
-        created_by: currentUser?.id || null
-      };
-      const { data: insertedCompany, error: insertError } = await supabaseClient
-        .from('companies')
-        .insert(payload)
-        .select(COMPANY_ADMIN_SELECT)
-        .single();
-
-      if (insertError) {
-        if (isCompaniesUnavailableError(insertError)) {
-          areCompaniesAvailable = false;
-          return result;
-        }
-
-        if (String(insertError.code || '') === '23505') {
-          company = await fetchCompanyByNameKey(nameKey);
-
-          if (!company) {
-            throw insertError;
-          }
-        } else {
-          throw insertError;
-        }
-      } else {
-        company = normalizeCompanyRow(insertedCompany);
-
-        if (!company) {
-          company = await fetchCompanyByNameKey(nameKey);
-        }
-
-        if (!company) {
-          throw new Error(`Не удалось создать компанию: ${name}`);
-        }
-      }
-
-      companiesByNameKey.set(getCompanyNameKey(company), company);
-    }
-
-    if (company) {
-      result.push(company);
-    }
-  }
-
-  return result;
-}
-
 async function deleteOrphanCompaniesByIds(companyIds = []) {
   const uniqueCompanyIds = Array.from(new Set(
     (Array.isArray(companyIds) ? companyIds : [])
@@ -3899,83 +3607,6 @@ async function deleteOrphanCompaniesByIds(companyIds = []) {
 
       throw deleteError;
     }
-  }
-}
-
-async function replaceMovieCompanies(movieId, roleValues = {}) {
-  const normalizedMovieId = String(movieId || '').trim();
-
-  if (!normalizedMovieId || !areCompaniesAvailable) {
-    return false;
-  }
-
-  try {
-    const normalizedRoleValues = normalizeMovieCompanyRoleValues(roleValues);
-    const allCompanyNames = Object.values(normalizedRoleValues).flat();
-    const companies = await ensureCompaniesByNames(allCompanyNames);
-    const companiesByNameKey = new Map(
-      companies.map(company => [normalizeCompanyNameKey(company.name), company])
-    );
-    const nextCompanyIds = new Set(companies.map(company => String(company.id)));
-    const { data: previousLinks, error: previousLinksError } = await supabaseClient
-      .from('movie_companies')
-      .select('company_id')
-      .eq('movie_id', normalizedMovieId);
-
-    if (previousLinksError) {
-      throw previousLinksError;
-    }
-
-    const orphanCandidateIds = (previousLinks || [])
-      .map(row => String(row?.company_id || '').trim())
-      .filter(companyId => companyId && !nextCompanyIds.has(companyId));
-    const { error: deleteError } = await supabaseClient
-      .from('movie_companies')
-      .delete()
-      .eq('movie_id', normalizedMovieId);
-
-    if (deleteError) {
-      throw deleteError;
-    }
-
-    const rows = [];
-
-    Object.values(COMPANY_ROLES).forEach(roleConfig => {
-      (normalizedRoleValues[roleConfig.key] || []).forEach((name, index) => {
-        const company = companiesByNameKey.get(normalizeCompanyNameKey(name));
-
-        if (!company) {
-          return;
-        }
-
-        rows.push({
-          movie_id: normalizedMovieId,
-          company_id: company.id,
-          role: roleConfig.key,
-          position: index
-        });
-      });
-    });
-
-    if (rows.length > 0) {
-      const { error: insertError } = await supabaseClient
-        .from('movie_companies')
-        .insert(rows);
-
-      if (insertError) {
-        throw insertError;
-      }
-    }
-
-    await deleteOrphanCompaniesByIds(orphanCandidateIds);
-    return true;
-  } catch (error) {
-    if (isCompaniesUnavailableError(error)) {
-      areCompaniesAvailable = false;
-      return false;
-    }
-
-    throw error;
   }
 }
 
@@ -4211,53 +3842,13 @@ async function replaceManualSimilarMovies(movieId, similarMovieIds = [], { markM
     throw new Error('Серверный контур ручных похожих фильмов пока недоступен. Повтори сохранение позже.');
   }
 
-  const { error: deleteError } = await supabaseClient
-    .from('movie_manual_similar')
-    .delete()
-    .or(`movie_id.eq.${ownerMovieId},similar_movie_id.eq.${ownerMovieId}`);
-
-  if (deleteError) {
-    if (isManualSimilarTableUnavailableError(deleteError)) {
-      manualSimilarTableAvailable = false;
-    }
-
-    throwIfSupabaseError(deleteError);
-  }
-
-  if (normalizedSimilarMovieIds.length > 0) {
-    const rows = normalizedSimilarMovieIds.flatMap((similarMovieId, index) => {
-      const reciprocalPosition = getManualSimilarMovieIds(similarMovieId)
-        .filter(existingMovieId => String(existingMovieId) !== ownerMovieId)
-        .length;
-
-      return [
-        {
-          movie_id: ownerMovieId,
-          similar_movie_id: similarMovieId,
-          position: index,
-          created_by: currentUser?.id || null
-        },
-        {
-          movie_id: similarMovieId,
-          similar_movie_id: ownerMovieId,
-          position: reciprocalPosition,
-          created_by: currentUser?.id || null
-        }
-      ];
-    });
-
-    const { error: insertError } = await supabaseClient
-      .from('movie_manual_similar')
-      .insert(rows);
-
-    if (insertError) {
-      if (isManualSimilarTableUnavailableError(insertError)) {
-        manualSimilarTableAvailable = false;
-      }
-
-      throwIfSupabaseError(insertError);
-    }
-  }
+  const { error } = await supabaseClient.rpc('horroreiro_save_movie', {
+    p_movie_id: ownerMovieId,
+    p_fields: {},
+    p_relations: { similar: normalizedSimilarMovieIds },
+    p_create: false
+  });
+  throwIfSupabaseError(error);
 
   await fetchManualSimilarMovies();
 
@@ -4670,121 +4261,6 @@ function handleMoviePosterImagesDraftDrop(event) {
   moviePosterImagesDraftDirty = true;
   moviePosterImagesDraftDraggedEntryId = result.draggedEntryId;
   renderMoviePosterImagesDraftList();
-}
-
-async function replaceMoviePosterImages(movieId, draftEntries = [], {
-  preservedUrls = [],
-  markMutation = true
-} = {}) {
-  const ownerMovieId = String(movieId || '').trim();
-
-  if (!ownerMovieId) {
-    return false;
-  }
-
-  if (!moviePosterImagesTableAvailable) {
-    if (draftEntries.length === 0) {
-      return false;
-    }
-
-    throw new Error('Серверный контур галереи постеров пока недоступен. Повтори сохранение позже.');
-  }
-
-  if (!moviePosterImagesLoadedByMovieId.has(ownerMovieId)) {
-    await fetchMoviePosterImagesForMovie(ownerMovieId, { force: true });
-  }
-
-  const previousRows = getMoviePosterImages(ownerMovieId);
-  const previousUrls = new Set(previousRows.map(row => row.image_url).filter(Boolean));
-  const preservedUrlSet = new Set(
-    (Array.isArray(preservedUrls) ? preservedUrls : [])
-      .map(url => String(url || '').trim())
-      .filter(Boolean)
-  );
-  const finalRows = [];
-  const finalUrls = new Set();
-  const uploadedUrls = [];
-
-  try {
-    for (const entry of draftEntries) {
-      let imageUrl = String(entry?.imageUrl || '').trim();
-
-      if (entry?.type === 'pending' && entry.file) {
-        imageUrl = await uploadPosterFile(entry.file);
-        uploadedUrls.push(imageUrl);
-      }
-
-      if (!imageUrl || finalUrls.has(imageUrl)) {
-        continue;
-      }
-
-      finalUrls.add(imageUrl);
-      finalRows.push({
-        movie_id: ownerMovieId,
-        image_url: imageUrl,
-        position: finalRows.length,
-        created_by: currentUser?.id || null
-      });
-    }
-
-    const { error: deleteError } = await supabaseClient
-      .from('movie_poster_images')
-      .delete()
-      .eq('movie_id', ownerMovieId);
-
-    if (deleteError) {
-      if (isMoviePosterImagesTableUnavailableError(deleteError)) {
-        moviePosterImagesTableAvailable = false;
-      }
-
-      throwIfSupabaseError(deleteError);
-    }
-
-    if (finalRows.length > 0) {
-      const { error: insertError } = await supabaseClient
-        .from('movie_poster_images')
-        .insert(finalRows);
-
-      if (insertError) {
-        if (isMoviePosterImagesTableUnavailableError(insertError)) {
-          moviePosterImagesTableAvailable = false;
-        }
-
-        throwIfSupabaseError(insertError);
-      }
-    }
-
-    await fetchMoviePosterImagesForMovie(ownerMovieId, { force: true });
-
-    if (markMutation) {
-      markLocalDataMutation(`poster-images:${ownerMovieId}`);
-    }
-
-    const removedUrls = [...previousUrls].filter(url => (
-      !finalUrls.has(url) &&
-      !preservedUrlSet.has(url)
-    ));
-
-    for (const removedUrl of removedUrls) {
-      try {
-        await deletePosterFileByUrl(removedUrl);
-      } catch (deletePosterError) {
-        console.error('Не удалось удалить изображение галереи:', deletePosterError);
-      }
-    }
-
-    return true;
-  } catch (error) {
-    for (const uploadedUrl of uploadedUrls) {
-      try {
-        await deletePosterFileByUrl(uploadedUrl);
-      } catch (deletePosterError) {
-        console.error('Не удалось удалить загруженное изображение после ошибки:', deletePosterError);
-      }
-    }
-
-    throw error;
-  }
 }
 
 function ensureMoviePosterImagesEditorDataLoaded(movie) {
@@ -12828,7 +12304,7 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
     }
 
     console.error('Ошибка загрузки фильмов:', error);
-  
+
     if (container && !preserveExistingCatalogOnError) {
       hideMoviesResultCount();
       setCatalogBusyState(false);
@@ -14459,108 +13935,14 @@ async function deletePosterFileByUrl(publicUrl) {
   throwIfSupabaseError(error);
 }
 
-function orderLookupRowsByRequestedNames(rows, names) {
-  const rowsByNormalizedName = new Map(
-    (Array.isArray(rows) ? rows : [])
-      .filter(row => row?.name)
-      .map(row => [normalizeSearchText(row.name), row])
-  );
-
-  return (Array.isArray(names) ? names : [])
-    .map(name => rowsByNormalizedName.get(normalizeSearchText(name)))
-    .filter(Boolean);
-}
-
-async function ensureGenres(names) {
-  if (names.length === 0) {
-    return [];
+async function refreshMovieEditorCommittedData(movieId, savePlan) {
+  invalidateMovieSelectRowsCache([movieId]);
+  markLocalDataDependencyMutation([getDataDependencyMovieKey(movieId)], `movie-save:${movieId}`);
+  if (savePlan.posterImagesChanged) {
+    moviePosterImagesByMovieId.delete(String(movieId));
+    moviePosterImagesLoadedByMovieId.delete(String(movieId));
   }
-
-  const rowsToUpsert = names.map(name => ({ name }));
-
-  const { error: upsertError } = await supabaseClient
-    .from('genres')
-    .upsert(rowsToUpsert, { onConflict: 'name' });
-
-  throwIfSupabaseError(upsertError);
-
-  const { data, error } = await supabaseClient
-    .from('genres')
-    .select('id, name')
-    .in('name', names);
-
-  throwIfSupabaseError(error);
-
-  return orderLookupRowsByRequestedNames(data, names);
-}
-
-async function ensureCountries(names) {
-  if (names.length === 0) {
-    return [];
-  }
-
-  const rowsToUpsert = names.map(name => ({ name }));
-
-  const { error: upsertError } = await supabaseClient
-    .from('countries')
-    .upsert(rowsToUpsert, { onConflict: 'name' });
-
-  throwIfSupabaseError(upsertError);
-
-  const { data, error } = await supabaseClient
-    .from('countries')
-    .select('id, name')
-    .in('name', names);
-
-  throwIfSupabaseError(error);
-
-  return orderLookupRowsByRequestedNames(data, names);
-}
-
-async function replaceMovieRelations(movieId, genreNames, countryNames) {
-  const genreRows = await ensureGenres(genreNames);
-  const countryRows = await ensureCountries(countryNames);
-
-  const { error: deleteGenresError } = await supabaseClient
-    .from('movie_genres')
-    .delete()
-    .eq('movie_id', movieId);
-
-  throwIfSupabaseError(deleteGenresError);
-
-  const { error: deleteCountriesError } = await supabaseClient
-    .from('movie_countries')
-    .delete()
-    .eq('movie_id', movieId);
-
-  throwIfSupabaseError(deleteCountriesError);
-
-  if (genreRows.length > 0) {
-    const movieGenreRows = genreRows.map((genre, index) => ({
-      movie_id: movieId,
-      genre_id: genre.id,
-      position: index
-    }));
-
-    const { error } = await supabaseClient
-      .from('movie_genres')
-      .insert(movieGenreRows);
-
-    throwIfSupabaseError(error);
-  }
-
-  if (countryRows.length > 0) {
-    const movieCountryRows = countryRows.map(country => ({
-      movie_id: movieId,
-      country_id: country.id
-    }));
-
-    const { error } = await supabaseClient
-      .from('movie_countries')
-      .insert(movieCountryRows);
-
-    throwIfSupabaseError(error);
-  }
+  if (savePlan.manualSimilarChanged) await fetchManualSimilarMovies();
 }
 
 async function addMovie(movieEditor) {
@@ -14574,12 +13956,8 @@ async function addMovie(movieEditor) {
     includeRuntimeMinutes: movieRuntimeMinutesColumnAvailable,
     includeTmdbUrl: movieTmdbUrlColumnAvailable,
     setStatus: setMovieFormStatus,
-    replaceMovieRelations,
-    replaceMovieDirectors,
-    replaceMovieCompanies,
-    replaceManualSimilarMovies,
-    replaceMoviePosterImages,
     postSaveOptions: {
+      afterCommit: refreshMovieEditorCommittedData,
       isCatalogPage: isCatalogPage(),
       isMoviePage: isMoviePage(),
       markLocalDataMutation,
@@ -14625,21 +14003,8 @@ async function updateMovie(movieEditor) {
     includeTmdbUrl: movieTmdbUrlColumnAvailable,
     setStatus: setMovieFormStatus,
     setMissingMovieMessage: setMovieFormStatus,
-    replaceMovieRelations,
-    replaceMovieDirectors,
-    replaceMovieCompanies,
-    replaceManualSimilarMovies: (movieId, similarMovieIds) =>
-      replaceManualSimilarMovies(movieId, similarMovieIds, { markMutation: false }),
-    replaceMoviePosterImages: (movieId, draftEntries, options = {}) =>
-      replaceMoviePosterImages(movieId, draftEntries, {
-        ...options,
-        markMutation: false
-      }),
-    deletePosterFileByUrl,
-    onDeletePosterError: deletePosterError => {
-      console.error('Не удалось удалить старый постер:', deletePosterError);
-    },
     postSaveOptions: {
+      afterCommit: refreshMovieEditorCommittedData,
       isCatalogPage: isCatalogPage(),
       isMoviePage: isMoviePage(),
       shouldReplaceMoviePageUrl: window.location.pathname.endsWith('movie.html'),
@@ -14662,18 +14027,25 @@ async function updateMovie(movieEditor) {
     }
   });
 
-  if (!updateResult?.shouldExit) {
-    if (isDirectorPage() && currentDirectorPageData?.director) {
-      const controller = await loadDirectorPageController();
-      await controller?.loadDirectorPage?.();
-      persistCurrentSecondaryPageDomSnapshot();
+  try {
+    if (!updateResult?.shouldExit) {
+      if (isDirectorPage() && currentDirectorPageData?.director) {
+        const controller = await loadDirectorPageController();
+        await controller?.loadDirectorPage?.();
+        persistCurrentSecondaryPageDomSnapshot();
+      }
+
+      if (isCompanyPage() && currentCompanyPageData?.company) {
+        const controller = await loadCompanyPagesController();
+        await controller?.loadCompanyPage?.();
+        persistCurrentSecondaryPageDomSnapshot();
+      }
     }
 
-    if (isCompanyPage() && currentCompanyPageData?.company) {
-      const controller = await loadCompanyPagesController();
-      await controller?.loadCompanyPage?.();
-      persistCurrentSecondaryPageDomSnapshot();
-    }
+  } catch (refreshError) {
+    console.warn('Movie saved; secondary page refresh failed:', refreshError);
+    showAppMessage('Фильм сохранён. Перезагрузите страницу для обновления данных.');
+    updateResult.refreshError = refreshError;
   }
 
   if (movieId && updateResult?.updateSavePlan?.hasAnyChanges && !updateResult?.validationFailed && !updateResult?.missingMovie) {

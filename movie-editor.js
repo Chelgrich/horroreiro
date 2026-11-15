@@ -80,6 +80,9 @@ export function createMovieEditorController(context = {}) {
   } = context;
 
   const getInputValue = inputElement => String(inputElement?.value || '').trim();
+  let creatingMovieId = null;
+  const posterUploads = new WeakMap();
+  let pendingCreateRequest = null;
 
   function setMovieFormInputValue(inputElement, value, inputName = '') {
     if (!inputElement) {
@@ -554,6 +557,8 @@ export function createMovieEditorController(context = {}) {
   }
 
   function resetMovieFormToCreateMode() {
+    creatingMovieId = null;
+    pendingCreateRequest = null;
     const elements = getElements();
 
     elements.movieForm?.reset();
@@ -1018,7 +1023,14 @@ export function createMovieEditorController(context = {}) {
       let imageUrl = String(entry?.imageUrl || '').trim();
 
       if (entry?.type === 'pending' && entry.file) {
-        imageUrl = await uploadPosterFile(entry.file);
+        if (!posterUploads.has(entry.file)) {
+          const upload = uploadPosterFile(entry.file).catch(error => {
+            posterUploads.delete(entry.file);
+            throw error;
+          });
+          posterUploads.set(entry.file, upload);
+        }
+        imageUrl = await posterUploads.get(entry.file);
         uploadedUrls.push(imageUrl);
       }
 
@@ -1070,26 +1082,13 @@ export function createMovieEditorController(context = {}) {
     };
   }
 
-  function getMovieCreateSavePlan({
-    manualSimilarMovieIds = [],
-    additionalPosterEntriesForSave = []
-  } = {}) {
-    return {
-      shouldSaveCompanies: true,
-      shouldSaveManualSimilarMovies: manualSimilarMovieIds.length > 0,
-      shouldSavePosterGallery: additionalPosterEntriesForSave.length > 0
-    };
-  }
-
   function getMovieUpdateSavePlan({
     changedFields = {},
     relationsChanged = false,
     directorsChanged = false,
     companiesChanged = false,
     manualSimilarChanged = false,
-    posterImagesChanged = false,
-    oldPosterUrl = null,
-    finalPosterUrls = new Set()
+    posterImagesChanged = false
   } = {}) {
     const hasMovieFieldChanges = Object.keys(changedFields || {}).length > 0;
     const hasAnyChanges = Boolean(
@@ -1100,11 +1099,6 @@ export function createMovieEditorController(context = {}) {
       manualSimilarChanged ||
       posterImagesChanged
     );
-    const hasFinalPosterUrl = (
-      finalPosterUrls &&
-      typeof finalPosterUrls.has === 'function' &&
-      finalPosterUrls.has(oldPosterUrl)
-    );
 
     return {
       hasMovieFieldChanges,
@@ -1113,8 +1107,7 @@ export function createMovieEditorController(context = {}) {
       directorsChanged,
       companiesChanged,
       manualSimilarChanged,
-      posterImagesChanged,
-      shouldDeleteOldPoster: Boolean(posterImagesChanged && oldPosterUrl && !hasFinalPosterUrl)
+      posterImagesChanged
     };
   }
 
@@ -1126,199 +1119,33 @@ export function createMovieEditorController(context = {}) {
     return supabaseClient;
   }
 
-  async function insertMovieRecord({
-    draft,
-    classificationDraft,
-    finalPosterUrl,
-    slug,
-    ownerId,
-    includeRuntimeMinutes = true,
-    includeTmdbUrl = true,
-    timeoutMs = 15000,
-    timeoutMessage = 'Movie save timed out.'
-  }) {
-    const client = requireSupabaseClient();
-    const { data, error } = await withPendingRequestTimeout(
-      client
-        .from('movies')
-        .insert(buildMovieInsertPayload({
-          draft,
-          classificationDraft,
-          finalPosterUrl,
-          slug,
-          ownerId,
-          includeRuntimeMinutes,
-          includeTmdbUrl
-        }))
-        .select('id, slug')
-        .single(),
-      timeoutMs,
-      timeoutMessage
-    );
-
+  async function saveMovieTransaction(movieId, fields, relations, create = false) {
+    const { data, error } = await requireSupabaseClient().rpc('horroreiro_save_movie', {
+      p_movie_id: movieId,
+      p_fields: fields,
+      p_relations: relations,
+      p_create: create
+    });
     throwIfSupabaseError(error);
+    if (!data?.id) throw new Error('Movie save returned no movie ID.');
     return data;
   }
 
-  async function updateMovieRecord({
-    movieId,
-    changedFields,
-    timeoutMs = 15000,
-    timeoutMessage = 'Movie update timed out.'
-  }) {
-    if (!movieId || Object.keys(changedFields || {}).length === 0) {
-      return;
-    }
-
-    const client = requireSupabaseClient();
-    const { error } = await withPendingRequestTimeout(
-      client
-        .from('movies')
-        .update(changedFields)
-        .eq('id', movieId),
-      timeoutMs,
-      timeoutMessage
-    );
-
-    throwIfSupabaseError(error);
-  }
-
-  async function saveMovieCreateRelatedData({
-    movieId,
-    draft,
-    createSavePlan = null,
-    manualSimilarMovieIds = [],
-    additionalPosterEntriesForSave = [],
-    setStatus = () => {},
-    replaceMovieRelations = async () => {},
-    replaceMovieDirectors = async () => {},
-    replaceMovieCompanies = async () => {},
-    replaceManualSimilarMovies = async () => {},
-    replaceMoviePosterImages = async () => {}
-  } = {}) {
-    const savePlan = createSavePlan || getMovieCreateSavePlan({
-      manualSimilarMovieIds,
-      additionalPosterEntriesForSave
-    });
-
-    await withPendingRequestTimeout(
-      replaceMovieRelations(movieId, draft.genreNames, draft.countryNames),
-      15000,
-      'Превышено время ожидания сохранения жанров и стран.'
-    );
-
-    if (draft.directorNames.length > 0) {
-      setStatus('Сохраняю режиссёров...');
-      await withPendingRequestTimeout(
-        replaceMovieDirectors(movieId, draft.directorNames),
-        15000,
-        'Превышено время ожидания сохранения режиссёров.'
-      );
-    }
-
-    if (savePlan.shouldSaveCompanies) {
-      setStatus('Сохраняю компании...');
-      await withPendingRequestTimeout(
-        replaceMovieCompanies(movieId, {
-          production: draft.production,
-          distribution: draft.distribution,
-          russian_distribution: draft.russianDistribution
-        }),
-        15000,
-        'Превышено время ожидания сохранения компаний.'
-      );
-    }
-
-    if (savePlan.shouldSaveManualSimilarMovies) {
-      setStatus('Сохраняю похожие фильмы...');
-      await withPendingRequestTimeout(
-        replaceManualSimilarMovies(movieId, manualSimilarMovieIds),
-        15000,
-        'Превышено время ожидания сохранения похожих фильмов.'
-      );
-    }
-
-    if (savePlan.shouldSavePosterGallery) {
-      setStatus('Сохраняю галерею...');
-      await withPendingRequestTimeout(
-        replaceMoviePosterImages(movieId, additionalPosterEntriesForSave),
-        30000,
-        'Превышено время ожидания сохранения галереи.'
-      );
-    }
-  }
-
-  async function saveMovieUpdateRelatedData({
-    movieId,
-    draft,
-    relationsChanged = false,
-    directorsChanged = false,
-    companiesChanged = false,
-    manualSimilarChanged = false,
-    posterImagesChanged = false,
-    manualSimilarMovieIds = [],
-    additionalPosterEntriesForSave = [],
-    finalPosterUrl = null,
-    setStatus = () => {},
-    replaceMovieRelations = async () => {},
-    replaceMovieDirectors = async () => {},
-    replaceMovieCompanies = async () => {},
-    replaceManualSimilarMovies = async () => {},
-    replaceMoviePosterImages = async () => {}
-  } = {}) {
-    if (relationsChanged) {
-      await withPendingRequestTimeout(
-        replaceMovieRelations(movieId, draft.genreNames, draft.countryNames),
-        15000,
-        'Превышено время ожидания обновления жанров и стран.'
-      );
-    }
-
-    if (directorsChanged) {
-      setStatus('Сохраняю режиссёров...');
-      await withPendingRequestTimeout(
-        replaceMovieDirectors(movieId, draft.directorNames),
-        15000,
-        'Превышено время ожидания сохранения режиссёров.'
-      );
-    }
-
-    if (companiesChanged) {
-      setStatus('Сохраняю компании...');
-      await withPendingRequestTimeout(
-        replaceMovieCompanies(movieId, {
-          production: draft.production,
-          distribution: draft.distribution,
-          russian_distribution: draft.russianDistribution
-        }),
-        15000,
-        'Превышено время ожидания сохранения компаний.'
-      );
-    }
-
-    if (manualSimilarChanged) {
-      setStatus('Сохраняю похожие фильмы...');
-      await withPendingRequestTimeout(
-        replaceManualSimilarMovies(movieId, manualSimilarMovieIds),
-        15000,
-        'Превышено время ожидания сохранения похожих фильмов.'
-      );
-    }
-
-    if (posterImagesChanged) {
-      setStatus('Сохраняю галерею...');
-      await withPendingRequestTimeout(
-        replaceMoviePosterImages(movieId, additionalPosterEntriesForSave, {
-          preservedUrls: [finalPosterUrl]
-        }),
-        30000,
-        'Превышено время ожидания сохранения галереи.'
-      );
+  async function finishCommittedMovieSave(refresh, setStatus) {
+    try {
+      return await refresh();
+    } catch (refreshError) {
+      console.warn('Movie saved; page refresh failed:', refreshError);
+      setStatus('Фильм сохранён. Не удалось обновить страницу — перезагрузите её.');
+      return { shouldExit: false, refreshError };
     }
   }
 
   async function handleMovieCreatePostSave({
     insertedMovie,
+    afterCommit = async () => {},
+    manualSimilarChanged = false,
+    posterImagesChanged = false,
     isCatalogPage = false,
     isMoviePage = false,
     setStatus = () => {},
@@ -1330,6 +1157,7 @@ export function createMovieEditorController(context = {}) {
     redirectToMovie = () => {}
   } = {}) {
     markLocalDataMutation(`movie-create:${insertedMovie.id}`);
+    await afterCommit(insertedMovie.id, { manualSimilarChanged, posterImagesChanged });
 
     if (isCatalogPage) {
       setStatus('Обновляю каталог...');
@@ -1350,11 +1178,14 @@ export function createMovieEditorController(context = {}) {
       return { shouldExit: true };
     }
 
+    resetFormToCreateMode();
+    closeMovieModal();
     return { shouldExit: false };
   }
 
   async function handleMovieUpdatePostSave({
     movieId,
+    afterCommit = async () => {},
     existingMovie = null,
     updateSavePlan,
     isCatalogPage = false,
@@ -1384,6 +1215,8 @@ export function createMovieEditorController(context = {}) {
       resetFormToCreateMode();
       return { shouldExit: true };
     }
+
+    await afterCommit(movieId, savePlan);
 
     if (isCatalogPage) {
       const refreshedCatalogMovie = await withPendingRequestTimeout(
@@ -1493,11 +1326,6 @@ export function createMovieEditorController(context = {}) {
     includeRuntimeMinutes = true,
     includeTmdbUrl = true,
     setStatus = () => {},
-    replaceMovieRelations = async () => {},
-    replaceMovieDirectors = async () => {},
-    replaceMovieCompanies = async () => {},
-    replaceManualSimilarMovies = async () => {},
-    replaceMoviePosterImages = async () => {},
     postSaveOptions = {}
   } = {}) {
     setStatus('Сохраняю...');
@@ -1528,46 +1356,34 @@ export function createMovieEditorController(context = {}) {
       finalPosterUrl,
       additionalPosterEntriesForSave
     } = resolvedPosterImages;
-    const createSavePlan = getMovieCreateSavePlan({
-      manualSimilarMovieIds,
-      additionalPosterEntriesForSave
-    });
+    creatingMovieId ||= crypto.randomUUID();
+    if (!pendingCreateRequest) {
+      const fields = buildMovieInsertPayload({
+        draft, classificationDraft, finalPosterUrl,
+        slug: await buildUniqueMovieSlug(draft.title, draft.year ? Number(draft.year) : null),
+        ownerId: activeUser.id, includeRuntimeMinutes, includeTmdbUrl
+      });
+      pendingCreateRequest = saveMovieTransaction(creatingMovieId, fields, {
+        genres: draft.genreNames,
+        countries: draft.countryNames,
+        similar: manualSimilarMovieIds,
+        posters: additionalPosterEntriesForSave.map(entry => entry.imageUrl)
+      }, true).catch(error => {
+        pendingCreateRequest = null;
+        throw error;
+      });
+    }
+    const insertedMovie = await withPendingRequestTimeout(
+      pendingCreateRequest, 15000, 'Movie save timed out. Retry to check the same movie.'
+    );
 
-    setStatus('Сохраняю...');
-
-    const insertedMovie = await insertMovieRecord({
-      draft,
-      classificationDraft,
-      finalPosterUrl,
-      slug: await buildUniqueMovieSlug(
-        draft.title,
-        draft.year ? Number(draft.year) : null
-      ),
-      ownerId: activeUser.id,
-      includeRuntimeMinutes,
-      includeTmdbUrl,
-      timeoutMessage: 'Превышено время ожидания сохранения фильма.'
-    });
-
-    await saveMovieCreateRelatedData({
-      movieId: insertedMovie.id,
-      draft,
-      createSavePlan,
-      manualSimilarMovieIds,
-      additionalPosterEntriesForSave,
-      setStatus,
-      replaceMovieRelations,
-      replaceMovieDirectors,
-      replaceMovieCompanies,
-      replaceManualSimilarMovies,
-      replaceMoviePosterImages
-    });
-
-    const postSaveResult = await handleMovieCreatePostSave({
+    const postSaveResult = await finishCommittedMovieSave(() => handleMovieCreatePostSave({
       insertedMovie,
+      manualSimilarChanged: manualSimilarMovieIds.length > 0,
+      posterImagesChanged: additionalPosterEntriesForSave.length > 0,
       setStatus,
       ...postSaveOptions
-    });
+    }), setStatus);
 
     return {
       ...postSaveResult,
@@ -1594,15 +1410,6 @@ export function createMovieEditorController(context = {}) {
     includeTmdbUrl = true,
     setStatus = () => {},
     setMissingMovieMessage = () => {},
-    replaceMovieRelations = async () => {},
-    replaceMovieDirectors = async () => {},
-    replaceMovieCompanies = async () => {},
-    replaceManualSimilarMovies = async () => {},
-    replaceMoviePosterImages = async () => {},
-    deletePosterFileByUrl = async () => {},
-    onDeletePosterError = error => {
-      console.error('Не удалось удалить старый постер:', error);
-    },
     postSaveOptions = {}
   } = {}) {
     setStatus('Сохраняю изменения...');
@@ -1620,7 +1427,6 @@ export function createMovieEditorController(context = {}) {
       return { shouldExit: true, missingMovie: true };
     }
 
-    const oldPosterUrl = existingMovie.poster_url ?? null;
     const {
       relationsChanged,
       directorsChanged,
@@ -1643,7 +1449,6 @@ export function createMovieEditorController(context = {}) {
     );
     let additionalPosterEntriesForSave = [];
     let finalPosterUrl = existingMovie.poster_url ?? null;
-    let finalPosterUrls = new Set([finalPosterUrl].filter(Boolean));
 
     if (posterImagesChanged) {
       const posterDraftEntries = getMoviePosterImagesDraftEntriesForSave(moviePosterImagesDraft);
@@ -1660,7 +1465,6 @@ export function createMovieEditorController(context = {}) {
 
       finalPosterUrl = posterImagesForSave.finalPosterUrl;
       additionalPosterEntriesForSave = posterImagesForSave.additionalPosterEntriesForSave;
-      finalPosterUrls = posterImagesForSave.finalPosterUrls;
     }
 
     const changedFields = await buildMovieChangedFields({
@@ -1679,55 +1483,25 @@ export function createMovieEditorController(context = {}) {
       directorsChanged,
       companiesChanged,
       manualSimilarChanged,
-      posterImagesChanged,
-      oldPosterUrl,
-      finalPosterUrls
+      posterImagesChanged
     });
 
-    if (updateSavePlan.hasMovieFieldChanges) {
-      setStatus('Сохраняю изменения...');
-
-      await updateMovieRecord({
-        movieId,
-        changedFields,
-        timeoutMessage: 'Превышено время ожидания обновления фильма.'
-      });
+    if (updateSavePlan.hasAnyChanges) {
+      if (directorsChanged) changedFields.director = draft.director || null;
+      await withPendingRequestTimeout(saveMovieTransaction(movieId, changedFields, {
+        ...(relationsChanged ? { genres: draft.genreNames, countries: draft.countryNames } : {}),
+        ...(manualSimilarChanged ? { similar: manualSimilarMovieIds } : {}),
+        ...(posterImagesChanged ? { posters: additionalPosterEntriesForSave.map(entry => entry.imageUrl) } : {})
+      }), 15000, 'Movie update timed out. Reload to check the saved data.');
     }
 
-    await saveMovieUpdateRelatedData({
-      movieId,
-      draft,
-      relationsChanged,
-      directorsChanged,
-      companiesChanged,
-      manualSimilarChanged,
-      posterImagesChanged,
-      manualSimilarMovieIds,
-      additionalPosterEntriesForSave,
-      finalPosterUrl,
-      setStatus,
-      replaceMovieRelations,
-      replaceMovieDirectors,
-      replaceMovieCompanies,
-      replaceManualSimilarMovies,
-      replaceMoviePosterImages
-    });
-
-    if (updateSavePlan.shouldDeleteOldPoster) {
-      try {
-        await deletePosterFileByUrl(oldPosterUrl);
-      } catch (deletePosterError) {
-        onDeletePosterError(deletePosterError);
-      }
-    }
-
-    const postSaveResult = await handleMovieUpdatePostSave({
+    const postSaveResult = await finishCommittedMovieSave(() => handleMovieUpdatePostSave({
       movieId,
       existingMovie,
       updateSavePlan,
       setStatus,
       ...postSaveOptions
-    });
+    }), setStatus);
 
     return {
       ...postSaveResult,
@@ -1774,12 +1548,7 @@ export function createMovieEditorController(context = {}) {
     resolveMoviePosterImageDraftEntries,
     resolveMoviePosterImagesForSave,
     splitMoviePosterImageEntriesForSave,
-    getMovieCreateSavePlan,
     getMovieUpdateSavePlan,
-    insertMovieRecord,
-    updateMovieRecord,
-    saveMovieCreateRelatedData,
-    saveMovieUpdateRelatedData,
     handleMovieCreatePostSave,
     handleMovieUpdatePostSave,
     submitMovieFormEvent,
