@@ -38,6 +38,11 @@ Related movie data:
   - `movie_recommendation_overrides`;
   - `movie_related`.
 
+Catalog lookup and relation writes:
+
+- `genres`, `countries`, `movie_genres`, and `movie_countries` are publicly readable by `anon` and `authenticated`. Browser INSERT/UPDATE/DELETE is restricted to `(select public.is_admin())` through separate RLS policies; ownership of a movie alone does not authorize editing its links.
+- Client roles do not have TRUNCATE, REFERENCES, or TRIGGER privileges on these tables. Server-side `service_role` access is preserved.
+
 Poster gallery display reads use `MOVIE_POSTER_IMAGE_DISPLAY_SELECT` (`movie_id`, `image_url`, `position`). Public display, detail gallery, and Russian-poster preference do not need `movie_poster_images.id`.
 
 Client movie select profiles:
@@ -147,6 +152,15 @@ Important profile fields:
 - avatar
 - `prefer_russian_posters`, default `false`, controls whether the second uploaded movie poster is displayed as primary for that user when available;
 - role/admin status
+
+Profile authorization boundary:
+
+- Profiles are created by the existing `auth.users` trigger `public.handle_new_user()` (SECURITY DEFINER, owned by `postgres`), with `role = 'user'`. Browsers cannot INSERT profiles.
+- `authenticated` has column-level UPDATE only for `display_name`, `avatar_url`, and `prefer_russian_posters`; the existing own-ID RLS policy still restricts which row may be edited. Trigger-derived normalized/default name fields are not directly writable by the browser.
+- `role`, ID, creation timestamp, and profile sequence are server-managed. Role assignment requires a privileged SQL operator or server-side `service_role`; being an admin in the browser does not grant profile role writes.
+- Public SELECT remains available. No client role has DELETE, TRUNCATE, REFERENCES, or TRIGGER access to profiles; `service_role` retains profile management.
+- Hosted migration `restrict_profile_and_catalog_writes` enforces these profile and catalog boundaries. It changes grants/policies, not existing profile roles or catalog data.
+- Run `tools/supabase-access-smoke.sql` as a privileged SQL operator to check these boundaries. It requires an ordinary profile, an admin profile, and a movie. It temporarily assigns that movie to the ordinary user to detect owner-policy regressions; this, the fixtures, and profile no-op updates are rolled back inside a subtransaction. Other sessions never see the ownership change. Do not wrap it in a SECURITY DEFINER function.
 
 Profile page uses:
 

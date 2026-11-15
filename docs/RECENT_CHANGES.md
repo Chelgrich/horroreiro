@@ -12,6 +12,27 @@ Format:
 - Follow-up:
 ```
 
+## 2026-11-15 - Restrict profile authorization fields and catalog writes
+
+- Files:
+  - `tools/supabase-access-smoke.sql`
+  - `docs/DATA_MODEL.md`
+  - `docs/RECENT_CHANGES.md`
+- Summary:
+  - Security audit found that an authenticated user could update their own `profiles.role`; both database admin checks and privileged server endpoints trusted that field. The existing Auth trigger already creates profiles, so browser INSERT is unnecessary.
+  - Hosted migration `restrict_profile_and_catalog_writes` removes broad client profile writes and grants only own-row UPDATE of display name, avatar, and Russian-poster preference. Role and identity fields remain server-managed; privileged SQL/service-role access and public reads are preserved.
+  - Replaces authenticated/owner catalog write policies on genres, countries, and their movie links with explicit admin-only INSERT/UPDATE/DELETE. Removes unused client TRUNCATE/REFERENCES/TRIGGER privileges on the five tables.
+- Checks:
+  - Applied hosted migration `restrict_profile_and_catalog_writes` to production Supabase project `uogzcozbnosfguyfbvhe`; no container deployment or browser asset update is required.
+  - Regression SQL fails on the original database grants before any test writes, then passes after the migration. Ordinary users cannot INSERT profiles or update role/system fields; own display/avatar/preference updates still work, and another user's profile cannot be changed.
+  - Real RLS checks deny ordinary-user lookup writes and movie-link INSERT/UPDATE/DELETE even when that user temporarily owns the movie. Admin lookup/link INSERT/UPDATE/DELETE and service-role profile management pass. All fixtures, ownership changes, and no-op updates roll back inside the test.
+  - Post-test profile role and movie ownership hashes match the pre-migration values. Counts remain 60 profiles, 19 genres, 64 countries, 1,266 movie-genre links, and 835 movie-country links; no test fixtures remain.
+  - Live anonymous REST reads of profiles, genres, countries, and movies with embedded genre/country relations return 200. Existing Auth registration trigger remains enabled with its privileged INSERT access; no real registration emails or password changes were performed.
+  - Security Advisor has no ERROR findings and no new warning categories; existing function-search-path/definer/password warnings remain separate work. The two no-policy research staging notices are intentional.
+  - Independent read-only review found two test gaps around former owner policies and direct link deletes; both were covered before applying the migration. Updated review found no further issue. External model review was skipped per the user's choice.
+- Follow-up:
+  - This is the first audit repair: profile authorization and catalog RLS. Runtime file exposure, image limits, deployment output, atomic movie saves, and the remaining performance/cache findings are separate increments.
+
 ## 2026-11-15 - Update vulnerable social image runtime dependency
 
 - Files:
