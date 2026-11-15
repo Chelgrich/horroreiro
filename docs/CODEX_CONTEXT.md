@@ -325,7 +325,7 @@ Planned automatic related movies are documented in `docs/AUTO_RELATED_MOVIES_PLA
 - review/comment composer state;
 - review rail controls, social anchors, and local social section rerenders.
 
-`app.js` keeps the shared movie review/comment arrays and availability flags because session cache, catalog reviewed-state sync, and notifications also read that state. The movie detail page should call the bridge functions in `app.js`; do not re-add social implementation code there.
+`movie-social.js` owns review/comment rows and its table-availability flags. `app.js` reads/writes scoped social cache data through `getSnapshot(movieId)` / `restoreSnapshot(movieId, snapshot)`; before lazy loading finishes, it retains only the pending restored cache entry and hands it to the controller once. Auth, current movie and author ratings are read live from their owners; there is no mirrored context or `syncContextState` step. Review mutations notify `onMovieReviewsChanged(movieId, hasReviews)`, and `app.js` updates its catalog reviewed-ID index and validated catalog snapshot. Notifications own their separate comment-snippet availability flag and do not load the movie social module.
 
 ## Active Optimization Backlog
 

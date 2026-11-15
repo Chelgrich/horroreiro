@@ -15,7 +15,7 @@ export function createMovieSocialController(context = {}) {
   getPublicProfileAvatarUrl = () => '',
   getUserPageAvatarLetter = value => String(value || '?').trim().charAt(0).toUpperCase(),
   getCurrentUserRating = () => null,
-  getMovieUserRatingKey = (movieId, userId) => `${movieId}:${userId}`,
+  getMovieUserRating = () => null,
   fetchPublicProfilesByIds = async () => [],
   upsertKnownMovieRatingRows = () => {},
   removeKnownMovieRatingRows = () => {},
@@ -28,8 +28,7 @@ export function createMovieSocialController(context = {}) {
     throw new Error('Нужна авторизация.');
   },
   markLocalDataMutation = () => {},
-  markCatalogDataChanged = () => {},
-  syncCatalogSessionSnapshotMovieState = () => {},
+  onMovieReviewsChanged = () => {},
   persistCurrentMoviePageSessionCache = () => '',
   openAuthModal = () => {},
   showAppMessage = () => {},
@@ -45,28 +44,11 @@ export function createMovieSocialController(context = {}) {
   getCurrentUser = () => null,
   getIsAdmin = () => false,
   getCurrentMoviePageMovieData = () => null,
-  getMovieRatingByMovieAndUserKey = () => new Map(),
-  getCatalogReviewedMovieIds = () => new Set(),
-  getAllMovieReviews = () => [],
-  setAllMovieReviews = () => {},
-  getAllMovieComments = () => [],
-  setAllMovieComments = () => {},
-  getAreMovieReviewLikesAvailable = () => true,
-  setAreMovieReviewLikesAvailable = () => {},
-  getAreMovieCommentsAvailable = () => true,
-  setAreMovieCommentsAvailable = () => {},
-  getAreMovieCommentLikesAvailable = () => true,
-  setAreMovieCommentLikesAvailable = () => {},
   isMovieReviewLikesTableUnavailableError = () => false,
   isMovieCommentsTableUnavailableError = () => false,
   isMovieCommentLikesTableUnavailableError = () => false
 } = context;
 
-let currentUser = null;
-let isAdmin = false;
-let currentMoviePageMovieData = null;
-let movieRatingByMovieAndUserKey = new Map();
-let catalogReviewedMovieIds = new Set();
 let allMovieReviews = [];
 let allMovieComments = [];
 let areMovieReviewLikesAvailable = true;
@@ -88,45 +70,21 @@ let replyingMovieCommentTargetKey = '';
 let isMovieReviewComposerExpanded = false;
 let isMovieCommentComposerExpanded = false;
 
-function syncMovieSocialContextState() {
-  currentUser = getCurrentUser?.() || null;
-  isAdmin = Boolean(getIsAdmin?.());
-  currentMoviePageMovieData = getCurrentMoviePageMovieData?.() || null;
-  movieRatingByMovieAndUserKey = getMovieRatingByMovieAndUserKey?.() || new Map();
-  catalogReviewedMovieIds = getCatalogReviewedMovieIds?.() || new Set();
-  allMovieReviews = Array.isArray(getAllMovieReviews?.()) ? getAllMovieReviews() : [];
-  allMovieComments = Array.isArray(getAllMovieComments?.()) ? getAllMovieComments() : [];
-  areMovieReviewLikesAvailable = getAreMovieReviewLikesAvailable?.() !== false;
-  areMovieCommentsAvailable = getAreMovieCommentsAvailable?.() !== false;
-  areMovieCommentLikesAvailable = getAreMovieCommentLikesAvailable?.() !== false;
+function getSnapshot(movieId) {
+  const movieKey = String(movieId || '');
+  return {
+    movieReviews: allMovieReviews.filter(review => String(review?.movie_id || '') === movieKey),
+    movieComments: allMovieComments.filter(comment => String(comment?.movie_id || '') === movieKey)
+  };
 }
 
-function setMovieSocialReviews(reviews) {
-  allMovieReviews = Array.isArray(reviews) ? reviews : [];
-  setAllMovieReviews(allMovieReviews);
+function restoreSnapshot(movieId, { movieReviews = [], movieComments = [] } = {}) {
+  const movieKey = String(movieId || '');
+  allMovieReviews = allMovieReviews.filter(review => String(review?.movie_id || '') !== movieKey);
+  allMovieReviews.push(...(Array.isArray(movieReviews) ? movieReviews : []));
+  allMovieComments = allMovieComments.filter(comment => String(comment?.movie_id || '') !== movieKey);
+  allMovieComments.push(...(Array.isArray(movieComments) ? movieComments : []));
 }
-
-function setMovieSocialComments(comments) {
-  allMovieComments = Array.isArray(comments) ? comments : [];
-  setAllMovieComments(allMovieComments);
-}
-
-function setMovieSocialReviewLikesAvailable(isAvailable) {
-  areMovieReviewLikesAvailable = Boolean(isAvailable);
-  setAreMovieReviewLikesAvailable(areMovieReviewLikesAvailable);
-}
-
-function setMovieSocialCommentsAvailable(isAvailable) {
-  areMovieCommentsAvailable = Boolean(isAvailable);
-  setAreMovieCommentsAvailable(areMovieCommentsAvailable);
-}
-
-function setMovieSocialCommentLikesAvailable(isAvailable) {
-  areMovieCommentLikesAvailable = Boolean(isAvailable);
-  setAreMovieCommentLikesAvailable(areMovieCommentLikesAvailable);
-}
-
-syncMovieSocialContextState();
 
 function getMovieReviews(movieId) {
   return allMovieReviews.filter(item => item.movie_id === movieId);
@@ -143,11 +101,11 @@ function getMovieReviewByUserId(movieId, userId) {
 }
 
 function getCurrentUserMovieReview(movieId) {
-  if (!currentUser) {
+  if (!getCurrentUser()) {
     return null;
   }
 
-  return getMovieReviewByUserId(movieId, currentUser.id);
+  return getMovieReviewByUserId(movieId, getCurrentUser().id);
 }
 
 function getMovieReviewAuthorName(review) {
@@ -224,14 +182,14 @@ function getMovieReviewLikeCount(review) {
 }
 
 function isMovieReviewLikedByCurrentUser(review) {
-  return Boolean(currentUser?.id && review?.is_liked_by_current_user);
+  return Boolean(getCurrentUser()?.id && review?.is_liked_by_current_user);
 }
 
 function canCurrentUserLikeMovieReview(review) {
   return Boolean(
-    currentUser?.id &&
+    getCurrentUser()?.id &&
     review?.user_id &&
-    String(review.user_id) !== String(currentUser.id)
+    String(review.user_id) !== String(getCurrentUser().id)
   );
 }
 
@@ -248,7 +206,7 @@ function getMovieReviewLikeStats(likes = []) {
 
     countsByReviewId.set(reviewId, (countsByReviewId.get(reviewId) || 0) + 1);
 
-    if (currentUser?.id && String(like?.user_id) === String(currentUser.id)) {
+    if (getCurrentUser()?.id && String(like?.user_id) === String(getCurrentUser().id)) {
       currentUserLikedReviewIds.add(reviewId);
     }
   });
@@ -265,7 +223,7 @@ function getMovieReviewUserRating(movieId, userId) {
   }
 
   return Number(
-    movieRatingByMovieAndUserKey.get(getMovieUserRatingKey(movieId, userId)) ?? 0
+    getMovieUserRating(movieId, userId) ?? 0
   );
 }
 
@@ -299,7 +257,7 @@ function formatMovieReviewDate(dateValue) {
 }
 
 function canCurrentUserCreateMovieReview(movieId) {
-  return Boolean(currentUser) && getCurrentUserRating(movieId) !== null;
+  return Boolean(getCurrentUser()) && getCurrentUserRating(movieId) !== null;
 }
 
 function normalizeMovieReviewText(value) {
@@ -376,8 +334,8 @@ function isMovieReviewEditing(reviewId) {
 
 function sortMovieReviewsForDisplay(reviews) {
   return [...(Array.isArray(reviews) ? reviews : [])].sort((firstReview, secondReview) => {
-    const isFirstCurrentUserReview = currentUser && String(firstReview.user_id) === String(currentUser.id);
-    const isSecondCurrentUserReview = currentUser && String(secondReview.user_id) === String(currentUser.id);
+    const isFirstCurrentUserReview = getCurrentUser() && String(firstReview.user_id) === String(getCurrentUser().id);
+    const isSecondCurrentUserReview = getCurrentUser() && String(secondReview.user_id) === String(getCurrentUser().id);
 
     if (isFirstCurrentUserReview !== isSecondCurrentUserReview) {
       return isFirstCurrentUserReview ? -1 : 1;
@@ -465,15 +423,15 @@ function getMovieCommentLikeCount(comment) {
 }
 
 function isMovieCommentLikedByCurrentUser(comment) {
-  return Boolean(currentUser?.id && comment?.is_liked_by_current_user);
+  return Boolean(getCurrentUser()?.id && comment?.is_liked_by_current_user);
 }
 
 function canCurrentUserLikeMovieComment(comment) {
   return Boolean(
-    currentUser?.id &&
+    getCurrentUser()?.id &&
     comment?.user_id &&
     !comment?.is_deleted &&
-    String(comment.user_id) !== String(currentUser.id)
+    String(comment.user_id) !== String(getCurrentUser().id)
   );
 }
 
@@ -490,7 +448,7 @@ function getMovieCommentLikeStats(likes = []) {
 
     countsByCommentId.set(commentId, (countsByCommentId.get(commentId) || 0) + 1);
 
-    if (currentUser?.id && String(like?.user_id) === String(currentUser.id)) {
+    if (getCurrentUser()?.id && String(like?.user_id) === String(getCurrentUser().id)) {
       currentUserLikedCommentIds.add(commentId);
     }
   });
@@ -713,11 +671,11 @@ function canCurrentUserEditMovieComment(comment) {
   return Boolean(
     comment &&
     !comment.is_deleted &&
-    currentUser?.id &&
+    getCurrentUser()?.id &&
     (
-      isAdmin ||
+      getIsAdmin() ||
       (
-        String(comment.user_id || '') === String(currentUser.id) &&
+        String(comment.user_id || '') === String(getCurrentUser().id) &&
         !hasMovieCommentReplies(comment.id)
       )
     )
@@ -727,14 +685,14 @@ function canCurrentUserEditMovieComment(comment) {
 function canCurrentUserDeleteMovieComment(comment) {
   return Boolean(
     comment &&
-    currentUser?.id &&
-    (isAdmin || String(comment.user_id || '') === String(currentUser.id))
+    getCurrentUser()?.id &&
+    (getIsAdmin() || String(comment.user_id || '') === String(getCurrentUser().id))
   );
 }
 
 function canCurrentUserReplyToMovieReview(review) {
   return Boolean(
-    currentUser?.id &&
+    getCurrentUser()?.id &&
     review?.movie_id &&
     getCurrentUserRating(review.movie_id) !== null
   );
@@ -833,7 +791,7 @@ async function fetchMovieReviewLikes(reviewIds = []) {
 
   if (error) {
     if (isMovieReviewLikesTableUnavailableError(error)) {
-      setMovieSocialReviewLikesAvailable(false);
+      areMovieReviewLikesAvailable = false;
       console.warn('Лайки рецензий недоступны: таблица movie_review_likes не найдена или закрыта политиками.', error);
       return [];
     }
@@ -842,13 +800,13 @@ async function fetchMovieReviewLikes(reviewIds = []) {
     return [];
   }
 
-  setMovieSocialReviewLikesAvailable(true);
+  areMovieReviewLikesAvailable = true;
   return data || [];
 }
 
 async function fetchMovieReviews(movieId) {
   if (!movieId) {
-    setMovieSocialReviews([]);
+    allMovieReviews = [];
     return;
   }
 
@@ -869,7 +827,7 @@ async function fetchMovieReviews(movieId) {
 
   if (error) {
     console.error('Ошибка загрузки рецензий:', error);
-    setMovieSocialReviews([]);
+    allMovieReviews = [];
     return;
   }
 
@@ -934,18 +892,18 @@ async function fetchMovieReviews(movieId) {
   } else {
     removeKnownMovieRatingRows(row => (
       String(row.movie_id) === String(movieId) &&
-      (!currentUser || String(row.user_id) !== String(currentUser.id))
+      (!getCurrentUser() || String(row.user_id) !== String(getCurrentUser().id))
     ));
   }
 
   const reviewLikeStats = getMovieReviewLikeStats(reviewLikes);
 
-  setMovieSocialReviews(reviews.map(review => ({
+  allMovieReviews = reviews.map(review => ({
     ...review,
     profiles: profilesMap.get(String(review.user_id)) || null,
     likes_count: reviewLikeStats.countsByReviewId.get(String(review.id)) || 0,
     is_liked_by_current_user: reviewLikeStats.currentUserLikedReviewIds.has(String(review.id))
-  })));
+  }));
 }
 
 async function fetchMovieCommentLikes(commentIds = []) {
@@ -966,7 +924,7 @@ async function fetchMovieCommentLikes(commentIds = []) {
 
   if (error) {
     if (isMovieCommentLikesTableUnavailableError(error)) {
-      setMovieSocialCommentLikesAvailable(false);
+      areMovieCommentLikesAvailable = false;
       console.warn('Лайки комментариев недоступны: таблица movie_comment_likes не найдена или закрыта политиками.', error);
       return [];
     }
@@ -975,18 +933,18 @@ async function fetchMovieCommentLikes(commentIds = []) {
     return [];
   }
 
-  setMovieSocialCommentLikesAvailable(true);
+  areMovieCommentLikesAvailable = true;
   return data || [];
 }
 
 async function fetchMovieComments(movieId) {
   if (!movieId) {
-    setMovieSocialComments([]);
+    allMovieComments = [];
     return;
   }
 
   if (!areMovieCommentsAvailable) {
-    setMovieSocialComments([]);
+    allMovieComments = [];
     return;
   }
 
@@ -1013,18 +971,18 @@ async function fetchMovieComments(movieId) {
 
   if (error) {
     if (isMovieCommentsTableUnavailableError(error)) {
-      setMovieSocialCommentsAvailable(false);
-      setMovieSocialComments([]);
+      areMovieCommentsAvailable = false;
+      allMovieComments = [];
       console.warn('Комментарии недоступны: таблица movie_comments не найдена или закрыта политиками.', error);
       return;
     }
 
     console.error('Ошибка загрузки комментариев:', error);
-    setMovieSocialComments([]);
+    allMovieComments = [];
     return;
   }
 
-  setMovieSocialCommentsAvailable(true);
+  areMovieCommentsAvailable = true;
 
   const comments = data || [];
   const commentIds = comments
@@ -1069,13 +1027,13 @@ async function fetchMovieComments(movieId) {
 
   const commentLikeStats = getMovieCommentLikeStats(commentLikes);
 
-  setMovieSocialComments(comments.map(comment => ({
+  allMovieComments = comments.map(comment => ({
     ...comment,
     depth: Math.max(0, Math.min(MOVIE_COMMENT_MAX_DEPTH, Number(comment.depth || 0))),
     profiles: profilesMap.get(String(comment.user_id)) || null,
     likes_count: commentLikeStats.countsByCommentId.get(String(comment.id)) || 0,
     is_liked_by_current_user: commentLikeStats.currentUserLikedCommentIds.has(String(comment.id))
-  })));
+  }));
 }
 
 async function refreshMovieReviewsAfterMutation(movieId, reviewIdToCollapse = null) {
@@ -1085,13 +1043,7 @@ async function refreshMovieReviewsAfterMutation(movieId, reviewIdToCollapse = nu
   }
 
   await fetchMovieReviews(movieId);
-  if (allMovieReviews.some(review => String(review.movie_id) === String(movieId))) {
-    catalogReviewedMovieIds.add(String(movieId));
-  } else {
-    catalogReviewedMovieIds.delete(String(movieId));
-  }
-  markCatalogDataChanged();
-  syncCatalogSessionSnapshotMovieState(movieId, { syncReviews: true, mutationScope: `reviews:${movieId}` });
+  onMovieReviewsChanged(movieId, allMovieReviews.some(review => String(review.movie_id) === String(movieId)));
 }
 
 async function saveMovieReview(movieId, {
@@ -1145,7 +1097,7 @@ async function updateMovieReview(reviewId, movieId, {
     throw new Error('Не найдена рецензия для редактирования.');
   }
 
-  if (!isAdmin && String(review.user_id || '') !== String(activeUser.id)) {
+  if (!getIsAdmin() && String(review.user_id || '') !== String(activeUser.id)) {
     throw new Error('Можно редактировать только собственные рецензии.');
   }
 
@@ -1302,11 +1254,11 @@ async function updateMovieComment(commentId, movieId, {
     throw new Error('Не найден комментарий для редактирования.');
   }
 
-  if (!isAdmin && String(comment.user_id || '') !== String(activeUser.id)) {
+  if (!getIsAdmin() && String(comment.user_id || '') !== String(activeUser.id)) {
     throw new Error('Можно редактировать только собственные комментарии.');
   }
 
-  if (!isAdmin && hasMovieCommentReplies(normalizedCommentId)) {
+  if (!getIsAdmin() && hasMovieCommentReplies(normalizedCommentId)) {
     throw new Error('Комментарий уже получил ответ, поэтому редактирование недоступно.');
   }
 
@@ -1415,7 +1367,7 @@ function getMoviePageReviewFormHtml(movie) {
   const currentUserReview = getCurrentUserMovieReview(movie.id);
   const canCreateReview = canCurrentUserCreateMovieReview(movie.id);
 
-  if (!currentUser) {
+  if (!getCurrentUser()) {
     return `
       <div class="movie-page-review-gate">
         <div class="movie-page-review-gate-text">Войдите, чтобы оставить рецензию.</div>
@@ -1603,7 +1555,7 @@ function getMoviePageReviewHeaderHtml(review, {
 }) {
   const metaLineCount = 1 + (reviewDate ? 1 : 0) + (userRatingHtml ? 1 : 0);
   const metaSizeClass = metaLineCount >= 3 ? ' is-meta-tall' : '';
-  const canManageReview = Boolean(!isEditing && (isCurrentUserReview || isAdmin));
+  const canManageReview = Boolean(!isEditing && (isCurrentUserReview || getIsAdmin()));
 
   return `
     <div class="movie-page-review-card-header">
@@ -1846,8 +1798,8 @@ function getMovieCommentReviewContextHtml(comment) {
 
 function getMovieCommentActionsHtml(comment) {
   const isOwnOrAdminComment = Boolean(
-    currentUser?.id &&
-    (isAdmin || String(comment.user_id || '') === String(currentUser.id))
+    getCurrentUser()?.id &&
+    (getIsAdmin() || String(comment.user_id || '') === String(getCurrentUser().id))
   );
 
   if (!isOwnOrAdminComment || comment.is_deleted) {
@@ -1896,7 +1848,7 @@ function getMovieCommentFooterHtml(comment, movie, comments) {
   const isThreadExpanded = isMovieCommentThreadExpanded('comment', comment.id);
   const shouldRenderThreadToggle = shouldRenderMovieCommentThreadToggle(comment, childCount);
   const replyTarget = getMovieCommentReplyTargetForComment(comment);
-  const canReply = Boolean(currentUser?.id && !comment.is_deleted);
+  const canReply = Boolean(getCurrentUser()?.id && !comment.is_deleted);
   const footerStartItems = [];
   let likeHtml = '';
 
@@ -1927,7 +1879,7 @@ function getMovieCommentFooterHtml(comment, movie, comments) {
   if (areMovieCommentLikesAvailable && !comment.is_deleted) {
     const likesCount = getMovieCommentLikeCount(comment);
     const isLiked = isMovieCommentLikedByCurrentUser(comment);
-    const isOwnComment = Boolean(currentUser?.id && String(comment.user_id) === String(currentUser.id));
+    const isOwnComment = Boolean(getCurrentUser()?.id && String(comment.user_id) === String(getCurrentUser().id));
     const isBusy = movieCommentLikeRequestInFlight.has(String(comment.id));
     const countLabel = `${likesCount}`;
     const likeTitle = isOwnComment
@@ -2083,7 +2035,7 @@ function getMoviePageReviewFooterHtml(review, {
     `
     : '';
   const canReplyToReview = canCurrentUserReplyToMovieReview(review);
-  const reviewReplyHtml = currentUser
+  const reviewReplyHtml = getCurrentUser()
     ? `
       <button
         type="button"
@@ -2119,7 +2071,7 @@ function getMoviePageReviewFooterHtml(review, {
 
   const likesCount = getMovieReviewLikeCount(review);
   const isLiked = isMovieReviewLikedByCurrentUser(review);
-  const isOwnReview = Boolean(currentUser?.id && String(review.user_id) === String(currentUser.id));
+  const isOwnReview = Boolean(getCurrentUser()?.id && String(review.user_id) === String(getCurrentUser().id));
   const isBusy = reviewLikeRequestInFlight.has(String(review.id));
   const countLabel = `${likesCount}`;
   const likeTitle = isOwnReview
@@ -2182,7 +2134,7 @@ function getMoviePageReviewCardHtml(review) {
   const userRatingHtml = Number.isFinite(userRating) && userRating > 0
     ? `<div class="movie-page-review-user-rating">Оценка: ${userRating}/10 <span class="movie-page-review-user-rating-star">★</span></div>`
     : '';
-  const isCurrentUserReview = Boolean(currentUser) && String(review.user_id) === String(currentUser.id);
+  const isCurrentUserReview = Boolean(getCurrentUser()) && String(review.user_id) === String(getCurrentUser().id);
   const isSpoilerReview = Boolean(review.contains_spoilers || review.contains_profanity);
   const isExpandedSpoiler = isMovieReviewExpanded(review.id);
   const isExpandedText = isMovieReviewTextExpanded(review.id);
@@ -2289,7 +2241,7 @@ function getMoviePageReviewsSectionHtml(movie, { isLoading = false } = {}) {
 }
 
 function getMoviePageCommentComposerHtml(movie) {
-  if (!currentUser) {
+  if (!getCurrentUser()) {
     return `
       <div class="movie-page-comment-gate">
         <div class="movie-page-comment-gate-text">Войдите, чтобы оставить комментарий.</div>
@@ -2336,7 +2288,7 @@ function getMoviePageCommentComposerHtml(movie) {
 }
 
 function getMoviePageReviewReplyComposerHtml(movie) {
-  if (!currentUser || !replyingMovieCommentTargetKey.startsWith('review:')) {
+  if (!getCurrentUser() || !replyingMovieCommentTargetKey.startsWith('review:')) {
     return '';
   }
 
@@ -2560,7 +2512,7 @@ async function handleMovieReviewLikeToggle(movie, reviewId) {
     return;
   }
 
-  if (!currentUser?.id) {
+  if (!getCurrentUser()?.id) {
     openAuthModal();
     return;
   }
@@ -2582,7 +2534,7 @@ async function handleMovieReviewLikeToggle(movie, reviewId) {
     console.error('Ошибка переключения лайка рецензии:', error);
 
     if (isMovieReviewLikesTableUnavailableError(error)) {
-      setMovieSocialReviewLikesAvailable(false);
+      areMovieReviewLikesAvailable = false;
       showAppMessage('Лайки рецензий пока недоступны: серверный контур лайков не подключён.', 'error', true);
     } else {
       showAppMessage(error?.message || 'Не удалось обновить лайк рецензии.', 'error', true);
@@ -2750,14 +2702,14 @@ function highlightMoviePageCommentCard(commentCard) {
 function focusMoviePageCommentCard(commentId, { shouldUpdateHash = true } = {}) {
   const normalizedCommentId = String(commentId || '');
 
-  if (!normalizedCommentId || !currentMoviePageMovieData) {
+  if (!normalizedCommentId || !getCurrentMoviePageMovieData()) {
     return;
   }
 
   const didExpandAncestors = expandMovieCommentAncestors(normalizedCommentId);
 
   if (didExpandAncestors) {
-    renderMoviePageCommentsSection(currentMoviePageMovieData);
+    renderMoviePageCommentsSection(getCurrentMoviePageMovieData());
   }
 
   const commentCard = moviePage?.querySelector(`[data-movie-comment-id="${CSS.escape(normalizedCommentId)}"]`);
@@ -2908,7 +2860,7 @@ function handleMovieReviewReplyButtonClick(movie, reviewReplyButton) {
     return;
   }
 
-  if (!currentUser?.id) {
+  if (!getCurrentUser()?.id) {
     openAuthModal();
     return;
   }
@@ -2942,7 +2894,6 @@ function bindMoviePageReviewEvents(movie) {
   reviewsSection.dataset.moviePageReviewEventsBound = 'true';
 
   reviewsSection.addEventListener('click', event => {
-    syncMovieSocialContextState();
     const target = event.target instanceof Element ? event.target : event.target?.parentElement;
 
     if (!target) {
@@ -3022,7 +2973,6 @@ function bindMoviePageReviewEvents(movie) {
   });
 
   reviewsSection.addEventListener('input', event => {
-    syncMovieSocialContextState();
     if (!event.target?.matches?.('[data-movie-review-textarea="true"]')) {
       return;
     }
@@ -3035,7 +2985,6 @@ function bindMoviePageReviewEvents(movie) {
   });
 
   reviewsSection.addEventListener('submit', event => {
-    syncMovieSocialContextState();
     const reviewForm = event.target?.closest?.('[data-movie-review-form="true"]');
 
     if (!reviewForm || !reviewsSection.contains(reviewForm)) {
@@ -3288,7 +3237,7 @@ async function handleMovieCommentLikeToggle(movie, commentId) {
     return;
   }
 
-  if (!currentUser?.id) {
+  if (!getCurrentUser()?.id) {
     openAuthModal();
     return;
   }
@@ -3310,7 +3259,7 @@ async function handleMovieCommentLikeToggle(movie, commentId) {
     console.error('Ошибка переключения лайка комментария:', error);
 
     if (isMovieCommentLikesTableUnavailableError(error)) {
-      setMovieSocialCommentLikesAvailable(false);
+      areMovieCommentLikesAvailable = false;
       showAppMessage('Лайки комментариев пока недоступны: серверный контур лайков не подключён.', 'error', true);
     } else {
       showAppMessage(error?.message || 'Не удалось обновить лайк комментария.', 'error', true);
@@ -3354,7 +3303,6 @@ function bindMoviePageCommentEvents(movie) {
   commentsSection.dataset.moviePageCommentEventsBound = 'true';
 
   commentsSection.addEventListener('click', event => {
-    syncMovieSocialContextState();
     const target = event.target instanceof Element ? event.target : event.target?.parentElement;
 
     if (!target) {
@@ -3382,7 +3330,7 @@ function bindMoviePageCommentEvents(movie) {
     const replyButton = target.closest('[data-movie-comment-reply]');
 
     if (replyButton && commentsSection.contains(replyButton)) {
-      if (!currentUser?.id) {
+      if (!getCurrentUser()?.id) {
         openAuthModal();
         return;
       }
@@ -3454,7 +3402,6 @@ function bindMoviePageCommentEvents(movie) {
   });
 
   commentsSection.addEventListener('input', event => {
-    syncMovieSocialContextState();
     if (!event.target?.matches?.('[data-movie-comment-textarea="true"]')) {
       return;
     }
@@ -3467,7 +3414,6 @@ function bindMoviePageCommentEvents(movie) {
   });
 
   commentsSection.addEventListener('submit', event => {
-    syncMovieSocialContextState();
     const commentForm = event.target?.closest?.('[data-movie-comment-form="true"]');
 
     if (!commentForm || !commentsSection.contains(commentForm)) {
@@ -3480,51 +3426,20 @@ function bindMoviePageCommentEvents(movie) {
 }
 
   return {
-    syncContextState: syncMovieSocialContextState,
+    getSnapshot,
+    restoreSnapshot,
+    clearReviews: () => { allMovieReviews = []; },
     resetMoviePageComposerState,
-    getMoviePageReviewsSectionHtml: (movie, options = {}) => {
-      syncMovieSocialContextState();
-      return getMoviePageReviewsSectionHtml(movie, options);
-    },
-    getMoviePageCommentsSectionHtml: (movie, options = {}) => {
-      syncMovieSocialContextState();
-      return getMoviePageCommentsSectionHtml(movie, options);
-    },
-    fetchMovieReviews: async movieId => {
-      syncMovieSocialContextState();
-      return fetchMovieReviews(movieId);
-    },
-    fetchMovieComments: async movieId => {
-      syncMovieSocialContextState();
-      return fetchMovieComments(movieId);
-    },
-    bindMoviePageReviewEvents: movie => {
-      syncMovieSocialContextState();
-      bindMoviePageReviewEvents(movie);
-    },
-    bindMoviePageCommentEvents: movie => {
-      syncMovieSocialContextState();
-      bindMoviePageCommentEvents(movie);
-    },
-    focusMoviePageHashTarget: () => {
-      syncMovieSocialContextState();
-      focusMoviePageHashTarget();
-    },
-    renderMoviePageReviewsSection: (movie, options = {}) => {
-      syncMovieSocialContextState();
-      renderMoviePageReviewsSection(movie, options);
-    },
-    renderMoviePageCommentsSection: movie => {
-      syncMovieSocialContextState();
-      renderMoviePageCommentsSection(movie);
-    },
-    renderMoviePageReviewsStatus: message => {
-      syncMovieSocialContextState();
-      renderMoviePageReviewsStatus(message);
-    },
-    renderMoviePageCommentsStatus: message => {
-      syncMovieSocialContextState();
-      renderMoviePageCommentsStatus(message);
-    }
+    getMoviePageReviewsSectionHtml,
+    getMoviePageCommentsSectionHtml,
+    fetchMovieReviews,
+    fetchMovieComments,
+    bindMoviePageReviewEvents,
+    bindMoviePageCommentEvents,
+    focusMoviePageHashTarget,
+    renderMoviePageReviewsSection,
+    renderMoviePageCommentsSection,
+    renderMoviePageReviewsStatus,
+    renderMoviePageCommentsStatus
   };
 }

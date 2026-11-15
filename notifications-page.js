@@ -75,8 +75,6 @@ export function createNotificationsPageController(context = {}) {
     },
     isNotificationsUnavailableError = () => false,
     isMovieCommentsTableUnavailableError = () => false,
-    getAreMovieCommentsAvailable = () => true,
-    setAreMovieCommentsAvailable = () => {},
     setNotificationsUnavailable = () => {},
     refreshNotificationsUnreadCount = async () => 0,
     setNotificationsUnreadCount = () => {},
@@ -84,6 +82,7 @@ export function createNotificationsPageController(context = {}) {
   } = context;
 
   let notificationsPageItems = [];
+  let areMovieCommentsAvailable = true;
   let notificationsPageFilter = 'all';
   let isNotificationsPageMarkingAllRead = false;
   let isNotificationsPageClearingAll = false;
@@ -183,7 +182,7 @@ export function createNotificationsPageController(context = {}) {
         .filter(Boolean)
     )];
 
-    if (!normalizedCommentIds.length || !getAreMovieCommentsAvailable()) {
+    if (!normalizedCommentIds.length || !areMovieCommentsAvailable) {
       return [];
     }
 
@@ -194,14 +193,14 @@ export function createNotificationsPageController(context = {}) {
 
     if (error) {
       if (isMovieCommentsTableUnavailableError(error)) {
-        setAreMovieCommentsAvailable(false);
+        areMovieCommentsAvailable = false;
       }
 
       console.warn('Ошибка загрузки фрагментов комментариев для уведомлений:', error);
       return [];
     }
 
-    setAreMovieCommentsAvailable(true);
+    areMovieCommentsAvailable = true;
     return data || [];
   }
 

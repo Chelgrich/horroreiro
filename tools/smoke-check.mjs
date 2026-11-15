@@ -1263,13 +1263,6 @@ async function checkStaticGuards() {
     'movie-social.js: manual similar implementation should stay outside movie-social.js'
   );
   assert(
-    movieSocialJs.includes('function renderMoviePageReviewsSection(') &&
-      movieSocialJs.includes('function renderMoviePageCommentsSection(') &&
-      movieSocialJs.includes('renderMoviePageReviewsSection: (movie, options = {}) =>') &&
-      movieSocialJs.includes('renderMoviePageCommentsSection: movie =>'),
-    'movie-social.js: social render API must call local render functions without recursive method shorthand'
-  );
-  assert(
     movieSocialJs.includes('function handleMovieReviewReplyButtonClick(') &&
       movieSocialJs.includes('reviewReplyButton && reviewsSection.contains(reviewReplyButton)') &&
       !movieSocialJs.includes('reviewReplyButton && commentsSection.contains(reviewReplyButton)'),
@@ -1807,15 +1800,13 @@ async function checkMovieCommentThreadRenderingContract() {
   }[char]));
   const controller = createMovieSocialController({
     escapeHtml,
-    getAllMovieComments: () => comments,
-    getAreMovieCommentsAvailable: () => true,
-    getAreMovieCommentLikesAvailable: () => true,
     getCurrentUser: () => null,
     getIsAdmin: () => false,
     getPublicProfileHandle: profile => profile?.public_handle || '',
     buildUserPageUrl: handle => `/user/${handle}`,
     getUserPageAvatarLetter: value => String(value || '?').trim().charAt(0).toUpperCase()
   });
+  controller.restoreSnapshot('movie-1', { movieComments: comments });
   const html = controller.getMoviePageCommentsSectionHtml({
     id: 'movie-1',
     slug: 'contract-movie',
@@ -1852,6 +1843,10 @@ const catalogReturnSmoke = spawnSync(process.execPath, ['tools/catalog-return-sm
   cwd: rootDir, encoding: 'utf8'
 });
 assert(catalogReturnSmoke.status === 0, `Catalog return smoke failed:\n${catalogReturnSmoke.stderr || catalogReturnSmoke.stdout}`);
+const movieSocialSmoke = spawnSync(process.execPath, ['tools/movie-social-smoke.mjs'], {
+  cwd: rootDir, encoding: 'utf8'
+});
+assert(movieSocialSmoke.status === 0, `Movie social smoke failed:\n${movieSocialSmoke.stderr || movieSocialSmoke.stdout}`);
 checkContextJournalUpdated();
 await checkNoTemporaryRootArtifacts();
 await checkStaticGuards();

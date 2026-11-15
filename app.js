@@ -645,17 +645,12 @@ let moviePosterImagesDraftDraggedEntryId = null;
 let isMoviePagePayloadRpcAvailable = true;
 let allMovieRatings = [];
 let allMovieWatchlist = [];
-let allMovieReviews = [];
-let allMovieComments = [];
 let movieRatingStatsByMovieId = new Map();
 let movieRatingByMovieAndUserKey = new Map();
 let currentUserRatingsByMovieId = new Map();
 let currentUserWatchlistMovieIds = new Set();
 let catalogReviewedMovieIds = new Set();
 let reviewedOnlyFilter = false;
-let areMovieReviewLikesAvailable = true;
-let areMovieCommentsAvailable = true;
-let areMovieCommentLikesAvailable = true;
 let editingMovieId = null;
 let isModalOpen = false;
 let moviesLoadedSuccessfully = false;
@@ -6091,11 +6086,11 @@ function applyMoviePageSessionCacheEntry(entry) {
   allMovieWatchlist.push(...(Array.isArray(entry.movieWatchlist) ? entry.movieWatchlist : []));
   rebuildCurrentUserWatchlistIndex();
 
-  allMovieReviews = allMovieReviews.filter(review => String(review?.movie_id || '') !== movieId);
-  allMovieReviews.push(...(Array.isArray(entry.movieReviews) ? entry.movieReviews : []));
-
-  allMovieComments = allMovieComments.filter(comment => String(comment?.movie_id || '') !== movieId);
-  allMovieComments.push(...(Array.isArray(entry.movieComments) ? entry.movieComments : []));
+  if (movieSocialController) {
+    movieSocialController.restoreSnapshot(movieId, entry);
+  } else {
+    pendingMovieSocialSnapshot = entry;
+  }
 
   setMoviePosterImagesCache(movieId, entry.posterImages || []);
 
@@ -6859,7 +6854,7 @@ function syncCatalogSessionSnapshotMovieState(movieId, { syncReviews = false, sy
         .map(reviewedMovieId => String(reviewedMovieId || ''))
         .filter(Boolean)
     );
-    const hasReviews = allMovieReviews.some(review => String(review.movie_id) === movieKey);
+    const hasReviews = getMoviePageSocialSnapshot(movieKey).movieReviews.length > 0;
 
     if (hasReviews) {
       reviewedMovieIds.add(movieKey);
@@ -6918,7 +6913,8 @@ function hydrateMoviePageFromCatalogSnapshot(routeParams) {
   }
 
   hydrateCatalogFromSessionSnapshot(snapshot);
-  allMovieReviews = [];
+  pendingMovieSocialSnapshot = null;
+  movieSocialController?.clearReviews();
 
   return getCatalogMovieById(snapshotMovie.id) || snapshotMovie;
 }
@@ -8969,6 +8965,7 @@ let customSelectScriptPromise = null;
 let movieEditorStylesheetPromise = null;
 let personPlaceholderTools = null;
 let movieSocialController = null;
+let pendingMovieSocialSnapshot = null;
 let movieEditorController = null;
 let movieDetailCacheController = null;
 let moviePageOrchestratorController = null;
@@ -9570,8 +9567,7 @@ function getMoviePageSessionSnapshot(movie) {
       : null,
     movieRatings: allMovieRatings.filter(row => String(row?.movie_id || '') === movieId),
     movieWatchlist: allMovieWatchlist.filter(row => String(row?.movie_id || '') === movieId),
-    movieReviews: allMovieReviews.filter(review => String(review?.movie_id || '') === movieId),
-    movieComments: allMovieComments.filter(comment => String(comment?.movie_id || '') === movieId),
+    ...getMoviePageSocialSnapshot(movieId),
     posterImages: getMoviePosterImages(movieId),
     similarMovieId: String(currentMoviePageSimilarMovieId || ''),
     similarMovieIds: String(currentMoviePageSimilarMovieId || '') === movieId
@@ -10455,6 +10451,22 @@ function getMoviePageCommentsFallbackSectionHtml({ isLoading = true } = {}) {
   `;
 }
 
+function getMoviePageSocialSnapshot(movieId) {
+  if (movieSocialController) {
+    return movieSocialController.getSnapshot(movieId);
+  }
+
+  const snapshot = String(pendingMovieSocialSnapshot?.movie?.id || '') === String(movieId)
+    ? pendingMovieSocialSnapshot
+    : null;
+  return {
+    movieReviews: (Array.isArray(snapshot?.movieReviews) ? snapshot.movieReviews : [])
+      .filter(review => String(review?.movie_id || '') === String(movieId)),
+    movieComments: (Array.isArray(snapshot?.movieComments) ? snapshot.movieComments : [])
+      .filter(comment => String(comment?.movie_id || '') === String(movieId))
+  };
+}
+
 function getMovieSocialControllerContext() {
   return {
     moviePage,
@@ -10465,15 +10477,22 @@ function getMovieSocialControllerContext() {
     getPublicProfileAvatarUrl,
     getUserPageAvatarLetter,
     getCurrentUserRating,
-    getMovieUserRatingKey,
+    getMovieUserRating: (movieId, userId) => movieRatingByMovieAndUserKey.get(getMovieUserRatingKey(movieId, userId)) ?? null,
     fetchPublicProfilesByIds,
     upsertKnownMovieRatingRows,
     removeKnownMovieRatingRows,
     throwIfSupabaseError,
     ensureActiveSessionForWrite,
     markLocalDataMutation,
-    markCatalogDataChanged,
-    syncCatalogSessionSnapshotMovieState,
+    onMovieReviewsChanged: (movieId, hasReviews) => {
+      if (hasReviews) {
+        catalogReviewedMovieIds.add(String(movieId));
+      } else {
+        catalogReviewedMovieIds.delete(String(movieId));
+      }
+      markCatalogDataChanged();
+      syncCatalogSessionSnapshotMovieState(movieId, { syncReviews: true, mutationScope: `reviews:${movieId}` });
+    },
     persistCurrentMoviePageSessionCache,
     openAuthModal,
     showAppMessage,
@@ -10482,40 +10501,10 @@ function getMovieSocialControllerContext() {
     getCurrentUser: () => currentUser,
     getIsAdmin: () => isAdmin,
     getCurrentMoviePageMovieData: () => currentMoviePageMovieData,
-    getMovieRatingByMovieAndUserKey: () => movieRatingByMovieAndUserKey,
-    getCatalogReviewedMovieIds: () => catalogReviewedMovieIds,
-    getAllMovieReviews: () => allMovieReviews,
-    setAllMovieReviews: reviews => {
-      allMovieReviews = Array.isArray(reviews) ? reviews : [];
-    },
-    getAllMovieComments: () => allMovieComments,
-    setAllMovieComments: comments => {
-      allMovieComments = Array.isArray(comments) ? comments : [];
-    },
-    getAreMovieReviewLikesAvailable: () => areMovieReviewLikesAvailable,
-    setAreMovieReviewLikesAvailable: isAvailable => {
-      areMovieReviewLikesAvailable = Boolean(isAvailable);
-    },
-    getAreMovieCommentsAvailable: () => areMovieCommentsAvailable,
-    setAreMovieCommentsAvailable: isAvailable => {
-      areMovieCommentsAvailable = Boolean(isAvailable);
-    },
-    getAreMovieCommentLikesAvailable: () => areMovieCommentLikesAvailable,
-    setAreMovieCommentLikesAvailable: isAvailable => {
-      areMovieCommentLikesAvailable = Boolean(isAvailable);
-    },
     isMovieReviewLikesTableUnavailableError,
     isMovieCommentsTableUnavailableError,
     isMovieCommentLikesTableUnavailableError
   };
-}
-
-function getLoadedMovieSocialController() {
-  if (movieSocialController) {
-    movieSocialController.syncContextState?.();
-  }
-
-  return movieSocialController;
 }
 
 function ensureMovieSocialControllerLoaded() {
@@ -10523,7 +10512,10 @@ function ensureMovieSocialControllerLoaded() {
     movieSocialControllerPromise = import(getLazyFeatureModuleUrl('movie-social.js'))
       .then(module => {
         movieSocialController = module.createMovieSocialController(getMovieSocialControllerContext());
-        movieSocialController.syncContextState?.();
+        if (pendingMovieSocialSnapshot) {
+          movieSocialController.restoreSnapshot(pendingMovieSocialSnapshot.movie.id, pendingMovieSocialSnapshot);
+          pendingMovieSocialSnapshot = null;
+        }
         return movieSocialController;
       })
       .catch(error => {
@@ -10532,10 +10524,7 @@ function ensureMovieSocialControllerLoaded() {
       });
   }
 
-  return movieSocialControllerPromise.then(controller => {
-    controller.syncContextState?.();
-    return controller;
-  });
+  return movieSocialControllerPromise;
 }
 
 let movieSocialSectionsHydrationToken = 0;
@@ -10567,11 +10556,11 @@ function scheduleMovieSocialSectionsHydration(movie) {
 }
 
 function resetMoviePageComposerState() {
-  getLoadedMovieSocialController()?.resetMoviePageComposerState();
+  movieSocialController?.resetMoviePageComposerState();
 }
 
 function getMoviePageReviewsSectionHtml(movie, options = {}) {
-  const controller = getLoadedMovieSocialController();
+  const controller = movieSocialController;
 
   if (controller) {
     return controller.getMoviePageReviewsSectionHtml(movie, options);
@@ -10581,7 +10570,7 @@ function getMoviePageReviewsSectionHtml(movie, options = {}) {
 }
 
 function getMoviePageCommentsSectionHtml(movie, options = {}) {
-  const controller = getLoadedMovieSocialController();
+  const controller = movieSocialController;
 
   if (controller) {
     return controller.getMoviePageCommentsSectionHtml(movie, options);
@@ -10601,15 +10590,15 @@ async function fetchMovieComments(movieId) {
 }
 
 function bindMoviePageReviewEvents(movie) {
-  getLoadedMovieSocialController()?.bindMoviePageReviewEvents(movie);
+  movieSocialController?.bindMoviePageReviewEvents(movie);
 }
 
 function bindMoviePageCommentEvents(movie) {
-  getLoadedMovieSocialController()?.bindMoviePageCommentEvents(movie);
+  movieSocialController?.bindMoviePageCommentEvents(movie);
 }
 
 function focusMoviePageHashTarget() {
-  const controller = getLoadedMovieSocialController();
+  const controller = movieSocialController;
 
   if (controller) {
     controller.focusMoviePageHashTarget();
@@ -10624,7 +10613,7 @@ function focusMoviePageHashTarget() {
 }
 
 function renderMoviePageReviewsSection(movie, options = {}) {
-  const controller = getLoadedMovieSocialController();
+  const controller = movieSocialController;
 
   if (controller) {
     controller.renderMoviePageReviewsSection(movie, options);
@@ -10635,7 +10624,7 @@ function renderMoviePageReviewsSection(movie, options = {}) {
 }
 
 function renderMoviePageCommentsSection(movie) {
-  const controller = getLoadedMovieSocialController();
+  const controller = movieSocialController;
 
   if (controller) {
     controller.renderMoviePageCommentsSection(movie);
@@ -10646,7 +10635,7 @@ function renderMoviePageCommentsSection(movie) {
 }
 
 function renderMoviePageReviewsStatus(message) {
-  const controller = getLoadedMovieSocialController();
+  const controller = movieSocialController;
 
   if (controller) {
     controller.renderMoviePageReviewsStatus(message);
@@ -10668,7 +10657,7 @@ function renderMoviePageReviewsStatus(message) {
 }
 
 function renderMoviePageCommentsStatus(message) {
-  const controller = getLoadedMovieSocialController();
+  const controller = movieSocialController;
 
   if (controller) {
     controller.renderMoviePageCommentsStatus(message);
@@ -18910,10 +18899,6 @@ function getNotificationsPageControllerContext() {
     runConfirmedAction,
     isNotificationsUnavailableError,
     isMovieCommentsTableUnavailableError,
-    getAreMovieCommentsAvailable: () => areMovieCommentsAvailable,
-    setAreMovieCommentsAvailable: value => {
-      areMovieCommentsAvailable = Boolean(value);
-    },
     setNotificationsUnavailable: value => {
       areNotificationsUnavailable = Boolean(value);
     },
@@ -19846,7 +19831,7 @@ function renderMoviePage(movie, { socialLoading = false, similarLoading = false 
   bindMoviePageReviewEvents(movie);
   bindMoviePageCommentEvents(movie);
   bindMoviePageSimilarEditorEvents(movie);
-  if (!socialLoading && !getLoadedMovieSocialController()) {
+  if (!socialLoading && !movieSocialController) {
     scheduleMovieSocialSectionsHydration(movie);
   }
   requestAnimationFrame(focusMoviePageHashTarget);

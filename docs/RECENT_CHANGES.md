@@ -1,5 +1,11 @@
 # Recent Changes
 
+## 2026-11-15 — Social module state ownership
+
+- Moved review/comment row ownership and social table-availability flags fully into `movie-social.js`. Removed app-level duplicates, getter/setter bridges, context synchronization and its export wrappers. Auth, role, current movie and author ratings are read from their owners when needed.
+- Detail cache uses scoped social snapshots. A restored entry stays pending only until the lazy social controller accepts it, preserving warm rendering and cache signatures before the module loads. Review mutations report their result through one callback; catalog index/snapshot updates stay with the catalog owner. Notifications keep their own snippet-availability flag.
+- Added focused behavioral smoke coverage for snapshot replacement/handoff and unchanged detail-cache signatures, module fetches, live identity/role/ratings, unavailable comment tables, and the real review-delete event through catalog notification/cache persistence. Adapted existing comment-thread and catalog-return fixtures to the new boundary. Full smoke and independent review passed; local browser verified public empty social sections, a real review/author rating, catalog filter return (133 reviewed movies), and repeat movie opening without captured warnings/errors. The social context was reduced from 39 dependencies to 26; no new runtime dependency or asset was added. Production verification follows with release.
+
 ## 2026-11-15 — Director punctuation on movie detail pages
 
 - Removed whitespace inside/between the linked director templates that HTML collapsed into visible spaces before commas. Separators remain comma + one space; names, escaping, links and stored data are unchanged.
