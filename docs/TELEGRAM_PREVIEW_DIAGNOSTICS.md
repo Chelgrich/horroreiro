@@ -36,7 +36,13 @@ These are our own HTTP probes, **not observed Telegram requests**. User-Agent: `
 
 Cloud Logging CLI and REST return Unavailable/503. After signing in with the correct production account, its console shows the section unavailable due to limited platform operation. The official status board at https://center.yandex.cloud/statusboard (updated 15 November, 17:08 MSK) lists Cloud Logging as unavailable and logs for API Gateway/Serverless Containers as temporarily unavailable. Monium itself is operational, but the status board explicitly identifies missing logs for these hosting services; their recovery/migration has not been established here.
 
+## Related report supplied by the owner
+
+https://bugs.telegram.org/c/61650/33 describes identical HTML (with matching SHA-256) producing a preview only for a query variant, while the clean root fails. Its canonical and OG URLs remain unchanged. This supports investigating Telegram's URL processing/cache, but is a user report without a confirmed internal cause. Our tested query variant failed too, so its workaround is not established for Horroreiro.
+
 ## Prepared request to Yandex support — not sent
+
+The owner explicitly chose to leave this as a draft. The form is filled in the in-chat browser; exact submitted-to-form text is saved locally at `C:/Temp/horroreiro-yandex-support-draft.txt`. No ticket was created and no message was sent.
 
 Тема: Telegram не получает превью с API Gateway / Serverless Containers; HEAD возвращает Content-Length: 0
 
