@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-11-15.
+Last updated: 2026-11-16.
 
 ## Purpose
 
@@ -65,6 +65,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 Page HTML is static shell plus shared scripts:
 
 - `boot-loader.js`
+  - activates the nonblocking external font stylesheet after load (or immediately when already cached); unavailable fonts must not block app startup;
   - loads `/env`;
   - creates `window.__ENV__`;
   - loads versioned `styles.css`;
@@ -91,6 +92,7 @@ Page HTML is static shell plus shared scripts:
   - mounts shared header, auth modal, display-name modal, footer;
   - loads `custom-select.js` upfront only for the catalog page;
   - loads `app-page-runtime.js`;
+  - loads the pinned, self-hosted Supabase browser SDK (`assets/vendor/supabase-2.119.0.js`) before `app.js`; HTML shells must not add a blocking third-party SDK script;
   - loads `app.js`;
   - starts the page runtime and then marks `app-ready`.
 - `app-page-runtime.js`
@@ -121,6 +123,8 @@ Production asset URL strategy:
 - `functions/app-assets/[version].js` allowlists app assets and proxies them from current Pages assets with `no-store`.
 - `_headers` sets core app assets to `public, max-age=0, must-revalidate`.
 - Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `catalog-page.css`, `movie-page.css`, `secondary-pages.css`, secondary page-only CSS, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, warm-start scripts, lazy feature modules, or `assets/directors-admin-app.js`.
+- The vendored Supabase SDK is the exception: its filename contains the upstream version, its bytes are checksum-verified, and it is immutable. Never overwrite it with a different version under the same filename.
+- Deployed browser Supabase REST/Auth calls use `global.fetch` in `createClient` to reach `/supabase/rest/v1/*` and `/supabase/auth/v1/*` on the site. The fixed upstream retains the original publishable key and user bearer token; no service role is added. The original client URL stays unchanged, preserving session storage keys and generated Storage URLs. File/localhost previews retain direct API requests. Storage and Realtime remain direct; do not claim this proxy removes every external resource dependency.
 
 ## Pages
 

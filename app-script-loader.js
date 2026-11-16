@@ -8,6 +8,10 @@
     const isLocalFile = window.location.protocol === 'file:';
     const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
+    if (src === 'assets/vendor/supabase-2.119.0.js') {
+      return `${isLocalFile ? '' : '/'}${src}`;
+    }
+
     if (isLocalFile || isLocalHost) {
       const assetPath = isLocalFile ? src : `/${src}`;
 
@@ -115,6 +119,7 @@
         .then(mountSharedLayout)
         .then(() => (needsCustomSelect ? loadScript('custom-select.js', buildVersion) : undefined))
         .then(() => pageRuntimePromise)
+        .then(() => loadScript('assets/vendor/supabase-2.119.0.js', buildVersion))
         .then(() => loadScript('app.js', buildVersion))
         .then(runAppRuntime);
     })

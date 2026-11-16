@@ -1,0 +1,2 @@
+# Preserve the checksum of the unmodified vendored browser distribution.
+assets/vendor/supabase-2.119.0.js -text

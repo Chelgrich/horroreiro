@@ -350,6 +350,20 @@ async function checkSitemap(baseUrl, options) {
   assert(text.includes('horroreiro.ru') || text.includes(baseUrl.hostname), 'sitemap: missing site host URLs');
 }
 
+async function checkSupabaseTransport(baseUrl, payload, options) {
+  const sdk = await expectText(baseUrl, '/assets/vendor/supabase-2.119.0.js', 'createClient', 'local Supabase SDK', options);
+  expectCacheIncludes(sdk.response, 'immutable', 'local Supabase SDK');
+  for (const path of ['/supabase/rest/v1/movies?select=id&limit=1', '/supabase/auth/v1/settings']) {
+    const { response, text } = await requestPath(baseUrl, path, {
+      ...options, headers: { apikey: payload.SUPABASE_ANON_KEY, Origin: baseUrl.origin }
+    });
+    assert(response.status === 200, `${path}: proxy returned ${response.status}`);
+    expectCacheIncludes(response, 'no-store', path);
+    assert(response.headers.get('set-cookie') === null, `${path}: must not set browser cookies`);
+    assert(JSON.parse(text), `${path}: invalid JSON response`);
+  }
+}
+
 const options = parseArgs(process.argv.slice(2));
 
 if (options.help) {
@@ -368,6 +382,7 @@ const envPayload = await checkEnv(baseUrl, options);
 await checkAssets(baseUrl, envPayload.APP_BUILD_VERSION, options);
 await checkRoutes(baseUrl, options);
 await checkSitemap(baseUrl, options);
+await checkSupabaseTransport(baseUrl, envPayload, options);
 
 console.log(
   `Deployed runtime smoke passed for ${baseUrl.origin} (${envPayload.APP_BUILD_VERSION}).`

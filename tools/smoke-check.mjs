@@ -9,6 +9,7 @@ const host = '127.0.0.1';
 const port = 4181;
 
 const clientJsFiles = [
+  'assets/vendor/supabase-2.119.0.js',
   'boot-loader.js',
   'catalog-warm-start.js',
   'page-warm-start.js',
@@ -1847,6 +1848,10 @@ const movieSocialSmoke = spawnSync(process.execPath, ['tools/movie-social-smoke.
   cwd: rootDir, encoding: 'utf8'
 });
 assert(movieSocialSmoke.status === 0, `Movie social smoke failed:\n${movieSocialSmoke.stderr || movieSocialSmoke.stdout}`);
+const supabaseTransportSmoke = spawnSync(process.execPath, ['tools/supabase-transport-smoke.mjs'], {
+  cwd: rootDir, encoding: 'utf8'
+});
+assert(supabaseTransportSmoke.status === 0, `Supabase transport smoke failed:\n${supabaseTransportSmoke.stderr || supabaseTransportSmoke.stdout}`);
 checkContextJournalUpdated();
 await checkNoTemporaryRootArtifacts();
 await checkStaticGuards();

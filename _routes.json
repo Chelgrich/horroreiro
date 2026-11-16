@@ -4,6 +4,7 @@
     "/",
     "/index.html",
     "/env",
+    "/supabase/*",
     "/og/movie/*",
     "/app-assets/*",
     "/profile-activity-ranks/*",

@@ -75,6 +75,9 @@ assert(assetText.includes('initCatalogPage'), '/app-assets: app.js payload looks
 
 const missingAssetResponse = await fetchPortable('/app-assets/portable-smoke?file=missing.js');
 assert(missingAssetResponse.status === 404, `/app-assets missing: expected 404, got ${missingAssetResponse.status}`);
+const sdkResponse = await expectText('/assets/vendor/supabase-2.119.0.js', 'createClient', 'self-hosted Supabase SDK');
+assert(sdkResponse.headers.get('cache-control')?.includes('immutable'), 'Pinned SDK must be browser-cacheable');
+assert((await fetchPortable('/supabase/rest/v1/movies')).status === 503, 'Unconfigured proxy must fail closed');
 
 // Use fake secrets so a failed assertion never reads real deployment credentials.
 const fixtureRoot = await mkdtemp(join(tmpdir(), 'horroreiro-static-'));

@@ -3,6 +3,7 @@ import { dirname, extname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { onRequest as envOnRequest } from '../functions/env.js';
+import { onRequest as supabaseOnRequest } from '../functions/supabase/[[path]].js';
 import { onRequestGet as adminAutoRelatedDiagnosticsOnRequestGet } from '../functions/admin/auto-related/diagnostics.js';
 import { onRequestPost as adminAutoRelatedOverridesOnRequestPost } from '../functions/admin/auto-related/overrides.js';
 import { onRequestPost as adminAutoRelatedOnRequestPost } from '../functions/admin/auto-related/[movieId].js';
@@ -51,10 +52,13 @@ const contentTypes = {
   '.png': 'image/png',
   '.svg': 'image/svg+xml; charset=utf-8',
   '.webp': 'image/webp',
-  '.xml': 'application/xml; charset=utf-8'
+  '.xml': 'application/xml; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8'
 };
 
 const publicStaticAssets = new Set([
+  '/assets/vendor/supabase-2.119.0.js',
+  '/assets/vendor/supabase-LICENSE.txt',
   '/index.html', '/movie.html', '/user.html', '/following.html', '/notifications.html',
   '/editor.html', '/directors.html', '/name.html', '/companies.html', '/company.html',
   '/favicon.ico', '/insidious.webp', '/og-preview.jpg',
@@ -151,6 +155,9 @@ function isPathInsideRoot(rootDir, filePath) {
 }
 
 function getCacheControlForStaticPath(pathname) {
+  if (pathname === '/assets/vendor/supabase-2.119.0.js') {
+    return 'public, max-age=31536000, immutable';
+  }
   if (pathname.endsWith('.html') || pathname === '/') {
     return 'no-store, no-cache, must-revalidate, max-age=0';
   }
@@ -360,6 +367,10 @@ export function createPortableRuntime(options = {}) {
 
     if (pathname === '/env') {
       return envOnRequest(createContext(request));
+    }
+
+    if (pathname.startsWith('/supabase/')) {
+      return supabaseOnRequest(createContext(request));
     }
 
     if (pathname.startsWith('/app-assets/')) {

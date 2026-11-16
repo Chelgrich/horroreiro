@@ -252,8 +252,23 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
-  SUPABASE_ANON_KEY
+  SUPABASE_ANON_KEY,
+  { global: { fetch: fetchSupabaseThroughSite } }
 );
+
+function fetchSupabaseThroughSite(input, options) {
+  const url = new URL(input instanceof Request ? input.url : input);
+  if (
+    window.location.protocol !== 'file:' &&
+    window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' &&
+    url.origin === new URL(SUPABASE_URL).origin &&
+    /^\/(rest|auth)\/v1(?:\/|$)/.test(url.pathname)
+  ) {
+    const target = new URL(`/supabase${url.pathname}${url.search}`, window.location.origin);
+    return fetch(input instanceof Request ? new Request(target, input) : target, options);
+  }
+  return fetch(input, options);
+}
 
 const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
 const CATALOG_STATE_STORAGE_KEY = 'horroreiro_catalog_state';
@@ -10125,17 +10140,28 @@ async function importLetterboxdRatingsFromCsvText(csvText, options = {}) {
     `Записываю новые оценки: ${insertRows.length}...`
   );
 
-  const { data, error } = await supabaseClient
-    .from('movie_ratings')
-    .upsert(insertRows, {
-      onConflict: 'movie_id,user_id',
-      ignoreDuplicates: true
-    })
-    .select('movie_id, user_id, rating');
-
-  throwIfSupabaseError(error);
-
-  const insertedRows = data || [];
+  const insertedRows = [];
+  try {
+    for (let offset = 0; offset < insertRows.length; offset += SUPABASE_ID_QUERY_CHUNK_SIZE) {
+      const { data, error } = await supabaseClient
+        .from('movie_ratings')
+        .upsert(insertRows.slice(offset, offset + SUPABASE_ID_QUERY_CHUNK_SIZE), {
+          onConflict: 'movie_id,user_id',
+          ignoreDuplicates: true
+        })
+        .select('movie_id, user_id, rating');
+      throwIfSupabaseError(error);
+      insertedRows.push(...(data || []));
+      applyLetterboxdRatingsImportLocally(data || []);
+    }
+  } catch (error) {
+    if (insertedRows.length) {
+      throw new Error(`Подтверждено новых оценок: ${insertedRows.length}. Импорт прерван. Повтори импорт файла — уже сохранённые оценки будут пропущены.`, { cause: error });
+    }
+    throw error;
+  } finally {
+    if (insertedRows.length) syncUiAfterLetterboxdRatingsImport(insertedRows.map(row => row.movie_id));
+  }
   const insertedRowsByMovieId = new Set(insertedRows.map(row => String(row.movie_id)));
   const addedItems = rowsToInsert
     .filter(item => insertedRowsByMovieId.has(String(item.movie.id)))
@@ -10143,9 +10169,6 @@ async function importLetterboxdRatingsFromCsvText(csvText, options = {}) {
       movie: item.movie,
       rating: item.rating
     }));
-
-  applyLetterboxdRatingsImportLocally(insertedRows);
-  syncUiAfterLetterboxdRatingsImport(insertedRows.map(row => row.movie_id));
 
   return {
     status: 'updated',

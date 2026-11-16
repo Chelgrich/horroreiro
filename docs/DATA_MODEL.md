@@ -110,6 +110,7 @@ Rules:
 - Letterboxd import multiplies 5-star ratings by 2.
 - Import must match movies strictly by Letterboxd/Boxd URL, not by title fallback.
 - Import does not overwrite existing site ratings.
+- Import writes ratings in batches of at most 200 rows to fit the bounded same-origin API transport. Confirmed batches are applied locally even if a later batch fails; retrying the file skips already committed ratings and retains `ignoreDuplicates` protection.
 - Removing a rating must not imply adding the movie to watchlist.
 - Watchlist should only change by explicit eye/watchlist action.
 
@@ -320,6 +321,7 @@ Known RPC:
 Cloudflare Functions:
 
 - `/env`: exposes public Supabase URL/anon key and `APP_BUILD_VERSION`.
+- `/supabase/rest/v1/*` and `/supabase/auth/v1/*`: same-origin transport for deployed browser requests to the configured project. It forwards the same publishable API key and user JWT, never the service role; existing table grants/RLS and Auth checks are unchanged. SDK URL/session storage keys remain the original project values. Auth/REST responses are never cached, site cookies are not forwarded, and incoming cross-origin requests are rejected.
 - `/app-assets/:version`: allowlisted current-deploy asset proxy with no-store cache headers.
 - `/profile-activity-ranks/:userId`: public aggregate helper for profile medal ranks; calculates server-side and does not expose raw rating/watchlist/review rows.
 - `/admin/users/:userId/password`: admin password set endpoint.

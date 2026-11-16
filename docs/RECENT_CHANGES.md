@@ -1,10 +1,19 @@
 # Recent Changes
 
+## 2026-11-16 — Nonblocking fonts and catalog access release
+
+- All ten shells load external font CSS with nonmatching media; the shared boot loader activates it after load (including already cached styles). A failed/slow font host no longer blocks the parser before application startup. Tests cover delayed and cached font styles, alongside the same-origin API/SDK checks below.
+- Continued the catalog startup/network recovery started on 2026-11-15. The affected reader reports all three desktop browsers failing on Beeline Wi-Fi while Safari on the same Wi-Fi works. This does not establish a provider-wide block. The release removes CDN SDK and direct browser REST/Auth dependencies from the critical path; actual confirmation on that PC is still needed.
+
 ## 2026-11-15 — Catalog startup and rating failure recovery
 
 - Fixed both direct `requestAnimationFrame(syncOpenExternalLinksLayouts)` registrations. The browser timestamp was being treated as a DOM root on warm catalog restore and expanded-card rerender, throwing `rootElement.querySelectorAll is not a function`. Frame wrappers now call the layout function with its intended default root.
 - Failed rating/watchlist writes now show an error message rather than only logging to the console. Failed writes retain previous local state and release the request guard for a retry.
 - `tools/catalog-return-smoke.mjs` reproduces the original error using numeric browser timestamps in both actual caller functions. It also exercises the actual cold catalog lazy rating entry/write bridge without detail modules, including a failed write and visible error feedback. Focused smoke passes; network access investigation continues separately.
+- Removed the blocking third-party Supabase SDK script from all ten HTML shells. The shared loader now loads the unmodified, pinned SDK 2.119.0 from the site's own origin before app startup; it matches the version the old floating CDN URL returned during investigation. The versioned asset is immutable and checksum-verified; the size report now counts this previously external dependency.
+- Added a bounded same-origin REST/Auth transport through the existing portable runtime/Cloudflare handler layout. It preserves the SDK's original URL/session key, public API key and caller JWT, forwards no site cookies or service-role key, refuses credentialed redirects, and returns no-store responses without Set-Cookie/CORS. File/localhost previews and Storage/Realtime remain direct. The reported Supabase connection reset supports removing direct browser API dependence, but does not establish the affected user's provider/root network cause.
+- Added isolated transport/security/SDK smoke checks and real deployed read-only checks for public movies and Auth settings (with explicit Origin). No user data, schema, RLS, DNS or provider settings were changed. Browser/release verification follows.
+- Independent review caught the existing Letterboxd importer sending all ratings in one request, exceeding the new bounded transport at about 600 ratings. Import writes now use existing 200-ID chunks, apply confirmed batches locally and sync UI even if a later batch fails. A partial failure explains how to retry; duplicate-safe inserts preserve existing ratings. The smoke covers all 670 catalog-sized fixtures and a failed second batch followed by a safe retry.
 
 ## 2026-11-15 — Social module state ownership
 
