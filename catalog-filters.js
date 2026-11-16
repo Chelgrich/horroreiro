@@ -66,22 +66,19 @@ function getContextMovieMeta(context, movie) {
 }
 
 function isReviewedMovie(context, movieId) {
-  return Boolean(context.catalogReviewedMovieIds?.has(String(movieId)));
+  return context.catalogReviewedMovieIds.has(String(movieId));
 }
 
 function getMovieAverageRating(context, movieId) {
-  return Number(context.getMovieAverageRating?.(movieId) || 0);
+  return Number(context.getMovieAverageRating(movieId) || 0);
 }
 
 function getCatalogMovieYearFilterValue(context, movie) {
-  return context.getCatalogMovieYearFilterValue?.(movie) ?? null;
+  return context.getCatalogMovieYearFilterValue(movie) ?? null;
 }
 
 function getCurrentUserMovieState(context, movieId) {
-  return context.getCurrentUserMovieState?.(movieId) || {
-    isInWatchlist: false,
-    isWatched: false
-  };
+  return context.getCurrentUserMovieState(movieId);
 }
 
 function doesMovieMatchSearch(context, movie, filterState) {

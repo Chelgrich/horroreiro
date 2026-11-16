@@ -92,8 +92,8 @@ export function createAdminActionTools(context = {}) {
   const getManualSimilarMovieLabel = context.getManualSimilarMovieLabel;
   const buildMovieCanonicalPath = context.buildMovieCanonicalPath;
   const getManualSimilarMovieIds = context.getManualSimilarMovieIds;
-  const getAllMovies = context.getAllMovies || (() => []);
-  const getManualSimilarRows = context.getManualSimilarRows || (() => []);
+  const getAllMovies = context.getAllMovies;
+  const getManualSimilarRows = context.getManualSimilarRows;
 
   function getManualSimilarAuditMovieLabel(movie) {
     const title = getManualSimilarMovieLabel(movie);

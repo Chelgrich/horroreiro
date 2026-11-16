@@ -34,11 +34,25 @@ const controller = createMovieEditorController({
     }
   }
 });
+const postSaveEvents = [];
+const postSaveAdapters = {
+  afterCommit: async () => { postSaveEvents.push('commit'); },
+  markLocalDataMutation: () => { postSaveEvents.push('mutation'); },
+  resetFormToCreateMode: () => { postSaveEvents.push('reset'); },
+  closeMovieModal: () => { postSaveEvents.push('close'); }
+};
 const options = {
   ensureActiveSessionForWrite: () => ({ id: 'admin-fixture' }),
   buildUniqueMovieSlug: async () => 'atomic-fixture',
-  buildClassificationDraft: () => ({ formats: [], tagsPerceived: [] })
+  buildClassificationDraft: () => ({ formats: [], tagsPerceived: [] }),
+  normalizeManualSimilarMovieIds: formAdapters.normalizeManualSimilarMovieIds,
+  getManualSimilarMovieIds: () => [], getMovieDirectorItems: () => [],
+  getDirectorDisplayName: item => String(item || ''),
+  ensureManualSimilarDataLoaded: async () => {},
+  postSaveOptions: postSaveAdapters
 };
+await assert.rejects(controller.submitMovieCreate({ ...options, ensureActiveSessionForWrite: undefined }), /ensureActiveSessionForWrite/);
+assert.equal(calls.length, 0, 'Missing session validation must stop before the movie RPC');
 await assert.rejects(controller.submitMovieCreate(options));
 fail = false;
 const result = await controller.submitMovieCreate(options);
@@ -48,6 +62,7 @@ assert.equal(calls[0].args.p_movie_id, calls[1].args.p_movie_id, 'Ambiguous crea
 assert.equal(result.insertedMovie.id, calls[0].args.p_movie_id);
 assert.deepEqual(calls[0].args.p_relations.genres, []);
 assert.deepEqual(calls[0].args.p_relations.posters, []);
+assert.deepEqual(postSaveEvents, ['mutation', 'commit', 'reset', 'close']);
 
 controller.resetMovieFormToCreateMode();
 await controller.submitMovieCreate(options);
@@ -71,7 +86,7 @@ const statuses = [];
 const refresh = await controller.submitMovieCreate({
   ...options,
   setStatus: value => statuses.push(value),
-  postSaveOptions: { isCatalogPage: true, reloadCatalogData: async () => { throw new Error('offline'); } }
+  postSaveOptions: { ...postSaveAdapters, isCatalogPage: true, reloadCatalogData: async () => { throw new Error('offline'); } }
 });
 assert.ok(refresh.insertedMovie.id);
 assert.ok(refresh.refreshError);

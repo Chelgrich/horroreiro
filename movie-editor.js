@@ -1086,18 +1086,18 @@ export function createMovieEditorController(context = {}) {
 
   async function handleMovieCreatePostSave({
     insertedMovie,
-    afterCommit = async () => {},
+    afterCommit,
     manualSimilarChanged = false,
     posterImagesChanged = false,
     isCatalogPage = false,
     isMoviePage = false,
     setStatus = () => {},
-    markLocalDataMutation = () => {},
-    reloadCatalogData = async () => {},
-    rerenderCatalogAfterDataReload = () => {},
-    resetFormToCreateMode = () => {},
-    closeMovieModal = () => {},
-    redirectToMovie = () => {}
+    markLocalDataMutation,
+    reloadCatalogData,
+    rerenderCatalogAfterDataReload,
+    resetFormToCreateMode,
+    closeMovieModal,
+    redirectToMovie
   } = {}) {
     markLocalDataMutation(`movie-create:${insertedMovie.id}`);
     await afterCommit(insertedMovie.id, { manualSimilarChanged, posterImagesChanged });
@@ -1128,27 +1128,27 @@ export function createMovieEditorController(context = {}) {
 
   async function handleMovieUpdatePostSave({
     movieId,
-    afterCommit = async () => {},
+    afterCommit,
     existingMovie = null,
     updateSavePlan,
     isCatalogPage = false,
     isMoviePage = false,
     shouldReplaceMoviePageUrl = false,
     setStatus = () => {},
-    markLocalDataMutation = () => {},
-    refreshCatalogMovieAfterUpdate = async () => null,
-    reloadCatalogData = async () => {},
-    rerenderCatalogAfterDataReload = () => {},
-    reloadMoviePageData = async () => null,
-    buildMoviePageUrl = () => '',
-    replaceMoviePageUrl = () => {},
-    renderMoviePage = () => {},
-    syncCatalogSessionSnapshotMovieState = () => {},
-    loadMoviePageSimilarMovies = async () => {},
-    persistCurrentMoviePageSessionCache = () => {},
-    renderMoviePageNotFound = () => {},
-    closeMovieModal = () => {},
-    resetFormToCreateMode = () => {}
+    markLocalDataMutation,
+    refreshCatalogMovieAfterUpdate,
+    reloadCatalogData,
+    rerenderCatalogAfterDataReload,
+    reloadMoviePageData,
+    buildMoviePageUrl,
+    replaceMoviePageUrl,
+    renderMoviePage,
+    syncCatalogSessionSnapshotMovieState,
+    loadMoviePageSimilarMovies,
+    persistCurrentMoviePageSessionCache,
+    renderMoviePageNotFound,
+    closeMovieModal,
+    resetFormToCreateMode
   } = {}) {
     const savePlan = updateSavePlan || { hasAnyChanges: false };
 
@@ -1223,10 +1223,10 @@ export function createMovieEditorController(context = {}) {
   async function submitMovieFormEvent({
     isEditing = false,
     isSubmitting = false,
-    setSubmittingState = () => {},
+    setSubmittingState,
     setStatus = () => {},
-    submitCreate = async () => ({}),
-    submitUpdate = async () => ({}),
+    submitCreate,
+    submitUpdate,
     errorMessages = {}
   } = {}) {
     if (isSubmitting) {
@@ -1261,10 +1261,10 @@ export function createMovieEditorController(context = {}) {
   async function submitMovieCreate({
     manualSimilarMovieIdsDraft = [],
     moviePosterImagesDraft = [],
-    buildClassificationDraft = () => ({}),
-    normalizeManualSimilarMovieIds = values => values,
-    ensureActiveSessionForWrite = () => ({}),
-    buildUniqueMovieSlug = async () => '',
+    buildClassificationDraft,
+    normalizeManualSimilarMovieIds,
+    ensureActiveSessionForWrite,
+    buildUniqueMovieSlug,
     includeRuntimeMinutes = true,
     includeTmdbUrl = true,
     setStatus = () => {},
@@ -1340,14 +1340,14 @@ export function createMovieEditorController(context = {}) {
     manualSimilarMovieIdsDraft = [],
     moviePosterImagesDraft = [],
     posterImagesChanged = false,
-    buildClassificationDraft = () => ({}),
-    normalizeManualSimilarMovieIds = values => values,
-    getManualSimilarMovieIds = () => [],
-    getMovieDirectorItems = () => [],
-    getDirectorDisplayName = item => String(item || '').trim(),
-    ensureActiveSessionForWrite = () => ({}),
-    ensureManualSimilarDataLoaded = async () => {},
-    buildUniqueMovieSlug = async () => '',
+    buildClassificationDraft,
+    normalizeManualSimilarMovieIds,
+    getManualSimilarMovieIds,
+    getMovieDirectorItems,
+    getDirectorDisplayName,
+    ensureActiveSessionForWrite,
+    ensureManualSimilarDataLoaded,
+    buildUniqueMovieSlug,
     includeRuntimeMinutes = true,
     includeTmdbUrl = true,
     setStatus = () => {},

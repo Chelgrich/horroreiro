@@ -3,9 +3,12 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { createCatalogCardController } from '../catalog-cards.js';
 import { createCatalogRenderController } from '../catalog-render.js';
+import { doesMovieMatchCatalogFilters } from '../catalog-filters.js';
+import { createAdminActionTools } from '../admin-actions.js';
 import { createMovieUserStateController } from '../movie-user-state.js';
 import { createMoviePageOrchestratorController } from '../movie-page-orchestrator.js';
 import { createProfileSettingsActions } from '../profile-settings-actions.js';
+import { createMovieEditorController } from '../movie-editor.js';
 
 // Missing internal wiring must not look like successful persistence or empty data.
 let successCount = 0;
@@ -43,6 +46,18 @@ assert.throws(() => createCatalogCardController({}).createMovieCardRenderContext
 assert.throws(() => createCatalogRenderController({}).sortMoviesWithinMonth(
   [{ id: 'one' }, { id: 'two' }], 'rating'
 ), TypeError, 'Missing ratings must not silently become zero during sorting');
+for (const filterState of [
+  { hasRatingRange: true, ratingFrom: 7, ratingTo: 10 },
+  { hasYearRange: true, yearFrom: 2020, yearTo: 2030 },
+  { reviewedOnly: true },
+  { hasCurrentUser: true, hasWatchlistFilter: true, selectedWatchlist: 'in_watchlist' }
+]) {
+  assert.throws(() => doesMovieMatchCatalogFilters({ id: 'movie' }, filterState, {}, {}), TypeError);
+}
+assert.equal(doesMovieMatchCatalogFilters({ id: 'movie' }, { hasRatingRange: true, ratingFrom: 7, ratingTo: 10 }, {
+  getMovieAverageRating: () => 8
+}, {}), true, 'Valid rating filters retain their behavior');
+assert.throws(() => createAdminActionTools({}).buildManualSimilarAuditReport(), TypeError);
 
 const page = createMoviePageOrchestratorController({ location: { pathname: '/movie/fixture', search: '' } });
 await assert.rejects(page.initMoviePage({}), TypeError, 'Missing session/data initialization cannot silently succeed');
@@ -54,6 +69,10 @@ const settings = createProfileSettingsActions({
 // Call the real write with no session adapter: it must fail before touching Storage.
 await assert.rejects(settings.uploadAvatarBlob({ type: 'image/jpeg' }), TypeError);
 assert.equal(avatarWrites, 0);
+const missingSubmit = await createMovieEditorController({}).submitMovieFormEvent({
+  setSubmittingState() {}, setStatus() {}
+});
+assert(missingSubmit.error instanceof TypeError, 'A missing movie create adapter must not report a successful form submission');
 
 const loader = await readFile(new URL('../app-script-loader.js', import.meta.url), 'utf8');
 const startup = vm.createContext({ window: {}, markAppStarted() {} });
