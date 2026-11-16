@@ -33,10 +33,10 @@
   }
 
   function mountSharedLayout() {
-    window.SharedLayout?.mountSharedHeader();
-    window.SharedLayout?.mountSharedAuthModal();
-    window.SharedLayout?.mountSharedDisplayNameModal();
-    window.SharedLayout?.mountSharedFooter();
+    window.SharedLayout.mountSharedHeader();
+    window.SharedLayout.mountSharedAuthModal();
+    window.SharedLayout.mountSharedDisplayNameModal();
+    window.SharedLayout.mountSharedFooter();
   }
 
   function markAppScriptFailure(error) {
@@ -62,18 +62,9 @@
   }
 
   function runAppRuntime() {
-    if (window.HorroreiroPageRuntime?.run && window.HorroreiroApp) {
-      return window.HorroreiroPageRuntime.run(window.HorroreiroApp, {
-        onShellReady: markAppStarted
-      });
-    }
-
-    if (window.HorroreiroApp?.init) {
-      markAppStarted();
-      return window.HorroreiroApp.init();
-    }
-
-    throw new Error('Horroreiro app initializer is unavailable.');
+    return window.HorroreiroPageRuntime.run(window.HorroreiroApp, {
+      onShellReady: markAppStarted
+    });
   }
 
   function isAppStartupScriptUrl(filename) {

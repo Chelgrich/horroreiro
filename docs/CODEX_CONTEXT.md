@@ -62,6 +62,8 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 
 ## Runtime Bootstrap
 
+Injected domain callbacks in controller/action contexts are required operations. Do not add no-op writes, fake empty reads, zero-rating getters or identity HTML escaping as defaults to hide missing app wiring. Keep genuine platform/configuration defaults and optional diagnostic hooks separate. Movie user-state mutations require their request Set, write adapter, snapshot sync and rerender; only feedback/error hooks and optional scroll behavior may be absent. Startup requires both SharedLayout and HorroreiroPageRuntime; a legacy initializer must not conceal a missing runtime.
+
 Page HTML is static shell plus shared scripts:
 
 - `boot-loader.js`

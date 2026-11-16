@@ -1,15 +1,6 @@
-export function createMovieUserStateController(context = {}) {
+export function createMovieUserStateController(context) {
   function getHostWindow() {
     return context.window || globalThis.window || null;
-  }
-
-  function isRequestSetLike(requestSet) {
-    return Boolean(
-      requestSet &&
-      typeof requestSet.has === 'function' &&
-      typeof requestSet.add === 'function' &&
-      typeof requestSet.delete === 'function'
-    );
   }
 
   async function runMovieMutationWithUiSync({
@@ -21,22 +12,15 @@ export function createMovieUserStateController(context = {}) {
     onError,
     preserveWindowScroll = false
   }) {
-    if (typeof mutation !== 'function') {
-      return;
-    }
-
     const movieKey = String(movieId);
-    const hasRequestSet = isRequestSetLike(requestSet);
     const hostWindow = getHostWindow();
     const scrollYBeforeMutation = Number(hostWindow?.scrollY || 0);
 
-    if (hasRequestSet && requestSet.has(movieKey)) {
+    if (requestSet.has(movieKey)) {
       return;
     }
 
-    if (hasRequestSet) {
-      requestSet.add(movieKey);
-    }
+    requestSet.add(movieKey);
 
     let actionSucceeded = false;
 
@@ -51,13 +35,11 @@ export function createMovieUserStateController(context = {}) {
 
       throw error;
     } finally {
-      if (hasRequestSet) {
-        requestSet.delete(movieKey);
-      }
+      requestSet.delete(movieKey);
 
       if (actionSucceeded) {
-        context.syncCatalogSnapshot?.(movieId, { mutationScope: `movie-user-state:${movieId}` });
-        rerender?.();
+        context.syncCatalogSnapshot(movieId, { mutationScope: `movie-user-state:${movieId}` });
+        rerender();
         onSuccess?.();
 
         if (
@@ -77,28 +59,28 @@ export function createMovieUserStateController(context = {}) {
   }
 
   async function toggleMovieWatchlist(movieId) {
-    if (!context.getCurrentUser?.()) {
+    if (!context.getCurrentUser()) {
       return;
     }
 
-    if (context.isMovieWatchedByCurrentUser?.(movieId)) {
+    if (context.isMovieWatchedByCurrentUser(movieId)) {
       return;
     }
 
-    const shouldRemoveFromWatchlist = Boolean(context.hasMovieWatchlistRecord?.(movieId));
+    const shouldRemoveFromWatchlist = Boolean(context.hasMovieWatchlistRecord(movieId));
 
     await runMovieMutationWithUiSync({
       movieId,
-      requestSet: context.getWatchlistRequestSet?.(),
+      requestSet: context.getWatchlistRequestSet(),
       mutation: async () => {
         if (shouldRemoveFromWatchlist) {
-          await context.removeFromWatchlist?.(movieId);
+          await context.removeFromWatchlist(movieId);
         } else {
-          await context.addToWatchlist?.(movieId);
+          await context.addToWatchlist(movieId);
         }
       },
       rerender: () => {
-        context.rerenderWatchlistToggle?.(movieId);
+        context.rerenderWatchlistToggle(movieId);
       },
       onSuccess: () => {
         context.showWatchlistFeedback?.(
@@ -111,18 +93,18 @@ export function createMovieUserStateController(context = {}) {
   }
 
   async function removeUserMovieRating(movieId) {
-    if (!context.getCurrentUser?.()) {
+    if (!context.getCurrentUser()) {
       return;
     }
 
-    const previousRating = context.getCurrentUserRating?.(movieId);
+    const previousRating = context.getCurrentUserRating(movieId);
 
     await runMovieMutationWithUiSync({
       movieId,
-      requestSet: context.getRatingRequestSet?.(),
-      mutation: () => context.deleteRating?.(movieId, previousRating),
+      requestSet: context.getRatingRequestSet(),
+      mutation: () => context.deleteRating(movieId, previousRating),
       rerender: () => {
-        context.rerenderRatingChange?.(movieId);
+        context.rerenderRatingChange(movieId);
       },
       onSuccess: () => {
         context.showRatingFeedback?.(movieId, 'remove');
@@ -132,7 +114,7 @@ export function createMovieUserStateController(context = {}) {
   }
 
   async function saveUserMovieRating(movieId, ratingValue) {
-    if (!context.getCurrentUser?.()) {
+    if (!context.getCurrentUser()) {
       return;
     }
 
@@ -147,14 +129,14 @@ export function createMovieUserStateController(context = {}) {
       return;
     }
 
-    const previousRating = context.getCurrentUserRating?.(movieId);
+    const previousRating = context.getCurrentUserRating(movieId);
 
     await runMovieMutationWithUiSync({
       movieId,
-      requestSet: context.getRatingRequestSet?.(),
-      mutation: () => context.upsertRating?.(movieId, normalizedRating, previousRating),
+      requestSet: context.getRatingRequestSet(),
+      mutation: () => context.upsertRating(movieId, normalizedRating, previousRating),
       rerender: () => {
-        context.rerenderRatingChange?.(movieId);
+        context.rerenderRatingChange(movieId);
       },
       onSuccess: () => {
         context.showRatingFeedback?.(movieId);

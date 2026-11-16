@@ -7,12 +7,8 @@ const CURRENT_USER_PROFILE_OPTIONAL_COLUMNS = ['avatar_url', 'prefer_russian_pos
 export function createProfileDataActions(context = {}) {
   const {
     supabaseClient,
-    withAuthProfileRequestTimeout = request => request,
-    throwIfSupabaseError = error => {
-      if (error) {
-        throw error;
-      }
-    },
+    withAuthProfileRequestTimeout,
+    throwIfSupabaseError,
     onMissingOptionalColumn = () => {}
   } = context;
 

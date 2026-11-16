@@ -203,6 +203,10 @@ profileSource = profileSource.replace('export function createUserPageController'
   .replace('    initUserPage,', '    fetchPublicUserPageData,\n    initUserPage,');
 vm.runInContext(profileSource, sandbox);
 const profileController = sandbox.createUserPageController({
+  fetchUserPageActivityRanks: async () => null,
+  throwIfSupabaseError: error => { if (error) throw error; },
+  fetchMoviesByIdsWithSelect: async () => [],
+  ensurePreferredPosterImagesForMovies: async () => {},
   supabaseClient: sandbox.supabaseClient,
   fetchAllSupabaseRowsResult: sandbox.fetchAllSupabaseRowsResult,
   isUserPageActivityRankFallbackEnabled: () => false

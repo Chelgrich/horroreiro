@@ -123,7 +123,8 @@ const controller = createMovieUserStateController({
   markLocalDataMutation: sandbox.markLocalDataMutation,
   syncCatalogSnapshot: sandbox.syncCatalogSessionSnapshotMovieState
 });
-await controller.runMovieMutationWithUiSync({ movieId: 'movie', mutation: async () => {} });
+const snapshotMutation = { movieId: 'movie', requestSet: new Set(), rerender() {}, mutation: async () => {} };
+await controller.runMovieMutationWithUiSync(snapshotMutation);
 let snapshot = sandbox.readCatalogSessionSnapshot();
 assert.ok(snapshot, 'A successful rating/watchlist mutation must retain the validated catalog data');
 assert.equal(stamp, 'after');
@@ -133,17 +134,17 @@ assert.equal(snapshot.movieWatchlist[0].movie_id, 'movie');
 
 // Never resurrect an already invalid snapshot while advancing the local stamp.
 stamp = 'unrelated-change';
-await controller.runMovieMutationWithUiSync({ movieId: 'movie', mutation: async () => {} });
+await controller.runMovieMutationWithUiSync(snapshotMutation);
 assert.equal(sandbox.readCatalogSessionSnapshot(), null);
 seed();
 const expired = JSON.parse(sessionStorage.getItem('data'));
 expired.savedAt -= 1800001;
 sessionStorage.setItem('data', JSON.stringify(expired));
-await controller.runMovieMutationWithUiSync({ movieId: 'movie', mutation: async () => {} });
+await controller.runMovieMutationWithUiSync(snapshotMutation);
 assert.equal(sandbox.readCatalogSessionSnapshot(), null, 'A mutation cannot extend the life of an expired catalog');
 seed();
 const beforeFailure = sessionStorage.getItem('data');
-await assert.rejects(controller.runMovieMutationWithUiSync({ movieId: 'movie', mutation: async () => { throw Error('failed'); } }));
+await assert.rejects(controller.runMovieMutationWithUiSync({ ...snapshotMutation, mutation: async () => { throw Error('failed'); } }));
 assert.equal(sessionStorage.getItem('data'), beforeFailure);
 
 snapshot = sandbox.readCatalogSessionSnapshot();

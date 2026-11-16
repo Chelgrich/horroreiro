@@ -9,44 +9,31 @@ export function createMovieSocialController(context = {}) {
   const {
   moviePage = null,
   supabaseClient = null,
-  escapeHtml = value => String(value ?? ''),
-  buildUserPageUrl = () => '',
-  getPublicProfileHandle = () => '',
-  getPublicProfileAvatarUrl = () => '',
-  getUserPageAvatarLetter = value => String(value || '?').trim().charAt(0).toUpperCase(),
-  getCurrentUserRating = () => null,
-  getMovieUserRating = () => null,
-  fetchPublicProfilesByIds = async () => [],
-  upsertKnownMovieRatingRows = () => {},
-  removeKnownMovieRatingRows = () => {},
-  throwIfSupabaseError = error => {
-    if (error) {
-      throw error;
-    }
-  },
-  ensureActiveSessionForWrite = () => {
-    throw new Error('Нужна авторизация.');
-  },
-  markLocalDataMutation = () => {},
-  onMovieReviewsChanged = () => {},
-  persistCurrentMoviePageSessionCache = () => '',
-  openAuthModal = () => {},
-  showAppMessage = () => {},
-  runConfirmedAction = async (confirmMessage, action) => {
-    if (!confirm(confirmMessage)) {
-      return false;
-    }
-
-    await action();
-    return true;
-  },
-  renderMoviePage = () => {},
-  getCurrentUser = () => null,
-  getIsAdmin = () => false,
-  getCurrentMoviePageMovieData = () => null,
-  isMovieReviewLikesTableUnavailableError = () => false,
-  isMovieCommentsTableUnavailableError = () => false,
-  isMovieCommentLikesTableUnavailableError = () => false
+  escapeHtml,
+  buildUserPageUrl,
+  getPublicProfileHandle,
+  getPublicProfileAvatarUrl,
+  getUserPageAvatarLetter,
+  getCurrentUserRating,
+  getMovieUserRating,
+  fetchPublicProfilesByIds,
+  upsertKnownMovieRatingRows,
+  removeKnownMovieRatingRows,
+  throwIfSupabaseError,
+  ensureActiveSessionForWrite,
+  markLocalDataMutation,
+  onMovieReviewsChanged,
+  persistCurrentMoviePageSessionCache,
+  openAuthModal,
+  showAppMessage,
+  runConfirmedAction,
+  renderMoviePage,
+  getCurrentUser,
+  getIsAdmin,
+  getCurrentMoviePageMovieData,
+  isMovieReviewLikesTableUnavailableError,
+  isMovieCommentsTableUnavailableError,
+  isMovieCommentLikesTableUnavailableError
 } = context;
 
 let allMovieReviews = [];

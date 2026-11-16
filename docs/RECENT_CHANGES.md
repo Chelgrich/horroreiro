@@ -1,5 +1,12 @@
 # Recent Changes
 
+## 2026-11-16 — Explicit module operations
+
+- Removed fallback implementations for injected domain operations in client controller/action factories. The real app already supplies these callbacks; a missing adapter must raise an integration error instead of inventing empty collections, zero ratings, unescaped HTML, or a successful no-op. Kept platform/configuration defaults and genuinely optional cache diagnostics/column notifications.
+- Rating/watchlist writes, duplicate-request sets, snapshot synchronization and rerenders are required operations. Missing write adapters follow the existing error path without success feedback or advancing snapshots; request guards are released. Movie detail initialization and core rendering/session/data adapters no longer silently skip missing bindings. Optional feedback/error hooks and shell-ready notifications remain optional.
+- `tools/module-contract-smoke.mjs` first reproduced missing write adapters reporting success and now guards the failure path, required catalog rating/formatting adapters, movie initialization, and session validation before avatar Storage writes. Existing mutation fixtures now provide the actual request-set/rerender contract.
+- Startup now requires the already loaded SharedLayout and page runtime; the old optional mount/legacy-init fallback can no longer mark a partially initialized shell ready. Contract smoke covers both missing startup dependencies.
+
 ## 2026-11-16 — Nonblocking fonts and catalog access release
 
 - All ten shells load external font CSS with nonmatching media; the shared boot loader activates it after load (including already cached styles). A failed/slow font host no longer blocks the parser before application startup. Tests cover delayed and cached font styles, alongside the same-origin API/SDK checks below.

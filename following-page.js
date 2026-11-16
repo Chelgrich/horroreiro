@@ -8,7 +8,7 @@ export function createFollowingPageController(context = {}) {
   const {
     followingPage,
     getCurrentUser,
-    hasWarmStartedPageDom = () => false,
+    hasWarmStartedPageDom,
     shouldUseAuthenticatedUi,
     restoreSession,
     trackEmailConfirmedLoginIfNeeded,

@@ -4,15 +4,11 @@ export function createProfileSettingsActions(context = {}) {
     avatarStorageBucket = 'avatars',
     avatarStoragePublicPath = `/storage/v1/object/public/${avatarStorageBucket}/`,
     avatarOutputType = 'image/jpeg',
-    normalizeDisplayNameValue = value => String(value || '').trim().toLowerCase(),
-    withAuthRequestTimeout = request => request,
-    withAuthProfileRequestTimeout = request => request,
-    ensureActiveSessionForWrite = () => null,
-    throwIfSupabaseError = error => {
-      if (error) {
-        throw error;
-      }
-    }
+    normalizeDisplayNameValue,
+    withAuthRequestTimeout,
+    withAuthProfileRequestTimeout,
+    ensureActiveSessionForWrite,
+    throwIfSupabaseError
   } = context;
 
   function requireSupabaseClient() {

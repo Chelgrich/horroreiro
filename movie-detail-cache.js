@@ -6,12 +6,12 @@ export function createMovieDetailCacheController(context = {}) {
     buildVersion = '',
     maxAgeMs = 30 * 60 * 1000,
     maxEntries = 6,
-    getDataMutationStamp = () => '',
-    isDataMutationStampFresh = () => true,
-    getStableStringHash = value => String(value || '').length.toString(36),
-    getCurrentUserId = () => null,
-    getIsAdmin = () => false,
-    getMovieStateSnapshot = () => ({}),
+    getDataMutationStamp,
+    isDataMutationStampFresh,
+    getStableStringHash,
+    getCurrentUserId,
+    getIsAdmin,
+    getMovieStateSnapshot,
     onCacheError = () => {}
   } = context;
 

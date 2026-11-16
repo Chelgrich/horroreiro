@@ -4,7 +4,26 @@ import { createMovieEditorController } from '../movie-editor.js';
 const calls = [];
 const elements = { titleInput: { value: 'Atomic fixture' } };
 let fail = true;
+const formAdapters = {
+  parseLineOrCommaSeparatedValues: value => String(value).split(/[\n,]/).map(value => value.trim()).filter(Boolean),
+  parseMultilineValues: value => String(value).split('\n').map(value => value.trim()).filter(Boolean),
+  normalizeOptionalUrl: value => value || null,
+  normalizeLetterboxdShortUrl: value => value || null,
+  parseRuntimeMinutesFormValue: value => value ? Number(value) : null,
+  getTextArrayFormValue: values => values.join('\n'),
+  normalizeSearchText: value => String(value).trim().toLowerCase(),
+  normalizeAdditionalGenreNames: value => String(value).split('\n').map(value => value.trim()).filter(Boolean),
+  getOptionalTextArrayPayload: values => values.length ? values : null,
+  areStringArraysEqual: (a, b) => JSON.stringify(a || []) === JSON.stringify(b || []),
+  normalizeTextArrayField: value => Array.isArray(value) ? value : [],
+  normalizeRuntimeMinutesValue: value => value ? Number(value) : null,
+  normalizeManualSimilarMovieIds: values => [...new Set(values)],
+  normalizeMoviePosterImageRows: rows => rows,
+  withPendingRequestTimeout: promise => promise,
+  throwIfSupabaseError: error => { if (error) throw error; }
+};
 const controller = createMovieEditorController({
+  ...formAdapters,
   getElements: () => elements,
   supabaseClient: {
     from() { throw new Error('Movie saves must use one transactional RPC'); },
@@ -64,6 +83,7 @@ let uploadCount = 0;
 let resolveSave;
 let timedOut = false;
 const timedController = createMovieEditorController({
+  ...formAdapters,
   getElements: () => elements,
   uploadPosterFile: async () => { uploadCount++; return 'https://fixture.invalid/upload'; },
   withPendingRequestTimeout: (promise, timeoutMs) => {

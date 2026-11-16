@@ -1,17 +1,17 @@
 export function createMoviePageSimilarController(context = {}) {
   const {
-    escapeHtml = value => String(value ?? ''),
-    buildMoviePageUrl = () => '#',
-    getCatalogMovieById = () => null,
-    getCatalogMovieMeta = () => ({ genresText: '', countriesText: '' }),
-    getMovieAverageRating = () => 0,
-    getMovieVotesCount = () => 0,
-    getMoviePreferredPosterUrl = () => '',
-    getPosterImageAttributeHtml = imageUrl => `src="${escapeHtml(imageUrl)}"`,
-    getVotesLabel = () => 'оценок',
-    normalizeManualSimilarMovieIds = movieIds => (Array.isArray(movieIds) ? movieIds : []),
-    normalizeSearchText = value => String(value || '').trim().toLowerCase(),
-    getManualSimilarMovieLabel = movie => String(movie?.title || '')
+    escapeHtml,
+    buildMoviePageUrl,
+    getCatalogMovieById,
+    getCatalogMovieMeta,
+    getMovieAverageRating,
+    getMovieVotesCount,
+    getMoviePreferredPosterUrl,
+    getPosterImageAttributeHtml,
+    getVotesLabel,
+    normalizeManualSimilarMovieIds,
+    normalizeSearchText,
+    getManualSimilarMovieLabel
   } = context;
 
   function doesMovieMatchManualSimilarSearch(movie, normalizedQuery) {

@@ -1,14 +1,14 @@
 export function createMoviePageInteractionsController(context = {}) {
   const {
     moviePage = null,
-    getYouTubeTrailerEmbedUrl = () => '',
-    getMoviePagePosterGalleryImages = () => [],
-    getPosterImageData = publicUrl => ({ src: publicUrl }),
-    bindPosterFallbackImages = () => {},
-    showAppMessage = () => {},
-    syncBodyScrollLock = () => {},
-    toggleMovieWatchlist = () => {},
-    openMobileRatingModal = () => {}
+    getYouTubeTrailerEmbedUrl,
+    getMoviePagePosterGalleryImages,
+    getPosterImageData,
+    bindPosterFallbackImages,
+    showAppMessage,
+    syncBodyScrollLock,
+    toggleMovieWatchlist,
+    openMobileRatingModal
   } = context;
 
   let movieTrailerModal = null;

@@ -1,10 +1,10 @@
 export function createCatalogRenderController(context = {}) {
   const {
     document: documentRef = globalThis.document,
-    createMovieCard = () => documentRef.createElement('article'),
-    getMovieAverageRating = () => 0,
-    getMovieVotesCount = () => 0,
-    getMonthName = value => String(value || '')
+    createMovieCard,
+    getMovieAverageRating,
+    getMovieVotesCount,
+    getMonthName
   } = context;
 
   function sortMoviesWithinMonth(movies, monthSortMode, monthSortDirection = 'desc') {

@@ -1299,7 +1299,7 @@ async function checkStaticGuards() {
   assert(
     appJs.includes('function addCount(counts, key)') &&
       appJs.includes('addCount,') &&
-      userPageJs.includes('addCount = () => {}') &&
+      userPageJs.includes('    addCount,') &&
       userPageJs.includes('addCount(genreCounts, genreName)'),
     'app.js/user-page.js: user page count helper must stay available in controller context'
   );
@@ -1804,6 +1804,7 @@ async function checkMovieCommentThreadRenderingContract() {
     getCurrentUser: () => null,
     getIsAdmin: () => false,
     getPublicProfileHandle: profile => profile?.public_handle || '',
+    getPublicProfileAvatarUrl: () => '',
     buildUserPageUrl: handle => `/user/${handle}`,
     getUserPageAvatarLetter: value => String(value || '?').trim().charAt(0).toUpperCase()
   });
@@ -1832,6 +1833,10 @@ async function checkMovieCommentThreadRenderingContract() {
 checkJavaScriptSyntax();
 checkAssetSizeReport();
 checkPortableRuntimeSmoke();
+const moduleContractSmoke = spawnSync(process.execPath, ['tools/module-contract-smoke.mjs'], {
+  cwd: rootDir, encoding: 'utf8'
+});
+assert(moduleContractSmoke.status === 0, `Module contract smoke failed:\n${moduleContractSmoke.stderr || moduleContractSmoke.stdout}`);
 const movieEditorSmoke = spawnSync(process.execPath, ['tools/movie-editor-smoke.mjs'], {
   cwd: rootDir, encoding: 'utf8'
 });

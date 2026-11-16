@@ -14,7 +14,27 @@ let authorRating = 7;
 const rows = { movie_reviews: [review], movie_comments: [comment] };
 const errors = {};
 const reads = [];
+const socialAdapters = {
+  escapeHtml: value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;'),
+  buildUserPageUrl: handle => `/user/${encodeURIComponent(handle)}`,
+  getPublicProfileHandle: profile => profile?.default_display_name || 'fixture',
+  getPublicProfileAvatarUrl: () => '',
+  getUserPageAvatarLetter: () => 'F',
+  getCurrentUser: () => null,
+  getIsAdmin: () => false,
+  getCurrentUserRating: () => null,
+  getMovieUserRating: () => null,
+  getCurrentMoviePageMovieData: () => movie,
+  throwIfSupabaseError: error => { if (error) throw error; },
+  isMovieReviewLikesTableUnavailableError: () => false,
+  isMovieCommentsTableUnavailableError: () => false,
+  isMovieCommentLikesTableUnavailableError: () => false,
+  fetchPublicProfilesByIds: async () => [],
+  upsertKnownMovieRatingRows() {}, removeKnownMovieRatingRows() {},
+  markLocalDataMutation() {}, showAppMessage() {}, renderMoviePage() {}
+};
 const controller = createMovieSocialController({
+  ...socialAdapters,
   getCurrentUser: () => user,
   getIsAdmin: () => admin,
   getCurrentUserRating: () => 8,
@@ -60,6 +80,7 @@ assert.equal(controller.getSnapshot(movie.id).movieComments.length, 1, 'Clearing
 
 errors.movie_comments = { code: 'missing' };
 const unavailable = createMovieSocialController({
+  ...socialAdapters,
   supabaseClient: { from: table => { reads.push(table); return { select() { return this; }, eq() { return this; }, order: async () => ({ error: errors.movie_comments }) }; } },
   isMovieCommentsTableUnavailableError: error => error?.code === 'missing'
 });
@@ -85,6 +106,7 @@ const changed = [];
 let mutation;
 let persisted = 0;
 const actions = createMovieSocialController({
+  ...socialAdapters,
   moviePage,
   getCurrentUser: () => ({ id: 'author' }),
   ensureActiveSessionForWrite: () => ({ id: 'author' }),
@@ -141,6 +163,7 @@ sandbox.pendingMovieSocialSnapshot = { movie, movieReviews: {}, movieComments: n
 assert.equal(sandbox.getMoviePageSocialSnapshot(movie.id).movieReviews.length, 0, 'Malformed cached rows are ignored');
 sandbox.pendingMovieSocialSnapshot = cached;
 const detailCache = createMovieDetailCacheController({
+  getDataMutationStamp: () => '', getCurrentUserId: () => null, getIsAdmin: () => false,
   getMovieStateSnapshot: movie => sandbox.getMoviePageSocialSnapshot(movie.id),
   getStableStringHash: value => createHash('sha256').update(value).digest('hex')
 });

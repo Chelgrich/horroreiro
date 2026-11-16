@@ -1,11 +1,6 @@
 export function createProfileUtils(context = {}) {
   const {
-    escapeHtml = value => String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;')
+    escapeHtml
   } = context;
 
   function normalizeDisplayNameValue(value) {

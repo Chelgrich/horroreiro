@@ -1,82 +1,25 @@
 export function createMovieEditorController(context = {}) {
   const {
-    getElements = () => ({}),
-    normalizeOptionalUrl = value => String(value || '').trim(),
-    normalizeLetterboxdShortUrl = value => String(value || '').trim(),
-    parseRuntimeMinutesFormValue = value => {
-      const normalizedValue = String(value || '').trim();
-      return normalizedValue ? Number(normalizedValue) : null;
-    },
-    parseLineOrCommaSeparatedValues = value => String(value || '')
-      .split(/[\n,]/)
-      .map(item => item.trim())
-      .filter(Boolean),
-    parseMultilineValues = value => String(value || '')
-      .split('\n')
-      .map(item => item.trim())
-      .filter(Boolean),
-    getTextArrayFormValue = value => (Array.isArray(value) ? value : [])
-      .join('\n'),
-    normalizeSearchText = value => String(value || '').trim().toLowerCase(),
+    getElements,
+    normalizeOptionalUrl,
+    normalizeLetterboxdShortUrl,
+    parseRuntimeMinutesFormValue,
+    parseLineOrCommaSeparatedValues,
+    parseMultilineValues,
+    getTextArrayFormValue,
+    normalizeSearchText,
     baseHorrorGenreNormalized = 'ужасы',
-    normalizeAdditionalGenreNames = value => String(value || '')
-      .split('\n')
-      .map(item => item.trim())
-      .filter(Boolean),
-    getOptionalTextArrayPayload = values => (Array.isArray(values) && values.length ? values : null),
-    areStringArraysEqual = (firstValues = [], secondValues = []) => (
-      JSON.stringify(firstValues || []) === JSON.stringify(secondValues || [])
-    ),
-    normalizeTextArrayField = value => Array.isArray(value) ? value : [],
-    normalizeRuntimeMinutesValue = value => {
-      const numericValue = Number(value);
-      return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null;
-    },
-    normalizeManualSimilarMovieIds = (movieIds = [], ownerMovieId = null) => {
-      const ownerId = ownerMovieId ? String(ownerMovieId) : '';
-      const uniqueMovieIds = new Set();
-      const normalizedMovieIds = [];
-
-      (movieIds || []).forEach(movieId => {
-        const normalizedMovieId = String(movieId || '').trim();
-
-        if (
-          !normalizedMovieId ||
-          normalizedMovieId === ownerId ||
-          uniqueMovieIds.has(normalizedMovieId)
-        ) {
-          return;
-        }
-
-        uniqueMovieIds.add(normalizedMovieId);
-        normalizedMovieIds.push(normalizedMovieId);
-      });
-
-      return normalizedMovieIds;
-    },
-    normalizeMoviePosterImageRows = rows => (Array.isArray(rows) ? rows : [])
-      .map(row => ({
-        id: row?.id ? String(row.id) : '',
-        movie_id: row?.movie_id ? String(row.movie_id) : '',
-        image_url: String(row?.image_url || '').trim(),
-        position: Number(row?.position ?? 0)
-      }))
-      .filter(row => row.image_url)
-      .sort((firstRow, secondRow) => {
-        if (firstRow.position !== secondRow.position) {
-          return firstRow.position - secondRow.position;
-        }
-
-        return firstRow.image_url.localeCompare(secondRow.image_url);
-      }),
-    uploadPosterFile = async () => '',
+    normalizeAdditionalGenreNames,
+    getOptionalTextArrayPayload,
+    areStringArraysEqual,
+    normalizeTextArrayField,
+    normalizeRuntimeMinutesValue,
+    normalizeManualSimilarMovieIds,
+    normalizeMoviePosterImageRows,
+    uploadPosterFile,
     supabaseClient = null,
-    withPendingRequestTimeout = promise => promise,
-    throwIfSupabaseError = error => {
-      if (error) {
-        throw error;
-      }
-    }
+    withPendingRequestTimeout,
+    throwIfSupabaseError
   } = context;
 
   const getInputValue = inputElement => String(inputElement?.value || '').trim();

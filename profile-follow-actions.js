@@ -7,12 +7,8 @@ const FOLLOW_NOTIFICATION_PREFERENCE_KEYS = new Set([
 export function createProfileFollowActions(context = {}) {
   const {
     supabaseClient,
-    throwIfSupabaseError = error => {
-      if (error) {
-        throw error;
-      }
-    },
-    isNotificationsUnavailableError = () => false
+    throwIfSupabaseError,
+    isNotificationsUnavailableError
   } = context;
 
   function requireSupabaseClient() {
