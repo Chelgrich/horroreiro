@@ -15,6 +15,7 @@
 - Startup now requires the already loaded SharedLayout and page runtime; the old optional mount/legacy-init fallback can no longer mark a partially initialized shell ready. Contract smoke covers both missing startup dependencies.
 - Final source-wide context scan also removed optional rating/year/user-state/review-index providers from catalog filters and fake empty catalog/relation providers from admin audit tools. Contract smoke guards all four filter paths and the audit provider boundary, with a positive real-rating filter check.
 - Movie editor method bindings now also require actual create/update handlers, submit state, session validation, classification/slug/relation providers, and post-commit cache/UI operations. A missing session validator previously reached the movie RPC in the fixture; it now stops before any write. Tests cover missing form-submit adapters and the confirmed post-commit mutation/refresh order while preserving explicit optional status feedback.
+- Final follow-up released as runtime `f2005825cd8a720934a6c2bebcfd91ad6a2e2aaf`, revision `bbapd3on5ml2ac054mu7`. Preflight, portable/full/deploy-output checks passed again; gateway/apex/www external smokes passed on attempt 1. Browser confirmed the exact build, retained reviewed-month catalog, and the real 7+ rating filter (30 results), with no captured production warnings/errors. Screenshot updated at `C:/Temp/horroreiro-module-contracts.png`; no production content was edited.
 
 ## 2026-11-16 — Nonblocking fonts and catalog access release
 
