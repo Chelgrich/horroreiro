@@ -3,78 +3,11 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib';
 
+import { clientJsAssets, clientCssAssets, clientHtmlAssets } from '../client-assets.js';
+
 const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
 
-const assetGroups = {
-  js: [
-    'boot-loader.js',
-    'app-script-loader.js',
-    'assets/vendor/supabase-2.119.0.js',
-    'shared-layout.js',
-    'custom-select.js',
-    'app-page-runtime.js',
-    'app.js',
-    'admin-actions.js',
-    'catalog-cards.js',
-    'catalog-filters.js',
-    'catalog-pagination.js',
-    'catalog-presets.js',
-    'catalog-render.js',
-    'catalog-return-cache.js',
-    'catalog-warm-start.js',
-    'catalog-url-state.js',
-    'company-pages.js',
-    'director-page.js',
-    'editor-page.js',
-    'following-page.js',
-    'letterboxd-import.js',
-    'movie-editor.js',
-    'movie-detail-cache.js',
-    'movie-page-interactions.js',
-    'movie-page-orchestrator.js',
-    'movie-page-similar.js',
-    'movie-page-shell.js',
-    'movie-social.js',
-    'movie-warm-start.js',
-    'movie-user-state.js',
-    'notifications-page.js',
-    'page-warm-start.js',
-    'person-placeholders.js',
-    'profile-data-actions.js',
-    'profile-follow-actions.js',
-    'profile-settings-actions.js',
-    'profile-utils.js',
-    'user-page.js',
-    'assets/directors-admin-app.js'
-  ],
-  css: [
-    'styles.css',
-    'catalog-page.css',
-    'movie-editor.css',
-    'movie-page.css',
-    'user-page.css',
-    'secondary-pages.css',
-    'following-page.css',
-    'notifications-page.css',
-    'editor-page.css',
-    'company-page.css',
-    'director-page.css',
-    'directors-admin-page.css',
-    'director-form.css'
-  ],
-  html: [
-    'index.html',
-    'movie.html',
-    'user.html',
-    'following.html',
-    'notifications.html',
-    'editor.html',
-    'companies.html',
-    'company.html',
-    'name.html',
-    'directors.html'
-  ]
-};
+const assetGroups = { js: clientJsAssets, css: clientCssAssets, html: clientHtmlAssets };
 
 const startupProfiles = {
   catalog: [

@@ -1,3 +1,4 @@
+import { clientJsAssets, clientCssAssets, clientHtmlAssets, getClientAssetCacheControl } from '../client-assets.js';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { dirname, extname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,66 +58,18 @@ const contentTypes = {
 };
 
 const publicStaticAssets = new Set([
-  '/assets/vendor/supabase-2.119.0.js',
-  '/assets/vendor/supabase-LICENSE.txt',
-  '/index.html', '/movie.html', '/user.html', '/following.html', '/notifications.html',
-  '/editor.html', '/directors.html', '/name.html', '/companies.html', '/company.html',
-  '/favicon.ico', '/insidious.webp', '/og-preview.jpg',
-  '/icons/imdb.svg', '/icons/kp.svg', '/icons/lb.svg', '/icons/rt.svg', '/icons/tmdb.svg',
-  '/assets/og/astral-20261006-a.jpg',
-  '/admin-actions.js',
-  '/app-page-runtime.js',
-  '/app-script-loader.js',
-  '/app.js',
-  '/assets/directors-admin-app.js',
-  '/boot-loader.js',
-  '/catalog-cards.js',
-  '/catalog-filters.js',
-  '/catalog-page.css',
-  '/catalog-pagination.js',
-  '/catalog-presets.js',
-  '/catalog-render.js',
-  '/catalog-return-cache.js',
-  '/catalog-url-state.js',
-  '/catalog-warm-start.js',
-  '/company-page.css',
-  '/company-pages.js',
-  '/custom-select.js',
-  '/director-form.css',
-  '/director-page.css',
-  '/director-page.js',
-  '/directors-admin-page.css',
-  '/editor-page.css',
-  '/editor-page.js',
-  '/following-page.css',
-  '/following-page.js',
-  '/letterboxd-import.js',
-  '/movie-detail-cache.js',
-  '/movie-editor.css',
-  '/movie-editor.js',
-  '/movie-page-interactions.js',
-  '/movie-page-orchestrator.js',
-  '/movie-page-shell.js',
-  '/movie-page-similar.js',
-  '/movie-page.css',
-  '/movie-social.js',
-  '/movie-user-state.js',
-  '/movie-warm-start.js',
-  '/notifications-page.css',
-  '/notifications-page.js',
-  '/page-warm-start.js',
-  '/person-placeholders.js',
-  '/profile-data-actions.js',
-  '/profile-follow-actions.js',
-  '/profile-settings-actions.js',
-  '/profile-utils.js',
-  '/secondary-pages.css',
-  '/shared-layout.js',
-  '/styles.css',
-  '/user-page.css',
-  '/user-page.js'
-]);
-
+  ...clientJsAssets, ...clientCssAssets, ...clientHtmlAssets,
+  "assets/vendor/supabase-LICENSE.txt",
+  "favicon.ico",
+  "insidious.webp",
+  "og-preview.jpg",
+  "icons/imdb.svg",
+  "icons/kp.svg",
+  "icons/lb.svg",
+  "icons/rt.svg",
+  "icons/tmdb.svg",
+  "assets/og/astral-20261006-a.jpg",
+].map(file => `/${file}`));
 const exactGetRoutes = new Map([
   ['/', indexOnRequestGet],
   ['/index.html', indexHtmlOnRequestGet],
@@ -155,9 +108,6 @@ function isPathInsideRoot(rootDir, filePath) {
 }
 
 function getCacheControlForStaticPath(pathname) {
-  if (pathname === '/assets/vendor/supabase-2.119.0.js') {
-    return 'public, max-age=31536000, immutable';
-  }
   if (pathname.endsWith('.html') || pathname === '/') {
     return 'no-store, no-cache, must-revalidate, max-age=0';
   }
@@ -172,7 +122,7 @@ function getCacheControlForStaticPath(pathname) {
     return 'public, max-age=31536000, immutable';
   }
 
-  return 'public, max-age=0, must-revalidate';
+  return getClientAssetCacheControl(pathname.slice(1));
 }
 
 function createStaticAssetFetcher(rootDir) {

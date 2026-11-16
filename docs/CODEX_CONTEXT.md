@@ -118,11 +118,13 @@ Startup shell visibility rule:
 
 Production asset URL strategy:
 
+- `client-assets.js` owns the explicit JS/CSS/HTML inventory. The portable runtime, versioned asset route, size report and smoke inventories import it. Register new client files there, then run `node tools/sync-client-headers.mjs` to refresh the generated `_headers` section; normal smoke rejects drift and undeclared lazy-loader references. Keep private/server files outside this inventory. Page startup size profiles still describe which published files actually load on each page.
+
 - `functions/_seo-utils.js` shares public movie SEO reads across movie HTML and social image handlers in a bounded per-process cache (100 entries, 60 seconds). Concurrent reads of the same query share one promise; projects and anon keys are isolated. Missing rows and errors are not retained. Admin SEO/poster changes can take up to one minute to appear here; client detail/user-state queries remain live. This cache does not change the no-store HTML/asset response contract.
 - Portable social image rendering accepts only this project's public Storage poster URLs, rejects redirects, bounds downloads to 8 MiB/five seconds, and limits decoding to 8 million pixels. Rejected inputs use `/og-preview.jpg`; details are in `docs/SERVER_RUNTIME.md`.
 
 - Core JS/CSS and lazy feature modules use `/app-assets/<APP_BUILD_VERSION>?file=<asset>`.
-- `functions/app-assets/[version].js` allowlists app assets and proxies them from current Pages assets with `no-store`.
+- `functions/app-assets/[version].js` uses the shared versioned inventory and proxies app assets from current Pages assets with `no-store`.
 - `_headers` sets core app assets to `public, max-age=0, must-revalidate`.
 - Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `catalog-page.css`, `movie-page.css`, `secondary-pages.css`, secondary page-only CSS, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, warm-start scripts, lazy feature modules, or `assets/directors-admin-app.js`.
 - The vendored Supabase SDK is the exception: its filename contains the upstream version, its bytes are checksum-verified, and it is immutable. Never overwrite it with a different version under the same filename.
@@ -171,7 +173,7 @@ All HTML-like app shell responses should be no-store.
 - maps the same public routes as the Cloudflare Pages Functions setup;
 - provides a Cloudflare-compatible context to existing `functions/*` handlers;
 - implements `env.ASSETS.fetch` through local file reads;
-- serves only the explicit `publicStaticAssets` inventory from the project root; private files and symlink/junction aliases return 404. Add new published shell/script/style/media paths to this list;
+- serves only the explicit client inventory from `client-assets.js` plus media/license paths listed in the runtime; private files and symlink/junction aliases return 404;
 - bounds non-GET/HEAD bodies to 64 KiB before routing; the Node adapter returns 413 and closes oversized requests. Storage uploads bypass this adapter;
 - is started locally by `server/server.mjs`, wrapped by `Dockerfile`, and checked by `tools/portable-runtime-smoke.mjs` plus optional `tools/docker-runtime-smoke.mjs`.
 - can be checked from the outside after deployment with `tools/deployed-runtime-smoke.mjs`.

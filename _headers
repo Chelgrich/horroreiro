@@ -1,7 +1,26 @@
+# BEGIN CLIENT ASSETS
+/boot-loader.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/app-script-loader.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /assets/vendor/supabase-2.119.0.js
   Cache-Control: public, max-age=31536000, immutable
 
+/shared-layout.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/custom-select.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/app-page-runtime.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /app.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/admin-actions.js
   Cache-Control: public, max-age=0, must-revalidate
 
 /catalog-cards.js
@@ -31,43 +50,19 @@
 /company-pages.js
   Cache-Control: public, max-age=0, must-revalidate
 
-/company-page.css
-  Cache-Control: public, max-age=0, must-revalidate
-
-/custom-select.js
-  Cache-Control: public, max-age=0, must-revalidate
-
 /director-page.js
-  Cache-Control: public, max-age=0, must-revalidate
-
-/director-form.css
-  Cache-Control: public, max-age=0, must-revalidate
-
-/director-page.css
-  Cache-Control: public, max-age=0, must-revalidate
-
-/directors-admin-page.css
   Cache-Control: public, max-age=0, must-revalidate
 
 /editor-page.js
   Cache-Control: public, max-age=0, must-revalidate
 
-/editor-page.css
-  Cache-Control: public, max-age=0, must-revalidate
-
-/app-page-runtime.js
-  Cache-Control: public, max-age=0, must-revalidate
-
-/admin-actions.js
+/following-page.js
   Cache-Control: public, max-age=0, must-revalidate
 
 /letterboxd-import.js
   Cache-Control: public, max-age=0, must-revalidate
 
 /movie-editor.js
-  Cache-Control: public, max-age=0, must-revalidate
-
-/movie-editor.css
   Cache-Control: public, max-age=0, must-revalidate
 
 /movie-detail-cache.js
@@ -91,22 +86,13 @@
 /movie-warm-start.js
   Cache-Control: public, max-age=0, must-revalidate
 
-/page-warm-start.js
-  Cache-Control: public, max-age=0, must-revalidate
-
 /movie-user-state.js
-  Cache-Control: public, max-age=0, must-revalidate
-
-/following-page.js
-  Cache-Control: public, max-age=0, must-revalidate
-
-/following-page.css
   Cache-Control: public, max-age=0, must-revalidate
 
 /notifications-page.js
   Cache-Control: public, max-age=0, must-revalidate
 
-/notifications-page.css
+/page-warm-start.js
   Cache-Control: public, max-age=0, must-revalidate
 
 /person-placeholders.js
@@ -130,29 +116,45 @@
 /assets/directors-admin-app.js
   Cache-Control: public, max-age=0, must-revalidate
 
-/shared-layout.js
-  Cache-Control: public, max-age=0, must-revalidate
-
-/boot-loader.js
-  Cache-Control: public, max-age=0, must-revalidate
-
-/app-script-loader.js
-  Cache-Control: public, max-age=0, must-revalidate
-
 /styles.css
-  Cache-Control: public, max-age=0, must-revalidate
-
-/user-page.css
   Cache-Control: public, max-age=0, must-revalidate
 
 /catalog-page.css
   Cache-Control: public, max-age=0, must-revalidate
 
+/movie-editor.css
+  Cache-Control: public, max-age=0, must-revalidate
+
 /movie-page.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/user-page.css
   Cache-Control: public, max-age=0, must-revalidate
 
 /secondary-pages.css
   Cache-Control: public, max-age=0, must-revalidate
+
+/following-page.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/notifications-page.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/editor-page.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/company-page.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/director-page.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/directors-admin-page.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/director-form.css
+  Cache-Control: public, max-age=0, must-revalidate
+# END CLIENT ASSETS
 
 /icons/*
   Cache-Control: public, max-age=31536000, immutable

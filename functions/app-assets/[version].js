@@ -1,56 +1,7 @@
+import { versionedClientAssets } from '../../client-assets.js';
 import { fetchNoStoreAsset } from '../_response-utils.js';
 
-const ALLOWED_APP_ASSETS = new Set([
-  'app.js',
-  'app-page-runtime.js',
-  'admin-actions.js',
-  'assets/directors-admin-app.js',
-  'catalog-cards.js',
-  'catalog-filters.js',
-  'catalog-pagination.js',
-  'catalog-presets.js',
-  'catalog-render.js',
-  'catalog-return-cache.js',
-  'catalog-warm-start.js',
-  'catalog-url-state.js',
-  'catalog-page.css',
-  'company-pages.js',
-  'company-page.css',
-  'custom-select.js',
-  'director-page.js',
-  'director-form.css',
-  'director-page.css',
-  'directors-admin-page.css',
-  'editor-page.js',
-  'editor-page.css',
-  'following-page.js',
-  'following-page.css',
-  'letterboxd-import.js',
-  'movie-editor.js',
-  'movie-editor.css',
-  'movie-detail-cache.js',
-  'movie-page-interactions.js',
-  'movie-page-orchestrator.js',
-  'movie-page-similar.js',
-  'movie-page-shell.js',
-  'movie-social.js',
-  'movie-warm-start.js',
-  'movie-user-state.js',
-  'notifications-page.js',
-  'notifications-page.css',
-  'page-warm-start.js',
-  'movie-page.css',
-  'profile-data-actions.js',
-  'profile-follow-actions.js',
-  'profile-settings-actions.js',
-  'profile-utils.js',
-  'person-placeholders.js',
-  'secondary-pages.css',
-  'shared-layout.js',
-  'styles.css',
-  'user-page.css',
-  'user-page.js'
-]);
+const ALLOWED_APP_ASSETS = new Set(versionedClientAssets);
 
 export async function onRequestGet(context) {
   const { request, env } = context;

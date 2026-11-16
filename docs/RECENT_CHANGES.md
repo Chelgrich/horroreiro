@@ -1,5 +1,11 @@
 # Recent Changes
 
+## 2026-11-16 — Single client asset inventory
+
+- `client-assets.js` is the explicit JS/CSS/HTML publish inventory used by the portable runtime, versioned Cloudflare asset handler, size report, syntax/security/documentation checks and generated cache headers. New feature assets no longer require copying their names between those lists; private/server files remain outside the public allowlist.
+- `_headers` keeps a generated client section. Run `node tools/sync-client-headers.mjs` after changing the registry; normal smoke verifies that the generated block is current and fails on drift. No extra client request, bundler or runtime dependency was added.
+- Asset registry smoke checks every declared direct/versioned asset through the real runtime, private-path rejection, loader references, and generated headers. Startup profiles in the size report remain explicit measurements of page loading, separate from the publish inventory.
+
 ## 2026-11-16 — Explicit module operations
 
 - Removed fallback implementations for injected domain operations in client controller/action factories. The real app already supplies these callbacks; a missing adapter must raise an integration error instead of inventing empty collections, zero ratings, unescaped HTML, or a successful no-op. Kept platform/configuration defaults and genuinely optional cache diagnostics/column notifications.

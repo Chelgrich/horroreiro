@@ -1,3 +1,4 @@
+import { clientJsAssets, clientCssAssets, clientHtmlAssets, versionedClientAssets } from '../client-assets.js';
 import { createServer } from 'node:http';
 import { access, readFile, readdir } from 'node:fs/promises';
 import { dirname, extname, join, normalize } from 'node:path';
@@ -8,52 +9,12 @@ const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const host = '127.0.0.1';
 const port = 4181;
 
-const clientJsFiles = [
-  'assets/vendor/supabase-2.119.0.js',
-  'boot-loader.js',
-  'catalog-warm-start.js',
-  'page-warm-start.js',
-  'app-script-loader.js',
-  'shared-layout.js',
-  'custom-select.js',
-  'app-page-runtime.js',
-  'app.js',
-  'profile-utils.js'
-];
-const lazyJsFiles = [
-  'admin-actions.js',
-  'catalog-cards.js',
-  'catalog-filters.js',
-  'catalog-pagination.js',
-  'catalog-presets.js',
-  'catalog-render.js',
-  'catalog-return-cache.js',
-  'catalog-url-state.js',
-  'company-pages.js',
-  'director-page.js',
-  'editor-page.js',
-  'following-page.js',
-  'letterboxd-import.js',
-  'movie-editor.js',
-  'movie-detail-cache.js',
-  'movie-page-interactions.js',
-  'movie-page-orchestrator.js',
-  'movie-page-similar.js',
-  'movie-page-shell.js',
-  'movie-social.js',
-  'movie-warm-start.js',
-  'movie-user-state.js',
-  'notifications-page.js',
-  'person-placeholders.js',
-  'profile-data-actions.js',
-  'profile-follow-actions.js',
-  'profile-settings-actions.js',
-  'user-page.js',
-  'assets/directors-admin-app.js'
-];
 const syntaxFiles = [
-  ...clientJsFiles,
-  ...lazyJsFiles,
+  ...clientJsAssets,
+  'client-assets.js',
+  'tools/sync-client-headers.mjs',
+  'tools/client-assets-smoke.mjs',
+  'tools/module-contract-smoke.mjs',
   'vite.config.mjs',
   'server/runtime.js',
   'server/server.mjs',
@@ -81,67 +42,24 @@ const syntaxFiles = [
 
 const contextJournalFile = 'docs/RECENT_CHANGES.md';
 const contextSensitiveExactFiles = new Set([
+  ...clientJsAssets, ...clientCssAssets, ...clientHtmlAssets,
+  'client-assets.js',
   'AGENTS.md',
   '.dockerignore',
   'Dockerfile',
   'README.md',
   '_headers',
   '_routes.json',
-  'app-page-runtime.js',
-  'app-script-loader.js',
-  'app.js',
-  'boot-loader.js',
-  'catalog-cards.js',
-  'catalog-filters.js',
-  'catalog-pagination.js',
-  'catalog-presets.js',
-  'catalog-render.js',
-  'catalog-return-cache.js',
-  'catalog-warm-start.js',
-  'catalog-url-state.js',
-  'catalog-page.css',
-  'company-pages.js',
-  'company-page.css',
-  'page-warm-start.js',
   'movie-companies-setup.sql',
   'movie-auto-related-materialization-rpc-setup.sql',
-  'movie-editor.css',
-  'custom-select.js',
   'docs/CODEX_CONTEXT.md',
   'docs/DATA_MODEL.md',
   'docs/DEPLOYMENT_INVENTORY.md',
   'docs/SERVER_RUNTIME.md',
   'docs/YANDEX_CONTAINER_RELEASE.md',
   'docs/YANDEX_STAGING_PLAN.md',
-  'director-form.css',
-  'director-page.js',
-  'director-page.css',
-  'directors-admin-page.css',
-  'editor-page.css',
-  'editor-page.js',
-  'following-page.css',
-  'following-page.js',
-  'letterboxd-import.js',
-  'movie-editor.js',
-  'movie-detail-cache.js',
-  'movie-page-interactions.js',
-  'movie-page-orchestrator.js',
-  'movie-page-similar.js',
-  'movie-page-shell.js',
-  'movie-social.js',
-  'movie-warm-start.js',
-  'movie-user-state.js',
-  'notifications-page.css',
-  'notifications-page.js',
-  'movie-page.css',
-  'secondary-pages.css',
-  'user-page.css',
   'package-lock.json',
   'package.json',
-  'person-placeholders.js',
-  'shared-layout.js',
-  'styles.css',
-  'user-page.js',
   'vite.config.mjs'
 ]);
 const contextSensitivePrefixes = [
@@ -679,56 +597,8 @@ async function checkStaticGuards() {
 
   const headersText = await readText('_headers');
 
-  [
-    '/app.js',
-    '/catalog-cards.js',
-    '/catalog-filters.js',
-    '/catalog-pagination.js',
-    '/catalog-presets.js',
-    '/catalog-render.js',
-    '/catalog-return-cache.js',
-    '/catalog-warm-start.js',
-    '/catalog-url-state.js',
-    '/catalog-page.css',
-    '/company-pages.js',
-    '/company-page.css',
-    '/movie-editor.css',
-    '/custom-select.js',
-    '/director-form.css',
-    '/director-page.js',
-    '/director-page.css',
-    '/directors-admin-page.css',
-    '/app-page-runtime.js',
-    '/admin-actions.js',
-    '/editor-page.css',
-    '/following-page.js',
-    '/following-page.css',
-    '/letterboxd-import.js',
-    '/movie-editor.js',
-    '/movie-detail-cache.js',
-    '/movie-page-interactions.js',
-    '/movie-page-orchestrator.js',
-    '/movie-page-similar.js',
-    '/movie-page-shell.js',
-    '/movie-social.js',
-    '/movie-warm-start.js',
-    '/movie-user-state.js',
-    '/page-warm-start.js',
-    '/notifications-page.css',
-    '/notifications-page.js',
-    '/person-placeholders.js',
-    '/profile-data-actions.js',
-    '/profile-follow-actions.js',
-    '/profile-settings-actions.js',
-    '/profile-utils.js',
-    '/user-page.js',
-    '/user-page.css',
-    '/assets/directors-admin-app.js',
-    '/shared-layout.js',
-    '/styles.css',
-    '/movie-page.css',
-    '/secondary-pages.css'
-  ].forEach(assetPath => {
+  versionedClientAssets.map(file => `/${file}`)
+    .forEach(assetPath => {
     const escapedAssetPath = assetPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     assert(
@@ -738,71 +608,14 @@ async function checkStaticGuards() {
   });
 
   const activeTextTargets = [
+    ...clientJsAssets, ...clientCssAssets, ...clientHtmlAssets,
+    'client-assets.js',
     '.dockerignore',
     '_headers',
     'Dockerfile',
     'docs/DEPLOYMENT_INVENTORY.md',
     'docs/SERVER_RUNTIME.md',
     'docs/YANDEX_STAGING_PLAN.md',
-    'index.html',
-    'movie.html',
-    'user.html',
-    'following.html',
-    'notifications.html',
-    'editor.html',
-    'name.html',
-    'directors.html',
-    'companies.html',
-    'company.html',
-    'app.js',
-    'admin-actions.js',
-    'catalog-cards.js',
-    'catalog-filters.js',
-    'catalog-pagination.js',
-    'catalog-presets.js',
-    'catalog-render.js',
-    'catalog-return-cache.js',
-    'catalog-warm-start.js',
-    'catalog-url-state.js',
-    'catalog-page.css',
-    'company-pages.js',
-    'company-page.css',
-    'page-warm-start.js',
-    'movie-editor.css',
-    'director-form.css',
-    'director-page.js',
-    'director-page.css',
-    'directors-admin-page.css',
-    'editor-page.css',
-    'following-page.js',
-    'following-page.css',
-    'letterboxd-import.js',
-    'movie-editor.js',
-    'movie-detail-cache.js',
-    'movie-page-interactions.js',
-    'movie-page-orchestrator.js',
-    'movie-page-similar.js',
-    'movie-page-shell.js',
-    'movie-social.js',
-    'movie-user-state.js',
-    'notifications-page.css',
-    'notifications-page.js',
-    'person-placeholders.js',
-    'profile-data-actions.js',
-    'profile-follow-actions.js',
-    'profile-settings-actions.js',
-    'profile-utils.js',
-    'user-page.js',
-    'user-page.css',
-    'assets/directors-admin-app.js',
-    'shared-layout.js',
-    'styles.css',
-    'catalog-page.css',
-    'movie-page.css',
-    'secondary-pages.css',
-    'app-script-loader.js',
-    'app-page-runtime.js',
-    'boot-loader.js',
     'server/runtime.js',
     'server/server.mjs',
     'tools/container-release-preflight.mjs',
@@ -1697,8 +1510,7 @@ async function checkStaticGuards() {
   });
 
   const attributeSafetyTargets = [
-    ...clientJsFiles.filter(item => item !== 'custom-select.js'),
-    ...lazyJsFiles
+    ...clientJsAssets.filter(item => item !== 'custom-select.js')
   ];
 
   for (const file of attributeSafetyTargets) {
@@ -1833,6 +1645,10 @@ async function checkMovieCommentThreadRenderingContract() {
 checkJavaScriptSyntax();
 checkAssetSizeReport();
 checkPortableRuntimeSmoke();
+const clientAssetsSmoke = spawnSync(process.execPath, ['tools/client-assets-smoke.mjs'], {
+  cwd: rootDir, encoding: 'utf8'
+});
+assert(clientAssetsSmoke.status === 0, `Client asset registry smoke failed:\n${clientAssetsSmoke.stderr || clientAssetsSmoke.stdout}`);
 const moduleContractSmoke = spawnSync(process.execPath, ['tools/module-contract-smoke.mjs'], {
   cwd: rootDir, encoding: 'utf8'
 });

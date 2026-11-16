@@ -58,7 +58,7 @@ HTML shells:
 
 Static fallback:
 
-- Other `GET`/`HEAD` paths are served only when explicitly listed in `publicStaticAssets` in `server/runtime.js`. Keep this list current when publishing an app shell, script, stylesheet, icon, or static OG image.
+- Other `GET`/`HEAD` paths are served only through the explicit allowlist. Client JS/CSS/HTML come from `client-assets.js`; `server/runtime.js` adds media/license paths. Register new client files once in the shared inventory, then run `node tools/sync-client-headers.mjs`; smoke verifies publication, versioned routes, loader references and generated headers. Never add server/private files to the client inventory.
 - Files in `deploy`, `server`, `functions`, `node_modules`, docs, and unlisted root paths are private even when present on disk. Symlink/junction aliases into private files and malformed URL encodings return 404.
 - The Node HTTP adapter accepts at most 64 KiB for non-GET/HEAD request bodies, checked before routing for both declared and chunked uploads. Oversized requests receive 413 with a closed connection. Current server POSTs are JSON admin operations; browser image uploads go directly to Supabase Storage.
 - HTML files are `no-store`.
