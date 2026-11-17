@@ -77,7 +77,6 @@ const authMessage = document.getElementById('authMessage');
 const appToast = document.getElementById('appToast');
 const appToastMessage = document.getElementById('appToastMessage');
 const appToastAcceptButton = document.getElementById('appToastAcceptButton');
-const userPageMainTitle = document.querySelector('.user-page-main-title');
 const userPage = document.getElementById('userPage');
 const notificationsPage = document.getElementById('notificationsPage');
 const followingPage = document.getElementById('followingPage');
@@ -604,7 +603,6 @@ let currentUserProfile = null;
 let publicProfilesByIdCache = new Map();
 let publicProfileIdsByHandleCache = new Map();
 let currentUserFollowedProfileIds = new Set();
-let userPageFollowRequestProfileIds = new Set();
 let notificationsUnreadCount = 0;
 let notificationsUnreadUserId = '';
 let notificationsUnreadRefreshPromise = null;
@@ -4861,39 +4859,11 @@ function openDisplayNameModal() {
   });
 }
 
-function syncUserPageProfileSettingsButton() {
-  const settingsButton = userPage?.querySelector('[data-user-page-profile-settings="true"]');
-
-  if (!settingsButton) {
-    return;
-  }
-
-  settingsButton.hidden = !(
-    shouldUseAuthenticatedUi() &&
-    currentUser?.id &&
-    String(settingsButton.dataset.profileId || '') === String(currentUser.id)
-  );
-}
 
 function syncUserPageOwnProfileIdentity() {
-  if (!userPage || !currentUser?.id) {
-    return;
-  }
-
-  const displayName = getCurrentDisplayName();
-  const titleElement = userPage.querySelector('[data-user-page-display-name="true"]');
-
-  if (titleElement && displayName) {
-    titleElement.textContent = displayName;
-  }
-
-  syncUserPageAvatarMedia(currentUserProfile);
+  userPageController?.syncOwnProfileIdentity(currentUserProfile);
   syncProfileSettingsAvatarPreview(currentUserProfile);
   syncAuthIconButtonState();
-
-  if (isUserPage()) {
-    setUserPageDocumentMeta(currentUserProfile);
-  }
 }
 
 function handleUserPageProfileSettingsClick(event) {
@@ -5030,19 +5000,13 @@ function syncUserPageAvatarControls(profile = currentUserProfile) {
   });
 }
 
-function syncUserPageAvatarMedia(profile = currentUserProfile) {
-  const displayName = getCurrentDisplayName();
-  const mediaHtml = getUserPageAvatarMediaHtml(profile, displayName).trim();
-
-  document.querySelectorAll('[data-profile-avatar-media-slot="true"]').forEach(slot => {
-    slot.innerHTML = mediaHtml;
-  });
-
-  syncUserPageAvatarControls(profile);
-}
 
 function syncProfileSettingsAvatarPreview(profile = currentUserProfile) {
-  syncUserPageAvatarMedia(profile);
+  const mediaHtml = getUserPageAvatarMediaHtml(profile, getCurrentDisplayName()).trim();
+  document.querySelectorAll('.profile-settings-avatar-preview').forEach(slot => {
+    slot.innerHTML = mediaHtml;
+  });
+  syncUserPageAvatarControls(profile);
 }
 
 function setUserPageAvatarStatus(message = '', type = 'info') {
@@ -5055,7 +5019,8 @@ function setUserPageAvatarStatus(message = '', type = 'info') {
 }
 
 function setUserPageAvatarSubmitting(isSubmitting) {
-  document.querySelectorAll('[data-profile-avatar-media-slot="true"]').forEach(avatarShell => {
+  userPageController?.setAvatarSubmitting(isSubmitting);
+  document.querySelectorAll('.profile-settings-avatar-preview').forEach(avatarShell => {
     avatarShell.classList.toggle('is-uploading', isSubmitting);
   });
 
@@ -11731,7 +11696,7 @@ function updateAuthUI() {
   syncAuthIconButtonState();
   syncDisplayNameButton();
   syncProfilePosterPreferenceControls(currentUserProfile);
-  syncUserPageProfileSettingsButton();
+  userPageController?.syncProfileSettingsButton();
 
   if (!shouldShowAuthenticatedUi) {
     closeAuthPopoverMenu();
@@ -17199,15 +17164,7 @@ function bindSharedUiEvents() {
   document.addEventListener('click', event => {
     handleCatalogReturnNavigationLinkClick(event);
 
-    if (handleUserPageRankTooltipClick(event)) {
-      return;
-    }
-
     if (handleUserPageAvatarDeleteClick(event)) {
-      return;
-    }
-
-    if (handleUserPageFollowClick(event)) {
       return;
     }
 
@@ -17256,24 +17213,13 @@ function bindSharedUiEvents() {
   document.addEventListener('change', event => {
     handleNotificationsPagePreferenceChange(event);
   });
-  document.addEventListener('focusin', event => {
-    if (userPageRankTooltipTarget && !event.target?.closest?.('[data-user-page-rank-title]')) {
-      hideUserPageRankTooltip();
-    }
-  });
 
   window.addEventListener('resize', () => {
-    hideUserPageRankTooltip();
     observeNotificationsPageVisibleItems();
     scheduleAppResizeSync();
   });
-  window.addEventListener('scroll', hideUserPageRankTooltip, { passive: true });
 
   document.addEventListener('keydown', event => {
-    if (handleUserPageRankTooltipKeydown(event)) {
-      return;
-    }
-
     if (handleCompanyPagesKeydown(event)) {
       return;
     }
@@ -17282,7 +17228,6 @@ function bindSharedUiEvents() {
       return;
     }
 
-    hideUserPageRankTooltip();
     if (isMovieTrailerModalOpen()) {
       closeMovieTrailerModal();
       return;
@@ -17994,14 +17939,6 @@ async function initCatalogPage({ onShellReady = null } = {}) {
   signalCatalogShellReady();
 }
 
-function getUserPageRouteHandle() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const pathHandleMatch = window.location.pathname.match(/\/user\/([^/]+)\/?$/);
-  const pathHandle = pathHandleMatch ? decodeURIComponent(pathHandleMatch[1] || '').trim() : '';
-  const queryHandle = String(searchParams.get('handle') || '').trim();
-
-  return pathHandle || queryHandle || '';
-}
 
 function getPublicProfileDisplayName(profile) {
   return getProfileUtils().getPublicProfileDisplayName(profile);
@@ -18033,7 +17970,6 @@ function isCurrentUserFollowingProfile(profileId) {
 async function fetchCurrentUserProfileFollows() {
   if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
     currentUserFollowedProfileIds = new Set();
-    userPageFollowRequestProfileIds = new Set();
     return;
   }
 
@@ -18056,128 +17992,9 @@ async function fetchCurrentUserProfileFollows() {
   );
 }
 
-function getUserPageFollowButtonHtml(profile) {
-  const profileId = String(profile?.id || '').trim();
 
-  if (!profileId || isOwnUserProfile(profile)) {
-    return '';
-  }
 
-  const isAuthenticated = Boolean(shouldUseAuthenticatedUi() && currentUser?.id);
-  const isFollowing = isAuthenticated && isCurrentUserFollowingProfile(profileId);
-  const isBusy = userPageFollowRequestProfileIds.has(profileId);
-  const buttonLabel = isFollowing ? 'Отслеживается' : 'Отслеживать';
-  const buttonTitle = isAuthenticated
-    ? (isFollowing ? 'Больше не отслеживать профиль' : 'Отслеживать профиль')
-    : 'Войти, чтобы отслеживать профиль';
 
-  return `
-    <div class="user-page-follow-actions">
-      <button
-        type="button"
-        class="secondary-button secondary-button-compact user-page-follow-button${isFollowing ? ' is-following' : ''}"
-        data-user-page-follow-profile-id="${escapeHtml(profileId)}"
-        aria-pressed="${isFollowing ? 'true' : 'false'}"
-        title="${escapeHtml(buttonTitle)}"
-        ${isBusy ? 'disabled' : ''}
-      >
-        ${escapeHtml(buttonLabel)}
-      </button>
-    </div>
-  `;
-}
-
-function syncUserPageFollowButtonState(profileId) {
-  const normalizedProfileId = String(profileId || '').trim();
-
-  if (!normalizedProfileId || !userPage) {
-    return;
-  }
-
-  const button = userPage.querySelector(`[data-user-page-follow-profile-id="${CSS.escape(normalizedProfileId)}"]`);
-
-  if (!button) {
-    return;
-  }
-
-  const isAuthenticated = Boolean(shouldUseAuthenticatedUi() && currentUser?.id);
-  const isFollowing = isAuthenticated && isCurrentUserFollowingProfile(normalizedProfileId);
-  const isBusy = userPageFollowRequestProfileIds.has(normalizedProfileId);
-
-  button.disabled = isBusy;
-  button.classList.toggle('is-following', isFollowing);
-  button.setAttribute('aria-pressed', isFollowing ? 'true' : 'false');
-  button.title = isAuthenticated
-    ? (isFollowing ? 'Больше не отслеживать профиль' : 'Отслеживать профиль')
-    : 'Войти, чтобы отслеживать профиль';
-  button.textContent = isFollowing ? 'Отслеживается' : 'Отслеживать';
-}
-
-function handleUserPageFollowClick(event) {
-  const button = event.target?.closest?.('[data-user-page-follow-profile-id]');
-
-  if (!button) {
-    return false;
-  }
-
-  event.preventDefault();
-  toggleUserPageProfileFollow(button.dataset.userPageFollowProfileId);
-
-  return true;
-}
-
-async function toggleUserPageProfileFollow(profileId) {
-  const normalizedProfileId = String(profileId || '').trim();
-
-  if (!normalizedProfileId) {
-    return;
-  }
-
-  if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
-    openAuthModal();
-    showAuthMessage('Войди, чтобы отслеживать профили.', 'info', true);
-    return;
-  }
-
-  if (normalizedProfileId === String(currentUser.id) || userPageFollowRequestProfileIds.has(normalizedProfileId)) {
-    return;
-  }
-
-  const wasFollowing = isCurrentUserFollowingProfile(normalizedProfileId);
-
-  userPageFollowRequestProfileIds.add(normalizedProfileId);
-  syncUserPageFollowButtonState(normalizedProfileId);
-
-  try {
-    const followActions = await loadProfileFollowActions();
-
-    if (wasFollowing) {
-      await followActions.unfollowProfile({
-        followerId: currentUser.id,
-        followingId: normalizedProfileId
-      });
-      currentUserFollowedProfileIds.delete(normalizedProfileId);
-    } else {
-      await followActions.followProfile({
-        followerId: currentUser.id,
-        followingId: normalizedProfileId
-      });
-      currentUserFollowedProfileIds.add(normalizedProfileId);
-    }
-
-    showAppMessage(
-      wasFollowing ? 'Профиль больше не отслеживается.' : 'Профиль отслеживается.',
-      'success',
-      true
-    );
-  } catch (error) {
-    console.error('Ошибка обновления отслеживания профиля:', error);
-    showAppMessage('Не удалось обновить отслеживание профиля.', 'error', true);
-  } finally {
-    userPageFollowRequestProfileIds.delete(normalizedProfileId);
-    syncUserPageFollowButtonState(normalizedProfileId);
-  }
-}
 
 function getUserPageAdminPasswordPanelHtml(profile) {
   const profileId = String(profile?.id || '').trim();
@@ -18346,15 +18163,6 @@ async function saveUserPageAdminPassword(form) {
   }
 }
 
-function syncUserPageMainTitle(profile = null) {
-  if (!userPageMainTitle) {
-    return;
-  }
-
-  userPageMainTitle.textContent = isOwnUserProfile(profile)
-    ? 'Мой профиль'
-    : 'Профиль зрителя';
-}
 
 function setUserPageDocumentMeta(profile) {
   if (!profile) {
@@ -18590,130 +18398,14 @@ function handleUserPageRailControlClick(event) {
   scrollUserPageRail(shell, direction);
 }
 
-let userPageRankTooltipElement = null;
-let userPageRankTooltipTarget = null;
 
-function getUserPageRankTooltipElement() {
-  if (userPageRankTooltipElement) {
-    return userPageRankTooltipElement;
-  }
 
-  const tooltip = document.createElement('div');
-  tooltip.id = 'userPageRankTooltip';
-  tooltip.className = 'user-page-rank-tooltip';
-  tooltip.setAttribute('role', 'tooltip');
-  tooltip.hidden = true;
-  document.body.appendChild(tooltip);
-  userPageRankTooltipElement = tooltip;
 
-  return tooltip;
-}
 
-function positionUserPageRankTooltip(target, tooltip) {
-  const targetRect = target.getBoundingClientRect();
-  const tooltipRect = tooltip.getBoundingClientRect();
-  const viewportPadding = 12;
-  const gap = 8;
-  const left = Math.min(
-    Math.max(
-      targetRect.left + (targetRect.width - tooltipRect.width) / 2,
-      viewportPadding
-    ),
-    window.innerWidth - tooltipRect.width - viewportPadding
-  );
-  const preferredTop = targetRect.bottom + gap;
-  const fallbackTop = targetRect.top - tooltipRect.height - gap;
-  const top = preferredTop + tooltipRect.height + viewportPadding <= window.innerHeight
-    ? preferredTop
-    : Math.max(viewportPadding, fallbackTop);
 
-  tooltip.style.left = `${Math.round(left)}px`;
-  tooltip.style.top = `${Math.round(top)}px`;
-}
 
-function hideUserPageRankTooltip() {
-  if (userPageRankTooltipTarget) {
-    userPageRankTooltipTarget.removeAttribute('aria-describedby');
-    userPageRankTooltipTarget.setAttribute('aria-expanded', 'false');
-  }
 
-  if (userPageRankTooltipElement) {
-    userPageRankTooltipElement.classList.remove('is-visible');
-    userPageRankTooltipElement.hidden = true;
-    userPageRankTooltipElement.textContent = '';
-  }
 
-  userPageRankTooltipTarget = null;
-}
-
-function showUserPageRankTooltip(target) {
-  const title = target?.dataset?.userPageRankTitle || '';
-
-  if (!title) {
-    hideUserPageRankTooltip();
-    return;
-  }
-
-  const tooltip = getUserPageRankTooltipElement();
-
-  if (userPageRankTooltipTarget && userPageRankTooltipTarget !== target) {
-    userPageRankTooltipTarget.removeAttribute('aria-describedby');
-    userPageRankTooltipTarget.setAttribute('aria-expanded', 'false');
-  }
-
-  userPageRankTooltipTarget = target;
-  tooltip.textContent = title;
-  tooltip.hidden = false;
-  tooltip.classList.add('is-visible');
-  target.setAttribute('aria-describedby', tooltip.id);
-  target.setAttribute('aria-expanded', 'true');
-  positionUserPageRankTooltip(target, tooltip);
-}
-
-function toggleUserPageRankTooltip(target) {
-  if (userPageRankTooltipTarget === target && userPageRankTooltipElement?.classList.contains('is-visible')) {
-    hideUserPageRankTooltip();
-    return;
-  }
-
-  showUserPageRankTooltip(target);
-}
-
-function getUserPageRankTooltipTarget(eventTarget) {
-  return eventTarget?.closest?.('[data-user-page-rank-title]');
-}
-
-function handleUserPageRankTooltipClick(event) {
-  const target = getUserPageRankTooltipTarget(event.target);
-
-  if (target) {
-    event.preventDefault();
-    toggleUserPageRankTooltip(target);
-    return true;
-  }
-
-  if (userPageRankTooltipTarget && !event.target?.closest?.('.user-page-rank-tooltip')) {
-    hideUserPageRankTooltip();
-  }
-
-  return false;
-}
-
-function handleUserPageRankTooltipKeydown(event) {
-  const target = getUserPageRankTooltipTarget(event.target);
-
-  if (target && (event.key === 'Enter' || event.key === ' ')) {
-    event.preventDefault();
-    toggleUserPageRankTooltip(target);
-    return true;
-  }
-
-  if (event.key === 'Escape' && userPageRankTooltipTarget) {
-    hideUserPageRankTooltip();
-  }
-
-  return false;
-}
 
 function getUserPageMoreCardHtml(hiddenCount, moreUrl = '') {
   const contentHtml = `<strong>И ещё ${hiddenCount}</strong>`;
@@ -19050,9 +18742,29 @@ async function initFollowingPage() {
 let userPageControllerPromise = null;
 let userPageController = null;
 
+async function setProfileFollowing({ followerId, followingId, isFollowing }) {
+  const actions = await loadProfileFollowActions();
+  if (String(currentUser?.id || '') !== followerId) return false;
+  if (isFollowing) {
+    await actions.followProfile({ followerId, followingId });
+  } else {
+    await actions.unfollowProfile({ followerId, followingId });
+  }
+  if (String(currentUser?.id || '') !== followerId) return false;
+  if (isFollowing) currentUserFollowedProfileIds.add(followingId);
+  else currentUserFollowedProfileIds.delete(followingId);
+  return true;
+}
+
 function getUserPageControllerContext() {
   return {
     userPage,
+    isCurrentUserFollowingProfile,
+    setProfileFollowing,
+    openAuthModal,
+    showAuthMessage,
+    showAppMessage,
+    getUserPageAvatarMediaHtml,
     fetchAllSupabaseRowsResult,
     supabaseClient,
     getCurrentUser: () => currentUser,
@@ -19076,16 +18788,12 @@ function getUserPageControllerContext() {
     throwIfSupabaseError,
     getManualSimilarMovieLabel,
     getUserPageAvatarHtml,
-    getUserPageFollowButtonHtml,
     getUserPageAdminPasswordPanelHtml,
     setUserPageDocumentMeta,
     fetchUserPageActivityRanks,
     isUserPageActivityRankFallbackEnabled: isLocalDevRouteHost,
-    syncUserPageMainTitle,
     bindUserPageRailControls,
-    syncUserPageProfileSettingsButton,
     getUserPageMovieRailHtml,
-    hideUserPageRankTooltip,
     appBuildVersion: APP_BUILD_VERSION,
     getDataMutationStamp,
     getPageDependencySnapshot: getLocalDataDependencySnapshot,

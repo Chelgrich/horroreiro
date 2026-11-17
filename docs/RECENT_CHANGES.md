@@ -1,5 +1,12 @@
 # Recent Changes
 
+## 2026-11-17 — Profile page state ownership
+
+- `user-page.js` owns the displayed profile identity, follow request guards, rank tooltip state and events, own-profile title/settings visibility and identity/avatar updates. Removed the corresponding app-level state, render callbacks and global event dispatch. Route parsing now lives in the module: isolated initialization exposed its implicit dependency on the global `app.js` function.
+- Shared auth/profile caches and followed-profile membership remain with the shared app owner. A narrow follow write bridge captures the requesting viewer and changes shared membership only while that viewer remains current. Page request guards are keyed by viewer and target; previous-viewer completions do not publish feedback into a new session.
+- Profile reads share one load path and reject stale viewer/route/load completions before rendering or caching. Updating own settings can patch only the displayed own profile. Shared avatar preview updates are limited to the settings modal, so they cannot overwrite another profile's avatar.
+- Added isolated user-page state smoke coverage for module-only initialization, own/other identity/avatar updates, duplicate/failing follows and retry, viewer changes before/after actual bridge writes, viewer changes during lookup/activity reads, out-of-order loads, tooltip keyboard/scroll lifecycle and retained cache state. Auth refresh is registered before the first profile read, so a change during initial loading cannot be missed. No schema, RLS or server authorization behavior changed; shared rails, admin password operations and settings writes keep their existing owners.
+
 ## 2026-11-16 — Single client asset inventory
 
 - `client-assets.js` is the explicit JS/CSS/HTML publish inventory used by the portable runtime, versioned Cloudflare asset handler, size report, syntax/security/documentation checks and generated cache headers. New feature assets no longer require copying their names between those lists; private/server files remain outside the public allowlist.

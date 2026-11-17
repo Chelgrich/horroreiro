@@ -1,6 +1,6 @@
 # Horroreiro Architecture Context
 
-Last updated: 2026-11-16.
+Last updated: 2026-11-17.
 
 ## Purpose
 
@@ -238,7 +238,7 @@ Secondary page-only CSS is loaded by `boot-loader.js` only for the matching shel
 
 `notifications-page.js` is lazy-loaded only for `/notifications` and owns notification settings/feed rendering, filters, read/dwell handling, clear-all, mark-all-read, and notification digest movie rails. `app.js` keeps the unread badge, account-menu badge, and shared availability/error state.
 
-`user-page.js` is lazy-loaded only for `/user/*` and owns public profile page data composition, rankings/taste stats, page rendering, activity aggregate row caching, and session page-data caching. The page-data cache is keyed by profile handle, viewer id, poster preference, build version, global mutation stamp, and per-movie dependency stamps for the movies used by the page. `app.js` keeps profile state/write bridges, avatar/settings actions, follow actions, shared movie rail components, local page dependency stamp helpers, and the `/profile-activity-ranks/:userId` fetch bridge because notifications and other surfaces reuse nearby profile state.
+`user-page.js` is lazy-loaded only for `/user/*` and owns route parsing, public page data composition, rankings/taste stats, rendering, the displayed profile identity, follow request guards, tooltip state/events, own-profile title/settings visibility, and identity/avatar patches. Its shared load path rejects obsolete viewer/route/load completions before writing page caches or DOM. The page-data cache is keyed by profile handle, viewer id, poster preference, build version, global mutation stamp, and per-movie dependency stamps. `app.js` keeps shared auth/profile caches and followed-profile membership, settings/avatar writes and modal UI, shared rails, local dependency stamps, the activity-ranks fetch bridge, and admin password operations. Its follow write bridge uses the captured viewer and refuses to update a replacement session's shared Set. Shared settings notify the loaded page controller of identity/avatar changes; the controller updates only the displayed own profile. Do not put page-local tooltip/request/display state back into `app.js` or restore its implicit global route helper dependency.
 
 Profile ranking note:
 
