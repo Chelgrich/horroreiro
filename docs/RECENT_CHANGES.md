@@ -4,6 +4,7 @@
 
 - Runtime hydration reuses matching saved catalog markup already restored by the early bootstrap. A render inside the initial fade preserves the fade's visibility class until its own cleanup.
 - If a catalog startup module fails after the styled saved catalog is on screen, the failure message appears above the saved view. The full-screen startup notice remains available for a failed cold start.
+- Released build `fbdba919887520b9eb0c473342ba38ba5ac0b191`, Yandex revision `bbaq14d7iaqp2fupvos0`. Full smoke, required Docker smoke and production checks on the gateway, apex and `www` passed. Headless Chrome on production verified that the cached poster node survives startup, an interrupted module load leaves the cached catalog visible, and a re-render preserves visibility during the fade.
 
 ## 2026-11-19 — Attribute the slow compact catalog request
 
