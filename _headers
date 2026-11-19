@@ -23,6 +23,9 @@
 /auth-session-controller.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/auth-ui-controller.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /admin-actions.js
   Cache-Control: public, max-age=0, must-revalidate
 

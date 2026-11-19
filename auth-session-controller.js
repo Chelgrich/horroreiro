@@ -6,6 +6,8 @@ export function createAuthSessionController(context) {
     scheduleTask = task => setTimeout(task, 0)
   } = context;
   let generation = 0;
+  let authSessionGeneration = 0;
+  let authSessionToken = null;
   let isListenerBound = false;
   let afterSyncHandler = null;
   let sessionReady = Promise.resolve();
@@ -16,6 +18,12 @@ export function createAuthSessionController(context) {
     const version = generation;
     const userId = getCurrentUser()?.id;
     return { isCurrent: () => generation === version && getCurrentUser()?.id === userId };
+  }
+
+  function captureAuthSession() {
+    const scope = captureSession();
+    const version = authSessionGeneration;
+    return { isCurrent: () => scope.isCurrent() && authSessionGeneration === version };
   }
 
   function schedulePageRefresh() {
@@ -67,6 +75,11 @@ export function createAuthSessionController(context) {
     schedulePageRefresh();
     if (isListenerBound) return;
     supabaseClient.auth.onAuthStateChange((event, session) => {
+      const token = session?.access_token ?? null;
+      // SDK visibility checks reannounce SIGNED_IN; only a replacement session cancels recovery work.
+      const isSameSessionSignIn = event === 'SIGNED_IN' && token && token === authSessionToken;
+      if (['SIGNED_IN', 'SIGNED_OUT', 'PASSWORD_RECOVERY'].includes(event) && !isSameSessionSignIn) authSessionGeneration += 1;
+      if (event !== 'INITIAL_SESSION') authSessionToken = token;
       // Initial state comes from the coordinated getSession read.
       if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') return;
       const rejectRecovery = (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' && hasPendingRecovery()) &&
@@ -121,6 +134,7 @@ export function createAuthSessionController(context) {
         return isCurrent() ? null : waitForLatestSession();
       }
       const user = result.data?.session?.user ?? null;
+      authSessionToken = result.data?.session?.access_token ?? null;
       if (user && hasPendingRecovery() && !isRecoveryEntryPage()) {
         setCurrentSessionUser(null);
         await loadCurrentSessionData(isCurrent);
@@ -135,5 +149,5 @@ export function createAuthSessionController(context) {
     }
   }
 
-  return { restoreSession, bindSharedAuthStateListener, captureSession };
+  return { restoreSession, bindSharedAuthStateListener, captureSession, captureAuthSession };
 }

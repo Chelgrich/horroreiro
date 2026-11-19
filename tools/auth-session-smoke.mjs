@@ -38,7 +38,7 @@ function fixture() {
   });
   return { controller, tasks, identities, profiles, collections, recoveries,
     get user() { return user; }, get subscriptions() { return subscriptions; },
-    emit: (event, id) => callback(event, id ? { user: { id } } : null),
+    emit: (event, id, token) => callback(event, id ? { user: { id }, access_token: token } : null),
     setSession: result => { sessionResult = result; },
     pauseProfiles: promise => { profileWait = promise; },
     setRecovery: (pending, entry) => { pendingRecovery = pending; recoveryEntry = entry; },
@@ -64,6 +64,21 @@ assert.deepEqual(queued.collections, ['new']);
 assert.equal(pageRefreshes, 1);
 queued.emit('TOKEN_REFRESHED', 'new'); queued.emit('SIGNED_IN', 'new');
 assert.equal(queued.tasks.length, 0, 'Refocus/token refresh must not reload unchanged collections');
+const dataScope = queued.controller.captureSession();
+const authScope = queued.controller.captureAuthSession();
+queued.emit('SIGNED_IN', 'new');
+assert(dataScope.isCurrent(), 'Same-user sign-in keeps data readers current');
+assert(!authScope.isCurrent(), 'Even same-user sign-in invalidates delayed recovery writes');
+assert.equal(queued.tasks.length, 0);
+queued.emit('SIGNED_IN', 'new', 'same-session');
+const reannouncedScope = queued.controller.captureAuthSession();
+queued.emit('SIGNED_IN', 'new', 'same-session');
+assert(reannouncedScope.isCurrent(), 'Tab refocus reannounces the same session without cancelling recovery cleanup');
+queued.emit('TOKEN_REFRESHED', 'new', 'refreshed-session');
+queued.emit('SIGNED_IN', 'new', 'refreshed-session');
+assert(reannouncedScope.isCurrent(), 'Normal token renewal keeps the recovery operation current');
+queued.emit('SIGNED_IN', 'new', 'replacement-session');
+assert(!reannouncedScope.isCurrent(), 'A new token on sign-in invalidates the previous same-account session');
 
 const restoring = fixture();
 const initialRead = deferred(); restoring.setSession(initialRead.promise);

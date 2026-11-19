@@ -154,6 +154,8 @@ Rules:
 
 Profile data is tied to Supabase Auth users.
 
+Login/registration/password-recovery forms and redirect markers are owned by `auth-ui-controller.js`; SDK session coordination is owned by `auth-session-controller.js`. Storage keys, Auth payloads and table/RLS assumptions are unchanged. Recovery writes and delayed cleanup use the captured auth-session generation, including same-account replacement sign-ins; normal token refresh and unchanged-session reannouncements do not replace that scope.
+
 Shared role/profile, rating aggregate/fallback, personal rating and watchlist reads reject completions whose captured auth generation changed, including logout/account change followed by return to the same ID. Identity changes clear the current role/profile before fresh reads; these client guards preserve session isolation and do not replace server RLS.
 
 Important profile fields:

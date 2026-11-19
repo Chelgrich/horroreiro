@@ -9,6 +9,7 @@ export const clientJsAssets = [
   "app-page-runtime.js",
   "app.js",
   "auth-session-controller.js",
+  "auth-ui-controller.js",
   "admin-actions.js",
   "catalog-cards.js",
   "catalog-filters.js",

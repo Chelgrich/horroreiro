@@ -19,6 +19,7 @@ const syntaxFiles = [
   'tools/profile-state-smoke.mjs',
   'tools/profile-settings-smoke.mjs',
   'tools/auth-session-smoke.mjs',
+  'tools/auth-ui-smoke.mjs',
   'vite.config.mjs',
   'server/runtime.js',
   'server/server.mjs',
@@ -1681,6 +1682,11 @@ const authSessionSmoke = spawnSync(process.execPath, ['tools/auth-session-smoke.
   cwd: rootDir, encoding: 'utf8'
 });
 assert(authSessionSmoke.status === 0, `Auth session smoke failed:\n${authSessionSmoke.stderr || authSessionSmoke.stdout}`);
+
+const authUiSmoke = spawnSync(process.execPath, ['tools/auth-ui-smoke.mjs'], {
+  cwd: rootDir, encoding: 'utf8'
+});
+assert(authUiSmoke.status === 0, `Auth UI smoke failed:\n${authUiSmoke.stderr || authUiSmoke.stdout}`);
 const catalogReturnSmoke = spawnSync(process.execPath, ['tools/catalog-return-smoke.mjs'], {
   cwd: rootDir, encoding: 'utf8'
 });

@@ -40,22 +40,6 @@ const completenessAuditButton = document.getElementById('completenessAuditButton
 const databaseExportButton = document.getElementById('databaseExportButton');
 const notificationTestButton = document.getElementById('notificationTestButton');
 const letterboxdRatingsFileInput = document.getElementById('letterboxdRatingsFileInput');
-const logoutMenuButton = document.getElementById('logoutMenuButton');
-const authModal = document.getElementById('authModal');
-const authModalBackdrop = document.getElementById('authModalBackdrop');
-const closeAuthModalButton = document.getElementById('closeAuthModalButton');
-const authModalTitle = document.getElementById('authModalTitle');
-const loginForm = document.getElementById('loginForm');
-const authFormLinks = document.getElementById('authFormLinks');
-const loginEmail = document.getElementById('loginEmail');
-const loginPassword = document.getElementById('loginPassword');
-const registerNicknameInput = document.getElementById('registerNickname');
-const registerNicknameHint = document.getElementById('registerNicknameHint');
-const loginPasswordConfirm = document.getElementById('loginPasswordConfirm');
-const registerButton = document.getElementById('registerButton');
-const forgotPasswordButton = document.getElementById('forgotPasswordButton');
-const authToast = document.getElementById('authToast');
-const authMessage = document.getElementById('authMessage');
 const appToast = document.getElementById('appToast');
 const appToastMessage = document.getElementById('appToastMessage');
 const appToastAcceptButton = document.getElementById('appToastAcceptButton');
@@ -174,7 +158,6 @@ const NOTIFICATIONS_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 let didPlayQuickPresetsScrollHint = false;
 let quickPresetsScrollHintTimerId = null;
 let quickPresetsScrollHintFrameId = null;
-let didConsumeEmailConfirmationRedirect = false;
 
 let movieForm = document.getElementById('movieForm');
 let formTitle = document.getElementById('formTitle');
@@ -253,11 +236,6 @@ function fetchSupabaseThroughSite(input, options) {
 
 const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
 const CATALOG_STATE_STORAGE_KEY = 'horroreiro_catalog_state';
-const EMAIL_CONFIRMATION_PENDING_KEY = 'horroreiro_email_confirmation_pending';
-const EMAIL_CONFIRMATION_TRACKED_KEY = 'horroreiro_email_confirmation_tracked';
-const PASSWORD_RECOVERY_PENDING_KEY = 'horroreiro_password_recovery_pending';
-const PASSWORD_RECOVERY_ACTION_PARAM = 'auth_action';
-const PASSWORD_RECOVERY_ACTION_VALUE = 'password-recovery';
 const CATALOG_SCROLL_POSITION_KEY = 'horroreiro_catalog_scroll_position';
 const CATALOG_ANCHOR_MOVIE_ID_KEY = 'horroreiro_catalog_anchor_movie_id';
 const CATALOG_FAST_RETURN_PENDING_KEY = 'horroreiro_catalog_fast_return_pending';
@@ -580,12 +558,8 @@ let notificationsUnreadFetchedAt = 0;
 let areNotificationsUnavailable = false;
 let isNotificationTestRunning = false;
 let isAdmin = false;
-let isAuthModalOpen = false;
 let isAuthPopoverOpen = false;
 let profileRussianPostersColumnAvailable = true;
-let isAuthRegisterMode = false;
-let isPasswordRecoveryMode = false;
-let isPasswordRecoveryEntryPage = false;
 let isMovieModalEventsBound = false;
 let areSharedUiEventsBound = false;
 let areCatalogPageEventsBound = false;
@@ -632,9 +606,7 @@ let reviewedOnlyFilter = false;
 let editingMovieId = null;
 let isModalOpen = false;
 let moviesLoadedSuccessfully = false;
-let authMessageTimer = null;
 let appMessageTimer = null;
-let isAuthSubmitting = false;
 let isMovieFormSubmitting = false;
 let isUserAdminPasswordSubmitting = false;
 let isLetterboxdRatingsImporting = false;
@@ -4621,7 +4593,6 @@ function shouldPreferRussianPosters() {
 }
 
 
-
 function syncAuthPopoverNavigationLink(linkElement, href, shouldShow) {
   if (!linkElement) {
     return;
@@ -4711,12 +4682,10 @@ function markMissingProfileOptionalColumn(columnName) {
 }
 
 
-
 function cachePublicProfileRows(rows = []) {
   if (!profileDataActions) throw new Error('Profile data module is not loaded.');
   profileDataActions.cachePublicProfileRows(rows);
 }
-
 
 
 function getPublicProfileAvatarUrl(profile) {
@@ -7669,253 +7638,6 @@ function initCatalogViewToggleButton() {
   syncCatalogViewToggleButton();
 }
 
-function getAuthRedirectInfo() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  const getParam = name => searchParams.get(name) || hashParams.get(name) || '';
-  const type = getParam('type');
-  const authAction = getParam(PASSWORD_RECOVERY_ACTION_PARAM);
-  const code = getParam('code');
-  const tokenHash = getParam('token_hash');
-  const accessToken = getParam('access_token');
-  const refreshToken = getParam('refresh_token');
-  const error = getParam('error') || getParam('error_code');
-  const errorDescription = getParam('error_description');
-  const hasPendingRecovery = Boolean(localStorage.getItem(PASSWORD_RECOVERY_PENDING_KEY));
-  const hasPendingEmailConfirmation = Boolean(localStorage.getItem(EMAIL_CONFIRMATION_PENDING_KEY));
-  const hasAuthReturnParams = Boolean(
-    code ||
-    tokenHash ||
-    accessToken ||
-    refreshToken ||
-    error ||
-    errorDescription
-  );
-  const normalizedType = String(type || '').toLowerCase();
-  const normalizedAuthAction = String(authAction || '').toLowerCase();
-  const isRecovery = (
-    normalizedType === 'recovery' ||
-    normalizedAuthAction === PASSWORD_RECOVERY_ACTION_VALUE ||
-    (hasPendingRecovery && hasAuthReturnParams)
-  );
-  const isEmailConfirmation = (
-    normalizedType === 'signup' ||
-    normalizedType === 'email' ||
-    normalizedType === 'email_change' ||
-    (tokenHash && !isRecovery) ||
-    (hasPendingEmailConfirmation && hasAuthReturnParams && !isRecovery)
-  );
-
-  return {
-    type: normalizedType,
-    authAction: normalizedAuthAction,
-    code,
-    tokenHash,
-    accessToken,
-    refreshToken,
-    error,
-    errorDescription,
-    hasAuthReturnParams,
-    isRecovery,
-    isEmailConfirmation
-  };
-}
-
-function isEmailConfirmationRedirect() {
-  return getAuthRedirectInfo().isEmailConfirmation || didConsumeEmailConfirmationRedirect;
-}
-
-function isPasswordRecoveryRedirect() {
-  return getAuthRedirectInfo().isRecovery;
-}
-
-function getPasswordRecoveryRedirectUrl() {
-  const url = new URL('/', window.location.origin);
-
-  url.searchParams.set(PASSWORD_RECOVERY_ACTION_PARAM, PASSWORD_RECOVERY_ACTION_VALUE);
-
-  return url.toString();
-}
-
-function clearEmailConfirmationParamsFromUrl() {
-  const url = new URL(window.location.href);
-  let wasChanged = false;
-  const authParamNames = [
-    'type',
-    'token_hash',
-    'code',
-    'access_token',
-    'refresh_token',
-    'expires_at',
-    'expires_in',
-    'token_type',
-    'provider_token',
-    'provider_refresh_token',
-    'error',
-    'error_code',
-    'error_description',
-    PASSWORD_RECOVERY_ACTION_PARAM
-  ];
-
-  authParamNames.forEach(paramName => {
-    if (url.searchParams.has(paramName)) {
-      url.searchParams.delete(paramName);
-      wasChanged = true;
-    }
-  });
-
-  const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
-
-  authParamNames.forEach(paramName => {
-    if (hashParams.has(paramName)) {
-      hashParams.delete(paramName);
-      wasChanged = true;
-    }
-  });
-
-  if (wasChanged) {
-    const nextHash = hashParams.toString();
-    url.hash = nextHash ? `#${nextHash}` : '';
-    window.history.replaceState({}, document.title, url.toString());
-  }
-}
-
-function normalizeAuthRedirectOtpType(type) {
-  const normalizedType = String(type || '').toLowerCase();
-  const allowedTypes = new Set([
-    'email',
-    'email_change',
-    'invite',
-    'magiclink',
-    'recovery'
-  ]);
-
-  if (normalizedType === 'signup') {
-    return 'email';
-  }
-
-  if (!allowedTypes.has(normalizedType)) {
-    return '';
-  }
-
-  return normalizedType;
-}
-
-async function consumeAuthRedirectFromUrl(authRedirectInfo = getAuthRedirectInfo()) {
-  if (!authRedirectInfo.hasAuthReturnParams) {
-    return {
-      didConsume: false,
-      isRecovery: authRedirectInfo.isRecovery,
-      error: null
-    };
-  }
-
-  const authRedirectErrorMessage = authRedirectInfo.errorDescription || authRedirectInfo.error || '';
-
-  try {
-    if (authRedirectErrorMessage) {
-      throw new Error(authRedirectErrorMessage);
-    }
-
-    if (authRedirectInfo.code) {
-      const { error } = await withAuthRequestTimeout(
-        supabaseClient.auth.exchangeCodeForSession(authRedirectInfo.code),
-        'Не удалось обработать ссылку входа. Проверь соединение и попробуй открыть ссылку ещё раз.'
-      );
-
-      if (error) {
-        throw error;
-      }
-    } else if (authRedirectInfo.accessToken && authRedirectInfo.refreshToken) {
-      const { error } = await withAuthRequestTimeout(
-        supabaseClient.auth.setSession({
-          access_token: authRedirectInfo.accessToken,
-          refresh_token: authRedirectInfo.refreshToken
-        }),
-        'Не удалось восстановить сессию из ссылки. Проверь соединение и попробуй открыть ссылку ещё раз.'
-      );
-
-      if (error) {
-        throw error;
-      }
-    } else if (authRedirectInfo.tokenHash) {
-      const otpType = normalizeAuthRedirectOtpType(authRedirectInfo.type);
-
-      if (!otpType) {
-        throw new Error('Ссылка входа содержит неизвестный тип подтверждения.');
-      }
-
-      const { error } = await withAuthRequestTimeout(
-        supabaseClient.auth.verifyOtp({
-          token_hash: authRedirectInfo.tokenHash,
-          type: otpType
-        }),
-        'Не удалось подтвердить ссылку входа. Проверь соединение и попробуй открыть ссылку ещё раз.'
-      );
-
-      if (error) {
-        throw error;
-      }
-    }
-
-    if (authRedirectInfo.isRecovery) {
-      localStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1');
-      const recoverySessionResult = await getPasswordRecoverySessionForUpdate();
-
-      if (!recoverySessionResult.session) {
-        throw recoverySessionResult.error || new Error('Ссылка для сброса пароля не создала активную recovery-сессию.');
-      }
-    }
-
-    if (authRedirectInfo.isEmailConfirmation) {
-      didConsumeEmailConfirmationRedirect = true;
-    }
-
-    return {
-      didConsume: true,
-      isRecovery: authRedirectInfo.isRecovery,
-      error: null
-    };
-  } catch (error) {
-    console.error('Ошибка обработки auth-редиректа:', error);
-
-    return {
-      didConsume: true,
-      isRecovery: authRedirectInfo.isRecovery,
-      error
-    };
-  } finally {
-    clearEmailConfirmationParamsFromUrl();
-  }
-}
-
-function trackEmailConfirmedLoginIfNeeded() {
-  if (!currentUser?.id) {
-    return;
-  }
-
-  if (!localStorage.getItem(EMAIL_CONFIRMATION_PENDING_KEY)) {
-    return;
-  }
-
-  if (!isEmailConfirmationRedirect()) {
-    return;
-  }
-
-  const trackedUserId = localStorage.getItem(EMAIL_CONFIRMATION_TRACKED_KEY);
-
-  if (trackedUserId === currentUser.id) {
-    clearEmailConfirmationParamsFromUrl();
-    didConsumeEmailConfirmationRedirect = false;
-    return;
-  }
-
-  trackGoal('email_confirmed_login');
-  localStorage.setItem(EMAIL_CONFIRMATION_TRACKED_KEY, currentUser.id);
-  localStorage.removeItem(EMAIL_CONFIRMATION_PENDING_KEY);
-  clearEmailConfirmationParamsFromUrl();
-  didConsumeEmailConfirmationRedirect = false;
-}
 
 async function loadCurrentUserRole() {
   const { isCurrent } = getAuthSessionController().captureSession();
@@ -7951,7 +7673,7 @@ function updateAdminStatus() {
 }
 
 function shouldUseAuthenticatedUi() {
-  return Boolean(currentUser) && !isPasswordRecoveryMode;
+  return Boolean(currentUser) && !getAuthUiController().isRecoveryMode();
 }
 
 function getMovieUserRatingKey(movieId, userId) {
@@ -8238,6 +7960,38 @@ function ensureMovieEditorStylesheetLoaded() {
   return movieEditorStylesheetPromise;
 }
 
+let authUiController = null;
+let authUiControllerPromise = null;
+
+function getAuthUiController() {
+  if (!authUiController) throw new Error('Auth UI controller is not loaded.');
+  return authUiController;
+}
+
+function loadAuthUiController() {
+  if (!authUiControllerPromise) {
+    authUiControllerPromise = import(getLazyFeatureModuleUrl('auth-ui-controller.js')).then(module => {
+      authUiController = module.createAuthUiController({
+        supabaseClient, withAuthRequestTimeout, getCurrentUser: () => currentUser,
+        captureSession: () => getAuthSessionController().captureAuthSession(),
+        isValidDisplayNameValue,
+        isDisplayNameAvailable: async name => (await loadProfileSettingsActions()).isDisplayNameAvailable(name),
+        getReadableAuthErrorMessage,
+        showToastMessage, clearToastMessage, showAppMessage, trackGoal, syncBodyScrollLock,
+        closeAuthPopoverMenu, closeProfileSettings: () => profileSettingsController?.close(),
+        onModeChanged: updateAuthUI
+      });
+      return authUiController;
+    }).catch(error => { authUiControllerPromise = null; throw error; });
+  }
+  return authUiControllerPromise;
+}
+
+function openAuthModal() { return getAuthUiController().open(); }
+function closeAuthModal(options) { return getAuthUiController().close(options); }
+function showAuthMessage(...args) { return getAuthUiController().showMessage(...args); }
+function trackEmailConfirmedLoginIfNeeded() { return getAuthUiController().trackEmailConfirmedLoginIfNeeded(); }
+
 let authSessionControllerPromise = null;
 let authSessionController = null;
 
@@ -8254,13 +8008,10 @@ function loadAuthSessionController() {
           supabaseClient, withAuthRequestTimeout, getCurrentUser: () => currentUser,
           setCurrentSessionUser, loadCurrentSessionData,
           reloadUserCollections: () => Promise.all([fetchMovieRatings(), fetchMovieWatchlist()]),
-          hasPendingRecovery: () => Boolean(localStorage.getItem(PASSWORD_RECOVERY_PENDING_KEY)),
-          isRecoveryEntryPage: () => isPasswordRecoveryEntryPage,
+          hasPendingRecovery: () => getAuthUiController().hasPendingRecovery(),
+          isRecoveryEntryPage: () => getAuthUiController().isRecoveryEntryPage(),
           clearLocalRecoverySession,
-          onPasswordRecovery: () => {
-            localStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1');
-            handlePasswordRecoveryEntry(true);
-          },
+          onPasswordRecovery: () => getAuthUiController().enterRecovery(),
           trackEmailConfirmedLoginIfNeeded
         });
         return authSessionController;
@@ -10316,16 +10067,6 @@ function syncAppToastPosition() {
   document.documentElement.style.setProperty('--app-toast-right-offset', `${rightOffset}px`);
 }
 
-function showAuthMessage(text, type = 'info', autoHide = false) {
-  authMessageTimer = showToastMessage(
-    authToast,
-    authMessage,
-    { value: authMessageTimer },
-    text,
-    type,
-    autoHide
-  );
-}
 
 function showAppMessage(text, type = 'info', autoHide = false, options = {}) {
   syncAppToastPosition();
@@ -10361,11 +10102,6 @@ function clearToastMessage(toastElement, messageElement, timerState, actionButto
   messageElement.textContent = '';
 }
 
-function clearAuthMessage() {
-  const timerState = { value: authMessageTimer };
-  clearToastMessage(authToast, authMessage, timerState);
-  authMessageTimer = timerState.value;
-}
 
 function clearAppMessage() {
   const timerState = { value: appMessageTimer };
@@ -10373,55 +10109,6 @@ function clearAppMessage() {
   appMessageTimer = timerState.value;
 }
 
-function resetAuthFormState() {
-  isPasswordRecoveryMode = false;
-  isAuthRegisterMode = false;
-
-  if (loginForm) {
-    loginForm.reset();
-  }
-
-  if (loginPasswordConfirm) {
-    loginPasswordConfirm.value = '';
-  }
-
-  updateAuthModalMode();
-  clearAuthMessage();
-}
-
-function setAuthRegisterMode(nextMode) {
-  if (isPasswordRecoveryMode) {
-    return;
-  }
-
-  isAuthRegisterMode = Boolean(nextMode);
-  clearAuthMessage();
-  updateAuthModalMode();
-
-  requestAnimationFrame(() => {
-    if (isAuthRegisterMode) {
-      registerNicknameInput?.focus();
-      return;
-    }
-
-    loginEmail?.focus();
-  });
-}
-
-async function cancelPasswordRecoveryFlow() {
-  localStorage.removeItem(PASSWORD_RECOVERY_PENDING_KEY);
-  isPasswordRecoveryEntryPage = false;
-  clearEmailConfirmationParamsFromUrl();
-
-  try {
-    await withAuthRequestTimeout(
-      supabaseClient.auth.signOut({ scope: 'global' }),
-      'Не удалось отменить восстановление пароля. Проверь соединение и попробуй снова.'
-    );
-  } catch (error) {
-    console.error('Ошибка отмены recovery-сессии:', error);
-  }
-}
 
 async function clearLocalRecoverySession() {
   try {
@@ -10498,40 +10185,11 @@ function ensureAuthNotificationBadgeElement() {
   return badge;
 }
 
-function setAuthSubmittingState(isSubmitting) {
-  isAuthSubmitting = isSubmitting;
-
-  if (loginEmail) {
-    loginEmail.disabled = isSubmitting || isPasswordRecoveryMode;
-  }
-
-  if (loginPassword) {
-    loginPassword.disabled = isSubmitting;
-  }
-
-  if (registerNicknameInput) {
-    registerNicknameInput.disabled = isSubmitting || !isAuthRegisterMode || isPasswordRecoveryMode;
-  }
-
-  if (loginPasswordConfirm) {
-    loginPasswordConfirm.disabled = isSubmitting || !isPasswordRecoveryMode;
-  }
-
-  const loginSubmitButton = loginForm?.querySelector('button[type="submit"]');
-
-  if (loginSubmitButton) {
-    loginSubmitButton.disabled = isSubmitting;
-  }
-
-  if (registerButton) {
-    registerButton.disabled = isSubmitting;
-  }
-}
 
 function syncBodyScrollLock() {
   const shouldLockScroll = (
     isModalOpen ||
-    isAuthModalOpen ||
+    Boolean(authUiController?.isOpen()) ||
     Boolean(profileSettingsController?.isOpen()) ||
     (filtersModal && filtersModal.classList.contains('is-open')) ||
     (mobileRatingModal && mobileRatingModal.classList.contains('is-open')) ||
@@ -10570,187 +10228,6 @@ function toggleAuthPopoverMenu() {
   openAuthPopoverMenu();
 }
 
-function openAuthModal() {
-  if (!authModal || shouldUseAuthenticatedUi()) {
-    return;
-  }
-
-  if (!isPasswordRecoveryMode) {
-    isAuthRegisterMode = false;
-    updateAuthModalMode();
-  }
-
-  authModal.classList.add('is-open');
-  isAuthModalOpen = true;
-  syncBodyScrollLock();
-
-  requestAnimationFrame(() => {
-    if (isPasswordRecoveryMode) {
-      loginPassword?.focus();
-      loginPassword?.select();
-      return;
-    }
-
-    loginEmail?.focus();
-  });
-}
-
-async function closeAuthModal(options = {}) {
-  if (!authModal) {
-    return;
-  }
-
-  const shouldCancelPasswordRecovery = isPasswordRecoveryMode && !options.skipPasswordRecoveryCancel;
-
-  closeAuthPopoverMenu();
-  profileSettingsController?.close();
-  authModal.classList.remove('is-open');
-  isAuthModalOpen = false;
-  syncBodyScrollLock();
-  resetAuthFormState();
-
-  if (shouldCancelPasswordRecovery) {
-    await cancelPasswordRecoveryFlow();
-  }
-}
-
-function updateAuthModalMode() {
-  const submitButton = loginForm?.querySelector('button[type="submit"]');
-
-  if (!submitButton) {
-    return;
-  }
-
-  if (isPasswordRecoveryMode) {
-    if (loginForm) {
-      loginForm.classList.add('is-visible');
-    }
-
-    if (authModalTitle) {
-      authModalTitle.textContent = 'Сброс пароля';
-    }
-
-    if (loginEmail) {
-      loginEmail.classList.remove('is-visible');
-      loginEmail.disabled = true;
-    }
-
-    if (loginPassword) {
-      loginPassword.classList.add('is-visible');
-      loginPassword.placeholder = 'Новый пароль';
-      loginPassword.autocomplete = 'new-password';
-    }
-
-    if (registerNicknameInput) {
-      registerNicknameInput.classList.remove('is-visible');
-      registerNicknameInput.disabled = true;
-    }
-
-    if (registerNicknameHint) {
-      registerNicknameHint.classList.remove('is-visible');
-    }
-
-    if (loginPasswordConfirm) {
-      loginPasswordConfirm.classList.add('is-visible');
-      loginPasswordConfirm.disabled = isAuthSubmitting;
-      loginPasswordConfirm.placeholder = 'Повторите новый пароль';
-      loginPasswordConfirm.autocomplete = 'off';
-    }
-
-    submitButton.textContent = 'Сохранить новый пароль';
-
-    if (registerButton) {
-      registerButton.classList.remove('is-visible');
-    }
-
-    if (authFormLinks) {
-      authFormLinks.classList.remove('is-visible');
-    }
-
-    return;
-  }
-
-  if (loginForm) {
-    loginForm.classList.toggle('is-visible', !currentUser);
-  }
-
-  if (loginEmail) {
-    loginEmail.classList.add('is-visible');
-    loginEmail.disabled = isAuthSubmitting;
-  }
-
-  if (loginPassword) {
-    loginPassword.classList.add('is-visible');
-    loginPassword.placeholder = 'Пароль';
-  }
-
-  if (loginPasswordConfirm) {
-    loginPasswordConfirm.classList.remove('is-visible');
-    loginPasswordConfirm.disabled = true;
-    loginPasswordConfirm.value = '';
-    loginPasswordConfirm.autocomplete = 'off';
-  }
-
-  if (isAuthRegisterMode) {
-    if (authModalTitle) {
-      authModalTitle.textContent = 'Регистрация';
-    }
-
-    if (loginPassword) {
-      loginPassword.autocomplete = 'new-password';
-    }
-
-    if (registerNicknameInput) {
-      registerNicknameInput.classList.add('is-visible');
-      registerNicknameInput.disabled = isAuthSubmitting;
-    }
-
-    if (registerNicknameHint) {
-      registerNicknameHint.classList.add('is-visible');
-    }
-
-    submitButton.textContent = 'Зарегистрироваться';
-
-    if (registerButton) {
-      registerButton.classList.add('is-visible');
-      registerButton.textContent = 'У меня уже есть аккаунт';
-    }
-
-    if (authFormLinks) {
-      authFormLinks.classList.remove('is-visible');
-    }
-
-    return;
-  }
-
-  if (authModalTitle) {
-    authModalTitle.textContent = 'Вход';
-  }
-
-  if (loginPassword) {
-    loginPassword.autocomplete = 'current-password';
-  }
-
-  if (registerNicknameInput) {
-    registerNicknameInput.classList.remove('is-visible');
-    registerNicknameInput.disabled = true;
-  }
-
-  if (registerNicknameHint) {
-    registerNicknameHint.classList.remove('is-visible');
-  }
-
-  submitButton.textContent = 'Войти';
-
-  if (registerButton) {
-    registerButton.classList.add('is-visible');
-    registerButton.textContent = 'Регистрация';
-  }
-
-  if (authFormLinks) {
-    authFormLinks.classList.add('is-visible');
-  }
-}
 
 function refreshMovieModalElements() {
   movieModal = document.getElementById('movieModal');
@@ -11011,9 +10488,6 @@ function updateAuthUI() {
     profileSettingsController?.close();
   }
 
-  if (loginForm) {
-    loginForm.classList.toggle('is-visible', !shouldShowAuthenticatedUi);
-  }
 
   if (adminPanel) {
     adminPanel.classList.toggle('is-visible', shouldShowAuthenticatedUi && isAdmin && isCatalogPage());
@@ -11116,11 +10590,7 @@ function updateAuthUI() {
     notificationTestButton.disabled = isNotificationTestRunning;
   }
 
-  if (shouldShowAuthenticatedUi) {
-    closeAuthModal();
-  }
-
-  updateAuthModalMode();
+  getAuthUiController().syncAuthState();
 
   if (authControls) {
     authControls.classList.remove('auth-controls-pending');
@@ -13548,9 +13018,6 @@ function getReadableAuthErrorMessage(error, fallbackMessage) {
   return error?.message || fallbackMessage;
 }
 
-async function isDisplayNameAvailable(displayName, excludeUserId = null) {
-  return (await loadProfileSettingsActions()).isDisplayNameAvailable(displayName, excludeUserId);
-}
 
 async function refreshPosterPreferenceDependentUi({ forcePosterImages = false } = {}) {
   const moviesToPrepare = [
@@ -13590,355 +13057,6 @@ async function refreshPosterPreferenceDependentUi({ forcePosterImages = false } 
   }
 }
 
-
-
-async function sendPasswordResetEmail() {
-  if (isAuthSubmitting) {
-    return;
-  }
-
-  const email = loginEmail.value.trim();
-
-  if (!email) {
-    showAuthMessage('Сначала введи e-mail, на который нужно отправить письмо для сброса пароля.', 'error');
-    loginEmail.focus();
-    return;
-  }
-
-  loginPassword.value = '';
-
-  setAuthSubmittingState(true);
-  showAuthMessage('Отправляю письмо для сброса пароля...');
-
-  try {
-    const { error } = await withAuthRequestTimeout(
-      supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: getPasswordRecoveryRedirectUrl()
-      }),
-      'Не удалось отправить письмо для сброса пароля. Проверь соединение и попробуй снова.'
-    );
-
-    if (error) {
-      console.error('Ошибка отправки письма для сброса пароля:', error);
-      showAuthMessage(
-        getReadableAuthErrorMessage(error, 'Не удалось отправить письмо для сброса пароля. Попробуй позже.'),
-        'error'
-      );
-      return;
-    }
-
-    localStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1');
-
-    showAuthMessage(
-      'Если такой e-mail существует, мы отправили письмо со ссылкой для сброса пароля.',
-      'success'
-    );
-  } catch (error) {
-    console.error('Ошибка отправки письма для сброса пароля:', error);
-    showAuthMessage(
-      getReadableAuthErrorMessage(error, 'Не удалось отправить письмо для сброса пароля. Попробуй позже.'),
-      'error'
-    );
-  } finally {
-    setAuthSubmittingState(false);
-  }
-}
-
-async function getPasswordRecoverySessionForUpdate() {
-  const { data: sessionData, error: sessionError } = await withAuthRequestTimeout(
-    supabaseClient.auth.getSession(),
-    'Не удалось проверить recovery-сессию. Проверь соединение и попробуй открыть ссылку ещё раз.'
-  );
-
-  if (sessionData?.session?.user) {
-    return {
-      error: null,
-      session: sessionData.session
-    };
-  }
-
-  const { data: refreshedData, error: refreshError } = await withAuthRequestTimeout(
-    supabaseClient.auth.refreshSession(),
-    'Не удалось восстановить recovery-сессию. Проверь соединение и попробуй открыть ссылку ещё раз.'
-  );
-
-  if (refreshedData?.session?.user) {
-    return {
-      error: null,
-      session: refreshedData.session
-    };
-  }
-
-  return {
-    error: refreshError || sessionError || null,
-    session: null
-  };
-}
-
-async function saveNewPassword() {
-  if (isAuthSubmitting) {
-    return;
-  }
-
-  const nextPassword = loginPassword.value;
-  const confirmedPassword = loginPasswordConfirm?.value || '';
-
-  if (!nextPassword) {
-    showAuthMessage('Введи новый пароль.', 'error');
-    loginPassword.focus();
-    return;
-  }
-
-  if (!confirmedPassword) {
-    showAuthMessage('Повтори новый пароль во втором поле.', 'error');
-    loginPasswordConfirm.focus();
-    return;
-  }
-
-  if (nextPassword !== confirmedPassword) {
-    showAuthMessage('Пароли не совпадают. Проверь ввод и попробуй снова.', 'error');
-    loginPasswordConfirm.focus();
-    loginPasswordConfirm.select();
-    return;
-  }
-
-  setAuthSubmittingState(true);
-  showAuthMessage('Сохраняю новый пароль...');
-
-  try {
-    const {
-      error: sessionError,
-      session
-    } = await getPasswordRecoverySessionForUpdate();
-
-    if (sessionError || !session?.user) {
-      console.error('Recovery-сессия не найдена:', sessionError);
-      showAuthMessage(
-        'Ссылка для сброса пароля не создала активную сессию. Запроси новое письмо и открой свежую ссылку.',
-        'error'
-      );
-      return;
-    }
-
-    const { error } = await withAuthRequestTimeout(
-      supabaseClient.auth.updateUser({
-        password: nextPassword
-      }),
-      'Не удалось сохранить новый пароль. Проверь соединение и попробуй снова.'
-    );
-
-    if (error) {
-      console.error('Ошибка сохранения нового пароля:', error);
-      showAuthMessage(
-        getReadableAuthErrorMessage(error, 'Не удалось сохранить новый пароль. Попробуй ещё раз.'),
-        'error'
-      );
-      return;
-    }
-
-    localStorage.removeItem(PASSWORD_RECOVERY_PENDING_KEY);
-    isPasswordRecoveryEntryPage = false;
-    clearEmailConfirmationParamsFromUrl();
-
-    showAuthMessage('Новый пароль сохранён. Теперь войди с ним заново.', 'success', true);
-
-    setTimeout(async () => {
-      try {
-        await withAuthRequestTimeout(
-          supabaseClient.auth.signOut({ scope: 'local' }),
-          'Не удалось завершить recovery-сессию. Проверь соединение и попробуй снова.'
-        );
-      } catch (error) {
-        console.error('Ошибка завершения recovery-сессии:', error);
-      }
-
-      closeAuthModal({ skipPasswordRecoveryCancel: true });
-    }, 900);
-  } catch (error) {
-    console.error('Ошибка сохранения нового пароля:', error);
-    showAuthMessage(
-      getReadableAuthErrorMessage(error, 'Не удалось сохранить новый пароль. Попробуй ещё раз.'),
-      'error'
-    );
-  } finally {
-    setAuthSubmittingState(false);
-  }
-}
-
-async function login(event) {
-  event.preventDefault();
-
-  if (isPasswordRecoveryMode) {
-    await saveNewPassword();
-    return;
-  }
-
-  if (isAuthRegisterMode) {
-    await register();
-    return;
-  }
-
-  if (isAuthSubmitting) {
-    return;
-  }
-
-  const email = loginEmail.value.trim();
-  const password = loginPassword.value;
-
-  if (!email || !password) {
-    showAuthMessage('Введи e-mail и пароль для входа.', 'error');
-
-    if (!email) {
-      loginEmail.focus();
-    } else {
-      loginPassword.focus();
-    }
-
-    return;
-  }
-
-  setAuthSubmittingState(true);
-  showAuthMessage('Выполняю вход...');
-
-  try {
-    const { error } = await withAuthRequestTimeout(
-      supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      }),
-      'Не удалось выполнить вход. Проверь соединение и попробуй снова.'
-    );
-
-    if (error) {
-      console.error('Ошибка входа:', error);
-      showAuthMessage(
-        getReadableAuthErrorMessage(error, 'Ошибка входа. Проверь e-mail и пароль.'),
-        'error'
-      );
-      return;
-    }
-
-    loginPassword.value = '';
-
-    showAuthMessage('Вход выполнен.', 'success', true);
-
-    setTimeout(() => {
-      closeAuthModal();
-    }, 300);
-  } catch (error) {
-    console.error('Ошибка входа:', error);
-    showAuthMessage(
-      getReadableAuthErrorMessage(error, 'Ошибка входа. Проверь e-mail и пароль.'),
-      'error'
-    );
-  } finally {
-    setAuthSubmittingState(false);
-  }
-}
-
-async function register() {
-  if (isAuthSubmitting) {
-    return;
-  }
-
-  setAuthSubmittingState(true);
-  showAuthMessage('Регистрирую аккаунт...');
-
-  try {
-    const email = loginEmail.value.trim();
-    const password = loginPassword.value;
-    const registerNickname = registerNicknameInput?.value.trim() || '';
-
-    if (!email || !password) {
-      showAuthMessage('Введи email и пароль для регистрации.', 'error');
-      return;
-    }
-
-    if (registerNickname) {
-      if (!isValidDisplayNameValue(registerNickname)) {
-        showAuthMessage('Никнейм должен быть длиной от 3 до 24 символов и содержать только буквы, цифры или _.', 'error');
-        registerNicknameInput.focus();
-        return;
-      }
-
-      const isNicknameAvailable = await isDisplayNameAvailable(registerNickname);
-
-      if (!isNicknameAvailable) {
-        showAuthMessage('Этот никнейм уже занят. Выбери другой.', 'error');
-        registerNicknameInput.focus();
-        registerNicknameInput.select();
-        return;
-      }
-    }
-
-    const { error } = await withAuthRequestTimeout(
-      supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin,
-          data: {
-            display_name: registerNickname || null
-          }
-        }
-      }),
-      'Не удалось зарегистрировать аккаунт. Проверь соединение и попробуй снова.'
-    );
-
-    if (error) {
-      console.error('Ошибка регистрации:', error);
-      showAuthMessage(
-        getReadableAuthErrorMessage(error, 'Ошибка регистрации. Проверь e-mail, пароль и никнейм.'),
-        'error'
-      );
-      return;
-    }
-
-    loginPassword.value = '';
-    setAuthRegisterMode(false);
-    loginEmail.focus();
-
-    showAuthMessage(
-      'Если аккаунт можно зарегистрировать, мы отправили письмо для завершения регистрации.',
-      'success'
-    );
-
-    localStorage.setItem(EMAIL_CONFIRMATION_PENDING_KEY, '1');
-    localStorage.removeItem(EMAIL_CONFIRMATION_TRACKED_KEY);
-    trackGoal('register');
-  } catch (error) {
-    console.error('Ошибка регистрации:', error);
-    showAuthMessage(
-      getReadableAuthErrorMessage(error, 'Ошибка регистрации. Проверь e-mail, пароль и никнейм.'),
-      'error'
-    );
-  } finally {
-    setAuthSubmittingState(false);
-  }
-}
-
-async function logout() {
-  try {
-    const { error } = await withAuthRequestTimeout(
-      supabaseClient.auth.signOut(),
-      'Не удалось выйти. Проверь соединение и попробуй снова.'
-    );
-
-    if (error) {
-      console.error('Ошибка выхода:', error);
-      showAuthMessage('Не удалось выйти.', 'error');
-      return;
-    }
-
-    window.location.replace(window.location.pathname + window.location.search);
-  } catch (error) {
-    console.error('Ошибка выхода:', error);
-    showAuthMessage(
-      getReadableAuthErrorMessage(error, 'Не удалось выйти. Попробуй ещё раз.'),
-      'error'
-    );
-  }
-}
 
 function triggerTemporaryFeedbackAnimation(element, baseKey, type = 'success', duration = 360) {
   if (!element) {
@@ -16070,20 +15188,7 @@ function bindSharedUiEvents() {
     return;
   }
 
-  loginForm?.addEventListener('submit', login);
-  loginEmail?.addEventListener('input', clearAuthMessage);
-  loginPassword?.addEventListener('input', clearAuthMessage);
-  loginPasswordConfirm?.addEventListener('input', clearAuthMessage);
   appToastAcceptButton?.addEventListener('click', clearAppMessage);
-
-  registerButton?.addEventListener('click', () => {
-    setAuthRegisterMode(!isAuthRegisterMode);
-  });
-
-  logoutMenuButton?.addEventListener('click', () => {
-    closeAuthPopoverMenu();
-    logout();
-  });
 
   profileSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
   notificationsSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
@@ -16132,18 +15237,6 @@ function bindSharedUiEvents() {
     }
 
     openAuthModal();
-  });
-
-  closeAuthModalButton?.addEventListener('click', () => {
-    closeAuthModal();
-  });
-
-  authModalBackdrop?.addEventListener('click', () => {
-    closeAuthModal();
-  });
-
-  forgotPasswordButton?.addEventListener('click', () => {
-    sendPasswordResetEmail();
   });
 
   document.addEventListener('click', event => {
@@ -16229,7 +15322,7 @@ function bindSharedUiEvents() {
       return;
     }
 
-    if (isAuthModalOpen) {
+    if (Boolean(authUiController?.isOpen())) {
       closeAuthModal();
       return;
     }
@@ -16508,17 +15601,6 @@ function isCompanyPage() {
   return Boolean(companyPage);
 }
 
-function handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect) {
-  if (!hasPasswordRecoveryRedirect) {
-    return;
-  }
-
-  isPasswordRecoveryMode = true;
-  updateAuthUI();
-  updateAuthModalMode();
-  openAuthModal();
-  showAuthMessage('Введите новый пароль и подтвердите его ниже.');
-}
 
 function bindSharedAuthStateListener(options) {
   getAuthSessionController().bindSharedAuthStateListener(options);
@@ -16823,7 +15905,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
 
   if (hydrationState.didHydrateCatalogFromSnapshot) {
     preserveWindowScrollPosition(renderMovies);
-  } else if (restoredUser && !isPasswordRecoveryMode) {
+  } else if (restoredUser && !getAuthUiController().isRecoveryMode()) {
     syncCatalogAfterAuthChange();
   } else {
     renderMovies();
@@ -18610,9 +17692,7 @@ async function initDetectedPage() {
 }
 
 async function initSharedApp() {
-  const initialAuthRedirectInfo = getAuthRedirectInfo();
-
-  isPasswordRecoveryEntryPage = initialAuthRedirectInfo.isRecovery;
+  const initialAuthUrl = window.location.href;
   const wasResetApplied = applyBuildVersionSoftResetIfNeeded();
 
   if (wasResetApplied) {
@@ -18620,7 +17700,7 @@ async function initSharedApp() {
     return false;
   }
 
-  await Promise.all([loadProfileUtils(), loadAuthSessionController()]);
+  await Promise.all([loadProfileUtils(), loadAuthSessionController(), loadAuthUiController()]);
 
   bindWindowScrollIntentTracker();
   bindCustomSelectGlobalEvents();
@@ -18629,34 +17709,7 @@ async function initSharedApp() {
   bindSharedUiEvents();
   bindSecondaryPageSnapshotEvents();
 
-  const authRedirectResult = await consumeAuthRedirectFromUrl(initialAuthRedirectInfo);
-
-  if (authRedirectResult.error) {
-    if (authRedirectResult.isRecovery) {
-      localStorage.removeItem(PASSWORD_RECOVERY_PENDING_KEY);
-      isPasswordRecoveryEntryPage = false;
-      openAuthModal();
-      showAuthMessage(
-        getReadableAuthErrorMessage(
-          authRedirectResult.error,
-          'Ссылка для сброса пароля недействительна или устарела. Запроси новое письмо.'
-        ),
-        'error'
-      );
-    } else {
-      showAppMessage(
-        getReadableAuthErrorMessage(
-          authRedirectResult.error,
-          'Не удалось выполнить вход по ссылке. Попробуй запросить новую ссылку.'
-        ),
-        'error',
-        true
-      );
-    }
-  } else {
-    isPasswordRecoveryEntryPage = authRedirectResult.isRecovery;
-    handlePasswordRecoveryEntry(authRedirectResult.isRecovery);
-  }
+  await getAuthUiController().initializeRedirect(initialAuthUrl);
 
   return true;
 }
