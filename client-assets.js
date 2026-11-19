@@ -37,6 +37,7 @@ export const clientJsAssets = [
   "profile-data-actions.js",
   "profile-follow-actions.js",
   "profile-settings-actions.js",
+  "profile-settings-controller.js",
   "profile-utils.js",
   "user-page.js",
   "assets/directors-admin-app.js"

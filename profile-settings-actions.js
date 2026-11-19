@@ -19,6 +19,14 @@ export function createProfileSettingsActions(context = {}) {
     return supabaseClient;
   }
 
+  function requireProfileUser(userId) {
+    const user = ensureActiveSessionForWrite();
+    if (!userId || user?.id !== userId) {
+      throw new Error('Аккаунт изменился. Открой настройки профиля заново.');
+    }
+    return user;
+  }
+
   async function isDisplayNameAvailable(displayName, excludeUserId = null) {
     const client = requireSupabaseClient();
     const normalizedDisplayName = normalizeDisplayNameValue(displayName);
@@ -52,6 +60,7 @@ export function createProfileSettingsActions(context = {}) {
       throw new Error('Активный пользователь не найден.');
     }
 
+    requireProfileUser(userId);
     const isAvailable = await isDisplayNameAvailable(nextDisplayName, userId);
 
     if (!isAvailable) {
@@ -61,6 +70,7 @@ export function createProfileSettingsActions(context = {}) {
       };
     }
 
+    requireProfileUser(userId);
     const { error: authError } = await withAuthRequestTimeout(
       client.auth.updateUser({
         data: {
@@ -79,6 +89,7 @@ export function createProfileSettingsActions(context = {}) {
       };
     }
 
+    requireProfileUser(userId);
     const { error: profileError } = await withAuthProfileRequestTimeout(
       client
         .from('profiles')
@@ -108,7 +119,7 @@ export function createProfileSettingsActions(context = {}) {
       throw new Error('Активный пользователь не найден.');
     }
 
-    ensureActiveSessionForWrite();
+    requireProfileUser(userId);
 
     const { error } = await withAuthProfileRequestTimeout(
       client
@@ -121,8 +132,9 @@ export function createProfileSettingsActions(context = {}) {
     return { error };
   }
 
-  async function verifyProfilePassword({ email, currentPassword }) {
+  async function verifyProfilePassword({ userId, email, currentPassword }) {
     const client = requireSupabaseClient();
+    requireProfileUser(userId);
 
     return withAuthRequestTimeout(
       client.auth.signInWithPassword({
@@ -133,8 +145,9 @@ export function createProfileSettingsActions(context = {}) {
     );
   }
 
-  async function updateProfilePassword({ nextPassword }) {
+  async function updateProfilePassword({ userId, nextPassword }) {
     const client = requireSupabaseClient();
+    requireProfileUser(userId);
 
     return withAuthRequestTimeout(
       client.auth.updateUser({
@@ -166,14 +179,9 @@ export function createProfileSettingsActions(context = {}) {
     return path.split(avatarStoragePublicPath)[1] || null;
   }
 
-  async function uploadAvatarBlob(blob) {
+  async function uploadAvatarBlob(blob, userId) {
     const client = requireSupabaseClient();
-    const user = ensureActiveSessionForWrite();
-    const userId = String(user?.id || '').trim();
-
-    if (!userId) {
-      throw new Error('Активный пользователь не найден.');
-    }
+    requireProfileUser(userId);
 
     const storagePath = `${userId}/avatar-${Date.now()}.jpg`;
     const { error: uploadError } = await client.storage
@@ -195,6 +203,7 @@ export function createProfileSettingsActions(context = {}) {
 
   async function updateProfileAvatarUrl({ userId, avatarUrl }) {
     const client = requireSupabaseClient();
+    requireProfileUser(userId);
 
     const { error } = await client
       .from('profiles')
@@ -207,7 +216,7 @@ export function createProfileSettingsActions(context = {}) {
   async function clearProfileAvatarUrl({ userId }) {
     const client = requireSupabaseClient();
 
-    ensureActiveSessionForWrite();
+    requireProfileUser(userId);
 
     const { error } = await client
       .from('profiles')

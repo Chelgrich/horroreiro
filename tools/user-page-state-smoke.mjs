@@ -188,17 +188,6 @@ const bridge = vm.createContext({ currentUser: { id: 'first' },
   loadProfileFollowActions: () => new Promise(resolve => { resolveActions = resolve; })
 });
 vm.runInContext(app.slice(start, end), bridge);
-const modal = { innerHTML: 'modal' };
-const otherAvatar = { innerHTML: 'other' };
-const preview = vm.createContext({ getUserPageAvatarMediaHtml: () => '<new-avatar>', getCurrentDisplayName: () => 'Viewer',
-  currentUserProfile: { id: 'viewer' }, syncUserPageAvatarControls() {},
-  document: { querySelectorAll: selector => selector === '.profile-settings-avatar-preview' ? [modal] : [modal, otherAvatar] }
-});
-const previewStart = app.indexOf('function syncProfileSettingsAvatarPreview(');
-vm.runInContext(app.slice(previewStart, app.indexOf('\n}', previewStart) + 2), preview);
-preview.syncProfileSettingsAvatarPreview();
-assert.equal(modal.innerHTML, '<new-avatar>');
-assert.equal(otherAvatar.innerHTML, 'other', 'The actual shared preview bridge must not mutate another profile avatar');
 let delayMutation = true;
 const actions = createProfileFollowActions({ getCurrentUser: () => bridge.currentUser,
   throwIfSupabaseError: error => { if (error) throw error; },

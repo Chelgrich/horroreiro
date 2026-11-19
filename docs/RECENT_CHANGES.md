@@ -1,5 +1,13 @@
 # Recent Changes
 
+## 2026-11-19 — Profile settings UI ownership
+
+- Added on-demand `profile-settings-controller.js` as the owner of settings fields, messages, busy flags, name/poster/password submission, avatar selection/crop geometry, object URL lifecycle and event bindings. `app.js` retains the lazy entry, current auth/profile identity and one captured-user patch/cache/rerender bridge; it no longer manages these forms or crop state. The controller is registered in the shared asset inventory, without adding it to initial page loads.
+- The controller observes account transitions, closes its dialogs, clears password fields and rejects old async completions before subsequent writes, UI feedback or local patches. Settings actions validate the captured profile user before Storage/Auth/profile writes and again between nickname availability, Auth metadata and profile updates. Existing validation, optional-column feedback, canvas output and server RLS remain in force.
+- Ambiguous avatar profile-write failures retain the uploaded file: the database may already reference it. Old avatar deletion remains after a confirmed replacement/clear only. Failure paths release busy controls and keep crop state available for retry; obsolete image metadata loads revoke their object URLs without reopening a cancelled crop.
+- Added isolated controller/action coverage for name validation/success/retry, module-local events, shared-modal-only avatar preview, account switches during lazy actions and password verification, crop zoom/drag bounds and 256px JPEG output, and ambiguous avatar failure/retry. The action fixture first reproduced a nickname availability response writing Auth metadata for a replacement account. No schema or production user data changes.
+- Full smoke and required Docker build/runtime smoke passed. Inverting the action's captured-user guard made the focused test fail. An isolated browser harness using the real shared layout, profile CSS and controller verified nickname/poster success, empty-password validation, offline feedback and enabled retry, without contacting Supabase. Screenshot: `C:/Temp/horroreiro-profile-settings-check.png`. `app.js` decreased from 583,874 to 550,383 raw bytes (118,117 to 111,808 gzip); the new settings controller loads only on open. No new runtime dependency or initial page request.
+
 ## 2026-11-19 — Shared profile cache and follow state ownership
 
 - `profile-data-actions.js` owns the public profile ID/handle indexes, cache merging, cached reads and confirmed settings patches. Removed the app-owned Maps and the cache mutator from pure `profile-utils.js`. Pending public reads merge missing fields without overwriting newer cached identity patches; missing/error results are not cached.

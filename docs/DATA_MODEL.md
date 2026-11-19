@@ -1,6 +1,6 @@
 # Horroreiro Data Model Context
 
-Last updated: 2026-11-15.
+Last updated: 2026-11-19.
 
 This document describes the client-visible data model and operational assumptions. Supabase schema SQL has often been applied manually through the Supabase UI; do not assume old setup SQL files exist or are still authoritative.
 
@@ -170,6 +170,8 @@ Profile authorization boundary:
 - Public SELECT remains available. No client role has DELETE, TRUNCATE, REFERENCES, or TRIGGER access to profiles; `service_role` retains profile management.
 - Hosted migration `restrict_profile_and_catalog_writes` enforces these profile and catalog boundaries. It changes grants/policies, not existing profile roles or catalog data.
 - Run `tools/supabase-access-smoke.sql` as a privileged SQL operator to check these boundaries. It requires an ordinary profile, an admin profile, and a movie. It temporarily assigns that movie to the ordinary user to detect owner-policy regressions; this, the fixtures, and profile no-op updates are rolled back inside a subtransaction. Other sessions never see the ownership change. Do not wrap it in a SECURITY DEFINER function.
+
+- Avatar Storage upload and `profiles.avatar_url` update are separate operations. An ambiguous profile response must retain the uploaded file, since that row may already reference it; only confirmed replacement/clear can remove the previous avatar. Settings writes capture the viewer ID and recheck it before each subsequent Auth/profile/Storage operation. The UI clears password inputs and invalidates pending local work on account transitions; server RLS remains the authorization boundary.
 
 Profile page uses:
 

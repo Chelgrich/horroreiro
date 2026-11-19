@@ -107,6 +107,9 @@
 /profile-settings-actions.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/profile-settings-controller.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /profile-utils.js
   Cache-Control: public, max-age=0, must-revalidate
 

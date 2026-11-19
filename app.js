@@ -6,24 +6,6 @@ const authControls = document.getElementById('authControls');
 const displayNameWrap = document.getElementById('displayNameWrap');
 const displayNameButton = document.getElementById('displayNameButton');
 const displayNameText = document.getElementById('displayNameText');
-const displayNameModal = document.getElementById('displayNameModal');
-const displayNameModalBackdrop = document.getElementById('displayNameModalBackdrop');
-const closeDisplayNameModalButton = document.getElementById('closeDisplayNameModalButton');
-const displayNameForm = document.getElementById('displayNameForm');
-const displayNameInput = document.getElementById('displayNameInput');
-const saveDisplayNameButton = document.getElementById('saveDisplayNameButton');
-const cancelDisplayNameButton = document.getElementById('cancelDisplayNameButton');
-const displayNameMessage = document.getElementById('displayNameMessage');
-const profilePasswordForm = document.getElementById('profilePasswordForm');
-const profilePasswordCurrentInput = document.getElementById('profilePasswordCurrent');
-const profilePasswordNewInput = document.getElementById('profilePasswordNew');
-const profilePasswordConfirmInput = document.getElementById('profilePasswordConfirm');
-const saveProfilePasswordButton = document.getElementById('saveProfilePasswordButton');
-const profilePasswordMessage = document.getElementById('profilePasswordMessage');
-const profilePosterPreferenceForm = document.getElementById('profilePosterPreferenceForm');
-const profileRussianPostersInput = document.getElementById('profileRussianPostersInput');
-const saveProfilePosterPreferenceButton = document.getElementById('saveProfilePosterPreferenceButton');
-const profilePosterPreferenceMessage = document.getElementById('profilePosterPreferenceMessage');
 const profileSummaryButton = document.getElementById('profileSummaryButton');
 const notificationsSummaryButton = document.getElementById('notificationsSummaryButton');
 const notificationsMenuBadge = document.getElementById('notificationsMenuBadge');
@@ -395,15 +377,6 @@ const COMPANY_ROLES = {
     localPath: 'russian-distributors.html'
   }
 };
-const AVATAR_STORAGE_BUCKET = 'avatars';
-const AVATAR_STORAGE_PUBLIC_PATH = `/storage/v1/object/public/${AVATAR_STORAGE_BUCKET}/`;
-const AVATAR_ACCEPTED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
-const AVATAR_ACCEPTED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp']);
-const AVATAR_SOURCE_MAX_SIZE_BYTES = 10 * 1024 * 1024;
-const AVATAR_OUTPUT_SIZE = 256;
-const AVATAR_OUTPUT_TYPE = 'image/jpeg';
-const AVATAR_OUTPUT_QUALITY = 0.9;
-const AVATAR_MIN_SOURCE_SIDE = 256;
 const POSTER_IMAGE_PRESETS = {
   catalog: {
     widths: [240, 360, 480, 640],
@@ -609,9 +582,6 @@ let isNotificationTestRunning = false;
 let isAdmin = false;
 let isAuthModalOpen = false;
 let isAuthPopoverOpen = false;
-let isDisplayNameModalOpen = false;
-let isDisplayNameSubmitting = false;
-let isProfilePosterPreferenceSubmitting = false;
 let profileRussianPostersColumnAvailable = true;
 let isAuthRegisterMode = false;
 let isPasswordRecoveryMode = false;
@@ -668,7 +638,6 @@ let authMessageTimer = null;
 let appMessageTimer = null;
 let isAuthSubmitting = false;
 let isMovieFormSubmitting = false;
-let isProfilePasswordSubmitting = false;
 let isUserAdminPasswordSubmitting = false;
 let isLetterboxdRatingsImporting = false;
 let lastLetterboxdRatingsImportFileToken = '';
@@ -683,17 +652,6 @@ let mobileRatingModalStars = null;
 let mobileRatingModalMeta = null;
 let mobileRatingModalRemoveButton = null;
 let mobileRatingModalMovieId = null;
-let avatarCropModal = null;
-let avatarCropFrame = null;
-let avatarCropImage = null;
-let avatarCropZoomInput = null;
-let avatarCropStatus = null;
-let avatarCropSaveButton = null;
-let avatarCropSourceUrl = '';
-let avatarCropState = null;
-let isAvatarCropSubmitting = false;
-let isAvatarCropDragging = false;
-let avatarCropDragStart = null;
 let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
 let allGenreNames = [];
@@ -4665,26 +4623,7 @@ function shouldPreferRussianPosters() {
   return Boolean(shouldUseAuthenticatedUi() && doesProfilePreferRussianPosters());
 }
 
-function syncProfilePosterPreferenceControls(profile = currentUserProfile) {
-  if (!profileRussianPostersInput && !saveProfilePosterPreferenceButton) {
-    return;
-  }
 
-  const shouldDisable = !shouldUseAuthenticatedUi() || !profileRussianPostersColumnAvailable || isProfilePosterPreferenceSubmitting;
-
-  if (profileRussianPostersInput) {
-    profileRussianPostersInput.checked = doesProfilePreferRussianPosters(profile);
-    profileRussianPostersInput.disabled = shouldDisable;
-  }
-
-  if (saveProfilePosterPreferenceButton) {
-    saveProfilePosterPreferenceButton.disabled = shouldDisable;
-  }
-
-  if (!profileRussianPostersColumnAvailable) {
-    setProfilePosterPreferenceMessage('Нужно добавить колонку prefer_russian_posters в profiles и повторить попытку.', 'error');
-  }
-}
 
 function syncAuthPopoverNavigationLink(linkElement, href, shouldShow) {
   if (!linkElement) {
@@ -4729,76 +4668,6 @@ function handleAuthPopoverNavigationLinkClick(event) {
   closeAuthPopoverMenu();
 }
 
-function setDisplayNameMessage(message = '', type = '') {
-  if (!displayNameMessage) {
-    return;
-  }
-
-  displayNameMessage.textContent = message;
-  displayNameMessage.classList.remove('is-error', 'is-success');
-
-  if (type) {
-    displayNameMessage.classList.add(`is-${type}`);
-  }
-}
-
-function setProfilePasswordMessage(message = '', type = '') {
-  if (!profilePasswordMessage) {
-    return;
-  }
-
-  profilePasswordMessage.textContent = message;
-  profilePasswordMessage.classList.remove('is-error', 'is-success');
-
-  if (type) {
-    profilePasswordMessage.classList.add(`is-${type}`);
-  }
-}
-
-function setProfilePosterPreferenceMessage(message = '', type = '') {
-  if (!profilePosterPreferenceMessage) {
-    return;
-  }
-
-  profilePosterPreferenceMessage.textContent = message;
-  profilePosterPreferenceMessage.classList.remove('is-error', 'is-success');
-
-  if (type) {
-    profilePosterPreferenceMessage.classList.add(`is-${type}`);
-  }
-}
-
-function clearProfileSettingsPasswordFields() {
-  [
-    profilePasswordCurrentInput,
-    profilePasswordNewInput,
-    profilePasswordConfirmInput
-  ].forEach(input => {
-    if (input) {
-      input.value = '';
-    }
-  });
-}
-
-function setProfilePasswordSubmitting(isSubmitting) {
-  isProfilePasswordSubmitting = isSubmitting;
-
-  [
-    profilePasswordCurrentInput,
-    profilePasswordNewInput,
-    profilePasswordConfirmInput,
-    saveProfilePasswordButton
-  ].forEach(element => {
-    if (element) {
-      element.disabled = isSubmitting;
-    }
-  });
-
-  if (saveProfilePasswordButton) {
-    saveProfilePasswordButton.textContent = isSubmitting ? 'Обновляю...' : 'Обновить пароль';
-  }
-}
-
 function syncDisplayNameButton() {
   if (!displayNameWrap || !displayNameButton || !displayNameText) {
     return;
@@ -4810,57 +4679,7 @@ function syncDisplayNameButton() {
   displayNameWrap.classList.toggle('is-visible', shouldShowDisplayName);
   displayNameText.textContent = currentDisplayName;
   displayNameButton.title = currentDisplayName;
-  displayNameButton.setAttribute('aria-expanded', String(isDisplayNameModalOpen));
-}
-
-function closeDisplayNameModal() {
-  if (!displayNameModal) {
-    return;
-  }
-
-  displayNameModal.classList.remove('is-open');
-  isDisplayNameModalOpen = false;
-  displayNameButton?.setAttribute('aria-expanded', 'false');
-  setDisplayNameMessage();
-  setProfilePasswordMessage();
-  setProfilePosterPreferenceMessage();
-  clearProfileSettingsPasswordFields();
-  syncBodyScrollLock();
-}
-
-function openDisplayNameModal() {
-  if (!displayNameModal || !displayNameInput || !shouldUseAuthenticatedUi()) {
-    return;
-  }
-
-  closeAuthPopoverMenu();
-
-  displayNameInput.value = getCurrentDisplayName();
-  syncProfileSettingsAvatarPreview(currentUserProfile);
-  syncUserPageAvatarControls(currentUserProfile);
-  syncProfilePosterPreferenceControls(currentUserProfile);
-  setDisplayNameMessage();
-  setProfilePasswordMessage();
-  if (profileRussianPostersColumnAvailable) {
-    setProfilePosterPreferenceMessage();
-  }
-  clearProfileSettingsPasswordFields();
-  displayNameModal.classList.add('is-open');
-  isDisplayNameModalOpen = true;
-  displayNameButton?.setAttribute('aria-expanded', 'true');
-  syncBodyScrollLock();
-
-  requestAnimationFrame(() => {
-    displayNameInput.focus();
-    displayNameInput.select();
-  });
-}
-
-
-function syncUserPageOwnProfileIdentity() {
-  userPageController?.syncOwnProfileIdentity(currentUserProfile);
-  syncProfileSettingsAvatarPreview(currentUserProfile);
-  syncAuthIconButtonState();
+  displayNameButton.setAttribute('aria-expanded', String(Boolean(profileSettingsController?.isOpen())));
 }
 
 function handleUserPageProfileSettingsClick(event) {
@@ -4871,101 +4690,37 @@ function handleUserPageProfileSettingsClick(event) {
   }
 
   event.preventDefault();
-  openDisplayNameModal();
+  void openProfileSettings();
 }
 
-async function updateCurrentUserDisplayName(nextDisplayName) {
-  if (!currentUser) {
-    return;
+function applyProfileSettingsPatch({ userId, patch }) {
+  if (currentUser?.id !== userId) return false;
+  if (Object.hasOwn(patch, 'display_name')) {
+    currentUser = { ...currentUser, user_metadata: { ...(currentUser.user_metadata || {}), display_name: patch.display_name } };
   }
-
-  currentUser = {
-    ...currentUser,
-    user_metadata: {
-      ...(currentUser.user_metadata || {}),
-      display_name: nextDisplayName
-    }
-  };
-
-  currentUserProfile = {
-    ...(currentUserProfile || {}),
-    display_name: nextDisplayName
-  };
-  cachePublicProfileRows([{ id: currentUser.id, ...currentUserProfile }]);
+  currentUserProfile = { ...(currentUserProfile || {}), ...patch };
+  cachePublicProfileRows([{ id: userId, ...currentUserProfile }]);
   invalidateUserPageDataCache();
-
-  syncDisplayNameButton();
-  syncUserPageOwnProfileIdentity();
+  userPageController?.syncOwnProfileIdentity(currentUserProfile);
   updateAuthUI();
-}
-
-function isMissingProfileOptionalColumnError(error) {
-  const message = String(error?.message || '').toLowerCase();
-
-  return (
-    error?.code === '42703' ||
-    error?.code === 'PGRST204' ||
-    message.includes('column') && message.includes('schema cache')
-  );
-}
-
-function getMissingProfileOptionalColumnName(error, optionalColumns = []) {
-  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
-  const normalizedOptionalColumns = optionalColumns
-    .map(columnName => String(columnName || '').trim())
-    .filter(Boolean);
-  const explicitMissingColumn = normalizedOptionalColumns.find(columnName =>
-    message.includes(columnName.toLowerCase())
-  );
-
-  if (explicitMissingColumn) {
-    return explicitMissingColumn;
-  }
-
-  if (!isMissingProfileOptionalColumnError(error)) {
-    return '';
-  }
-
-  if (error?.code === '42703' || error?.code === 'PGRST204') {
-    return normalizedOptionalColumns[normalizedOptionalColumns.length - 1] || '';
-  }
-
-  return '';
+  return true;
 }
 
 function markMissingProfileOptionalColumn(columnName) {
   if (columnName === 'prefer_russian_posters') {
     profileRussianPostersColumnAvailable = false;
+    profileSettingsController?.syncAuthState();
   }
 }
 
-function isMissingAvatarColumnError(error) {
-  return getMissingProfileOptionalColumnName(error, ['avatar_url']) === 'avatar_url';
-}
+
 
 function cachePublicProfileRows(rows = []) {
   if (!profileDataActions) throw new Error('Profile data module is not loaded.');
   profileDataActions.cachePublicProfileRows(rows);
 }
 
-function getAvatarFriendlyErrorMessage(error) {
-  const message = String(error?.message || '');
-  const normalizedMessage = message.toLowerCase();
 
-  if (isMissingAvatarColumnError(error)) {
-    return 'Нужно добавить колонку avatar_url в profiles и повторить загрузку.';
-  }
-
-  if (normalizedMessage.includes('bucket') || normalizedMessage.includes('avatars')) {
-    return 'Нужно создать storage bucket avatars и политики доступа для аватаров.';
-  }
-
-  if (normalizedMessage.includes('row-level security') || normalizedMessage.includes('policy')) {
-    return 'Supabase отклонил загрузку. Проверь политики Storage для bucket avatars.';
-  }
-
-  return message || 'Не удалось сохранить аватар. Попробуй ещё раз.';
-}
 
 function getPublicProfileAvatarUrl(profile) {
   return getProfileUtils().getPublicProfileAvatarUrl(profile);
@@ -4981,524 +4736,6 @@ function getUserPageAvatarMediaHtml(profile, displayName) {
 
 function getUserPageAvatarHtml(profile, displayName, canEditAvatar) {
   return getProfileUtils().getUserPageAvatarHtml(profile, displayName, canEditAvatar);
-}
-
-function syncUserPageAvatarControls(profile = currentUserProfile) {
-  const deleteButtons = document.querySelectorAll('[data-user-page-avatar-delete="true"]');
-
-  const hasAvatar = Boolean(getPublicProfileAvatarUrl(profile));
-
-  deleteButtons.forEach(deleteButton => {
-    deleteButton.hidden = !hasAvatar;
-    deleteButton.setAttribute('aria-label', 'Удалить аватар');
-    deleteButton.setAttribute('title', 'Удалить аватар');
-  });
-}
-
-
-function syncProfileSettingsAvatarPreview(profile = currentUserProfile) {
-  const mediaHtml = getUserPageAvatarMediaHtml(profile, getCurrentDisplayName()).trim();
-  document.querySelectorAll('.profile-settings-avatar-preview').forEach(slot => {
-    slot.innerHTML = mediaHtml;
-  });
-  syncUserPageAvatarControls(profile);
-}
-
-function setUserPageAvatarStatus(message = '', type = 'info') {
-  document.querySelectorAll('[data-user-page-avatar-status="true"]').forEach(statusElement => {
-    statusElement.textContent = message;
-    statusElement.hidden = !message;
-    statusElement.classList.toggle('is-error', type === 'error');
-    statusElement.classList.toggle('is-success', type === 'success');
-  });
-}
-
-function setUserPageAvatarSubmitting(isSubmitting) {
-  userPageController?.setAvatarSubmitting(isSubmitting);
-  document.querySelectorAll('.profile-settings-avatar-preview').forEach(avatarShell => {
-    avatarShell.classList.toggle('is-uploading', isSubmitting);
-  });
-
-  document.querySelectorAll('[data-user-page-avatar-input="true"]').forEach(avatarInput => {
-    avatarInput.disabled = isSubmitting;
-  });
-
-  document.querySelectorAll('[data-user-page-avatar-delete="true"]').forEach(avatarDeleteButton => {
-    avatarDeleteButton.disabled = isSubmitting;
-  });
-}
-
-function getAvatarFileValidationMessage(file) {
-  if (!file) {
-    return 'Файл не выбран.';
-  }
-
-  const fileType = String(file.type || '').toLowerCase();
-  const fileExtension = String(file.name || '').split('.').pop()?.toLowerCase() || '';
-
-  if (!AVATAR_ACCEPTED_TYPES.has(fileType) && !AVATAR_ACCEPTED_EXTENSIONS.has(fileExtension)) {
-    return 'Поддерживаются только JPG, PNG и WebP.';
-  }
-
-  if (file.size > AVATAR_SOURCE_MAX_SIZE_BYTES) {
-    return 'Файл слишком большой. Максимум 10 МБ.';
-  }
-
-  return '';
-}
-
-function readAvatarSourceMetadata(file) {
-  return new Promise((resolve, reject) => {
-    const objectUrl = URL.createObjectURL(file);
-    const image = new Image();
-
-    image.onload = () => {
-      resolve({
-        objectUrl,
-        width: image.naturalWidth,
-        height: image.naturalHeight
-      });
-    };
-
-    image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error('Не удалось прочитать изображение.'));
-    };
-
-    image.src = objectUrl;
-  });
-}
-
-function ensureAvatarCropModal() {
-  if (avatarCropModal) {
-    return;
-  }
-
-  avatarCropModal = document.createElement('div');
-  avatarCropModal.id = 'avatarCropModal';
-  avatarCropModal.className = 'modal avatar-crop-modal';
-  avatarCropModal.innerHTML = `
-    <div class="modal-backdrop" data-avatar-crop-close="true"></div>
-    <div class="modal-dialog avatar-crop-dialog" role="dialog" aria-modal="true" aria-labelledby="avatarCropTitle">
-      <div class="modal-header">
-        <h2 id="avatarCropTitle">Настроить аватар</h2>
-        <button type="button" class="modal-close-button" data-avatar-crop-close="true" aria-label="Закрыть"></button>
-      </div>
-      <div class="avatar-crop-frame" data-avatar-crop-frame="true">
-        <img class="avatar-crop-image" data-avatar-crop-image="true" alt="">
-      </div>
-      <div class="avatar-crop-controls">
-        <label for="avatarCropZoom">Масштаб</label>
-        <input id="avatarCropZoom" type="range" min="1" max="3" step="0.01" value="1" data-avatar-crop-zoom="true">
-      </div>
-      <p class="avatar-crop-status" data-avatar-crop-status="true" aria-live="polite" hidden></p>
-      <div class="avatar-crop-actions">
-        <button type="button" data-avatar-crop-save="true">Сохранить аватар</button>
-        <button type="button" class="secondary-button secondary-button-compact" data-avatar-crop-close="true">Отмена</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(avatarCropModal);
-
-  avatarCropFrame = avatarCropModal.querySelector('[data-avatar-crop-frame="true"]');
-  avatarCropImage = avatarCropModal.querySelector('[data-avatar-crop-image="true"]');
-  avatarCropZoomInput = avatarCropModal.querySelector('[data-avatar-crop-zoom="true"]');
-  avatarCropStatus = avatarCropModal.querySelector('[data-avatar-crop-status="true"]');
-  avatarCropSaveButton = avatarCropModal.querySelector('[data-avatar-crop-save="true"]');
-
-  avatarCropModal.querySelectorAll('[data-avatar-crop-close="true"]').forEach(element => {
-    element.addEventListener('click', closeAvatarCropModal);
-  });
-
-  avatarCropSaveButton?.addEventListener('click', saveAvatarCrop);
-  avatarCropZoomInput?.addEventListener('input', handleAvatarCropZoomInput);
-  avatarCropFrame?.addEventListener('pointerdown', handleAvatarCropPointerDown);
-  avatarCropFrame?.addEventListener('pointermove', handleAvatarCropPointerMove);
-  avatarCropFrame?.addEventListener('pointerup', handleAvatarCropPointerUp);
-  avatarCropFrame?.addEventListener('pointercancel', handleAvatarCropPointerUp);
-}
-
-function setAvatarCropStatus(message = '', type = 'info') {
-  if (!avatarCropStatus) {
-    return;
-  }
-
-  avatarCropStatus.textContent = message;
-  avatarCropStatus.hidden = !message;
-  avatarCropStatus.classList.toggle('is-error', type === 'error');
-  avatarCropStatus.classList.toggle('is-success', type === 'success');
-}
-
-function setAvatarCropSubmitting(isSubmitting) {
-  isAvatarCropSubmitting = isSubmitting;
-
-  if (avatarCropSaveButton) {
-    avatarCropSaveButton.disabled = isSubmitting;
-    avatarCropSaveButton.textContent = isSubmitting ? 'Сохраняю...' : 'Сохранить аватар';
-  }
-
-  if (avatarCropZoomInput) {
-    avatarCropZoomInput.disabled = isSubmitting;
-  }
-}
-
-function getAvatarCropFrameSize() {
-  const rect = avatarCropFrame?.getBoundingClientRect();
-
-  return Math.round(rect?.width || 280);
-}
-
-function getAvatarCropScale() {
-  return (avatarCropState?.minScale || 1) * (avatarCropState?.zoom || 1);
-}
-
-function clampAvatarCropOffset() {
-  if (!avatarCropState) {
-    return;
-  }
-
-  const scale = getAvatarCropScale();
-  const frameSize = avatarCropState.frameSize;
-  const maxOffsetX = Math.max(0, (avatarCropState.naturalWidth * scale - frameSize) / 2);
-  const maxOffsetY = Math.max(0, (avatarCropState.naturalHeight * scale - frameSize) / 2);
-
-  avatarCropState.offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, avatarCropState.offsetX));
-  avatarCropState.offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, avatarCropState.offsetY));
-}
-
-function applyAvatarCropTransform() {
-  if (!avatarCropImage || !avatarCropState) {
-    return;
-  }
-
-  clampAvatarCropOffset();
-
-  const scale = getAvatarCropScale();
-
-  avatarCropImage.style.width = `${avatarCropState.naturalWidth * scale}px`;
-  avatarCropImage.style.height = `${avatarCropState.naturalHeight * scale}px`;
-  avatarCropImage.style.transform = `translate(-50%, -50%) translate(${avatarCropState.offsetX}px, ${avatarCropState.offsetY}px)`;
-}
-
-function resetAvatarCropState() {
-  if (!avatarCropImage || !avatarCropState) {
-    return;
-  }
-
-  const frameSize = getAvatarCropFrameSize();
-
-  avatarCropState.frameSize = frameSize;
-  avatarCropState.minScale = Math.max(
-    frameSize / avatarCropState.naturalWidth,
-    frameSize / avatarCropState.naturalHeight
-  );
-  avatarCropState.zoom = 1;
-  avatarCropState.offsetX = 0;
-  avatarCropState.offsetY = 0;
-
-  if (avatarCropZoomInput) {
-    avatarCropZoomInput.value = '1';
-  }
-
-  applyAvatarCropTransform();
-}
-
-function handleAvatarCropZoomInput() {
-  if (!avatarCropState || !avatarCropZoomInput) {
-    return;
-  }
-
-  avatarCropState.zoom = Number(avatarCropZoomInput.value) || 1;
-  applyAvatarCropTransform();
-}
-
-function handleAvatarCropPointerDown(event) {
-  if (!avatarCropState || isAvatarCropSubmitting) {
-    return;
-  }
-
-  isAvatarCropDragging = true;
-  avatarCropDragStart = {
-    pointerId: event.pointerId,
-    x: event.clientX,
-    y: event.clientY,
-    offsetX: avatarCropState.offsetX,
-    offsetY: avatarCropState.offsetY
-  };
-
-  avatarCropFrame?.setPointerCapture?.(event.pointerId);
-  avatarCropFrame?.classList.add('is-dragging');
-}
-
-function handleAvatarCropPointerMove(event) {
-  if (!isAvatarCropDragging || !avatarCropState || !avatarCropDragStart) {
-    return;
-  }
-
-  avatarCropState.offsetX = avatarCropDragStart.offsetX + event.clientX - avatarCropDragStart.x;
-  avatarCropState.offsetY = avatarCropDragStart.offsetY + event.clientY - avatarCropDragStart.y;
-  applyAvatarCropTransform();
-}
-
-function handleAvatarCropPointerUp(event) {
-  if (!isAvatarCropDragging) {
-    return;
-  }
-
-  isAvatarCropDragging = false;
-  avatarCropFrame?.releasePointerCapture?.(event.pointerId);
-  avatarCropFrame?.classList.remove('is-dragging');
-  avatarCropDragStart = null;
-}
-
-function closeAvatarCropModal(options = {}) {
-  if (!avatarCropModal || (isAvatarCropSubmitting && !options.force)) {
-    return;
-  }
-
-  avatarCropModal.classList.remove('is-open');
-  setAvatarCropStatus();
-  avatarCropState = null;
-  isAvatarCropDragging = false;
-  avatarCropDragStart = null;
-
-  if (avatarCropImage) {
-    avatarCropImage.removeAttribute('src');
-    avatarCropImage.removeAttribute('style');
-  }
-
-  if (avatarCropSourceUrl) {
-    URL.revokeObjectURL(avatarCropSourceUrl);
-    avatarCropSourceUrl = '';
-  }
-
-  syncBodyScrollLock();
-}
-
-async function openAvatarCropModalFromFile(file) {
-  const validationMessage = getAvatarFileValidationMessage(file);
-
-  if (validationMessage) {
-    throw new Error(validationMessage);
-  }
-
-  const metadata = await readAvatarSourceMetadata(file);
-
-  if (metadata.width < AVATAR_MIN_SOURCE_SIDE || metadata.height < AVATAR_MIN_SOURCE_SIDE) {
-    URL.revokeObjectURL(metadata.objectUrl);
-    throw new Error('Изображение слишком маленькое. Минимум 256×256 пикселей.');
-  }
-
-  ensureAvatarCropModal();
-  closeAvatarCropModal();
-
-  avatarCropSourceUrl = metadata.objectUrl;
-  avatarCropState = {
-    naturalWidth: metadata.width,
-    naturalHeight: metadata.height,
-    frameSize: 280,
-    minScale: 1,
-    zoom: 1,
-    offsetX: 0,
-    offsetY: 0
-  };
-
-  avatarCropImage.src = avatarCropSourceUrl;
-  avatarCropModal.classList.add('is-open');
-  syncBodyScrollLock();
-  setAvatarCropStatus();
-  setAvatarCropSubmitting(false);
-
-  requestAnimationFrame(resetAvatarCropState);
-}
-
-function renderAvatarCropBlob() {
-  return new Promise((resolve, reject) => {
-    if (!avatarCropImage || !avatarCropState) {
-      reject(new Error('Изображение для аватара не найдено.'));
-      return;
-    }
-
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-
-    if (!context) {
-      reject(new Error('Браузер не смог подготовить изображение.'));
-      return;
-    }
-
-    const frameSize = avatarCropState.frameSize || getAvatarCropFrameSize();
-    const outputScale = AVATAR_OUTPUT_SIZE / frameSize;
-    const imageScale = getAvatarCropScale() * outputScale;
-
-    canvas.width = AVATAR_OUTPUT_SIZE;
-    canvas.height = AVATAR_OUTPUT_SIZE;
-
-    context.fillStyle = '#0d1117';
-    context.fillRect(0, 0, AVATAR_OUTPUT_SIZE, AVATAR_OUTPUT_SIZE);
-    context.translate(
-      AVATAR_OUTPUT_SIZE / 2 + avatarCropState.offsetX * outputScale,
-      AVATAR_OUTPUT_SIZE / 2 + avatarCropState.offsetY * outputScale
-    );
-    context.drawImage(
-      avatarCropImage,
-      -avatarCropState.naturalWidth * imageScale / 2,
-      -avatarCropState.naturalHeight * imageScale / 2,
-      avatarCropState.naturalWidth * imageScale,
-      avatarCropState.naturalHeight * imageScale
-    );
-
-    canvas.toBlob(blob => {
-      if (blob) {
-        resolve(blob);
-      } else {
-        reject(new Error('Не удалось подготовить файл аватара.'));
-      }
-    }, AVATAR_OUTPUT_TYPE, AVATAR_OUTPUT_QUALITY);
-  });
-}
-
-async function deleteCurrentUserAvatar() {
-  if (isAvatarCropSubmitting) {
-    return;
-  }
-
-  const previousAvatarUrl = getPublicProfileAvatarUrl(currentUserProfile);
-
-  if (!previousAvatarUrl) {
-    setUserPageAvatarStatus('Аватар уже удалён.', 'info');
-    syncUserPageAvatarControls(currentUserProfile);
-    return;
-  }
-
-  try {
-    setUserPageAvatarSubmitting(true);
-    setUserPageAvatarStatus('Удаляю аватар...');
-
-    const settingsActions = await loadProfileSettingsActions();
-
-    await settingsActions.clearProfileAvatarUrl({ userId: currentUser.id });
-
-    currentUserProfile = {
-      ...(currentUserProfile || {}),
-      avatar_url: null
-    };
-    cachePublicProfileRows([{ id: currentUser.id, ...currentUserProfile }]);
-    invalidateUserPageDataCache();
-
-    syncUserPageOwnProfileIdentity();
-    setUserPageAvatarStatus('Аватар удалён.', 'success');
-    void settingsActions.deleteAvatarFileByUrl(previousAvatarUrl);
-  } catch (error) {
-    const message = getAvatarFriendlyErrorMessage(error);
-
-    console.error('Ошибка удаления аватара:', error);
-    setUserPageAvatarStatus(message, 'error');
-  } finally {
-    setUserPageAvatarSubmitting(false);
-  }
-}
-
-async function saveAvatarCrop() {
-  if (isAvatarCropSubmitting) {
-    return;
-  }
-
-  let uploadedAvatarUrl = '';
-
-  try {
-    setAvatarCropSubmitting(true);
-    setUserPageAvatarSubmitting(true);
-    setAvatarCropStatus('Сохраняю аватар...');
-    setUserPageAvatarStatus('Сохраняю аватар...');
-
-    const settingsActions = await loadProfileSettingsActions();
-
-    const previousAvatarUrl = getPublicProfileAvatarUrl(currentUserProfile);
-    const avatarBlob = await renderAvatarCropBlob();
-    const avatarUrl = await settingsActions.uploadAvatarBlob(avatarBlob);
-    uploadedAvatarUrl = avatarUrl;
-
-    if (!avatarUrl) {
-      throw new Error('Supabase не вернул публичную ссылку на аватар.');
-    }
-
-    await settingsActions.updateProfileAvatarUrl({
-      userId: currentUser.id,
-      avatarUrl
-    });
-
-    currentUserProfile = {
-      ...(currentUserProfile || {}),
-      avatar_url: avatarUrl
-    };
-    cachePublicProfileRows([{ id: currentUser.id, ...currentUserProfile }]);
-    invalidateUserPageDataCache();
-
-    syncUserPageOwnProfileIdentity();
-    closeAvatarCropModal({ force: true });
-    setUserPageAvatarStatus('Аватар обновлён.', 'success');
-
-    if (previousAvatarUrl && previousAvatarUrl !== avatarUrl) {
-      void settingsActions.deleteAvatarFileByUrl(previousAvatarUrl);
-    }
-  } catch (error) {
-    const message = getAvatarFriendlyErrorMessage(error);
-
-    console.error('Ошибка сохранения аватара:', error);
-
-    if (uploadedAvatarUrl) {
-      void loadProfileSettingsActions()
-        .then(settingsActions => settingsActions.deleteAvatarFileByUrl(uploadedAvatarUrl))
-        .catch(cleanupError => {
-          console.warn('Не удалось удалить загруженный аватар после ошибки сохранения:', cleanupError);
-        });
-    }
-
-    setAvatarCropStatus(message, 'error');
-    setUserPageAvatarStatus(message, 'error');
-  } finally {
-    setAvatarCropSubmitting(false);
-    setUserPageAvatarSubmitting(false);
-  }
-}
-
-function handleUserPageAvatarDeleteClick(event) {
-  const deleteButton = event.target?.closest?.('[data-user-page-avatar-delete="true"]');
-
-  if (!deleteButton || deleteButton.hidden) {
-    return false;
-  }
-
-  event.preventDefault();
-  armDeleteMovieButton(deleteButton, deleteCurrentUserAvatar, 'Удалить аватар?');
-
-  return true;
-}
-
-async function handleUserPageAvatarFileChange(event) {
-  const input = event.target?.closest?.('[data-user-page-avatar-input="true"]');
-
-  if (!input) {
-    return;
-  }
-
-  const file = input.files?.[0] || null;
-
-  input.value = '';
-
-  if (!file) {
-    return;
-  }
-
-  try {
-    setUserPageAvatarStatus();
-    await openAvatarCropModalFromFile(file);
-  } catch (error) {
-    console.error('Ошибка выбора аватара:', error);
-    setUserPageAvatarStatus(error.message || 'Не удалось открыть изображение.', 'error');
-  }
 }
 
 function escapeHtml(value) {
@@ -9060,12 +8297,50 @@ function loadProfileDataActions() {
   return profileDataActionsPromise;
 }
 
+let profileSettingsControllerPromise = null;
+let profileSettingsController = null;
+
+function getProfileSettingsControllerContext() {
+  return {
+    getCurrentUser: () => currentUser,
+    getCurrentProfile: () => currentUserProfile,
+    shouldUseAuthenticatedUi, getCurrentDisplayName, normalizeDisplayNameValue, isValidDisplayNameValue,
+    doesProfilePreferRussianPosters, getPublicProfileAvatarUrl, getUserPageAvatarMediaHtml,
+    isRussianPostersColumnAvailable: () => profileRussianPostersColumnAvailable,
+    markMissingProfileOptionalColumn, loadProfileSettingsActions, applyProfileSettingsPatch,
+    refreshPosterPreferenceDependentUi,
+    setPageAvatarSubmitting: value => userPageController?.setAvatarSubmitting(value),
+    closeAuthPopoverMenu, syncBodyScrollLock, armDeleteMovieButton, getReadableAuthErrorMessage
+  };
+}
+
+async function openProfileSettings() {
+  const viewerId = currentUser?.id;
+  if (!shouldUseAuthenticatedUi()) return;
+  try {
+    if (!profileSettingsControllerPromise) {
+      profileSettingsControllerPromise = import(getLazyFeatureModuleUrl('profile-settings-controller.js'))
+        .then(module => {
+          profileSettingsController = module.createProfileSettingsController(getProfileSettingsControllerContext());
+          return profileSettingsController;
+        })
+        .catch(error => {
+          profileSettingsControllerPromise = null;
+          throw error;
+        });
+    }
+    const controller = await profileSettingsControllerPromise;
+    if (currentUser?.id === viewerId && shouldUseAuthenticatedUi()) controller.open();
+  } catch (error) {
+    console.error('Profile settings could not be loaded:', error);
+    if (currentUser?.id === viewerId) showAppMessage('Не удалось загрузить настройки профиля. Попробуй ещё раз.', 'error', true);
+  }
+}
+
 function getProfileSettingsActionsContext() {
   return {
     supabaseClient,
-    avatarStorageBucket: AVATAR_STORAGE_BUCKET,
-    avatarStoragePublicPath: AVATAR_STORAGE_PUBLIC_PATH,
-    avatarOutputType: AVATAR_OUTPUT_TYPE,
+
     normalizeDisplayNameValue,
     withAuthRequestTimeout,
     withAuthProfileRequestTimeout,
@@ -11224,11 +10499,10 @@ function syncBodyScrollLock() {
   const shouldLockScroll = (
     isModalOpen ||
     isAuthModalOpen ||
-    (displayNameModal && displayNameModal.classList.contains('is-open')) ||
+    Boolean(profileSettingsController?.isOpen()) ||
     (filtersModal && filtersModal.classList.contains('is-open')) ||
     (mobileRatingModal && mobileRatingModal.classList.contains('is-open')) ||
-    Boolean(getLoadedMoviePageInteractionsController()?.isMovieTrailerModalOpen()) ||
-    (avatarCropModal && avatarCropModal.classList.contains('is-open'))
+    Boolean(getLoadedMoviePageInteractionsController()?.isMovieTrailerModalOpen())
   );
 
   document.body.style.overflow = shouldLockScroll ? 'hidden' : '';
@@ -11296,7 +10570,7 @@ async function closeAuthModal(options = {}) {
   const shouldCancelPasswordRecovery = isPasswordRecoveryMode && !options.skipPasswordRecoveryCancel;
 
   closeAuthPopoverMenu();
-  closeDisplayNameModal();
+  profileSettingsController?.close();
   authModal.classList.remove('is-open');
   isAuthModalOpen = false;
   syncBodyScrollLock();
@@ -11696,12 +10970,12 @@ function updateAuthUI() {
 
   syncAuthIconButtonState();
   syncDisplayNameButton();
-  syncProfilePosterPreferenceControls(currentUserProfile);
+  profileSettingsController?.syncAuthState();
   userPageController?.syncProfileSettingsButton();
 
   if (!shouldShowAuthenticatedUi) {
     closeAuthPopoverMenu();
-    closeDisplayNameModal();
+    profileSettingsController?.close();
   }
 
   if (loginForm) {
@@ -14192,6 +13466,7 @@ async function restoreSession() {
 async function applyCurrentSessionUser(user) {
   if (currentUser?.id !== user?.id) profileFollowActions?.resetCurrentUserFollows();
   currentUser = user ?? null;
+  profileSettingsController?.syncAuthState();
   rebuildMovieRatingIndexes();
   rebuildCurrentUserWatchlistIndex();
   await Promise.all([
@@ -14265,113 +13540,6 @@ async function isDisplayNameAvailable(displayName, excludeUserId = null) {
   return (await loadProfileSettingsActions()).isDisplayNameAvailable(displayName, excludeUserId);
 }
 
-async function saveDisplayName(event) {
-  event?.preventDefault();
-
-  if (!currentUser || isDisplayNameSubmitting || !displayNameInput) {
-    return;
-  }
-
-  const nextDisplayName = displayNameInput.value.trim();
-  const normalizedNextDisplayName = normalizeDisplayNameValue(nextDisplayName);
-  const currentDisplayName = getCurrentDisplayName();
-  const normalizedCurrentDisplayName = normalizeDisplayNameValue(currentDisplayName);
-
-  if (!nextDisplayName) {
-    setDisplayNameMessage('Введите никнейм.', 'error');
-    displayNameInput.focus();
-    return;
-  }
-
-  if (!isValidDisplayNameValue(nextDisplayName)) {
-    setDisplayNameMessage('Никнейм должен быть длиной от 3 до 24 символов и содержать только буквы, цифры или _.', 'error');
-    displayNameInput.focus();
-    return;
-  }
-
-  if (normalizedNextDisplayName === normalizedCurrentDisplayName) {
-    setDisplayNameMessage('Никнейм уже актуален.', 'success');
-    return;
-  }
-
-  isDisplayNameSubmitting = true;
-  setDisplayNameMessage('Сохраняю...');
-
-  if (saveDisplayNameButton) {
-    saveDisplayNameButton.disabled = true;
-  }
-
-  if (cancelDisplayNameButton) {
-    cancelDisplayNameButton.disabled = true;
-  }
-
-  if (displayNameInput) {
-    displayNameInput.disabled = true;
-  }
-
-  try {
-    const result = await (await loadProfileSettingsActions()).saveDisplayName({
-      currentUser,
-      nextDisplayName
-    });
-
-    if (!result.ok && result.reason === 'display-name-unavailable') {
-      setDisplayNameMessage('Этот никнейм уже занят. Выберите другой.', 'error');
-      return;
-    }
-
-    if (!result.ok && result.reason === 'auth-update-failed') {
-      console.error('Ошибка обновления user_metadata.display_name:', result.error);
-      setDisplayNameMessage('Не удалось обновить никнейм. Попробуйте ещё раз.', 'error');
-      return;
-    }
-
-    if (!result.ok && result.reason === 'profile-update-failed') {
-      console.error('Ошибка обновления profiles.display_name:', result.error);
-      setDisplayNameMessage('Не удалось сохранить никнейм в профиле. Попробуйте ещё раз.', 'error');
-      return;
-    }
-
-    if (!result.ok) {
-      setDisplayNameMessage('Не удалось сохранить никнейм. Попробуйте ещё раз.', 'error');
-      return;
-    }
-
-    await updateCurrentUserDisplayName(nextDisplayName);
-    setDisplayNameMessage('Никнейм обновлён.', 'success');
-  } catch (error) {
-    console.error('Ошибка сохранения никнейма:', error);
-    setDisplayNameMessage(error?.message || 'Не удалось сохранить никнейм. Попробуйте ещё раз.', 'error');
-  } finally {
-    isDisplayNameSubmitting = false;
-
-    if (saveDisplayNameButton) {
-      saveDisplayNameButton.disabled = false;
-    }
-
-    if (cancelDisplayNameButton) {
-      cancelDisplayNameButton.disabled = false;
-    }
-
-    if (displayNameInput) {
-      displayNameInput.disabled = false;
-    }
-  }
-}
-
-function setProfilePosterPreferenceSubmitting(isSubmitting) {
-  isProfilePosterPreferenceSubmitting = isSubmitting;
-
-  if (profileRussianPostersInput) {
-    profileRussianPostersInput.disabled = isSubmitting || !profileRussianPostersColumnAvailable;
-  }
-
-  if (saveProfilePosterPreferenceButton) {
-    saveProfilePosterPreferenceButton.disabled = isSubmitting || !profileRussianPostersColumnAvailable;
-    saveProfilePosterPreferenceButton.textContent = isSubmitting ? 'Сохраняю...' : 'Сохранить';
-  }
-}
-
 async function refreshPosterPreferenceDependentUi({ forcePosterImages = false } = {}) {
   const moviesToPrepare = [
     ...(Array.isArray(allMovies) ? allMovies : []),
@@ -14410,63 +13578,7 @@ async function refreshPosterPreferenceDependentUi({ forcePosterImages = false } 
   }
 }
 
-async function saveProfilePosterPreference(event) {
-  event?.preventDefault();
 
-  if (
-    !currentUser ||
-    isProfilePosterPreferenceSubmitting ||
-    !profileRussianPostersInput ||
-    !profileRussianPostersColumnAvailable
-  ) {
-    return;
-  }
-
-  const nextPreferRussianPosters = Boolean(profileRussianPostersInput.checked);
-  const previousPreferRussianPosters = doesProfilePreferRussianPosters(currentUserProfile);
-
-  if (nextPreferRussianPosters === previousPreferRussianPosters) {
-    setProfilePosterPreferenceMessage('Настройка уже актуальна.', 'success');
-    return;
-  }
-
-  setProfilePosterPreferenceSubmitting(true);
-  setProfilePosterPreferenceMessage('Сохраняю...');
-
-  try {
-    const { error } = await (await loadProfileSettingsActions()).savePosterPreference({
-      currentUserId: currentUser.id,
-      nextPreferRussianPosters
-    });
-
-    if (error) {
-      if (getMissingProfileOptionalColumnName(error, ['prefer_russian_posters']) === 'prefer_russian_posters') {
-        markMissingProfileOptionalColumn('prefer_russian_posters');
-        syncProfilePosterPreferenceControls(currentUserProfile);
-        return;
-      }
-
-      throw error;
-    }
-
-    currentUserProfile = {
-      ...(currentUserProfile || {}),
-      prefer_russian_posters: nextPreferRussianPosters
-    };
-    cachePublicProfileRows([{ id: currentUser.id, ...currentUserProfile }]);
-    syncProfilePosterPreferenceControls(currentUserProfile);
-    setProfilePosterPreferenceMessage('Настройка сохранена.', 'success');
-
-    await refreshPosterPreferenceDependentUi({
-      forcePosterImages: nextPreferRussianPosters
-    });
-  } catch (error) {
-    console.error('Ошибка сохранения настройки постеров:', error);
-    setProfilePosterPreferenceMessage(error?.message || 'Не удалось сохранить настройку постеров. Попробуйте ещё раз.', 'error');
-  } finally {
-    setProfilePosterPreferenceSubmitting(false);
-  }
-}
 
 async function sendPasswordResetEmail() {
   if (isAuthSubmitting) {
@@ -14549,119 +13661,6 @@ async function getPasswordRecoverySessionForUpdate() {
     error: refreshError || sessionError || null,
     session: null
   };
-}
-
-function getProfilePasswordErrorMessage(error, fallbackMessage) {
-  const errorText = String(error?.message || '').toLowerCase();
-
-  if (
-    errorText.includes('invalid login credentials') ||
-    errorText.includes('invalid credentials')
-  ) {
-    return 'Старый пароль не подошёл.';
-  }
-
-  return getReadableAuthErrorMessage(error, fallbackMessage);
-}
-
-async function saveProfilePassword(event) {
-  event?.preventDefault();
-
-  if (
-    !currentUser ||
-    isProfilePasswordSubmitting ||
-    !profilePasswordCurrentInput ||
-    !profilePasswordNewInput ||
-    !profilePasswordConfirmInput
-  ) {
-    return;
-  }
-
-  const email = String(currentUser.email || '').trim();
-  const currentPassword = profilePasswordCurrentInput.value;
-  const nextPassword = profilePasswordNewInput.value;
-  const confirmedPassword = profilePasswordConfirmInput.value;
-
-  if (!email) {
-    setProfilePasswordMessage('У аккаунта не найден e-mail для проверки пароля.', 'error');
-    return;
-  }
-
-  if (!currentPassword) {
-    setProfilePasswordMessage('Введите старый пароль.', 'error');
-    profilePasswordCurrentInput.focus();
-    return;
-  }
-
-  if (!nextPassword) {
-    setProfilePasswordMessage('Введите новый пароль.', 'error');
-    profilePasswordNewInput.focus();
-    return;
-  }
-
-  if (!confirmedPassword) {
-    setProfilePasswordMessage('Повторите новый пароль.', 'error');
-    profilePasswordConfirmInput.focus();
-    return;
-  }
-
-  if (nextPassword !== confirmedPassword) {
-    setProfilePasswordMessage('Новые пароли не совпадают.', 'error');
-    profilePasswordConfirmInput.focus();
-    profilePasswordConfirmInput.select();
-    return;
-  }
-
-  if (currentPassword === nextPassword) {
-    setProfilePasswordMessage('Новый пароль должен отличаться от старого.', 'error');
-    profilePasswordNewInput.focus();
-    profilePasswordNewInput.select();
-    return;
-  }
-
-  setProfilePasswordSubmitting(true);
-  setProfilePasswordMessage('Проверяю старый пароль...');
-
-  try {
-    const settingsActions = await loadProfileSettingsActions();
-    const { error: signInError } = await settingsActions.verifyProfilePassword({
-      email,
-      currentPassword
-    });
-
-    if (signInError) {
-      setProfilePasswordMessage(
-        getProfilePasswordErrorMessage(signInError, 'Не удалось проверить старый пароль.'),
-        'error'
-      );
-      return;
-    }
-
-    setProfilePasswordMessage('Сохраняю новый пароль...');
-
-    const { error: updateError } = await settingsActions.updateProfilePassword({
-      nextPassword
-    });
-
-    if (updateError) {
-      setProfilePasswordMessage(
-        getProfilePasswordErrorMessage(updateError, 'Не удалось обновить пароль. Попробуй ещё раз.'),
-        'error'
-      );
-      return;
-    }
-
-    clearProfileSettingsPasswordFields();
-    setProfilePasswordMessage('Пароль обновлён.', 'success');
-  } catch (error) {
-    console.error('Ошибка смены пароля:', error);
-    setProfilePasswordMessage(
-      getProfilePasswordErrorMessage(error, 'Не удалось обновить пароль. Попробуй ещё раз.'),
-      'error'
-    );
-  } finally {
-    setProfilePasswordSubmitting(false);
-  }
 }
 
 async function saveNewPassword() {
@@ -17063,14 +16062,6 @@ function bindSharedUiEvents() {
   loginEmail?.addEventListener('input', clearAuthMessage);
   loginPassword?.addEventListener('input', clearAuthMessage);
   loginPasswordConfirm?.addEventListener('input', clearAuthMessage);
-  displayNameInput?.addEventListener('input', () => setDisplayNameMessage());
-  [
-    profilePasswordCurrentInput,
-    profilePasswordNewInput,
-    profilePasswordConfirmInput
-  ].forEach(input => {
-    input?.addEventListener('input', () => setProfilePasswordMessage());
-  });
   appToastAcceptButton?.addEventListener('click', clearAppMessage);
 
   registerButton?.addEventListener('click', () => {
@@ -17118,28 +16109,8 @@ function bindSharedUiEvents() {
     });
   }
 
-  displayNameForm?.addEventListener('submit', saveDisplayName);
-  profilePosterPreferenceForm?.addEventListener('submit', saveProfilePosterPreference);
-  profileRussianPostersInput?.addEventListener('change', () => {
-    if (profileRussianPostersColumnAvailable) {
-      setProfilePosterPreferenceMessage();
-    }
-  });
-  profilePasswordForm?.addEventListener('submit', saveProfilePassword);
   document.addEventListener('submit', event => {
     handleUserPageAdminPasswordSubmit(event);
-  });
-
-  cancelDisplayNameButton?.addEventListener('click', () => {
-    closeDisplayNameModal();
-  });
-
-  closeDisplayNameModalButton?.addEventListener('click', () => {
-    closeDisplayNameModal();
-  });
-
-  displayNameModalBackdrop?.addEventListener('click', () => {
-    closeDisplayNameModal();
   });
 
   openAuthModalButton?.addEventListener('click', () => {
@@ -17166,9 +16137,6 @@ function bindSharedUiEvents() {
   document.addEventListener('click', event => {
     handleCatalogReturnNavigationLinkClick(event);
 
-    if (handleUserPageAvatarDeleteClick(event)) {
-      return;
-    }
 
     if (handleNotificationsPageClick(event)) {
       return;
@@ -17211,7 +16179,7 @@ function bindSharedUiEvents() {
 
     closeCatalogExternalLinksCard(openedCard);
   });
-  document.addEventListener('change', handleUserPageAvatarFileChange);
+
   document.addEventListener('change', event => {
     handleNotificationsPagePreferenceChange(event);
   });
@@ -17238,7 +16206,6 @@ function bindSharedUiEvents() {
     closeMobileRatingModal();
     closeAllCustomSelects();
     closeAuthPopoverMenu();
-    closeDisplayNameModal();
 
     if (isDirectorModalOpen) {
       closeDirectorModal();
@@ -17986,10 +16953,6 @@ async function fetchCurrentUserProfileFollows() {
   }
 }
 
-
-
-
-
 function getUserPageAdminPasswordPanelHtml(profile) {
   const profileId = String(profile?.id || '').trim();
 
@@ -18350,15 +17313,6 @@ function handleUserPageRailControlClick(event) {
 
   scrollUserPageRail(shell, direction);
 }
-
-
-
-
-
-
-
-
-
 
 function getUserPageMoreCardHtml(hiddenCount, moreUrl = '') {
   const contentHtml = `<strong>И ещё ${hiddenCount}</strong>`;
