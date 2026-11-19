@@ -4,6 +4,8 @@
 
 - Catalog HTML shows first-row skeletons as soon as the stylesheet bundle is ready. Startup failures surface inline. Saved catalog cards remain visible through the warm handoff.
 - The view switch, result count and top pagination reserve their space before data arrives. The catalog controls wait for an interactive snapshot or the first render.
+- Released build `cca66fab5a655f5634975a33aa3a25ff39949ed6`, Yandex revision `bba5gh5mdlmfmtfk64el`. Smoke, Docker and all three production route checks passed. Production Chrome recorded identical first-row poster rectangles before the shared layout, while the movie read was pending, and after render at 1350, 390 and 320 px. A one-result search, page two navigation, warm handoff and cold/warm module failure also passed.
+- A separate warm-return test that held `/env` for 15 seconds reproduced an extra document navigation. The fallback requests assets under `dev-local-27`, which trips the stored build-version reset. This remains independent of the skeleton-to-poster handoff.
 
 ## 2026-11-19 — Keep restored catalog cards visible through startup
 
