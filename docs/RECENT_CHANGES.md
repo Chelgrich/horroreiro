@@ -7,6 +7,7 @@
 - Unread counts and cached requests reset on viewer changes. Only the active count request can publish its result or clear the in-flight reference. Added smoke coverage for guest, admin and regular viewer transitions, menu/link behavior, file picker dispatch, unread count deduplication and a late response after returning to the same user ID.
 - The header refreshes unread counts every 60 seconds for signed-in viewers in visible tabs and checks the cache when a hidden tab becomes visible again. Guests and hidden tabs have no active timer. Scheduled reads reuse the existing count endpoint and skip a request already in flight.
 - Full smoke and required Docker runtime checks passed. The focused fixture advances the timer, resolves the real client count logic against a fake response and observes the new badge without remounting the header. Local browser verified opening the login form from the guest header with no captured warnings/errors.
+- Released runtime `a1907204b8362a22524018bebb01efc273bb7ad3`, Yandex revision `bbatqmksbfveqnhii36m`. Gateway, apex and www smoke checks passed on the first attempt. Production browser verified the exact asset version, the guest badge hidden, opening and closing the login form, and no captured console warnings/errors. The deployed header module matched the release source. Authenticated notification arrivals were exercised with the fixture.
 
 ## 2026-11-19 — Auth form and redirect ownership
 
