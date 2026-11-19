@@ -725,13 +725,18 @@ function hasStoredSupabaseAuthSession() {
 }
 
 function applyBuildVersionSoftResetIfNeeded() {
-  const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
-
-  if (savedBuildVersion === APP_BUILD_VERSION) {
-    return false;
-  }
-
   try {
+    const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
+
+    if (savedBuildVersion === APP_BUILD_VERSION) {
+      return false;
+    }
+
+    if (!savedBuildVersion) {
+      localStorage.setItem(APP_VERSION_STORAGE_KEY, APP_BUILD_VERSION);
+      return false;
+    }
+
     sessionStorage.clear();
 
     Object.keys(localStorage).forEach(key => {
@@ -741,11 +746,11 @@ function applyBuildVersionSoftResetIfNeeded() {
     });
 
     localStorage.setItem(APP_VERSION_STORAGE_KEY, APP_BUILD_VERSION);
+    return true;
   } catch (error) {
     console.warn('Ошибка при soft-reset версии сборки:', error);
+    return false;
   }
-
-  return true;
 }
 
 function parseLineOrCommaSeparatedValues(value) {

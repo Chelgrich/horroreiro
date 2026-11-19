@@ -84,4 +84,53 @@ for (const name of ['mountSharedLayout', 'runAppRuntime']) {
 assert.throws(() => startup.mountSharedLayout(), /mountSharedHeader/);
 startup.window.HorroreiroApp = { init() { throw Error('Legacy init must not replace a missing runtime'); } };
 assert.throws(() => startup.runAppRuntime(), /run/);
+
+const appSource = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const versionKey = 'horroreiro_app_build_version';
+function bootWithStoredVersion(savedBuildVersion, { denyRead = false, denyWrite = false } = {}) {
+  const storage = { horroreiro_fixture: 'existing preference', 'sb-fixture-auth-token': 'synthetic-session' };
+  if (savedBuildVersion) storage[versionKey] = savedBuildVersion;
+  Object.defineProperties(storage, {
+    getItem: { value(key) { if (denyRead) throw Error('Storage blocked'); return this[key] ?? null; } },
+    setItem: { value(key, value) { if (denyWrite) throw Error('Storage blocked'); this[key] = value; } },
+    removeItem: { value(key) { delete this[key]; } }
+  });
+  const replacements = [];
+  const initializedUrls = [];
+  const location = new URL('https://fixture.test/?page=2#anchor');
+  location.replace = target => replacements.push(target);
+  let resets = 0;
+  const ctx = vm.createContext({
+    APP_BUILD_VERSION: 'next-build', APP_VERSION_STORAGE_KEY: versionKey, localStorage: storage,
+    sessionStorage: { clear() { resets += 1; } }, console: { warn() {} }, window: { location },
+    loadProfileUtils() {}, loadAuthSessionController() {}, loadAuthUiController() {}, loadAccountHeaderController() {},
+    bindWindowScrollIntentTracker() {}, bindCustomSelectGlobalEvents() {}, initCustomSelects() {},
+    initCurrentPageLinkGuard() {}, bindSharedUiEvents() {}, bindSecondaryPageSnapshotEvents() {},
+    getAuthUiController: () => ({ initializeRedirect: url => initializedUrls.push(url) })
+  });
+  for (const name of ['applyBuildVersionSoftResetIfNeeded', 'initSharedApp']) {
+    const start = appSource.lastIndexOf('\n', appSource.indexOf(`function ${name}(`)) + 1;
+    vm.runInContext(appSource.slice(start, appSource.indexOf('\n}', start) + 2), ctx);
+  }
+  return { init: ctx.initSharedApp, storage, replacements, initializedUrls, resets: () => resets };
+}
+const firstVisit = bootWithStoredVersion(null);
+assert.equal(await firstVisit.init(), true, 'A missing saved build initializes without navigating again');
+assert.equal(firstVisit.storage[versionKey], 'next-build');
+assert.equal(firstVisit.storage.horroreiro_fixture, 'existing preference');
+assert.equal(firstVisit.resets(), 0);
+assert.deepEqual(firstVisit.replacements, []);
+assert.deepEqual(firstVisit.initializedUrls, ['https://fixture.test/?page=2#anchor']);
+const upgrade = bootWithStoredVersion('previous-build');
+assert.equal(await upgrade.init(), false, 'An actual build mismatch requests one reload');
+assert.deepEqual(upgrade.replacements, ['/?page=2#anchor']);
+assert.equal(await upgrade.init(), true);
+assert.equal(upgrade.resets(), 1);
+assert.equal(upgrade.storage.horroreiro_fixture, undefined);
+assert.equal(upgrade.storage['sb-fixture-auth-token'], 'synthetic-session');
+for (const options of [{ denyRead: true }, { denyWrite: true }]) {
+  const blocked = bootWithStoredVersion('previous-build', options);
+  assert.equal(await blocked.init(), true, 'Storage failure cannot block startup or repeat navigation');
+  assert.deepEqual(blocked.replacements, []);
+}
 console.log('Module contract smoke passed.');

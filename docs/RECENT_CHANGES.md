@@ -1,5 +1,18 @@
 # Recent Changes
 
+## 2026-11-19 — Skip the first-visit build reload
+
+- A missing saved build marker records the current build and continues shared startup on the same navigation. An existing different marker still clears the old app snapshots/settings and reloads once, preserving the query string and hash. If storage access fails, startup continues without issuing a reload that could repeat indefinitely.
+- The startup contract fixture reproduced the repeated navigation before the fix and now exercises initial registration, version upgrades, redirect URL preservation, and blocked storage.
+
+## 2026-11-19 — Cold catalog startup baseline
+
+- Three fresh-profile Lighthouse 13.6.0 desktop runs against production build `a20eeae`, with no emulated throttling. Times are from the original navigation in each run. The first catalog poster request started at 8.81, 6.01 and 4.20 seconds. The first successful poster response finished at 9.15, 6.32 and 4.54 seconds. Lighthouse's LCP candidate was boot-screen text, so its approximately 0.47–0.48 second score does not represent catalog visibility.
+- Every run issued a second HTML navigation at 3.72, 2.15 and 1.52 seconds respectively. `applyBuildVersionSoftResetIfNeeded` treats an absent saved build version as a mismatch and `initSharedApp` calls `location.replace`. The repeated document and bootstrap downloads transferred about 156 KiB each time, excluding fonts and analytics. After the final CSS responses, the document loader reached the end of `app.js` download in 240–279 ms. The shared and catalog import waves plus initialization took another 345–359 ms before the first data batch.
+- The first-screen data gate waits for three parallel requests. Browser durations across the three runs were 1.68–2.54 s for `movies` (about 124 KiB transferred), 1.08–4.16 s for `movie_rating_stats` and 0.95–1.98 s for `movie_reviews`. The movie read finished last twice, and rating stats once. The first poster request followed the last data response by 60–452 ms. Fonts and analytics are outside this explicit startup gate.
+- Two separately timed GETs per path using the captured public REST projections also showed an overhead outside SQL: `movies` took 1.55–3.29 s via the site and 0.52–0.97 s directly. Grouped historical Postgres means were 212.59 ms for the ordered movie query family, 19.64 ms for rating statistics and 19.09 ms for review IDs. These are not per-request traces of the Lighthouse runs and do not isolate the cause of transport variance.
+- Prioritize removing the first-visit reset/reload, then remeasure the same startup path. Afterward, attribute the catalog data budget between the proxy/upstream request and Postgres, and check which summary fields must wait before render. No production code or configuration changes were made in this measurement.
+
 ## 2026-11-19 — Catalog galleries follow pagination
 
 - Catalog data loading no longer downloads galleries for the complete movie dataset. Russian-poster reads are limited to missing movies from the rendered page, including preference changes. Known empty galleries are cached and use the main poster. The same gallery cache still serves detail/admin and other pages.

@@ -106,6 +106,7 @@ Page HTML is static shell plus shared scripts:
 
 Startup shell visibility rule:
 
+- Shared startup records the build marker on a first visit without reloading. An existing different build marker still triggers the cache reset and one reload after the new marker is saved.
 - HTML shells must hide `.page` and `#sharedFooterMount` with `display: none` before `app-ready`, not `visibility: hidden`. Some form-control rules intentionally set descendant `select` elements back to `visibility: visible`, which can otherwise leak controls such as the catalog sort select over the boot screen.
 - `index.html` and `movie.html` may temporarily redisplay a validated warm-start shell before `app-ready` as soon as `app-styles-ready` is set. They reserve empty shared-header space until shared UI mounts so cached content appears quickly without layout jumps or unstyled controls.
 - Secondary page shells use the same rule through `html.app-page-warm-started`: redisplay the restored page only after `app-styles-ready`, reserve empty shared-header space, and keep the boot shell visible until styles are usable.
