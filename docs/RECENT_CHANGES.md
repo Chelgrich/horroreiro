@@ -4,6 +4,9 @@
 
 - Cold catalog startup requests the review ID summary after the first render when the effective filters do not include reviews. Review filters restored from URL parameters, quick presets or local storage still wait for the summary in the initial data batch.
 - Selecting the filter while the summary is pending keeps the current cards visible until the matching IDs are available. Background completion saves a complete snapshot and preserves the existing cards when the filter is off.
+- Released build `d3aecd44f25708149ca1f7c440acf1d98cb8c2eb`, Yandex revision `bbah5nnqsd90jc57hifo`. Full smoke, Docker and three production route checks passed. A Chrome test held the reviews response and verified the first poster, unchanged cards, activation during loading, filter reset, and restores from the explicit parameter, quick preset URL and saved preferences.
+- Three fresh-profile Lighthouse 13.6.0 desktop runs per production build without emulated throttling. Median first poster request moved from 5.700 to 4.182 s, first successful poster response from 6.045 to 4.485 s, and first poster `PaintImage` from 6.032 to 4.467 s. Individual paints were 6.032, 7.036 and 4.670 s before and 4.467, 3.887 and 7.318 s after. The same baseline build returned a 4.288 s median in the prior series. The new slow run spent 5.087 s on the initial movie read.
+- In every new trace, the single review summary request began 92–95 ms after the first poster request. The poster was painted 239–1110 ms before the review summary finished.
 
 ## 2026-11-19 — Reduce the first catalog movies response
 
