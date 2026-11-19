@@ -11,12 +11,14 @@ const host = process.env.HOST || '0.0.0.0';
 const runtime = createPortableRuntime();
 
 const server = createServer(async (nodeRequest, nodeResponse) => {
+  const startedAt = nodeRequest.headers['x-horroreiro-perf'] === '1' ? performance.now() : undefined;
   try {
     const request = await createRequestFromNodeMessage(nodeRequest);
     const response = await runtime.handleRequest(request);
 
     await writeResponseToNodeMessage(nodeResponse, response, {
-      head: nodeRequest.method === 'HEAD'
+      head: nodeRequest.method === 'HEAD',
+      startedAt
     });
   } catch (error) {
     const tooLarge = error?.statusCode === 413;

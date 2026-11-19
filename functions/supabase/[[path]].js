@@ -48,14 +48,19 @@ export async function onRequest({ request, env }) {
     for (const name of REQUEST_HEADERS) {
       if (request.headers.has(name)) headers.set(name, request.headers.get(name));
     }
+    const measure = request.method === 'GET' && request.headers.get('x-horroreiro-perf') === '1'
+      && (path === '/rest/v1/movies' || path === '/rest/v1/movie_rating_stats');
+    const upstreamStartedAt = measure ? performance.now() : 0;
     const response = await fetch(upstream, {
       method: request.method, headers, body: await readBody(request),
       redirect: 'error', signal: AbortSignal.timeout(15000)
     });
+    const upstreamHeadersMs = measure ? Math.round(performance.now() - upstreamStartedAt) : 0;
     const responseHeaders = new Headers({ 'Cache-Control': 'no-store' });
     for (const name of RESPONSE_HEADERS) {
       if (response.headers.has(name)) responseHeaders.set(name, response.headers.get(name));
     }
+    if (measure) responseHeaders.set('Server-Timing', `supabase_headers;dur=${upstreamHeadersMs}`);
     return new Response(response.body, { status: response.status, headers: responseHeaders });
   } catch (error) {
     return error?.status === 413

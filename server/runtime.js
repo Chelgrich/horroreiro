@@ -513,7 +513,13 @@ export async function writeResponseToNodeMessage(nodeResponse, response, options
     return;
   }
 
+  const measure = options.startedAt !== undefined && headers['server-timing'];
+  const bodyStartedAt = measure ? performance.now() : 0;
   const body = Buffer.from(await response.arrayBuffer());
+  if (measure) {
+    const completedAt = performance.now();
+    headers['server-timing'] += `, proxy_body;dur=${Math.round(completedAt - bodyStartedAt)}, proxy_total;dur=${Math.round(completedAt - options.startedAt)}, worker_age;dur=${Math.round(options.startedAt)}`;
+  }
   if (!Object.prototype.hasOwnProperty.call(headers, 'content-length')) {
     headers['content-length'] = String(body.length);
   }

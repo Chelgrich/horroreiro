@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { createHash } from 'node:crypto';
 import { onRequest } from '../functions/supabase/[[path]].js';
-import { createPortableRuntime } from '../server/runtime.js';
+import { createPortableRuntime, writeResponseToNodeMessage } from '../server/runtime.js';
 import * as letterboxdTools from '../letterboxd-import.js';
 
 const env = { SUPABASE_URL: 'https://fixture.supabase.co', SUPABASE_ANON_KEY: 'public-fixture', SUPABASE_SERVICE_ROLE_KEY: 'must-not-be-forwarded' };
@@ -50,6 +50,7 @@ try {
   assert.match(response.headers.get('Cache-Control'), /no-store/);
   assert.equal(response.headers.get('Set-Cookie'), null);
   assert.equal(response.headers.get('Access-Control-Allow-Origin'), null);
+  assert.equal(response.headers.get('Server-Timing'), null);
   assert.equal(forwarded[0].url, `${env.SUPABASE_URL}/rest/v1/movies?select=id&limit=1`);
   assert.equal(forwarded[0].headers.get('Authorization'), 'Bearer user-fixture');
   assert.equal(forwarded[0].headers.get('apikey'), env.SUPABASE_ANON_KEY);
@@ -57,6 +58,22 @@ try {
   assert.equal(forwarded[0].headers.get('Range'), '0-0');
   assert.equal(forwarded[0].redirect, 'error', 'Never send credentials through upstream redirects');
   assert.ok(!JSON.stringify(forwarded).includes(env.SUPABASE_SERVICE_ROLE_KEY));
+
+  const probeOptions = { headers: { apikey: env.SUPABASE_ANON_KEY, 'X-Horroreiro-Perf': '1' } };
+  const startedAt = performance.now();
+  const probe = await onRequest({ env, request: request('/rest/v1/movie_rating_stats', probeOptions) });
+  assert.match(probe.headers.get('Server-Timing'), /^supabase_headers;dur=\d+$/);
+  assert.equal(forwarded.at(-1).headers.get('X-Horroreiro-Perf'), null);
+  let nodeHeaders;
+  let nodeBody;
+  await writeResponseToNodeMessage({
+    writeHead: (_status, _statusText, headers) => { nodeHeaders = headers; },
+    end: body => { nodeBody = body; }
+  }, probe, { startedAt });
+  assert.match(nodeHeaders['server-timing'], /^supabase_headers;dur=\d+, proxy_body;dur=\d+, proxy_total;dur=\d+, worker_age;dur=\d+$/);
+  assert.equal(nodeBody.toString(), '[{"id":"fixture"}]');
+  const other = await onRequest({ env, request: request('/rest/v1/movie_reviews', probeOptions) });
+  assert.equal(other.headers.get('Server-Timing'), null);
 
   const body = JSON.stringify({ movie_id: 'movie', rating: 8 });
   await onRequest({ env, request: request('/rest/v1/movie_ratings?on_conflict=movie_id%2Cuser_id', {

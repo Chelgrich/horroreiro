@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-19 — Trace catalog proxy latency
+
+- Public catalog GETs for `movies` and `movie_rating_stats` can opt into `Server-Timing` by sending `X-Horroreiro-Perf: 1`. The handler reports its wait for Supabase response headers. The Node adapter adds the time to read and buffer the response body, time from Node request entry until the body is ready, and process age at entry. The header carries only durations and is never sent to Supabase. Timing can be joined to Supabase edge logs using a unique `X-Client-Info` probe tag.
+
 ## 2026-11-19 — Skip the first-visit build reload
 
 - A missing saved build marker records the current build and continues shared startup on the same navigation. An existing different marker still clears the old app snapshots/settings and reloads once, preserving the query string and hash. If storage access fails, startup continues without issuing a reload that could repeat indefinitely.
