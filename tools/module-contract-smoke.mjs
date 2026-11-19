@@ -87,7 +87,7 @@ assert.throws(() => startup.runAppRuntime(), /run/);
 
 const appSource = await readFile(new URL('../app.js', import.meta.url), 'utf8');
 const versionKey = 'horroreiro_app_build_version';
-function bootWithStoredVersion(savedBuildVersion, { denyRead = false, denyWrite = false } = {}) {
+function bootWithStoredVersion(savedBuildVersion, { denyRead = false, denyWrite = false, isFallback = false } = {}) {
   const storage = { horroreiro_fixture: 'existing preference', 'sb-fixture-auth-token': 'synthetic-session' };
   if (savedBuildVersion) storage[versionKey] = savedBuildVersion;
   Object.defineProperties(storage, {
@@ -101,7 +101,7 @@ function bootWithStoredVersion(savedBuildVersion, { denyRead = false, denyWrite 
   location.replace = target => replacements.push(target);
   let resets = 0;
   const ctx = vm.createContext({
-    APP_BUILD_VERSION: 'next-build', APP_VERSION_STORAGE_KEY: versionKey, localStorage: storage,
+    appEnv: { isFallback }, APP_BUILD_VERSION: 'next-build', APP_VERSION_STORAGE_KEY: versionKey, localStorage: storage,
     sessionStorage: { clear() { resets += 1; } }, console: { warn() {} }, window: { location },
     loadProfileUtils() {}, loadAuthSessionController() {}, loadAuthUiController() {}, loadAccountHeaderController() {},
     bindWindowScrollIntentTracker() {}, bindCustomSelectGlobalEvents() {}, initCustomSelects() {},
@@ -128,6 +128,14 @@ assert.equal(await upgrade.init(), true);
 assert.equal(upgrade.resets(), 1);
 assert.equal(upgrade.storage.horroreiro_fixture, undefined);
 assert.equal(upgrade.storage['sb-fixture-auth-token'], 'synthetic-session');
+for (const savedBuild of [null, 'previous-build']) {
+  const fallback = bootWithStoredVersion(savedBuild, { isFallback: true });
+  assert.equal(await fallback.init(), true, 'A fallback environment cannot trigger an upgrade reset');
+  assert.equal(fallback.storage[versionKey], savedBuild ?? undefined);
+  assert.equal(fallback.storage.horroreiro_fixture, 'existing preference');
+  assert.equal(fallback.resets(), 0);
+  assert.deepEqual(fallback.replacements, []);
+}
 for (const options of [{ denyRead: true }, { denyWrite: true }]) {
   const blocked = bootWithStoredVersion('previous-build', options);
   assert.equal(await blocked.init(), true, 'Storage failure cannot block startup or repeat navigation');

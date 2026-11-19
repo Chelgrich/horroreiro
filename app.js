@@ -172,9 +172,10 @@ let manualSimilarMovieSelect = document.getElementById('manualSimilarMovieSelect
 let addManualSimilarMovieButton = document.getElementById('addManualSimilarMovieButton');
 let manualSimilarMoviesList = document.getElementById('manualSimilarMoviesList');
 
-const SUPABASE_URL = window.__ENV__?.SUPABASE_URL;
-const SUPABASE_ANON_KEY = window.__ENV__?.SUPABASE_ANON_KEY;
-const APP_BUILD_VERSION = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+const appEnv = window.__APP_ENV__ || window.__ENV__;
+const SUPABASE_URL = appEnv?.SUPABASE_URL;
+const SUPABASE_ANON_KEY = appEnv?.SUPABASE_ANON_KEY;
+const APP_BUILD_VERSION = appEnv?.APP_BUILD_VERSION || 'dev';
 const SUPABASE_PROJECT_REF = (() => {
   try {
     return new URL(SUPABASE_URL).hostname.split('.')[0] || '';
@@ -728,6 +729,10 @@ function hasStoredSupabaseAuthSession() {
 }
 
 function applyBuildVersionSoftResetIfNeeded() {
+  if (appEnv?.isFallback) {
+    return false;
+  }
+
   try {
     const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
 

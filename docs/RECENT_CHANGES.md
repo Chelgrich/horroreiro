@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-19 — Preserve warm catalog returns when env is delayed
+
+- The boot loader selects one environment for the document. On a hosted `/env` timeout or network failure, the fallback uses the saved build version for stylesheet and script URLs. A late response does not change the selection for an in-progress startup.
+- The hosted fallback never updates the saved build marker or clears snapshots. A confirmed change of build still resets caches and reloads once.
+
 ## 2026-11-19 — Reveal catalog skeletons during startup
 
 - Catalog HTML shows first-row skeletons as soon as the stylesheet bundle is ready. Startup failures surface inline. Saved catalog cards remain visible through the warm handoff.

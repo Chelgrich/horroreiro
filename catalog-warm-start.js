@@ -117,7 +117,7 @@
   }
 
   function hasMatchingKnownBuild(snapshot) {
-    const currentBuildVersion = String(window.__ENV__?.APP_BUILD_VERSION || '');
+    const currentBuildVersion = String((window.__APP_ENV__ || window.__ENV__)?.APP_BUILD_VERSION || '');
     const storedBuildVersion = String(getStorageValue(localStorage, APP_VERSION_STORAGE_KEY) || '');
     const knownBuildVersion = currentBuildVersion || storedBuildVersion;
 

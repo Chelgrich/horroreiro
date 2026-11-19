@@ -98,7 +98,7 @@
 
   function getCurrentBuildVersion() {
     return String(
-      window.__ENV__?.APP_BUILD_VERSION ||
+      (window.__APP_ENV__ || window.__ENV__)?.APP_BUILD_VERSION ||
       getStorageValue(localStorage, APP_VERSION_STORAGE_KEY) ||
       ''
     );

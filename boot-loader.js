@@ -224,9 +224,7 @@
       });
     }
 
-    function applyCachedStylesheets() {
-      const buildVersion = getStorageValue(localStorage, APP_VERSION_STORAGE_KEY);
-
+    function applyCachedStylesheets(buildVersion) {
       if (!buildVersion) {
         return false;
       }
@@ -254,7 +252,8 @@
       writeStylesheetCacheStore(store);
     }
 
-    const hasAppliedCachedStylesheets = applyCachedStylesheets();
+    const storedBuildVersion = getStorageValue(localStorage, APP_VERSION_STORAGE_KEY);
+    const hasAppliedCachedStylesheets = applyCachedStylesheets(storedBuildVersion);
 
     function finishEnvReady() {
       if (isEnvReadyResolved) {
@@ -327,15 +326,16 @@
       }
     }
 
-    function applyEnvAndLoadStyles() {
+    function applyEnvAndLoadStyles(env) {
       if (hasStartedStylesheetLoad) {
         return;
       }
 
       hasStartedStylesheetLoad = true;
       window.clearTimeout(envFallbackTimer);
+      window.__APP_ENV__ = env;
 
-      const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+      const buildVersion = env.APP_BUILD_VERSION || 'dev';
       const stylesheetAssets = getPageStylesheetAssets();
       stylesheetFallbackTimer = window.setTimeout(markStylesheetFailure, STYLESHEET_FALLBACK_TIMEOUT_MS);
       if (!isLocalFile) {
@@ -408,22 +408,27 @@
     }
 
     function applyFallbackEnvAndLoadStyles() {
-      if (!window.__ENV__) {
-        window.__ENV__ = localDevEnv;
-      }
-
-      applyEnvAndLoadStyles();
+      applyEnvAndLoadStyles({
+        ...localDevEnv,
+        APP_BUILD_VERSION: storedBuildVersion || localDevEnv.APP_BUILD_VERSION,
+        isFallback: true
+      });
     }
 
     if (shouldUseLocalDevEnv) {
-      window.__ENV__ = localDevEnv;
-      applyEnvAndLoadStyles();
+      applyEnvAndLoadStyles(localDevEnv);
       return;
     }
 
     const envScript = document.createElement('script');
     envScript.src = '/env';
-    envScript.onload = applyEnvAndLoadStyles;
+    envScript.onload = () => {
+      if (window.__ENV__) {
+        applyEnvAndLoadStyles(window.__ENV__);
+      } else {
+        applyFallbackEnvAndLoadStyles();
+      }
+    };
     envScript.onerror = applyFallbackEnvAndLoadStyles;
     envFallbackTimer = window.setTimeout(applyFallbackEnvAndLoadStyles, 2500);
 

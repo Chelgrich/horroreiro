@@ -13,16 +13,17 @@ const storage = (seed = []) => {
 };
 
 function boot({ source = loader, sessionStorage = storage(), build = 'release-a', fail = () => false,
-  contentType = 'text/css', file = false } = {}) {
+  contentType = 'text/css', file = false, holdEnv = false, storedBuild = build } = {}) {
   const nodes = [];
   const transfers = [];
   const classes = new Set();
+  const timers = new Map();
   const env = { APP_BUILD_VERSION: build };
   const window = {
     location: new URL(file ? 'file:///catalog/index.html' : 'https://fixture.test/'),
     sessionStorage,
-    setTimeout() { return 1; },
-    clearTimeout() {}
+    setTimeout(callback, ms) { timers.set(ms, callback); return ms; },
+    clearTimeout(id) { timers.delete(id); }
   };
   const document = {
     querySelector: () => null,
@@ -33,7 +34,7 @@ function boot({ source = loader, sessionStorage = storage(), build = 'release-a'
     documentElement: { classList: { contains: key => classes.has(key), add: key => classes.add(key), remove: key => classes.delete(key) } },
     head: { appendChild(node) {
       nodes.push(node);
-      if (node.tag === 'script') queueMicrotask(() => { window.__ENV__ = env; node.onload(); });
+      if (node.tag === 'script' && !holdEnv) queueMicrotask(() => { window.__ENV__ = env; node.onload(); });
       if (node.tag === 'link') {
         transfers.push({ type: 'link', href: node.href });
         queueMicrotask(() => node.onload({ currentTarget: node }));
@@ -46,8 +47,9 @@ function boot({ source = loader, sessionStorage = storage(), build = 'release-a'
     return { ok: !failed, status: failed ? 503 : 200, headers: new Headers({ 'content-type': contentType }),
       text: async () => `/* ${assetName(href)} */ :root { --fixture: 1; }` };
   };
-  vm.runInNewContext(source, { window, document, sessionStorage, localStorage: storage([[buildKey, build]]), fetch, URL });
-  return { window, transfers, nodes, classes, sessionStorage, flush: () => new Promise(setImmediate) };
+  const localStorage = storage([[buildKey, storedBuild]]);
+  vm.runInNewContext(source, { window, document, sessionStorage, localStorage, fetch, URL });
+  return { window, transfers, nodes, classes, sessionStorage, localStorage, timers, flush: () => new Promise(setImmediate) };
 }
 
 if (process.argv[2]) {
@@ -68,6 +70,30 @@ assert(warm.classes.has('app-styles-ready'), 'Styles restored before the environ
 await warm.window.__ENV_READY__;
 assert.equal(warm.transfers.length, 2, 'Background fresh styles use one transfer each');
 assert.equal(warm.nodes.filter(node => node.tag === 'style' && node.dataset.horroreiroStyleCache === 'true').length, 0);
+
+const slowEnv = boot({ sessionStorage: cold.sessionStorage, holdEnv: true });
+assert(slowEnv.classes.has('app-styles-ready'));
+slowEnv.localStorage.setItem(buildKey, 'release-from-another-tab');
+slowEnv.timers.get(2500)();
+await slowEnv.window.__ENV_READY__;
+assert(slowEnv.transfers.every(({ href }) => href.startsWith('/app-assets/release-a?')));
+assert.equal(slowEnv.window.__APP_ENV__.APP_BUILD_VERSION, 'release-a');
+assert.equal(slowEnv.window.__APP_ENV__.isFallback, true);
+slowEnv.window.__ENV__ = { APP_BUILD_VERSION: 'release-b' };
+slowEnv.nodes.find(node => node.tag === 'script').onload();
+assert.equal(slowEnv.window.__APP_ENV__.APP_BUILD_VERSION, 'release-a');
+assert.equal(slowEnv.transfers.length, 2);
+
+const failedEnv = boot({ holdEnv: true, storedBuild: '' });
+failedEnv.nodes.find(node => node.tag === 'script').onerror();
+await failedEnv.window.__ENV_READY__;
+assert.equal(failedEnv.window.__APP_ENV__.isFallback, true);
+assert(!failedEnv.classes.has('app-load-failed'));
+
+const newEnv = boot({ sessionStorage: cold.sessionStorage, build: 'release-b', storedBuild: 'release-a' });
+await newEnv.window.__ENV_READY__;
+assert.equal(newEnv.window.__APP_ENV__.APP_BUILD_VERSION, 'release-b');
+assert(!newEnv.window.__APP_ENV__.isFallback);
 
 const retry = boot({ fail: href => assetName(href) === 'catalog-page.css' && !href.includes('_retry=') });
 await retry.window.__ENV_READY__;

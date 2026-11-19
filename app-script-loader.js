@@ -100,7 +100,7 @@
 
   envReadyPromise
     .then(() => {
-      const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
+      const buildVersion = (window.__APP_ENV__ || window.__ENV__)?.APP_BUILD_VERSION || 'dev';
 
       const sharedLayoutPromise = loadScript('shared-layout.js', buildVersion);
       const pageRuntimePromise = loadScript('app-page-runtime.js', buildVersion);

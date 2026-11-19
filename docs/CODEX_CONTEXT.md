@@ -69,7 +69,7 @@ Page HTML is static shell plus shared scripts:
 - `boot-loader.js`
   - activates the nonblocking external font stylesheet after load (or immediately when already cached); unavailable fonts must not block app startup;
   - loads `/env`;
-  - creates `window.__ENV__`;
+  - selects one configuration per document in `window.__APP_ENV__` for styles, runtime and warm-start validation. A hosted `/env` timeout or network failure uses the saved build marker and fallback credentials. A late response cannot change the selection in that document;
   - loads versioned `styles.css`;
   - loads page-specific CSS such as `catalog-page.css`, `movie-page.css`, shared `secondary-pages.css`, and secondary page-only CSS before app startup when the current shell needs it;
   - caches successfully loaded same-build page stylesheet bundles in `sessionStorage` and injects that cached CSS on later same-tab warm returns so restored catalog/movie DOM can become visible before live CSS requests finish;
@@ -106,9 +106,9 @@ Page HTML is static shell plus shared scripts:
 
 Startup shell visibility rule:
 
-- Shared startup records the build marker on a first visit without reloading. An existing different build marker still triggers the cache reset and one reload after the new marker is saved.
-- HTML shells must hide `.page` and `#sharedFooterMount` with `display: none` before `app-ready`, not `visibility: hidden`. Some form-control rules intentionally set descendant `select` elements back to `visibility: visible`, which can otherwise leak controls such as the catalog sort select over the boot screen.
-- `index.html` and `movie.html` may temporarily redisplay a validated warm-start shell before `app-ready` as soon as `app-styles-ready` is set. They reserve empty shared-header space until shared UI mounts so cached content appears quickly without layout jumps or unstyled controls.
+- Shared startup records a confirmed build marker on a first visit without reloading. A confirmed different build marker still triggers the cache reset and one reload after the new marker is saved. A hosted fallback cannot write the marker or reset caches.
+- HTML shells hide `.page` and `#sharedFooterMount` with `display: none` until their readiness boundary. Some form-control rules intentionally set descendant `select` elements back to `visibility: visible`.
+- `index.html` displays the skeletons or restored catalog at `app-styles-ready`. `movie.html` may redisplay a validated warm-start shell before `app-ready` as soon as styles are ready. Both reserve empty shared-header space until shared UI mounts.
 - Secondary page shells use the same rule through `html.app-page-warm-started`: redisplay the restored page only after `app-styles-ready`, reserve empty shared-header space, and keep the boot shell visible until styles are usable.
 - While `app-page-warm-started` is hydrating, secondary page controllers must not replace the restored DOM with their initial loading state. `app.js` exposes `hasWarmStartedPageDom` to those controllers as a one-init-cycle flag; after page init completes, loading states work normally again.
 - Warm-start redisplay rules should match the final page scrollbar policy (`overflow-y: scroll`) so a restored shell does not shift when `app-ready` lands.
