@@ -4,6 +4,8 @@
 
 - The boot loader selects one environment for the document. On a hosted `/env` timeout or network failure, the fallback uses the saved build version for stylesheet and script URLs. A late response does not change the selection for an in-progress startup.
 - The hosted fallback never updates the saved build marker or clears snapshots. A confirmed change of build still resets caches and reloads once.
+- Released build `6fdecaaf4de327a84293f5f80f5dc2001be0bbfa`, Yandex revision `bbaq08knhf3uuakeh10n`. Full smoke, Docker and all three production route checks passed. The gateway served the prior build for its first two checks and passed the third.
+- Production Chrome navigated catalog → movie → Back with browser back/forward cache disabled. With `/env` held for about 15 seconds, the four restored posters stayed visible in all 1,781 sampled frames through application startup and the late response. At mobile width, a simulated different build arriving after the fallback and before the main script kept both poster nodes and the original build. A confirmed mismatch at startup still reloaded once.
 
 ## 2026-11-19 — Reveal catalog skeletons during startup
 
