@@ -1,5 +1,12 @@
 # Recent Changes
 
+## 2026-11-19 — Catalog galleries follow pagination
+
+- Catalog data loading no longer downloads galleries for the complete movie dataset. Russian-poster reads are limited to missing movies from the rendered page, including preference changes. Known empty galleries are cached and use the main poster. The same gallery cache still serves detail/admin and other pages.
+- Catalog cards keep their size while uncached poster data loads and update the poster media in place. Warm snapshots retain their displayed posters pending revalidation. Older page/session responses cannot repaint a replacement view, and pending placeholders are excluded from saved DOM.
+- A 670-movie fixture measured one 40-ID gallery request on first opening and one 40-ID request on the next page. Returning to a loaded page or browsing with the preference disabled made zero gallery requests. Tests also exercise in-flight deduplication, late responses, fallback and retry, and forced refresh overriding an earlier request.
+- The full catalog in a browser used the real Supabase SDK against an isolated HTTP fixture with a Russian-poster profile. The server recorded exactly two gallery GETs for page 1 → page 2 → page 1, each with 40 distinct IDs; the return loaded from memory. Both pages displayed the correct Russian poster sources. Full smoke and required Docker runtime checks passed.
+
 ## 2026-11-19 — Read startup stylesheets once per visit
 
 - Hosted boot fetches each selected CSS file once, validates its response and uses those same bytes for the active styles and same-tab warm-start cache. Fresh styles replace the cached styles in cascade order when the complete bundle is ready. Retry, cached fallback and native links on `file:` are retained.

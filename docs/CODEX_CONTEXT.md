@@ -272,6 +272,8 @@ Profile ranking note:
 
 Catalog fast-return startup:
 
+- The Russian-poster preference loads gallery rows for the selected catalog page only, after filters and pagination choose its movies. New poster slots hold their dimensions until the shared gallery cache fills; completion updates poster media in place. Warm DOM retains its posters during revalidation and pending slots are excluded from snapshot capture. In-flight gallery batches share per-movie requests, and a forced reload can supersede an older batch.
+
 - `index.html` sets `html.app-catalog-fast-return-pending` before critical CSS whenever the tab has a saved catalog DOM snapshot; `boot-loader.js` keeps an idempotent fallback. The class must exist before the boot-shell animation starts, otherwise the animation delay can be recalculated mid-flight and the loader can appear/disappear/appear.
 - `catalog-warm-start.js` can restore the saved catalog DOM before the full app starts, and `index.html` reveals that restored page after `app-styles-ready`; this avoids waiting on shared app initialization while still avoiding unstyled controls. The shell reserves shared-header space until shared UI mounts.
 - Catalog warm-start should rely on snapshot validity, not only on the explicit fast-return flag or `PerformanceNavigationTiming.type === "back_forward"`. The browser Back/Forward path is not perfectly consistent across cache-restore and reload scenarios, while a valid same-tab snapshot is the stable signal.

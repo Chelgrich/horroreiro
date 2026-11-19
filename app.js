@@ -3791,48 +3791,8 @@ function getNormalizedMovieIdsFromMovies(movies = []) {
 
 async function fetchMoviePosterImagesForMovie(movieId, { force = false } = {}) {
   const normalizedMovieId = String(movieId || '').trim();
-
-  if (!normalizedMovieId || !moviePosterImagesTableAvailable) {
-    if (normalizedMovieId) {
-      setMoviePosterImagesCache(normalizedMovieId, []);
-    }
-
-    return [];
-  }
-
-  if (!force && moviePosterImagesLoadedByMovieId.has(normalizedMovieId)) {
-    return getMoviePosterImages(normalizedMovieId);
-  }
-
-  if (!force && moviePosterImagesLoadPromisesByMovieId.has(normalizedMovieId)) {
-    return moviePosterImagesLoadPromisesByMovieId.get(normalizedMovieId);
-  }
-
-  const loadPromise = (async () => {
-    const { data, error } = await supabaseClient
-      .from('movie_poster_images')
-      .select(MOVIE_POSTER_IMAGE_DISPLAY_SELECT)
-      .eq('movie_id', normalizedMovieId)
-      .order('position', { ascending: true });
-
-    if (error) {
-      if (isMoviePosterImagesTableUnavailableError(error)) {
-        moviePosterImagesTableAvailable = false;
-        setMoviePosterImagesCache(normalizedMovieId, []);
-        return [];
-      }
-
-      throw error;
-    }
-
-    setMoviePosterImagesCache(normalizedMovieId, data || []);
-    return getMoviePosterImages(normalizedMovieId);
-  })().finally(() => {
-    moviePosterImagesLoadPromisesByMovieId.delete(normalizedMovieId);
-  });
-
-  moviePosterImagesLoadPromisesByMovieId.set(normalizedMovieId, loadPromise);
-  return loadPromise;
+  const rows = await fetchMoviePosterImagesForMovies([normalizedMovieId], { force });
+  return rows.get(normalizedMovieId) || [];
 }
 
 async function fetchMoviePosterImagesForMovieSafe(movieId, options = {}) {
@@ -3860,52 +3820,53 @@ async function fetchMoviePosterImagesForMovies(movieIds = [], { force = false } 
     return new Map(normalizedMovieIds.map(movieId => [movieId, []]));
   }
 
-  const movieIdsToFetch = normalizedMovieIds.filter(movieId =>
-    force || !moviePosterImagesLoadedByMovieId.has(movieId)
-  );
-
-  if (!movieIdsToFetch.length) {
-    return new Map(normalizedMovieIds.map(movieId => [movieId, getMoviePosterImages(movieId)]));
-  }
-
-  const rowsByMovieId = new Map(movieIdsToFetch.map(movieId => [movieId, []]));
   const chunkSize = 200;
-
-  for (let index = 0; index < movieIdsToFetch.length; index += chunkSize) {
-    const chunkMovieIds = movieIdsToFetch.slice(index, index + chunkSize);
-    const { data, error } = await supabaseClient
-      .from('movie_poster_images')
-      .select(MOVIE_POSTER_IMAGE_DISPLAY_SELECT)
-      .in('movie_id', chunkMovieIds)
-      .order('movie_id', { ascending: true })
-      .order('position', { ascending: true });
-
-    if (error) {
-      if (isMoviePosterImagesTableUnavailableError(error)) {
-        moviePosterImagesTableAvailable = false;
-        normalizedMovieIds.forEach(movieId => setMoviePosterImagesCache(movieId, []));
-        return new Map(normalizedMovieIds.map(movieId => [movieId, []]));
-      }
-
-      throw error;
+  for (let index = 0; index < normalizedMovieIds.length; index += chunkSize) {
+    const pending = new Set();
+    const toFetch = [];
+    for (const id of normalizedMovieIds.slice(index, index + chunkSize)) {
+      if (!force && moviePosterImagesLoadedByMovieId.has(id)) continue;
+      const existing = moviePosterImagesLoadPromisesByMovieId.get(id);
+      if (!force && existing) pending.add(existing);
+      else toFetch.push(id);
     }
-
-    (data || []).forEach(row => {
-      const movieId = String(row?.movie_id || '').trim();
-
-      if (!rowsByMovieId.has(movieId)) {
-        rowsByMovieId.set(movieId, []);
+    if (toFetch.length) {
+      if (moviePosterImagesTableAvailable) pending.add(loadMoviePosterImagesChunk(toFetch));
+      else {
+        for (const id of toFetch) setMoviePosterImagesCache(id, []);
       }
-
-      rowsByMovieId.get(movieId).push(row);
-    });
+    }
+    if (pending.size) await Promise.all(pending);
   }
-
-  movieIdsToFetch.forEach(movieId => {
-    setMoviePosterImagesCache(movieId, rowsByMovieId.get(movieId) || []);
-  });
-
   return new Map(normalizedMovieIds.map(movieId => [movieId, getMoviePosterImages(movieId)]));
+}
+
+function loadMoviePosterImagesChunk(ids) {
+  const request = (async () => {
+    const { data, error } = await fetchAllSupabaseRowsResult(() => {
+      const query = supabaseClient.from('movie_poster_images').select(MOVIE_POSTER_IMAGE_DISPLAY_SELECT);
+      const filtered = ids.length === 1
+        ? query.eq('movie_id', ids[0])
+        : query.in('movie_id', ids).order('movie_id', { ascending: true });
+      return filtered.order('position', { ascending: true }).order('id', { ascending: true });
+    });
+    const isCurrent = id => moviePosterImagesLoadPromisesByMovieId.get(id) === request;
+    if (error) {
+      if (!isMoviePosterImagesTableUnavailableError(error)) throw error;
+      if (ids.some(isCurrent)) moviePosterImagesTableAvailable = false;
+    }
+    const rowsById = new Map(ids.map(id => [id, []]));
+    for (const row of data || []) rowsById.get(String(row?.movie_id || '').trim())?.push(row);
+    for (const id of ids) {
+      if (isCurrent(id)) setMoviePosterImagesCache(id, rowsById.get(id));
+    }
+  })().finally(() => {
+    for (const id of ids) {
+      if (moviePosterImagesLoadPromisesByMovieId.get(id) === request) moviePosterImagesLoadPromisesByMovieId.delete(id);
+    }
+  });
+  for (const id of ids) moviePosterImagesLoadPromisesByMovieId.set(id, request);
+  return request;
 }
 
 async function fetchMoviePosterImagesForMoviesSafe(movieIds = [], options = {}) {
@@ -5652,7 +5613,7 @@ function createCatalogDomSnapshotPayload(sessionSnapshot = null) {
     !sessionSnapshot ||
     !moviesLoadedSuccessfully ||
     viewMode?.value !== 'list' ||
-    container.querySelector('.movie-card-skeleton')
+    container.querySelector('.movie-card-skeleton, [data-catalog-poster-pending]')
   ) {
     return null;
   }
@@ -6057,6 +6018,7 @@ function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
     filterState
   });
   bindRestoredCatalogDomState();
+  void loadCatalogPagePosters(pageMovies);
 
   return true;
 }
@@ -10852,7 +10814,6 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
   }
 
   allMovies = data || [];
-  await ensurePreferredPosterImagesForMovies(allMovies);
   rebuildCatalogMovieMeta();
   moviesLoadedSuccessfully = true;
   markCatalogDataChanged();
@@ -12489,6 +12450,7 @@ async function refreshMovieEditorCommittedData(movieId, savePlan) {
   if (savePlan.posterImagesChanged) {
     moviePosterImagesByMovieId.delete(String(movieId));
     moviePosterImagesLoadedByMovieId.delete(String(movieId));
+    moviePosterImagesLoadPromisesByMovieId.delete(String(movieId));
   }
   if (savePlan.manualSimilarChanged) await fetchManualSimilarMovies();
 }
@@ -12765,7 +12727,7 @@ function getReadableAuthErrorMessage(error, fallbackMessage) {
 
 async function refreshPosterPreferenceDependentUi({ forcePosterImages = false } = {}) {
   const moviesToPrepare = [
-    ...(Array.isArray(allMovies) ? allMovies : []),
+    ...(isCatalogPage() && moviesLoadedSuccessfully ? getCatalogDerivedState().pageMovies : []),
     ...(currentMoviePageMovieData ? [currentMoviePageMovieData] : []),
     ...(Array.isArray(currentMoviePageSimilarMovies) ? currentMoviePageSimilarMovies : []),
     ...(Array.isArray(currentDirectorPageData?.movies) ? currentDirectorPageData.movies : [])
@@ -14596,7 +14558,8 @@ function rerenderMovieCard(
 
   const previousCardTop = existingCard.getBoundingClientRect().top;
   const wasExternalLinksExpanded = existingCard.classList.contains('has-open-external-links');
-  const newCard = createMovieCard(movie);
+  const deferPoster = Boolean(existingCard.querySelector('[data-catalog-poster-pending]'));
+  const newCard = createMovieCard(movie, undefined, { deferPoster });
 
   if (
     animateStateAppearance &&
@@ -14784,6 +14747,7 @@ function refreshDynamicFilterOptions() {
 function getCatalogDomRenderSignature({ filteredTotal, paginationState, pageMovies, selectedSortMode, filterState }) {
   return getCatalogRenderController().getCatalogDomRenderSignature({
     dataVersion: catalogDataVersion,
+    preferRussianPosters: shouldPreferRussianPosters(),
     viewMode: viewMode?.value || 'list',
     sortMode: selectedSortMode || sortMode?.value || 'default',
     filteredTotal,
@@ -14794,7 +14758,39 @@ function getCatalogDomRenderSignature({ filteredTotal, paginationState, pageMovi
   });
 }
 
-function renderMovies() {
+let catalogPosterView = null;
+
+function createCatalogPosterOptions({ deferMissing = false } = {}) {
+  let prioritySlots = CATALOG_PRIORITY_POSTER_COUNT;
+  return movie => {
+    const deferPoster = deferMissing && !moviePosterImagesLoadedByMovieId.has(String(movie.id));
+    const isPriorityPoster = prioritySlots > 0 && (deferPoster || Boolean(getMoviePreferredPosterUrl(movie)));
+    if (isPriorityPoster) prioritySlots -= 1;
+    return { isPriorityPoster, deferPoster };
+  };
+}
+
+async function loadCatalogPagePosters(pageMovies) {
+  const view = {};
+  catalogPosterView = view;
+  if (!shouldPreferRussianPosters()) return;
+  const missing = pageMovies.filter(movie => !moviePosterImagesLoadedByMovieId.has(String(movie.id)));
+  if (!missing.length && !container.querySelector('[data-catalog-poster-pending]')) return;
+  const { isCurrent } = getAuthSessionController().captureSession();
+  if (missing.length) await ensurePreferredPosterImagesForMovies(missing);
+  if (catalogPosterView !== view || !isCurrent() || !shouldPreferRussianPosters()) return;
+
+  const byId = new Map(pageMovies.map(movie => [String(movie.id), movie]));
+  const getOptions = createCatalogPosterOptions();
+  const controller = getCatalogCardController();
+  for (const card of container.querySelectorAll('.movie-card[data-movie-id]')) {
+    const movie = byId.get(card.dataset.movieId);
+    if (movie) controller.updateMovieCardPoster(card, movie, getOptions(movie));
+  }
+  persistCatalogDomSnapshot();
+}
+
+function renderMovies({ loadPosters = true } = {}) {
   if (!moviesLoadedSuccessfully) {
     return;
   }
@@ -14823,6 +14819,7 @@ function renderMovies() {
   setCatalogBusyState(false);
 
   if (filteredTotal === 0) {
+    catalogPosterView = null;
     updateCatalogStructuredData([], paginationState);
     clearCatalogPagination();
     renderEmptyState();
@@ -14849,19 +14846,13 @@ function renderMovies() {
   ) {
     recordCatalogDomSnapshotRender();
     persistCatalogDomSnapshot();
+    if (loadPosters) void loadCatalogPagePosters(pageMovies);
     return;
   }
 
-  let priorityPosterSlotsRemaining = CATALOG_PRIORITY_POSTER_COUNT;
-  const getPriorityPosterOptions = movie => {
-    const isPriorityPoster = priorityPosterSlotsRemaining > 0 && Boolean(getMoviePreferredPosterUrl(movie));
-
-    if (isPriorityPoster) {
-      priorityPosterSlotsRemaining = Math.max(0, priorityPosterSlotsRemaining - 1);
-    }
-
-    return { isPriorityPoster };
-  };
+  const getCardRenderOptions = createCatalogPosterOptions({
+    deferMissing: loadPosters && shouldPreferRussianPosters()
+  });
 
   container.replaceChildren(
     getCatalogRenderController().createCatalogMoviesFragment({
@@ -14869,13 +14860,15 @@ function renderMovies() {
       viewMode: viewMode.value,
       sortMode: sortMode.value,
       renderContext: cardRenderContext,
-      getCardRenderOptions: getPriorityPosterOptions
+      getCardRenderOptions
     })
   );
 
   lastCatalogDomRenderSignature = domRenderSignature;
+  catalogPosterView = null;
   recordCatalogDomSnapshotRender();
   persistCatalogDomSnapshot();
+  if (loadPosters) void loadCatalogPagePosters(pageMovies);
 }
 
 const debouncedRenderMovies = createDebouncedCatalogRender(200);
@@ -15191,7 +15184,7 @@ function bindCatalogPageEvents() {
     // Finish any pending data/filter render while leaving, before capturing its DOM.
     if (viewMode?.value === 'list' && !createCatalogDomSnapshotPayload()) {
       const expandedMovieId = container.querySelector('.movie-card.has-open-external-links')?.dataset.movieId;
-      renderMovies();
+      renderMovies({ loadPosters: false });
       const expandedCard = expandedMovieId && container.querySelector(`[data-movie-id="${expandedMovieId}"]`);
       const toggle = expandedCard?.querySelector('[data-external-links-toggle="true"]');
       if (toggle && toggle.getAttribute('aria-expanded') !== 'true') {

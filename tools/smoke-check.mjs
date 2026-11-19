@@ -22,6 +22,7 @@ const syntaxFiles = [
   'tools/auth-ui-smoke.mjs',
   'tools/account-header-smoke.mjs',
   'tools/stylesheet-boot-smoke.mjs',
+  'tools/catalog-posters-smoke.mjs',
   'vite.config.mjs',
   'server/runtime.js',
   'server/server.mjs',
@@ -1699,6 +1700,11 @@ const stylesheetBootSmoke = spawnSync(process.execPath, ['tools/stylesheet-boot-
   cwd: rootDir, encoding: 'utf8'
 });
 assert(stylesheetBootSmoke.status === 0, `Stylesheet boot smoke failed:\n${stylesheetBootSmoke.stderr || stylesheetBootSmoke.stdout}`);
+
+const catalogPostersSmoke = spawnSync(process.execPath, ['tools/catalog-posters-smoke.mjs'], {
+  cwd: rootDir, encoding: 'utf8'
+});
+assert(catalogPostersSmoke.status === 0, `Catalog poster smoke failed:\n${catalogPostersSmoke.stderr || catalogPostersSmoke.stdout}`);
 const catalogReturnSmoke = spawnSync(process.execPath, ['tools/catalog-return-smoke.mjs'], {
   cwd: rootDir, encoding: 'utf8'
 });

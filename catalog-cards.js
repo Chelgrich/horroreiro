@@ -132,6 +132,40 @@ export function createCatalogCardController(context = {}) {
     `;
   }
 
+  function getPosterMediaHtml(posterUrl, escapedAlt, { isPriorityPoster = false, deferPoster = false } = {}) {
+    if (deferPoster) return '<div class="movie-poster-skeleton" data-catalog-poster-pending aria-hidden="true"></div>';
+    if (!posterUrl) return '<div class="movie-poster-placeholder">Нет постера</div>';
+    const hasLoadedPoster = isPosterLoaded(posterUrl);
+    return `
+      <div class="movie-poster-skeleton ${hasLoadedPoster ? 'is-hidden' : ''}" aria-hidden="true"></div>
+      <img
+        class="movie-poster ${hasLoadedPoster ? 'is-loaded' : ''}"
+        ${getPosterImageAttributeHtml(posterUrl, 'catalog')}
+        alt="${escapedAlt}"
+        loading="${isPriorityPoster ? 'eager' : 'lazy'}"
+        decoding="async"
+        ${isPriorityPoster ? 'fetchpriority="high"' : ''}
+      >
+    `;
+  }
+
+  function updateMovieCardPoster(card, movie, renderOptions) {
+    const wrapper = card?.querySelector('.movie-poster-wrapper');
+    if (!wrapper) return;
+    const posterUrl = getMoviePreferredPosterUrl(movie);
+    const image = wrapper.querySelector('.movie-poster');
+    const skeleton = wrapper.querySelector('.movie-poster-skeleton');
+    const placeholder = wrapper.querySelector('.movie-poster-placeholder');
+    if (image?.dataset.originalPosterSrc === posterUrl || (!posterUrl && placeholder)) return;
+    image?.remove();
+    skeleton?.remove();
+    placeholder?.remove();
+    wrapper.insertAdjacentHTML('afterbegin', getPosterMediaHtml(
+      posterUrl, getCatalogMovieMeta(movie).cardRender.escapedPosterAlt, renderOptions
+    ));
+    bindPosterLoadState(wrapper.querySelector('.movie-poster'), wrapper.querySelector('.movie-poster-skeleton'));
+  }
+
   function getPosterHtml(
     movie,
     userMovieState,
@@ -141,9 +175,6 @@ export function createCatalogCardController(context = {}) {
     cardRenderMeta = getCatalogMovieMeta(movie).cardRender,
     renderOptions = {}
   ) {
-    const posterUrl = getMoviePreferredPosterUrl(movie);
-    const hasLoadedPoster = posterUrl && isPosterLoaded(posterUrl);
-    const isPriorityPoster = Boolean(renderOptions.isPriorityPoster);
     const matchedSearchAliasHtml = matchedSearchAlias
       ? getHighlightedCatalogText(matchedSearchAlias, renderContext)
       : '';
@@ -152,21 +183,7 @@ export function createCatalogCardController(context = {}) {
       <div class="movie-poster-block">
         <a href="${cardRenderMeta.escapedPageUrl}" class="movie-poster-link" aria-label="${cardRenderMeta.escapedPageLabel}">
           <div class="movie-poster-wrapper">
-            ${
-              posterUrl
-                ? `
-                  <div class="movie-poster-skeleton ${hasLoadedPoster ? 'is-hidden' : ''}" aria-hidden="true"></div>
-                  <img
-                    class="movie-poster ${hasLoadedPoster ? 'is-loaded' : ''}"
-                    ${getPosterImageAttributeHtml(posterUrl, 'catalog')}
-                    alt="${cardRenderMeta.escapedPosterAlt}"
-                    loading="${isPriorityPoster ? 'eager' : 'lazy'}"
-                    decoding="async"
-                    ${isPriorityPoster ? 'fetchpriority="high"' : ''}
-                  >
-                `
-                : `<div class="movie-poster-placeholder">Нет постера</div>`
-            }
+            ${getPosterMediaHtml(getMoviePreferredPosterUrl(movie), cardRenderMeta.escapedPosterAlt, renderOptions)}
 
             ${
               matchedSearchAlias
@@ -311,6 +328,7 @@ export function createCatalogCardController(context = {}) {
 
   return {
     createMovieCardRenderContext,
-    createMovieCard
+    createMovieCard,
+    updateMovieCardPoster
   };
 }

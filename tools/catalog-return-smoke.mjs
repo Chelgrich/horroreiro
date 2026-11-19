@@ -27,7 +27,7 @@ for (const name of ['syncOpenExternalLinksLayouts', 'bindRestoredCatalogDomState
 layoutSandbox.bindRestoredCatalogDomState();
 for (const callback of frames.splice(0)) callback(1234.5);
 assert.equal(layouts, 1, 'Warm catalog layout must use its DOM root rather than the rAF timestamp');
-const oldCard = { getBoundingClientRect: () => ({ top: 10 }),
+const oldCard = { getBoundingClientRect: () => ({ top: 10 }), querySelector: () => null,
   classList: { contains: name => name === 'has-open-external-links' }, replaceWith() {} };
 const newCard = { classList: { contains: () => false, add() {} },
   querySelector: () => ({ setAttribute() {}, classList: { add() {} } }) };
@@ -186,7 +186,7 @@ let renders = 0;
 let expanded = true;
 const toggle = { getAttribute: () => expanded ? 'true' : 'false' };
 const expandedCard = { dataset: { movieId: 'movie' }, querySelector: () => toggle };
-sandbox.container.querySelector = selector => selector === '.movie-card-skeleton' ? null : expandedCard;
+sandbox.container.querySelector = selector => selector.startsWith('.movie-card-skeleton') ? null : expandedCard;
 sandbox.toggleCatalogExternalLinksPanel = () => { expanded = true; };
 sandbox.renderMovies = () => {
   renders += 1;

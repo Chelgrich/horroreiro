@@ -229,6 +229,7 @@ export function createCatalogRenderController(context = {}) {
 
   function getCatalogDomRenderSignature({
     dataVersion = 0,
+    preferRussianPosters = false,
     viewMode = 'list',
     sortMode = 'default',
     filteredTotal = 0,
@@ -239,6 +240,7 @@ export function createCatalogRenderController(context = {}) {
   } = {}) {
     return JSON.stringify({
       dataVersion,
+      preferRussianPosters,
       viewMode,
       sortMode,
       filteredTotal,
