@@ -6,6 +6,7 @@
 - Background updates patch the existing feed, preserve the active filter, keep existing card nodes and hold the viewport on the same visible card. Transient refresh errors retain the last feed. Account transitions invalidate outstanding feed requests and clear the previous viewer's UI immediately.
 - A confirmed local read or bulk mutation invalidates older feed reads. Individual read requests are deduplicated and only decrement the shared badge when the write actually updates a delivery. Stale notification actions cannot publish results into a replacement viewer.
 - Full smoke and required Docker runtime checks passed. A local browser fixture with the real header timer and feed controller verified new cards, a metadata-only unchanged tick, preserved filter/focus/scroll, remote and local read receipts, temporary network failure and a late response after logout and return to the same account. It used synthetic notification data.
+- Released runtime `d98f022026dfde9616c3868c926f0c19873c43ea`, Yandex revision `bbajju48juv5jffaoq4l`. Gateway, apex and www smoke checks passed on the first attempt. The production browser verified the exact version and the normal guest sign-in gate with no captured warnings/errors. The deployed notifications module matched the release source.
 
 ## 2026-11-19 — Account menu and header ownership
 
