@@ -5296,24 +5296,20 @@ function getSanitizedMoviePageDomSnapshotHtml(movie = currentMoviePageMovieData)
       element.remove();
     });
 
-  template.content.querySelectorAll('.movie-page-summary-panel').forEach(element => {
-    const placeholder = document.createElement('div');
+  template.content
+    .querySelectorAll('.movie-page-summary-panel .movie-rating-value, .movie-page-summary-panel .movie-rating-meta')
+    .forEach(element => {
+      element.classList.add('movie-text-skeleton');
+      element.setAttribute('aria-hidden', 'true');
+      element.textContent = '\u00a0';
+    });
 
-    placeholder.className = 'movie-page-summary-panel movie-page-skeleton-summary';
-    placeholder.setAttribute('aria-hidden', 'true');
-    placeholder.innerHTML = `
-      <span class="movie-text-skeleton movie-page-skeleton-rating"></span>
-      <span class="secondary-button movie-page-rate-trigger movie-page-skeleton-rate-button"></span>
-    `;
-    element.replaceWith(placeholder);
-  });
-
-  template.content.querySelectorAll('[data-open-mobile-rating="true"]').forEach(element => {
-    const placeholder = document.createElement('span');
-
-    placeholder.className = 'secondary-button movie-page-rate-trigger movie-page-skeleton-rate-button';
-    placeholder.setAttribute('aria-hidden', 'true');
-    element.replaceWith(placeholder);
+  template.content.querySelectorAll('[data-open-mobile-rating="true"]').forEach(button => {
+    button.removeAttribute('data-open-mobile-rating');
+    button.disabled = true;
+    button.classList.add('movie-text-skeleton');
+    button.setAttribute('aria-hidden', 'true');
+    button.textContent = '\u00a0';
   });
 
   const reviewsSection = template.content.querySelector('[data-movie-page-reviews-section="true"]');
@@ -7755,7 +7751,9 @@ function updateLocalMovieRatingStats(movieId, nextRating, previousRating = null)
 }
 
 const LETTERBOXD_IMPORT_PREVIEW_LIMIT = 8;
-const SUPABASE_ID_QUERY_CHUNK_SIZE = 200;
+const LETTERBOXD_IMPORT_WRITE_BATCH_SIZE = 200;
+// Leave space for the projection and headers on same-origin UUID filter requests.
+const SUPABASE_ID_QUERY_CHUNK_SIZE = 100;
 let letterboxdImportToolsPromise = null;
 let adminActionToolsPromise = null;
 let personPlaceholderToolsPromise = null;
@@ -9095,10 +9093,10 @@ async function importLetterboxdRatingsFromCsvText(csvText, options = {}) {
 
   const insertedRows = [];
   try {
-    for (let offset = 0; offset < insertRows.length; offset += SUPABASE_ID_QUERY_CHUNK_SIZE) {
+    for (let offset = 0; offset < insertRows.length; offset += LETTERBOXD_IMPORT_WRITE_BATCH_SIZE) {
       const { data, error } = await supabaseClient
         .from('movie_ratings')
-        .upsert(insertRows.slice(offset, offset + SUPABASE_ID_QUERY_CHUNK_SIZE), {
+        .upsert(insertRows.slice(offset, offset + LETTERBOXD_IMPORT_WRITE_BATCH_SIZE), {
           onConflict: 'movie_id,user_id',
           ignoreDuplicates: true
         })

@@ -961,7 +961,7 @@ async function checkStaticGuards() {
       moviePageCss.includes('height: var(--font-size-display-lg);') &&
       moviePageCss.includes('.movie-page-skeleton-rate-button') &&
       moviePageCss.includes('height: var(--control-height-md);'),
-    'movie-page.css: movie detail warm skeleton rating panel must match the real summary panel height to prevent top-page shifts'
+    'movie-page.css: movie detail cold skeleton needs rating and button placeholders'
   );
   assert(
     moviePageCss.includes('.movie-page-admin-actions') &&
@@ -1029,7 +1029,8 @@ async function checkStaticGuards() {
       appJs.includes('data-movie-page-watchlist-icon-toggle="true"') &&
       appJs.includes('.movie-page-watched-icon') &&
       appJs.includes('.movie-page-summary-panel') &&
-      appJs.includes('movie-page-skeleton-summary') &&
+      appJs.includes(".querySelectorAll('.movie-page-summary-panel .movie-rating-value, .movie-page-summary-panel .movie-rating-meta')") &&
+      appJs.includes("button.removeAttribute('data-open-mobile-rating')") &&
       appJs.includes("reviewsSection.outerHTML = getMoviePageReviewsSectionHtml(movie, { isLoading: true })") &&
       appJs.includes("similarMount.innerHTML = getMoviePageSimilarSectionHtml([], movie, { isLoading: true })"),
     'app.js: movie DOM snapshots must hide user/social/similar live zones behind loading states'

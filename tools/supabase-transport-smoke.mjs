@@ -139,7 +139,7 @@ let failBatch = 0;
 let batchIndex = 0;
 let uiSyncs = 0;
 const importer = vm.createContext({
-  Map, Set, SUPABASE_ID_QUERY_CHUNK_SIZE: 200,
+  Map, Set,
   ensureActiveSessionForWrite: () => ({ id: '10000000-0000-4000-8000-000000000000' }),
   loadLetterboxdImportTools: async () => letterboxdTools,
   fetchLetterboxdImportMatchMovies: async () => movies,
@@ -160,6 +160,7 @@ const importer = vm.createContext({
     } };
   } }) }
 });
+vm.runInContext(source.match(/const LETTERBOXD_IMPORT_WRITE_BATCH_SIZE = \d+;/)[0], importer);
 const importStart = source.lastIndexOf('\n', source.indexOf('function importLetterboxdRatingsFromCsvText(')) + 1;
 vm.runInContext(source.slice(importStart, source.indexOf('\n}', importStart) + 2), importer);
 let result = await importer.importLetterboxdRatingsFromCsvText(csv);

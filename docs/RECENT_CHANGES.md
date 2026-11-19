@@ -1,5 +1,15 @@
 # Recent Changes
 
+## 2026-11-19 — Keep movie details stable on mobile and extend desktop catalog skeletons
+
+- The saved movie summary masks rating text and any existing rating button in their regular layout. Guest snapshots have no button placeholder. The mobile details column uses system typography so a late font cannot rewrap the title and shift the description.
+- Desktop catalog startup shows two rows of skeletons and holds the footer below the first screen. Mobile startup shows one row.
+
+## 2026-11-19 — Fit profile movie reads through the gateway
+
+- Shared movie and rating ID queries use at most 100 UUIDs per GET. The public profile taste projection with 200 IDs sent an 8,004-byte path and query and received HTTP 431. Rating import writes keep their separate 200-row limit.
+- Public profiles show a load-error message when a request fails. A successful lookup with no profile still shows the not-found message.
+
 ## 2026-11-19 — Preserve warm catalog returns when env is delayed
 
 - The boot loader selects one environment for the document. On a hosted `/env` timeout or network failure, the fallback uses the saved build version for stylesheet and script URLs. A late response does not change the selection for an in-progress startup.

@@ -958,6 +958,10 @@
 
 @media (min-width: 901px){
 
+  .page:has(.catalog-startup-skeleton){
+    min-block-size: 100vh;
+  }
+
   .catalog-toolbar-actions{
     gap: 12px;
   }
@@ -972,7 +976,7 @@
     --catalog-columns: 3;
   }
 
-  .catalog-startup-skeleton:nth-child(n+4){
+  .catalog-startup-skeleton:nth-child(n+7){
     display: none;
   }
 }
@@ -983,12 +987,16 @@
     --catalog-grid-gap: 14px;
   }
 
-  .catalog-startup-skeleton:nth-child(n+3){
+  .catalog-startup-skeleton:nth-child(n+5){
     display: none;
   }
 }
 
 @media (max-width: 900px){
+  .catalog-startup-skeleton:nth-child(n+3){
+    display: none;
+  }
+
   .page{
     --movies-year-title-font-size: var(--font-size-title-lg);
     --movies-month-title-font-size: var(--font-size-title-md);

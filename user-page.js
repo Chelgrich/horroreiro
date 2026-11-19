@@ -1160,7 +1160,7 @@ export function createUserPageController(context = {}) {
     userPage.innerHTML = '<div class="user-page-loading-state">Загрузка профиля...</div>';
   }
 
-  function renderUserPageNotFound() {
+  function renderUserPageUnavailable(message) {
     if (!userPage) {
       return;
     }
@@ -1171,7 +1171,7 @@ export function createUserPageController(context = {}) {
     setUserPageDocumentMeta(null);
     userPage.innerHTML = `
       <div class="user-page-empty-state user-page-empty-state-large">
-        Пользователь не найден.
+        ${escapeHtml(message)}
       </div>
     `;
   }
@@ -1418,7 +1418,7 @@ export function createUserPageController(context = {}) {
       if (!isCurrentLoad()) return;
 
       if (!profile) {
-        renderUserPageNotFound();
+        renderUserPageUnavailable('Пользователь не найден.');
         return;
       }
 
@@ -1451,7 +1451,7 @@ export function createUserPageController(context = {}) {
       await loadUserPage();
     } catch (error) {
       console.error('Ошибка загрузки страницы пользователя:', error);
-      renderUserPageNotFound();
+      renderUserPageUnavailable('Не удалось загрузить профиль. Обновите страницу.');
     }
   }
 

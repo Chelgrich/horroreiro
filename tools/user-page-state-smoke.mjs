@@ -173,6 +173,13 @@ try {
   assert.equal(typeof earlyAuthSync, 'function', 'Auth changes must be observed before the first pending profile read');
   finishInitialProfile(profile);
   await initialLoad;
+  globalThis.window.location.pathname = '/user/offline';
+  const failedProfileLoad = createUserPageController({
+    ...context,
+    fetchPublicUserProfileByHandle: async () => { throw new Error('Profile read failed'); }
+  });
+  await failedProfileLoad.initUserPage();
+  assert.match(page.innerHTML, /Не удалось загрузить профиль/);
 } finally {
   Object.assign(globalThis, previous);
 }

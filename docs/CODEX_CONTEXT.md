@@ -185,7 +185,7 @@ Read `docs/SERVER_RUNTIME.md` before changing portable routing, Docker migration
 
 ## Client Ownership
 
-Complete catalog/profile/import reads reuse `fetchAllSupabaseRows` and its `{data,error}` adapter `fetchAllSupabaseRowsResult`, also injected into `user-page.js`. Callers supply a unique parent-row ordering key; movie-by-ID queries use 200-ID batches. Results enter state/caches only after all pages/batches succeed. Personal collection loaders retain their captured user ID throughout paging and check it before updating state.
+Complete catalog/profile/import reads reuse `fetchAllSupabaseRows` and its `{data,error}` adapter `fetchAllSupabaseRowsResult`, also injected into `user-page.js`. Callers supply a unique parent-row ordering key. Shared movie and rating ID GET filters use 100-ID batches to fit the gateway. Results enter state/caches only after all pages/batches succeed. Personal collection loaders retain their captured user ID throughout paging and check it before updating state.
 
 `app.js` is still the main application file. It owns:
 
@@ -282,7 +282,7 @@ Catalog fast-return startup:
 
 - The Russian-poster preference loads gallery rows for the selected catalog page only, after filters and pagination choose its movies. New poster slots hold their dimensions until the shared gallery cache fills; completion updates poster media in place. Warm DOM retains its posters during revalidation and pending slots are excluded from snapshot capture. In-flight gallery batches share per-movie requests, and a forced reload can supersede an older batch.
 
-- `catalog-warm-start.js` can restore the saved catalog DOM before the full app starts. `index.html` reveals a styled shell with those cards or the static first-row skeletons, and reserves shared-header space until shared UI mounts.
+- `catalog-warm-start.js` can restore the saved catalog DOM before the full app starts. `index.html` reveals a styled shell with those cards or static skeletons, and reserves shared-header space until shared UI mounts. Cold desktop startup shows two rows and keeps the footer below the viewport. Mobile startup shows one row.
 - Catalog warm-start should rely on snapshot validity, not only on the explicit fast-return flag or `PerformanceNavigationTiming.type === "back_forward"`. The browser Back/Forward path is not perfectly consistent across cache-restore and reload scenarios, while a valid same-tab snapshot is the stable signal.
 - Catalog DOM snapshots include `.movies-section-header`, including the view-toggle button. Do not restore the movie grid without the section header, or the hydrated app can append the toggle later and create a visible shift inside `.movies-section`.
 - DOM snapshot capture requires the data hash and controls to match `catalogDomSnapshotRenderState`, recorded at completed full/empty renders or DOM hydration. Internal data-version invalidation alone does not invalidate this semantic provenance. Pending changed renders finish on non-bfcache departure before capture, preserving the expanded external-links card. DOM payloads include `dataMutationStamp` for the early bootstrap.
@@ -296,7 +296,7 @@ Movie detail warm-start startup:
 - `app.js` writes a sanitized `horroreiro_movie_page_dom_snapshot` after a real detail render/session-cache persist, and also indexes recent snapshots in `horroreiro_movie_page_dom_snapshots` by route key. The snapshot stores only the detail DOM plus build, route keys, age, and the current per-movie dependency stamp.
 - Movie detail pages persist the current DOM snapshot on `pagehide`, so quick browser Back/Forward navigation does not depend on deferred social/similar sections finishing first.
 - The sanitized snapshot removes watchlist/watched controls and replaces the summary rating panel, review/comment sections, and similar section with loading states. This allows already-opened movie pages to return with stable static content while the full app reloads current user/social data.
-- The movie summary skeleton must preserve the real rating panel's vertical rhythm. If `.movie-page-skeleton-rating` or `.movie-page-skeleton-rate-button` gets shorter than the real summary controls, the upper movie detail layout will shift when hydration replaces the warm snapshot.
+- Movie snapshot sanitization masks rating text and any existing rating button in their live wrappers. This preserves the summary's layout for guests and signed-in viewers. The mobile details column uses the system font stack to keep the title and metadata stable while the external font arrives.
 - `movie-warm-start.js` restores the saved DOM before the full app starts; `movie.html` reveals the restored page after styles are ready and reserves shared-header space until shared UI mounts.
 - `initMoviePage({ onShellReady })` must signal shell-ready after choosing warm DOM or rendering a skeleton/not-found state, not immediately when app JS starts.
 

@@ -115,7 +115,6 @@ const sandbox = vm.createContext({
   } }),
   console: { error() {}, warn() {} },
   supabaseClient: { from: query },
-  SUPABASE_ID_QUERY_CHUNK_SIZE: 200,
   currentUser: { id: 'user-a' },
   allMovies: [], allMovieRatings: [], allMovieWatchlist: [], catalogMovieLinksById: new Map(),
   catalogReviewedMovieIds: new Set(), catalogProfileActivityRatingsByMovieId: new Map(),
@@ -137,6 +136,8 @@ const sandbox = vm.createContext({
   cacheMovieSelectRows: (select, rows) => rows.forEach(row => sandbox.movieCache.set(row.id, row)),
   movieCache: new Map()
 });
+
+vm.runInContext(source.match(/const SUPABASE_ID_QUERY_CHUNK_SIZE = \d+;/)[0], sandbox);
 
 const names = ['fetchAllSupabaseRows', 'runMovieSelectWithOptionalColumns', 'fetchMovies',
   'fetchMovieRatingStats', 'fetchFullMovieRatingsFallback', 'fetchCurrentUserRatings',
@@ -241,6 +242,8 @@ for (const [table, loader, stateKey] of [
 
 const movies = await sandbox.fetchMoviesByIdsWithSelect(fixtures.movies.map(row => row.id));
 assert.equal(movies.length, 2501, 'Large profile taste lookups must be split into bounded ID queries');
+assert(requests.filter(request => request.table === 'movies' && request.idCount).every(request => request.idCount <= 100),
+  'Movie-ID requests must leave room for the projection and HTTP headers through the production gateway');
 
 // A partial batch must not become a seemingly complete movie cache.
 sandbox.movieCache.clear();
@@ -275,7 +278,7 @@ sandbox.supabaseClient.from = table => {
 };
 assert.equal((await sandbox.fetchMoviesByIdsWithSelect(fixtures.movies.map(row => row.id), 'id,\n runtime_minutes,\n title')).length, 2501);
 assert.equal(selects.filter(select => select.includes('runtime_minutes')).length, 2);
-assert.equal(selects.filter(select => !select.includes('runtime_minutes')).length, 13);
+assert.equal(selects.filter(select => !select.includes('runtime_minutes')).length, 26);
 sandbox.supabaseClient.from = originalFrom;
 
 let profileSource = await readFile(new URL('../user-page.js', import.meta.url), 'utf8');
@@ -298,5 +301,5 @@ assert.equal(profile.watchlistCount, 2501);
 assert.equal(profile.reviewCount, 2501);
 assert.ok(requests.every(request => request.orders.length > 0));
 assert.ok(requests.every(request => request.orders.some(([key]) => key === (request.table === 'movie_rating_stats' ? 'movie_id' : 'id'))));
-assert.ok(requests.every(request => request.idCount === undefined || request.idCount <= 200));
+assert.ok(requests.every(request => request.idCount === undefined || request.idCount <= 100));
 console.log('Collection reads smoke passed: complete catalog/profile/import data, 1000-row boundaries, failure and session isolation.');
