@@ -142,6 +142,7 @@ const pending = [];
 const badges = [];
 const ctx = vm.createContext({
   currentUser: null, currentUserRole: null, currentUserProfile: null, profileFollowActions: null, profileSettingsController: null,
+  notificationsPageController: null,
   notificationsUnreadCount: 0, notificationsUnreadUserId: '', notificationsUnreadRefreshPromise: null,
   notificationsUnreadFetchedAt: 0, areNotificationsUnavailable: false, NOTIFICATIONS_UNREAD_REFRESH_INTERVAL_MS: 60000,
   updateAdminStatus() {}, rebuildMovieRatingIndexes() {}, rebuildCurrentUserWatchlistIndex() {},

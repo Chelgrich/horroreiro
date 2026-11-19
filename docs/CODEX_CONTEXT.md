@@ -236,7 +236,7 @@ Secondary page-only CSS is loaded by `boot-loader.js` only for the matching shel
 
 `following-page.js` is lazy-loaded only for `/following` and owns followed profile rendering, follow notification toggles, unfollow actions, and that page's auth gate. `app.js` provides shared auth, profile, Supabase, and notification availability context to it.
 
-`notifications-page.js` is lazy-loaded only for `/notifications` and owns notification settings/feed rendering, filters, read/dwell handling, clear-all, mark-all-read, and notification digest movie rails. `app.js` keeps the unread badge, account-menu badge, and shared availability/error state.
+`notifications-page.js` is lazy-loaded only for `/notifications` and owns notification settings/feed rendering, filters, read/dwell handling, clear-all, mark-all-read, and notification digest movie rails. `app.js` connects the header refresh tick to the mounted feed and keeps the shared unread count and availability state. The header controller renders the badges.
 
 `user-page.js` is lazy-loaded only for `/user/*` and owns route parsing, public page data composition, rankings/taste stats, rendering, the displayed profile identity, follow request guards, tooltip state/events, own-profile title/settings visibility, and identity/avatar patches. Its shared load path rejects obsolete viewer/route/load completions before writing page caches or DOM. The page-data cache is keyed by profile handle, viewer id, poster preference, build version, global mutation stamp, and per-movie dependency stamps. Public identity indexes belong to `profile-data-actions.js`; followed-profile membership and writes belong to `profile-follow-actions.js`. `app.js` keeps auth's current role/profile, the settings patch/rerender bridge, shared rails, local dependency stamps, the activity-ranks fetch bridge, and admin password operations. Shared settings notify the loaded page controller of identity/avatar changes; the controller updates only the displayed own profile. Do not put page-local tooltip/request/display state back into `app.js` or restore its implicit global route helper dependency.
 
@@ -488,6 +488,7 @@ Notifications page:
 
 - settings live on the page;
 - unread indicator appears in header/account menu;
+- the header's shared visible-tab refresh tick also refreshes the mounted notifications feed. The page controller reads the latest delivery IDs and read state, hydrates new cards, patches surviving DOM in place and invalidates outstanding work on viewer changes or confirmed writes;
 - read state is not set by random click; current behavior includes dwell/interaction logic.
 
 Following:

@@ -7856,6 +7856,7 @@ async function loadAccountHeaderController() {
     unreadRefreshInterval: NOTIFICATIONS_UNREAD_REFRESH_INTERVAL_MS,
     refreshUnread: options => {
       if (!notificationsUnreadRefreshPromise) void refreshNotificationsUnreadCount(options);
+      void notificationsPageController?.refreshNotificationsPage();
     },
     restoreCurrentPageLink, isSameCurrentPageUrl, disableCurrentPageLink,
     links: {
@@ -10318,6 +10319,7 @@ function updateAuthUI() {
   const shouldShowAuthenticatedUi = shouldUseAuthenticatedUi();
 
   profileSettingsController?.syncAuthState();
+  notificationsPageController?.syncViewer();
   userPageController?.syncProfileSettingsButton();
   if (!shouldShowAuthenticatedUi) {
     profileSettingsController?.close();
@@ -12686,7 +12688,10 @@ function setCurrentSessionUser(user) {
   currentUser = user ?? null;
   updateAdminStatus();
   profileSettingsController?.syncAuthState();
-  if (didChangeViewer) syncAccountHeader({ ready: false });
+  if (didChangeViewer) {
+    syncAccountHeader({ ready: false });
+    notificationsPageController?.syncViewer();
+  }
   rebuildMovieRatingIndexes();
   rebuildCurrentUserWatchlistIndex();
 }
@@ -16206,6 +16211,7 @@ function getNotificationsPageControllerContext() {
     },
     refreshNotificationsUnreadCount,
     setNotificationsUnreadCount: (count, options = {}) => {
+      notificationsUnreadRefreshPromise = null;
       notificationsUnreadCount = Math.max(0, Number(count || 0));
 
       if (Object.prototype.hasOwnProperty.call(options, 'userId')) {
@@ -16219,6 +16225,7 @@ function getNotificationsPageControllerContext() {
       accountHeaderController.syncBadge(notificationsUnreadCount);
     },
     decrementNotificationsUnreadCount: (amount = 1) => {
+      notificationsUnreadRefreshPromise = null;
       const numericAmount = Math.max(0, Number(amount || 0));
       notificationsUnreadCount = Math.max(0, notificationsUnreadCount - numericAmount);
       accountHeaderController.syncBadge(notificationsUnreadCount);

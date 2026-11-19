@@ -1,4 +1,6 @@
 const NOTIFICATIONS_PAGE_LIMIT = 80;
+const NOTIFICATION_DELIVERY_SELECT = 'event_id, read_at, created_at';
+const NOTIFICATION_EVENT_SELECT = 'notification_events (id, type, actor_id, movie_id, entity_type, entity_id, payload, created_at)';
 const NOTIFICATION_READ_DWELL_MS = 1300;
 const NOTIFICATION_READ_VISIBILITY_RATIO = 0.7;
 const NOTIFICATION_CONTEXT_SNIPPET_LABELS = {
@@ -84,6 +86,34 @@ export function createNotificationsPageController(context = {}) {
   const notificationReadDwellTimers = new Map();
   let notificationReadObserver = null;
   let areNotificationReadTrackingEventsBound = false;
+  let viewer = null;
+  let didSyncViewer = false;
+  let pageRequest = null;
+  let hasLoadedFeed = false;
+  let feedVersion = 0;
+  const pendingReads = new Set();
+
+  function syncViewer() {
+    const userId = shouldUseAuthenticatedUi() ? getCurrentUser()?.id : null;
+    const preserveWarmDom = !didSyncViewer && hasWarmStartedPageDom();
+    didSyncViewer = true;
+    if ((viewer?.id ?? null) === (userId ?? null)) return;
+    viewer = userId ? { id: userId } : null;
+    pageRequest = null;
+    hasLoadedFeed = false;
+    notificationsPageItems = [];
+    notificationsPagePreferences = null;
+    notificationsPageFilter = 'all';
+    isNotificationsPageMarkingAllRead = false;
+    isNotificationsPageClearingAll = false;
+    pendingReads.clear();
+    notificationPreferenceRequestKeys.clear();
+    clearNotificationReadDwellTimers();
+    notificationReadObserver?.disconnect();
+    if (viewer && preserveWarmDom) return;
+    if (viewer) renderNotificationsPageLoading();
+    else renderNotificationsPageAuthGate();
+  }
 
   function getNotificationEventTimestampMs(item) {
     const timestamp = new Date(item?.createdAt || item?.deliveryCreatedAt || 0).getTime();
@@ -220,41 +250,27 @@ export function createNotificationsPageController(context = {}) {
     };
   }
 
-  async function fetchNotificationsPageRows() {
-    if (!shouldUseAuthenticatedUi() || !getCurrentUser()?.id) {
-      return [];
-    }
-
-    const { data, error } = await supabaseClient
+  async function fetchNotificationsPageRows(actor, { eventIds, metadataOnly = false } = {}) {
+    let query = supabaseClient
       .from('notification_deliveries')
-      .select('event_id, read_at, created_at, notification_events (id, type, actor_id, movie_id, entity_type, entity_id, payload, created_at)')
-      .eq('recipient_id', getCurrentUser().id)
+      .select(metadataOnly ? NOTIFICATION_DELIVERY_SELECT : `${NOTIFICATION_DELIVERY_SELECT}, ${NOTIFICATION_EVENT_SELECT}`)
+      .eq('recipient_id', actor.id)
       .order('created_at', { ascending: false })
       .limit(NOTIFICATIONS_PAGE_LIMIT);
+    if (eventIds) query = query.in('event_id', eventIds);
+    const { data, error } = await query;
+    if (error) throw error;
 
-    if (error) {
-      if (isNotificationsUnavailableError(error)) {
-        setNotificationsUnavailable(true);
-      }
-
-      throw error;
-    }
-
-    return (data || [])
-      .map(normalizeNotificationRow)
-      .filter(Boolean);
+    return metadataOnly ? data || [] : (data || []).map(normalizeNotificationRow).filter(Boolean);
   }
 
-  async function fetchCurrentNotificationPreferences() {
-    if (!shouldUseAuthenticatedUi() || !getCurrentUser()?.id) {
-      return { ...NOTIFICATIONS_DEFAULT_PREFERENCES };
-    }
-
+  async function fetchCurrentNotificationPreferences(actor) {
     const { data, error } = await supabaseClient
       .from('notification_preferences')
       .select(Object.keys(NOTIFICATIONS_DEFAULT_PREFERENCES).join(', '))
-      .eq('user_id', getCurrentUser().id)
+      .eq('user_id', actor.id)
       .maybeSingle();
+    if (viewer !== actor) return null;
 
     if (error) {
       if (isNotificationsUnavailableError(error)) {
@@ -275,12 +291,13 @@ export function createNotificationsPageController(context = {}) {
     }
 
     const insertPayload = {
-      user_id: getCurrentUser().id,
+      user_id: actor.id,
       ...NOTIFICATIONS_DEFAULT_PREFERENCES
     };
     const { error: insertError } = await supabaseClient
       .from('notification_preferences')
       .insert(insertPayload);
+    if (viewer !== actor) return null;
 
     if (insertError && insertError.code !== '23505') {
       if (isNotificationsUnavailableError(insertError)) {
@@ -294,11 +311,8 @@ export function createNotificationsPageController(context = {}) {
     return { ...NOTIFICATIONS_DEFAULT_PREFERENCES };
   }
 
-  async function fetchNotificationsPageData() {
-    const [notificationRows, preferences] = await Promise.all([
-      fetchNotificationsPageRows(),
-      fetchCurrentNotificationPreferences()
-    ]);
+  async function hydrateNotificationItems(notificationRows) {
+    if (!notificationRows.length) return [];
     const actorIds = [...new Set(
       notificationRows
         .map(item => item.actorId)
@@ -331,8 +345,7 @@ export function createNotificationsPageController(context = {}) {
     const reviewSnippetsById = new Map((reviewSnippets || []).map(review => [String(review.id), review]));
     const commentSnippetsById = new Map((commentSnippets || []).map(comment => [String(comment.id), comment]));
 
-    notificationsPagePreferences = preferences;
-    notificationsPageItems = notificationRows
+    return notificationRows
       .map(item => ({
         ...item,
         actor: item.actorId ? profilesById.get(item.actorId) : null,
@@ -342,15 +355,11 @@ export function createNotificationsPageController(context = {}) {
         digestMovies: getNotificationMovieIdsFromPayload(item.payload)
           .map(movieId => digestMoviesById.get(movieId))
           .filter(Boolean)
-      }))
-      .sort((firstItem, secondItem) => (
-        getNotificationEventTimestampMs(secondItem) - getNotificationEventTimestampMs(firstItem)
-      ));
+      }));
+  }
 
-    return {
-      items: notificationsPageItems,
-      preferences
-    };
+  function sortNotificationItems(items) {
+    return items.sort((first, second) => getNotificationEventTimestampMs(second) - getNotificationEventTimestampMs(first));
   }
 
   function getNotificationActorLinkHtml(actor) {
@@ -798,24 +807,81 @@ export function createNotificationsPageController(context = {}) {
     `;
   }
 
-  function renderNotificationsPageList(items = []) {
-    const filteredItems = notificationsPageFilter === 'all'
+  function getVisibleNotificationItems(items) {
+    return notificationsPageFilter === 'all'
       ? items
       : items.filter(item => getNotificationCategory(item.type) === notificationsPageFilter);
+  }
 
-    if (!items.length) {
-      return '<div class="notifications-page-empty-state">Уведомлений пока нет.</div>';
-    }
+  function renderEmptyFeed(items) {
+    const text = items.length ? 'В этом разделе пока нет уведомлений.' : 'Уведомлений пока нет.';
+    return `<div class="notifications-page-empty-state">${text}</div>`;
+  }
 
-    if (!filteredItems.length) {
-      return '<div class="notifications-page-empty-state">В этом разделе пока нет уведомлений.</div>';
-    }
-
+  function renderNotificationsPageList(items) {
+    const visible = getVisibleNotificationItems(items);
     return `
       <div class="notifications-page-list">
-        ${filteredItems.map(renderNotificationsPageItem).join('')}
+        ${visible.length ? visible.map(renderNotificationsPageItem).join('') : renderEmptyFeed(items)}
       </div>
     `;
+  }
+
+  function syncFeedDom(previousItems) {
+    const list = notificationsPage.querySelector('.notifications-page-list');
+    const visibleItems = getVisibleNotificationItems(notificationsPageItems);
+    const visibleIds = new Set(visibleItems.map(item => item.id));
+    const previousNodes = Array.from(list.children).filter(node => node.dataset.notificationEventId);
+    const anchor = window.scrollY > 0 && previousNodes.find(node => {
+      const rect = node.getBoundingClientRect();
+      return visibleIds.has(node.dataset.notificationEventId) && rect.bottom > 0 && rect.top < window.innerHeight;
+    });
+    const anchorTop = anchor ? anchor.getBoundingClientRect().top : 0;
+    const nodesById = new Map();
+    for (const node of previousNodes) {
+      const id = node.dataset.notificationEventId;
+      if (visibleIds.has(id)) nodesById.set(id, node);
+      else {
+        clearNotificationReadDwell(id);
+        notificationReadObserver?.unobserve(node);
+        node.remove();
+      }
+    }
+
+    if (!visibleItems.length) {
+      const html = renderEmptyFeed(notificationsPageItems);
+      if (list.innerHTML !== html) list.innerHTML = html;
+    } else {
+      list.querySelector('.notifications-page-empty-state')?.remove();
+      const previousById = new Map(previousItems.map(item => [item.id, item]));
+      let cursor = list.firstElementChild;
+      for (const item of visibleItems) {
+        const node = nodesById.get(item.id);
+        if (node) {
+          if (node !== cursor) list.insertBefore(node, cursor);
+          cursor = node.nextElementSibling;
+          if (Boolean(previousById.get(item.id)?.readAt) !== Boolean(item.readAt)) {
+            syncNotificationReadState(node, item.readAt);
+          }
+        } else {
+          if (cursor) cursor.insertAdjacentHTML('beforebegin', renderNotificationsPageItem(item));
+          else list.insertAdjacentHTML('beforeend', renderNotificationsPageItem(item));
+          const inserted = cursor ? cursor.previousElementSibling : list.lastElementChild;
+          bindUserPageRailControls(inserted);
+          if (!item.readAt) notificationReadObserver?.observe(inserted);
+        }
+      }
+    }
+
+    if (anchor) {
+      const delta = anchor.getBoundingClientRect().top - anchorTop;
+      if (delta) window.scrollBy({ top: delta, behavior: 'instant' });
+    }
+    const counts = getNotificationsPageFilterCounts(notificationsPageItems);
+    for (const button of notificationsPage.querySelectorAll('[data-notification-filter]')) {
+      button.querySelector('span').textContent = String(counts.get(button.dataset.notificationFilter) || 0);
+    }
+    syncNotificationsPageReadAllButtonState();
   }
 
   function renderNotificationsPageLoading() {
@@ -932,17 +998,18 @@ export function createNotificationsPageController(context = {}) {
     }
   }
 
-  function applyNotificationReadStateToDom(eventId) {
-    const notificationElement = getNotificationElementByEventId(eventId);
-
-    if (!notificationElement) {
-      return;
+  function syncNotificationReadState(node, readAt) {
+    node.classList.toggle('is-read', Boolean(readAt));
+    node.classList.toggle('is-unread', !readAt);
+    if (readAt) {
+      clearNotificationReadDwell(node.dataset.notificationEventId);
+      notificationReadObserver?.unobserve(node);
+      node.querySelector('.notifications-page-unread-dot')?.remove();
+    } else {
+      node.querySelector('.notifications-page-avatar-shell')?.insertAdjacentHTML(
+        'beforeend', '<span class="notifications-page-unread-dot" aria-hidden="true"></span>');
+      notificationReadObserver?.observe(node);
     }
-
-    notificationElement.classList.remove('is-unread');
-    notificationElement.classList.add('is-read');
-    notificationElement.querySelector('.notifications-page-unread-dot')?.remove();
-    syncNotificationsPageReadAllButtonState();
   }
 
   function clearNotificationReadDwell(eventId) {
@@ -1086,8 +1153,9 @@ export function createNotificationsPageController(context = {}) {
 
   async function markNotificationRead(eventId, { rerender = true } = {}) {
     const normalizedEventId = String(eventId || '').trim();
+    const actor = viewer;
 
-    if (!normalizedEventId || !shouldUseAuthenticatedUi() || !getCurrentUser()?.id) {
+    if (!normalizedEventId || !actor || pendingReads.has(normalizedEventId)) {
       return;
     }
 
@@ -1095,40 +1163,43 @@ export function createNotificationsPageController(context = {}) {
 
     const item = getNotificationItemByEventId(normalizedEventId);
 
-    if (item?.readAt) {
+    if (!item || item.readAt) {
       return;
     }
 
-    const readAt = new Date().toISOString();
-    const { error } = await supabaseClient
-      .from('notification_deliveries')
-      .update({ read_at: readAt })
-      .eq('recipient_id', getCurrentUser().id)
-      .eq('event_id', normalizedEventId)
-      .is('read_at', null);
-
-    if (error) {
-      if (isNotificationsUnavailableError(error)) {
-        setNotificationsUnavailable(true);
+    pendingReads.add(normalizedEventId);
+    try {
+      const readAt = new Date().toISOString();
+      const { data, error } = await supabaseClient
+        .from('notification_deliveries')
+        .update({ read_at: readAt })
+        .eq('recipient_id', actor.id)
+        .eq('event_id', normalizedEventId)
+        .is('read_at', null)
+        .select('event_id');
+      if (viewer !== actor) return;
+      if (error) {
+        if (isNotificationsUnavailableError(error)) setNotificationsUnavailable(true);
+        throw error;
       }
-
-      throw error;
-    }
-
-    if (item) {
-      item.readAt = readAt;
-    }
-
-    decrementNotificationsUnreadCount(1);
-
-    if (notificationsPage && rerender) {
-      renderNotificationsPage();
-    } else if (notificationsPage) {
-      applyNotificationReadStateToDom(normalizedEventId);
+      feedVersion += 1;
+      const currentItem = getNotificationItemByEventId(normalizedEventId);
+      if (!currentItem || currentItem.readAt) return;
+      currentItem.readAt = readAt;
+      if (data?.length) decrementNotificationsUnreadCount(1);
+      if (rerender) renderNotificationsPage();
+      else {
+        const node = getNotificationElementByEventId(normalizedEventId);
+        if (node) syncNotificationReadState(node, readAt);
+        syncNotificationsPageReadAllButtonState();
+      }
+    } finally {
+      if (viewer === actor) pendingReads.delete(normalizedEventId);
     }
   }
 
   async function markAllNotificationsRead() {
+    const actor = viewer;
     if (
       !shouldUseAuthenticatedUi() ||
       !getCurrentUser()?.id ||
@@ -1152,8 +1223,9 @@ export function createNotificationsPageController(context = {}) {
       const { error } = await supabaseClient
         .from('notification_deliveries')
         .update({ read_at: readAt })
-        .eq('recipient_id', getCurrentUser().id)
+        .eq('recipient_id', actor.id)
         .is('read_at', null);
+      if (viewer !== actor) return;
 
       if (error) {
         if (isNotificationsUnavailableError(error)) {
@@ -1163,21 +1235,26 @@ export function createNotificationsPageController(context = {}) {
         throw error;
       }
 
+      feedVersion += 1;
       notificationsPageItems = notificationsPageItems.map(item => ({
         ...item,
         readAt: item.readAt || readAt
       }));
-      setNotificationsUnreadCount(0, { userId: getCurrentUser()?.id || '', fetchedAt: Date.now() });
+      setNotificationsUnreadCount(0, { userId: actor.id, fetchedAt: Date.now() });
     } catch (error) {
+      if (viewer !== actor) return;
       console.error('Ошибка отметки уведомлений прочитанными:', error);
       showAppMessage('Не удалось отметить уведомления прочитанными.', 'error', true);
     } finally {
-      isNotificationsPageMarkingAllRead = false;
-      renderNotificationsPage();
+      if (viewer === actor) {
+        isNotificationsPageMarkingAllRead = false;
+        renderNotificationsPage();
+      }
     }
   }
 
   async function clearAllNotifications() {
+    const actor = viewer;
     if (
       !shouldUseAuthenticatedUi() ||
       !getCurrentUser()?.id ||
@@ -1189,6 +1266,7 @@ export function createNotificationsPageController(context = {}) {
     }
 
     await runConfirmedAction('Очистить все уведомления? Это действие нельзя отменить.', async () => {
+      if (viewer !== actor) return;
       isNotificationsPageClearingAll = true;
       renderNotificationsPage();
 
@@ -1196,7 +1274,8 @@ export function createNotificationsPageController(context = {}) {
         const { error } = await supabaseClient
           .from('notification_deliveries')
           .delete()
-          .eq('recipient_id', getCurrentUser().id);
+          .eq('recipient_id', actor.id);
+        if (viewer !== actor) return;
 
         if (error) {
           if (isNotificationsUnavailableError(error)) {
@@ -1207,14 +1286,18 @@ export function createNotificationsPageController(context = {}) {
         }
 
         clearNotificationReadDwellTimers();
+        feedVersion += 1;
         notificationsPageItems = [];
-        setNotificationsUnreadCount(0, { userId: getCurrentUser()?.id || '', fetchedAt: Date.now() });
+        setNotificationsUnreadCount(0, { userId: actor.id, fetchedAt: Date.now() });
       } catch (error) {
+        if (viewer !== actor) return;
         console.error('Ошибка очистки уведомлений:', error);
         showAppMessage('Не удалось очистить уведомления.', 'error', true);
       } finally {
-        isNotificationsPageClearingAll = false;
-        renderNotificationsPage();
+        if (viewer === actor) {
+          isNotificationsPageClearingAll = false;
+          renderNotificationsPage();
+        }
       }
     });
   }
@@ -1275,12 +1358,13 @@ export function createNotificationsPageController(context = {}) {
 
       if (!shouldOpenNormally) {
         event.preventDefault();
+        const actor = viewer;
         void markNotificationRead(notificationEventId, { rerender: false })
           .catch(error => {
             console.warn('Ошибка отметки уведомления прочитанным:', error);
           })
           .finally(() => {
-            window.location.href = destinationLink.href;
+            if (viewer === actor) window.location.href = destinationLink.href;
           });
         return true;
       }
@@ -1295,13 +1379,14 @@ export function createNotificationsPageController(context = {}) {
   }
 
   async function updateNotificationPreference(key, value) {
+    const actor = viewer;
     const normalizedKey = String(key || '').trim();
 
     if (!Object.prototype.hasOwnProperty.call(NOTIFICATIONS_DEFAULT_PREFERENCES, normalizedKey)) {
       return;
     }
 
-    if (!shouldUseAuthenticatedUi() || !getCurrentUser()?.id || notificationPreferenceRequestKeys.has(normalizedKey)) {
+    if (!actor || notificationPreferenceRequestKeys.has(normalizedKey)) {
       return;
     }
 
@@ -1316,11 +1401,12 @@ export function createNotificationsPageController(context = {}) {
       const { error } = await supabaseClient
         .from('notification_preferences')
         .upsert({
-          user_id: getCurrentUser().id,
+          user_id: actor.id,
           [normalizedKey]: Boolean(value)
         }, {
           onConflict: 'user_id'
         });
+      if (viewer !== actor) return;
 
       if (error) {
         if (isNotificationsUnavailableError(error)) {
@@ -1330,6 +1416,7 @@ export function createNotificationsPageController(context = {}) {
         throw error;
       }
     } catch (error) {
+      if (viewer !== actor) return;
       console.error('Ошибка обновления настройки уведомлений:', error);
       notificationsPagePreferences = {
         ...(notificationsPagePreferences || NOTIFICATIONS_DEFAULT_PREFERENCES),
@@ -1337,8 +1424,10 @@ export function createNotificationsPageController(context = {}) {
       };
       showAppMessage('Не удалось обновить настройку уведомлений.', 'error', true);
     } finally {
-      notificationPreferenceRequestKeys.delete(normalizedKey);
-      renderNotificationsPage();
+      if (viewer === actor) {
+        notificationPreferenceRequestKeys.delete(normalizedKey);
+        renderNotificationsPage();
+      }
     }
   }
 
@@ -1358,29 +1447,76 @@ export function createNotificationsPageController(context = {}) {
       return;
     }
 
-    if (!shouldUseAuthenticatedUi() || !getCurrentUser()?.id) {
+    syncViewer();
+    if (!viewer) {
       renderNotificationsPageAuthGate();
       return;
     }
 
-    if (!hasWarmStartedPageDom()) {
-      renderNotificationsPageLoading();
-    }
+    return runFeedRequest(async (actor, isCurrent) => {
+      const [rows, preferences] = await Promise.all([
+        fetchNotificationsPageRows(actor), hasLoadedFeed ? null : fetchCurrentNotificationPreferences(actor)
+      ]);
+      if (!isCurrent()) return;
+      const items = await hydrateNotificationItems(rows);
+      if (!isCurrent()) return;
+      notificationsPageItems = sortNotificationItems(items);
+      if (!hasLoadedFeed) notificationsPagePreferences = preferences;
+      renderNotificationsPage();
+      hasLoadedFeed = true;
+      void refreshNotificationsUnreadCount();
+    });
+  }
 
-    try {
-      const data = await fetchNotificationsPageData();
-      await refreshNotificationsUnreadCount({ force: true });
-      renderNotificationsPage(data);
-    } catch (error) {
-      if (isNotificationsUnavailableError(error)) {
-        console.warn('Контур уведомлений пока недоступен:', error);
-        renderNotificationsPageUnavailable();
-        return;
+  function runFeedRequest(load, { background = false } = {}) {
+    if (pageRequest && (background || !pageRequest.background)) return pageRequest.ready;
+    const actor = viewer;
+    const version = feedVersion;
+    const request = { background };
+    const isCurrent = () => pageRequest === request && viewer === actor && version === feedVersion;
+    pageRequest = request;
+    request.ready = load(actor, isCurrent).catch(error => {
+      if (!isCurrent()) return;
+      const unavailable = isNotificationsUnavailableError(error);
+      if (unavailable) setNotificationsUnavailable(true);
+      console.warn('Ошибка загрузки уведомлений:', error);
+      if (!hasLoadedFeed) {
+        if (unavailable) renderNotificationsPageUnavailable();
+        else renderNotificationsPageError();
       }
+    }).finally(() => {
+      if (pageRequest === request) pageRequest = null;
+    });
+    return request.ready;
+  }
 
-      console.error('Ошибка загрузки страницы уведомлений:', error);
-      renderNotificationsPageError();
-    }
+  function refreshNotificationsPage() {
+    if (!viewer || pageRequest || isNotificationsPageMarkingAllRead || isNotificationsPageClearingAll) return;
+    if (!hasLoadedFeed) return loadNotificationsPage();
+    return runFeedRequest(async (actor, isCurrent) => {
+      const deliveries = await fetchNotificationsPageRows(actor, { metadataOnly: true });
+      if (!isCurrent()) return;
+      const previous = notificationsPageItems;
+      const byId = new Map(previous.map(item => [item.id, item]));
+      const newIds = deliveries.map(row => String(row.event_id)).filter(id => !byId.has(id));
+      if (newIds.length) {
+        const rows = await fetchNotificationsPageRows(actor, { eventIds: newIds });
+        if (!isCurrent()) return;
+        const items = await hydrateNotificationItems(rows);
+        if (!isCurrent()) return;
+        for (const item of items) byId.set(item.id, item);
+      }
+      const next = sortNotificationItems(deliveries.flatMap(row => {
+        const item = byId.get(String(row.event_id));
+        if (!item) return [];
+        // Newly fetched rows may already carry a more recent read receipt.
+        const readAt = row.read_at || item.readAt;
+        return [readAt === item.readAt ? item : { ...item, readAt }];
+      }));
+      if (next.length === previous.length && next.every((item, index) => item === previous[index])) return;
+      notificationsPageItems = next;
+      syncFeedDom(previous);
+    }, { background: true });
   }
 
   async function initNotificationsPage() {
@@ -1388,25 +1524,21 @@ export function createNotificationsPageController(context = {}) {
       renderNotificationsPageLoading();
     }
 
-    const restoredUser = await restoreSession();
-
     bindSharedAuthStateListener({
       onAfterAuthSync: async () => {
         await loadNotificationsPage();
       }
     });
 
-    if (!restoredUser && !shouldUseAuthenticatedUi()) {
-      renderNotificationsPageAuthGate();
-      return;
-    }
-
+    await restoreSession();
     await loadNotificationsPage();
   }
 
   return {
     initNotificationsPage,
     loadNotificationsPage,
+    refreshNotificationsPage,
+    syncViewer,
     handleNotificationsPageClick,
     handleNotificationsPagePreferenceChange,
     observeNotificationsPageVisibleItems,

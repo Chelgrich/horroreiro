@@ -1,5 +1,12 @@
 # Recent Changes
 
+## 2026-11-19 — Live notifications feed
+
+- The notifications page uses the account header's visible-tab refresh tick. It reads metadata for the latest 80 deliveries and loads event and card details only for new delivery IDs. Preferences, profile snippets and digest posters for existing cards are reused between ticks.
+- Background updates patch the existing feed, preserve the active filter, keep existing card nodes and hold the viewport on the same visible card. Transient refresh errors retain the last feed. Account transitions invalidate outstanding feed requests and clear the previous viewer's UI immediately.
+- A confirmed local read or bulk mutation invalidates older feed reads. Individual read requests are deduplicated and only decrement the shared badge when the write actually updates a delivery. Stale notification actions cannot publish results into a replacement viewer.
+- Full smoke and required Docker runtime checks passed. A local browser fixture with the real header timer and feed controller verified new cards, a metadata-only unchanged tick, preserved filter/focus/scroll, remote and local read receipts, temporary network failure and a late response after logout and return to the same account. It used synthetic notification data.
+
 ## 2026-11-19 — Account menu and header ownership
 
 - `account-header-controller.js` owns the account button, menu and links, header identity, unread badges, catalog add button, menu action states and event bindings. It loads during shared initialization. `app.js` connects routes, session/profile state, notification counts and the existing admin and import operations. The auth UI controller still performs logout.
