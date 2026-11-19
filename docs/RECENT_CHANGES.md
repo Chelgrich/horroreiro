@@ -4,11 +4,14 @@
 
 - The saved movie summary masks rating text and any existing rating button in their regular layout. Guest snapshots have no button placeholder. The mobile details column uses system typography so a late font cannot rewrap the title and shift the description.
 - Desktop catalog startup shows two rows of skeletons and holds the footer below the first screen. Mobile startup shows one row.
+- Released build `e412eb08717989cb27d3aa9bf5d5be76e8c95b79`, Yandex revision `bbamhh68ssq24784f8jf`. Full smoke, Docker and all three production route checks passed. The gateway check passed on its third attempt after the new revision propagated.
+- Production Chrome held `/env` for 15 seconds on movie history returns at 320 and 390 px. The synopsis, title and poster kept their positions with zero measured shift and one navigation per return. The live catalog showed eight placeholders at 1350 × 1600 px, with the footer at the lower edge of the viewport and all four first-row poster rectangles unchanged after the data arrived.
 
 ## 2026-11-19 — Fit profile movie reads through the gateway
 
 - Shared movie and rating ID queries use at most 100 UUIDs per GET. The public profile taste projection with 200 IDs sent an 8,004-byte path and query and received HTTP 431. Rating import writes keep their separate 200-row limit.
 - Public profiles show a load-error message when a request fails. A successful lookup with no profile still shows the not-found message.
+- A clean production Chrome visit to `/user/profile001` rendered all 262 ratings and the film rail. The taste requests used 100, 100 and 62 IDs, the longest request target was 4,104 bytes, and all four movie reads returned HTTP 200.
 
 ## 2026-11-19 — Preserve warm catalog returns when env is delayed
 
