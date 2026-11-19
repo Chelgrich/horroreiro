@@ -9,6 +9,8 @@ export function createMovieSocialController(context = {}) {
   const {
   moviePage = null,
   supabaseClient = null,
+  fetchSupabaseIdBatches,
+  fetchAllSupabaseRowsResult,
   escapeHtml,
   buildUserPageUrl,
   getPublicProfileHandle,
@@ -771,10 +773,11 @@ async function fetchMovieReviewLikes(reviewIds = []) {
     return [];
   }
 
-  const { data, error } = await supabaseClient
+  const { data, error } = await fetchSupabaseIdBatches(normalizedReviewIds, ids => fetchAllSupabaseRowsResult(() => supabaseClient
     .from('movie_review_likes')
     .select('review_id, user_id, created_at')
-    .in('review_id', normalizedReviewIds);
+    .in('review_id', ids)
+    .order('review_id').order('user_id')));
 
   if (error) {
     if (isMovieReviewLikesTableUnavailableError(error)) {
@@ -844,11 +847,11 @@ async function fetchMovieReviews(movieId) {
       fetchPublicProfilesByIds(uniqueUserIds)
         .then(profilesData => ({ data: profilesData, error: null }))
         .catch(error => ({ data: null, error })),
-      supabaseClient
+      fetchSupabaseIdBatches(uniqueUserIds, ids => supabaseClient
         .from('movie_ratings')
         .select('movie_id, user_id, rating')
         .eq('movie_id', movieId)
-        .in('user_id', uniqueUserIds)
+        .in('user_id', ids))
     ]);
 
     if (reviewLikesResult.error) {
@@ -904,10 +907,11 @@ async function fetchMovieCommentLikes(commentIds = []) {
     return [];
   }
 
-  const { data, error } = await supabaseClient
+  const { data, error } = await fetchSupabaseIdBatches(normalizedCommentIds, ids => fetchAllSupabaseRowsResult(() => supabaseClient
     .from('movie_comment_likes')
     .select('comment_id, user_id, created_at')
-    .in('comment_id', normalizedCommentIds);
+    .in('comment_id', ids)
+    .order('comment_id').order('user_id')));
 
   if (error) {
     if (isMovieCommentLikesTableUnavailableError(error)) {

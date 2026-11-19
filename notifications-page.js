@@ -889,7 +889,7 @@ export function createNotificationsPageController(context = {}) {
       return;
     }
 
-    notificationsPage.innerHTML = '<div class="notifications-page-loading-state">Загрузка уведомлений...</div>';
+    notificationsPage.innerHTML = '<div class="notifications-page-loading-state page-content-skeleton" role="status" aria-label="Загрузка уведомлений..."></div>';
   }
 
   function renderNotificationsPageAuthGate() {

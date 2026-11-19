@@ -68,8 +68,8 @@ Page HTML is static shell plus shared scripts:
 
 - `boot-loader.js`
   - activates the nonblocking external font stylesheet after load (or immediately when already cached); unavailable fonts must not block app startup;
-  - loads `/env`;
-  - selects one configuration per document in `window.__APP_ENV__` for styles, runtime and warm-start validation. A hosted `/env` timeout or network failure uses the saved build marker and fallback credentials. A late response cannot change the selection in that document;
+  - starts the stylesheet bundle as soon as the HTML's `app-build-version` hint is available. `/env` loads in parallel. The same-build stylesheet cache can reveal the page immediately and avoid downloading the bundle again;
+  - selects one configuration per document in `window.__APP_ENV__` for runtime and warm-start validation. A hosted `/env` timeout or network failure uses the document build hint or saved build marker with fallback credentials. A late response cannot change the selection in that document;
   - loads versioned `styles.css`;
   - loads page-specific CSS such as `catalog-page.css`, `movie-page.css`, shared `secondary-pages.css`, and secondary page-only CSS before app startup when the current shell needs it;
   - caches successfully loaded same-build page stylesheet bundles in `sessionStorage` and injects that cached CSS on later same-tab warm returns so restored catalog/movie DOM can become visible before live CSS requests finish;
@@ -108,11 +108,9 @@ Startup shell visibility rule:
 
 - Shared startup records a confirmed build marker on a first visit without reloading. A confirmed different build marker still triggers the cache reset and one reload after the new marker is saved. A hosted fallback cannot write the marker or reset caches.
 - HTML shells hide `.page` and `#sharedFooterMount` with `display: none` until their readiness boundary. Some form-control rules intentionally set descendant `select` elements back to `visibility: visible`.
-- `index.html` displays the skeletons or restored catalog at `app-styles-ready`. `movie.html` may redisplay a validated warm-start shell before `app-ready` as soon as styles are ready. Both reserve empty shared-header space until shared UI mounts.
-- Secondary page shells use the same rule through `html.app-page-warm-started`: redisplay the restored page only after `app-styles-ready`, reserve empty shared-header space, and keep the boot shell visible until styles are usable.
+- All page shells reveal styled skeletons or validated warm content at `app-styles-ready`, before the full runtime starts. They reserve shared-header space and show startup failures inline. Movie SEO fallback injection leaves the interactive page's initial skeleton intact.
 - While `app-page-warm-started` is hydrating, secondary page controllers must not replace the restored DOM with their initial loading state. `app.js` exposes `hasWarmStartedPageDom` to those controllers as a one-init-cycle flag; after page init completes, loading states work normally again.
 - Warm-start redisplay rules should match the final page scrollbar policy (`overflow-y: scroll`) so a restored shell does not shift when `app-ready` lands.
-- Warm-started movie shells hide the boot loader only after `app-styles-ready`. The catalog reveals its own skeletons or restored DOM as soon as its styles are ready.
 - Catalog boot failures show an inline message and hide the pending skeletons. Restored cards remain visible. Runtime hydration keeps the restored card elements when the matching snapshot markup is already mounted.
 - The boot loader may set `app-styles-ready` from a same-build cached stylesheet bundle before `/env` and live CSS complete. On HTTP(S), each fresh stylesheet response supplies both the ordered inline styles and the warm-start cache. Versioned asset routes and cache headers still control network freshness. Files opened directly on disk use native stylesheet links. Startup stylesheet source files must use absolute or root-relative URLs (or data URLs) and avoid imports. If live CSS fails while a complete cached bundle is already applied, continue startup using that bundle.
 - Warm-start scripts must bind the shared early scroll-intent tracker before revealing/restoring a page. After a restored page is visible, full hydration must not force an old saved scroll position over a user who already started scrolling; preserve the live position instead.
@@ -185,7 +183,7 @@ Read `docs/SERVER_RUNTIME.md` before changing portable routing, Docker migration
 
 ## Client Ownership
 
-Complete catalog/profile/import reads reuse `fetchAllSupabaseRows` and its `{data,error}` adapter `fetchAllSupabaseRowsResult`, also injected into `user-page.js`. Callers supply a unique parent-row ordering key. Shared movie and rating ID GET filters use 100-ID batches to fit the gateway. Results enter state/caches only after all pages/batches succeed. Personal collection loaders retain their captured user ID throughout paging and check it before updating state.
+Complete catalog/profile/import reads reuse `fetchAllSupabaseRows` and its `{data,error}` adapter `fetchAllSupabaseRowsResult`, also injected into `user-page.js`. Callers supply a unique parent-row ordering key. Unbounded ID GET filters in movie, poster, profile, follow and social reads use at most 100 UUIDs per request to fit the gateway. Likes also paginate inside each ID batch. Notification enrichment gets at most 80 IDs of each kind from its source page, and catalog link hydration reads at most one 40-card page. Results enter state/caches only after all pages/batches succeed. Personal collection loaders retain their captured user ID throughout paging and check it before updating state.
 
 `app.js` is still the main application file. It owns:
 

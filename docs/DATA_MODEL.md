@@ -99,7 +99,7 @@ Movie data enrichment:
 
 ### Ratings And Watchlist
 
-Complete catalog/profile collections use ordered pages through `fetchAllSupabaseRowsResult`; a single Supabase SELECT is capped at 1000 rows. Movie lookups for these collections use at most 200 IDs per query. Never treat a failed later page as a complete collection, or publish a personal collection after its captured user ID changes.
+Complete catalog/profile collections use ordered pages through `fetchAllSupabaseRowsResult`; a single Supabase SELECT is capped at 1000 rows. Unbounded UUID lookups use at most 100 IDs per GET through the site proxy. Movie likes paginate within each batch on their entity/user keys. Never treat a failed later page as a complete collection, or publish a personal collection after its captured user ID changes.
 
 Tables:
 

@@ -2,6 +2,7 @@ import {
   createMovieHtmlResponse,
   fetchMovieBySlugOrId
 } from '../_seo-utils.js';
+import { fetchNoStoreAsset } from '../_response-utils.js';
 
 export async function onRequestHead(context) {
   const response = await onRequestGet(context);
@@ -27,6 +28,6 @@ export async function onRequestGet(context) {
     });
   } catch (error) {
     console.error('Movie SEO route failed:', error);
-    return env.ASSETS.fetch(new URL('/movie.html', request.url).toString());
+    return fetchNoStoreAsset(env, request, '/movie.html');
   }
 }

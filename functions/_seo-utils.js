@@ -1,3 +1,5 @@
+import { addAppBuildHint } from './_response-utils.js';
+
 const SITE_ORIGIN = 'https://horroreiro.ru';
 const DEFAULT_SOCIAL_IMAGE = `${SITE_ORIGIN}/og-preview.jpg`;
 const POSTER_STORAGE_PUBLIC_PATH = '/storage/v1/object/public/posters/';
@@ -505,7 +507,7 @@ function renderMovieFallbackHtml(movie) {
 }
 
 function renderMovieNotFoundFallbackHtml() {
-  return `        <div class="empty-state">
+  return `        <div class="empty-state movie-page-server-fallback">
           <div class="empty-state-icon" aria-hidden="true">◊</div>
           <div class="empty-state-title">Фильм не найден</div>
           <div class="empty-state-text">Возможно, ссылка устарела или фильм был удалён из каталога.</div>
@@ -573,7 +575,7 @@ function createHtmlResponse(html, assetResponse, { status = 200, cacheControl = 
 
 async function createMovieHtmlResponse({ env, request, movie, status = 200 }) {
   const assetResponse = await getMovieHtmlAsset(env, request);
-  const html = await assetResponse.text();
+    const html = addAppBuildHint(await assetResponse.text(), env);
   const requestUrl = new URL(request.url).toString();
 
   if (!movie) {

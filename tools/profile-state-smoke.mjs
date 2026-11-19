@@ -30,8 +30,12 @@ const client = { from(table) {
   return chain;
 } };
 const throwIfSupabaseError = error => { if (error) throw error; };
+const appSource = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const idBatchSize = appSource.match(/const SUPABASE_ID_QUERY_CHUNK_SIZE = \d+;/)[0];
+const idBatches = appSource.match(/async function fetchSupabaseIdBatches\([\s\S]+?\n}/)[0];
+const fetchSupabaseIdBatches = vm.runInThisContext(`(() => { ${idBatchSize} ${idBatches} return fetchSupabaseIdBatches; })()`);
 const data = createProfileDataActions({ supabaseClient: client, throwIfSupabaseError,
-  withAuthProfileRequestTimeout: promise => promise });
+  fetchSupabaseIdBatches, withAuthProfileRequestTimeout: promise => promise });
 result = { data: [{ id: 'one', display_name: 'First', default_display_name: 'first' }], error: null };
 assert.equal((await data.fetchPublicProfilesByIds(['one', 'one']))[0].display_name, 'First');
 result = { data: null, error: Error('Must use the shared cache') };
@@ -60,7 +64,13 @@ assert.equal((await data.fetchPublicProfileByHandle('missing')).id, 'three', 'Fa
 
 let viewer = { id: 'alice' };
 const follows = createProfileFollowActions({ supabaseClient: client, throwIfSupabaseError,
-  getCurrentUser: () => viewer, isNotificationsUnavailableError: () => false });
+  fetchSupabaseIdBatches, getCurrentUser: () => viewer, isNotificationsUnavailableError: () => false });
+const uncachedIds = Array.from({ length: 205 }, (_, index) => `uncached-${index}`);
+result = { data: [], error: null };
+await data.fetchPublicProfilesByIds(uncachedIds);
+assert.deepEqual(queries.slice(-3).map(query => query.id.length), [100, 100, 5]);
+await follows.fetchFollowNotificationPreferences({ followerId: 'alice', profileIds: uncachedIds });
+assert.deepEqual(queries.slice(-3).map(query => query.following_id.length), [100, 100, 5]);
 const pending = deferred();
 result = pending.promise;
 const oldRead = follows.fetchProfileFollowRows({ followerId: 'alice' });

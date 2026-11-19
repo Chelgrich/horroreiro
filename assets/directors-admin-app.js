@@ -694,8 +694,9 @@ function He(e) {
 		getDirectorPlaceholderSvgHtml: a.getDirectorPlaceholderSvgHtml || (() => "")
 	};
 	return t === "loading" ? /* @__PURE__ */ Z("div", {
-		className: "directors-admin-page-loading-state",
-		children: "Загрузка режиссёров..."
+		className: "directors-admin-page-loading-state page-content-skeleton",
+		role: "status",
+		"aria-label": "Загрузка режиссёров..."
 	}) : t === "auth" ? /* @__PURE__ */ Z($, {
 		large: !0,
 		children: [/* @__PURE__ */ Z("p", { children: "Войди под администратором, чтобы открыть список режиссёров." }), /* @__PURE__ */ Z("button", {

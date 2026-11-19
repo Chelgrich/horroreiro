@@ -142,7 +142,7 @@ vm.runInContext(source.match(/const SUPABASE_ID_QUERY_CHUNK_SIZE = \d+;/)[0], sa
 const names = ['fetchAllSupabaseRows', 'runMovieSelectWithOptionalColumns', 'fetchMovies',
   'fetchMovieRatingStats', 'fetchFullMovieRatingsFallback', 'fetchCurrentUserRatings',
   'fetchMovieWatchlist', 'fetchCatalogReviewSummary', 'getUniqueMovieIdsFromRows',
-  'fetchCatalogProfileActivityMovieIds', 'fetchMoviesByIdsWithSelect', 'fetchLetterboxdImportMatchMovies'];
+  'fetchCatalogProfileActivityMovieIds', 'fetchMoviesByIdsWithSelect', 'fetchSupabaseIdBatches', 'fetchLetterboxdImportMatchMovies'];
 // The adapter preserves Supabase's {data,error} contract for existing consumers.
 if (source.includes('function fetchAllSupabaseRowsResult(')) names.push('fetchAllSupabaseRowsResult');
 vm.runInContext(names.map(functionSource).join('\n'), sandbox);

@@ -3,6 +3,7 @@ import {
   fetchMovieBySlugOrId,
   getMovieCanonicalUrl
 } from './_seo-utils.js';
+import { fetchNoStoreAsset } from './_response-utils.js';
 
 export async function onRequestGet(context) {
   const { env, request } = context;
@@ -11,7 +12,7 @@ export async function onRequestGet(context) {
   const id = url.searchParams.get('id') || '';
 
   if (!slug && !id) {
-    return env.ASSETS.fetch(request);
+    return fetchNoStoreAsset(env, request, '/movie.html');
   }
 
   let movie = null;
@@ -20,7 +21,7 @@ export async function onRequestGet(context) {
     movie = await fetchMovieBySlugOrId(env, { slug, id });
   } catch (error) {
     console.error('Legacy movie SEO route failed:', error);
-    return env.ASSETS.fetch(request);
+    return fetchNoStoreAsset(env, request, '/movie.html');
   }
 
   if (movie?.slug) {

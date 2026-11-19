@@ -1157,7 +1157,7 @@ export function createUserPageController(context = {}) {
 
     hideUserPageRankTooltip();
     syncUserPageMainTitle();
-    userPage.innerHTML = '<div class="user-page-loading-state">Загрузка профиля...</div>';
+    userPage.innerHTML = '<div class="user-page-loading-state page-content-skeleton" role="status" aria-label="Загрузка профиля..."></div>';
   }
 
   function renderUserPageUnavailable(message) {

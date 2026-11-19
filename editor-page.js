@@ -179,7 +179,7 @@ export function createEditorPageController(context = {}) {
       return;
     }
 
-    editorPage.innerHTML = '<div class="editor-page-loading-state">Загрузка центра редактора...</div>';
+    editorPage.innerHTML = '<div class="editor-page-loading-state page-content-skeleton" role="status" aria-label="Загрузка центра редактора..."></div>';
   }
 
   function renderEditorPageAuthGate() {

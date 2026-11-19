@@ -36,7 +36,7 @@ export function createFollowingPageController(context = {}) {
       return;
     }
 
-    followingPage.innerHTML = '<div class="following-page-loading-state">Загрузка отслеживаний...</div>';
+    followingPage.innerHTML = '<div class="following-page-loading-state page-content-skeleton" role="status" aria-label="Загрузка отслеживаний..."></div>';
   }
 
   function renderFollowingPageAuthGate() {

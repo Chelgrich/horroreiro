@@ -7,6 +7,7 @@ const FOLLOW_NOTIFICATION_PREFERENCE_KEYS = new Set([
 export function createProfileFollowActions(context = {}) {
   const {
     supabaseClient,
+    fetchSupabaseIdBatches,
     getCurrentUser,
     throwIfSupabaseError,
     isNotificationsUnavailableError
@@ -156,11 +157,11 @@ export function createProfileFollowActions(context = {}) {
       };
     }
 
-    const { data, error } = await client
+    const { data, error } = await fetchSupabaseIdBatches(normalizedProfileIds, ids => client
       .from('user_follow_notification_preferences')
       .select('following_id, notify_ratings, notify_watchlist, notify_reviews')
       .eq('follower_id', normalizedFollowerId)
-      .in('following_id', normalizedProfileIds);
+      .in('following_id', ids));
 
     if (error) {
       if (isNotificationsUnavailableError(error)) {

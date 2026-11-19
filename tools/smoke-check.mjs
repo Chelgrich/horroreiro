@@ -493,12 +493,10 @@ async function checkStaticGuards() {
         : !html.includes('/page-warm-start.js'),
       `${file}: page-warm-start.js must load only on secondary warm-start shells`
     );
-    const shellGate = file === 'index.html'
-      ? /html:not\(\.app-styles-ready\) \.page,\s*html:not\(\.app-styles-ready\) #sharedFooterMount\s*\{\s*display: none;/m
-      : /html:not\(\.app-ready\) \.page,\s*html:not\(\.app-ready\) #sharedFooterMount\s*\{\s*display: none;/m;
     assert(
-      shellGate.test(html),
-      `${file}: static page shell must stay hidden until its boot styles or runtime are ready`
+      /html:not\(\.app-styles-ready\) \.page,\s*html:not\(\.app-styles-ready\) #sharedFooterMount\s*\{\s*display: none;/m.test(html) &&
+        html.includes('#sharedHeaderMount:empty') && !html.includes('id="appBootShell"'),
+      `${file}: show the sized page shell as soon as its styles are ready`
     );
     if (file === 'index.html') {
       assert(
@@ -512,20 +510,15 @@ async function checkStaticGuards() {
     }
     if (file === 'movie.html') {
       assert(
-        /html\.app-movie-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+\.page,\s*html\.app-movie-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html) &&
-          html.includes('html.app-movie-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty') &&
-          html.includes('html.app-movie-warm-started.app-styles-ready:not(.app-load-failed) .app-boot-shell') &&
-          html.includes('overflow-y: scroll;'),
-        'movie.html: warm-started movie detail must hide boot shell only after styles, redisplay after styles, reserve shared header space, and match final scrollbar policy'
+        html.includes('id="appStartupError"') &&
+          html.indexOf('movie-page-stack-skeleton" aria-busy=') < html.indexOf('<!-- MOVIE_PAGE_FALLBACK_START -->'),
+        'movie.html: startup skeleton must survive injection of the server fallback'
       );
     }
     if (secondaryWarmStartPages.has(file)) {
       assert(
-        /html\.app-page-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+\.page,\s*html\.app-page-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html) &&
-          html.includes('html.app-page-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty') &&
-          html.includes('html.app-page-warm-started.app-styles-ready:not(.app-load-failed) .app-boot-shell') &&
-          html.includes('overflow-y: scroll;'),
-        `${file}: secondary warm-start pages must hide boot shell only after styles, redisplay after styles, reserve shared header space, and match final scrollbar policy`
+        html.includes('page-content-skeleton" role="status"') && html.includes('id="appStartupError"'),
+        `${file}: secondary pages need in-content skeletons and an inline startup error`
       );
     }
     const googleFontStylesheetMatches = html.match(/href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]+"/g) || [];

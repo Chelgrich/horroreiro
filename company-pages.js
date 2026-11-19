@@ -141,7 +141,7 @@ export function createCompanyPagesController(context = {}) {
 
   function renderCompanyAdminLoading() {
     if (companyAdminPage) {
-      companyAdminPage.innerHTML = '<div class="company-page-loading-state">Загрузка компаний...</div>';
+      companyAdminPage.innerHTML = '<div class="company-page-loading-state page-content-skeleton" role="status" aria-label="Загрузка компаний..."></div>';
     }
   }
 
@@ -338,7 +338,7 @@ export function createCompanyPagesController(context = {}) {
 
   function renderCompanyPageLoading() {
     if (companyPage) {
-      companyPage.innerHTML = '<div class="company-page-loading-state">Загрузка компании...</div>';
+      companyPage.innerHTML = '<div class="company-page-loading-state page-content-skeleton" role="status" aria-label="Загрузка компании..."></div>';
     }
   }
 

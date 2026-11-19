@@ -14,7 +14,18 @@ let authorRating = 7;
 const rows = { movie_reviews: [review], movie_comments: [comment] };
 const errors = {};
 const reads = [];
+const appSource = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const adapterNames = ['fetchSupabaseIdBatches', 'fetchAllSupabaseRows', 'fetchAllSupabaseRowsResult'];
+const adapters = adapterNames.map(name => appSource.match(new RegExp('async function ' + name + '\\([\\s\\S]+?\\n}'))[0]);
+const idBatchSize = appSource.match(/const SUPABASE_ID_QUERY_CHUNK_SIZE = \d+;/)[0];
+const sharedReads = vm.runInThisContext(`(() => {
+  ${idBatchSize}
+  function throwIfSupabaseError(error) { if (error) throw error; }
+  ${adapters.join('\n')}
+  return { fetchSupabaseIdBatches, fetchAllSupabaseRowsResult };
+})()`);
 const socialAdapters = {
+  ...sharedReads,
   escapeHtml: value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;'),
   buildUserPageUrl: handle => `/user/${encodeURIComponent(handle)}`,
   getPublicProfileHandle: profile => profile?.default_display_name || 'fixture',
@@ -43,7 +54,7 @@ const controller = createMovieSocialController({
     from(table) {
       reads.push(table);
       return {
-        select() { return this; }, eq() { return this; }, in() { return this; }, order() { return this; },
+        select() { return this; }, eq() { return this; }, in() { return this; }, order() { return this; }, range() { return this; },
         then(resolve) { return Promise.resolve({ data: rows[table] || [], error: errors[table] }).then(resolve); }
       };
     }
@@ -139,7 +150,6 @@ try {
 }
 
 // Run the real app bridge with a controllable lazy import, before and after it resolves.
-const appSource = await readFile(new URL('../app.js', import.meta.url), 'utf8');
 function functionSource(name) {
   const start = appSource.lastIndexOf('\n', appSource.indexOf(`function ${name}(`)) + 1;
   const end = appSource.indexOf('\n}', start) + 2;

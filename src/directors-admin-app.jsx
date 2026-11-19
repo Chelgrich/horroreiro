@@ -465,7 +465,7 @@ function DirectorsAdminApp(props) {
   };
 
   if (status === 'loading') {
-    return <div className="directors-admin-page-loading-state">Загрузка режиссёров...</div>;
+    return <div className="directors-admin-page-loading-state page-content-skeleton" role="status" aria-label="Загрузка режиссёров..."></div>;
   }
 
   if (status === 'auth') {

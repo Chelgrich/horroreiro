@@ -7,6 +7,7 @@ const CURRENT_USER_PROFILE_OPTIONAL_COLUMNS = ['avatar_url', 'prefer_russian_pos
 export function createProfileDataActions(context = {}) {
   const {
     supabaseClient,
+    fetchSupabaseIdBatches,
     withAuthProfileRequestTimeout,
     throwIfSupabaseError,
     onMissingOptionalColumn = () => {}
@@ -172,10 +173,10 @@ export function createProfileDataActions(context = {}) {
     const missingIds = normalizedProfileIds.filter(id => !profilesById.has(id));
     if (missingIds.length) {
       const profiles = await runProfileSelectWithOptionalAvatar(
-        selectColumns => client
+        selectColumns => fetchSupabaseIdBatches(missingIds, ids => client
           .from('profiles')
           .select(selectColumns)
-          .in('id', missingIds)
+          .in('id', ids))
       );
       cachePublicProfileRows((profiles || []).map(profile => ({
         ...profile, ...profilesById.get(String(profile.id))

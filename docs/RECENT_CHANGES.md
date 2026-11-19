@@ -1,5 +1,12 @@
 # Recent Changes
 
+## 2026-11-19 — Start styles early and bound remaining ID reads
+
+- The document supplies a build hint so the route stylesheet bundle starts in parallel with `/env`. Same-build stylesheet caches can supply the first paint without another transfer. Startup keeps unstyled HTML hidden until the bundle is applied.
+- Replaced the fullscreen interface loader with in-page skeletons on film, profile, director, company, activity and admin routes. Bootstrap errors are inline and warm content stays visible. The film SEO fallback retains a separate static skeleton for interactive startup.
+- Catalog startup matches the native and enhanced sort control heights and delays below-grid text and footer visibility until the grid has data. A changed document build does not mount an old page snapshot.
+- Removed the unused unbounded catalog movie lookup. Capped remaining GET filters at 100 UUIDs in poster galleries, public identities, follow preferences and film social reads. Review and comment likes retain complete results by paging within each ID batch. Catalog link hydration and notification event/snippet reads already stay below the bound.
+
 ## 2026-11-19 — Keep movie details stable on mobile and extend desktop catalog skeletons
 
 - The saved movie summary masks rating text and any existing rating button in their regular layout. Guest snapshots have no button placeholder. The mobile details column uses system typography so a late font cannot rewrap the title and shift the description.

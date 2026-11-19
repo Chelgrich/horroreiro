@@ -14,6 +14,7 @@
     const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const shouldUseLocalDevEnv = isLocalFile || isLocalHost;
     let hasStartedStylesheetLoad = false;
+    let areStylesReady = false;
     let isEnvReadyResolved = false;
     let envFallbackTimer = null;
     let appStartupFallbackTimer = null;
@@ -253,17 +254,16 @@
     }
 
     const storedBuildVersion = getStorageValue(localStorage, APP_VERSION_STORAGE_KEY);
-    const hasAppliedCachedStylesheets = applyCachedStylesheets(storedBuildVersion);
+    const documentBuildVersion = shouldUseLocalDevEnv ? '' : document.querySelector('meta[name="app-build-version"]')?.content;
+    const hasAppliedCachedStylesheets = (!documentBuildVersion || documentBuildVersion === storedBuildVersion) &&
+      applyCachedStylesheets(storedBuildVersion);
 
     function finishEnvReady() {
-      if (isEnvReadyResolved) {
+      if (isEnvReadyResolved || !areStylesReady || !window.__APP_ENV__) {
         return;
       }
 
       isEnvReadyResolved = true;
-      window.clearTimeout(stylesheetFallbackTimer);
-      document.documentElement.classList.remove('app-load-failed');
-      document.documentElement.classList.add('app-styles-ready');
       appStartupFallbackTimer = window.setTimeout(() => {
         if (!document.documentElement.classList.contains('app-ready')) {
           document.documentElement.classList.add('app-load-failed');
@@ -272,13 +272,21 @@
       resolve();
     }
 
+    function markStylesReady() {
+      areStylesReady = true;
+      window.clearTimeout(stylesheetFallbackTimer);
+      document.documentElement.classList.remove('app-load-failed');
+      document.documentElement.classList.add('app-styles-ready');
+      finishEnvReady();
+    }
+
     function markStylesheetFailure() {
       if (isEnvReadyResolved) {
         return;
       }
 
       if (hasAppliedCachedStylesheets) {
-        finishEnvReady();
+        markStylesReady();
         return;
       }
 
@@ -319,23 +327,19 @@
         const cssTextByAsset = Object.fromEntries(entries);
         removeCachedStylesheets();
         appendStylesheetTexts(assets, cssTextByAsset);
-        finishEnvReady();
+        markStylesReady();
         cacheLoadedStylesheets(buildVersion, assets, cssTextByAsset);
       } catch (error) {
         markStylesheetFailure();
       }
     }
 
-    function applyEnvAndLoadStyles(env) {
+    function startStylesheetLoad(buildVersion) {
       if (hasStartedStylesheetLoad) {
         return;
       }
 
       hasStartedStylesheetLoad = true;
-      window.clearTimeout(envFallbackTimer);
-      window.__APP_ENV__ = env;
-
-      const buildVersion = env.APP_BUILD_VERSION || 'dev';
       const stylesheetAssets = getPageStylesheetAssets();
       stylesheetFallbackTimer = window.setTimeout(markStylesheetFailure, STYLESHEET_FALLBACK_TIMEOUT_MS);
       if (!isLocalFile) {
@@ -366,12 +370,12 @@
 
         if (failedStylesheetAssets.size === 0) {
           removeCachedStylesheets();
-          finishEnvReady();
+          markStylesReady();
           return;
         }
 
         if (hasAppliedCachedStylesheets) {
-          finishEnvReady();
+          markStylesReady();
           return;
         }
 
@@ -407,10 +411,18 @@
       });
     }
 
+    function applyEnvAndLoadStyles(env) {
+      if (window.__APP_ENV__) return;
+      window.clearTimeout(envFallbackTimer);
+      window.__APP_ENV__ = env;
+      if (!areStylesReady) startStylesheetLoad(env.APP_BUILD_VERSION || 'dev');
+      finishEnvReady();
+    }
+
     function applyFallbackEnvAndLoadStyles() {
       applyEnvAndLoadStyles({
         ...localDevEnv,
-        APP_BUILD_VERSION: storedBuildVersion || localDevEnv.APP_BUILD_VERSION,
+        APP_BUILD_VERSION: documentBuildVersion || storedBuildVersion || localDevEnv.APP_BUILD_VERSION,
         isFallback: true
       });
     }
@@ -418,6 +430,11 @@
     if (shouldUseLocalDevEnv) {
       applyEnvAndLoadStyles(localDevEnv);
       return;
+    }
+
+    if (documentBuildVersion) {
+      if (hasAppliedCachedStylesheets) markStylesReady();
+      else startStylesheetLoad(documentBuildVersion);
     }
 
     const envScript = document.createElement('script');

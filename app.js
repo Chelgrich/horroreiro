@@ -1022,33 +1022,6 @@ function cacheCatalogMovies(movies = []) {
   cacheMovieSelectRows(MOVIE_CATALOG_SELECT, movies);
 }
 
-async function fetchCatalogMoviesByIds(movieIds = []) {
-  const normalizedMovieIds = normalizeManualSimilarMovieIds(movieIds);
-  const missingMovieIds = normalizedMovieIds.filter(movieId => !catalogMoviesById.has(String(movieId)));
-
-  if (missingMovieIds.length === 0) {
-    return normalizedMovieIds
-      .map(movieId => getCatalogMovieById(movieId))
-      .filter(Boolean);
-  }
-
-  const { data, error } = await runMovieSelectWithOptionalColumns(
-    selectQuery => supabaseClient
-      .from('movies')
-      .select(selectQuery)
-      .in('id', missingMovieIds)
-      .order('position', { foreignTable: 'movie_genres', ascending: true }),
-    MOVIE_CATALOG_SELECT
-  );
-
-  throwIfSupabaseError(error);
-  cacheCatalogMovies(data || []);
-
-  return normalizedMovieIds
-    .map(movieId => getCatalogMovieById(movieId))
-    .filter(Boolean);
-}
-
 async function fetchSimilarCardMoviesByIds(movieIds = []) {
   const normalizedMovieIds = normalizeManualSimilarMovieIds(movieIds);
 
@@ -1091,24 +1064,18 @@ async function fetchMoviesByIdsWithSelect(movieIds = [], selectQuery = MOVIE_CAT
   }
 
   const { data, error } = await runMovieSelectWithOptionalColumns(
-    async currentSelectQuery => {
-      const rows = [];
-      for (let index = 0; index < missingMovieIds.length; index += SUPABASE_ID_QUERY_CHUNK_SIZE) {
-        let query = supabaseClient
-          .from('movies')
-          .select(currentSelectQuery)
-          .in('id', missingMovieIds.slice(index, index + SUPABASE_ID_QUERY_CHUNK_SIZE))
-          .order('id', { ascending: true });
+    currentSelectQuery => fetchSupabaseIdBatches(missingMovieIds, ids => {
+      let query = supabaseClient
+        .from('movies')
+        .select(currentSelectQuery)
+        .in('id', ids)
+        .order('id', { ascending: true });
 
-        if (String(currentSelectQuery || '').includes('movie_genres')) {
-          query = query.order('position', { foreignTable: 'movie_genres', ascending: true });
-        }
-        const { data, error } = await query;
-        if (error) return { data: null, error };
-        rows.push(...(data || []));
+      if (String(currentSelectQuery || '').includes('movie_genres')) {
+        query = query.order('position', { foreignTable: 'movie_genres', ascending: true });
       }
-      return { data: rows, error: null };
-    },
+      return query;
+    }),
     selectQuery
   );
 
@@ -1183,6 +1150,16 @@ async function fetchAllSupabaseRowsResult(createQuery) {
   } catch (error) {
     return { data: null, error };
   }
+}
+
+async function fetchSupabaseIdBatches(ids, loadBatch) {
+  const rows = [];
+  for (let index = 0; index < ids.length; index += SUPABASE_ID_QUERY_CHUNK_SIZE) {
+    const { data, error } = await loadBatch(ids.slice(index, index + SUPABASE_ID_QUERY_CHUNK_SIZE));
+    if (error) return { data: null, error };
+    rows.push(...(data || []));
+  }
+  return { data: rows, error: null };
 }
 
 const ADMIN_COMPLETENESS_MOVIE_SELECT = `
@@ -2178,7 +2155,7 @@ function renderDirectorsAdminPageLoading() {
   }
 
   if (!renderDirectorsAdminFrameworkState({ status: 'loading' })) {
-    directorsAdminPage.innerHTML = '<div class="directors-admin-page-loading-state">Загрузка режиссёров...</div>';
+    directorsAdminPage.innerHTML = '<div class="directors-admin-page-loading-state page-content-skeleton" role="status" aria-label="Загрузка режиссёров..."></div>';
   }
 }
 
@@ -3833,7 +3810,7 @@ async function fetchMoviePosterImagesForMovies(movieIds = [], { force = false } 
     return new Map(normalizedMovieIds.map(movieId => [movieId, []]));
   }
 
-  const chunkSize = 200;
+  const chunkSize = SUPABASE_ID_QUERY_CHUNK_SIZE;
   for (let index = 0; index < normalizedMovieIds.length; index += chunkSize) {
     const pending = new Set();
     const toFetch = [];
@@ -7981,6 +7958,7 @@ function getProfileUtils() {
 function getProfileDataActionsContext() {
   return {
     supabaseClient,
+    fetchSupabaseIdBatches,
     withAuthProfileRequestTimeout,
     throwIfSupabaseError,
     onMissingOptionalColumn: markMissingProfileOptionalColumn
@@ -8076,6 +8054,7 @@ function loadProfileSettingsActions() {
 function getProfileFollowActionsContext() {
   return {
     supabaseClient,
+    fetchSupabaseIdBatches,
     getCurrentUser: () => currentUser,
     throwIfSupabaseError,
     isNotificationsUnavailableError
@@ -9443,6 +9422,8 @@ function getMovieSocialControllerContext() {
   return {
     moviePage,
     supabaseClient,
+    fetchSupabaseIdBatches,
+    fetchAllSupabaseRowsResult,
     escapeHtml,
     buildUserPageUrl,
     getPublicProfileHandle,
@@ -17254,7 +17235,7 @@ function getMoviePagePosterGalleryImages(movie) {
 }
 
 function renderMoviePageSkeleton() {
-  if (!moviePage) {
+  if (!moviePage || moviePage.querySelector('.movie-page-stack-skeleton')) {
     return;
   }
 

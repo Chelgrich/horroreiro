@@ -13,7 +13,7 @@ const storage = (seed = []) => {
 };
 
 function boot({ source = loader, sessionStorage = storage(), build = 'release-a', fail = () => false,
-  contentType = 'text/css', file = false, holdEnv = false, storedBuild = build } = {}) {
+  contentType = 'text/css', file = false, holdEnv = false, storedBuild = build, documentBuild } = {}) {
   const nodes = [];
   const transfers = [];
   const classes = new Set();
@@ -26,7 +26,7 @@ function boot({ source = loader, sessionStorage = storage(), build = 'release-a'
     clearTimeout(id) { timers.delete(id); }
   };
   const document = {
-    querySelector: () => null,
+    querySelector: selector => selector === 'meta[name="app-build-version"]' && documentBuild ? { content: documentBuild } : null,
     querySelectorAll: () => nodes.filter(node => node.dataset.horroreiroStyleCache === 'true'),
     createElement(tag) {
       return { tag, dataset: {}, remove() { nodes.splice(nodes.indexOf(this), 1); } };
@@ -70,6 +70,18 @@ assert(warm.classes.has('app-styles-ready'), 'Styles restored before the environ
 await warm.window.__ENV_READY__;
 assert.equal(warm.transfers.length, 2, 'Background fresh styles use one transfer each');
 assert.equal(warm.nodes.filter(node => node.tag === 'style' && node.dataset.horroreiroStyleCache === 'true').length, 0);
+
+const hinted = boot({ documentBuild: 'release-a', holdEnv: true });
+await hinted.flush();
+assert.equal(hinted.transfers.length, 2);
+assert(hinted.classes.has('app-styles-ready'), 'Parser-supplied build starts CSS before env settles');
+assert.equal(hinted.window.__APP_ENV__, undefined);
+hinted.timers.get(2500)();
+await hinted.window.__ENV_READY__;
+assert.equal(hinted.transfers.length, 2, 'Env fallback must not duplicate the stylesheet requests');
+const cachedHinted = boot({ documentBuild: 'release-a', sessionStorage: hinted.sessionStorage });
+await cachedHinted.window.__ENV_READY__;
+assert.equal(cachedHinted.transfers.length, 0, 'A same-build stylesheet cache avoids a network round trip');
 
 const slowEnv = boot({ sessionStorage: cold.sessionStorage, holdEnv: true });
 assert(slowEnv.classes.has('app-styles-ready'));

@@ -37,6 +37,7 @@ function fixture() {
     catalogPosterView: null, moviePosterImagesTableAvailable: true, moviePosterImagesByMovieId: new Map(),
     moviePosterImagesLoadedByMovieId: new Set(), moviePosterImagesLoadPromisesByMovieId: new Map(),
     MOVIE_POSTER_IMAGE_DISPLAY_SELECT: 'movie_id, image_url, position', CATALOG_PRIORITY_POSTER_COUNT: 8,
+    SUPABASE_ID_QUERY_CHUNK_SIZE: Number(source.match(/SUPABASE_ID_QUERY_CHUNK_SIZE = (\d+)/)[1]),
     shouldPreferRussianPosters: () => prefer,
     getAuthSessionController: () => ({ captureSession() {
       const version = generation;
@@ -93,6 +94,9 @@ function fixture() {
 }
 
 const normal = fixture();
+const bulk = fixture();
+await bulk.ctx.fetchMoviePosterImagesForMovies(baseline.slice(0, 205).map(movie => movie.id));
+assert.deepEqual(bulk.requests.map(ids => ids.length), [100, 100, 5]);
 normal.ctx.renderMovies();
 assert.equal(normal.cards.children[0].poster, null, 'Hold the poster slot until preference data arrives');
 await flush();

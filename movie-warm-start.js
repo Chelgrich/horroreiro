@@ -73,6 +73,7 @@
   function getCurrentBuildVersion() {
     return String(
       (window.__APP_ENV__ || window.__ENV__)?.APP_BUILD_VERSION ||
+      document.querySelector('meta[name="app-build-version"]')?.content ||
       getStorageValue(localStorage, APP_VERSION_STORAGE_KEY) ||
       ''
     );

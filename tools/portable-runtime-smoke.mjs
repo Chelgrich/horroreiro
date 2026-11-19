@@ -60,6 +60,7 @@ await expectText('/production', 'id="companyAdminPage"', 'production route');
 await expectText('/distributors', 'id="companyAdminPage"', 'distributors route');
 await expectText('/russian-distributors', 'id="companyAdminPage"', 'russian distributors route');
 await expectText('/company/test-company', 'id="companyPage"', 'company route');
+await expectText('/', '<meta name="app-build-version" content="portable-smoke">', 'early stylesheet build hint');
 
 const envResponse = await fetchPortable('/env');
 const envText = await envResponse.text();

@@ -389,7 +389,7 @@ export function createDirectorPageController(context = {}) {
     }
 
     setCurrentPageData(null);
-    directorPage.innerHTML = '<div class="director-page-loading-state">Загрузка режиссёра...</div>';
+    directorPage.innerHTML = '<div class="director-page-loading-state page-content-skeleton" role="status" aria-label="Загрузка режиссёра..."></div>';
   }
 
   function renderDirectorPageUnavailable() {
