@@ -32,10 +32,16 @@
 
 .movies-result-count{
   flex: 0 0 auto;
+  min-block-size: 1lh;
   font-size: var(--font-size-base);
   line-height: var(--line-height-heading);
   color: var(--color-text-muted);
   white-space: nowrap;
+}
+
+.movies-result-count[hidden]{
+  display: block;
+  visibility: hidden;
 }
 
 .secondary-button.catalog-view-toggle{
@@ -82,8 +88,14 @@
 }
 
 .catalog-pagination-top{
+  min-block-size: var(--catalog-pagination-button-height);
   margin-top: 10px;
   margin-bottom: 2px;
+}
+
+.catalog-pagination-top[hidden]{
+  display: flex;
+  visibility: hidden;
 }
 
 .catalog-pagination-bottom{
@@ -862,17 +874,6 @@
   margin-top: 16px;
 }
 
-.movies-loading-state{
-  grid-column: 1 / -1;
-  min-height: 160px;
-  display: grid;
-  place-items: center;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-normal);
-  text-align: center;
-}
-
 .movies-list.is-catalog-fading{
   opacity: 0.72;
   transition: opacity 0.22s ease;
@@ -970,12 +971,20 @@
   .page{
     --catalog-columns: 3;
   }
+
+  .catalog-startup-skeleton:nth-child(n+4){
+    display: none;
+  }
 }
 
 @media (max-width: 1024px){
   .page{
     --catalog-columns: 2;
     --catalog-grid-gap: 14px;
+  }
+
+  .catalog-startup-skeleton:nth-child(n+3){
+    display: none;
   }
 }
 
@@ -1306,6 +1315,10 @@
     --catalog-pagination-ellipsis-width: 10px;
     --movies-year-title-font-size: var(--font-size-title-xl);
     --movies-month-title-font-size: var(--font-size-title-lg);
+  }
+
+  .catalog-startup-skeleton:nth-child(n+2){
+    display: none;
   }
 
   .movies-year-title{

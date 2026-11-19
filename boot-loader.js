@@ -24,7 +24,6 @@
       SUPABASE_ANON_KEY: 'sb_publishable_trS_-TlQwFqcM59nELIdsw_ygVI6B0j',
       APP_BUILD_VERSION: 'dev-local-27'
     };
-    const CATALOG_DOM_SNAPSHOT_KEY = 'horroreiro_catalog_dom_snapshot';
     const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
     const STYLESHEET_CACHE_KEY = 'horroreiro_stylesheet_cache_v1';
     const STYLESHEET_CACHE_MAX_ENTRIES = 6;
@@ -100,22 +99,6 @@
       }
 
       return '';
-    }
-
-    function markCatalogFastReturnStartupHint() {
-      if (getCurrentAppPage() !== 'catalog') {
-        return;
-      }
-
-      try {
-        if (
-          window.sessionStorage?.getItem(CATALOG_DOM_SNAPSHOT_KEY)
-        ) {
-          document.documentElement.classList.add('app-catalog-fast-return-pending');
-        }
-      } catch (error) {
-        // Session storage hints are optional; normal boot still handles the page.
-      }
     }
 
     function getPageStylesheetAssets() {
@@ -271,7 +254,6 @@
       writeStylesheetCacheStore(store);
     }
 
-    markCatalogFastReturnStartupHint();
     const hasAppliedCachedStylesheets = applyCachedStylesheets();
 
     function finishEnvReady() {

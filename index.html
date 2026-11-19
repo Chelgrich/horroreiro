@@ -89,21 +89,6 @@
   <link data-app-fonts media="print" href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
-  <script>
-    (function () {
-      try {
-        if (
-          window.sessionStorage &&
-          sessionStorage.getItem('horroreiro_catalog_dom_snapshot')
-        ) {
-          document.documentElement.classList.add('app-catalog-fast-return-pending');
-        }
-      } catch (error) {
-        // Fast-return hints are optional; normal boot will continue.
-      }
-    })();
-  </script>
-
   <style>
     html {
       background: #111315;
@@ -118,170 +103,40 @@
       font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
-    html:not(.app-ready) body {
-      overflow: hidden;
-    }
-
-    html:not(.app-ready) .page,
-    html:not(.app-ready) #sharedFooterMount {
+    html:not(.app-styles-ready) .page,
+    html:not(.app-styles-ready) #sharedFooterMount {
       display: none;
     }
 
-    .app-boot-shell {
-      position: fixed;
-      inset: 0;
-      z-index: 2147483647;
-      box-sizing: border-box;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-      background: #111315;
-      color: #f2f2f2;
-      font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      animation: app-boot-shell-reveal 0.16s ease 0.32s forwards;
-    }
-
-    html.app-ready .app-boot-shell {
-      display: none;
-    }
-
-    html.app-catalog-fast-return-pending:not(.app-load-failed):not(.app-catalog-warm-started) .app-boot-shell {
-      animation-delay: 1.2s;
-    }
-
-    html.app-catalog-warm-started.app-styles-ready:not(.app-load-failed) .app-boot-shell {
-      display: none;
-    }
-
-    html.app-catalog-warm-started.app-styles-ready:not(.app-ready) body {
-      overflow-x: hidden;
-      overflow-y: scroll;
-    }
-
-    html.app-catalog-warm-started.app-styles-ready:not(.app-ready) .page,
-    html.app-catalog-warm-started.app-styles-ready:not(.app-ready) #sharedFooterMount {
-      display: block;
-    }
-
-    html.app-catalog-warm-started.app-styles-ready:not(.app-ready) #sharedHeaderMount:empty {
+    #sharedHeaderMount:empty {
       min-height: 56px;
       display: block;
     }
 
-    html.app-load-failed .app-boot-shell {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-      animation: none;
-    }
-
-    html.app-catalog-warm-started.app-styles-ready.app-load-failed:not(.app-ready) .app-boot-shell {
-      position: static;
+    .catalog-startup-error {
+      display: none;
+      margin: 0;
       padding: 12px 24px;
-    }
-
-    html.app-catalog-warm-started.app-styles-ready.app-load-failed .app-boot-logo {
-      display: none;
-    }
-
-    .app-boot-shell-card {
-      display: grid;
-      justify-items: center;
-      gap: 16px;
-      text-align: center;
-    }
-
-    .app-boot-logo {
-      font-family: 'Unbounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: clamp(24px, 7vw, 34px);
-      font-weight: 600;
-      line-height: 1.1;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: #ffffff;
-    }
-
-    .app-boot-shell-line {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      min-height: 24px;
-      color: #cfd6de;
-      font-size: 15px;
-    }
-
-    .app-boot-shell-spinner {
-      width: 18px;
-      height: 18px;
-      box-sizing: border-box;
-      border: 2px solid rgba(154, 163, 173, 0.28);
-      border-top-color: #5b8cff;
-      border-radius: 50%;
-      animation: app-boot-spin 0.8s linear infinite;
-    }
-
-    .app-boot-shell-error {
-      display: none;
-      max-width: 360px;
       color: #ffd9d4;
       font-size: 14px;
       line-height: 1.45;
+      text-align: center;
     }
 
-    html.app-load-failed .app-boot-shell-line {
+    html.app-load-failed #movies[aria-busy="true"] .movie-card-skeleton {
       display: none;
     }
 
-    html.app-load-failed .app-boot-shell-error {
+    html.app-load-failed .catalog-startup-error {
       display: block;
-    }
-
-    @keyframes app-boot-shell-reveal {
-      0% {
-        opacity: 0;
-        visibility: visible;
-        pointer-events: none;
-      }
-
-      to {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
-      }
-    }
-
-    @keyframes app-boot-spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .app-boot-shell-spinner {
-        animation: none;
-      }
     }
   </style>
 
-  <script src="/boot-loader.js?v=28"></script>
+  <script src="/boot-loader.js?v=29"></script>
 </head>
 
 <body data-app-page="catalog">
-  <div id="appBootShell" class="app-boot-shell" role="status" aria-live="polite">
-    <div class="app-boot-shell-card">
-      <div class="app-boot-logo">Хоррорейро</div>
-      <div class="app-boot-shell-line">
-        <span class="app-boot-shell-spinner" aria-hidden="true"></span>
-        <span>Загружаем интерфейс...</span>
-      </div>
-      <div class="app-boot-shell-error">
-        Не удалось полностью загрузить каталог. Обновите страницу.
-      </div>
-    </div>
-  </div>
+  <p class="catalog-startup-error" role="status">Не удалось полностью загрузить каталог. Обновите страницу.</p>
 
   <main class="page">
 
@@ -293,7 +148,7 @@
 
     <div id="sharedMovieModalMount"></div>
 
-    <section class="section">
+    <section class="section" id="catalogControls" inert>
       <div class="catalog-toolbar">
         <div class="form-row catalog-search-row">
           <label for="searchInput">Поиск:</label>
@@ -477,6 +332,7 @@
           <h1 class="section-title">Каталог</h1>
           <div id="moviesResultCount" class="movies-result-count" aria-live="polite" hidden></div>
         </div>
+        <button type="button" class="secondary-button catalog-view-toggle" disabled>По месяцам</button>
       </div>
       <nav
         id="catalogPaginationTop"
@@ -485,7 +341,30 @@
         hidden
       ></nav>
       <div id="movies" class="movies-list" aria-busy="true">
-        <div class="movies-loading-state">Загружаем фильмы...</div>
+        <article class="movie-card movie-card-skeleton catalog-startup-skeleton" aria-hidden="true">
+          <div class="movie-poster-block">
+            <div class="movie-poster-wrapper"><div class="movie-poster-skeleton"></div></div>
+          </div>
+          <span class="movie-text-skeleton movie-text-skeleton-title"></span>
+        </article>
+        <article class="movie-card movie-card-skeleton catalog-startup-skeleton" aria-hidden="true">
+          <div class="movie-poster-block">
+            <div class="movie-poster-wrapper"><div class="movie-poster-skeleton"></div></div>
+          </div>
+          <span class="movie-text-skeleton movie-text-skeleton-title"></span>
+        </article>
+        <article class="movie-card movie-card-skeleton catalog-startup-skeleton" aria-hidden="true">
+          <div class="movie-poster-block">
+            <div class="movie-poster-wrapper"><div class="movie-poster-skeleton"></div></div>
+          </div>
+          <span class="movie-text-skeleton movie-text-skeleton-title"></span>
+        </article>
+        <article class="movie-card movie-card-skeleton catalog-startup-skeleton" aria-hidden="true">
+          <div class="movie-poster-block">
+            <div class="movie-poster-wrapper"><div class="movie-poster-skeleton"></div></div>
+          </div>
+          <span class="movie-text-skeleton movie-text-skeleton-title"></span>
+        </article>
       </div>
       <nav
         id="catalogPaginationBottom"
@@ -511,7 +390,7 @@
   <script src="/catalog-warm-start.js?v=27"></script>
 
 
-  <script src="/app-script-loader.js?v=27"></script>
+  <script src="/app-script-loader.js?v=28"></script>
 </body>
 
 </html>

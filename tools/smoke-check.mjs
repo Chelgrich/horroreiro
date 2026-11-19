@@ -493,23 +493,21 @@ async function checkStaticGuards() {
         : !html.includes('/page-warm-start.js'),
       `${file}: page-warm-start.js must load only on secondary warm-start shells`
     );
+    const shellGate = file === 'index.html'
+      ? /html:not\(\.app-styles-ready\) \.page,\s*html:not\(\.app-styles-ready\) #sharedFooterMount\s*\{\s*display: none;/m
+      : /html:not\(\.app-ready\) \.page,\s*html:not\(\.app-ready\) #sharedFooterMount\s*\{\s*display: none;/m;
     assert(
-      /html:not\(\.app-ready\) \.page,\s*html:not\(\.app-ready\) #sharedFooterMount\s*\{\s*display: none;/m.test(html),
-      `${file}: static page shell must use display:none before app-ready so form controls cannot leak through`
+      shellGate.test(html),
+      `${file}: static page shell must stay hidden until its boot styles or runtime are ready`
     );
     if (file === 'index.html') {
       assert(
-        html.indexOf("sessionStorage.getItem('horroreiro_catalog_dom_snapshot')") > -1 &&
-          html.indexOf("sessionStorage.getItem('horroreiro_catalog_dom_snapshot')") < html.indexOf('<style>'),
-        'index.html: catalog warm-start startup hint must run before critical CSS whenever a DOM snapshot exists'
-      );
-      assert(
-        /html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+\.page,\s*html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html) &&
-          html.includes('html.app-catalog-warm-started.app-styles-ready:not(.app-ready) #sharedHeaderMount:empty') &&
-          html.includes('html.app-catalog-warm-started.app-styles-ready:not(.app-load-failed) .app-boot-shell') &&
-          /html\.app-catalog-warm-started\.app-styles-ready\.app-load-failed:not\(\.app-ready\) \.app-boot-shell\s*\{\s*position: static;/m.test(html) &&
-          html.includes('overflow-y: scroll;'),
-        'index.html: warm-started catalog must hide boot shell only after styles, redisplay after styles, reserve shared header space, and match final scrollbar policy'
+        !html.includes('id="appBootShell"') &&
+          html.includes('#sharedHeaderMount:empty') &&
+          html.includes('id="catalogControls" inert') &&
+          html.includes('class="movie-card movie-card-skeleton catalog-startup-skeleton" aria-hidden="true"') &&
+          html.includes('html.app-load-failed .catalog-startup-error'),
+        'index.html: styled catalog startup needs an inert toolbar, reserved header, static skeletons and an inline error'
       );
     }
     if (file === 'movie.html') {

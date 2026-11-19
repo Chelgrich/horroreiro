@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-19 — Reveal catalog skeletons during startup
+
+- Catalog HTML shows first-row skeletons as soon as the stylesheet bundle is ready. Startup failures surface inline. Saved catalog cards remain visible through the warm handoff.
+- The view switch, result count and top pagination reserve their space before data arrives. The catalog controls wait for an interactive snapshot or the first render.
+
 ## 2026-11-19 — Keep restored catalog cards visible through startup
 
 - Runtime hydration reuses matching saved catalog markup already restored by the early bootstrap. A render inside the initial fade preserves the fade's visibility class until its own cleanup.

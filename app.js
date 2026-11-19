@@ -11490,7 +11490,7 @@ async function reloadCatalogData({
 
   shouldFadeCatalogAfterSkeleton = shouldShowCatalogSkeleton;
 
-  if (shouldShowCatalogSkeleton) {
+  if (shouldShowCatalogSkeleton && !container.querySelector('.movie-card-skeleton')) {
     renderMoviesSkeleton(getCatalogSkeletonCardsCount());
   }
 
@@ -15518,7 +15518,8 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     }
 
     didSignalShellReady = true;
-    document.documentElement.classList.remove('app-catalog-fast-return-pending');
+    document.getElementById('catalogControls')?.removeAttribute('inert');
+    if (catalogViewToggleButton) catalogViewToggleButton.disabled = false;
 
     if (typeof onShellReady === 'function') {
       onShellReady();
@@ -15568,10 +15569,6 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     hydratedCatalogSignature: ''
   };
   let restoredUser = null;
-
-  if (!hydratedSnapshot) {
-    renderMoviesSkeleton();
-  }
 
   if (!shouldWaitForSessionBeforeHydration) {
     hydrationState = hydrateCatalogPageFromSnapshot(hydratedSnapshot, {
