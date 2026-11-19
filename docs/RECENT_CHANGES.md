@@ -6,6 +6,9 @@
 - Replaced the fullscreen interface loader with in-page skeletons on film, profile, director, company, activity and admin routes. Bootstrap errors are inline and warm content stays visible. The film SEO fallback retains a separate static skeleton for interactive startup.
 - Catalog startup matches the native and enhanced sort control heights and delays below-grid text and footer visibility until the grid has data. A changed document build does not mount an old page snapshot.
 - Removed the unused unbounded catalog movie lookup. Capped remaining GET filters at 100 UUIDs in poster galleries, public identities, follow preferences and film social reads. Review and comment likes retain complete results by paging within each ID batch. Catalog link hydration and notification event/snippet reads already stay below the bound.
+- Released build `052c2583be755f7e805bf5bec38c150f4dc6e639`, Yandex revision `bbah773ss6r829hdv1u9`. Full smoke, Docker and all three deployed route checks passed.
+- Eleven production gateway reads for poster galleries, public profiles, review/comment likes and reviewer ratings returned HTTP 200. The longest request target was 4,035 bytes. A 205-ID gallery lookup used 100, 100 and 5 IDs. Follow preferences with 205 IDs were checked in the controller fixture.
+- Production Chrome passed 17 cold startups across 12 routes at 1350 and 390 px. All required stylesheets started before the held `/env` response. The measured content anchors and catalog/movie poster rectangles stayed in place. The mobile movie warm return again kept its description and poster in place while `/env` was held for 15 seconds. Protected routes were checked in guest mode.
 
 ## 2026-11-19 — Keep movie details stable on mobile and extend desktop catalog skeletons
 
