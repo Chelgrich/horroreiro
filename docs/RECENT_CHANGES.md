@@ -4,6 +4,9 @@
 
 - Cold catalog views sorted by release date can render from movie and review data before requesting rating aggregates. Direct or saved rating ranges and rating presets keep the foreground load. A rating filter selected during the background read waits for aggregates, and month-local rating sort becomes available when the aggregate read settles.
 - Pending card summaries use a loading label. The completed read fills the visible rating text in place, preserving poster elements and scroll. Complete catalog snapshots and initial rating edits wait for the corresponding rating data, and a late response or queued edit cannot apply to a replacement session.
+- Released build `01ec08ef6f71f118c6b823e5456a6abc15dc541a`, Yandex revision `bba0ccp1q9d9ptmrbb80`. Full smoke, required Docker smoke and production gateway, apex and `www` checks passed. A Chrome check with the ratings request held verified an early poster, in-place text updates, month sort readiness, and both newly selected and restored rating filters.
+- Replayed three anonymous fresh-profile Lighthouse 13.6.0 desktop runs per production build with no emulated throttling, using `9c1516b` as the immediate baseline. Median first poster request moved from 5.664 s to 3.578 s, first successful image response from 5.958 s to 3.912 s, and first catalog poster `PaintImage` from 5.923 s to 3.886 s. The paint samples were 6.804, 5.923 and 5.410 s before, and 4.561, 2.412 and 3.886 s after. The earlier cold-start series had a 3.938 s median. The end-to-end difference also includes variation before the data requests, whose median start moved from 3.013 s to 1.288 s.
+- In all three new traces, `movie_rating_stats` began 96–103 ms after the first poster request, and the browser painted the first poster 270–2301 ms before the aggregate response ended. The first screen still waited for movies and reviews. Movies finished last among the two in all three new runs.
 
 ## 2026-11-19 — Trace catalog proxy latency
 
