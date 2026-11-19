@@ -391,6 +391,17 @@ h3{
   background: var(--color-surface-skeleton);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .page-content-skeleton::before,
+  .page-content-skeleton::after{
+    animation: page-skeleton-pulse 2.4s ease-in-out infinite;
+  }
+}
+
+@keyframes page-skeleton-pulse {
+  50% { filter: brightness(1.45); }
+}
+
 .page-content-skeleton::before{
   inline-size: min(220px, 55%);
   block-size: 24px;

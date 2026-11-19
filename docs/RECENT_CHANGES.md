@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-19 — Animate page skeletons
+
+- Shared page skeletons gently pulse their placeholder shapes without changing layout. The pulse runs only when the system allows motion.
+
 ## 2026-11-19 — Start styles early and bound remaining ID reads
 
 - The document supplies a build hint so the route stylesheet bundle starts in parallel with `/env`. Same-build stylesheet caches can supply the first paint without another transfer. Startup keeps unstyled HTML hidden until the bundle is applied.
