@@ -21,6 +21,7 @@ const syntaxFiles = [
   'tools/auth-session-smoke.mjs',
   'tools/auth-ui-smoke.mjs',
   'tools/account-header-smoke.mjs',
+  'tools/stylesheet-boot-smoke.mjs',
   'vite.config.mjs',
   'server/runtime.js',
   'server/server.mjs',
@@ -1693,6 +1694,11 @@ const accountHeaderSmoke = spawnSync(process.execPath, ['tools/account-header-sm
   cwd: rootDir, encoding: 'utf8'
 });
 assert(accountHeaderSmoke.status === 0, `Account header smoke failed:\n${accountHeaderSmoke.stderr || accountHeaderSmoke.stdout}`);
+
+const stylesheetBootSmoke = spawnSync(process.execPath, ['tools/stylesheet-boot-smoke.mjs'], {
+  cwd: rootDir, encoding: 'utf8'
+});
+assert(stylesheetBootSmoke.status === 0, `Stylesheet boot smoke failed:\n${stylesheetBootSmoke.stderr || stylesheetBootSmoke.stdout}`);
 const catalogReturnSmoke = spawnSync(process.execPath, ['tools/catalog-return-smoke.mjs'], {
   cwd: rootDir, encoding: 'utf8'
 });

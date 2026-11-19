@@ -1,5 +1,19 @@
 # Recent Changes
 
+## 2026-11-19 — Read startup stylesheets once per visit
+
+- Hosted boot fetches each selected CSS file once, validates its response and uses those same bytes for the active styles and same-tab warm-start cache. Fresh styles replace the cached styles in cascade order when the complete bundle is ready. Retry, cached fallback and native links on `file:` are retained.
+- The boot fixture measured four stylesheet loads before and two after on catalog startup. The saved bytes are the size of one copy of each selected stylesheet per HTTP visit. Page styles use self-contained CSS or absolute/resource-root URLs, checked in smoke. No route, database or HTTP cache-policy changes.
+- Full smoke and required Docker runtime checks passed. Local browser reached app-ready on catalog, movie and catalog return with the expected styles and 40 rendered catalog cards. The unconfigured local legacy SEO handler used its static-shell fallback on the movie route. The browser hydrated that shell.
+- Measured the next poster-loading candidate without changing it. Production has 670 movies and 980 gallery rows across 410 movies. With the Russian-poster preference enabled, a cold catalog requests all 670 IDs in four batches of up to 200, although its first page has 40 cards. Current historical poster-query samples reported zero shared-buffer reads, so the immediate opportunity is request count and startup transfer, rather than a demonstrated Disk IO problem.
+
+## 2026-11-19 — Notification polling and Supabase Disk IO measurement
+
+- Read-only production measurement at 14:02:25–14:06:29 Moscow time. The scheduled baseline is 60 unread-count requests per continuous visible signed-in tab-hour and 60 additional metadata requests on an open notifications page. Returning to a visible notification tab and loading new cards can add requests. No polling runs for a guest or in a hidden tab.
+- In that 244-second window, `pg_stat_statements` recorded two PostgREST unread count calls (1.607 ms total, 176 shared buffer hits, zero shared reads, dirtied blocks or temp blocks). No PostgREST metadata-only feed query appeared, so the observed window does not establish real feed polling volume. The main unread-count shape had 9,164 cumulative calls and zero shared reads or temp blocks. Its statistics predate this release. Database-wide temporary writes rose by 48.7 MiB in the window, which also includes diagnostic queries.
+- Production `EXPLAIN (ANALYZE, BUFFERS)` of the equivalent reads selected the existing partial unread index and recipient/creation-time index. The 80-row feed subplans used 21–25 shared buffer hits, zero shared reads, and about 1.8 ms. The count subplan for a recipient with 261 unread rows used 50 buffer hits, zero shared reads, and 2.5 ms. This measures the SQL subplans on warm buffers, without PostgREST/RLS overhead. The deliveries table held 5,649 rows across 58 recipients and occupied 1.42 MiB including indexes.
+- Infrastructure showed a minimum Disk IO balance of 66% for Nov 12–19. IOPS and throughput charts did not load, so host rates were checked through the Metrics API. Two scrape intervals showed approximately 8.3–8.5% CPU I/O wait, about 411–415 MiB swap in use and active swap-in/out. Counters are host-wide and cannot assign Disk IO budget spend to SQL or to a device's workload. The overlapping SQL sample shows that this I/O was observable with almost no notification reads. The results do not justify changing notification polling, indexes or compute for this feature. Compare statement deltas and the budget again over a representative traffic window.
+
 ## 2026-11-19 — Live notifications feed
 
 - The notifications page uses the account header's visible-tab refresh tick. It reads metadata for the latest 80 deliveries and loads event and card details only for new delivery IDs. Preferences, profile snippets and digest posters for existing cards are reused between ticks.

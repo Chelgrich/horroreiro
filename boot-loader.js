@@ -231,6 +231,16 @@
       });
     }
 
+    function appendStylesheetTexts(assets, cssTextByAsset, cached = false) {
+      assets.forEach(assetName => {
+        const style = document.createElement('style');
+        if (cached) style.dataset.horroreiroStyleCache = 'true';
+        style.dataset.asset = assetName;
+        style.textContent = cssTextByAsset[assetName];
+        document.head.appendChild(style);
+      });
+    }
+
     function applyCachedStylesheets() {
       const buildVersion = getStorageValue(localStorage, APP_VERSION_STORAGE_KEY);
 
@@ -248,57 +258,17 @@
       }
 
       removeCachedStylesheets();
-      assets.forEach(assetName => {
-        const style = document.createElement('style');
-
-        style.dataset.horroreiroStyleCache = 'true';
-        style.dataset.asset = assetName;
-        style.textContent = entry.cssTextByAsset[assetName];
-        document.head.appendChild(style);
-      });
+      appendStylesheetTexts(assets, entry.cssTextByAsset, true);
       document.documentElement.classList.add('app-styles-ready');
       return true;
     }
 
-    function cacheLoadedStylesheets(buildVersion, assets, stylesheetLinks) {
-      if (!buildVersion || !assets.length || !stylesheetLinks.length) {
-        return;
-      }
-
-      Promise.all(
-        assets.map((assetName, index) => {
-          const href = stylesheetLinks[index]?.href;
-
-          if (!href) {
-            throw new Error('Missing stylesheet href.');
-          }
-
-          return fetch(href, { cache: 'force-cache' })
-            .then(response => {
-              if (!response.ok) {
-                throw new Error(`Stylesheet fetch failed: ${response.status}`);
-              }
-
-              return response.text();
-            })
-            .then(cssText => [assetName, cssText]);
-        })
-      )
-        .then(entries => {
-          const store = readStylesheetCacheStore();
-          const cacheId = getStylesheetCacheId(buildVersion, assets);
-
-          store.entries[cacheId] = {
-            buildVersion,
-            assets,
-            savedAt: Date.now(),
-            cssTextByAsset: Object.fromEntries(entries)
-          };
-          writeStylesheetCacheStore(store);
-        })
-        .catch(() => {
-          // The live stylesheets already loaded; cache misses only affect later warm starts.
-        });
+    function cacheLoadedStylesheets(buildVersion, assets, cssTextByAsset) {
+      const store = readStylesheetCacheStore();
+      store.entries[getStylesheetCacheId(buildVersion, assets)] = {
+        buildVersion, assets, savedAt: Date.now(), cssTextByAsset
+      };
+      writeStylesheetCacheStore(store);
     }
 
     markCatalogFastReturnStartupHint();
@@ -347,6 +317,34 @@
       }
     }
 
+    async function fetchStylesheetText(href) {
+      const response = await fetch(href);
+      if (!response.ok || !/^text\/css(?:\s*;|$)/i.test(response.headers.get('content-type') || '')) {
+        throw new Error(`Invalid stylesheet response: ${response.status}`);
+      }
+      const cssText = await response.text();
+      if (!cssText.trim()) throw new Error('Empty stylesheet response.');
+      return cssText;
+    }
+
+    async function loadHostedStylesheets(buildVersion, assets) {
+      try {
+        const entries = await Promise.all(assets.map(async asset => {
+          const href = getVersionedAssetUrl(asset, buildVersion);
+          const cssText = await fetchStylesheetText(href).catch(() =>
+            fetchStylesheetText(getRetryStylesheetUrl(href)));
+          return [asset, cssText];
+        }));
+        const cssTextByAsset = Object.fromEntries(entries);
+        removeCachedStylesheets();
+        appendStylesheetTexts(assets, cssTextByAsset);
+        finishEnvReady();
+        cacheLoadedStylesheets(buildVersion, assets, cssTextByAsset);
+      } catch (error) {
+        markStylesheetFailure();
+      }
+    }
+
     function applyEnvAndLoadStyles() {
       if (hasStartedStylesheetLoad) {
         return;
@@ -357,7 +355,12 @@
 
       const buildVersion = window.__ENV__?.APP_BUILD_VERSION || 'dev';
       const stylesheetAssets = getPageStylesheetAssets();
-      const stylesheetLinks = [];
+      stylesheetFallbackTimer = window.setTimeout(markStylesheetFailure, STYLESHEET_FALLBACK_TIMEOUT_MS);
+      if (!isLocalFile) {
+        void loadHostedStylesheets(buildVersion, stylesheetAssets);
+        return;
+      }
+
       let pendingStylesheets = stylesheetAssets.length;
       const failedStylesheetAssets = new Set();
       const settledStylesheets = new WeakSet();
@@ -380,7 +383,6 @@
         }
 
         if (failedStylesheetAssets.size === 0) {
-          cacheLoadedStylesheets(buildVersion, stylesheetAssets, stylesheetLinks);
           removeCachedStylesheets();
           finishEnvReady();
           return;
@@ -419,11 +421,8 @@
         stylesheet.href = getVersionedAssetUrl(assetName, buildVersion);
         stylesheet.onload = handleStylesheetLoad;
         stylesheet.onerror = handleStylesheetError;
-        stylesheetLinks.push(stylesheet);
         document.head.appendChild(stylesheet);
       });
-
-      stylesheetFallbackTimer = window.setTimeout(markStylesheetFailure, STYLESHEET_FALLBACK_TIMEOUT_MS);
     }
 
     function applyFallbackEnvAndLoadStyles() {
