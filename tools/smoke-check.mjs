@@ -20,6 +20,7 @@ const syntaxFiles = [
   'tools/profile-settings-smoke.mjs',
   'tools/auth-session-smoke.mjs',
   'tools/auth-ui-smoke.mjs',
+  'tools/account-header-smoke.mjs',
   'vite.config.mjs',
   'server/runtime.js',
   'server/server.mjs',
@@ -756,9 +757,9 @@ async function checkStaticGuards() {
     sharedLayoutJs.includes('id="productionAdminSummaryButton"') &&
       sharedLayoutJs.includes('id="distributorsAdminSummaryButton"') &&
       sharedLayoutJs.includes('id="russianDistributorsAdminSummaryButton"') &&
-      appJs.includes('productionAdminSummaryButton?.addEventListener') &&
-      appJs.includes('distributorsAdminSummaryButton?.addEventListener') &&
-      appJs.includes('russianDistributorsAdminSummaryButton?.addEventListener'),
+      appJs.includes("productionAdminSummaryButton: () => buildCompanyAdminPageUrl('production')") &&
+      appJs.includes("distributorsAdminSummaryButton: () => buildCompanyAdminPageUrl('distribution')") &&
+      appJs.includes("russianDistributorsAdminSummaryButton: () => buildCompanyAdminPageUrl('russian_distribution')"),
     'shared-layout.js/app.js: company role admin menu items must be real navigation links'
   );
   assert(
@@ -1687,6 +1688,11 @@ const authUiSmoke = spawnSync(process.execPath, ['tools/auth-ui-smoke.mjs'], {
   cwd: rootDir, encoding: 'utf8'
 });
 assert(authUiSmoke.status === 0, `Auth UI smoke failed:\n${authUiSmoke.stderr || authUiSmoke.stdout}`);
+
+const accountHeaderSmoke = spawnSync(process.execPath, ['tools/account-header-smoke.mjs'], {
+  cwd: rootDir, encoding: 'utf8'
+});
+assert(accountHeaderSmoke.status === 0, `Account header smoke failed:\n${accountHeaderSmoke.stderr || accountHeaderSmoke.stdout}`);
 const catalogReturnSmoke = spawnSync(process.execPath, ['tools/catalog-return-smoke.mjs'], {
   cwd: rootDir, encoding: 'utf8'
 });

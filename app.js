@@ -2,20 +2,6 @@ let movieModal = document.getElementById('movieModal');
 let movieModalBackdrop = document.getElementById('movieModalBackdrop');
 let closeMovieModalButton = document.getElementById('closeMovieModalButton');
 
-const authControls = document.getElementById('authControls');
-const displayNameWrap = document.getElementById('displayNameWrap');
-const displayNameButton = document.getElementById('displayNameButton');
-const displayNameText = document.getElementById('displayNameText');
-const profileSummaryButton = document.getElementById('profileSummaryButton');
-const notificationsSummaryButton = document.getElementById('notificationsSummaryButton');
-const notificationsMenuBadge = document.getElementById('notificationsMenuBadge');
-const followingSummaryButton = document.getElementById('followingSummaryButton');
-const editorCenterSummaryButton = document.getElementById('editorCenterSummaryButton');
-const directorsAdminSummaryButton = document.getElementById('directorsAdminSummaryButton');
-const productionAdminSummaryButton = document.getElementById('productionAdminSummaryButton');
-const distributorsAdminSummaryButton = document.getElementById('distributorsAdminSummaryButton');
-const russianDistributorsAdminSummaryButton = document.getElementById('russianDistributorsAdminSummaryButton');
-
 const WINDOW_SCROLL_INTENT_VERSION_KEY = '__HORROREIRO_SCROLL_INTENT_VERSION__';
 const WINDOW_LAST_USER_SCROLL_Y_KEY = '__HORROREIRO_LAST_USER_SCROLL_Y__';
 const WINDOW_SCROLL_INTENT_TRACKER_BOUND_KEY = '__HORROREIRO_SCROLL_INTENT_TRACKER_BOUND__';
@@ -31,15 +17,6 @@ const WINDOW_SCROLL_KEYS = new Set([
   'End'
 ]);
 
-const openAuthModalButton = document.getElementById('openAuthModalButton');
-const authIconButtonDefaultHtml = openAuthModalButton?.innerHTML || '';
-const authPopoverMenu = document.getElementById('authPopoverMenu');
-const importLetterboxdRatingsButton = document.getElementById('importLetterboxdRatingsButton');
-const manualSimilarAuditButton = document.getElementById('manualSimilarAuditButton');
-const completenessAuditButton = document.getElementById('completenessAuditButton');
-const databaseExportButton = document.getElementById('databaseExportButton');
-const notificationTestButton = document.getElementById('notificationTestButton');
-const letterboxdRatingsFileInput = document.getElementById('letterboxdRatingsFileInput');
 const appToast = document.getElementById('appToast');
 const appToastMessage = document.getElementById('appToastMessage');
 const appToastAcceptButton = document.getElementById('appToastAcceptButton');
@@ -52,7 +29,6 @@ const directorsAdminPage = document.getElementById('directorsAdminPage');
 const companyPage = document.getElementById('companyPage');
 const companyAdminPage = document.getElementById('companyAdminPage');
 
-const adminPanel = document.getElementById('adminPanel');
 const openAddMovieButton = document.getElementById('openAddMovieButton');
 
 const searchInput = document.getElementById('searchInput');
@@ -558,7 +534,6 @@ let notificationsUnreadFetchedAt = 0;
 let areNotificationsUnavailable = false;
 let isNotificationTestRunning = false;
 let isAdmin = false;
-let isAuthPopoverOpen = false;
 let profileRussianPostersColumnAvailable = true;
 let isMovieModalEventsBound = false;
 let areSharedUiEventsBound = false;
@@ -1321,10 +1296,7 @@ async function runManualSimilarAudit() {
   }
 
   isManualSimilarAuditRunning = true;
-  if (manualSimilarAuditButton) {
-    manualSimilarAuditButton.disabled = true;
-    manualSimilarAuditButton.textContent = 'Готовлю аудит...';
-  }
+  accountHeaderController.setActionBusy('manualSimilarAuditButton', true);
 
   closeAuthPopoverMenu();
   showAppMessage('Готовлю аудит похожих фильмов...', 'info');
@@ -1350,38 +1322,8 @@ async function runManualSimilarAudit() {
     showAppMessage(`Ошибка аудита похожих: ${error.message || 'смотри консоль F12.'}`, 'error', true);
   } finally {
     isManualSimilarAuditRunning = false;
-    if (manualSimilarAuditButton) {
-      manualSimilarAuditButton.disabled = false;
-      manualSimilarAuditButton.textContent = 'Аудит похожих';
-    }
+    accountHeaderController.setActionBusy('manualSimilarAuditButton', false);
   }
-}
-
-function setCompletenessAuditButtonState(isRunning) {
-  if (!completenessAuditButton) {
-    return;
-  }
-
-  completenessAuditButton.disabled = isRunning;
-  completenessAuditButton.textContent = isRunning ? 'Готовлю аудит...' : 'Аудит заполненности';
-}
-
-function setDatabaseExportButtonState(isRunning) {
-  if (!databaseExportButton) {
-    return;
-  }
-
-  databaseExportButton.disabled = isRunning;
-  databaseExportButton.textContent = isRunning ? 'Готовлю экспорт...' : 'Экспорт базы';
-}
-
-function setNotificationTestButtonState(isRunning) {
-  if (!notificationTestButton) {
-    return;
-  }
-
-  notificationTestButton.disabled = isRunning;
-  notificationTestButton.textContent = isRunning ? 'Готовлю тест...' : 'Тест уведомлений';
 }
 
 async function runCompletenessAudit() {
@@ -1390,7 +1332,7 @@ async function runCompletenessAudit() {
   }
 
   isCompletenessAuditRunning = true;
-  setCompletenessAuditButtonState(true);
+  accountHeaderController.setActionBusy('completenessAuditButton', true);
   closeAuthPopoverMenu();
   showAppMessage('Готовлю аудит заполненности...', 'info');
 
@@ -1412,7 +1354,7 @@ async function runCompletenessAudit() {
     showAppMessage(`Ошибка аудита заполненности: ${error.message || 'смотри консоль F12.'}`, 'error', true);
   } finally {
     isCompletenessAuditRunning = false;
-    setCompletenessAuditButtonState(false);
+    accountHeaderController.setActionBusy('completenessAuditButton', false);
   }
 }
 
@@ -1422,7 +1364,7 @@ async function exportDatabase() {
   }
 
   isDatabaseExportRunning = true;
-  setDatabaseExportButtonState(true);
+  accountHeaderController.setActionBusy('databaseExportButton', true);
   closeAuthPopoverMenu();
   showAppMessage('Готовлю экспорт базы...', 'info');
 
@@ -1479,7 +1421,7 @@ async function exportDatabase() {
     showAppMessage(`Ошибка экспорта базы: ${error.message || 'смотри консоль F12.'}`, 'error', true);
   } finally {
     isDatabaseExportRunning = false;
-    setDatabaseExportButtonState(false);
+    accountHeaderController.setActionBusy('databaseExportButton', false);
   }
 }
 
@@ -1489,7 +1431,7 @@ async function runNotificationTestSuite() {
   }
 
   isNotificationTestRunning = true;
-  setNotificationTestButtonState(true);
+  accountHeaderController.setActionBusy('notificationTestButton', true);
   closeAuthPopoverMenu();
   showAppMessage('Готовлю тестовые уведомления...', 'info');
 
@@ -1530,7 +1472,7 @@ async function runNotificationTestSuite() {
     }
   } finally {
     isNotificationTestRunning = false;
-    setNotificationTestButtonState(false);
+    accountHeaderController.setActionBusy('notificationTestButton', false);
   }
 }
 
@@ -4592,63 +4534,6 @@ function shouldPreferRussianPosters() {
   return Boolean(shouldUseAuthenticatedUi() && doesProfilePreferRussianPosters());
 }
 
-
-function syncAuthPopoverNavigationLink(linkElement, href, shouldShow) {
-  if (!linkElement) {
-    return;
-  }
-
-  const normalizedHref = String(href || '').trim();
-
-  linkElement.hidden = !shouldShow;
-
-  if (linkElement.dataset.currentPageLink === 'true') {
-    restoreCurrentPageLink(linkElement);
-  }
-
-  if (!shouldShow || !normalizedHref) {
-    linkElement.removeAttribute('href');
-    linkElement.removeAttribute('aria-current');
-    return;
-  }
-
-  linkElement.setAttribute('href', normalizedHref);
-
-  if (isSameCurrentPageUrl(normalizedHref)) {
-    disableCurrentPageLink(linkElement, normalizedHref);
-    return;
-  }
-
-  linkElement.removeAttribute('aria-current');
-}
-
-function handleAuthPopoverNavigationLinkClick(event) {
-  if (
-    event.defaultPrevented ||
-    event.metaKey ||
-    event.ctrlKey ||
-    event.shiftKey ||
-    event.altKey
-  ) {
-    return;
-  }
-
-  closeAuthPopoverMenu();
-}
-
-function syncDisplayNameButton() {
-  if (!displayNameWrap || !displayNameButton || !displayNameText) {
-    return;
-  }
-
-  const shouldShowDisplayName = shouldUseAuthenticatedUi();
-  const currentDisplayName = getCurrentDisplayName();
-
-  displayNameWrap.classList.toggle('is-visible', shouldShowDisplayName);
-  displayNameText.textContent = currentDisplayName;
-  displayNameButton.title = currentDisplayName;
-  displayNameButton.setAttribute('aria-expanded', String(Boolean(profileSettingsController?.isOpen())));
-}
 
 function handleUserPageProfileSettingsClick(event) {
   const settingsButton = event.target.closest('[data-user-page-profile-settings="true"]');
@@ -7960,6 +7845,62 @@ function ensureMovieEditorStylesheetLoaded() {
   return movieEditorStylesheetPromise;
 }
 
+let accountHeaderController;
+
+async function loadAccountHeaderController() {
+  if (accountHeaderController) return;
+  const { createAccountHeaderController } = await import(getLazyFeatureModuleUrl('account-header-controller.js'));
+  accountHeaderController ??= createAccountHeaderController({
+    openLogin: openAuthModal,
+    logout: () => getAuthUiController().logout(),
+    unreadRefreshInterval: NOTIFICATIONS_UNREAD_REFRESH_INTERVAL_MS,
+    refreshUnread: options => {
+      if (!notificationsUnreadRefreshPromise) void refreshNotificationsUnreadCount(options);
+    },
+    restoreCurrentPageLink, isSameCurrentPageUrl, disableCurrentPageLink,
+    links: {
+      profileSummaryButton: () => buildUserPageUrl(getCurrentUserPublicHandle()),
+      notificationsSummaryButton: buildNotificationsPageUrl,
+      followingSummaryButton: buildFollowingPageUrl,
+      editorCenterSummaryButton: buildEditorPageUrl,
+      directorsAdminSummaryButton: buildDirectorsAdminPageUrl,
+      productionAdminSummaryButton: () => buildCompanyAdminPageUrl('production'),
+      distributorsAdminSummaryButton: () => buildCompanyAdminPageUrl('distribution'),
+      russianDistributorsAdminSummaryButton: () => buildCompanyAdminPageUrl('russian_distribution')
+    },
+    actions: {
+      manualSimilarAuditButton: { run: runManualSimilarAudit, label: 'Аудит похожих', busyLabel: 'Готовлю аудит...' },
+      completenessAuditButton: { run: runCompletenessAudit, label: 'Аудит заполненности', busyLabel: 'Готовлю аудит...' },
+      databaseExportButton: { run: exportDatabase, label: 'Экспорт базы', busyLabel: 'Готовлю экспорт...' },
+      notificationTestButton: { run: runNotificationTestSuite, label: 'Тест уведомлений', busyLabel: 'Готовлю тест...' }
+    },
+    onImportPickerOpen() {
+      lastLetterboxdRatingsImportFileToken = '';
+      showAppMessage('Выбери ratings.csv из экспорта Letterboxd.', 'info', true);
+    },
+    onImportFileChange: handleLetterboxdRatingsFileChange,
+    onImportPickerCancel: () => showAppMessage('Файл не выбран. Импорт Letterboxd не запускался.', 'info', true)
+  });
+}
+
+function closeAuthPopoverMenu() {
+  accountHeaderController.close();
+}
+
+function syncAccountHeader({ ready = true } = {}) {
+  const signedIn = shouldUseAuthenticatedUi();
+  accountHeaderController.sync({
+    userId: signedIn ? currentUser.id : null,
+    isAdmin,
+    showAddMovie: signedIn && isAdmin && isCatalogPage(),
+    displayName: signedIn ? getCurrentDisplayName() : '',
+    avatarUrl: signedIn ? getPublicProfileAvatarUrl(currentUserProfile) : '',
+    unreadCount: notificationsUnreadCount,
+    settingsOpen: Boolean(profileSettingsController?.isOpen()),
+    ready
+  });
+}
+
 let authUiController = null;
 let authUiControllerPromise = null;
 
@@ -9262,14 +9203,7 @@ function formatLetterboxdRatingsImportMessage(result) {
 function setLetterboxdRatingsImportingState(isImporting) {
   isLetterboxdRatingsImporting = isImporting;
 
-  if (!importLetterboxdRatingsButton) {
-    return;
-  }
-
-  importLetterboxdRatingsButton.disabled = isImporting;
-  importLetterboxdRatingsButton.textContent = isImporting
-    ? 'Импортирую оценки...'
-    : 'Импорт оценок Letterboxd';
+  accountHeaderController.setActionBusy('importLetterboxdRatingsButton', isImporting);
 }
 
 async function handleLetterboxdRatingsFileChange(event) {
@@ -9324,9 +9258,7 @@ async function handleLetterboxdRatingsFileChange(event) {
   } finally {
     setLetterboxdRatingsImportingState(false);
 
-    if (letterboxdRatingsFileInput) {
-      letterboxdRatingsFileInput.value = '';
-    }
+    event.target.value = '';
   }
 }
 
@@ -10121,70 +10053,6 @@ async function clearLocalRecoverySession() {
   }
 }
 
-function syncAuthIconButtonState() {
-  if (!openAuthModalButton) {
-    return;
-  }
-
-  const isAuthenticated = shouldUseAuthenticatedUi();
-  const avatarUrl = isAuthenticated ? getPublicProfileAvatarUrl(currentUserProfile) : '';
-
-  openAuthModalButton.classList.toggle('is-authenticated', isAuthenticated);
-  openAuthModalButton.classList.toggle('has-avatar', Boolean(avatarUrl));
-  openAuthModalButton.setAttribute(
-    'aria-label',
-    isAuthenticated ? 'Меню аккаунта' : 'Вход или регистрация'
-  );
-  openAuthModalButton.setAttribute(
-    'title',
-    isAuthenticated ? 'Меню аккаунта' : 'Вход или регистрация'
-  );
-
-  if (avatarUrl) {
-    if (openAuthModalButton.dataset.avatarUrl !== avatarUrl) {
-      openAuthModalButton.innerHTML = `
-        <img
-          class="auth-icon-avatar"
-          src="${escapeHtml(avatarUrl)}"
-          alt=""
-          aria-hidden="true"
-        >
-      `;
-      openAuthModalButton.dataset.avatarUrl = avatarUrl;
-    }
-  } else if (openAuthModalButton.dataset.avatarUrl || openAuthModalButton.classList.contains('has-avatar')) {
-    openAuthModalButton.innerHTML = authIconButtonDefaultHtml;
-    delete openAuthModalButton.dataset.avatarUrl;
-  }
-
-  if (!isAuthenticated) {
-    closeAuthPopoverMenu();
-  }
-
-  ensureAuthNotificationBadgeElement();
-}
-
-function ensureAuthNotificationBadgeElement() {
-  if (!openAuthModalButton) {
-    return null;
-  }
-
-  const existingBadge = openAuthModalButton.querySelector('#authNotificationBadge');
-
-  if (existingBadge) {
-    return existingBadge;
-  }
-
-  const badge = document.createElement('span');
-
-  badge.id = 'authNotificationBadge';
-  badge.className = 'auth-notification-badge';
-  badge.hidden = true;
-  openAuthModalButton.appendChild(badge);
-
-  return badge;
-}
-
 
 function syncBodyScrollLock() {
   const shouldLockScroll = (
@@ -10197,35 +10065,6 @@ function syncBodyScrollLock() {
   );
 
   document.body.style.overflow = shouldLockScroll ? 'hidden' : '';
-}
-
-function closeAuthPopoverMenu() {
-  if (!authPopoverMenu || !openAuthModalButton) {
-    return;
-  }
-
-  authPopoverMenu.classList.remove('is-open');
-  isAuthPopoverOpen = false;
-  openAuthModalButton.setAttribute('aria-expanded', 'false');
-}
-
-function openAuthPopoverMenu() {
-  if (!authPopoverMenu || !openAuthModalButton || !shouldUseAuthenticatedUi()) {
-    return;
-  }
-
-  authPopoverMenu.classList.add('is-open');
-  isAuthPopoverOpen = true;
-  openAuthModalButton.setAttribute('aria-expanded', 'true');
-}
-
-function toggleAuthPopoverMenu() {
-  if (isAuthPopoverOpen) {
-    closeAuthPopoverMenu();
-    return;
-  }
-
-  openAuthPopoverMenu();
 }
 
 
@@ -10478,123 +10317,20 @@ async function fillFormForEdit(movie) {
 function updateAuthUI() {
   const shouldShowAuthenticatedUi = shouldUseAuthenticatedUi();
 
-  syncAuthIconButtonState();
-  syncDisplayNameButton();
   profileSettingsController?.syncAuthState();
   userPageController?.syncProfileSettingsButton();
-
   if (!shouldShowAuthenticatedUi) {
-    closeAuthPopoverMenu();
     profileSettingsController?.close();
+    resetNotificationsUnreadCount();
   }
-
-
-  if (adminPanel) {
-    adminPanel.classList.toggle('is-visible', shouldShowAuthenticatedUi && isAdmin && isCatalogPage());
-  }
-
-  if (profileSummaryButton) {
-    syncAuthPopoverNavigationLink(
-      profileSummaryButton,
-      buildUserPageUrl(getCurrentUserPublicHandle()),
-      shouldShowAuthenticatedUi
-    );
-  }
-
-  if (followingSummaryButton) {
-    syncAuthPopoverNavigationLink(
-      followingSummaryButton,
-      buildFollowingPageUrl(),
-      shouldShowAuthenticatedUi
-    );
-  }
-
-  if (notificationsSummaryButton) {
-    syncAuthPopoverNavigationLink(
-      notificationsSummaryButton,
-      buildNotificationsPageUrl(),
-      shouldShowAuthenticatedUi
-    );
-  }
-
-  if (editorCenterSummaryButton) {
-    syncAuthPopoverNavigationLink(
-      editorCenterSummaryButton,
-      buildEditorPageUrl(),
-      shouldShowAuthenticatedUi && isAdmin
-    );
-  }
-
-  if (directorsAdminSummaryButton) {
-    syncAuthPopoverNavigationLink(
-      directorsAdminSummaryButton,
-      buildDirectorsAdminPageUrl(),
-      shouldShowAuthenticatedUi && isAdmin
-    );
-  }
-
-  if (productionAdminSummaryButton) {
-    syncAuthPopoverNavigationLink(
-      productionAdminSummaryButton,
-      buildCompanyAdminPageUrl('production'),
-      shouldShowAuthenticatedUi && isAdmin
-    );
-  }
-
-  if (distributorsAdminSummaryButton) {
-    syncAuthPopoverNavigationLink(
-      distributorsAdminSummaryButton,
-      buildCompanyAdminPageUrl('distribution'),
-      shouldShowAuthenticatedUi && isAdmin
-    );
-  }
-
-  if (russianDistributorsAdminSummaryButton) {
-    syncAuthPopoverNavigationLink(
-      russianDistributorsAdminSummaryButton,
-      buildCompanyAdminPageUrl('russian_distribution'),
-      shouldShowAuthenticatedUi && isAdmin
-    );
-  }
-
-  if (shouldShowAuthenticatedUi) {
-    scheduleNotificationsUnreadRefresh();
-  } else {
-    notificationsUnreadCount = 0;
-    notificationsUnreadUserId = '';
-    notificationsUnreadFetchedAt = 0;
-    syncNotificationsBadgeUi();
-  }
+  syncAccountHeader();
+  if (shouldShowAuthenticatedUi) void refreshNotificationsUnreadCount();
 
   if (moviePageAdminActions) {
     moviePageAdminActions.classList.toggle('is-visible', shouldShowAuthenticatedUi && isAdmin && isMoviePage());
   }
 
-  if (manualSimilarAuditButton) {
-    manualSimilarAuditButton.hidden = !(shouldShowAuthenticatedUi && isAdmin);
-    manualSimilarAuditButton.disabled = isManualSimilarAuditRunning;
-  }
-
-  if (completenessAuditButton) {
-    completenessAuditButton.hidden = !(shouldShowAuthenticatedUi && isAdmin);
-    completenessAuditButton.disabled = isCompletenessAuditRunning;
-  }
-
-  if (databaseExportButton) {
-    databaseExportButton.hidden = !(shouldShowAuthenticatedUi && isAdmin);
-    databaseExportButton.disabled = isDatabaseExportRunning;
-  }
-
-  if (notificationTestButton) {
-    notificationTestButton.hidden = !(shouldShowAuthenticatedUi && isAdmin);
-    notificationTestButton.disabled = isNotificationTestRunning;
-  }
-
   getAuthUiController().syncAuthState();
-
-  if (authControls) {
-    authControls.classList.remove('auth-controls-pending');
-  }
 
   let didResetUserOnlyCatalogFilters = false;
 
@@ -12940,7 +12676,9 @@ function restoreSession() {
 }
 
 function setCurrentSessionUser(user) {
-  if (currentUser?.id !== user?.id) {
+  const didChangeViewer = currentUser?.id !== user?.id;
+  if (didChangeViewer) {
+    resetNotificationsUnreadCount();
     profileFollowActions?.resetCurrentUserFollows();
     currentUserRole = null;
     currentUserProfile = null;
@@ -12948,6 +12686,7 @@ function setCurrentSessionUser(user) {
   currentUser = user ?? null;
   updateAdminStatus();
   profileSettingsController?.syncAuthState();
+  if (didChangeViewer) syncAccountHeader({ ready: false });
   rebuildMovieRatingIndexes();
   rebuildCurrentUserWatchlistIndex();
 }
@@ -15190,53 +14929,8 @@ function bindSharedUiEvents() {
 
   appToastAcceptButton?.addEventListener('click', clearAppMessage);
 
-  profileSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
-  notificationsSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
-  followingSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
-  editorCenterSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
-  directorsAdminSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
-  productionAdminSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
-  distributorsAdminSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
-  russianDistributorsAdminSummaryButton?.addEventListener('click', handleAuthPopoverNavigationLinkClick);
-
-  manualSimilarAuditButton?.addEventListener('click', runManualSimilarAudit);
-  completenessAuditButton?.addEventListener('click', runCompletenessAudit);
-  databaseExportButton?.addEventListener('click', exportDatabase);
-  notificationTestButton?.addEventListener('click', runNotificationTestSuite);
-
-  if (importLetterboxdRatingsButton && letterboxdRatingsFileInput) {
-    importLetterboxdRatingsButton.addEventListener('click', () => {
-      if (isLetterboxdRatingsImporting) {
-        return;
-      }
-
-      letterboxdRatingsFileInput.value = '';
-      lastLetterboxdRatingsImportFileToken = '';
-      showAppMessage('Выбери ratings.csv из экспорта Letterboxd.', 'info', true);
-      letterboxdRatingsFileInput.click();
-    });
-
-    letterboxdRatingsFileInput.addEventListener('input', handleLetterboxdRatingsFileChange);
-    letterboxdRatingsFileInput.addEventListener('change', handleLetterboxdRatingsFileChange);
-
-    letterboxdRatingsFileInput.addEventListener('cancel', () => {
-      if (!isLetterboxdRatingsImporting) {
-        showAppMessage('Файл не выбран. Импорт Letterboxd не запускался.', 'info', true);
-      }
-    });
-  }
-
   document.addEventListener('submit', event => {
     handleUserPageAdminPasswordSubmit(event);
-  });
-
-  openAuthModalButton?.addEventListener('click', () => {
-    if (shouldUseAuthenticatedUi()) {
-      toggleAuthPopoverMenu();
-      return;
-    }
-
-    openAuthModal();
   });
 
   document.addEventListener('click', event => {
@@ -15261,12 +14955,6 @@ function bindSharedUiEvents() {
 
     handleUserPageProfileSettingsClick(event);
     handleUserPageRailControlClick(event);
-
-    const clickedInsideAuthMenu = event.target.closest('.auth-menu-wrap');
-
-    if (!clickedInsideAuthMenu) {
-      closeAuthPopoverMenu();
-    }
 
     if (!container) {
       return;
@@ -16409,51 +16097,28 @@ function isNotificationsUnavailableError(error) {
   );
 }
 
-function getNotificationsBadgeLabel(count) {
-  const normalizedCount = Number(count || 0);
-
-  if (!Number.isFinite(normalizedCount) || normalizedCount <= 0) {
-    return '';
-  }
-
-  return normalizedCount > 99 ? '99+' : String(normalizedCount);
-}
-
-function syncNotificationsBadgeUi() {
-  const shouldShowBadge = Boolean(shouldUseAuthenticatedUi() && notificationsUnreadCount > 0);
-  const badgeLabel = getNotificationsBadgeLabel(notificationsUnreadCount);
-  const authBadge = ensureAuthNotificationBadgeElement();
-
-  if (authBadge) {
-    authBadge.hidden = !shouldShowBadge;
-    authBadge.textContent = '';
-    authBadge.title = shouldShowBadge
-      ? `Непрочитанных уведомлений: ${notificationsUnreadCount}`
-      : '';
-  }
-
-  if (notificationsMenuBadge) {
-    notificationsMenuBadge.hidden = !shouldShowBadge;
-    notificationsMenuBadge.textContent = shouldShowBadge ? badgeLabel : '';
-  }
+function resetNotificationsUnreadCount() {
+  notificationsUnreadCount = 0;
+  notificationsUnreadUserId = '';
+  notificationsUnreadFetchedAt = 0;
+  notificationsUnreadRefreshPromise = null;
 }
 
 async function refreshNotificationsUnreadCount({ force = false } = {}) {
   if (!shouldUseAuthenticatedUi() || !currentUser?.id || !supabaseClient || areNotificationsUnavailable) {
-    notificationsUnreadCount = 0;
-    notificationsUnreadUserId = currentUser?.id || '';
-    syncNotificationsBadgeUi();
+    resetNotificationsUnreadCount();
+    accountHeaderController.syncBadge(0);
     return 0;
   }
 
   const currentUserId = String(currentUser.id);
 
   if (
-    !force &&
+    !force && !notificationsUnreadRefreshPromise &&
     notificationsUnreadUserId === currentUserId &&
     Date.now() - notificationsUnreadFetchedAt < NOTIFICATIONS_UNREAD_REFRESH_INTERVAL_MS
   ) {
-    syncNotificationsBadgeUi();
+    accountHeaderController.syncBadge(notificationsUnreadCount);
     return notificationsUnreadCount;
   }
 
@@ -16462,44 +16127,39 @@ async function refreshNotificationsUnreadCount({ force = false } = {}) {
   }
 
   notificationsUnreadUserId = currentUserId;
-  notificationsUnreadRefreshPromise = (async () => {
-    const { count, error } = await supabaseClient
-      .from('notification_deliveries')
-      .select('event_id', { count: 'exact', head: true })
-      .eq('recipient_id', currentUserId)
-      .is('read_at', null);
+  const fetchCount = async () => supabaseClient
+    .from('notification_deliveries')
+    .select('event_id', { count: 'exact', head: true })
+    .eq('recipient_id', currentUserId)
+    .is('read_at', null);
+  const isCurrent = () => notificationsUnreadRefreshPromise === request &&
+    String(currentUser?.id) === currentUserId && shouldUseAuthenticatedUi();
 
-    if (error) {
-      if (isNotificationsUnavailableError(error)) {
+  const request = (async () => {
+    try {
+      const { count, error } = await fetchCount();
+      if (!isCurrent()) return 0;
+      if (error) {
+        if (!isNotificationsUnavailableError(error)) throw error;
         areNotificationsUnavailable = true;
-        notificationsUnreadCount = 0;
-        syncNotificationsBadgeUi();
-        return 0;
       }
 
-      throw error;
+      notificationsUnreadCount = error ? 0 : Number(count || 0);
+      notificationsUnreadFetchedAt = Date.now();
+      accountHeaderController.syncBadge(notificationsUnreadCount);
+      return notificationsUnreadCount;
+    } catch (error) {
+      if (!isCurrent()) return 0;
+      console.warn('Ошибка загрузки счётчика уведомлений:', error);
+      notificationsUnreadCount = 0;
+      accountHeaderController.syncBadge(0);
+      return 0;
+    } finally {
+      if (notificationsUnreadRefreshPromise === request) notificationsUnreadRefreshPromise = null;
     }
-
-    notificationsUnreadCount = Number(count || 0);
-    notificationsUnreadFetchedAt = Date.now();
-    syncNotificationsBadgeUi();
-    return notificationsUnreadCount;
   })();
-
-  try {
-    return await notificationsUnreadRefreshPromise;
-  } catch (error) {
-    console.warn('Ошибка загрузки счётчика уведомлений:', error);
-    notificationsUnreadCount = 0;
-    syncNotificationsBadgeUi();
-    return 0;
-  } finally {
-    notificationsUnreadRefreshPromise = null;
-  }
-}
-
-function scheduleNotificationsUnreadRefresh(options = {}) {
-  void refreshNotificationsUnreadCount(options);
+  notificationsUnreadRefreshPromise = request;
+  return request;
 }
 
 let notificationsPageControllerPromise = null;
@@ -16556,12 +16216,12 @@ function getNotificationsPageControllerContext() {
         notificationsUnreadFetchedAt = Number(options.fetchedAt || 0);
       }
 
-      syncNotificationsBadgeUi();
+      accountHeaderController.syncBadge(notificationsUnreadCount);
     },
     decrementNotificationsUnreadCount: (amount = 1) => {
       const numericAmount = Math.max(0, Number(amount || 0));
       notificationsUnreadCount = Math.max(0, notificationsUnreadCount - numericAmount);
-      syncNotificationsBadgeUi();
+      accountHeaderController.syncBadge(notificationsUnreadCount);
     }
   };
 }
@@ -17700,7 +17360,7 @@ async function initSharedApp() {
     return false;
   }
 
-  await Promise.all([loadProfileUtils(), loadAuthSessionController(), loadAuthUiController()]);
+  await Promise.all([loadProfileUtils(), loadAuthSessionController(), loadAuthUiController(), loadAccountHeaderController()]);
 
   bindWindowScrollIntentTracker();
   bindCustomSelectGlobalEvents();

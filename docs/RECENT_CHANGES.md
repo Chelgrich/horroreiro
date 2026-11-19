@@ -1,5 +1,13 @@
 # Recent Changes
 
+## 2026-11-19 — Account menu and header ownership
+
+- `account-header-controller.js` owns the account button, menu and links, header identity, unread badges, catalog add button, menu action states and event bindings. It loads during shared initialization. `app.js` connects routes, session/profile state, notification counts and the existing admin and import operations. The auth UI controller still performs logout.
+- An accepted viewer change closes the old menu and publishes the new header state before profile and follow reads finish. The initial pending state remains until shared auth UI synchronization. Avatar changes preserve the badge element.
+- Unread counts and cached requests reset on viewer changes. Only the active count request can publish its result or clear the in-flight reference. Added smoke coverage for guest, admin and regular viewer transitions, menu/link behavior, file picker dispatch, unread count deduplication and a late response after returning to the same user ID.
+- The header refreshes unread counts every 60 seconds for signed-in viewers in visible tabs and checks the cache when a hidden tab becomes visible again. Guests and hidden tabs have no active timer. Scheduled reads reuse the existing count endpoint and skip a request already in flight.
+- Full smoke and required Docker runtime checks passed. The focused fixture advances the timer, resolves the real client count logic against a fake response and observes the new badge without remounting the header. Local browser verified opening the login form from the guest header with no captured warnings/errors.
+
 ## 2026-11-19 — Auth form and redirect ownership
 
 - `auth-ui-controller.js` owns login, registration and password-recovery DOM/events, modes, messages, busy state, field clearing, SDK submissions and confirmation/recovery URL handling. `app.js` keeps shared account controls, modal/Escape/scroll coordination and current identity/role/profile; callers use operation wrappers and read the controller's live recovery/open state. The new owner loads during shared initialization from the client asset inventory.

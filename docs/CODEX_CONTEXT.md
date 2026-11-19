@@ -363,7 +363,9 @@ After editing `src/directors-admin-app.jsx`, run `npm run build:directors` and c
 
 ## Auth And Admin
 
-- `auth-ui-controller.js` owns the login/register/recovery forms, their DOM/events and local modes/messages/busy state, redirect consumption/cleanup and confirmation tracking. It loads during shared initialization beside session/profile helpers. `app.js` retains current identity/role/profile, account popover and shared Escape/body-lock coordination; entry points delegate operations and read live controller state. Capture the initial URL before awaiting imports because the SDK may clear an implicit auth hash first. Form operation versions fence stale completions/timers; recovery additionally uses `captureAuthSession()` to reject replacement sessions, while unchanged-session sign-in reannouncements and token renewal stay valid. Never mirror form modes/fields back into `app.js`.
+- `account-header-controller.js` owns account menu and header DOM, click bindings, avatar/name rendering, notification badges, menu links and admin/import button states. The app publishes a view of the current identity and routes, keeps the data and domain actions, and delegates shared Escape handling to the menu close operation. A viewer change immediately resets the header and invalidates pending unread count reads. Initial pending controls are revealed after the first full auth UI sync.
+
+- `auth-ui-controller.js` owns the login/register/recovery forms, their DOM/events and local modes/messages/busy state, redirect consumption/cleanup and confirmation tracking. It loads during shared initialization beside session/profile helpers. `app.js` retains current identity/role/profile and shared Escape/body-lock coordination; entry points delegate operations and read live controller state. Capture the initial URL before awaiting imports because the SDK may clear an implicit auth hash first. Form operation versions fence stale completions/timers; recovery additionally uses `captureAuthSession()` to reject replacement sessions, while unchanged-session sign-in reannouncements and token renewal stay valid. Never mirror form modes/fields back into `app.js`.
 
 - User session comes from Supabase Auth.
 - `auth-session-controller.js` owns the SDK subscription and auth request generations. It loads during shared init beside profile utilities. `app.js` keeps current user/role/profile data, synchronous identity/index reset and the guarded role/follow/UI load bridge; form and redirect/recovery UI helpers stay outside the coordinator. Restore subscribes before its initial SDK read and ignores the duplicate `INITIAL_SESSION` event. Session readiness excludes page callbacks because director-page refresh calls restore again. A handler bound late receives a queued missed current-generation refresh. Read-only `captureSession().isCurrent()` fences role and shared rating/watchlist publication, including return to the same user ID.
@@ -372,6 +374,7 @@ After editing `src/directors-admin-app.jsx`, run `npm run build:directors` and c
 - Role is loaded into `currentUserRole`; `isAdmin = currentUserRole === 'admin'`.
 - Admin-only UI must be hidden both structurally and visually.
 - Account menu admin-only items use `data-admin-only-menu-item="true"` and `hidden`.
+- The header refreshes the unread notification count once a minute in visible signed-in tabs. It stops the timer on logout or when the tab is hidden and checks the count cache when the tab becomes visible. Scheduled reads skip in-flight requests.
 - CSS must include `.auth-popover-item[hidden] { display: none; }` because `.auth-popover-item` normally has `display: flex`.
 - Production admin-only pages should still enforce checks in JS, not just hidden links.
 

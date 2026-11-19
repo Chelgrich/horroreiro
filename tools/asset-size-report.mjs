@@ -21,6 +21,7 @@ const startupProfiles = {
     'app.js',
     'auth-session-controller.js',
     'auth-ui-controller.js',
+    'account-header-controller.js',
     'profile-utils.js'
   ],
   movie: [
@@ -33,6 +34,7 @@ const startupProfiles = {
     'app.js',
     'auth-session-controller.js',
     'auth-ui-controller.js',
+    'account-header-controller.js',
     'profile-utils.js'
   ],
   profile: [
@@ -45,6 +47,7 @@ const startupProfiles = {
     'app.js',
     'auth-session-controller.js',
     'auth-ui-controller.js',
+    'account-header-controller.js',
     'profile-utils.js'
   ],
   notifications: [
@@ -57,6 +60,7 @@ const startupProfiles = {
     'app.js',
     'auth-session-controller.js',
     'auth-ui-controller.js',
+    'account-header-controller.js',
     'profile-utils.js'
   ],
   company: [
@@ -69,6 +73,7 @@ const startupProfiles = {
     'app.js',
     'auth-session-controller.js',
     'auth-ui-controller.js',
+    'account-header-controller.js',
     'profile-utils.js'
   ],
   companyAdmin: [
@@ -81,6 +86,7 @@ const startupProfiles = {
     'app.js',
     'auth-session-controller.js',
     'auth-ui-controller.js',
+    'account-header-controller.js',
     'profile-utils.js'
   ],
   directors: [
@@ -93,6 +99,7 @@ const startupProfiles = {
     'app.js',
     'auth-session-controller.js',
     'auth-ui-controller.js',
+    'account-header-controller.js',
     'profile-utils.js',
     'assets/directors-admin-app.js'
   ]

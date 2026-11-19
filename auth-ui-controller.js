@@ -4,7 +4,6 @@ export function createAuthUiController(context) {
     showToastMessage, clearToastMessage, showAppMessage, trackGoal,
     syncBodyScrollLock, closeAuthPopoverMenu, closeProfileSettings, onModeChanged
   } = context;
-  const logoutMenuButton = document.getElementById('logoutMenuButton');
   const authModal = document.getElementById('authModal');
   const authModalBackdrop = document.getElementById('authModalBackdrop');
   const closeAuthModalButton = document.getElementById('closeAuthModalButton');
@@ -960,7 +959,6 @@ export function createAuthUiController(context) {
   loginPassword?.addEventListener('input', clearAuthMessage);
   loginPasswordConfirm?.addEventListener('input', clearAuthMessage);
   registerButton?.addEventListener('click', () => setAuthRegisterMode(!isAuthRegisterMode));
-  logoutMenuButton?.addEventListener('click', () => { closeAuthPopoverMenu(); return logout(); });
   closeAuthModalButton?.addEventListener('click', () => closeAuthModal());
   authModalBackdrop?.addEventListener('click', () => closeAuthModal());
   forgotPasswordButton?.addEventListener('click', () => sendPasswordResetEmail());
@@ -991,7 +989,7 @@ export function createAuthUiController(context) {
     }
   }
 
-  return { open: openAuthModal, close: closeAuthModal, isOpen: () => isAuthModalOpen,
+  return { open: openAuthModal, close: closeAuthModal, logout, isOpen: () => isAuthModalOpen,
     isRecoveryMode: () => isPasswordRecoveryMode, isRecoveryEntryPage: () => isPasswordRecoveryEntryPage,
     hasPendingRecovery: () => Boolean(localStorage.getItem(PASSWORD_RECOVERY_PENDING_KEY)),
     enterRecovery: () => { localStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1'); handlePasswordRecoveryEntry(true); },
