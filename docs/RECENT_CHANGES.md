@@ -6,6 +6,7 @@
 - The boot fixture measured four stylesheet loads before and two after on catalog startup. The saved bytes are the size of one copy of each selected stylesheet per HTTP visit. Page styles use self-contained CSS or absolute/resource-root URLs, checked in smoke. No route, database or HTTP cache-policy changes.
 - Full smoke and required Docker runtime checks passed. Local browser reached app-ready on catalog, movie and catalog return with the expected styles and 40 rendered catalog cards. The unconfigured local legacy SEO handler used its static-shell fallback on the movie route. The browser hydrated that shell.
 - Measured the next poster-loading candidate without changing it. Production has 670 movies and 980 gallery rows across 410 movies. With the Russian-poster preference enabled, a cold catalog requests all 670 IDs in four batches of up to 200, although its first page has 40 cards. Current historical poster-query samples reported zero shared-buffer reads, so the immediate opportunity is request count and startup transfer, rather than a demonstrated Disk IO problem.
+- Released runtime `7aa43a0d478409e1589638ff2b242d923466fdb4`, Yandex revision `bbajfc44f2htq7sailg6`. Gateway, apex and www smoke checks passed on the first attempt. Production browser verified the exact build, matching styles on catalog and movie pages, and 40 catalog cards after Back with no captured warnings/errors.
 
 ## 2026-11-19 — Notification polling and Supabase Disk IO measurement
 
