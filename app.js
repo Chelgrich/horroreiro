@@ -579,6 +579,7 @@ let movieRatingByMovieAndUserKey = new Map();
 let currentUserRatingsByMovieId = new Map();
 let currentUserWatchlistMovieIds = new Set();
 let catalogReviewedMovieIds = new Set();
+let initialCatalogReviewSummaryPending = false;
 let reviewedOnlyFilter = false;
 let editingMovieId = null;
 let isModalOpen = false;
@@ -4836,7 +4837,7 @@ function applyMovieRatingStatsSnapshotRows(rows) {
 }
 
 function createCatalogSessionSnapshotPayload() {
-  if (areInitialCatalogRatingStatsPending() || !moviesLoadedSuccessfully || !Array.isArray(allMovies) || allMovies.length === 0) {
+  if (hasPendingInitialCatalogSnapshotData() || !moviesLoadedSuccessfully || !Array.isArray(allMovies) || allMovies.length === 0) {
     return null;
   }
 
@@ -5611,6 +5612,12 @@ function recordCatalogDomSnapshotRender(sessionSnapshot = createCatalogSessionSn
   };
 }
 
+function refreshCatalogDomSnapshotDataSignature() {
+  if (catalogDomSnapshotRenderState?.renderStateSignature === getCatalogRenderStateSignature()) {
+    recordCatalogDomSnapshotRender();
+  }
+}
+
 function createCatalogDomSnapshotPayload(sessionSnapshot = null) {
   const currentSnapshot = createCatalogSessionSnapshotPayload();
   sessionSnapshot = sessionSnapshot || currentSnapshot;
@@ -5742,7 +5749,7 @@ function persistCatalogDomSnapshot(
   sessionSnapshot = null,
   { immediate = false } = {}
 ) {
-  if (!isCatalogPage() || areInitialCatalogRatingStatsPending()) {
+  if (!isCatalogPage() || hasPendingInitialCatalogSnapshotData()) {
     return;
   }
 
@@ -5762,7 +5769,7 @@ function persistCatalogDomSnapshot(
 }
 
 function persistCatalogSessionSnapshot({ persistDomSnapshotImmediately = false } = {}) {
-  if (!isCatalogPage() || areInitialCatalogRatingStatsPending()) {
+  if (!isCatalogPage() || hasPendingInitialCatalogSnapshotData()) {
     return;
   }
 
@@ -10856,6 +10863,15 @@ function areInitialCatalogRatingStatsPending() {
   return Boolean(initialCatalogRatingLoad?.statsPending && initialCatalogRatingLoad.isCurrent());
 }
 
+function hasPendingInitialCatalogSnapshotData() {
+  return initialCatalogReviewSummaryPending || areInitialCatalogRatingStatsPending();
+}
+
+function isCatalogFilterDataPending() {
+  return (initialCatalogReviewSummaryPending && reviewedOnlyFilter) ||
+    (areInitialCatalogRatingStatsPending() && hasCatalogRatingRange(ratingFromFilter.value, ratingToFilter.value));
+}
+
 function refreshCatalogAfterInitialRatingStats() {
   if (!moviesLoadedSuccessfully) return;
 
@@ -10870,9 +10886,7 @@ function refreshCatalogAfterInitialRatingStats() {
     for (const button of container.querySelectorAll('[data-catalog-month-rating-sort]')) {
       button.disabled = false;
     }
-    if (catalogDomSnapshotRenderState?.renderStateSignature === getCatalogRenderStateSignature()) {
-      recordCatalogDomSnapshotRender();
-    }
+    refreshCatalogDomSnapshotDataSignature();
   }
 
   persistCatalogSessionSnapshot();
@@ -11217,6 +11231,23 @@ async function fetchCatalogReviewSummary() {
   markCatalogDataChanged();
 }
 
+async function loadDeferredInitialCatalogReviewSummary() {
+  try {
+    await fetchCatalogReviewSummary();
+  } finally {
+    initialCatalogReviewSummaryPending = false;
+  }
+  if (!isCatalogPage() || !moviesLoadedSuccessfully) return;
+
+  if (reviewedOnlyFilter) {
+    refreshDynamicFilterOptions();
+    preserveWindowScrollPosition(renderMovies);
+  } else {
+    refreshCatalogDomSnapshotDataSignature();
+  }
+  persistCatalogSessionSnapshot();
+}
+
 function getUniqueMovieIdsFromRows(rows = []) {
   return [...new Set(
     (Array.isArray(rows) ? rows : [])
@@ -11445,7 +11476,8 @@ async function reloadCatalogData({
   refreshFilters = true,
   awaitUserState = false,
   loadDeferredUserState = true,
-  deferRatingStats = false
+  deferRatingStats = false,
+  deferReviewSummary = false
 } = {}) {
   const shouldShowCatalogSkeleton = showSkeleton && Boolean(container);
   const shouldPreserveExistingCatalogOnMovieLoadError = (
@@ -11465,7 +11497,7 @@ async function reloadCatalogData({
       preserveExistingCatalogOnError: shouldPreserveExistingCatalogOnMovieLoadError
     }),
     deferRatingStats ? false : fetchMovieRatingStats(),
-    fetchCatalogReviewSummary()
+    deferReviewSummary ? null : fetchCatalogReviewSummary()
   ]);
 
   const shouldAwaitCatalogUserState = shouldAwaitUserStateForCatalogLoad({
@@ -13351,7 +13383,7 @@ function syncCatalogPaginationSlotCount() {
 
   currentCatalogPaginationSlots = nextSlots;
 
-  if (!isCatalogPage() || !moviesLoadedSuccessfully) {
+  if (!isCatalogPage() || !moviesLoadedSuccessfully || isCatalogFilterDataPending()) {
     return;
   }
 
@@ -14806,7 +14838,7 @@ function getDynamicFilterOptionCounts() {
 }
 
 function refreshDynamicFilterOptions() {
-  if (areInitialCatalogRatingStatsPending() && hasCatalogRatingRange(ratingFromFilter.value, ratingToFilter.value)) {
+  if (isCatalogFilterDataPending()) {
     return;
   }
   const filterOptionCounts = getDynamicFilterOptionCounts();
@@ -14930,7 +14962,7 @@ function renderMovies({ loadPageDetails = true } = {}) {
   renderActiveFilterChips();
   syncQuickPresetButtons();
 
-  if (areInitialCatalogRatingStatsPending() && hasCatalogRatingRange(ratingFromFilter.value, ratingToFilter.value)) {
+  if (isCatalogFilterDataPending()) {
     setCatalogBusyState(true);
     return;
   }
@@ -15690,6 +15722,12 @@ async function initCatalogPage({ onShellReady = null } = {}) {
 
   const initialCatalogState = initialCatalogUrlState || storedCatalogStateForInitialLoad;
   const presetPatch = routePresetKey && getCatalogPresetTools().getQuickPresetFilterPatch(routePresetKey);
+  const deferReviewSummary = (
+    !hydrationState.didHydrateCatalogFromSnapshot &&
+    !initialCatalogState?.withReviews &&
+    !presetPatch?.reviewedOnly
+  );
+  initialCatalogReviewSummaryPending = deferReviewSummary;
   const deferRatingStats = (
     !hydrationState.didHydrateCatalogFromSnapshot &&
     !hasCatalogRatingRange(initialCatalogState?.ratingFrom, initialCatalogState?.ratingTo) &&
@@ -15704,14 +15742,21 @@ async function initCatalogPage({ onShellReady = null } = {}) {
 
   const finishInitialCatalogLoad = catalogLoadState => {
     signalCatalogShellReady();
+
+    const afterFirstRender = ratingLoad || deferReviewSummary
+      ? new Promise(resolve => requestAnimationFrame(() => window.setTimeout(resolve, 0)))
+      : null;
+    if (deferReviewSummary) {
+      afterFirstRender.then(loadDeferredInitialCatalogReviewSummary)
+        .catch(error => console.error('Ошибка фонового обновления сводки рецензий:', error));
+    }
+
     if (!ratingLoad) {
       loadDeferredInitialUserState(catalogLoadState);
       return;
     }
 
-    ratingLoad.ready = new Promise(resolve => {
-      requestAnimationFrame(() => window.setTimeout(resolve, 0));
-    })
+    ratingLoad.ready = afterFirstRender
       .then(() => ratingLoad.isCurrent() && fetchMovieRatingStats())
       .catch(error => {
         console.error('Ошибка фоновой загрузки статистики оценок:', error);
@@ -15734,7 +15779,8 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     refreshFilters: false,
     awaitUserState: shouldAwaitInitialUserCatalogState,
     loadDeferredUserState: false,
-    deferRatingStats
+    deferRatingStats,
+    deferReviewSummary
   });
 
   applySavedCatalogState();

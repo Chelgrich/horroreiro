@@ -16,9 +16,15 @@ function functionSource(name) {
 // Cold date-sorted data should settle while the rating request is still outstanding.
 let completeStats;
 let statsReads = 0;
+let completeReviews;
+let reviewReads = 0;
 const initialLoadSandbox = vm.createContext({
   container: {}, moviesLoadedSuccessfully: false, shouldFadeCatalogAfterSkeleton: false,
-  currentUser: null, fetchMovies: async () => {}, fetchCatalogReviewSummary: async () => {},
+  currentUser: null, fetchMovies: async () => {},
+  fetchCatalogReviewSummary: () => {
+    reviewReads += 1;
+    return new Promise(resolve => { completeReviews = resolve; });
+  },
   fetchMovieRatingStats: () => {
     statsReads += 1;
     return new Promise(resolve => { completeStats = resolve; });
@@ -28,18 +34,53 @@ const initialLoadSandbox = vm.createContext({
 });
 vm.runInContext(functionSource('reloadCatalogData'), initialLoadSandbox);
 const coldResult = await Promise.race([
-  initialLoadSandbox.reloadCatalogData({ deferRatingStats: true }),
+  initialLoadSandbox.reloadCatalogData({ deferRatingStats: true, deferReviewSummary: true }),
   new Promise(resolve => setImmediate(() => resolve(null)))
 ]);
 assert.ok(coldResult, 'A cold date-sorted catalog must load without waiting for aggregate ratings');
 assert.equal(statsReads, 0, 'Aggregate network traffic must start after the first independent render');
+assert.equal(reviewReads, 0, 'The review read must also start after the first independent render');
 let blockingFinished = false;
 const blockingLoad = initialLoadSandbox.reloadCatalogData().then(() => { blockingFinished = true; });
 await new Promise(resolve => setImmediate(resolve));
 assert.equal(blockingFinished, false, 'Rating-dependent and existing blocking callers must still wait');
 assert.equal(statsReads, 1);
+assert.equal(reviewReads, 1);
 completeStats(false);
+await new Promise(resolve => setImmediate(resolve));
+assert.equal(blockingFinished, false, 'A review-dependent load must await the review IDs');
+completeReviews();
 await blockingLoad;
+
+const reviewUpdates = [];
+const reviewSandbox = vm.createContext({
+  initialCatalogReviewSummaryPending: true, moviesLoadedSuccessfully: true, reviewedOnlyFilter: false,
+  fetchCatalogReviewSummary: () => new Promise(resolve => { completeReviews = resolve; }),
+  isCatalogPage: () => true, areInitialCatalogRatingStatsPending: () => false,
+  refreshDynamicFilterOptions: () => reviewUpdates.push('filters'),
+  preserveWindowScrollPosition: render => render(),
+  renderMovies: () => reviewUpdates.push('render'),
+  refreshCatalogDomSnapshotDataSignature: () => reviewUpdates.push('signature'),
+  persistCatalogSessionSnapshot: () => reviewUpdates.push('snapshot')
+});
+for (const name of ['isCatalogFilterDataPending', 'loadDeferredInitialCatalogReviewSummary']) {
+  vm.runInContext(functionSource(name), reviewSandbox);
+}
+const backgroundReviews = reviewSandbox.loadDeferredInitialCatalogReviewSummary();
+assert.equal(reviewSandbox.isCatalogFilterDataPending(), false);
+reviewSandbox.reviewedOnlyFilter = true;
+assert.equal(reviewSandbox.isCatalogFilterDataPending(), true);
+completeReviews();
+await backgroundReviews;
+assert.equal(reviewSandbox.isCatalogFilterDataPending(), false);
+assert.deepEqual(reviewUpdates, ['filters', 'render', 'snapshot']);
+reviewUpdates.length = 0;
+reviewSandbox.initialCatalogReviewSummaryPending = true;
+const unfilteredReviews = reviewSandbox.loadDeferredInitialCatalogReviewSummary();
+reviewSandbox.reviewedOnlyFilter = false;
+completeReviews();
+await unfilteredReviews;
+assert.deepEqual(reviewUpdates, ['signature', 'snapshot'], 'An unchecked review filter must keep its rendered cards');
 
 let ratingsPending = true;
 const ratingValue = {};

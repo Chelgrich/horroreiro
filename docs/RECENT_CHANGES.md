@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-19 — Defer the review filter summary on cold catalog views
+
+- Cold catalog startup requests the review ID summary after the first render when the effective filters do not include reviews. Review filters restored from URL parameters, quick presets or local storage still wait for the summary in the initial data batch.
+- Selecting the filter while the summary is pending keeps the current cards visible until the matching IDs are available. Background completion saves a complete snapshot and preserves the existing cards when the filter is off.
+
 ## 2026-11-19 — Reduce the first catalog movies response
 
 - The first catalog read keeps the complete movie list and the fields used by search, filters, ordering, posters and card metadata. It skips the four external links and the genre position values. The server still orders each movie's embedded genres by position.

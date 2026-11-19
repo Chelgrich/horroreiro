@@ -263,6 +263,8 @@ Profile ranking note:
 
 On a cold start without an effective rating range, `initCatalogPage()` starts the aggregate rating read after the first catalog render. Card summaries and month rating-sort controls reflect the pending read. The completion updates rating text in place and saves the complete snapshot, or renders the requested rating-filtered results if the filter was switched on during loading.
 
+The initial catalog also defers the review ID summary until after render when the effective review filter is off. A review filter selected while the read is pending waits for the full set of IDs before updating results or filter counts. Catalog snapshots wait for both deferred summaries.
+
 The full catalog index excludes external links. After each render, the catalog requests missing links for the visible IDs and updates only those card sections. Link results live in a page-session cache that resets on a fresh catalog read, including warm snapshot revalidation.
 
 `catalog-pagination.js` is lazy-loaded only on catalog pages and owns catalog pagination math, page item slot/ellipsis calculation, pagination controls HTML, and result-count text. `app.js` keeps current page state, DOM containers, events, and render scheduling.
