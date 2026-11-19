@@ -6,6 +6,7 @@
 - Catalog cards keep their size while uncached poster data loads and update the poster media in place. Warm snapshots retain their displayed posters pending revalidation. Older page/session responses cannot repaint a replacement view, and pending placeholders are excluded from saved DOM.
 - A 670-movie fixture measured one 40-ID gallery request on first opening and one 40-ID request on the next page. Returning to a loaded page or browsing with the preference disabled made zero gallery requests. Tests also exercise in-flight deduplication, late responses, fallback and retry, and forced refresh overriding an earlier request.
 - The full catalog in a browser used the real Supabase SDK against an isolated HTTP fixture with a Russian-poster profile. The server recorded exactly two gallery GETs for page 1 → page 2 → page 1, each with 40 distinct IDs; the return loaded from memory. Both pages displayed the correct Russian poster sources. Full smoke and required Docker runtime checks passed.
+- Released runtime `a20eeae629c45992019fb288beec8705e38a8b8f`, Yandex revision `bbaj7j8arlqv3e6k1qf2`. Gateway, apex and www passed on the first attempt. Production browser verified the exact build and guest pagination with 40 cards per page and no captured warnings/errors. The real Supabase route accepted the gallery projection and ordering in a one-row public read. The signed-in request counts were verified with the isolated fixture.
 
 ## 2026-11-19 — Read startup stylesheets once per visit
 
