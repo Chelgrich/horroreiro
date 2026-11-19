@@ -23,14 +23,13 @@ export function createFollowingPageController(context = {}) {
     getPublicProfileHandle,
     fetchPublicProfilesByIds,
     loadProfileFollowActions,
-    setNotificationsUnavailable,
-    setCurrentUserFollowedProfileIds,
-    deleteCurrentUserFollowedProfileId
+    setNotificationsUnavailable
   } = context;
 
   const followingPagePreferenceRequestKeys = new Set();
   const followingPageUnfollowRequestProfileIds = new Set();
   let isFollowingPageEventsBound = false;
+  let pageLoadVersion = 0;
 
   function renderFollowingPageLoading() {
     if (!followingPage) {
@@ -68,26 +67,20 @@ export function createFollowingPageController(context = {}) {
     `;
   }
 
-  async function fetchFollowingPageFollowRows() {
+  async function fetchFollowingPageFollowRows(followerId) {
     if (!shouldUseAuthenticatedUi() || !getCurrentUser()?.id) {
       return [];
     }
 
     const rows = await (await loadProfileFollowActions()).fetchProfileFollowRows({
-      followerId: getCurrentUser().id,
+      followerId,
       includeCreatedAt: true
     });
-
-    setCurrentUserFollowedProfileIds(new Set(
-      rows
-        .map(row => String(row?.following_id || '').trim())
-        .filter(Boolean)
-    ));
 
     return rows;
   }
 
-  async function fetchFollowingPageNotificationPreferences(profileIds = []) {
+  async function fetchFollowingPageNotificationPreferences(followerId, profileIds = []) {
     const normalizedProfileIds = [...new Set(
       (Array.isArray(profileIds) ? profileIds : [])
         .map(profileId => String(profileId || '').trim())
@@ -102,7 +95,7 @@ export function createFollowingPageController(context = {}) {
     }
 
     return (await loadProfileFollowActions()).fetchFollowNotificationPreferences({
-      followerId: getCurrentUser().id,
+      followerId,
       profileIds: normalizedProfileIds
     });
   }
@@ -117,12 +110,13 @@ export function createFollowingPageController(context = {}) {
     };
   }
 
-  async function fetchFollowingPageData() {
+  async function fetchFollowingPageData(followerId) {
     if (!shouldUseAuthenticatedUi() || !getCurrentUser()?.id) {
       return null;
     }
 
-    const followRows = await fetchFollowingPageFollowRows();
+    const followRows = await fetchFollowingPageFollowRows(followerId);
+    if (getCurrentUser()?.id !== followerId) return null;
     const followedProfileIds = followRows
       .map(row => String(row?.following_id || '').trim())
       .filter(Boolean);
@@ -138,7 +132,7 @@ export function createFollowingPageController(context = {}) {
 
     const [profiles, preferencesResult] = await Promise.all([
       fetchPublicProfilesByIds(followedProfileIds),
-      fetchFollowingPageNotificationPreferences(followedProfileIds)
+      fetchFollowingPageNotificationPreferences(followerId, followedProfileIds)
     ]);
     const profilesById = new Map((profiles || []).map(profile => [String(profile.id), profile]));
     const orderedProfiles = followRows
@@ -198,7 +192,7 @@ export function createFollowingPageController(context = {}) {
         <div class="following-page-profile-controls" aria-label="Уведомления от ${escapeHtml(displayName)}">
           ${Object.entries(FOLLOWING_NOTIFICATION_PREFERENCE_LABELS).map(([key, label]) => {
             const preferenceKey = getFollowingPagePreferenceKey(profileId, key);
-            const isBusy = followingPagePreferenceRequestKeys.has(preferenceKey);
+            const isBusy = followingPagePreferenceRequestKeys.has(`${getCurrentUser().id}:${preferenceKey}`);
             const isChecked = preference[key] !== false;
 
             return `
@@ -221,7 +215,7 @@ export function createFollowingPageController(context = {}) {
           type="button"
           class="secondary-button following-page-unfollow-button"
           data-following-page-unfollow-profile-id="${escapeHtml(profileId)}"
-          ${followingPageUnfollowRequestProfileIds.has(profileId) ? 'disabled' : ''}
+          ${followingPageUnfollowRequestProfileIds.has(`${getCurrentUser().id}:${profileId}`) ? 'disabled' : ''}
         >
           Не отслеживать
         </button>
@@ -282,7 +276,8 @@ export function createFollowingPageController(context = {}) {
       return;
     }
 
-    const requestKey = getFollowingPagePreferenceKey(normalizedProfileId, normalizedKey);
+    const followerId = getCurrentUser().id;
+    const requestKey = `${followerId}:${getFollowingPagePreferenceKey(normalizedProfileId, normalizedKey)}`;
 
     if (followingPagePreferenceRequestKeys.has(requestKey)) {
       return;
@@ -291,13 +286,16 @@ export function createFollowingPageController(context = {}) {
     followingPagePreferenceRequestKeys.add(requestKey);
 
     try {
-      const result = await (await loadProfileFollowActions()).updateFollowNotificationPreference({
-        followerId: getCurrentUser().id,
+      const actions = await loadProfileFollowActions();
+      if (getCurrentUser()?.id !== followerId) return;
+      const result = await actions.updateFollowNotificationPreference({
+        followerId,
         followingId: normalizedProfileId,
         key: normalizedKey,
         value
       });
 
+      if (getCurrentUser()?.id !== followerId) return;
       if (!result.ok) {
         if (result.arePreferencesAvailable === false) {
           setNotificationsUnavailable(true);
@@ -306,11 +304,12 @@ export function createFollowingPageController(context = {}) {
         throw result.error || new Error('Follow notification preference update failed.');
       }
     } catch (error) {
+      if (getCurrentUser()?.id !== followerId) return;
       console.error('Ошибка обновления настройки отслеживания:', error);
       showAppMessage('Не удалось обновить настройку отслеживания.', 'error', true);
     } finally {
       followingPagePreferenceRequestKeys.delete(requestKey);
-      await loadFollowingPage();
+      if (getCurrentUser()?.id === followerId) await loadFollowingPage();
     }
   }
 
@@ -336,25 +335,31 @@ export function createFollowingPageController(context = {}) {
       return;
     }
 
-    if (followingPageUnfollowRequestProfileIds.has(normalizedProfileId)) {
+    const followerId = getCurrentUser().id;
+    const requestKey = `${followerId}:${normalizedProfileId}`;
+    if (followingPageUnfollowRequestProfileIds.has(requestKey)) {
       return;
     }
 
-    followingPageUnfollowRequestProfileIds.add(normalizedProfileId);
+    followingPageUnfollowRequestProfileIds.add(requestKey);
 
     try {
-      await (await loadProfileFollowActions()).unfollowProfile({
-        followerId: getCurrentUser().id,
-        followingId: normalizedProfileId
+      const actions = await loadProfileFollowActions();
+      if (getCurrentUser()?.id !== followerId) return;
+      const committed = await actions.setProfileFollowing({
+        followerId,
+        followingId: normalizedProfileId,
+        isFollowing: false
       });
-      deleteCurrentUserFollowedProfileId(normalizedProfileId);
+      if (!committed || getCurrentUser()?.id !== followerId) return;
       showAppMessage('Профиль больше не отслеживается.', 'success', true);
     } catch (error) {
+      if (getCurrentUser()?.id !== followerId) return;
       console.error('Ошибка удаления отслеживания:', error);
       showAppMessage('Не удалось удалить отслеживание.', 'error', true);
     } finally {
-      followingPageUnfollowRequestProfileIds.delete(normalizedProfileId);
-      await loadFollowingPage();
+      followingPageUnfollowRequestProfileIds.delete(requestKey);
+      if (getCurrentUser()?.id === followerId) await loadFollowingPage();
     }
   }
 
@@ -383,6 +388,9 @@ export function createFollowingPageController(context = {}) {
   }
 
   async function loadFollowingPage() {
+    const loadVersion = ++pageLoadVersion;
+    const viewerId = getCurrentUser()?.id;
+    const isCurrent = () => loadVersion === pageLoadVersion && getCurrentUser()?.id === viewerId;
     if (!followingPage) {
       return;
     }
@@ -395,9 +403,11 @@ export function createFollowingPageController(context = {}) {
     renderFollowingPageLoading();
 
     try {
-      const data = await fetchFollowingPageData();
+      const data = await fetchFollowingPageData(viewerId);
+      if (!isCurrent()) return;
       renderFollowingPage(data);
     } catch (error) {
+      if (!isCurrent()) return;
       console.error('Ошибка загрузки страницы отслеживаемых профилей:', error);
       renderFollowingPageError();
     }
@@ -430,11 +440,10 @@ export function createFollowingPageController(context = {}) {
     }
     await restoreSession();
     trackEmailConfirmedLoginIfNeeded();
-    await loadFollowingPage();
-
     bindSharedAuthStateListener({
       onAfterAuthSync: loadFollowingPage
     });
+    await loadFollowingPage();
   }
 
   return {

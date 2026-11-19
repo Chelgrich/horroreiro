@@ -34,33 +34,6 @@ export function createProfileUtils(context = {}) {
     return Boolean(profile?.prefer_russian_posters);
   }
 
-  function cachePublicProfileRows(rows = [], {
-    profilesByIdCache,
-    profileIdsByHandleCache
-  } = {}) {
-    (Array.isArray(rows) ? rows : [rows])
-      .filter(Boolean)
-      .forEach(profile => {
-        const profileId = String(profile?.id || '').trim();
-
-        if (!profileId) {
-          return;
-        }
-
-        profilesByIdCache?.set?.(profileId, {
-          ...(profilesByIdCache?.get?.(profileId) || {}),
-          ...profile,
-          id: profileId
-        });
-
-        const profileHandle = String(profile?.default_display_name || '').trim();
-
-        if (profileHandle) {
-          profileIdsByHandleCache?.set?.(profileHandle, profileId);
-        }
-      });
-  }
-
   function getPublicProfileAvatarUrl(profile) {
     const rawUrl = String(profile?.avatar_url || '').trim();
 
@@ -128,7 +101,6 @@ export function createProfileUtils(context = {}) {
   }
 
   return {
-    cachePublicProfileRows,
     doesProfilePreferRussianPosters,
     getCurrentDisplayName,
     getCurrentUserPublicHandle,

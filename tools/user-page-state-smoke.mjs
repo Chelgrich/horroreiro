@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { createUserPageController } from '../user-page.js';
+import { createProfileFollowActions } from '../profile-follow-actions.js';
 
 const previous = { window: globalThis.window, document: globalThis.document, sessionStorage: globalThis.sessionStorage, CSS: globalThis.CSS };
 let viewer = { id: 'viewer' };
@@ -183,7 +184,7 @@ const end = app.indexOf('\n}', start) + 2;
 let resolveActions;
 let resolveMutation;
 const bridgeWrites = [];
-const bridge = vm.createContext({ currentUser: { id: 'first' }, currentUserFollowedProfileIds: new Set(),
+const bridge = vm.createContext({ currentUser: { id: 'first' },
   loadProfileFollowActions: () => new Promise(resolve => { resolveActions = resolve; })
 });
 vm.runInContext(app.slice(start, end), bridge);
@@ -198,7 +199,18 @@ vm.runInContext(app.slice(previewStart, app.indexOf('\n}', previewStart) + 2), p
 preview.syncProfileSettingsAvatarPreview();
 assert.equal(modal.innerHTML, '<new-avatar>');
 assert.equal(otherAvatar.innerHTML, 'other', 'The actual shared preview bridge must not mutate another profile avatar');
-const actions = { followProfile: options => { bridgeWrites.push(options); return new Promise(resolve => { resolveMutation = resolve; }); } };
+let delayMutation = true;
+const actions = createProfileFollowActions({ getCurrentUser: () => bridge.currentUser,
+  throwIfSupabaseError: error => { if (error) throw error; },
+  supabaseClient: { from() {
+    const query = { delete: () => query, eq: () => query,
+      insert: options => { bridgeWrites.push(options); return query; },
+      then: (resolve, reject) => (delayMutation
+        ? new Promise(done => { resolveMutation = () => done({ error: null }); })
+        : Promise.resolve({ error: null })).then(resolve, reject) };
+    return query;
+  } }
+});
 const beforeWrite = bridge.setProfileFollowing({ followerId: 'first', followingId: 'other', isFollowing: true });
 bridge.currentUser = { id: 'second' };
 resolveActions(actions);
@@ -208,13 +220,14 @@ bridge.loadProfileFollowActions = () => actions;
 bridge.currentUser = { id: 'first' };
 const afterWrite = bridge.setProfileFollowing({ followerId: 'first', followingId: 'other', isFollowing: true });
 await Promise.resolve();
+await Promise.resolve();
 bridge.currentUser = { id: 'second' };
 resolveMutation();
 assert.equal(await afterWrite, false);
-assert.equal(bridge.currentUserFollowedProfileIds.size, 0, 'A completed old write must not modify new viewer membership');
-bridge.loadProfileFollowActions = () => ({ followProfile: async () => {}, unfollowProfile: async () => {} });
+assert.equal(actions.isCurrentUserFollowingProfile('other'), false, 'A completed old write must not modify new viewer membership');
+delayMutation = false;
 assert.equal(await bridge.setProfileFollowing({ followerId: 'second', followingId: 'other', isFollowing: true }), true);
-assert(bridge.currentUserFollowedProfileIds.has('other'));
+assert(actions.isCurrentUserFollowingProfile('other'));
 assert.equal(await bridge.setProfileFollowing({ followerId: 'second', followingId: 'other', isFollowing: false }), true);
-assert.equal(bridge.currentUserFollowedProfileIds.size, 0);
+assert.equal(actions.isCurrentUserFollowingProfile('other'), false);
 console.log('User page state smoke passed.');

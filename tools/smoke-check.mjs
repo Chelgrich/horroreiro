@@ -16,6 +16,7 @@ const syntaxFiles = [
   'tools/client-assets-smoke.mjs',
   'tools/module-contract-smoke.mjs',
   'tools/user-page-state-smoke.mjs',
+  'tools/profile-state-smoke.mjs',
   'vite.config.mjs',
   'server/runtime.js',
   'server/server.mjs',
@@ -1666,6 +1667,10 @@ const userPageStateSmoke = spawnSync(process.execPath, ['tools/user-page-state-s
   cwd: rootDir, encoding: 'utf8'
 });
 assert(userPageStateSmoke.status === 0, `User page state smoke failed:\n${userPageStateSmoke.stderr || userPageStateSmoke.stdout}`);
+const profileStateSmoke = spawnSync(process.execPath, ['tools/profile-state-smoke.mjs'], {
+  cwd: rootDir, encoding: 'utf8'
+});
+assert(profileStateSmoke.status === 0, `Profile state smoke failed:\n${profileStateSmoke.stderr || profileStateSmoke.stdout}`);
 const catalogReturnSmoke = spawnSync(process.execPath, ['tools/catalog-return-smoke.mjs'], {
   cwd: rootDir, encoding: 'utf8'
 });

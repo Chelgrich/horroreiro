@@ -12,6 +12,24 @@ export function createProfileDataActions(context = {}) {
     onMissingOptionalColumn = () => {}
   } = context;
 
+  const profilesById = new Map();
+  const profileIdsByHandle = new Map();
+
+  function cachePublicProfileRows(rows = []) {
+    (Array.isArray(rows) ? rows : [rows]).filter(Boolean).forEach(profile => {
+      const id = String(profile.id || '').trim();
+      if (!id) return;
+      const previous = profilesById.get(id);
+      const merged = { ...previous, ...profile, id };
+      const handle = String(merged.default_display_name || '').trim();
+      if (previous?.default_display_name && previous.default_display_name !== handle) {
+        profileIdsByHandle.delete(previous.default_display_name);
+      }
+      profilesById.set(id, merged);
+      if (handle) profileIdsByHandle.set(handle, id);
+    });
+  }
+
   function requireSupabaseClient() {
     if (!supabaseClient) {
       throw new Error('Supabase client is not available.');
@@ -124,13 +142,19 @@ export function createProfileDataActions(context = {}) {
       return null;
     }
 
-    return runProfileSelectWithOptionalAvatar(
+    const cached = profilesById.get(profileIdsByHandle.get(normalizedHandle));
+    if (cached) return cached;
+
+    const profile = await runProfileSelectWithOptionalAvatar(
       selectColumns => client
         .from('profiles')
         .select(selectColumns)
         .eq('default_display_name', normalizedHandle)
         .maybeSingle()
     );
+    if (!profile) return null;
+    cachePublicProfileRows([{ ...profile, ...profilesById.get(String(profile.id)) }]);
+    return profilesById.get(String(profile.id));
   }
 
   async function fetchPublicProfilesByIds(profileIds = []) {
@@ -145,17 +169,23 @@ export function createProfileDataActions(context = {}) {
       return [];
     }
 
-    const profiles = await runProfileSelectWithOptionalAvatar(
-      selectColumns => client
-        .from('profiles')
-        .select(selectColumns)
-        .in('id', normalizedProfileIds)
-    );
-
-    return profiles || [];
+    const missingIds = normalizedProfileIds.filter(id => !profilesById.has(id));
+    if (missingIds.length) {
+      const profiles = await runProfileSelectWithOptionalAvatar(
+        selectColumns => client
+          .from('profiles')
+          .select(selectColumns)
+          .in('id', missingIds)
+      );
+      cachePublicProfileRows((profiles || []).map(profile => ({
+        ...profile, ...profilesById.get(String(profile.id))
+      })));
+    }
+    return normalizedProfileIds.map(id => profilesById.get(id)).filter(Boolean);
   }
 
   return {
+    cachePublicProfileRows,
     fetchCurrentUserProfile,
     fetchPublicProfileByHandle,
     fetchPublicProfilesByIds,

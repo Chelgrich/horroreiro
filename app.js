@@ -600,9 +600,6 @@ const CATALOG_URL_VALUE_ALIASES = {
 let currentUser = null;
 let currentUserRole = null;
 let currentUserProfile = null;
-let publicProfilesByIdCache = new Map();
-let publicProfileIdsByHandleCache = new Map();
-let currentUserFollowedProfileIds = new Set();
 let notificationsUnreadCount = 0;
 let notificationsUnreadUserId = '';
 let notificationsUnreadRefreshPromise = null;
@@ -4947,10 +4944,8 @@ function isMissingAvatarColumnError(error) {
 }
 
 function cachePublicProfileRows(rows = []) {
-  getProfileUtils().cachePublicProfileRows(rows, {
-    profilesByIdCache: publicProfilesByIdCache,
-    profileIdsByHandleCache: publicProfileIdsByHandleCache
-  });
+  if (!profileDataActions) throw new Error('Profile data module is not loaded.');
+  profileDataActions.cachePublicProfileRows(rows);
 }
 
 function getAvatarFriendlyErrorMessage(error) {
@@ -8689,6 +8684,7 @@ function trackEmailConfirmedLoginIfNeeded() {
 }
 
 async function loadCurrentUserRole() {
+  const viewerId = currentUser?.id;
   if (!currentUser) {
     currentUserRole = null;
     currentUserProfile = null;
@@ -8697,12 +8693,16 @@ async function loadCurrentUserRole() {
   }
 
   try {
-    const data = await (await loadProfileDataActions()).fetchCurrentUserProfile(currentUser.id);
+    const actions = await loadProfileDataActions();
+    if (currentUser?.id !== viewerId) return;
+    const data = await actions.fetchCurrentUserProfile(viewerId);
+    if (currentUser?.id !== viewerId) return;
 
     currentUserRole = data?.role || null;
     currentUserProfile = data || null;
-    cachePublicProfileRows([{ id: currentUser.id, ...(data || {}) }]);
+    actions.cachePublicProfileRows([{ id: viewerId, ...(data || {}) }]);
   } catch (error) {
+    if (currentUser?.id !== viewerId) return;
     console.error('Ошибка loadCurrentUserRole:', error);
     currentUserRole = null;
     currentUserProfile = null;
@@ -9094,6 +9094,7 @@ function loadProfileSettingsActions() {
 function getProfileFollowActionsContext() {
   return {
     supabaseClient,
+    getCurrentUser: () => currentUser,
     throwIfSupabaseError,
     isNotificationsUnavailableError
   };
@@ -14189,6 +14190,7 @@ async function restoreSession() {
 }
 
 async function applyCurrentSessionUser(user) {
+  if (currentUser?.id !== user?.id) profileFollowActions?.resetCurrentUserFollows();
   currentUser = user ?? null;
   rebuildMovieRatingIndexes();
   rebuildCurrentUserWatchlistIndex();
@@ -17962,34 +17964,26 @@ function isOwnUserProfile(profile) {
 }
 
 function isCurrentUserFollowingProfile(profileId) {
-  const normalizedProfileId = String(profileId || '').trim();
-
-  return Boolean(normalizedProfileId && currentUserFollowedProfileIds.has(normalizedProfileId));
+  if (!shouldUseAuthenticatedUi()) return false;
+  // A failed lazy import leaves no known follows; the write path retries loading it.
+  if (!profileFollowActions) return false;
+  return profileFollowActions.isCurrentUserFollowingProfile(profileId);
 }
 
 async function fetchCurrentUserProfileFollows() {
   if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
-    currentUserFollowedProfileIds = new Set();
     return;
   }
-
-  let rows = [];
+  const followerId = currentUser.id;
 
   try {
-    rows = await (await loadProfileFollowActions()).fetchProfileFollowRows({
-      followerId: currentUser.id
-    });
+    const actions = await loadProfileFollowActions();
+    if (currentUser?.id !== followerId) return;
+    await actions.fetchProfileFollowRows({ followerId });
   } catch (error) {
     console.warn('Ошибка загрузки отслеживаемых профилей:', error);
-    currentUserFollowedProfileIds = new Set();
     return;
   }
-
-  currentUserFollowedProfileIds = new Set(
-    rows
-      .map(row => String(row?.following_id || '').trim())
-      .filter(Boolean)
-  );
 }
 
 
@@ -18233,52 +18227,11 @@ async function fetchUserPageActivityRanks(profileId) {
 }
 
 async function fetchPublicUserProfileByHandle(handle) {
-  const normalizedHandle = String(handle || '').trim();
-
-  const profileData = await loadProfileDataActions();
-
-  if (!normalizedHandle || !profileData.isSafeUserProfileLookupHandle(normalizedHandle)) {
-    return null;
-  }
-
-  const cachedProfileId = publicProfileIdsByHandleCache.get(normalizedHandle);
-  const cachedProfile = cachedProfileId
-    ? publicProfilesByIdCache.get(cachedProfileId)
-    : null;
-
-  if (cachedProfile) {
-    return cachedProfile;
-  }
-
-  const profile = await profileData.fetchPublicProfileByHandle(normalizedHandle);
-
-  cachePublicProfileRows(profile ? [profile] : []);
-
-  return profile;
+  return (await loadProfileDataActions()).fetchPublicProfileByHandle(handle);
 }
 
 async function fetchPublicProfilesByIds(profileIds = []) {
-  const normalizedProfileIds = [...new Set(
-    (Array.isArray(profileIds) ? profileIds : [])
-      .map(profileId => String(profileId || '').trim())
-      .filter(Boolean)
-  )];
-
-  if (!normalizedProfileIds.length) {
-    return [];
-  }
-
-  const missingProfileIds = normalizedProfileIds.filter(profileId => !publicProfilesByIdCache.has(profileId));
-
-  if (missingProfileIds.length > 0) {
-    const profiles = await (await loadProfileDataActions()).fetchPublicProfilesByIds(missingProfileIds);
-
-    cachePublicProfileRows(profiles || []);
-  }
-
-  return normalizedProfileIds
-    .map(profileId => publicProfilesByIdCache.get(profileId))
-    .filter(Boolean);
+  return (await loadProfileDataActions()).fetchPublicProfilesByIds(profileIds);
 }
 
 function getUserPageMovieCardHtml(item, getBadgeHtml = null) {
@@ -18706,14 +18659,6 @@ function getFollowingPageControllerContext() {
     loadProfileFollowActions,
     setNotificationsUnavailable: value => {
       areNotificationsUnavailable = Boolean(value);
-    },
-    setCurrentUserFollowedProfileIds: profileIds => {
-      currentUserFollowedProfileIds = profileIds instanceof Set
-        ? profileIds
-        : new Set(Array.isArray(profileIds) ? profileIds : []);
-    },
-    deleteCurrentUserFollowedProfileId: profileId => {
-      currentUserFollowedProfileIds.delete(String(profileId || '').trim());
     }
   };
 }
@@ -18744,16 +18689,7 @@ let userPageController = null;
 
 async function setProfileFollowing({ followerId, followingId, isFollowing }) {
   const actions = await loadProfileFollowActions();
-  if (String(currentUser?.id || '') !== followerId) return false;
-  if (isFollowing) {
-    await actions.followProfile({ followerId, followingId });
-  } else {
-    await actions.unfollowProfile({ followerId, followingId });
-  }
-  if (String(currentUser?.id || '') !== followerId) return false;
-  if (isFollowing) currentUserFollowedProfileIds.add(followingId);
-  else currentUserFollowedProfileIds.delete(followingId);
-  return true;
+  return actions.setProfileFollowing({ followerId, followingId, isFollowing });
 }
 
 function getUserPageControllerContext() {

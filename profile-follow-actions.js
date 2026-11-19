@@ -7,9 +7,43 @@ const FOLLOW_NOTIFICATION_PREFERENCE_KEYS = new Set([
 export function createProfileFollowActions(context = {}) {
   const {
     supabaseClient,
+    getCurrentUser,
     throwIfSupabaseError,
     isNotificationsUnavailableError
   } = context;
+
+  let currentFollows = null;
+
+  function resetCurrentUserFollows() {
+    currentFollows = null;
+  }
+
+  function getCurrentFollows() {
+    const viewerId = normalizeId(getCurrentUser()?.id);
+    if (currentFollows?.viewerId !== viewerId) {
+      currentFollows = { viewerId, ids: new Set(), readVersion: 0, mutationVersion: 0 };
+    }
+    return currentFollows;
+  }
+
+  function isCurrentUserFollowingProfile(profileId) {
+    return getCurrentFollows().ids.has(normalizeId(profileId));
+  }
+
+  async function setProfileFollowing({ followerId, followingId, isFollowing }) {
+    const state = getCurrentFollows();
+    const actorId = normalizeId(followerId);
+    const targetId = normalizeId(followingId);
+    if (!actorId || !targetId || state.viewerId !== actorId) return false;
+    const result = await (isFollowing ? followProfile : unfollowProfile)({
+      followerId: actorId, followingId: targetId
+    });
+    if (!result.ok || getCurrentFollows() !== state) return false;
+    state.mutationVersion += 1;
+    if (isFollowing) state.ids.add(targetId);
+    else state.ids.delete(targetId);
+    return true;
+  }
 
   function requireSupabaseClient() {
     if (!supabaseClient) {
@@ -39,6 +73,10 @@ export function createProfileFollowActions(context = {}) {
       return [];
     }
 
+    const state = getCurrentFollows();
+    const readVersion = ++state.readVersion;
+    const mutationVersion = state.mutationVersion;
+
     let query = client
       .from('user_profile_follows')
       .select(includeCreatedAt ? 'following_id, created_at' : 'following_id')
@@ -51,6 +89,11 @@ export function createProfileFollowActions(context = {}) {
     const { data, error } = await query;
 
     throwIfSupabaseError(error);
+
+    if (getCurrentFollows() === state && state.viewerId === normalizedFollowerId &&
+        state.readVersion === readVersion && state.mutationVersion === mutationVersion) {
+      state.ids = new Set((data || []).map(row => normalizeId(row.following_id)).filter(Boolean));
+    }
 
     return data || [];
   }
@@ -184,10 +227,11 @@ export function createProfileFollowActions(context = {}) {
   }
 
   return {
+    isCurrentUserFollowingProfile,
+    resetCurrentUserFollows,
+    setProfileFollowing,
     fetchFollowNotificationPreferences,
     fetchProfileFollowRows,
-    followProfile,
-    unfollowProfile,
     updateFollowNotificationPreference
   };
 }
