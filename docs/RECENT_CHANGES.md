@@ -1,5 +1,15 @@
 # Recent Changes
 
+## 2026-11-19 — Keep restored catalog cards visible through startup
+
+- Runtime hydration reuses matching saved catalog markup already restored by the early bootstrap. A render inside the initial fade preserves the fade's visibility class until its own cleanup.
+- If a catalog startup module fails after the styled saved catalog is on screen, the failure message appears above the saved view. The full-screen startup notice remains available for a failed cold start.
+
+## 2026-11-19 — Attribute the slow compact catalog request
+
+- The 13:04:33 UTC browser read took 5088 ms. Chrome reused the connection and received headers after 5068 ms. The request ID matched 5062 ms in the Yandex API Gateway log. The Supabase edge log had one matching full catalog read in the time window with 4680 ms in `response.origin_time`. The remaining 382 ms of gateway time includes the proxy, platform and transport. The original request lacked the opt-in timing header, and there was no matching separate container or PostgREST duration.
+- Ten sequential instrumented repeats used the same query and returned 472,170 decoded bytes each. Gateway median/max was 538/1808 ms. Node proxy median/max was 419/1585 ms, with 344/1510 ms waiting for upstream headers and 65/76 ms reading and buffering the response body. The remaining Node work was 1/14 ms. Nine probes matched Supabase origin logs with median/max of 256/458 ms. The slowest probe had no matching Supabase edge entry. Another probe spent 1596 ms on the gateway, 431 ms in Node and 167 ms at the origin. Its Node process had started 597 ms before handling the request, consistent with time spent outside the handler during a fresh instance invocation.
+
 ## 2026-11-19 — Defer the review filter summary on cold catalog views
 
 - Cold catalog startup requests the review ID summary after the first render when the effective filters do not include reviews. Review filters restored from URL parameters, quick presets or local storage still wait for the summary in the initial data batch.

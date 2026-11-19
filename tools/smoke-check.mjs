@@ -505,8 +505,9 @@ async function checkStaticGuards() {
       );
       assert(
         /html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+\.page,\s*html\.app-catalog-warm-started\.app-styles-ready(?!\.app-shared-ui-ready)[^{}]+#sharedFooterMount\s*\{\s*display: block;/m.test(html) &&
-          html.includes('html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty') &&
+          html.includes('html.app-catalog-warm-started.app-styles-ready:not(.app-ready) #sharedHeaderMount:empty') &&
           html.includes('html.app-catalog-warm-started.app-styles-ready:not(.app-load-failed) .app-boot-shell') &&
+          /html\.app-catalog-warm-started\.app-styles-ready\.app-load-failed:not\(\.app-ready\) \.app-boot-shell\s*\{\s*position: static;/m.test(html) &&
           html.includes('overflow-y: scroll;'),
         'index.html: warm-started catalog must hide boot shell only after styles, redisplay after styles, reserve shared header space, and match final scrollbar policy'
       );

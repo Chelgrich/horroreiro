@@ -129,6 +129,33 @@ layoutSandbox.rerenderMovieCard('movie', { preserveCardTop: false });
 for (const callback of frames.splice(0)) callback(2345.6);
 assert.equal(layouts, 2, 'An expanded card rerender must also discard the rAF timestamp');
 
+let catalogMarkup = '<article>already mounted</article>';
+let replacedMarkupCount = 0;
+const warmDomSandbox = vm.createContext({
+  container: {
+    get innerHTML() { return catalogMarkup; },
+    set innerHTML(value) { catalogMarkup = value; replacedMarkupCount += 1; },
+    classList: { remove() {} }
+  },
+  viewMode: { value: 'list' }, currentUser: null, lastCatalogDomRenderSignature: '',
+  readCatalogDomSnapshot: () => ({
+    containerHtml: '<article>already mounted</article>',
+    dataSignatureHash: 'data', renderStateSignature: 'controls', moviesResultCountText: '1'
+  }),
+  canUseCatalogSnapshotForPosterPreference: () => true,
+  getCatalogDataSignatureHash: () => 'data', getCatalogRenderStateSignature: () => 'controls',
+  getCatalogDerivedState: () => ({ pageMovies: [] }), getCatalogDomRenderSignature: () => 'rendered',
+  renderActiveFilterChips() {}, syncQuickPresetButtons() {}, showMoviesResultCount() {},
+  updateCatalogStructuredData() {}, renderCatalogPagination() {}, setCatalogBusyState() {},
+  recordCatalogDomSnapshotRender() {}, bindRestoredCatalogDomState() {}, loadCatalogPagePosters() {}
+});
+vm.runInContext(functionSource('hydrateCatalogDomFromSessionSnapshot'), warmDomSandbox);
+assert.equal(warmDomSandbox.hydrateCatalogDomFromSessionSnapshot({}), true);
+assert.equal(replacedMarkupCount, 0, 'Runtime must keep the matching poster nodes mounted by warm startup');
+catalogMarkup = '';
+assert.equal(warmDomSandbox.hydrateCatalogDomFromSessionSnapshot({}), true);
+assert.equal(replacedMarkupCount, 1, 'Runtime must still restore a snapshot when its markup is missing');
+
 // The actual lazy entry and write bridge must work directly from a cold catalog.
 let writeError = null;
 let ratingRenders = 0;

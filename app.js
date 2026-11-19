@@ -6022,7 +6022,9 @@ function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
   renderCatalogPagination(paginationState);
   container.classList.remove('is-catalog-fading', 'is-catalog-visible');
   setCatalogBusyState(false);
-  container.innerHTML = domSnapshot.containerHtml;
+  if (container.innerHTML !== domSnapshot.containerHtml) {
+    container.innerHTML = domSnapshot.containerHtml;
+  }
   recordCatalogDomSnapshotRender(sessionSnapshot);
   lastCatalogDomRenderSignature = getCatalogDomRenderSignature({
     filteredTotal,
@@ -11659,7 +11661,7 @@ function rerenderCatalogAfterDataReload(
   }
 
   if (!shouldRunCatalogFade) {
-    container.classList.remove('is-catalog-fading');
+    container.classList.remove('is-catalog-fading', 'is-catalog-visible');
   }
 
   if (shouldRunCatalogFade) {
@@ -11679,7 +11681,7 @@ function rerenderCatalogAfterDataReload(
     });
 
     catalogFadeCleanupTimerId = setTimeout(() => {
-      container.classList.remove('is-catalog-fading');
+      container.classList.remove('is-catalog-fading', 'is-catalog-visible');
       catalogFadeCleanupTimerId = null;
     }, 260);
   }
@@ -14967,7 +14969,6 @@ function renderMovies({ loadPageDetails = true } = {}) {
     return;
   }
 
-  container.classList.remove('is-catalog-visible');
   const requestedCatalogPage = currentCatalogPage;
   const {
     filteredTotal,

@@ -156,17 +156,17 @@
       display: none;
     }
 
-    html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) body {
+    html.app-catalog-warm-started.app-styles-ready:not(.app-ready) body {
       overflow-x: hidden;
       overflow-y: scroll;
     }
 
-    html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) .page,
-    html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedFooterMount {
+    html.app-catalog-warm-started.app-styles-ready:not(.app-ready) .page,
+    html.app-catalog-warm-started.app-styles-ready:not(.app-ready) #sharedFooterMount {
       display: block;
     }
 
-    html.app-catalog-warm-started.app-styles-ready:not(.app-ready):not(.app-load-failed) #sharedHeaderMount:empty {
+    html.app-catalog-warm-started.app-styles-ready:not(.app-ready) #sharedHeaderMount:empty {
       min-height: 56px;
       display: block;
     }
@@ -176,6 +176,15 @@
       visibility: visible;
       pointer-events: auto;
       animation: none;
+    }
+
+    html.app-catalog-warm-started.app-styles-ready.app-load-failed:not(.app-ready) .app-boot-shell {
+      position: static;
+      padding: 12px 24px;
+    }
+
+    html.app-catalog-warm-started.app-styles-ready.app-load-failed .app-boot-logo {
+      display: none;
     }
 
     .app-boot-shell-card {
@@ -269,7 +278,7 @@
         <span>Загружаем интерфейс...</span>
       </div>
       <div class="app-boot-shell-error">
-        Не удалось загрузить оформление. Обновите страницу.
+        Не удалось полностью загрузить каталог. Обновите страницу.
       </div>
     </div>
   </div>
