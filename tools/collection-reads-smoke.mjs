@@ -14,6 +14,7 @@ const requests = [];
 let failPage = null;
 let pausePage = null;
 const fixtures = {};
+let authGeneration = 0;
 const makeRows = count => Array.from({ length: count }, (_, i) => ({
   id: String(i).padStart(5, '0'), movie_id: `movie-${i}`, user_id: 'user-a',
   title: 'Same title', rating: i < 1000 ? 1 : 10, created_at: '2026-01-01', updated_at: '2026-01-01'
@@ -53,6 +54,10 @@ function query(table) {
 }
 
 const sandbox = vm.createContext({
+  getAuthSessionController: () => ({ captureSession: () => {
+    const version = authGeneration;
+    return { isCurrent: () => version === authGeneration };
+  } }),
   console: { error() {}, warn() {} },
   supabaseClient: { from: query },
   SUPABASE_ID_QUERY_CHUNK_SIZE: 200,
@@ -157,6 +162,27 @@ await delayedWatchlist;
 assert.equal(sandbox.allMovieWatchlist, nextUserWatchlist);
 pausePage = null;
 sandbox.currentUser = { id: 'user-a' };
+
+for (const [table, loader, stateKey] of [
+  ['movie_ratings', 'fetchCurrentUserRatings', 'allMovieRatings'],
+  ['movie_watchlist', 'fetchMovieWatchlist', 'allMovieWatchlist'],
+  ['movie_ratings', 'fetchFullMovieRatingsFallback', 'allMovieRatings'],
+  ['movie_rating_stats', 'fetchMovieRatingStats', 'stats']
+]) {
+  const previousRows = fixtures[table];
+  fixtures[table] = makeRows(2501);
+  pausePage = { table, offset: 1000, wait: new Promise(resolve => { release = resolve; }) };
+  const oldCollection = sandbox[loader]();
+  await new Promise(resolve => setImmediate(resolve));
+  authGeneration += 1; sandbox.currentUser = { id: 'user-b' };
+  authGeneration += 1; sandbox.currentUser = { id: 'user-a' };
+  const currentRows = [];
+  sandbox[stateKey] = currentRows;
+  release(); await oldCollection;
+  assert.equal(sandbox[stateKey], currentRows, `${loader} must reject A -> logout/change -> A completions`);
+  pausePage = null;
+  fixtures[table] = previousRows;
+}
 
 const movies = await sandbox.fetchMoviesByIdsWithSelect(fixtures.movies.map(row => row.id));
 assert.equal(movies.length, 2501, 'Large profile taste lookups must be split into bounded ID queries');

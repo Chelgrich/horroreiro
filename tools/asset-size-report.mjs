@@ -19,6 +19,7 @@ const startupProfiles = {
     'custom-select.js',
     'app-page-runtime.js',
     'app.js',
+    'auth-session-controller.js',
     'profile-utils.js'
   ],
   movie: [
@@ -29,6 +30,7 @@ const startupProfiles = {
     'shared-layout.js',
     'app-page-runtime.js',
     'app.js',
+    'auth-session-controller.js',
     'profile-utils.js'
   ],
   profile: [
@@ -39,6 +41,7 @@ const startupProfiles = {
     'shared-layout.js',
     'app-page-runtime.js',
     'app.js',
+    'auth-session-controller.js',
     'profile-utils.js'
   ],
   notifications: [
@@ -49,6 +52,7 @@ const startupProfiles = {
     'shared-layout.js',
     'app-page-runtime.js',
     'app.js',
+    'auth-session-controller.js',
     'profile-utils.js'
   ],
   company: [
@@ -59,6 +63,7 @@ const startupProfiles = {
     'shared-layout.js',
     'app-page-runtime.js',
     'app.js',
+    'auth-session-controller.js',
     'profile-utils.js'
   ],
   companyAdmin: [
@@ -69,6 +74,7 @@ const startupProfiles = {
     'shared-layout.js',
     'app-page-runtime.js',
     'app.js',
+    'auth-session-controller.js',
     'profile-utils.js'
   ],
   directors: [
@@ -79,6 +85,7 @@ const startupProfiles = {
     'shared-layout.js',
     'app-page-runtime.js',
     'app.js',
+    'auth-session-controller.js',
     'profile-utils.js',
     'assets/directors-admin-app.js'
   ]

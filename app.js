@@ -586,8 +586,6 @@ let profileRussianPostersColumnAvailable = true;
 let isAuthRegisterMode = false;
 let isPasswordRecoveryMode = false;
 let isPasswordRecoveryEntryPage = false;
-let isSharedAuthStateListenerBound = false;
-let sharedAuthStateAfterSyncHandler = null;
 let isMovieModalEventsBound = false;
 let areSharedUiEventsBound = false;
 let areCatalogPageEventsBound = false;
@@ -652,7 +650,6 @@ let mobileRatingModalStars = null;
 let mobileRatingModalMeta = null;
 let mobileRatingModalRemoveButton = null;
 let mobileRatingModalMovieId = null;
-let authStateSyncRequestId = 0;
 let loadedPosterUrls = new Set();
 let allGenreNames = [];
 let allCountryNames = [];
@@ -7921,6 +7918,7 @@ function trackEmailConfirmedLoginIfNeeded() {
 }
 
 async function loadCurrentUserRole() {
+  const { isCurrent } = getAuthSessionController().captureSession();
   const viewerId = currentUser?.id;
   if (!currentUser) {
     currentUserRole = null;
@@ -7931,15 +7929,15 @@ async function loadCurrentUserRole() {
 
   try {
     const actions = await loadProfileDataActions();
-    if (currentUser?.id !== viewerId) return;
+    if (!isCurrent() || currentUser?.id !== viewerId) return;
     const data = await actions.fetchCurrentUserProfile(viewerId);
-    if (currentUser?.id !== viewerId) return;
+    if (!isCurrent() || currentUser?.id !== viewerId) return;
 
     currentUserRole = data?.role || null;
     currentUserProfile = data || null;
     actions.cachePublicProfileRows([{ id: viewerId, ...(data || {}) }]);
   } catch (error) {
-    if (currentUser?.id !== viewerId) return;
+    if (!isCurrent() || currentUser?.id !== viewerId) return;
     console.error('Ошибка loadCurrentUserRole:', error);
     currentUserRole = null;
     currentUserProfile = null;
@@ -8238,6 +8236,41 @@ function ensureMovieEditorStylesheetLoaded() {
   }
 
   return movieEditorStylesheetPromise;
+}
+
+let authSessionControllerPromise = null;
+let authSessionController = null;
+
+function getAuthSessionController() {
+  if (!authSessionController) throw new Error('Auth session controller is not loaded.');
+  return authSessionController;
+}
+
+function loadAuthSessionController() {
+  if (!authSessionControllerPromise) {
+    authSessionControllerPromise = import(getLazyFeatureModuleUrl('auth-session-controller.js'))
+      .then(module => {
+        authSessionController = module.createAuthSessionController({
+          supabaseClient, withAuthRequestTimeout, getCurrentUser: () => currentUser,
+          setCurrentSessionUser, loadCurrentSessionData,
+          reloadUserCollections: () => Promise.all([fetchMovieRatings(), fetchMovieWatchlist()]),
+          hasPendingRecovery: () => Boolean(localStorage.getItem(PASSWORD_RECOVERY_PENDING_KEY)),
+          isRecoveryEntryPage: () => isPasswordRecoveryEntryPage,
+          clearLocalRecoverySession,
+          onPasswordRecovery: () => {
+            localStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1');
+            handlePasswordRecoveryEntry(true);
+          },
+          trackEmailConfirmedLoginIfNeeded
+        });
+        return authSessionController;
+      })
+      .catch(error => {
+        authSessionControllerPromise = null;
+        throw error;
+      });
+  }
+  return authSessionControllerPromise;
 }
 
 function getProfileUtilsContext() {
@@ -11619,9 +11652,10 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
 }
 
 async function fetchMovieRatings() {
+  const { isCurrent } = getAuthSessionController().captureSession();
   const hasFullRatingRows = await fetchMovieRatingStats();
 
-  if (hasFullRatingRows) {
+  if (!isCurrent() || hasFullRatingRows) {
     return;
   }
 
@@ -11761,10 +11795,13 @@ function loadDeferredCatalogUserState({
 }
 
 async function fetchMovieRatingStats() {
+  const { isCurrent } = getAuthSessionController().captureSession();
   const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
     .from('movie_rating_stats')
     .select('movie_id, average_rating, votes_count, rating_sum')
     .order('movie_id', { ascending: true }));
+
+  if (!isCurrent()) return false;
 
   if (error) {
     console.warn('Не удалось загрузить агрегаты оценок, используем fallback:', error);
@@ -11798,10 +11835,13 @@ async function fetchMovieRatingStatsForMovie(movieId) {
 }
 
 async function fetchFullMovieRatingsFallback() {
+  const { isCurrent } = getAuthSessionController().captureSession();
   const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
     .from('movie_ratings')
     .select('movie_id, user_id, rating')
     .order('id', { ascending: true }));
+
+  if (!isCurrent()) return false;
 
   if (error) {
     console.error('Ошибка загрузки оценок фильмов:', error);
@@ -11844,6 +11884,7 @@ async function fetchFullMovieRatingsForMovieFallback(movieId) {
 }
 
 async function fetchCurrentUserRatings() {
+  const { isCurrent } = getAuthSessionController().captureSession();
   if (!currentUser) {
     setKnownMovieRatingRows([]);
     return;
@@ -11856,7 +11897,7 @@ async function fetchCurrentUserRatings() {
     .eq('user_id', activeUserId)
     .order('id', { ascending: true }));
 
-  if (currentUser?.id !== activeUserId) return;
+  if (!isCurrent() || currentUser?.id !== activeUserId) return;
 
   if (error) {
     console.error('Ошибка загрузки оценок текущего пользователя:', error);
@@ -11900,6 +11941,7 @@ async function fetchCurrentUserRatingForMovie(movieId) {
 }
 
 async function fetchMovieWatchlist() {
+  const { isCurrent } = getAuthSessionController().captureSession();
   if (!shouldUseAuthenticatedUi()) {
     allMovieWatchlist = [];
     rebuildCurrentUserWatchlistIndex();
@@ -11914,7 +11956,7 @@ async function fetchMovieWatchlist() {
     .eq('user_id', activeUserId)
     .order('id', { ascending: true }));
 
-  if (currentUser?.id !== activeUserId) return;
+  if (!isCurrent() || currentUser?.id !== activeUserId) return;
 
   if (error) {
     console.error('Ошибка загрузки watchlist:', error);
@@ -13423,57 +13465,27 @@ async function deleteMovie(movieId, movieTitle) {
   }
 }
 
-async function restoreSession() {
-  let data = null;
-  let error = null;
-
-  try {
-    ({ data, error } = await withAuthRequestTimeout(
-      supabaseClient.auth.getSession(),
-      'Не удалось восстановить сессию. Проверь соединение и обнови страницу.'
-    ));
-  } catch (requestError) {
-    console.error('Ошибка получения сессии:', requestError);
-    await applyCurrentSessionUser(null);
-    return null;
-  }
-
-  if (error) {
-    console.error('Ошибка получения сессии:', error);
-    await applyCurrentSessionUser(null);
-    return null;
-  }
-
-  const hasPendingRecovery = Boolean(localStorage.getItem(PASSWORD_RECOVERY_PENDING_KEY));
-  const hasForeignRecoverySession = (
-    Boolean(data.session?.user) &&
-    hasPendingRecovery &&
-    !isPasswordRecoveryEntryPage
-  );
-
-  if (hasForeignRecoverySession) {
-    await clearLocalRecoverySession();
-    await applyCurrentSessionUser(null);
-    return null;
-  }
-
-  const sessionUser = data.session?.user ?? null;
-
-  await applyCurrentSessionUser(sessionUser);
-  return sessionUser;
+function restoreSession() {
+  return getAuthSessionController().restoreSession();
 }
 
-async function applyCurrentSessionUser(user) {
-  if (currentUser?.id !== user?.id) profileFollowActions?.resetCurrentUserFollows();
+function setCurrentSessionUser(user) {
+  if (currentUser?.id !== user?.id) {
+    profileFollowActions?.resetCurrentUserFollows();
+    currentUserRole = null;
+    currentUserProfile = null;
+  }
   currentUser = user ?? null;
+  updateAdminStatus();
   profileSettingsController?.syncAuthState();
   rebuildMovieRatingIndexes();
   rebuildCurrentUserWatchlistIndex();
-  await Promise.all([
-    loadCurrentUserRole(),
-    fetchCurrentUserProfileFollows()
-  ]);
-  updateAuthUI();
+}
+
+async function loadCurrentSessionData(isCurrent) {
+  if (!isCurrent()) return;
+  await Promise.all([loadCurrentUserRole(), fetchCurrentUserProfileFollows()]);
+  if (isCurrent()) updateAuthUI();
 }
 
 function syncCatalogAfterAuthChange() {
@@ -16508,87 +16520,8 @@ function handlePasswordRecoveryEntry(hasPasswordRecoveryRedirect) {
   showAuthMessage('Введите новый пароль и подтвердите его ниже.');
 }
 
-function bindSharedAuthStateListener({ onAfterAuthSync } = {}) {
-  if (typeof onAfterAuthSync === 'function') {
-    sharedAuthStateAfterSyncHandler = onAfterAuthSync;
-  }
-
-  if (isSharedAuthStateListenerBound) {
-    return;
-  }
-
-  isSharedAuthStateListenerBound = true;
-
-  supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (event === 'TOKEN_REFRESHED') {
-      return;
-    }
-
-    if (event === 'PASSWORD_RECOVERY') {
-      if (!isPasswordRecoveryEntryPage) {
-        clearLocalRecoverySession();
-        return;
-      }
-
-      localStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1');
-      isPasswordRecoveryMode = true;
-      updateAuthUI();
-      updateAuthModalMode();
-      openAuthModal();
-      showAuthMessage('Введите новый пароль и подтвердите его ниже.');
-      return;
-    }
-
-    const nextUserId = session?.user?.id ?? null;
-    const currentUserId = currentUser?.id ?? null;
-    const hasPendingRecovery = Boolean(localStorage.getItem(PASSWORD_RECOVERY_PENDING_KEY));
-    const shouldIgnoreForeignRecoverySignIn = (
-      event === 'SIGNED_IN' &&
-      hasPendingRecovery &&
-      !isPasswordRecoveryEntryPage
-    );
-    const shouldSkipAuthSync = (
-      nextUserId === currentUserId &&
-      event !== 'SIGNED_OUT'
-    );
-
-    if (shouldIgnoreForeignRecoverySignIn) {
-      clearLocalRecoverySession();
-      return;
-    }
-
-    if (shouldSkipAuthSync) {
-      return;
-    }
-
-    const currentRequestId = ++authStateSyncRequestId;
-
-    setTimeout(async () => {
-      try {
-        await applyCurrentSessionUser(session?.user ?? null);
-        trackEmailConfirmedLoginIfNeeded();
-
-        if (currentRequestId !== authStateSyncRequestId) {
-          return;
-        }
-
-        await Promise.all([
-          fetchMovieRatings(),
-          fetchMovieWatchlist()
-        ]);
-
-        if (currentRequestId !== authStateSyncRequestId) {
-          return;
-        }
-
-        if (typeof sharedAuthStateAfterSyncHandler === 'function') {
-          await sharedAuthStateAfterSyncHandler();
-        }
-      } catch (error) {
-        console.error('Ошибка синхронизации auth-состояния:', error);
-      }
-    }, 0);
-  });
+function bindSharedAuthStateListener(options) {
+  getAuthSessionController().bindSharedAuthStateListener(options);
 }
 
 function hydrateCatalogPageFromSnapshot(hydratedSnapshot, {
@@ -16938,6 +16871,7 @@ function isCurrentUserFollowingProfile(profileId) {
 }
 
 async function fetchCurrentUserProfileFollows() {
+  const { isCurrent } = getAuthSessionController().captureSession();
   if (!shouldUseAuthenticatedUi() || !currentUser?.id) {
     return;
   }
@@ -16945,9 +16879,10 @@ async function fetchCurrentUserProfileFollows() {
 
   try {
     const actions = await loadProfileFollowActions();
-    if (currentUser?.id !== followerId) return;
+    if (!isCurrent() || currentUser?.id !== followerId) return;
     await actions.fetchProfileFollowRows({ followerId });
   } catch (error) {
+    if (!isCurrent()) return;
     console.warn('Ошибка загрузки отслеживаемых профилей:', error);
     return;
   }
@@ -18685,7 +18620,7 @@ async function initSharedApp() {
     return false;
   }
 
-  await loadProfileUtils();
+  await Promise.all([loadProfileUtils(), loadAuthSessionController()]);
 
   bindWindowScrollIntentTracker();
   bindCustomSelectGlobalEvents();

@@ -154,6 +154,8 @@ Rules:
 
 Profile data is tied to Supabase Auth users.
 
+Shared role/profile, rating aggregate/fallback, personal rating and watchlist reads reject completions whose captured auth generation changed, including logout/account change followed by return to the same ID. Identity changes clear the current role/profile before fresh reads; these client guards preserve session isolation and do not replace server RLS.
+
 Important profile fields:
 
 - `default_display_name`

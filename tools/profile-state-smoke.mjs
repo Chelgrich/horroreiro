@@ -182,6 +182,7 @@ const roleStart = app.indexOf('async function loadCurrentUserRole(');
 const roleRead = deferred();
 const cachedRoles = [];
 const roleContext = vm.createContext({ currentUser: { id: 'alice' }, currentUserRole: 'user', currentUserProfile: { display_name: 'Bob' },
+  getAuthSessionController: () => ({ captureSession: () => ({ isCurrent: () => true }) }),
   loadProfileDataActions: async () => ({ fetchCurrentUserProfile: () => roleRead.promise,
     cachePublicProfileRows: profiles => cachedRoles.push(...profiles) }), updateAdminStatus() {}, console });
 vm.runInContext(app.slice(roleStart, app.indexOf('\n}', roleStart) + 2), roleContext);
