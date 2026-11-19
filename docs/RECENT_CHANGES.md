@@ -4,6 +4,8 @@
 
 - A missing saved build marker records the current build and continues shared startup on the same navigation. An existing different marker still clears the old app snapshots/settings and reloads once, preserving the query string and hash. If storage access fails, startup continues without issuing a reload that could repeat indefinitely.
 - The startup contract fixture reproduced the repeated navigation before the fix and now exercises initial registration, version upgrades, redirect URL preservation, and blocked storage.
+- Released runtime `b2df5c60eff7130721e84d1baab1d308692a4298`, Yandex revision `bbahfiema935pfrl2336`. Full smoke, required Docker runtime checks and all three production route checks passed.
+- Repeated the same three fresh-profile Lighthouse 13.6.0 desktop runs on the published build, with no emulated throttling. The HTML document, `/env` and `app.js` each loaded once per visit instead of twice. Median time from original navigation to the first poster request changed from 6.011 s to 3.676 s, to the first successful poster response from 6.318 s to 4.016 s, and to the first catalog poster `PaintImage` event from 6.319 s to 3.938 s (2.381 s earlier, 38%). Poster paint times were 9.122, 6.319 and 4.518 s before, and 2.903, 7.728 and 3.938 s after. The repeat confirms removal of an entire navigation, while timings still vary with the network and frontend work; the slow after-run included 2.408 s waiting on rating statistics.
 
 ## 2026-11-19 — Cold catalog startup baseline
 
