@@ -53,7 +53,9 @@ Poster gallery display reads use `MOVIE_POSTER_IMAGE_DISPLAY_SELECT` (`movie_id`
 
 Client movie select profiles:
 
-- `MOVIE_CATALOG_SELECT`: catalog cards and full catalog cache; do not include import-only fields such as `letterboxd_short_url`.
+- `MOVIE_CATALOG_LIST_SELECT`: whole catalog and movie picker rows. Keeps the search and filter fields, and orders the embedded genres without selecting their position.
+- `MOVIE_CATALOG_LINKS_SELECT`: movie ID and four external resource URLs for the rendered catalog page.
+- `MOVIE_CATALOG_SELECT`: the catalog list fields plus external URLs for secondary cards and single-movie updates.
 - `MOVIE_DETAIL_SELECT`: public movie detail fallback payload.
 - `MOVIE_EDITOR_SELECT`: admin movie add/edit modal payload.
 - `MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT`: compact Letterboxd import matching index (`id`, labels/year, `letterboxd_url`, `letterboxd_short_url`); use this instead of loading the full catalog for ratings import.

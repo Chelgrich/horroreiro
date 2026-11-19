@@ -10,6 +10,61 @@ function functionSource(name) {
   return source.slice(start, end);
 }
 
+const movieSelects = vm.createContext();
+for (const name of ['MOVIE_CATALOG_LINK_COLUMNS', 'MOVIE_CATALOG_LIST_SELECT', 'MOVIE_CATALOG_SELECT']) {
+  const declaration = source.match(new RegExp('const ' + name + ' = `[^`]*`;'))?.[0];
+  assert.ok(declaration, `Missing ${name}`);
+  vm.runInContext(declaration, movieSelects);
+}
+vm.runInContext(functionSource('getMovieSelectByPurpose'), movieSelects);
+const catalogFields = movieSelects.getMovieSelectByPurpose();
+for (const field of ['id', 'slug', 'title', 'original_title', 'director', 'search_aliases', 'year', 'release_year', 'release_month',
+  'sort_order', 'runtime_minutes', 'formats', 'tags_perceived', 'poster_url', 'movie_genres', 'movie_countries']) {
+  assert.match(catalogFields, new RegExp(`\\b${field}\\b`));
+}
+for (const field of ['kinopoisk_url', 'imdb_url', 'letterboxd_url', 'rottentomatoes_url', 'position']) {
+  assert.doesNotMatch(catalogFields, new RegExp(`\\b${field}\\b`));
+}
+
+let visibleIds = ['one', 'two'];
+let completeLinks;
+const linkQueries = [];
+const linkSandbox = vm.createContext({
+  console: { warn() {} },
+  catalogMovieLinksById: new Map(),
+  getRenderedCatalogMovieIds: () => visibleIds,
+  getCatalogMovieById: id => ({ id }),
+  MOVIE_CATALOG_LINKS_SELECT: 'id,kinopoisk_url,imdb_url,letterboxd_url,rottentomatoes_url',
+  supabaseClient: { from: () => ({
+    select() { return this; },
+    in(_field, ids) {
+      linkQueries.push([...ids]);
+      return new Promise(resolve => { completeLinks = resolve; });
+    }
+  }) },
+  throwIfSupabaseError(error) { if (error) throw error; },
+  container: { querySelectorAll: () => [] },
+  syncOpenExternalLinksLayouts() {}, persistCatalogDomSnapshot() {}
+});
+for (const name of ['needsCatalogMovieLinkLookup', 'loadCatalogPageMovieLinks']) {
+  vm.runInContext(functionSource(name), linkSandbox);
+}
+const firstLinks = linkSandbox.loadCatalogPageMovieLinks();
+await linkSandbox.loadCatalogPageMovieLinks();
+assert.deepEqual(linkQueries, [['one', 'two']], 'Visible cards share one in-flight links batch');
+completeLinks({ data: [{ id: 'one', imdb_url: 'https://example.test/one' }] });
+await firstLinks;
+await linkSandbox.loadCatalogPageMovieLinks();
+assert.equal(linkQueries.length, 1, 'Cache both found links and unavailable rows');
+visibleIds = ['three'];
+const failedLinks = linkSandbox.loadCatalogPageMovieLinks();
+completeLinks({ error: new Error('Offline') });
+await failedLinks;
+const retriedLinks = linkSandbox.loadCatalogPageMovieLinks({ retry: true });
+completeLinks({ data: [{ id: 'three', imdb_url: 'https://example.test/three' }] });
+await retriedLinks;
+assert.equal(linkSandbox.catalogMovieLinksById.get('three').row.id, 'three');
+
 const requests = [];
 let failPage = null;
 let pausePage = null;
@@ -62,7 +117,7 @@ const sandbox = vm.createContext({
   supabaseClient: { from: query },
   SUPABASE_ID_QUERY_CHUNK_SIZE: 200,
   currentUser: { id: 'user-a' },
-  allMovies: [], allMovieRatings: [], allMovieWatchlist: [],
+  allMovies: [], allMovieRatings: [], allMovieWatchlist: [], catalogMovieLinksById: new Map(),
   catalogReviewedMovieIds: new Set(), catalogProfileActivityRatingsByMovieId: new Map(),
   CATALOG_PROFILE_ACTIVITY_KEYS: new Set(['ratings', 'watchlist', 'reviews']),
   moviesLoadedSuccessfully: false, container: null,

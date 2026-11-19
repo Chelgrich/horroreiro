@@ -543,6 +543,7 @@ let areSecondaryPageSnapshotEventsBound = false;
 let isSecondaryPageWarmStartHydrationActive = false;
 let secondaryPageWarmStartScrollIntentBaseline = 0;
 let allMovies = [];
+let catalogMovieLinksById = new Map();
 let catalogMoviesById = new Map();
 let catalogMovieMetaById = new Map();
 let movieSelectRowsBySelectKey = new Map();
@@ -5619,7 +5620,7 @@ function createCatalogDomSnapshotPayload(sessionSnapshot = null) {
     !sessionSnapshot ||
     !moviesLoadedSuccessfully ||
     viewMode?.value !== 'list' ||
-    container.querySelector('.movie-card-skeleton, [data-catalog-poster-pending]')
+    container.querySelector('.movie-card-skeleton, [data-catalog-poster-pending], [data-catalog-links-pending]')
   ) {
     return null;
   }
@@ -8106,6 +8107,7 @@ function getCatalogCardControllerContext() {
     getCurrentUserRating,
     getCurrentUserMovieState,
     getCatalogMovieMeta,
+    getCatalogMovieCardLinksHtml,
     getMatchedSearchAlias,
     getMovieAverageRating,
     getMovieVotesCount,
@@ -9746,27 +9748,6 @@ function buildCatalogMovieCardRenderMeta(movie, genresText, countriesText) {
   const escapedRuntime = runtimeLabel ? escapeHtml(runtimeLabel) : '';
   const pageUrl = buildMoviePageUrl(movie);
   const escapedPageUrl = escapeHtml(pageUrl);
-  const externalLinksHtml = getMovieExternalLinksHtml(movie);
-  const hasExternalLinks = externalLinksHtml !== '';
-  const externalLinksToggleHtml = hasExternalLinks
-    ? `
-      <button
-        type="button"
-        class="movie-external-links-toggle secondary-button secondary-button-compact"
-        data-external-links-toggle="true"
-        aria-expanded="false"
-      >
-        Ссылки на фильм
-      </button>
-    `
-    : '';
-  const externalLinksBlockHtml = hasExternalLinks
-    ? `
-      <div class="movie-external-links-collapsible" data-external-links-collapsible>
-        ${externalLinksHtml}
-      </div>
-    `
-    : '';
 
   return {
     titleText,
@@ -9783,8 +9764,6 @@ function buildCatalogMovieCardRenderMeta(movie, genresText, countriesText) {
     escapedRuntime,
     escapedPosterAlt: escapeHtml(`Постер фильма ${titleText}`),
     escapedPageLabel: escapeHtml(`Открыть страницу фильма ${titleText}`),
-    externalLinksToggleHtml,
-    externalLinksBlockHtml,
     staticDetailsHtml: `
       <h5 class="movie-title">
         <a href="${escapedPageUrl}" class="movie-title-link">${escapedTitle}</a>
@@ -10616,7 +10595,14 @@ const MOVIE_EDITOR_SELECT = `
   )
 `;
 
-const MOVIE_CATALOG_SELECT = `
+const MOVIE_CATALOG_LINK_COLUMNS = `
+  kinopoisk_url,
+  imdb_url,
+  letterboxd_url,
+  rottentomatoes_url
+`;
+
+const MOVIE_CATALOG_LIST_SELECT = `
   id,
   slug,
   title,
@@ -10628,21 +10614,19 @@ const MOVIE_CATALOG_SELECT = `
   tags_perceived,
   search_aliases,
   poster_url,
-  kinopoisk_url,
-  imdb_url,
-  letterboxd_url,
-  rottentomatoes_url,
   release_year,
   release_month,
   sort_order,
   movie_genres (
-    position,
     genres (name)
   ),
   movie_countries (
     countries (name)
   )
 `;
+
+const MOVIE_CATALOG_SELECT = `${MOVIE_CATALOG_LIST_SELECT}, ${MOVIE_CATALOG_LINK_COLUMNS}`;
+const MOVIE_CATALOG_LINKS_SELECT = `id, ${MOVIE_CATALOG_LINK_COLUMNS}`;
 
 const MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT = `
   id,
@@ -10705,7 +10689,7 @@ function getMovieSelectByPurpose(purpose = 'catalog') {
     return MOVIE_DETAIL_SELECT;
   }
 
-  return MOVIE_CATALOG_SELECT;
+  return MOVIE_CATALOG_LIST_SELECT;
 }
 
 const OPTIONAL_MOVIE_SELECT_COLUMNS = ['trailer_url', 'runtime_minutes', 'tmdb_url'];
@@ -10826,6 +10810,7 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
   }
 
   allMovies = data || [];
+  catalogMovieLinksById = new Map();
   rebuildCatalogMovieMeta();
   moviesLoadedSuccessfully = true;
   markCatalogDataChanged();
@@ -11419,6 +11404,7 @@ async function refreshCatalogMovieAfterUpdate(movieId, {
   const shouldRefreshPosterImages = Boolean(updateSavePlan?.posterImagesChanged);
 
   invalidateMovieSelectRowsCache([movieKey]);
+  catalogMovieLinksById.delete(movieKey);
   invalidateLetterboxdImportMatchMoviesCache();
   markLocalDataDependencyMutation([getDataDependencyMovieKey(movieKey)], `movie-update:${movieKey}`);
 
@@ -13536,7 +13522,7 @@ function getCatalogSkeletonMovies(cardsCount) {
 
 function getMovieCardSkeletonHtml(movie = null) {
   const hasOriginalTitle = !movie || Boolean(movie.original_title);
-  const hasExternalLinks = !movie || hasMovieExternalLinks(movie);
+  const hasExternalLinks = !movie || needsCatalogMovieLinkLookup(movie) || hasMovieExternalLinks(movie);
   const hasRuntime = !movie || Boolean(formatRuntimeMinutes(movie.runtime_minutes));
 
   return `
@@ -13948,6 +13934,30 @@ function getMovieExternalLinksHtml(movie) {
           >
         </a>
       `).join('')}
+    </div>
+  `;
+}
+
+function needsCatalogMovieLinkLookup(movie) {
+  return Boolean(movie?.id && !Object.hasOwn(movie, 'kinopoisk_url'));
+}
+
+function getCatalogMovieCardLinksHtml(movie, { expanded = false } = {}) {
+  const deferred = isCatalogPage() && needsCatalogMovieLinkLookup(movie);
+  const state = deferred ? catalogMovieLinksById.get(String(movie.id)) : null;
+  const panelHtml = deferred && !state?.row
+    ? state?.failed
+      ? '<button type="button" class="secondary-button secondary-button-compact" data-catalog-links-retry>Повторить загрузку ссылок</button>'
+      : '<p data-catalog-links-pending role="status">Загрузка ссылок…</p>'
+    : getMovieExternalLinksHtml(state?.row || movie);
+
+  if (!panelHtml) return '';
+
+  return `
+    <button type="button" class="movie-external-links-toggle secondary-button secondary-button-compact"
+      data-external-links-toggle="true" aria-expanded="${expanded}">${expanded ? 'Свернуть' : 'Ссылки на фильм'}</button>
+    <div class="movie-external-links-collapsible${expanded ? ' is-open' : ''}" data-external-links-collapsible>
+      ${panelHtml}
     </div>
   `;
 }
@@ -14504,6 +14514,11 @@ async function handleMovieCardClick(event, {
     return;
   }
 
+  if (target.closest('[data-catalog-links-retry]')) {
+    void loadCatalogPageMovieLinks({ retry: true });
+    return;
+  }
+
   const removeRatingBtn = target.closest('[data-remove-rating="true"]');
 
   if (removeRatingBtn) {
@@ -14849,7 +14864,63 @@ async function loadCatalogPagePosters(pageMovies) {
   persistCatalogDomSnapshot();
 }
 
-function renderMovies({ loadPosters = true } = {}) {
+function scheduleCatalogPageMovieLinks() {
+  requestAnimationFrame(() => window.setTimeout(loadCatalogPageMovieLinks, 0));
+}
+
+async function loadCatalogPageMovieLinks({ retry = false } = {}) {
+  const cache = catalogMovieLinksById;
+  const movieIds = getRenderedCatalogMovieIds().filter(id =>
+    needsCatalogMovieLinkLookup(getCatalogMovieById(id)) &&
+    (!cache.has(id) || (retry && cache.get(id).failed))
+  );
+  if (!movieIds.length) return;
+
+  const pending = {};
+  movieIds.forEach(id => cache.set(id, pending));
+  let rows;
+  try {
+    const { data, error } = await supabaseClient.from('movies')
+      .select(MOVIE_CATALOG_LINKS_SELECT)
+      .in('id', movieIds);
+    throwIfSupabaseError(error);
+    rows = new Map((data || []).map(row => [String(row.id), row]));
+  } catch (error) {
+    console.warn('Не удалось загрузить ссылки каталога:', error);
+  }
+  if (cache !== catalogMovieLinksById) return;
+
+  const updatedIds = new Set();
+  for (const id of movieIds) {
+    if (cache.get(id) !== pending) continue;
+    cache.set(id, rows ? { row: rows.get(id) || {} } : { failed: true });
+    updatedIds.add(id);
+  }
+
+  for (const card of container.querySelectorAll('.movie-card[data-movie-id]')) {
+    const id = card.dataset.movieId;
+    if (!updatedIds.has(id)) continue;
+    const holder = card.querySelector('[data-catalog-card-links]');
+    if (!holder || (!rows && !holder.querySelector('[data-catalog-links-pending], [data-catalog-links-retry]'))) continue;
+    const restoreFocus = holder.contains(document.activeElement);
+    const expanded = card.classList.contains('has-open-external-links');
+    holder.innerHTML = getCatalogMovieCardLinksHtml(getCatalogMovieById(id), { expanded });
+    const toggle = holder.querySelector('[data-external-links-toggle]');
+    if (!toggle) card.classList.remove('has-open-external-links');
+    if (restoreFocus) {
+      (toggle?.offsetWidth ? toggle : holder.querySelector('a, [data-catalog-links-retry]'))?.focus({ preventScroll: true });
+    }
+  }
+  syncOpenExternalLinksLayouts();
+  persistCatalogDomSnapshot();
+}
+
+function loadCatalogPageDetails(pageMovies) {
+  void loadCatalogPagePosters(pageMovies);
+  scheduleCatalogPageMovieLinks();
+}
+
+function renderMovies({ loadPageDetails = true } = {}) {
   if (!moviesLoadedSuccessfully) {
     return;
   }
@@ -14910,12 +14981,12 @@ function renderMovies({ loadPosters = true } = {}) {
   ) {
     recordCatalogDomSnapshotRender();
     persistCatalogDomSnapshot();
-    if (loadPosters) void loadCatalogPagePosters(pageMovies);
+    if (loadPageDetails) loadCatalogPageDetails(pageMovies);
     return;
   }
 
   const getCardRenderOptions = createCatalogPosterOptions({
-    deferMissing: loadPosters && shouldPreferRussianPosters()
+    deferMissing: loadPageDetails && shouldPreferRussianPosters()
   });
 
   container.replaceChildren(
@@ -14932,7 +15003,7 @@ function renderMovies({ loadPosters = true } = {}) {
   catalogPosterView = null;
   recordCatalogDomSnapshotRender();
   persistCatalogDomSnapshot();
-  if (loadPosters) void loadCatalogPagePosters(pageMovies);
+  if (loadPageDetails) loadCatalogPageDetails(pageMovies);
 }
 
 const debouncedRenderMovies = createDebouncedCatalogRender(200);
@@ -15248,7 +15319,7 @@ function bindCatalogPageEvents() {
     // Finish any pending data/filter render while leaving, before capturing its DOM.
     if (viewMode?.value === 'list' && !createCatalogDomSnapshotPayload()) {
       const expandedMovieId = container.querySelector('.movie-card.has-open-external-links')?.dataset.movieId;
-      renderMovies({ loadPosters: false });
+      renderMovies({ loadPageDetails: false });
       const expandedCard = expandedMovieId && container.querySelector(`[data-movie-id="${expandedMovieId}"]`);
       const toggle = expandedCard?.querySelector('[data-external-links-toggle="true"]');
       if (toggle && toggle.getAttribute('aria-expanded') !== 'true') {
@@ -15581,6 +15652,8 @@ async function initCatalogPage({ onShellReady = null } = {}) {
 
         if (!canReuseHydratedCatalog) {
           preserveWindowScrollPosition(renderMovies);
+        } else {
+          scheduleCatalogPageMovieLinks();
         }
 
         updateFiltersButtonLabel();
@@ -15688,6 +15761,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
   );
 
   if (canReuseHydratedCatalog) {
+    scheduleCatalogPageMovieLinks();
     updateFiltersButtonLabel();
     finishInitialCatalogLoad(catalogLoadState);
     return;

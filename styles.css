@@ -2221,6 +2221,10 @@ a[data-current-page-link="true"]{
   margin-bottom: 0;
 }
 
+[data-catalog-card-links]{
+  display: contents;
+}
+
 .movie-external-links-toggle{
   display: none;
   font-weight: 600;

@@ -10,6 +10,7 @@ export function createCatalogCardController(context = {}) {
     getCurrentUserRating,
     getCurrentUserMovieState,
     getCatalogMovieMeta,
+    getCatalogMovieCardLinksHtml,
     getMatchedSearchAlias,
     getMovieAverageRating,
     getMovieVotesCount,
@@ -319,8 +320,7 @@ export function createCatalogCardController(context = {}) {
       ${detailsHtml}
 
       <div class="movie-rating-block">
-        ${cardRenderMeta.externalLinksToggleHtml}
-        ${cardRenderMeta.externalLinksBlockHtml}
+        <div data-catalog-card-links>${getCatalogMovieCardLinksHtml(movie)}</div>
         ${ratingSummaryHtml}
         ${profileRatingHtml}
         ${userRatingControlsHtml}

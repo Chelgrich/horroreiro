@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-19 — Reduce the first catalog movies response
+
+- The first catalog read keeps the complete movie list and the fields used by search, filters, ordering, posters and card metadata. It skips the four external links and the genre position values. The server still orders each movie's embedded genres by position.
+- After the cards render, one query fills external links for the current page. Results update only the links inside matching cards and are reused on later page visits. The smaller list payload is also used when populating the admin's movie picker. Detail, editor and secondary movie cards continue to receive their existing link fields.
+
 ## 2026-11-19 — Load catalog rating summaries after the first render
 
 - Cold catalog views sorted by release date can render from movie and review data before requesting rating aggregates. Direct or saved rating ranges and rating presets keep the foreground load. A rating filter selected during the background read waits for aggregates, and month-local rating sort becomes available when the aggregate read settles.

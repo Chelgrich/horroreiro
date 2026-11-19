@@ -8,7 +8,7 @@ const functions = [
   'getNormalizedMovieIdsFromMovies', 'fetchMoviePosterImagesForMovie', 'fetchMoviePosterImagesForMovies',
   'loadMoviePosterImagesChunk', 'fetchAllSupabaseRows', 'fetchAllSupabaseRowsResult',
   'fetchMoviePosterImagesForMoviesSafe', 'ensurePreferredPosterImagesForMovies', 'getMoviePreferredPosterUrl',
-  'createCatalogPosterOptions', 'loadCatalogPagePosters', 'renderMovies', 'goToCatalogPage'
+  'createCatalogPosterOptions', 'loadCatalogPagePosters', 'loadCatalogPageDetails', 'renderMovies', 'goToCatalogPage'
 ].map(name => {
   const start = source.lastIndexOf('\n', source.indexOf(`function ${name}(`)) + 1;
   const end = source.indexOf('\n}', start) + 2;
@@ -82,6 +82,7 @@ function fixture() {
     areInitialCatalogRatingStatsPending: () => false,
     createMovieCardRenderContext() {}, saveCatalogState() {}, showMoviesResultCount() {}, getMoviesResultCountText() {},
     setCatalogBusyState() {}, updateCatalogStructuredData() {}, renderCatalogPagination() {},
+    scheduleCatalogPageMovieLinks() {},
     recordCatalogDomSnapshotRender() {}, persistCatalogDomSnapshot() {},
     requestAnimationFrame() {}
   });
