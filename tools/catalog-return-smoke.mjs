@@ -2,15 +2,62 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import * as cache from '../catalog-return-cache.js';
+import { createCatalogCardController } from '../catalog-cards.js';
 import { createMovieUserStateController } from '../movie-user-state.js';
 
-const source = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const source = (await readFile(new URL('../app.js', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
 function functionSource(name) {
   const start = source.lastIndexOf('\n', source.indexOf(`function ${name}(`)) + 1;
-  const end = source.indexOf('\n}', start) + 2;
+  const end = source.indexOf('\n}\n', start) + 2;
   assert.ok(start > 0 && end > start, `Missing function ${name}`);
   return source.slice(start, end);
 }
+
+// Cold date-sorted data should settle while the rating request is still outstanding.
+let completeStats;
+let statsReads = 0;
+const initialLoadSandbox = vm.createContext({
+  container: {}, moviesLoadedSuccessfully: false, shouldFadeCatalogAfterSkeleton: false,
+  currentUser: null, fetchMovies: async () => {}, fetchCatalogReviewSummary: async () => {},
+  fetchMovieRatingStats: () => {
+    statsReads += 1;
+    return new Promise(resolve => { completeStats = resolve; });
+  },
+  shouldAwaitUserStateForCatalogLoad: () => false, shouldUseAuthenticatedUi: () => false,
+  fetchCatalogUserState: async () => {}, refreshDynamicFilterOptions() {}, persistCatalogSessionSnapshot() {}
+});
+vm.runInContext(functionSource('reloadCatalogData'), initialLoadSandbox);
+const coldResult = await Promise.race([
+  initialLoadSandbox.reloadCatalogData({ deferRatingStats: true }),
+  new Promise(resolve => setImmediate(() => resolve(null)))
+]);
+assert.ok(coldResult, 'A cold date-sorted catalog must load without waiting for aggregate ratings');
+assert.equal(statsReads, 0, 'Aggregate network traffic must start after the first independent render');
+let blockingFinished = false;
+const blockingLoad = initialLoadSandbox.reloadCatalogData().then(() => { blockingFinished = true; });
+await new Promise(resolve => setImmediate(resolve));
+assert.equal(blockingFinished, false, 'Rating-dependent and existing blocking callers must still wait');
+assert.equal(statsReads, 1);
+completeStats(false);
+await blockingLoad;
+
+let ratingsPending = true;
+const ratingValue = {};
+const ratingMeta = {};
+const ratingCard = {
+  dataset: { movieId: 'movie' },
+  querySelector: selector => selector === '.movie-rating-value' ? ratingValue : ratingMeta
+};
+const { updateMovieCardRating } = createCatalogCardController({
+  areRatingStatsPending: () => ratingsPending,
+  getMovieAverageRating: () => 7.4, getMovieVotesCount: () => 3, getVotesLabel: () => 'votes'
+});
+updateMovieCardRating(ratingCard);
+assert.equal(ratingValue.textContent, '—', 'Missing aggregates are pending, not zero');
+ratingsPending = false;
+updateMovieCardRating(ratingCard);
+assert.equal(ratingValue.textContent, '7.4');
+assert.equal(ratingMeta.textContent, '(3 votes)');
 
 // Browser rAF callbacks receive a timestamp, never a DOM root.
 const frames = [];
@@ -49,7 +96,7 @@ const ratingSandbox = vm.createContext({
   window: {}, console: { error() {} },
   movieUserStateController: null, movieUserStateControllerPromise: null,
   loadUserStateModule: async () => ({ createMovieUserStateController }),
-  currentUser: { id: 'fixture-user' }, allMovieRatings: [],
+  currentUser: { id: 'fixture-user' }, allMovieRatings: [], initialCatalogRatingLoad: null,
   ratingRequestInFlight: new Set(), watchlistRequestInFlight: new Set(),
   supabaseClient: { from: () => ({ upsert: async () => ({ error: writeError }) }) },
   syncCatalogSessionSnapshotMovieState() {}, isMovieWatchedByCurrentUser: () => false,
@@ -61,7 +108,7 @@ const ratingSandbox = vm.createContext({
   showMovieRatingFeedback() {}, showMovieWatchlistFeedback() {},
   showAppMessage: (...args) => messages.push(args)
 });
-for (const name of ['getMovieUserStateControllerContext', 'ensureMovieUserStateControllerLoaded', 'upsertCurrentUserMovieRating', 'saveUserMovieRating']) {
+for (const name of ['getMovieUserStateControllerContext', 'ensureMovieUserStateControllerLoaded', 'getMovieUserStateControllerForRating', 'waitForInitialCatalogRatingState', 'upsertCurrentUserMovieRating', 'saveUserMovieRating']) {
   vm.runInContext(functionSource(name).replace("import(getLazyFeatureModuleUrl('movie-user-state.js'))", 'loadUserStateModule()'), ratingSandbox);
 }
 await ratingSandbox.saveUserMovieRating('movie', 8);
@@ -74,6 +121,20 @@ assert.equal(ratingRenders, 1, 'A failed write must not report success');
 assert.equal(messages.length, 1, 'A failed rating must show feedback rather than silently do nothing');
 assert.equal(messages[0][1], 'error');
 assert.equal(ratingSandbox.ratingRequestInFlight.size, 0, 'Failed writes must allow a retry');
+let finishUserState;
+let isCurrent = true;
+ratingSandbox.initialCatalogRatingLoad = {
+  isCurrent: () => isCurrent,
+  ready: new Promise(resolve => { finishUserState = resolve; })
+};
+writeError = null;
+const earlyWrite = ratingSandbox.saveUserMovieRating('movie', 9);
+await new Promise(resolve => setImmediate(resolve));
+assert.equal(ratingSandbox.allMovieRatings[0].rating, 8, 'An early write must wait for rating state');
+isCurrent = false;
+finishUserState();
+await earlyWrite;
+assert.equal(ratingSandbox.allMovieRatings[0].rating, 8, 'An early write must not cross a session change');
 const storage = () => {
   const values = new Map();
   return { get length() { return values.size; }, key: index => [...values.keys()][index],

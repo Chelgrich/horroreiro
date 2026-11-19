@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-19 — Load catalog rating summaries after the first render
+
+- Cold catalog views sorted by release date can render from movie and review data before requesting rating aggregates. Direct or saved rating ranges and rating presets keep the foreground load. A rating filter selected during the background read waits for aggregates, and month-local rating sort becomes available when the aggregate read settles.
+- Pending card summaries use a loading label. The completed read fills the visible rating text in place, preserving poster elements and scroll. Complete catalog snapshots and initial rating edits wait for the corresponding rating data, and a late response or queued edit cannot apply to a replacement session.
+
 ## 2026-11-19 — Trace catalog proxy latency
 
 - Public catalog GETs for `movies` and `movie_rating_stats` can opt into `Server-Timing` by sending `X-Horroreiro-Perf: 1`. The handler reports its wait for Supabase response headers. The Node adapter adds the time to read and buffer the response body, time from Node request entry until the body is ready, and process age at entry. The header carries only durations and is never sent to Supabase. Timing can be joined to Supabase edge logs using a unique `X-Client-Info` probe tag.

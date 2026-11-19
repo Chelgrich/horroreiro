@@ -4,6 +4,7 @@ export function createCatalogRenderController(context = {}) {
     createMovieCard,
     getMovieAverageRating,
     getMovieVotesCount,
+    areRatingStatsPending = () => false,
     getMonthName
   } = context;
 
@@ -78,6 +79,8 @@ export function createCatalogRenderController(context = {}) {
 
     ratingSortButton.type = 'button';
     ratingSortButton.className = 'month-sort-btn';
+    ratingSortButton.dataset.catalogMonthRatingSort = '';
+    ratingSortButton.disabled = areRatingStatsPending();
 
     monthControls.appendChild(dateSortButton);
     monthControls.appendChild(ratingSortButton);

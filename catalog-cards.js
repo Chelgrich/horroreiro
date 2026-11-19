@@ -13,6 +13,7 @@ export function createCatalogCardController(context = {}) {
     getMatchedSearchAlias,
     getMovieAverageRating,
     getMovieVotesCount,
+    areRatingStatsPending = () => false,
     getVotesLabel,
     getCatalogProfileRatingHtml,
     getMoviePreferredPosterUrl,
@@ -233,6 +234,24 @@ export function createCatalogCardController(context = {}) {
     `;
   }
 
+  function getMovieCardRatingText(movieId) {
+    if (areRatingStatsPending()) {
+      return { value: '—', meta: '(загрузка…)' };
+    }
+
+    const votesCount = getMovieVotesCount(movieId);
+    return {
+      value: getMovieAverageRating(movieId).toFixed(1),
+      meta: `(${votesCount} ${getVotesLabel(votesCount)})`
+    };
+  }
+
+  function updateMovieCardRating(card) {
+    const { value, meta } = getMovieCardRatingText(card.dataset.movieId);
+    card.querySelector('.movie-rating-value').textContent = value;
+    card.querySelector('.movie-rating-meta').textContent = meta;
+  }
+
   function createMovieCard(
     movie,
     renderContext = createMovieCardRenderContext(),
@@ -259,18 +278,15 @@ export function createCatalogCardController(context = {}) {
     }
     card.dataset.movieId = String(movieId);
 
-    const averageRating = getMovieAverageRating(movieId);
-    const votesCount = getMovieVotesCount(movieId);
+    const ratingText = getMovieCardRatingText(movieId);
     const isRatingBusy = isRatingRequestInFlight(movieId);
     const isWatchlistBusy = isWatchlistRequestInFlight(movieId);
 
     const ratingSummaryHtml = `
       <div class="movie-rating-summary">
         <div class="movie-rating-summary-main">
-          <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
-          <span class="movie-rating-meta">
-            (${votesCount} ${getVotesLabel(votesCount)})
-          </span>
+          <span class="movie-rating-value">${ratingText.value}</span>
+          <span class="movie-rating-meta">${ratingText.meta}</span>
         </div>
         <button
           type="button"
@@ -329,6 +345,7 @@ export function createCatalogCardController(context = {}) {
   return {
     createMovieCardRenderContext,
     createMovieCard,
+    updateMovieCardRating,
     updateMovieCardPoster
   };
 }

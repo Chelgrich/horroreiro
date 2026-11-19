@@ -573,6 +573,7 @@ let isMoviePagePayloadRpcAvailable = true;
 let allMovieRatings = [];
 let allMovieWatchlist = [];
 let movieRatingStatsByMovieId = new Map();
+let initialCatalogRatingLoad = null;
 let movieRatingByMovieAndUserKey = new Map();
 let currentUserRatingsByMovieId = new Map();
 let currentUserWatchlistMovieIds = new Set();
@@ -4834,7 +4835,7 @@ function applyMovieRatingStatsSnapshotRows(rows) {
 }
 
 function createCatalogSessionSnapshotPayload() {
-  if (!moviesLoadedSuccessfully || !Array.isArray(allMovies) || allMovies.length === 0) {
+  if (areInitialCatalogRatingStatsPending() || !moviesLoadedSuccessfully || !Array.isArray(allMovies) || allMovies.length === 0) {
     return null;
   }
 
@@ -5740,7 +5741,7 @@ function persistCatalogDomSnapshot(
   sessionSnapshot = null,
   { immediate = false } = {}
 ) {
-  if (!isCatalogPage()) {
+  if (!isCatalogPage() || areInitialCatalogRatingStatsPending()) {
     return;
   }
 
@@ -5760,7 +5761,7 @@ function persistCatalogDomSnapshot(
 }
 
 function persistCatalogSessionSnapshot({ persistDomSnapshotImmediately = false } = {}) {
-  if (!isCatalogPage()) {
+  if (!isCatalogPage() || areInitialCatalogRatingStatsPending()) {
     return;
   }
 
@@ -8108,6 +8109,7 @@ function getCatalogCardControllerContext() {
     getMatchedSearchAlias,
     getMovieAverageRating,
     getMovieVotesCount,
+    areRatingStatsPending: areInitialCatalogRatingStatsPending,
     getVotesLabel,
     getCatalogProfileRatingHtml,
     getMoviePreferredPosterUrl,
@@ -8150,6 +8152,7 @@ function getCatalogRenderControllerContext() {
     createMovieCard,
     getMovieAverageRating,
     getMovieVotesCount,
+    areRatingStatsPending: areInitialCatalogRatingStatsPending,
     getMonthName
   };
 }
@@ -9205,6 +9208,10 @@ async function handleLetterboxdRatingsFileChange(event) {
     const csvText = await file.text();
 
     showAppMessage(`Файл прочитан: ${file.name}. Проверяю структуру...`, 'info');
+
+    if (!await waitForInitialCatalogRatingState()) {
+      throw new Error('Сессия изменилась. Выбери файл заново.');
+    }
 
     const importResult = await importLetterboxdRatingsFromCsvText(csvText, {
       onProgress: message => showAppMessage(message, 'info')
@@ -10856,6 +10863,36 @@ function hasUserScopedCatalogState(catalogState) {
   );
 }
 
+function hasCatalogRatingRange(ratingFrom, ratingTo) {
+  return getCatalogRangeBounds(ratingFrom, ratingTo, getCatalogRangeInputOptions('rating')).hasRange;
+}
+
+function areInitialCatalogRatingStatsPending() {
+  return Boolean(initialCatalogRatingLoad?.statsPending && initialCatalogRatingLoad.isCurrent());
+}
+
+function refreshCatalogAfterInitialRatingStats() {
+  if (!moviesLoadedSuccessfully) return;
+
+  if (hasCatalogRatingRange(ratingFromFilter.value, ratingToFilter.value)) {
+    refreshDynamicFilterOptions();
+    preserveWindowScrollPosition(renderMovies);
+  } else {
+    const cardController = getCatalogCardController();
+    for (const card of container.querySelectorAll('.movie-card[data-movie-id]')) {
+      cardController.updateMovieCardRating(card);
+    }
+    for (const button of container.querySelectorAll('[data-catalog-month-rating-sort]')) {
+      button.disabled = false;
+    }
+    if (catalogDomSnapshotRenderState?.renderStateSignature === getCatalogRenderStateSignature()) {
+      recordCatalogDomSnapshotRender();
+    }
+  }
+
+  persistCatalogSessionSnapshot();
+}
+
 function getRenderedCatalogMovieIds() {
   if (!container) {
     return [];
@@ -10936,7 +10973,7 @@ function loadDeferredCatalogUserState({
 
   const renderedUserStateBeforeLoad = getCatalogUserCardStateByMovieId(getRenderedCatalogMovieIds());
 
-  fetchCatalogUserState({ skipCurrentUserRatings })
+  return fetchCatalogUserState({ skipCurrentUserRatings })
     .then(() => {
       if (
         !isCatalogPage() ||
@@ -11421,7 +11458,8 @@ async function reloadCatalogData({
   showSkeleton = false,
   refreshFilters = true,
   awaitUserState = false,
-  loadDeferredUserState = true
+  loadDeferredUserState = true,
+  deferRatingStats = false
 } = {}) {
   const shouldShowCatalogSkeleton = showSkeleton && Boolean(container);
   const shouldPreserveExistingCatalogOnMovieLoadError = (
@@ -11429,7 +11467,6 @@ async function reloadCatalogData({
     moviesLoadedSuccessfully
   );
   const userIdAtLoadStart = currentUser?.id || null;
-  let hasFullRatingRows = false;
 
   shouldFadeCatalogAfterSkeleton = shouldShowCatalogSkeleton;
 
@@ -11437,13 +11474,11 @@ async function reloadCatalogData({
     renderMoviesSkeleton(getCatalogSkeletonCardsCount());
   }
 
-  await Promise.all([
+  const [, hasFullRatingRows] = await Promise.all([
     fetchMovies({
       preserveExistingCatalogOnError: shouldPreserveExistingCatalogOnMovieLoadError
     }),
-    fetchMovieRatingStats().then(result => {
-      hasFullRatingRows = Boolean(result);
-    }),
+    deferRatingStats ? false : fetchMovieRatingStats(),
     fetchCatalogReviewSummary()
   ]);
 
@@ -12936,9 +12971,25 @@ async function deleteCurrentUserMovieRating(movieId, previousRating) {
 }
 
 async function removeUserMovieRating(movieId) {
-  const controller = await ensureMovieUserStateControllerLoaded();
+  const controller = await getMovieUserStateControllerForRating();
 
-  return controller.removeUserMovieRating(movieId);
+  return controller?.removeUserMovieRating(movieId);
+}
+
+async function getMovieUserStateControllerForRating() {
+  const [isCurrent, controller] = await Promise.all([
+    waitForInitialCatalogRatingState(),
+    ensureMovieUserStateControllerLoaded()
+  ]);
+  if (isCurrent) return controller;
+}
+
+async function waitForInitialCatalogRatingState() {
+  const ratingLoad = initialCatalogRatingLoad;
+  if (!ratingLoad?.ready || !ratingLoad.isCurrent()) return true;
+  // A rating mutation applies its delta to the loaded aggregate and previous user rating.
+  await ratingLoad.ready;
+  return ratingLoad.isCurrent();
 }
 
 function ensureMobileRatingModal() {
@@ -13171,9 +13222,9 @@ async function upsertCurrentUserMovieRating(movieId, normalizedRating, previousR
 }
 
 async function saveUserMovieRating(movieId, ratingValue) {
-  const controller = await ensureMovieUserStateControllerLoaded();
+  const controller = await getMovieUserStateControllerForRating();
 
-  return controller.saveUserMovieRating(movieId, ratingValue);
+  return controller?.saveUserMovieRating(movieId, ratingValue);
 }
 
 function getCatalogPaginationContainers() {
@@ -14740,6 +14791,9 @@ function getDynamicFilterOptionCounts() {
 }
 
 function refreshDynamicFilterOptions() {
+  if (areInitialCatalogRatingStatsPending() && hasCatalogRatingRange(ratingFromFilter.value, ratingToFilter.value)) {
+    return;
+  }
   const filterOptionCounts = getDynamicFilterOptionCounts();
 
   refreshGenreFilterOptions(filterOptionCounts.genreCounts);
@@ -14801,11 +14855,16 @@ function renderMovies({ loadPosters = true } = {}) {
   }
 
   currentCatalogPaginationSlots = getCatalogPaginationSlots();
-  container.classList.remove('is-catalog-visible');
 
   renderActiveFilterChips();
   syncQuickPresetButtons();
 
+  if (areInitialCatalogRatingStatsPending() && hasCatalogRatingRange(ratingFromFilter.value, ratingToFilter.value)) {
+    setCatalogBusyState(true);
+    return;
+  }
+
+  container.classList.remove('is-catalog-visible');
   const requestedCatalogPage = currentCatalogPage;
   const {
     filteredTotal,
@@ -15487,7 +15546,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
       return;
     }
 
-    loadDeferredCatalogUserState({
+    return loadDeferredCatalogUserState({
       userIdAtLoadStart: currentUser?.id || null,
       skipCurrentUserRatings: Boolean(catalogLoadState?.hasFullRatingRows)
     });
@@ -15556,11 +15615,53 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     return;
   }
 
+  const initialCatalogState = initialCatalogUrlState || storedCatalogStateForInitialLoad;
+  const presetPatch = routePresetKey && getCatalogPresetTools().getQuickPresetFilterPatch(routePresetKey);
+  const deferRatingStats = (
+    !hydrationState.didHydrateCatalogFromSnapshot &&
+    !hasCatalogRatingRange(initialCatalogState?.ratingFrom, initialCatalogState?.ratingTo) &&
+    !hasCatalogRatingRange(presetPatch?.ratingFrom, presetPatch?.ratingTo)
+  );
+  const ratingLoad = deferRatingStats ? {
+    ...getAuthSessionController().captureSession(),
+    statsPending: true,
+    ready: null
+  } : null;
+  initialCatalogRatingLoad = ratingLoad;
+
+  const finishInitialCatalogLoad = catalogLoadState => {
+    signalCatalogShellReady();
+    if (!ratingLoad) {
+      loadDeferredInitialUserState(catalogLoadState);
+      return;
+    }
+
+    ratingLoad.ready = new Promise(resolve => {
+      requestAnimationFrame(() => window.setTimeout(resolve, 0));
+    })
+      .then(() => ratingLoad.isCurrent() && fetchMovieRatingStats())
+      .catch(error => {
+        console.error('Ошибка фоновой загрузки статистики оценок:', error);
+        return false;
+      })
+      .then(hasFullRatingRows => {
+        ratingLoad.statsPending = false;
+        if (!ratingLoad.isCurrent() || !isCatalogPage()) return;
+        refreshCatalogAfterInitialRatingStats();
+        return loadDeferredInitialUserState({ ...catalogLoadState, hasFullRatingRows });
+      })
+      .catch(error => console.error('Ошибка обновления карточек каталога:', error))
+      .finally(() => {
+        if (initialCatalogRatingLoad === ratingLoad) initialCatalogRatingLoad = null;
+      });
+  };
+
   const catalogLoadState = await reloadCatalogData({
     showSkeleton: !hydrationState.didHydrateCatalogFromSnapshot,
     refreshFilters: false,
     awaitUserState: shouldAwaitInitialUserCatalogState,
-    loadDeferredUserState: false
+    loadDeferredUserState: false,
+    deferRatingStats
   });
 
   applySavedCatalogState();
@@ -15574,8 +15675,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
 
     if (didApplyRoutePreset) {
       updateFiltersButtonLabel();
-      loadDeferredInitialUserState(catalogLoadState);
-      signalCatalogShellReady();
+      finishInitialCatalogLoad(catalogLoadState);
       return;
     }
   }
@@ -15589,8 +15689,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
 
   if (canReuseHydratedCatalog) {
     updateFiltersButtonLabel();
-    loadDeferredInitialUserState(catalogLoadState);
-    signalCatalogShellReady();
+    finishInitialCatalogLoad(catalogLoadState);
     return;
   }
 
@@ -15610,8 +15709,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     });
   }
 
-  loadDeferredInitialUserState(catalogLoadState);
-  signalCatalogShellReady();
+  finishInitialCatalogLoad(catalogLoadState);
 }
 
 

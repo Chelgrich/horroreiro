@@ -261,6 +261,8 @@ Profile ranking note:
 
 `catalog-render.js` is lazy-loaded only on catalog pages and owns list/month DOM fragment creation, year titles, month section controls, month-local release/rating sorting, and catalog DOM render signatures. `app.js` keeps the high-level `renderMovies()` bridge: active chips, quick presets, pagination, empty state, priority-poster budgeting, structured data, DOM replacement, and snapshot persistence.
 
+On a cold start without an effective rating range, `initCatalogPage()` starts the aggregate rating read after the first catalog render. Card summaries and month rating-sort controls reflect the pending read. The completion updates rating text in place and saves the complete snapshot, or renders the requested rating-filtered results if the filter was switched on during loading.
+
 `catalog-pagination.js` is lazy-loaded only on catalog pages and owns catalog pagination math, page item slot/ellipsis calculation, pagination controls HTML, and result-count text. `app.js` keeps current page state, DOM containers, events, and render scheduling.
 
 `catalog-url-state.js` is lazy-loaded only on catalog pages and owns catalog URL param parsing/building, value aliases, boolean parsing, and search params serialization. `app.js` keeps catalog DOM controls, history replace/push, and the current filter/page/profile activity state bridge.
