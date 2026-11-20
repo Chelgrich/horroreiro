@@ -105,6 +105,36 @@ refreshResponse.resolve([]);
 await refresh;
 assert.deepEqual(moviePageEvents, [['render', []]]);
 
+const heldReviews = Promise.withResolvers();
+const socialEvents = [];
+const socialLoad = page.loadDeferredMoviePageSections(movie, {
+  getCurrentMovieId: () => movie.id,
+  loadSimilarMovies: async () => {},
+  fetchReviews: () => heldReviews.promise,
+  fetchComments: async () => { socialEvents.push('fetch comments'); },
+  renderReviewsSection: () => socialEvents.push('render reviews'),
+  renderCommentsSection: () => socialEvents.push('render comments'),
+  syncCatalogSnapshot() {},
+  persistSessionCache() {}
+});
+await Promise.resolve();
+assert.deepEqual(socialEvents, ['fetch comments'], 'Comments fetch in parallel and wait for review layout before painting');
+heldReviews.resolve();
+await socialLoad;
+assert.deepEqual(socialEvents, ['fetch comments', 'render reviews', 'render comments']);
+
+const partialReturn = [];
+await page.loadMoviePageByRouteParams({ slug: 'fixture' }, {
+  ...moviePageBindings,
+  createSessionCacheEntry: () => ({ signature: 'same' }),
+  getActiveSessionCacheSignature: () => 'same',
+  setActiveSessionCacheSignature() {},
+  hasRenderedMoviePage: () => false,
+  renderMoviePage: (_, options) => partialReturn.push(options.socialLoading),
+  loadDeferredSections: async () => { partialReturn.push('reload social'); }
+}, { skipRenderIfCacheFresh: true });
+assert.deepEqual(partialReturn, [true, 'reload social'], 'An incomplete warm restore must finish loading social data');
+
 let avatarWrites = 0;
 const settings = createProfileSettingsActions({
   supabaseClient: { storage: { from: () => { avatarWrites += 1; throw Error('unexpected write'); } } }

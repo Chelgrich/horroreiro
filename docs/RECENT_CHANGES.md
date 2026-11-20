@@ -1,5 +1,11 @@
 # Recent Changes
 
+## 2026-11-21 — Keep movie comments in place during loading
+
+- Review and comment reads still start in parallel. Comments render after the review section has settled, with review-reply snippets available on the first render. The loading view holds later sections and the footer out of view until the social layout is ready.
+- Same-width warm snapshots keep the measured review and comment section heights with loading content. Restoring the cached movie waits for the social renderer so it can mount complete cached sections in one step while the warm snapshot stays visible. A return from an unfinished load fetches the sections again.
+- Mobile review and comment sections use system typography so a late webfont cannot rewrap a review during the handoff.
+
 ## 2026-11-21 — Include relation-only companies in the first movie render
 
 - Movie HTML carries public company links from the existing server movie read. The interactive page reuses them when the movie ID and company fields match. This includes companies that exist only through a relation, so the first render already has the full labels and links.

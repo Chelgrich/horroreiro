@@ -194,6 +194,12 @@
     }
 
     moviePage.innerHTML = snapshot.moviePageHtml;
+    if (snapshot.viewportWidth !== window.innerWidth) {
+      moviePage.querySelectorAll('[data-movie-page-reserved-size]').forEach(section => {
+        section.style.minBlockSize = '';
+        section.removeAttribute('data-movie-page-reserved-size');
+      });
+    }
     document.documentElement.classList.add('app-movie-warm-started');
     document.documentElement.classList.add('movie-page-rendered');
     bindWarmStartScrollIntentTracker();

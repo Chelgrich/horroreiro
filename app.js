@@ -5116,18 +5116,25 @@ function applyMoviePageSessionCacheEntry(entry) {
     movieDetailCacheController?.getEntrySignature(entry) ||
     '';
 
-  renderMoviePage(movie);
+  renderMoviePage(movie, { socialLoading: !entry.socialReady });
   persistCurrentMoviePageDomSnapshot();
   return movie;
 }
 
-function restoreMoviePageFromSessionCache(routeParams) {
+async function restoreMoviePageFromSessionCache(routeParams) {
   const entry = getMoviePageSessionCacheEntry(routeParams);
 
   if (!entry) {
     return null;
   }
 
+  if (entry.socialReady) {
+    try {
+      await ensureMovieSocialControllerLoaded();
+    } catch (error) {
+      console.warn('Не удалось восстановить рецензии и комментарии из кеша:', error);
+    }
+  }
   return applyMoviePageSessionCacheEntry(entry);
 }
 
@@ -5290,16 +5297,18 @@ function getSanitizedMoviePageDomSnapshotHtml(movie = currentMoviePageMovieData)
     button.textContent = '\u00a0';
   });
 
-  const reviewsSection = template.content.querySelector('[data-movie-page-reviews-section="true"]');
-
-  if (reviewsSection) {
-    reviewsSection.outerHTML = getMoviePageReviewsSectionHtml(movie, { isLoading: true });
-  }
-
-  const commentsSection = template.content.querySelector('[data-movie-page-comments-section="true"]');
-
-  if (commentsSection) {
-    commentsSection.outerHTML = getMoviePageCommentsSectionHtml(movie, { isLoading: true });
+  for (const [selector, render] of [
+    ['[data-movie-page-reviews-section]', getMoviePageReviewsSectionHtml],
+    ['[data-movie-page-comments-section]', getMoviePageCommentsSectionHtml]
+  ]) {
+    const section = renderedStack.querySelector(selector);
+    if (!section) continue;
+    template.content.querySelector(selector).outerHTML = render(movie, { isLoading: true });
+    if (!section.hasAttribute('aria-busy') || section.hasAttribute('data-movie-page-reserved-size')) {
+      const placeholder = template.content.querySelector(selector);
+      placeholder.setAttribute('data-movie-page-reserved-size', '');
+      placeholder.style.minBlockSize = `${section.getBoundingClientRect().height}px`;
+    }
   }
 
   const similarMount = template.content.querySelector('[data-movie-page-similar-mount="true"]');
@@ -5327,6 +5336,7 @@ function createMoviePageDomSnapshotPayload(movie = currentMoviePageMovieData) {
     buildVersion: APP_BUILD_VERSION,
     savedAt: Date.now(),
     movieId: String(movie.id),
+    viewportWidth: window.innerWidth,
     routeKeys: getMoviePageDomSnapshotRouteKeys(movie),
     dataDependencySnapshot: getLocalDataDependencySnapshot([getDataDependencyMovieKey(movie.id)]),
     moviePageHtml
@@ -8464,6 +8474,7 @@ function getMoviePageSessionSnapshot(movie) {
     movieRatings: allMovieRatings.filter(row => String(row?.movie_id || '') === movieId),
     movieWatchlist: allMovieWatchlist.filter(row => String(row?.movie_id || '') === movieId),
     ...getMoviePageSocialSnapshot(movieId),
+    socialReady: hasRenderedMoviePageSocialSections(),
     posterImages: getMoviePosterImages(movieId),
     similarMovieId: String(currentMoviePageSimilarMovieId || ''),
     similarMovieIds: String(currentMoviePageSimilarMovieId || '') === movieId
@@ -8518,6 +8529,12 @@ function getMoviePageOrchestratorControllerContext() {
   return {
     location: window.location
   };
+}
+
+function hasRenderedMoviePageSocialSections() {
+  return Boolean(moviePage?.querySelector(
+    '[data-movie-page-reviews-section]:not([aria-busy]) + [data-movie-page-comments-section]:not([aria-busy])'
+  ));
 }
 
 function ensureMoviePageOrchestratorControllerLoaded() {
@@ -9329,7 +9346,7 @@ function getMoviePageSocialSectionTitleHtml(titleId, title, count = null) {
 
 function getMoviePageReviewsFallbackSectionHtml({ isLoading = true } = {}) {
   return `
-    <section class="movie-page-reviews-block" aria-labelledby="moviePageReviewsTitle" data-movie-page-reviews-section="true">
+    <section class="movie-page-reviews-block" aria-labelledby="moviePageReviewsTitle" data-movie-page-reviews-section="true"${isLoading ? ' aria-busy="true"' : ''}>
       ${getMoviePageSocialSectionTitleHtml('moviePageReviewsTitle', 'Рецензии')}
       <div class="movie-page-review-empty-state">
         ${isLoading ? 'Загружаю рецензии...' : 'Пока нет ни одной рецензии.'}
@@ -9340,7 +9357,7 @@ function getMoviePageReviewsFallbackSectionHtml({ isLoading = true } = {}) {
 
 function getMoviePageCommentsFallbackSectionHtml({ isLoading = true } = {}) {
   return `
-    <section class="movie-page-comments-block" aria-labelledby="moviePageCommentsTitle" data-movie-page-comments-section="true">
+    <section class="movie-page-comments-block" aria-labelledby="moviePageCommentsTitle" data-movie-page-comments-section="true"${isLoading ? ' aria-busy="true"' : ''}>
       ${getMoviePageSocialSectionTitleHtml('moviePageCommentsTitle', 'Комментарии')}
       <div class="movie-page-comment-empty-state">
         ${isLoading ? 'Загружаю комментарии...' : 'Пока нет ни одного комментария.'}
@@ -9548,6 +9565,7 @@ function renderMoviePageReviewsStatus(message) {
     return;
   }
 
+  reviewsSection.removeAttribute('aria-busy');
   reviewsSection.innerHTML = `
     ${getMoviePageSocialSectionTitleHtml('moviePageReviewsTitle', 'Рецензии')}
     <div class="movie-page-review-empty-state">
@@ -9570,6 +9588,7 @@ function renderMoviePageCommentsStatus(message) {
     return;
   }
 
+  commentsSection.removeAttribute('aria-busy');
   commentsSection.innerHTML = `
     ${getMoviePageSocialSectionTitleHtml('moviePageCommentsTitle', 'Комментарии')}
     <div class="movie-page-comment-empty-state">
@@ -17356,9 +17375,7 @@ async function loadMoviePageByRouteParams(routeParams, {
     setActiveSessionCacheSignature: signature => {
       activeMoviePageSessionCacheSignature = signature || activeMoviePageSessionCacheSignature;
     },
-    hasRenderedMoviePage: () => Boolean(
-      moviePage?.querySelector('.movie-page-stack:not(.movie-page-stack-skeleton)')
-    ),
+    hasRenderedMoviePage: hasRenderedMoviePageSocialSections,
     renderMoviePage,
     loadDeferredSections: loadDeferredMoviePageSections,
     removeMovieFromCatalogSnapshot: removeMovieFromCatalogSessionSnapshot,

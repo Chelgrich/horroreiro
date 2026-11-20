@@ -83,7 +83,7 @@ Page HTML is static shell plus shared scripts:
 - `movie-warm-start.js`
   - is loaded only by `movie.html`, before Supabase and the main app loader;
   - restores a saved movie detail DOM snapshot before the full app starts when the snapshot matches the current route, build, age limit, and per-movie dependency stamp;
-  - saved movie DOM snapshots intentionally replace dynamic user/social/similar areas with loading states, so static movie content can render early without trusting stale ratings, watchlist state, reviews, comments, or similar movies.
+  - saved movie DOM snapshots replace dynamic user/social/similar areas with loading states. At the saved viewport width, the social placeholders preserve the measured review and comment heights. The social module restores the matching session data with the initial interactive view.
 - `page-warm-start.js`
   - is loaded by secondary HTML shells (`user.html`, `following.html`, `notifications.html`, `editor.html`, `name.html`, `directors.html`, `companies.html`, `company.html`) before Supabase and the main app loader;
   - restores sanitized secondary page DOM snapshots keyed by page route, build, user id, global data mutation stamp, and local dependency stamps;

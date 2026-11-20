@@ -45,7 +45,7 @@ export function createMoviePageOrchestratorController(context = {}) {
 
     await bindings.ensureDetailModulesLoaded();
 
-    const restoredMovie = bindings.restoreFromSessionCache(routeParams);
+    const restoredMovie = await bindings.restoreFromSessionCache(routeParams);
     const warmMovie = restoredMovie
       ? null
       : bindings.hydrateFromCatalogSnapshot(routeParams) || null;
@@ -103,41 +103,33 @@ export function createMoviePageOrchestratorController(context = {}) {
 
     deferredTasks.push(bindings.loadSimilarMovies(movie, 4, { shouldRender }));
 
-    deferredTasks.push(
-        bindings.fetchReviews(movie.id)
-          .then(() => {
-            if (shouldRender && shouldKeepRendering()) {
-              bindings.renderReviewsSection(movie);
-            }
-          })
-          .catch(error => {
-            bindings.onReviewsLoadError?.(error);
+    const reviewsTask = bindings.fetchReviews(movie.id)
+      .then(() => {
+        if (shouldRender && shouldKeepRendering()) {
+          bindings.renderReviewsSection(movie);
+        }
+      })
+      .catch(error => {
+        bindings.onReviewsLoadError?.(error);
 
-            if (shouldRender && shouldKeepRendering()) {
-              bindings.renderReviewsStatus(
-                'Не удалось обновить рецензии. Попробуй обновить страницу.'
-              );
-            }
-          })
-      );
+        if (shouldRender && shouldKeepRendering()) {
+          bindings.renderReviewsStatus('Не удалось обновить рецензии. Попробуй обновить страницу.');
+        }
+      });
 
     deferredTasks.push(
-        bindings.fetchComments(movie.id)
-          .then(() => {
-            if (shouldRender && shouldKeepRendering()) {
-              bindings.renderCommentsSection(movie);
-            }
-          })
-          .catch(error => {
-            bindings.onCommentsLoadError?.(error);
+      Promise.allSettled([reviewsTask, bindings.fetchComments(movie.id)]).then(([, comments]) => {
+        if (comments.status === 'rejected') {
+          bindings.onCommentsLoadError?.(comments.reason);
 
-            if (shouldRender && shouldKeepRendering()) {
-              bindings.renderCommentsStatus(
-                'Не удалось обновить комментарии. Попробуй обновить страницу.'
-              );
-            }
-          })
-      );
+          if (shouldRender && shouldKeepRendering()) {
+            bindings.renderCommentsStatus('Не удалось обновить комментарии. Попробуй обновить страницу.');
+          }
+        } else if (shouldRender && shouldKeepRendering()) {
+          bindings.renderCommentsSection(movie);
+        }
+      })
+    );
 
     await Promise.allSettled(deferredTasks);
 
@@ -217,12 +209,12 @@ export function createMoviePageOrchestratorController(context = {}) {
     const cacheEntry = bindings.createSessionCacheEntry(movie);
     const cacheSignature = cacheEntry?.signature || '';
     const activeCacheSignature = String(bindings.getActiveSessionCacheSignature() || '');
+    const hasRestoredSocial = skipRenderIfCacheFresh && bindings.hasRenderedMoviePage();
     const shouldSkipRender = Boolean(
-      skipRenderIfCacheFresh &&
+      hasRestoredSocial &&
       activeCacheSignature &&
       cacheSignature &&
-      activeCacheSignature === cacheSignature &&
-      bindings.hasRenderedMoviePage()
+      activeCacheSignature === cacheSignature
     );
 
     if (cacheSignature || activeCacheSignature) {
@@ -231,7 +223,7 @@ export function createMoviePageOrchestratorController(context = {}) {
 
     if (!shouldSkipRender) {
       bindings.renderMoviePage(movie, {
-        socialLoading: true,
+        socialLoading: !hasRestoredSocial || skipUserStateFetch,
         similarLoading: true
       });
       await bindings.loadDeferredSections(movie, { shouldRender: true });

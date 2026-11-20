@@ -2205,7 +2205,7 @@ function getMoviePageReviewsSectionHtml(movie, { isLoading = false } = {}) {
   const reviews = sortMovieReviewsForDisplay(getMovieReviews(movie.id));
 
   return `
-  <section class="movie-page-reviews-block" aria-labelledby="moviePageReviewsTitle" data-movie-page-reviews-section="true">
+  <section class="movie-page-reviews-block" aria-labelledby="moviePageReviewsTitle" data-movie-page-reviews-section="true"${isLoading ? ' aria-busy="true"' : ''}>
   ${getMoviePageSectionTitleHtml('moviePageReviewsTitle', 'Рецензии', isLoading ? null : reviews.length)}
 
   ${isLoading ? '' : getMoviePageReviewFormHtml(movie)}
@@ -2314,7 +2314,7 @@ function getMoviePageCommentsSectionHtml(movie, { isLoading = false } = {}) {
   const commentCount = getMovieComments(movie.id).filter(comment => !comment.is_deleted).length;
 
   return `
-    <section class="movie-page-comments-block" aria-labelledby="moviePageCommentsTitle" data-movie-page-comments-section="true">
+    <section class="movie-page-comments-block" aria-labelledby="moviePageCommentsTitle" data-movie-page-comments-section="true"${isLoading ? ' aria-busy="true"' : ''}>
       ${getMoviePageSectionTitleHtml('moviePageCommentsTitle', 'Комментарии', isLoading ? null : commentCount)}
 
       ${isLoading || !areMovieCommentsAvailable ? '' : getMoviePageCommentComposerHtml(movie)}
@@ -3075,6 +3075,7 @@ function renderMoviePageReviewsStatus(message) {
     return;
   }
 
+  reviewsSection.removeAttribute('aria-busy');
   reviewsSection.innerHTML = `
     ${getMoviePageSectionTitleHtml('moviePageReviewsTitle', 'Рецензии')}
     <div class="movie-page-review-empty-state">
@@ -3090,6 +3091,7 @@ function renderMoviePageCommentsStatus(message) {
     return;
   }
 
+  commentsSection.removeAttribute('aria-busy');
   commentsSection.innerHTML = `
     ${getMoviePageSectionTitleHtml('moviePageCommentsTitle', 'Комментарии')}
     <div class="movie-page-comment-empty-state">

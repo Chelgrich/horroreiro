@@ -1026,7 +1026,10 @@ async function checkStaticGuards() {
       appJs.includes('.movie-page-summary-panel') &&
       appJs.includes(".querySelectorAll('.movie-page-summary-panel .movie-rating-value, .movie-page-summary-panel .movie-rating-meta')") &&
       appJs.includes("button.removeAttribute('data-open-mobile-rating')") &&
-      appJs.includes("reviewsSection.outerHTML = getMoviePageReviewsSectionHtml(movie, { isLoading: true })") &&
+      appJs.includes("['[data-movie-page-reviews-section]', getMoviePageReviewsSectionHtml]") &&
+      appJs.includes("['[data-movie-page-comments-section]', getMoviePageCommentsSectionHtml]") &&
+      appJs.includes('template.content.querySelector(selector).outerHTML = render(movie, { isLoading: true })') &&
+      movieWarmStartJs.includes('snapshot.viewportWidth !== window.innerWidth') &&
       appJs.includes("similarMount.innerHTML = getMoviePageSimilarSectionHtml([], movie, { isLoading: true })"),
     'app.js: movie DOM snapshots must hide user/social/similar live zones behind loading states'
   );
