@@ -70,6 +70,24 @@ const companySnapshot = JSON.stringify({ id: movie.id, source: [null, null, null
 assert.equal(initialCompanyRows({ id: 'wrong' }, companySnapshot), null);
 assert.equal(initialCompanyRows({ ...movie, production: ['Changed'] }, companySnapshot), null);
 assert.equal(initialCompanyRows(movie, 'invalid JSON'), null);
+
+const movieStartup = await readFile(new URL('../movie-warm-start.js', import.meta.url), 'utf8');
+function firstPosterPreference(userId, hint) {
+  const localStorage = { horroreiro_movie_poster_preference: JSON.stringify(hint) };
+  if (userId) localStorage['sb-fixture-auth-token'] = JSON.stringify({ user: { id: userId } });
+  localStorage.getItem = key => localStorage[key] ?? null;
+  const context = vm.createContext({ localStorage, POSTER_PREFERENCE_KEY: 'horroreiro_movie_poster_preference' });
+  for (const name of ['parseJson', 'readPosterPreference']) {
+    const start = movieStartup.indexOf(`  function ${name}(`);
+    vm.runInContext(movieStartup.slice(start, movieStartup.indexOf('\n  }', start) + 4), context);
+  }
+  return context.readPosterPreference();
+}
+const savedPosterPreference = { userId: 'viewer', preferRussianPosters: true };
+assert.equal(firstPosterPreference('viewer', savedPosterPreference), true);
+assert.equal(firstPosterPreference('viewer', { ...savedPosterPreference, preferRussianPosters: false }), false);
+assert.equal(firstPosterPreference('other-viewer', savedPosterPreference), null);
+assert.equal(firstPosterPreference(null, savedPosterPreference), false);
 let currentMovie;
 const moviePageEvents = [];
 const moviePageBindings = {

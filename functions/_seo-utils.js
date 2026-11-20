@@ -473,11 +473,22 @@ function renderMovieFallbackHtml(movie) {
   const production = formatMovieTextArray(movie?.production);
   const distribution = formatMovieTextArray(movie?.distribution);
   const russianDistribution = formatMovieTextArray(movie?.russian_distribution);
-  const posterUrl = movie?.poster_url
-    ? getPosterTransformUrl(movie.poster_url, { width: 640, quality: POSTER_IMAGE_MIN_QUALITY })
-    : '';
-  const posterHtml = movie?.poster_url
-    ? `<img class="movie-page-poster" src="${escapeHtml(posterUrl)}" data-original-poster-src="${escapeHtml(movie.poster_url)}"${posterUrl !== movie.poster_url ? ` data-poster-fallback-src="${escapeHtml(movie.poster_url)}"` : ''} alt="Постер фильма ${escapeHtml(movie.title)}" loading="eager" decoding="async" fetchpriority="high">`
+  const basePoster = String(movie.poster_url || '').trim();
+  const alternate = String(movie.movie_poster_images?.[0]?.image_url || '').trim();
+  const alternatePoster = alternate !== basePoster ? alternate : '';
+  const transform = url => getPosterTransformUrl(url, { width: 640, quality: POSTER_IMAGE_MIN_QUALITY });
+  const hasGallery = Array.isArray(movie.movie_poster_images);
+  const canLoadBase = hasGallery && !alternatePoster;
+  const posterHtml = basePoster || alternatePoster
+    ? `<div class="movie-poster-skeleton movie-page-initial-poster-skeleton" aria-hidden="true"></div>
+       <img class="movie-page-poster"${canLoadBase ? ` src="${escapeHtml(transform(basePoster))}"` : ''}
+         data-server-poster-base="${escapeHtml(transform(basePoster))}"
+         data-original-poster-src="${escapeHtml(basePoster)}"
+         data-poster-fallback-src="${escapeHtml(basePoster)}"
+         data-server-poster-alternate="${escapeHtml(transform(alternatePoster))}"
+         data-server-poster-alternate-original="${escapeHtml(alternatePoster)}"
+         ${hasGallery ? '' : 'data-server-poster-gallery-unknown'}
+         alt="Постер фильма ${escapeHtml(movie.title)}" loading="eager" decoding="async" fetchpriority="high">`
     : '<div class="movie-poster-placeholder">Нет постера</div>';
 
   return `        <div class="movie-page-stack movie-page-server-fallback" data-server-rendered="true">
@@ -631,7 +642,13 @@ async function fetchMovieBySlugOrId(env, { slug = '', id = '' } = {}) {
     select: `${MOVIE_SELECT},${MOVIE_COMPANY_LINKS_SELECT}`,
     'movie_companies.order': 'role.asc,position.asc,company_id.asc'
   };
-  const cacheKey = JSON.stringify([getSupabaseTableUrl(env, 'movies', paramsWithCompanies).toString(), env.SUPABASE_ANON_KEY]);
+  const paramsWithPoster = {
+    ...paramsWithCompanies,
+    select: `${paramsWithCompanies.select},movie_poster_images(image_url)`,
+    'movie_poster_images.order': 'position.asc',
+    'movie_poster_images.limit': '1'
+  };
+  const cacheKey = JSON.stringify([getSupabaseTableUrl(env, 'movies', paramsWithPoster).toString(), env.SUPABASE_ANON_KEY]);
   const cached = SEO_MOVIE_CACHE.get(cacheKey);
 
   if (cached && cached.expiresAt > Date.now()) {
@@ -640,9 +657,14 @@ async function fetchMovieBySlugOrId(env, { slug = '', id = '' } = {}) {
 
   // Cache only public SEO data; client movie/user state reads stay fresh.
   const entry = { expiresAt: Date.now() + SEO_MOVIE_CACHE_TTL_MS, promise: null };
-  entry.promise = fetchSupabaseRows(env, 'movies', paramsWithCompanies)
+  const isMissingOptionalRelation = error => ['42P01', '42501', 'PGRST200', 'PGRST205'].includes(error.code);
+  entry.promise = fetchSupabaseRows(env, 'movies', paramsWithPoster)
     .catch(error => {
-      if (!['42P01', '42501', 'PGRST200', 'PGRST205'].includes(error.code)) throw error;
+      if (!isMissingOptionalRelation(error)) throw error;
+      return fetchSupabaseRows(env, 'movies', paramsWithCompanies);
+    })
+    .catch(error => {
+      if (!isMissingOptionalRelation(error)) throw error;
       return fetchSupabaseRows(env, 'movies', params);
     })
     .then(rows => {

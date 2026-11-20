@@ -195,6 +195,7 @@ let onLoad;
 const decoded = Promise.withResolvers();
 handoff.preservePaintedPoster(painted, {
   parentNode: wrapper, dataset: { originalPosterSrc: 'new' },
+  hasAttribute: () => false,
   after(node) { assert.equal(node, painted); },
   addEventListener(_name, fn) { onLoad = fn; }, removeEventListener() {},
   decode: () => decoded.promise

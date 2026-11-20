@@ -572,6 +572,14 @@ button:not(:where(
   transform-origin: center;
 }
 
+.movie-page-poster:not(.is-poster-ready, .poster-handoff-preview){
+  visibility: hidden;
+}
+
+.movie-page-poster-wrapper:has(.is-poster-ready, .poster-handoff-preview) > .movie-page-initial-poster-skeleton{
+  display: none;
+}
+
 .movie-page-poster.is-switching{
   animation: movie-page-poster-switch 280ms ease-out both;
 }

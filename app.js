@@ -4486,6 +4486,18 @@ function shouldPreferRussianPosters() {
   return Boolean(shouldUseAuthenticatedUi() && doesProfilePreferRussianPosters());
 }
 
+function rememberMoviePosterPreference() {
+  if (!currentUser?.id || !currentUserProfile) return;
+  try {
+    localStorage.setItem('horroreiro_movie_poster_preference', JSON.stringify({
+      userId: currentUser.id,
+      preferRussianPosters: doesProfilePreferRussianPosters()
+    }));
+  } catch {
+    // The first poster can still be picked after the session loads.
+  }
+}
+
 
 function handleUserPageProfileSettingsClick(event) {
   const settingsButton = event.target.closest('[data-user-page-profile-settings="true"]');
@@ -4504,6 +4516,7 @@ function applyProfileSettingsPatch({ userId, patch }) {
     currentUser = { ...currentUser, user_metadata: { ...(currentUser.user_metadata || {}), display_name: patch.display_name } };
   }
   currentUserProfile = { ...(currentUserProfile || {}), ...patch };
+  if (Object.hasOwn(patch, 'prefer_russian_posters')) rememberMoviePosterPreference();
   cachePublicProfileRows([{ id: userId, ...currentUserProfile }]);
   invalidateUserPageDataCache();
   userPageController?.syncOwnProfileIdentity(currentUserProfile);
@@ -5274,7 +5287,7 @@ function getSanitizedMoviePageDomSnapshotHtml(movie = currentMoviePageMovieData)
 
   const template = document.createElement('template');
   template.innerHTML = moviePage.innerHTML;
-  template.content.querySelector('.movie-page-poster.is-switching')?.classList.remove('is-switching');
+  template.content.querySelector('.movie-page-poster')?.classList.remove('is-switching', 'is-poster-ready');
 
   template.content
     .querySelectorAll('[data-movie-page-watchlist-icon-toggle="true"], .movie-page-watched-icon')
@@ -7473,6 +7486,7 @@ async function loadCurrentUserRole() {
 
     currentUserRole = data?.role || null;
     currentUserProfile = data || null;
+    rememberMoviePosterPreference();
     actions.cachePublicProfileRows([{ id: viewerId, ...(data || {}) }]);
   } catch (error) {
     if (!isCurrent() || currentUser?.id !== viewerId) return;
@@ -12433,7 +12447,7 @@ function restorePosterFallbackSource(posterImage) {
 
 function getPaintedPoster(root) {
   const poster = root?.querySelector('.poster-handoff-preview') ||
-    root?.querySelector('img.movie-poster, img.movie-page-poster');
+    root?.querySelector('img.movie-poster, img.movie-page-poster.is-poster-ready');
   return poster?.complete && poster.naturalWidth > 0 ? poster : null;
 }
 
@@ -12464,6 +12478,7 @@ function preservePaintedPoster(previous, next) {
     void next.decode().then(() => {
       next.removeEventListener('load', retirePreview);
       if (!next.parentNode || previous.parentNode !== next.parentNode) return;
+      if (next.hasAttribute('data-movie-page-poster-image')) next.classList.add('is-poster-ready');
       previous.remove();
       if (container?.contains(next)) persistCatalogDomSnapshot();
       if (moviePage?.contains(next)) persistCurrentMoviePageDomSnapshot();
@@ -12746,7 +12761,10 @@ function setCurrentSessionUser(user) {
 async function loadCurrentSessionData(isCurrent) {
   if (!isCurrent()) return;
   await Promise.all([loadCurrentUserRole(), fetchCurrentUserProfileFollows()]);
-  if (isCurrent()) updateAuthUI();
+  if (isCurrent()) {
+    window.HorroreiroMoviePoster?.showServerPoster(shouldPreferRussianPosters());
+    updateAuthUI();
+  }
 }
 
 function syncCatalogAfterAuthChange() {

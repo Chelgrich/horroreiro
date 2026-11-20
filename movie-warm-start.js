@@ -3,6 +3,7 @@
   const DOM_SNAPSHOTS_KEY = 'horroreiro_movie_page_dom_snapshots';
   const APP_VERSION_STORAGE_KEY = 'horroreiro_app_build_version';
   const DATA_DEPENDENCY_STAMPS_KEY = 'horroreiro_data_dependency_stamps';
+  const POSTER_PREFERENCE_KEY = 'horroreiro_movie_poster_preference';
   const MOVIE_PAGE_DOM_SNAPSHOT_VERSION = 1;
   const MOVIE_PAGE_DOM_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
   const WINDOW_SCROLL_INTENT_VERSION_KEY = '__HORROREIRO_SCROLL_INTENT_VERSION__';
@@ -25,6 +26,65 @@
     } catch (error) {
       return null;
     }
+  }
+
+  function readPosterPreference() {
+    try {
+      const hint = parseJson(localStorage.getItem(POSTER_PREFERENCE_KEY));
+      for (const key of Object.keys(localStorage)) {
+        if (!/^sb-.+-auth-token$/.test(key)) continue;
+        const session = parseJson(localStorage.getItem(key));
+        const userId = session?.user?.id || session?.currentSession?.user?.id;
+        if (!userId) continue;
+        return hint?.userId === userId && typeof hint.preferRussianPosters === 'boolean'
+          ? hint.preferRussianPosters
+          : null;
+      }
+      return false;
+    } catch {
+      return null;
+    }
+  }
+
+  function showServerPoster(preferRussianPosters) {
+    const image = document.querySelector('.movie-page-server-fallback img[data-server-poster-base]');
+    if (!image || image.hasAttribute('src') || preferRussianPosters === null) return;
+    if (preferRussianPosters && image.hasAttribute('data-server-poster-gallery-unknown')) return;
+
+    const useAlternate = preferRussianPosters && image.dataset.serverPosterAlternate;
+    const src = useAlternate ? image.dataset.serverPosterAlternate : image.dataset.serverPosterBase;
+    if (!src) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'movie-poster-placeholder';
+      placeholder.textContent = 'Нет постера';
+      image.previousElementSibling?.remove();
+      image.replaceWith(placeholder);
+      return;
+    }
+    if (useAlternate) {
+      image.dataset.originalPosterSrc = image.dataset.serverPosterAlternateOriginal;
+      image.dataset.posterFallbackSrc = image.dataset.serverPosterAlternateOriginal;
+    }
+    image.src = src;
+  }
+
+  function revealPoster(image) {
+    if (!image.matches?.('img.movie-page-poster') || !image.complete || !image.naturalWidth ||
+      image.classList.contains('is-poster-ready')) return;
+    void image.decode().then(() => image.classList.add('is-poster-ready'), () => {});
+  }
+
+  function recoverPoster(image) {
+    if (!image.matches?.('img.movie-page-poster')) return;
+    const fallback = image.dataset.posterFallbackSrc;
+    if (fallback && fallback !== image.getAttribute('src') && image.dataset.posterFallbackApplied !== 'true') {
+      image.dataset.posterFallbackApplied = 'true';
+      image.removeAttribute('srcset');
+      image.removeAttribute('sizes');
+      image.src = fallback;
+      return;
+    }
+    image.classList.add('is-poster-ready');
   }
 
   function getWindowScrollIntentVersion() {
@@ -211,5 +271,13 @@
     };
   }
 
+  document.addEventListener('load', event => revealPoster(event.target), true);
+  document.addEventListener('error', event => recoverPoster(event.target), true);
+  window.HorroreiroMoviePoster = { showServerPoster };
   warmStartMoviePage();
+  showServerPoster(readPosterPreference());
+  document.querySelectorAll('img.movie-page-poster[src]').forEach(image => {
+    if (image.complete && !image.naturalWidth) recoverPoster(image);
+    else revealPoster(image);
+  });
 })();

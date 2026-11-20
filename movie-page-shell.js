@@ -100,8 +100,11 @@ export function createMoviePageShellController(context = {}) {
     const nextIntro = nextLayout.querySelector('.movie-page-title-main');
     if (intro?.isEqualNode(nextIntro)) nextIntro.replaceWith(intro);
 
-    const poster = getPaintedPoster(currentLayout) || currentLayout.querySelector('img.movie-page-poster');
-    preservePaintedPoster(poster, nextLayout.querySelector('img[data-movie-page-poster-image]'));
+    const nextPoster = nextLayout.querySelector('img[data-movie-page-poster-image]');
+    const currentPoster = currentLayout.querySelector('img.movie-page-poster');
+    const poster = getPaintedPoster(currentLayout) ||
+      (currentPoster?.dataset.originalPosterSrc === nextPoster?.dataset.originalPosterSrc ? currentPoster : null);
+    preservePaintedPoster(poster, nextPoster);
   }
 
   function replaceMoviePageContent(root, html) {
@@ -342,6 +345,7 @@ export function createMoviePageShellController(context = {}) {
           ${
             currentGalleryImage
               ? `
+                <div class="movie-poster-skeleton movie-page-initial-poster-skeleton" aria-hidden="true"></div>
                 <img
                   class="movie-page-poster"
                   data-movie-page-poster-image="true"

@@ -174,10 +174,14 @@ try {
       failNextRead = false;
       return new Response('Unavailable', { status: 503 });
     }
-    assert(new URL(url).searchParams.get('select').includes('movie_companies'), 'company links must be part of the public movie read');
+    const params = new URL(url).searchParams;
+    assert(params.get('select').includes('movie_companies'), 'company links must be part of the public movie read');
+    assert(params.get('select').includes('movie_poster_images(image_url)') && params.get('movie_poster_images.limit') === '1',
+      'the first public gallery image must be part of the same movie read');
     return Response.json(movieExists ? [{
       id: 'movie-cache-id', slug: 'cached-movie', title: movieTitle, synopsis: 'A <public> synopsis',
       poster_url: 'https://poster.test/early.webp', trailer_url: 'https://youtu.be/abcde12345_',
+      movie_poster_images: [{ image_url: 'https://poster.test/russian.webp' }],
       movie_companies: [{ role: 'production', position: 0, companies: { id: 'company-id', name: 'Company "$&" <Other>', slug: 'company' } }]
     }] : []);
   };
@@ -198,6 +202,9 @@ try {
   assert(browserMovieHtml.includes('#moviePage:has(> .movie-page-server-fallback[data-server-rendered]) > .movie-page-stack-skeleton'), 'server movie intro must take the place of the startup skeleton');
   assert(/class="movie-page-title-main"[^>]*>[\s\S]*?class="movie-page-synopsis-text">A &lt;public&gt; synopsis/.test(browserMovieHtml), 'description must be escaped and in the shared intro');
   assert(/<img class="movie-page-poster"[^>]*data-original-poster-src="https:\/\/poster.test\/early.webp"/.test(browserMovieHtml), 'server poster must carry its original URL for reuse');
+  assert(browserMovieHtml.includes('data-server-poster-alternate="https://poster.test/russian.webp"') &&
+    !/<img class="movie-page-poster"[^>]*\ssrc=/.test(browserMovieHtml),
+    'when both posters exist, browser HTML must allow selection before starting the first image request');
   assert(/class="secondary-button movie-page-rate-trigger movie-page-trailer-button" disabled/.test(browserMovieHtml), 'server trailer slot must be reserved and disabled');
   const telegramMovieResponse = await cachedRuntime.handleRequest(new Request('http://portable.test/movie/cached-movie', {
     headers: { 'User-Agent': 'TelegramBot (like TwitterBot)' }

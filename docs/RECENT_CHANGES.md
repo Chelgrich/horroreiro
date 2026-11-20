@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-21 — Pick the movie poster before painting the detail page
+
+- Server movie HTML carries the first public gallery image along with the base poster in the existing movie read. The early detail script selects the source using the preference last confirmed for the matching signed-in viewer. With no matching preference it waits for session restoration. Guest and default mode select the base poster.
+- Server and interactive detail markup keep the poster skeleton until the image decodes. The matching poster stays mounted through the interactive handoff.
+
 ## 2026-11-21 — Keep painted posters visible on return
 
 - A validated, same-viewer catalog DOM snapshot stays visible while the movie data reloads, including when the data snapshot has expired independently. A failed movie read leaves those cards in place.

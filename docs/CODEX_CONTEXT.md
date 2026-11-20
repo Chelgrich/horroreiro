@@ -81,6 +81,7 @@ Page HTML is static shell plus shared scripts:
   - keeps the restored catalog hidden until styles are ready, so users do not see partial static HTML, native controls, or lone toolbar elements.
 - `movie-warm-start.js`
   - is loaded only by `movie.html`, before Supabase and the main app loader;
+  - picks the first detail poster from public image URLs in server HTML using a locally saved preference for the matching viewer. It waits for the restored profile when the preference is unknown and reveals the selected image after decoding;
   - restores a saved movie detail DOM snapshot before the full app starts when the snapshot matches the current route, build, age limit, and per-movie dependency stamp;
   - saved movie DOM snapshots replace dynamic user/social/similar areas with loading states. At the saved viewport width, the social placeholders preserve the measured review and comment heights. The social module restores the matching session data with the initial interactive view.
 - `page-warm-start.js`
