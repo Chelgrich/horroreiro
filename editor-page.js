@@ -6,6 +6,7 @@ export function createEditorPageController(context = {}) {
     editorPage = null,
     getCurrentUser,
     getIsAdmin,
+    captureSession,
     hasWarmStartedPageDom,
     shouldUseAuthenticatedUi,
     restoreSession,
@@ -30,6 +31,7 @@ export function createEditorPageController(context = {}) {
     exportDatabase
   } = context;
   let currentEditorPageData = null;
+  let editorLoadVersion = 0;
   const syncingAutoRelatedMovieIds = new Set();
   let isSyncingAutoRelatedBatch = false;
 
@@ -110,8 +112,7 @@ export function createEditorPageController(context = {}) {
 
   function buildEditorCenterData({
     movies = [],
-    posterRows = [],
-    autoRelatedDiagnostics = null
+    posterRows = []
   } = {}) {
     const sortedMovies = [...movies].sort(compareManualSimilarAuditMovies);
     const posterRowsByMovieId = groupRowsByMovieId(posterRows);
@@ -145,7 +146,6 @@ export function createEditorPageController(context = {}) {
     return {
       moviesCount: sortedMovies.length,
       updatedAt: new Date(),
-      autoRelatedDiagnostics,
       issues: issueConfigs.map(config => issueMap.get(config.key)),
       movieIssueEntries: movieIssueEntries.sort((firstEntry, secondEntry) => (
         secondEntry.issueKeys.length - firstEntry.issueKeys.length ||
@@ -155,23 +155,12 @@ export function createEditorPageController(context = {}) {
   }
 
   async function fetchEditorCenterData() {
-    const [
-      movies,
-      posterRows,
-      autoRelatedDiagnostics
-    ] = await Promise.all([
+    const [movies, posterRows] = await Promise.all([
       fetchAdminCompletenessMovieRows(),
-      fetchAdminMoviePosterImageRows(),
-      fetchAdminAutoRelatedDiagnostics().catch(error => ({
-        error: error.message || 'Не удалось загрузить диагностику автопохожих.'
-      }))
+      fetchAdminMoviePosterImageRows()
     ]);
 
-    return buildEditorCenterData({
-      movies,
-      posterRows,
-      autoRelatedDiagnostics
-    });
+    return buildEditorCenterData({ movies, posterRows });
   }
 
   function renderEditorPageLoading() {
@@ -623,13 +612,22 @@ export function createEditorPageController(context = {}) {
   }
 
   function renderEditorAutoRelatedDiagnostics(diagnostics) {
+    if (diagnostics === undefined) {
+      return `
+        <section class="editor-page-block editor-page-auto-related-block" data-editor-diagnostics-loading>
+          <div class="editor-page-section-header"><h2>Автопохожие</h2></div>
+          <div class="page-content-skeleton" role="status" aria-label="Загрузка диагностики автопохожих"></div>
+        </section>
+      `;
+    }
+
     if (!diagnostics) {
       return '';
     }
 
     if (diagnostics.error) {
       return `
-        <section class="editor-page-block editor-page-auto-related-block">
+        <section class="editor-page-block editor-page-auto-related-block editor-page-auto-related-error-state">
           <div class="editor-page-section-header">
             <h2>Автопохожие</h2>
             <span>диагностика недоступна</span>
@@ -774,8 +772,6 @@ export function createEditorPageController(context = {}) {
         </article>
       </section>
 
-      ${renderEditorAutoRelatedDiagnostics(data.autoRelatedDiagnostics)}
-
       <section class="editor-page-block">
         <div class="editor-page-section-header">
           <h2>Приоритет на проверку</h2>
@@ -793,6 +789,8 @@ export function createEditorPageController(context = {}) {
           ${data.issues.map(renderEditorIssueCard).join('')}
         </div>
       </section>
+
+      ${renderEditorAutoRelatedDiagnostics(data.autoRelatedDiagnostics)}
     `;
   }
 
@@ -801,12 +799,15 @@ export function createEditorPageController(context = {}) {
       return;
     }
 
+    const loadVersion = ++editorLoadVersion;
     if (!shouldUseAuthenticatedUi() || !getCurrentUser()?.id) {
+      currentEditorPageData = null;
       renderEditorPageAuthGate();
       return;
     }
 
     if (!getIsAdmin()) {
+      currentEditorPageData = null;
       renderEditorPageForbidden();
       return;
     }
@@ -815,10 +816,29 @@ export function createEditorPageController(context = {}) {
       renderEditorPageLoading();
     }
 
+    const session = captureSession();
+    const isCurrent = () => loadVersion === editorLoadVersion && session.isCurrent() &&
+      shouldUseAuthenticatedUi() && getIsAdmin();
+
     try {
-      const data = await fetchEditorCenterData();
+      const summary = fetchEditorCenterData();
+      const diagnostics = fetchAdminAutoRelatedDiagnostics().catch(error => ({
+        error: error?.message || 'Не удалось загрузить диагностику автопохожих.'
+      }));
+      const data = await summary;
+      if (!isCurrent()) return;
       renderEditorPage(data);
+
+      void diagnostics.then(result => {
+        if (!isCurrent()) return;
+        data.autoRelatedDiagnostics = result;
+        const placeholder = editorPage.querySelector('[data-editor-diagnostics-loading]');
+        if (placeholder) placeholder.outerHTML = renderEditorAutoRelatedDiagnostics(result);
+      }).catch(error => {
+        console.error('Ошибка отображения диагностики автопохожих:', error);
+      });
     } catch (error) {
+      if (!isCurrent()) return;
       console.error('Ошибка загрузки центра редактора:', error);
       renderEditorPageError();
     }

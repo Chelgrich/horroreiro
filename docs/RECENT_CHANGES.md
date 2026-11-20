@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-20 — Load editor diagnostics in the background
+
+- The editor completeness summary renders as soon as movie and poster rows are ready. Auto-related diagnostics start in parallel and update only their own section after the completeness blocks, so their arrival does not move the summary or issue lists.
+- Diagnostics failures stay in their section. Results from superseded loads and departed sessions are ignored.
+
 ## 2026-11-19 — Animate page skeletons
 
 - Shared page skeletons gently pulse their placeholder shapes without changing layout. The pulse runs only when the system allows motion.

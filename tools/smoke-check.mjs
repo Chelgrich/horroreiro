@@ -1658,6 +1658,10 @@ const movieEditorSmoke = spawnSync(process.execPath, ['tools/movie-editor-smoke.
   cwd: rootDir, encoding: 'utf8'
 });
 assert(movieEditorSmoke.status === 0, `Movie editor smoke failed:\n${movieEditorSmoke.stderr || movieEditorSmoke.stdout}`);
+const editorPageSmoke = spawnSync(process.execPath, ['tools/editor-page-smoke.mjs'], {
+  cwd: rootDir, encoding: 'utf8'
+});
+assert(editorPageSmoke.status === 0, `Editor page smoke failed:\n${editorPageSmoke.stderr || editorPageSmoke.stdout}`);
 const collectionReadsSmoke = spawnSync(process.execPath, ['tools/collection-reads-smoke.mjs'], {
   cwd: rootDir, encoding: 'utf8'
 });

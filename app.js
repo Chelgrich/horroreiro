@@ -1474,6 +1474,7 @@ function getEditorPageControllerContext() {
     editorPage,
     getCurrentUser: () => currentUser,
     getIsAdmin: () => isAdmin,
+    captureSession: () => getAuthSessionController().captureSession(),
     hasWarmStartedPageDom: hasWarmStartedSecondaryPageDom,
     shouldUseAuthenticatedUi,
     restoreSession,
