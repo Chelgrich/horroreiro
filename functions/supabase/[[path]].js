@@ -49,7 +49,7 @@ export async function onRequest({ request, env }) {
       if (request.headers.has(name)) headers.set(name, request.headers.get(name));
     }
     const measure = request.method === 'GET' && request.headers.get('x-horroreiro-perf') === '1'
-      && (path === '/rest/v1/movies' || path === '/rest/v1/movie_rating_stats');
+      && (path === '/rest/v1/movies' || path === '/rest/v1/movie_rating_stats' || path === '/rest/v1/movie_poster_images');
     const upstreamStartedAt = measure ? performance.now() : 0;
     const response = await fetch(upstream, {
       method: request.method, headers, body: await readBody(request),

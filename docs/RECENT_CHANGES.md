@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-20 — Measure editor poster transport
+
+- The existing opt-in `Server-Timing` response now also covers GETs for `movie_poster_images`, so the editor's movie and poster reads can be compared at the same points in the proxy.
+
 ## 2026-11-20 — Load editor diagnostics in the background
 
 - The editor completeness summary renders as soon as movie and poster rows are ready. Auto-related diagnostics start in parallel and update only their own section after the completeness blocks, so their arrival does not move the summary or issue lists.

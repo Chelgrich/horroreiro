@@ -60,6 +60,8 @@ try {
   assert.ok(!JSON.stringify(forwarded).includes(env.SUPABASE_SERVICE_ROLE_KEY));
 
   const probeOptions = { headers: { apikey: env.SUPABASE_ANON_KEY, 'X-Horroreiro-Perf': '1' } };
+  const posterProbe = await onRequest({ env, request: request('/rest/v1/movie_poster_images', probeOptions) });
+  assert.match(posterProbe.headers.get('Server-Timing'), /^supabase_headers;dur=\d+$/);
   const startedAt = performance.now();
   const probe = await onRequest({ env, request: request('/rest/v1/movie_rating_stats', probeOptions) });
   assert.match(probe.headers.get('Server-Timing'), /^supabase_headers;dur=\d+$/);
