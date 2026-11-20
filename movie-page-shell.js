@@ -177,7 +177,8 @@ export function createMoviePageShellController(context = {}) {
       return rowIndex >= 0 ? claimRow(rowIndex) : null;
     };
     const renderCompanyItem = (fallbackName, row = null) => {
-      const label = String(row?.company?.name || fallbackName || '').trim();
+      const companyName = String(row?.company?.name || '').trim();
+      const label = fallbackName || companyName;
       const href = String(row?.href || '').trim();
 
       if (!label) {
@@ -188,7 +189,8 @@ export function createMoviePageShellController(context = {}) {
         return escapeHtml(label);
       }
 
-      return `<a class="movie-page-meta-link" href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
+      const title = companyName && companyName !== label ? ` title="${escapeHtml(companyName)}"` : '';
+      return `<a class="movie-page-meta-link" href="${escapeHtml(href)}"${title}>${escapeHtml(label)}</a>`;
     };
     const items = displayNames.map((name, index) =>
       renderCompanyItem(name, claimRowByName(name) || claimRow(index))
@@ -203,6 +205,28 @@ export function createMoviePageShellController(context = {}) {
     return items.filter(Boolean).join(', ');
   }
 
+  function getMoviePageCompanyMetaHtml(movie) {
+    return [
+      ['production', 'Производство'],
+      ['distribution', 'Дистрибуция'],
+      ['russian_distribution', 'Дистрибуция в России']
+    ].map(([role, label]) => {
+      const names = getMoviePageCompanyListHtml(movie, role, movie[role]);
+      return names ? `<div class="movie-page-meta-item"><span>${label}:</span> ${names}</div>` : '';
+    }).join('');
+  }
+
+  function renderMoviePageCompanyMeta(root, movie) {
+    const mount = root.querySelector('[data-movie-page-companies]');
+    if (mount?.closest('.movie-page-layout')?.dataset.movieId !== String(movie.id)) {
+      return;
+    }
+
+    const next = mount.cloneNode(false);
+    next.innerHTML = getMoviePageCompanyMetaHtml(movie);
+    if (!mount.isEqualNode(next)) mount.replaceChildren(...next.childNodes);
+  }
+
   function buildMoviePageViewModel(movie, { includeSocialSections = true } = {}) {
     const genreNames = (Array.isArray(movie?.movie_genres) ? movie.movie_genres : [])
       .map(item => item?.genres?.name)
@@ -214,9 +238,6 @@ export function createMoviePageShellController(context = {}) {
     return {
       genres: formatGenreNamesForPublicDisplay(genreNames),
       countries: countryNames.join(', '),
-      production: getMoviePageCompanyListHtml(movie, 'production', movie?.production),
-      distribution: getMoviePageCompanyListHtml(movie, 'distribution', movie?.distribution),
-      russianDistribution: getMoviePageCompanyListHtml(movie, 'russian_distribution', movie?.russian_distribution),
       runtimeLabel: formatRuntimeMinutes(movie?.runtime_minutes),
       averageRating: getMovieAverageRating(movie?.id),
       votesCount: getMovieVotesCount(movie?.id),
@@ -392,9 +413,6 @@ export function createMoviePageShellController(context = {}) {
     const {
       genres,
       countries,
-      production,
-      distribution,
-      russianDistribution,
       runtimeLabel,
       averageRating,
       votesCount,
@@ -451,21 +469,7 @@ export function createMoviePageShellController(context = {}) {
                 : ''
             }
             <div class="movie-page-meta-item"><span>Страны:</span> ${countries ? escapeHtml(countries) : '-'}</div>
-            ${
-              production
-                ? `<div class="movie-page-meta-item"><span>Производство:</span> ${production}</div>`
-                : ''
-            }
-            ${
-              distribution
-                ? `<div class="movie-page-meta-item"><span>Дистрибуция:</span> ${distribution}</div>`
-                : ''
-            }
-            ${
-              russianDistribution
-                ? `<div class="movie-page-meta-item"><span>Дистрибуция в России:</span> ${russianDistribution}</div>`
-                : ''
-            }
+            <div class="movie-page-company-meta" data-movie-page-companies>${getMoviePageCompanyMetaHtml(movie)}</div>
             ${
               runtimeLabel
                 ? `<div class="movie-page-meta-item"><span>Время:</span> ${escapeHtml(runtimeLabel)}</div>`
@@ -567,6 +571,7 @@ export function createMoviePageShellController(context = {}) {
   return {
     getYouTubeTrailerEmbedUrl,
     replaceMoviePageContent,
+    renderMoviePageCompanyMeta,
     getMoviePageSubgenreLabel,
     getMoviePageFormatsLabel,
     buildMoviePageViewModel,

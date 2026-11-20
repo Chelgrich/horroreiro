@@ -62,6 +62,48 @@ assert.throws(() => createAdminActionTools({}).buildManualSimilarAuditReport(), 
 const page = createMoviePageOrchestratorController({ location: { pathname: '/movie/fixture', search: '' } });
 await assert.rejects(page.initMoviePage({}), TypeError, 'Missing session/data initialization cannot silently succeed');
 
+const movie = { id: 'movie' };
+const companyResponse = Promise.withResolvers();
+const companyRows = [{ role: 'production' }];
+let currentMovie;
+const moviePageEvents = [];
+const moviePageBindings = {
+  fetchPayloadByRouteParams: async () => movie,
+  getAreDirectorsAvailable: () => false,
+  getAreCompaniesAvailable: () => true,
+  fetchCompanyRows: () => companyResponse.promise,
+  getCurrentMovieId: () => currentMovie?.id,
+  getCurrentMovie: () => currentMovie,
+  setCurrentMovie: value => { currentMovie = value; },
+  resetComposerState() {},
+  createSessionCacheEntry: () => null,
+  getActiveSessionCacheSignature: () => '',
+  renderMoviePage: value => moviePageEvents.push(['render', value.movie_companies]),
+  loadDeferredSections: async () => {},
+  renderCompanyMeta: value => moviePageEvents.push(['companies', value.movie_companies]),
+  persistSessionCache: () => moviePageEvents.push(['cache']),
+  onCompanyLoadError: error => moviePageEvents.push(['error', error])
+};
+await page.loadMoviePageByRouteParams({ slug: 'fixture' }, moviePageBindings);
+assert.deepEqual(moviePageEvents, [['render', undefined]], 'Company requests cannot delay movie rendering');
+companyResponse.resolve(companyRows);
+await companyResponse.promise;
+assert.deepEqual(moviePageEvents, [['render', undefined], ['companies', companyRows], ['cache']]);
+
+const refreshResponse = Promise.withResolvers();
+const refreshedMovie = { id: movie.id };
+moviePageEvents.length = 0;
+await page.loadMoviePageByRouteParams({ slug: 'fixture' }, {
+  ...moviePageBindings,
+  fetchPayloadByRouteParams: async () => refreshedMovie,
+  fetchCompanyRows: () => refreshResponse.promise
+});
+assert.deepEqual(moviePageEvents, [['render', companyRows]], 'A refresh keeps existing links visible');
+currentMovie = { id: movie.id };
+refreshResponse.resolve([]);
+await refreshResponse.promise;
+assert.deepEqual(moviePageEvents, [['render', companyRows]], 'A superseded response cannot patch the current movie');
+
 let avatarWrites = 0;
 const settings = createProfileSettingsActions({
   supabaseClient: { storage: { from: () => { avatarWrites += 1; throw Error('unexpected write'); } } }

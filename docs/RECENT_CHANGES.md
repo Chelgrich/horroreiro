@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-21 — Enable movie actions before company links arrive
+
+- The movie details page renders its controls and company names from the movie payload. Company links load independently and refresh only the company rows. Existing labels keep their width, including when a company page uses a different canonical spelling. Rows available only through relations retain their canonical names.
+- A warm return keeps company links already loaded for the same movie and fields while they refresh. A failed refresh leaves the displayed names or links in place.
+
 ## 2026-11-21 — Show the movie intro from server HTML
 
 - Canonical movie pages show the server poster, title and synopsis once route CSS is ready. The shared intro puts the synopsis above dynamic metadata and reserves the trailer slot where needed. Interactive startup reuses matching intro and poster nodes and keeps the server poster visible while a different gallery image is decoded.

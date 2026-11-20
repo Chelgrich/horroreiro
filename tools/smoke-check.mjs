@@ -766,10 +766,12 @@ async function checkStaticGuards() {
       appJs.includes('fetchMovieCompanyRowsForCompany') &&
       appJs.includes('fetchMovieCompanyRowsForMovie') &&
       appJs.includes('ensureMovieCompanyItemsLoaded') &&
-      moviePageOrchestratorJs.includes('ensureCompanyItemsLoaded') &&
+      appJs.includes('fetchCompanyRows: fetchMovieCompanyRowsForMovie') &&
+      moviePageOrchestratorJs.includes('bindings.fetchCompanyRows(movie.id)') &&
+      moviePageOrchestratorJs.includes('bindings.renderCompanyMeta(movie)') &&
       moviePageShellJs.includes('function getMoviePageCompanyListHtml(') &&
       moviePageShellJs.includes('claimRowByName') &&
-      moviePageShellJs.includes('row?.company?.name || fallbackName') &&
+      moviePageShellJs.includes('const label = fallbackName || companyName') &&
       moviePageShellJs.includes('buildCompanyPageUrl(company)') &&
       movieCompaniesSetupSql.includes('grant select on public.companies to anon, authenticated') &&
       movieCompaniesSetupSql.includes('grant select on public.movie_companies to anon, authenticated') &&

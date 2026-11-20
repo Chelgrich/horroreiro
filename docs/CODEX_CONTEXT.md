@@ -323,7 +323,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `movie-page-interactions.js` is lazy-loaded only for movie detail pages and owns trailer modal rendering/open-close behavior, poster gallery switching/load animation, and detail header event binding for watchlist, mobile rating, and trailer controls. `app.js` keeps payload loading, shared state restoration, user-state mutation bridges, and detail-module callbacks.
 
-`movie-page-orchestrator.js` is lazy-loaded only for movie detail pages and owns movie detail init/auth-sync orchestration, route-param parsing, restore/skeleton/warm-cache startup flow, the movie detail page-load decision tree, cache-signature render skipping decisions, and deferred detail-section loading orchestration for similar, reviews, and comments. `app.js` keeps Supabase payload fetchers, current movie state storage, cache read/write callbacks, and render/status callbacks passed into the orchestrator.
+`movie-page-orchestrator.js` is lazy-loaded only for movie detail pages and owns movie detail init/auth-sync orchestration, route-param parsing, restore/skeleton/warm-cache startup flow, the movie detail page-load decision tree, cache-signature render skipping, and deferred loading of company links, similar movies, reviews, and comments. `app.js` keeps Supabase payload fetchers, current movie state storage, cache read/write callbacks, and render/status callbacks passed into the orchestrator. The movie shell patches only the company rows when their links arrive.
 
 `movie-page-similar.js` is lazy-loaded only for movie detail pages and owns manual-similar search/order helpers, similar section/editor/card HTML rendering, editor DOM event binding, deferred similar loading, and optimistic save/status/rollback orchestration. `app.js` keeps manual similar state storage, the section wrapper, and Supabase/data callbacks.
 
@@ -474,7 +474,7 @@ Behavior:
 
 - Movie fields `production`, `distribution`, and `russian_distribution` stay as editable multiline arrays in the movie modal.
 - On movie save, those arrays synchronize into `companies` and `movie_companies` by normalized company name.
-- Movie detail pages hydrate `movie_companies` for the current movie and render production/distribution/Russian distribution names as links to `/company/<slug>` with the canonical `companies.name`; otherwise the original movie array values remain plain escaped fallback text.
+- Movie detail pages render production, distribution, and Russian distribution from the movie arrays. Deferred `movie_companies` rows link those names to `/company/<slug>` while retaining the visible names. A differing canonical name is provided in the link title. Companies without an array value use the canonical name as the label.
 - If a company value is removed from a movie and no other movie references that company, cleanup can delete the orphan company row.
 - Company detail pages render only non-empty role sections; do not show empty section headings.
 - Company detail pages are public read-only. Company role list pages and company edit actions are admin-only; the account menu exposes the three role pages only to admins.

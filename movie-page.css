@@ -843,6 +843,10 @@ button:not(:where(
   color: var(--color-text-control);
 }
 
+.movie-page-company-meta{
+  display: contents;
+}
+
 .movie-page-meta-item span{
   color: var(--color-text-muted);
 }

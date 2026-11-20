@@ -17333,7 +17333,12 @@ async function loadMoviePageByRouteParams(routeParams, {
     getAreDirectorsAvailable: () => areDirectorsAvailable,
     ensureDirectorItemsLoaded: ensureMovieDirectorItemsLoaded,
     getAreCompaniesAvailable: () => areCompaniesAvailable,
-    ensureCompanyItemsLoaded: ensureMovieCompanyItemsLoaded,
+    fetchCompanyRows: fetchMovieCompanyRowsForMovie,
+    renderCompanyMeta: movie => getMoviePageShellController().renderMoviePageCompanyMeta(moviePage, movie),
+    persistSessionCache: persistCurrentMoviePageSessionCache,
+    onCompanyLoadError: error => {
+      console.warn('Не удалось загрузить ссылки на компании фильма:', error);
+    },
     fetchRatingStats: fetchMovieRatingStatsForMovie,
     fetchPosterImages: fetchMoviePosterImagesForMovieSafe,
     fetchCurrentUserRating: fetchCurrentUserRatingForMovie,
