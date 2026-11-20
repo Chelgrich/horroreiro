@@ -21,6 +21,8 @@ export function createCatalogCardController(context = {}) {
     isPosterLoaded,
     getPosterImageAttributeHtml,
     bindPosterLoadState,
+    getPaintedPoster,
+    preservePaintedPoster,
     isRatingRequestInFlight,
     isWatchlistRequestInFlight
   } = context;
@@ -155,17 +157,43 @@ export function createCatalogCardController(context = {}) {
     const wrapper = card?.querySelector('.movie-poster-wrapper');
     if (!wrapper) return;
     const posterUrl = getMoviePreferredPosterUrl(movie);
-    const image = wrapper.querySelector('.movie-poster');
+    const image = wrapper.querySelector('img.movie-poster:not(.poster-handoff-preview)');
+    const painted = getPaintedPoster(wrapper);
     const skeleton = wrapper.querySelector('.movie-poster-skeleton');
     const placeholder = wrapper.querySelector('.movie-poster-placeholder');
-    if (image?.dataset.originalPosterSrc === posterUrl || (!posterUrl && placeholder)) return;
-    image?.remove();
+    if (image?.dataset.originalPosterSrc === posterUrl || (!posterUrl && placeholder)) {
+      wrapper.querySelector('[data-catalog-poster-pending]')?.remove();
+      return;
+    }
+    wrapper.querySelectorAll('.movie-poster').forEach(poster => poster.remove());
     skeleton?.remove();
     placeholder?.remove();
     wrapper.insertAdjacentHTML('afterbegin', getPosterMediaHtml(
       posterUrl, getCatalogMovieMeta(movie).cardRender.escapedPosterAlt, renderOptions
     ));
-    bindPosterLoadState(wrapper.querySelector('.movie-poster'), wrapper.querySelector('.movie-poster-skeleton'));
+    const replacement = wrapper.querySelector('img.movie-poster');
+    preservePaintedPoster(painted, replacement);
+    bindPosterLoadState(wrapper.querySelector('img.movie-poster:not(.poster-handoff-preview)'), wrapper.querySelector('.movie-poster-skeleton'));
+  }
+
+  function preserveMovieCardPoster(previousCard, card) {
+    const painted = getPaintedPoster(previousCard);
+    if (!painted) return;
+
+    const pending = card.querySelector('[data-catalog-poster-pending]');
+    if (pending) {
+      pending.classList.add('is-hidden');
+      painted.classList.remove('poster-handoff-preview');
+      painted.classList.add('is-loaded');
+      painted.removeAttribute('aria-hidden');
+      pending.after(painted);
+      return;
+    }
+
+    if (preservePaintedPoster(painted, card.querySelector('img.movie-poster'))) {
+      painted.classList.add('is-loaded');
+      card.querySelector('.movie-poster-skeleton')?.classList.add('is-hidden');
+    }
   }
 
   function getPosterHtml(
@@ -346,6 +374,7 @@ export function createCatalogCardController(context = {}) {
     createMovieCardRenderContext,
     createMovieCard,
     updateMovieCardRating,
-    updateMovieCardPoster
+    updateMovieCardPoster,
+    preserveMovieCardPoster
   };
 }

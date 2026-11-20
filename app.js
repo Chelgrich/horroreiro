@@ -5268,15 +5268,16 @@ function getSanitizedMoviePageDomSnapshotHtml(movie = currentMoviePageMovieData)
 
   const renderedStack = moviePage.querySelector('.movie-page-stack:not(.movie-page-stack-skeleton, .movie-page-server-fallback)');
 
-  if (!renderedStack) {
+  if (!renderedStack || renderedStack.querySelector('.movie-page-poster-wrapper.is-loading, .poster-handoff-preview')) {
     return '';
   }
 
   const template = document.createElement('template');
   template.innerHTML = moviePage.innerHTML;
+  template.content.querySelector('.movie-page-poster.is-switching')?.classList.remove('is-switching');
 
   template.content
-    .querySelectorAll('[data-movie-page-watchlist-icon-toggle="true"], .movie-page-watched-icon, .movie-page-server-poster-preview')
+    .querySelectorAll('[data-movie-page-watchlist-icon-toggle="true"], .movie-page-watched-icon')
     .forEach(element => {
       element.remove();
     });
@@ -5616,7 +5617,7 @@ function createCatalogDomSnapshotPayload(sessionSnapshot = null) {
     !sessionSnapshot ||
     !moviesLoadedSuccessfully ||
     viewMode?.value !== 'list' ||
-    container.querySelector('.movie-card-skeleton, [data-catalog-poster-pending], [data-catalog-links-pending]')
+    container.querySelector('.movie-card-skeleton, [data-catalog-poster-pending], [data-catalog-links-pending], .poster-handoff-preview')
   ) {
     return null;
   }
@@ -5971,6 +5972,20 @@ function bindRestoredCatalogDomState() {
   requestAnimationFrame(() => syncOpenExternalLinksLayouts());
 }
 
+function replaceCatalogCards(fragment) {
+  const cardsById = new Map(Array.from(
+    container.querySelectorAll('.movie-card[data-movie-id]'),
+    card => [card.dataset.movieId, card]
+  ));
+  if (cardsById.size) {
+    const { preserveMovieCardPoster } = getCatalogCardController();
+    for (const card of fragment.querySelectorAll('.movie-card[data-movie-id]')) {
+      preserveMovieCardPoster(cardsById.get(card.dataset.movieId), card);
+    }
+  }
+  container.replaceChildren(fragment);
+}
+
 function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
   if (!container || !sessionSnapshot || viewMode?.value !== 'list') {
     return false;
@@ -6012,7 +6027,9 @@ function hydrateCatalogDomFromSessionSnapshot(sessionSnapshot) {
   container.classList.remove('is-catalog-fading', 'is-catalog-visible');
   setCatalogBusyState(false);
   if (container.innerHTML !== domSnapshot.containerHtml) {
-    container.innerHTML = domSnapshot.containerHtml;
+    const template = document.createElement('template');
+    template.innerHTML = domSnapshot.containerHtml;
+    replaceCatalogCards(template.content);
   }
   recordCatalogDomSnapshotRender(sessionSnapshot);
   lastCatalogDomRenderSignature = getCatalogDomRenderSignature({
@@ -8067,6 +8084,8 @@ function getCatalogCardControllerContext() {
     isPosterLoaded: posterUrl => Boolean(posterUrl && loadedPosterUrls.has(posterUrl)),
     getPosterImageAttributeHtml,
     bindPosterLoadState,
+    getPaintedPoster,
+    preservePaintedPoster,
     isRatingRequestInFlight: movieId => ratingRequestInFlight.has(String(movieId)),
     isWatchlistRequestInFlight: movieId => watchlistRequestInFlight.has(String(movieId))
   };
@@ -8601,7 +8620,11 @@ function ensureMoviePageInteractionsControllerLoaded() {
 }
 
 function getStoredMoviePagePosterGalleryIndex(movieId) {
-  return getLoadedMoviePageInteractionsController()?.getStoredPosterGalleryIndex(movieId) || 0;
+  const layout = moviePage?.querySelector('.movie-page-layout[data-movie-id]');
+  const displayedIndex = layout?.dataset.movieId === String(movieId)
+    ? layout.querySelector('[data-movie-page-poster-gallery]')?.dataset.moviePagePosterIndex
+    : 0;
+  return getLoadedMoviePageInteractionsController()?.getStoredPosterGalleryIndex(movieId) ?? displayedIndex;
 }
 
 function isMovieTrailerModalOpen() {
@@ -8633,6 +8656,8 @@ function getMoviePageShellControllerContext() {
     getMoviePosterImages,
     getMovieDisplayPosterGalleryImages,
     getPosterImageAttributeHtml,
+    getPaintedPoster,
+    preservePaintedPoster,
     getVotesLabel,
     getMoviePageDirectorHtml,
     buildCompanyPageUrl,
@@ -11434,7 +11459,7 @@ async function reloadCatalogData({
   const shouldShowCatalogSkeleton = showSkeleton && Boolean(container);
   const shouldPreserveExistingCatalogOnMovieLoadError = (
     !shouldShowCatalogSkeleton &&
-    moviesLoadedSuccessfully
+    (moviesLoadedSuccessfully || Boolean(container?.querySelector('.movie-card[data-movie-id]')))
   );
   const userIdAtLoadStart = currentUser?.id || null;
 
@@ -12406,11 +12431,61 @@ function restorePosterFallbackSource(posterImage) {
   return true;
 }
 
+function getPaintedPoster(root) {
+  const poster = root?.querySelector('.poster-handoff-preview') ||
+    root?.querySelector('img.movie-poster, img.movie-page-poster');
+  return poster?.complete && poster.naturalWidth > 0 ? poster : null;
+}
+
+function preservePaintedPoster(previous, next) {
+  if (!previous || !next || (previous.complete && previous.naturalWidth === 0)) return false;
+
+  if (previous.dataset.originalPosterSrc &&
+    previous.dataset.originalPosterSrc === next.dataset.originalPosterSrc) {
+    previous.alt = next.alt;
+    previous.classList.remove('poster-handoff-preview', 'is-switching');
+    previous.removeAttribute('aria-hidden');
+    if (next.hasAttribute('data-movie-page-poster-image')) {
+      previous.dataset.moviePagePosterImage = 'true';
+    }
+    next.replaceWith(previous);
+    return true;
+  }
+
+  if (!previous.complete) return false;
+
+  // Keep the visible bitmap until the replacement can actually paint.
+  previous.classList.remove('is-switching');
+  previous.classList.add('poster-handoff-preview');
+  previous.setAttribute('aria-hidden', 'true');
+  delete previous.dataset.moviePagePosterImage;
+  next.after(previous);
+  const retirePreview = () => {
+    void next.decode().then(() => {
+      next.removeEventListener('load', retirePreview);
+      if (!next.parentNode || previous.parentNode !== next.parentNode) return;
+      previous.remove();
+      if (container?.contains(next)) persistCatalogDomSnapshot();
+      if (moviePage?.contains(next)) persistCurrentMoviePageDomSnapshot();
+    }, () => {});
+  };
+  next.addEventListener('load', retirePreview);
+  if (next.complete && next.naturalWidth > 0) retirePreview();
+  return false;
+}
+
+const posterFallbackBoundImages = new WeakSet();
+
 function bindPosterFallbackImages(root = document) {
   root.querySelectorAll?.('img[data-poster-fallback-src]').forEach(posterImage => {
+    if (posterFallbackBoundImages.has(posterImage)) return;
+    posterFallbackBoundImages.add(posterImage);
     posterImage.addEventListener('error', () => {
       restorePosterFallbackSource(posterImage);
     });
+    if (posterImage.complete && !posterImage.naturalWidth) {
+      restorePosterFallbackSource(posterImage);
+    }
   });
 }
 
@@ -14087,7 +14162,7 @@ function bindPosterLoadState(posterImage, posterSkeleton) {
     posterSkeleton.classList.add('is-hidden');
   };
 
-  if (posterImage.complete) {
+  if (posterImage.complete && posterImage.naturalWidth > 0) {
     handlePosterReady();
     return;
   }
@@ -14102,6 +14177,7 @@ function bindPosterLoadState(posterImage, posterSkeleton) {
 
   posterImage.addEventListener('load', handlePosterReady, { once: true });
   posterImage.addEventListener('error', handlePosterError);
+  if (posterImage.complete) handlePosterError();
 }
 
 function getCatalogRatingStarContext(target) {
@@ -14642,6 +14718,7 @@ function rerenderMovieCard(
     newCard.classList.add('has-open-external-links');
   }
 
+  getCatalogCardController().preserveMovieCardPoster(existingCard, newCard);
   existingCard.replaceWith(newCard);
 
   if (wasExternalLinksExpanded) {
@@ -14972,7 +15049,7 @@ function renderMovies({ loadPageDetails = true } = {}) {
     deferMissing: loadPageDetails && shouldPreferRussianPosters()
   });
 
-  container.replaceChildren(
+  replaceCatalogCards(
     getCatalogRenderController().createCatalogMoviesFragment({
       pageMovies,
       viewMode: viewMode.value,
@@ -15722,8 +15799,17 @@ async function initCatalogPage({ onShellReady = null } = {}) {
       });
   };
 
+  const earlyDom = window.__HORROREIRO_CATALOG_WARM_START__ && readCatalogDomSnapshot();
+  const canKeepEarlyDom = Boolean(
+    earlyDom && !shouldSkipSnapshotForProfileActivity &&
+    (earlyDom.userId || null) === activeUserId &&
+    isDataMutationStampFresh(earlyDom.dataMutationStamp) &&
+    canUseCatalogSnapshotForPosterPreference(earlyDom)
+  );
+  if (canKeepEarlyDom) bindRestoredCatalogDomState();
+
   const catalogLoadState = await reloadCatalogData({
-    showSkeleton: !hydrationState.didHydrateCatalogFromSnapshot,
+    showSkeleton: !(hydrationState.didHydrateCatalogFromSnapshot || canKeepEarlyDom),
     refreshFilters: false,
     awaitUserState: shouldAwaitInitialUserCatalogState,
     loadDeferredUserState: false,
@@ -17250,7 +17336,11 @@ function renderMoviePageHeaderSection(movie) {
     includeSocialSections: false
   });
 
-  headerElement.outerHTML = getMoviePageShellController().getMoviePageHeaderHtml(movie, viewModel);
+  const shell = getMoviePageShellController();
+  const template = document.createElement('template');
+  template.innerHTML = shell.getMoviePageHeaderHtml(movie, viewModel);
+  shell.preserveMoviePageLayout(headerElement, template.content.querySelector('.movie-page-layout'));
+  headerElement.replaceWith(template.content);
   bindMoviePageHeaderEvents(movie);
   document.documentElement.classList.add('movie-page-rendered');
 }
@@ -17285,7 +17375,7 @@ function renderMoviePage(movie, { socialLoading = false, similarLoading = false 
   setMoviePageDocumentMeta(movie);
 
   preserveWarmStartedPageScrollIfNeeded(() => {
-    getMoviePageShellController().replaceMoviePageContent(moviePage, movie.id, `
+    getMoviePageShellController().replaceMoviePageContent(moviePage, `
       <div class="movie-page-stack">
         ${getMoviePageShellController().getMoviePageHeaderHtml(movie, viewModel)}
 

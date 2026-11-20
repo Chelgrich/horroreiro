@@ -334,7 +334,7 @@ export function createMoviePageInteractionsController(context = {}) {
   }
 
   return {
-    getStoredPosterGalleryIndex: movieId => currentMoviePagePosterIndexByMovieId.get(String(movieId || '')) || 0,
+    getStoredPosterGalleryIndex: movieId => currentMoviePagePosterIndexByMovieId.get(String(movieId || '')),
     isMovieTrailerModalOpen,
     openMovieTrailerModal,
     closeMovieTrailerModal,

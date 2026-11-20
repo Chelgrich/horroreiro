@@ -572,12 +572,6 @@ button:not(:where(
   transform-origin: center;
 }
 
-.movie-page-server-poster-preview{
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
 .movie-page-poster.is-switching{
   animation: movie-page-poster-switch 280ms ease-out both;
 }

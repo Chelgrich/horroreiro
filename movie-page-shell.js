@@ -64,39 +64,6 @@ function getInitialMovieCompanyRows(movie, content) {
   return null;
 }
 
-function replaceMoviePageContent(root, movieId, html) {
-  const earlyLayout = root.querySelector('.movie-page-server-fallback[data-server-rendered] .movie-page-layout');
-  if (earlyLayout?.dataset.movieId !== String(movieId)) {
-    root.innerHTML = html;
-    return;
-  }
-
-  const template = root.ownerDocument.createElement('template');
-  template.innerHTML = html;
-  const intro = earlyLayout.querySelector('.movie-page-title-main');
-  const nextIntro = template.content.querySelector('.movie-page-title-main');
-  if (intro?.isEqualNode(nextIntro)) nextIntro.replaceWith(intro);
-
-  const poster = earlyLayout.querySelector('img.movie-page-poster');
-  const nextPoster = template.content.querySelector('img[data-movie-page-poster-image]');
-  if (poster && nextPoster && (!poster.complete || poster.naturalWidth > 0)) {
-    if (poster.dataset.originalPosterSrc === nextPoster.dataset.originalPosterSrc) {
-      poster.alt = nextPoster.alt;
-      poster.dataset.moviePagePosterImage = 'true';
-      nextPoster.replaceWith(poster);
-    } else if (poster.naturalWidth > 0) {
-      // Keep the painted poster in place until a preferred gallery image is ready.
-      poster.alt = '';
-      poster.setAttribute('aria-hidden', 'true');
-      poster.classList.add('movie-page-server-poster-preview');
-      nextPoster.after(poster);
-      nextPoster.addEventListener('load', () => { void nextPoster.decode().then(() => poster.remove(), () => {}); });
-    }
-  }
-
-  root.replaceChildren(template.content);
-}
-
 export function createMoviePageShellController(context = {}) {
   const {
     escapeHtml,
@@ -114,6 +81,8 @@ export function createMoviePageShellController(context = {}) {
     getMoviePosterImages,
     getMovieDisplayPosterGalleryImages = null,
     getPosterImageAttributeHtml,
+    getPaintedPoster,
+    preservePaintedPoster,
     getVotesLabel,
     getMoviePageDirectorHtml,
     buildCompanyPageUrl,
@@ -123,6 +92,27 @@ export function createMoviePageShellController(context = {}) {
     isMovieWatchlistBusy,
     getStoredPosterGalleryIndex
   } = context;
+
+  function preserveMoviePageLayout(currentLayout, nextLayout) {
+    if (!currentLayout || !nextLayout || currentLayout.dataset.movieId !== nextLayout.dataset.movieId) return;
+
+    const intro = currentLayout.querySelector('.movie-page-title-main');
+    const nextIntro = nextLayout.querySelector('.movie-page-title-main');
+    if (intro?.isEqualNode(nextIntro)) nextIntro.replaceWith(intro);
+
+    const poster = getPaintedPoster(currentLayout) || currentLayout.querySelector('img.movie-page-poster');
+    preservePaintedPoster(poster, nextLayout.querySelector('img[data-movie-page-poster-image]'));
+  }
+
+  function replaceMoviePageContent(root, html) {
+    const template = root.ownerDocument.createElement('template');
+    template.innerHTML = html;
+    preserveMoviePageLayout(
+      root.querySelector('.movie-page-layout[data-movie-id]'),
+      template.content.querySelector('.movie-page-layout[data-movie-id]')
+    );
+    root.replaceChildren(template.content);
+  }
 
   function getMoviePageSubgenreLabel(movie) {
     if (!Array.isArray(movie?.tags_perceived) || movie.tags_perceived.length === 0) {
@@ -582,6 +572,7 @@ export function createMoviePageShellController(context = {}) {
   return {
     getYouTubeTrailerEmbedUrl,
     replaceMoviePageContent,
+    preserveMoviePageLayout,
     getInitialMovieCompanyRows,
     getMoviePageSubgenreLabel,
     getMoviePageFormatsLabel,

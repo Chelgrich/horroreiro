@@ -19,7 +19,7 @@ let statsReads = 0;
 let completeReviews;
 let reviewReads = 0;
 const initialLoadSandbox = vm.createContext({
-  container: {}, moviesLoadedSuccessfully: false, shouldFadeCatalogAfterSkeleton: false,
+  container: { querySelector: () => null }, moviesLoadedSuccessfully: false, shouldFadeCatalogAfterSkeleton: false,
   currentUser: null, fetchMovies: async () => {},
   fetchCatalogReviewSummary: () => {
     reviewReads += 1;
@@ -121,6 +121,10 @@ const newCard = { classList: { contains: () => false, add() {} },
   querySelector: () => ({ setAttribute() {}, classList: { add() {} } }) };
 Object.assign(layoutSandbox, {
   getCatalogMovieById: () => ({ id: 'movie' }), createMovieCard: () => newCard,
+  getCatalogCardController: () => ({ preserveMovieCardPoster: (first, second) => {
+    assert.equal(first, oldCard);
+    assert.equal(second, newCard);
+  } }),
   persistCatalogDomSnapshot() {}
 });
 layoutRoot.querySelector = () => oldCard;
@@ -134,9 +138,10 @@ let replacedMarkupCount = 0;
 const warmDomSandbox = vm.createContext({
   container: {
     get innerHTML() { return catalogMarkup; },
-    set innerHTML(value) { catalogMarkup = value; replacedMarkupCount += 1; },
     classList: { remove() {} }
   },
+  document: { createElement: () => ({ set innerHTML(value) { this.content = value; } }) },
+  replaceCatalogCards(value) { catalogMarkup = value; replacedMarkupCount += 1; },
   viewMode: { value: 'list' }, currentUser: null, lastCatalogDomRenderSignature: '',
   readCatalogDomSnapshot: () => ({
     containerHtml: '<article>already mounted</article>',

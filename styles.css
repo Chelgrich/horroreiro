@@ -2199,7 +2199,6 @@ a[data-current-page-link="true"]{
   opacity: 0;
   transform: scale(1);
   transition:
-    opacity 0.28s ease,
     transform 0.35s ease,
     filter 0.25s ease;
 }
@@ -2217,6 +2216,13 @@ a[data-current-page-link="true"]{
 
 .movie-poster.is-loaded{
   opacity: 1;
+}
+
+.poster-handoff-preview{
+  position: absolute;
+  inset: 0;
+  opacity: 1;
+  pointer-events: none;
 }
 
 .movie-poster-skeleton{

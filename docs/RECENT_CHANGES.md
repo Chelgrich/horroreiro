@@ -1,5 +1,11 @@
 # Recent Changes
 
+## 2026-11-21 — Keep painted posters visible on return
+
+- A validated, same-viewer catalog DOM snapshot stays visible while the movie data reloads, including when the data snapshot has expired independently. A failed movie read leaves those cards in place.
+- Catalog and movie detail renders carry painted posters into the new markup for the same movie. Matching images reuse their DOM node. Changed images replace the preview only after decoding, including when the catalog waits for a preferred gallery poster.
+- Movie returns keep the saved gallery selection and skip saving transient poster loading states. A snapshot records no active poster animation.
+
 ## 2026-11-21 — Unify interface typography
 
 - Text, headings and native form controls share the system font stack, with Calibri first where installed. The header and footer render one local SVG with Unbounded 600 outlines at their existing responsive sizes.

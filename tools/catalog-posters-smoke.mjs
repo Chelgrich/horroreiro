@@ -8,7 +8,8 @@ const functions = [
   'getNormalizedMovieIdsFromMovies', 'fetchMoviePosterImagesForMovie', 'fetchMoviePosterImagesForMovies',
   'loadMoviePosterImagesChunk', 'fetchAllSupabaseRows', 'fetchAllSupabaseRowsResult',
   'fetchMoviePosterImagesForMoviesSafe', 'ensurePreferredPosterImagesForMovies', 'getMoviePreferredPosterUrl',
-  'createCatalogPosterOptions', 'loadCatalogPagePosters', 'loadCatalogPageDetails', 'renderMovies', 'goToCatalogPage'
+  'createCatalogPosterOptions', 'loadCatalogPagePosters', 'loadCatalogPageDetails', 'replaceCatalogCards', 'renderMovies', 'goToCatalogPage',
+  'preservePaintedPoster'
 ].map(name => {
   const start = source.lastIndexOf('\n', source.indexOf(`function ${name}(`)) + 1;
   const end = source.indexOf('\n}', start) + 2;
@@ -60,16 +61,18 @@ function fixture() {
         }
       };
     } },
-    getCatalogCardController: () => ({ updateMovieCardPoster(card, movie) {
+    getCatalogCardController: () => ({ preserveMovieCardPoster() {}, updateMovieCardPoster(card, movie) {
       posterUpdates.push(movie.id);
       card.poster = ctx.getMoviePreferredPosterUrl(movie);
       card.pending = false;
     } }),
     getCatalogRenderController: () => ({ createCatalogMoviesFragment({ pageMovies, getCardRenderOptions }) {
-      return pageMovies.map(movie => {
+      const fragment = pageMovies.map(movie => {
         const pending = getCardRenderOptions(movie).deferPoster;
         return { dataset: { movieId: movie.id }, pending, poster: pending ? null : ctx.getMoviePreferredPosterUrl(movie) };
       });
+      fragment.querySelectorAll = () => fragment;
+      return fragment;
     } }),
     moviesLoadedSuccessfully: true, container: cards, currentCatalogPage: 1, lastCatalogDomRenderSignature: '',
     searchInput: { value: '' }, viewMode: { value: 'list' }, sortMode: { value: 'default' },
@@ -169,4 +172,37 @@ await forced.ctx.fetchMoviePosterImagesForMovie('0', { force: true });
 old();
 await flush();
 assert.equal(forced.ctx.getMoviePosterImages('0')[0].image_url, 'new-0', 'Older batch cannot overwrite a forced update');
+
+const handoff = vm.createContext({ container: null, moviePage: null });
+vm.runInContext(functions, handoff);
+const wrapper = {};
+const classes = new Set();
+const painted = {
+  complete: true, naturalWidth: 240, parentNode: wrapper, dataset: { originalPosterSrc: 'original' },
+  classList: { add: name => classes.add(name), remove: (...names) => names.forEach(name => classes.delete(name)) },
+  setAttribute() {}, removeAttribute() {},
+  remove() { this.parentNode = null; }
+};
+let reused;
+assert.equal(handoff.preservePaintedPoster(painted, {
+  dataset: { originalPosterSrc: 'original' }, alt: 'Updated title',
+  hasAttribute: () => false, replaceWith: node => { reused = node; }
+}), true);
+assert.equal(reused, painted, 'Identical sources keep the decoded image node');
+assert.equal(painted.alt, 'Updated title');
+
+let onLoad;
+const decoded = Promise.withResolvers();
+handoff.preservePaintedPoster(painted, {
+  parentNode: wrapper, dataset: { originalPosterSrc: 'new' },
+  after(node) { assert.equal(node, painted); },
+  addEventListener(_name, fn) { onLoad = fn; }, removeEventListener() {},
+  decode: () => decoded.promise
+});
+onLoad();
+assert(classes.has('poster-handoff-preview'));
+assert.equal(painted.parentNode, wrapper, 'The previous poster stays visible during download and decode');
+decoded.resolve();
+await decoded.promise;
+assert.equal(painted.parentNode, null, 'The previous poster is removed once the replacement can paint');
 console.log('Catalog poster reads: first page 1×40 IDs, next page 1×40 IDs, return 0, preference off 0.');
