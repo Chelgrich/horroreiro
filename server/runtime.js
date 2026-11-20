@@ -63,6 +63,7 @@ const publicStaticAssets = new Set([
   "favicon.ico",
   "insidious.webp",
   "og-preview.jpg",
+  "icons/horroreiro-wordmark.svg",
   "icons/imdb.svg",
   "icons/kp.svg",
   "icons/lb.svg",

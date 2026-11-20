@@ -826,7 +826,6 @@
   background: rgba(var(--color-watchlist-base), 0.16);
   border: 1px solid transparent;
   border-radius: 50%;
-  font-family: var(--font-display);
   font-size: var(--font-size-display-md);
   font-weight: 700;
 }

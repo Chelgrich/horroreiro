@@ -21,11 +21,8 @@
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#111315">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://uogzcozbnosfguyfbvhe.supabase.co" crossorigin>
 
-  <link data-app-fonts media="print" href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
   <style>
@@ -40,14 +37,14 @@
       padding: 12px 24px;
       color: #ffd9d4;
       text-align: center;
-      font: 14px/1.45 system-ui, sans-serif;
+      font: 14px/1.45 var(--font-body, Calibri, system-ui, sans-serif);
     }
     html.app-load-failed #appStartupError { display: block; }
     html.app-load-failed .page-content-skeleton,
     html.app-load-failed .movie-page-stack-skeleton { display: none; }
   </style>
 
-  <script src="/boot-loader.js?v=30"></script>
+  <script src="/boot-loader.js?v=31"></script>
 </head>
 
 <body data-app-page="user">

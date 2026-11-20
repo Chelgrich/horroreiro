@@ -1,6 +1,16 @@
 (function () {
     function getSharedHeaderHtml() {
-      const logoHtml = `<div class="page-logo"><a href="/" class="page-logo-link" aria-label="Хоррорейро">Хоррорейро</a></div>`;
+      const logoHtml = `
+        <div class="page-logo">
+          <a href="/" class="page-logo-link" aria-label="Хоррорейро">
+            <picture class="site-wordmark">
+              <source media="(max-width: 360px)" srcset="/icons/horroreiro-wordmark.svg#header-narrow" width="162" height="18">
+              <source media="(max-width: 680px)" srcset="/icons/horroreiro-wordmark.svg#header-mobile" width="214" height="24">
+              <source media="(max-width: 900px)" srcset="/icons/horroreiro-wordmark.svg#header-tablet" width="289" height="32">
+              <img src="/icons/horroreiro-wordmark.svg" width="297" height="44" alt="">
+            </picture>
+          </a>
+        </div>`;
       const shouldRenderAddMovieButton = document.body?.dataset.appPage === 'catalog';
   
       return `
@@ -696,7 +706,10 @@
                   «ВЫБЕРИ, ЧТО СМОТРЕТЬ СЕГОДНЯ»
                 </div>
     
-                <div class="footer-brand">Хоррорейро</div>
+                <picture class="site-wordmark">
+                  <source media="(max-width: 480px)" srcset="/icons/horroreiro-wordmark.svg#footer-mobile" width="158" height="24">
+                  <img src="/icons/horroreiro-wordmark.svg#footer-wide" width="176" height="27" alt="Хоррорейро">
+                </picture>
     
                 <div class="footer-author">
                   Хоррор-каталог от Grint_Talks, 2026

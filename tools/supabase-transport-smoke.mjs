@@ -7,22 +7,8 @@ import { createPortableRuntime, writeResponseToNodeMessage } from '../server/run
 import * as letterboxdTools from '../letterboxd-import.js';
 
 const env = { SUPABASE_URL: 'https://fixture.supabase.co', SUPABASE_ANON_KEY: 'public-fixture', SUPABASE_SERVICE_ROLE_KEY: 'must-not-be-forwarded' };
-const boot = await readFile(new URL('../boot-loader.js', import.meta.url), 'utf8');
-const prelude = boot.slice(0, boot.indexOf('  window.__ENV_READY__ = new Promise')) + '})();';
-let fontLoaded;
-const font = { media: 'print', sheet: null, addEventListener: (_name, callback) => { fontLoaded = callback; } };
-vm.runInNewContext(prelude, { window: { __ENV_READY__: Promise.resolve() }, document: { querySelector: () => font } });
-assert.equal(typeof fontLoaded, 'function', 'Slow external fonts must activate independently of app initialization');
-assert.equal(font.media, 'print');
-fontLoaded();
-assert.equal(font.media, 'all');
-font.sheet = {};
-font.media = 'print';
-vm.runInNewContext(prelude, { window: { __ENV_READY__: Promise.resolve() }, document: { querySelector: () => font } });
-assert.equal(font.media, 'all', 'Already cached font styles must also activate');
 for (const name of ['index', 'movie', 'user', 'following', 'notifications', 'editor', 'name', 'directors', 'company', 'companies']) {
   const html = await readFile(new URL(`../${name}.html`, import.meta.url), 'utf8');
-  assert.match(html, /<link[^>]*data-app-fonts[^>]*media="print"[^>]*fonts\.googleapis\.com/);
   assert.ok(!html.includes('cdn.jsdelivr.net'), 'Startup must not depend on the SDK CDN');
 }
 const routes = JSON.parse(await readFile(new URL('../_routes.json', import.meta.url), 'utf8'));

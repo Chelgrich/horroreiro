@@ -1,10 +1,4 @@
 (function () {
-  const fontStylesheet = document.querySelector('link[data-app-fonts]');
-  if (fontStylesheet) {
-    fontStylesheet.addEventListener('load', () => { fontStylesheet.media = 'all'; }, { once: true });
-    if (fontStylesheet.sheet) fontStylesheet.media = 'all';
-  }
-
   if (window.__ENV_READY__) {
     return;
   }

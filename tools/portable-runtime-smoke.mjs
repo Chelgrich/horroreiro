@@ -114,6 +114,12 @@ for (const path of ['/boot-loader.js', '/app-script-loader.js', '/styles.css', '
   const response = await fetchPortable(path);
   assert(response.status === 200, `public static ${path}: expected 200, got ${response.status}`);
 }
+const wordmarkResponse = await fetchPortable('/icons/horroreiro-wordmark.svg');
+assert(wordmarkResponse.status === 200 && wordmarkResponse.headers.get('content-type')?.startsWith('image/svg+xml'),
+  'The local wordmark must be served as a public SVG');
+const wordmark = await wordmarkResponse.text();
+assert(wordmark.includes('<path ') && !/<text\b|font-family|@font-face/.test(wordmark),
+  'The wordmark must use outlines with no runtime font dependency');
 
 function nodeMessage(chunks, headers = {}) {
   return Object.assign(Readable.from(chunks), { method: 'POST', url: '/env', headers: { host: 'portable.test', ...headers } });

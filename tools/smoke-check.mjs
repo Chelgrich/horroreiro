@@ -521,12 +521,9 @@ async function checkStaticGuards() {
         `${file}: secondary pages need in-content skeletons and an inline startup error`
       );
     }
-    const googleFontStylesheetMatches = html.match(/href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]+"/g) || [];
     assert(
-      googleFontStylesheetMatches.length === 1 &&
-        googleFontStylesheetMatches[0].includes('family=PT+Sans') &&
-        googleFontStylesheetMatches[0].includes('family=Unbounded'),
-      `${file}: Google Fonts should be loaded through one combined stylesheet`
+      !/fonts\.(?:googleapis|gstatic)\.com|data-app-fonts/.test(html),
+      `${file}: all text uses system fonts and the logo uses a local SVG`
     );
     assert(
       !html.includes('window.__ENV_READY__ = new Promise'),

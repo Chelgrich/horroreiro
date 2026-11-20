@@ -67,7 +67,6 @@ Injected domain callbacks in controller/action contexts are required operations.
 Page HTML is static shell plus shared scripts:
 
 - `boot-loader.js`
-  - activates the nonblocking external font stylesheet after load (or immediately when already cached); unavailable fonts must not block app startup;
   - starts the stylesheet bundle as soon as the HTML's `app-build-version` hint is available. `/env` loads in parallel. The same-build stylesheet cache can reveal the page immediately and avoid downloading the bundle again;
   - selects one configuration per document in `window.__APP_ENV__` for runtime and warm-start validation. A hosted `/env` timeout or network failure uses the document build hint or saved build marker with fallback credentials. A late response cannot change the selection in that document;
   - loads versioned `styles.css`;
@@ -210,7 +209,7 @@ Complete catalog/profile/import reads reuse `fetchAllSupabaseRows` and its `{dat
 - movie add/edit modal structure;
 - footer.
 
-`styles.css` is the global design system and shared page styles. It uses CSS variables heavily. Avoid local one-off colors if a token exists.
+`styles.css` owns the global design system and shared page styles. Text and native form controls share `--font-body`, with Calibri followed by the system fallback. Shared header and footer wordmarks use responsive views of `icons/horroreiro-wordmark.svg`, built from Unbounded 600 outlines. The app does not request webfonts.
 
 `catalog-page.css` owns catalog-only layout/control styles loaded by `boot-loader.js` only for `data-app-page="catalog"`: catalog toolbar/search/sort controls, quick presets, active filter chips, filter modal/range controls, catalog result header, pagination, month/list shell, catalog page-level CSS variables, and catalog SEO text. Shared movie card styling stays in `styles.css` because profile rails, person pages, similar movies, and catalog surfaces reuse card primitives.
 
@@ -294,7 +293,7 @@ Movie detail warm-start startup:
 - `app.js` writes a sanitized `horroreiro_movie_page_dom_snapshot` after a real detail render/session-cache persist, and also indexes recent snapshots in `horroreiro_movie_page_dom_snapshots` by route key. The snapshot stores only the detail DOM plus build, route keys, age, and the current per-movie dependency stamp.
 - Movie detail pages persist the current DOM snapshot on `pagehide`, so quick browser Back/Forward navigation does not depend on deferred social/similar sections finishing first.
 - The sanitized snapshot removes watchlist/watched controls and replaces the summary rating panel, review/comment sections, and similar section with loading states. This allows already-opened movie pages to return with stable static content while the full app reloads current user/social data.
-- Movie snapshot sanitization masks rating text and any existing rating button in their live wrappers. This preserves the summary's layout for guests and signed-in viewers. The mobile details column uses the system font stack to keep the title and metadata stable while the external font arrives.
+- Movie snapshot sanitization masks rating text and any existing rating button in their live wrappers. This preserves the summary's layout for guests and signed-in viewers. The detail and social sections inherit the same system font used across the site.
 - `movie-warm-start.js` restores the saved DOM before the full app starts; `movie.html` reveals the restored page after styles are ready and reserves shared-header space until shared UI mounts.
 - `initMoviePage({ onShellReady })` must signal shell-ready after choosing warm DOM or rendering a skeleton/not-found state, not immediately when app JS starts.
 

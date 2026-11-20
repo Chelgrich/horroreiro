@@ -168,7 +168,6 @@
   color: var(--accent-soft-text);
   background: var(--accent-alpha-16);
   border-radius: 50%;
-  font-family: var(--font-display);
   font-size: var(--font-size-title-sm);
   font-weight: 700;
 }

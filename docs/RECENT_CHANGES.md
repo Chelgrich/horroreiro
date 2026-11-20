@@ -1,5 +1,11 @@
 # Recent Changes
 
+## 2026-11-21 — Unify interface typography
+
+- Text, headings and native form controls share the system font stack, with Calibri first where installed. The header and footer render one local SVG with Unbounded 600 outlines at their existing responsive sizes.
+- Catalog presets and movie detail, review and comment sections inherit the shared text font.
+- Removed the Google Fonts stylesheet, both font preconnects and the boot loader's font activation.
+
 ## 2026-11-21 — Keep movie comments in place during loading
 
 - Review and comment reads still start in parallel. Comments render after the review section has settled, with review-reply snippets available on the first render. The loading view holds later sections and the footer out of view until the social layout is ready.

@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 296.765625 44" fill="#fff">
+  <!-- Wordmark outlined from Unbounded 600. Named views preserve the existing responsive spacing. -->
+  <defs>
+    <path id="glyph-1" d="M497 334V447L861 0H628L379 321H469L219 0H-10L356 446V335L13 750H248L475 460H384L607 750H838Z"/>
+    <path id="glyph-2" d="M480 -16Q348 -16 248.5 33.0Q149 82 94.0 170.0Q39 258 39 375Q39 492 94.0 580.0Q149 668 248.5 717.0Q348 766 480 766Q612 766 711.5 717.0Q811 668 866.5 580.0Q922 492 922 375Q922 258 866.5 170.0Q811 82 711.5 33.0Q612 -16 480 -16ZM480 153Q558 153 614.0 179.5Q670 206 700.5 256.0Q731 306 731 375Q731 444 700.5 494.0Q670 544 614.0 570.5Q558 597 480 597Q403 597 347.0 570.5Q291 544 260.0 494.0Q229 444 229 375Q229 306 260.0 256.0Q291 206 347.0 179.5Q403 153 480 153Z"/>
+    <path id="glyph-3" d="M488 750Q580 750 646.5 718.5Q713 687 748.5 630.0Q784 573 784 497Q784 421 748.5 364.0Q713 307 646.5 275.5Q580 244 488 244H160V397H478Q532 397 563.0 423.5Q594 450 594 497Q594 544 563.0 570.5Q532 597 478 597H177L262 685V0H73V750Z"/>
+    <path id="glyph-4" d="M704 445V305H161V445ZM289 375 239 65 160 155H736V0H50L108 375L50 750H731V595H160L239 685Z"/>
+    <path id="glyph-5" d="M73 0V750H259V98L204 109L654 750H900V0H715V663L769 652L313 0ZM236 975H386Q398 941 422.5 923.5Q447 906 483 906Q521 906 545.0 923.5Q569 941 581 975H731Q709 884 643.5 842.0Q578 800 483 800Q389 800 323.0 842.0Q257 884 236 975Z"/>
+  </defs>
+  <view id="header-wide" viewBox="0 0 296.765625 44"/>
+  <g transform="translate(0 34)">
+    <use href="#glyph-1" transform="translate(0 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-2" transform="translate(27.216 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-3" transform="translate(59.968 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-3" transform="translate(87.728 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-2" transform="translate(115.488 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-3" transform="translate(148.24 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-4" transform="translate(175.936 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-5" transform="translate(203.12 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-3" transform="translate(236.256 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-2" transform="translate(264.016 0) scale(0.032 -0.032)"/>
+  </g>
+  <view id="header-tablet" viewBox="0 64 288.765625 32"/>
+  <g transform="translate(0 92)">
+    <use href="#glyph-1" transform="translate(0 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-2" transform="translate(26.416 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-3" transform="translate(58.368 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-3" transform="translate(85.328 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-2" transform="translate(112.288 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-3" transform="translate(144.24 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-4" transform="translate(171.136 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-5" transform="translate(197.52 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-3" transform="translate(229.856 0) scale(0.032 -0.032)"/>
+    <use href="#glyph-2" transform="translate(256.816 0) scale(0.032 -0.032)"/>
+  </g>
+  <view id="header-mobile" viewBox="0 128 213.578125 24"/>
+  <g transform="translate(0 149)">
+    <use href="#glyph-1" transform="translate(0 0) scale(0.024 -0.024)"/>
+    <use href="#glyph-2" transform="translate(19.512 0) scale(0.024 -0.024)"/>
+    <use href="#glyph-3" transform="translate(43.176 0) scale(0.024 -0.024)"/>
+    <use href="#glyph-3" transform="translate(63.096 0) scale(0.024 -0.024)"/>
+    <use href="#glyph-2" transform="translate(83.016 0) scale(0.024 -0.024)"/>
+    <use href="#glyph-3" transform="translate(106.68 0) scale(0.024 -0.024)"/>
+    <use href="#glyph-4" transform="translate(126.552 0) scale(0.024 -0.024)"/>
+    <use href="#glyph-5" transform="translate(146.04 0) scale(0.024 -0.024)"/>
+    <use href="#glyph-3" transform="translate(169.992 0) scale(0.024 -0.024)"/>
+    <use href="#glyph-2" transform="translate(189.912 0) scale(0.024 -0.024)"/>
+  </g>
+  <view id="header-narrow" viewBox="0 192 161.6875 18"/>
+  <g transform="translate(0 208)">
+    <use href="#glyph-1" transform="translate(0 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-2" transform="translate(14.784 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-3" transform="translate(32.682 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-3" transform="translate(47.772 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-2" transform="translate(62.862 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-3" transform="translate(80.76 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-4" transform="translate(95.814 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-5" transform="translate(110.58 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-3" transform="translate(128.694 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-2" transform="translate(143.784 0) scale(0.018 -0.018)"/>
+  </g>
+  <view id="footer-wide" viewBox="0 256 175.6875 27"/>
+  <g transform="translate(0 276)">
+    <use href="#glyph-1" transform="translate(0 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-2" transform="translate(16.184 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-3" transform="translate(35.482 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-3" transform="translate(51.972 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-2" transform="translate(68.462 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-3" transform="translate(87.76 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-4" transform="translate(104.214 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-5" transform="translate(120.38 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-3" transform="translate(139.894 0) scale(0.018 -0.018)"/>
+    <use href="#glyph-2" transform="translate(156.384 0) scale(0.018 -0.018)"/>
+  </g>
+  <view id="footer-mobile" viewBox="0 320 158.390625 24"/>
+  <g transform="translate(0 338)">
+    <use href="#glyph-1" transform="translate(0 0) scale(0.016 -0.016)"/>
+    <use href="#glyph-2" transform="translate(14.608 0) scale(0.016 -0.016)"/>
+    <use href="#glyph-3" transform="translate(31.984 0) scale(0.016 -0.016)"/>
+    <use href="#glyph-3" transform="translate(46.864 0) scale(0.016 -0.016)"/>
+    <use href="#glyph-2" transform="translate(61.744 0) scale(0.016 -0.016)"/>
+    <use href="#glyph-3" transform="translate(79.12 0) scale(0.016 -0.016)"/>
+    <use href="#glyph-4" transform="translate(93.968 0) scale(0.016 -0.016)"/>
+    <use href="#glyph-5" transform="translate(108.56 0) scale(0.016 -0.016)"/>
+    <use href="#glyph-3" transform="translate(126.128 0) scale(0.016 -0.016)"/>
+    <use href="#glyph-2" transform="translate(141.008 0) scale(0.016 -0.016)"/>
+  </g>
+</svg>

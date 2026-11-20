@@ -42,8 +42,7 @@ html::-webkit-scrollbar-corner{
   --icon-stroke-width: 1.8;
 
   /* Typography scale */
-  --font-body: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-display: 'Unbounded', sans-serif;
+  --font-body: Calibri, system-ui, sans-serif;
   --font-size-zero: 0;
   --font-size-2xs: 10px;
   --font-size-xs: 11px;
@@ -80,15 +79,11 @@ html::-webkit-scrollbar-corner{
   --line-height-body: 1.5;
   --line-height-prose: 1.6;
   --line-height-prose-loose: 1.65;
-  --line-height-logo: 44px;
   --letter-spacing-normal: normal;
   --letter-spacing-none: 0;
   --letter-spacing-control: 0.1px;
   --letter-spacing-body: 0.2px;
   --letter-spacing-footer: 0.6px;
-  --letter-spacing-brand-mobile: 1px;
-  --letter-spacing-brand-tablet: 1.2px;
-  --letter-spacing-brand: 2px;
   --radius-lg: 10px;
   --radius-md: 6px;
   --radius-sm: 4px;
@@ -324,6 +319,13 @@ body{
   color-scheme: dark;
 }
 
+button,
+input,
+select,
+textarea{
+  font-family: inherit;
+}
+
 .page-logo{
   margin: 0;
   min-width: 0;
@@ -331,13 +333,16 @@ body{
   flex: 0 1 auto;
   display: flex;
   align-items: center;
-  font-family: var(--font-display);
-  font-size: var(--page-logo-font-size);
-  font-weight: 600;
-  letter-spacing: var(--page-logo-letter-spacing);
-  line-height: var(--line-height-logo);
-  text-transform: uppercase;
-  color: var(--color-text-primary);
+}
+
+.site-wordmark,
+.site-wordmark img{
+  display: block;
+  max-width: 100%;
+}
+
+.site-wordmark img{
+  object-fit: contain;
 }
 
 h3{
@@ -358,8 +363,6 @@ h3{
   --movie-card-text-line-height: var(--line-height-normal);
   --movie-card-text-overflow-wrap: normal;
   --movie-card-text-word-break: normal;
-  --page-logo-font-size: var(--font-size-display-lg);
-  --page-logo-letter-spacing: var(--letter-spacing-brand);
   --section-title-font-size: var(--font-size-title-sm);
   --movie-page-subtitle-font-size: var(--font-size-title-sm);
   max-width: var(--page-max-width);
@@ -3285,15 +3288,6 @@ a[data-current-page-link="true"]{
   padding: 0 6px;
 }
 
-.footer-brand{
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: var(--font-size-title-sm);
-  letter-spacing: var(--letter-spacing-brand);
-  text-transform: uppercase;
-  color: var(--color-text-primary);
-}
-
 .footer-slogan{
   font-size: var(--font-size-md);
   letter-spacing: var(--letter-spacing-footer);
@@ -3310,8 +3304,6 @@ a[data-current-page-link="true"]{
 @media (max-width: 900px) {
   .page{
     padding: 16px;
-    --page-logo-font-size: var(--font-size-display-lg);
-    --page-logo-letter-spacing: var(--letter-spacing-brand-tablet);
     --section-title-font-size: var(--font-size-title-sm);
     --movie-card-title-padding-bottom: 8px;
     --movie-card-text-font-size: var(--font-size-md);
@@ -3477,7 +3469,6 @@ a[data-current-page-link="true"]{
     justify-content: flex-start;
     text-align: left;
     width: auto;
-    line-height: var(--line-height-none);
   }
 
   .auth-message{
@@ -3522,8 +3513,6 @@ a[data-current-page-link="true"]{
 
 @media (max-width: 680px) {
   .page{
-    --page-logo-font-size: var(--font-size-title-xl);
-    --page-logo-letter-spacing: var(--letter-spacing-footer);
     --section-title-font-size: var(--font-size-lg);
     --movie-card-title-padding-bottom: 7px;
     --movie-card-title-font-size: var(--font-size-lg);
@@ -3753,10 +3742,6 @@ a[data-current-page-link="true"]{
     height: 28px;
   }
 
-  .footer-brand{
-    font-size: var(--font-size-lg);
-  }
-
   .footer-slogan{
     font-size: var(--font-size-md);
   }
@@ -3769,8 +3754,6 @@ a[data-current-page-link="true"]{
 
 @media (max-width: 360px) {
   .page{
-    --page-logo-font-size: var(--font-size-title-sm);
-    --page-logo-letter-spacing: var(--letter-spacing-footer);
     --movie-card-title-padding-bottom: 8px;
     --movie-card-title-font-size: var(--font-size-title-md);
     --movie-card-title-line-height: var(--line-height-title);
