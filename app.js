@@ -17333,9 +17333,10 @@ async function loadMoviePageByRouteParams(routeParams, {
     getAreDirectorsAvailable: () => areDirectorsAvailable,
     ensureDirectorItemsLoaded: ensureMovieDirectorItemsLoaded,
     getAreCompaniesAvailable: () => areCompaniesAvailable,
-    fetchCompanyRows: fetchMovieCompanyRowsForMovie,
-    renderCompanyMeta: movie => getMoviePageShellController().renderMoviePageCompanyMeta(moviePage, movie),
-    persistSessionCache: persistCurrentMoviePageSessionCache,
+    getInitialCompanyRows: movie => getMoviePageShellController().getInitialMovieCompanyRows(
+      movie, document.querySelector('meta[name="movie-company-links"]')?.content
+    ),
+    ensureCompanyItemsLoaded: ensureMovieCompanyItemsLoaded,
     onCompanyLoadError: error => {
       console.warn('Не удалось загрузить ссылки на компании фильма:', error);
     },

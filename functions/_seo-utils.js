@@ -1,5 +1,5 @@
 import { addAppBuildHint } from './_response-utils.js';
-import { getMoviePageIntroHtml, getMoviePageTrailerButtonHtml, getYouTubeTrailerEmbedUrl } from '../movie-page-shell.js';
+import { getMoviePageCompanySource, getMoviePageIntroHtml, getMoviePageTrailerButtonHtml, getYouTubeTrailerEmbedUrl } from '../movie-page-shell.js';
 
 const SITE_ORIGIN = 'https://horroreiro.ru';
 const DEFAULT_SOCIAL_IMAGE = `${SITE_ORIGIN}/og-preview.jpg`;
@@ -58,6 +58,7 @@ const MOVIE_SELECT = `
   )
 `;
 
+const MOVIE_COMPANY_LINKS_SELECT = 'movie_companies(role,position,companies(id,slug,name))';
 const SITEMAP_MOVIE_SELECT = 'id, slug, created_at';
 const SEO_MOVIE_CACHE = new Map();
 const SEO_MOVIE_CACHE_TTL_MS = 60000;
@@ -151,7 +152,8 @@ async function fetchSupabaseRows(env, tableName, params = {}) {
   });
 
   if (!response.ok) {
-    throw new Error(`Supabase request failed: ${response.status}`);
+    const detail = await response.json().catch(() => null);
+    throw Object.assign(new Error(`Supabase request failed: ${response.status}`), { code: detail?.code });
   }
 
   return response.json();
@@ -418,10 +420,10 @@ function createSocialPreviewHtml(movie) {
 
 function upsertHeadElement(html, pattern, elementHtml) {
   if (pattern.test(html)) {
-    return html.replace(pattern, elementHtml);
+    return html.replace(pattern, () => elementHtml);
   }
 
-  return html.replace('</head>', `  ${elementHtml}\n</head>`);
+  return html.replace('</head>', () => `  ${elementHtml}\n</head>`);
 }
 
 function upsertMetaName(html, name, content) {
@@ -538,6 +540,13 @@ function applyMovieSeoToHtml(html, movie) {
   nextHtml = upsertMetaName(nextHtml, 'twitter:description', description);
   nextHtml = upsertMetaName(nextHtml, 'twitter:image', image);
   nextHtml = upsertMetaName(nextHtml, 'twitter:url', canonicalUrl);
+  if (Array.isArray(movie.movie_companies)) {
+    nextHtml = upsertMetaName(nextHtml, 'movie-company-links', JSON.stringify({
+      id: movie.id,
+      source: getMoviePageCompanySource(movie),
+      rows: movie.movie_companies
+    }));
+  }
   nextHtml = upsertJsonLd(nextHtml, 'movieStructuredData', buildMovieJsonLd(movie));
   nextHtml = injectMovieFallback(nextHtml, renderMovieFallbackHtml(movie));
 
@@ -617,7 +626,12 @@ async function fetchMovieBySlugOrId(env, { slug = '', id = '' } = {}) {
     params.id = `eq.${normalizedId}`;
   }
 
-  const cacheKey = JSON.stringify([getSupabaseTableUrl(env, 'movies', params).toString(), env.SUPABASE_ANON_KEY]);
+  const paramsWithCompanies = {
+    ...params,
+    select: `${MOVIE_SELECT},${MOVIE_COMPANY_LINKS_SELECT}`,
+    'movie_companies.order': 'role.asc,position.asc,company_id.asc'
+  };
+  const cacheKey = JSON.stringify([getSupabaseTableUrl(env, 'movies', paramsWithCompanies).toString(), env.SUPABASE_ANON_KEY]);
   const cached = SEO_MOVIE_CACHE.get(cacheKey);
 
   if (cached && cached.expiresAt > Date.now()) {
@@ -626,7 +640,11 @@ async function fetchMovieBySlugOrId(env, { slug = '', id = '' } = {}) {
 
   // Cache only public SEO data; client movie/user state reads stay fresh.
   const entry = { expiresAt: Date.now() + SEO_MOVIE_CACHE_TTL_MS, promise: null };
-  entry.promise = fetchSupabaseRows(env, 'movies', params)
+  entry.promise = fetchSupabaseRows(env, 'movies', paramsWithCompanies)
+    .catch(error => {
+      if (!['42P01', '42501', 'PGRST200', 'PGRST205'].includes(error.code)) throw error;
+      return fetchSupabaseRows(env, 'movies', params);
+    })
     .then(rows => {
       const movie = Array.isArray(rows) ? rows[0] || null : null;
       if (!movie && SEO_MOVIE_CACHE.get(cacheKey) === entry) {

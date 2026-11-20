@@ -42,6 +42,28 @@ export function getMoviePageIntroHtml(movie, escapeHtml) {
   `;
 }
 
+export function getMoviePageCompanySource(movie) {
+  return [movie.production ?? null, movie.distribution ?? null, movie.russian_distribution ?? null];
+}
+
+function getInitialMovieCompanyRows(movie, content) {
+  let snapshot;
+  try {
+    snapshot = JSON.parse(content || 'null');
+  } catch {
+    return null;
+  }
+
+  if (
+    snapshot?.id === movie.id &&
+    Array.isArray(snapshot.rows) &&
+    JSON.stringify(snapshot.source) === JSON.stringify(getMoviePageCompanySource(movie))
+  ) {
+    return snapshot.rows;
+  }
+  return null;
+}
+
 function replaceMoviePageContent(root, movieId, html) {
   const earlyLayout = root.querySelector('.movie-page-server-fallback[data-server-rendered] .movie-page-layout');
   if (earlyLayout?.dataset.movieId !== String(movieId)) {
@@ -214,17 +236,6 @@ export function createMoviePageShellController(context = {}) {
       const names = getMoviePageCompanyListHtml(movie, role, movie[role]);
       return names ? `<div class="movie-page-meta-item"><span>${label}:</span> ${names}</div>` : '';
     }).join('');
-  }
-
-  function renderMoviePageCompanyMeta(root, movie) {
-    const mount = root.querySelector('[data-movie-page-companies]');
-    if (mount?.closest('.movie-page-layout')?.dataset.movieId !== String(movie.id)) {
-      return;
-    }
-
-    const next = mount.cloneNode(false);
-    next.innerHTML = getMoviePageCompanyMetaHtml(movie);
-    if (!mount.isEqualNode(next)) mount.replaceChildren(...next.childNodes);
   }
 
   function buildMoviePageViewModel(movie, { includeSocialSections = true } = {}) {
@@ -571,7 +582,7 @@ export function createMoviePageShellController(context = {}) {
   return {
     getYouTubeTrailerEmbedUrl,
     replaceMoviePageContent,
-    renderMoviePageCompanyMeta,
+    getInitialMovieCompanyRows,
     getMoviePageSubgenreLabel,
     getMoviePageFormatsLabel,
     buildMoviePageViewModel,

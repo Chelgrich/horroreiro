@@ -162,13 +162,18 @@ const cacheEnv = { SUPABASE_URL: 'https://seo-cache.test', SUPABASE_ANON_KEY: 'p
 
 try {
   Date.now = () => now;
-  globalThis.fetch = async () => {
+  globalThis.fetch = async url => {
     movieReads += 1;
     if (failNextRead) {
       failNextRead = false;
       return new Response('Unavailable', { status: 503 });
     }
-    return Response.json(movieExists ? [{ id: 'movie-cache-id', slug: 'cached-movie', title: movieTitle, synopsis: 'A <public> synopsis', poster_url: 'https://poster.test/early.webp', trailer_url: 'https://youtu.be/abcde12345_' }] : []);
+    assert(new URL(url).searchParams.get('select').includes('movie_companies'), 'company links must be part of the public movie read');
+    return Response.json(movieExists ? [{
+      id: 'movie-cache-id', slug: 'cached-movie', title: movieTitle, synopsis: 'A <public> synopsis',
+      poster_url: 'https://poster.test/early.webp', trailer_url: 'https://youtu.be/abcde12345_',
+      movie_companies: [{ role: 'production', position: 0, companies: { id: 'company-id', name: 'Company "$&" <Other>', slug: 'company' } }]
+    }] : []);
   };
 
   const cachedRuntime = createPortableRuntime({ env: cacheEnv });
@@ -181,6 +186,9 @@ try {
   assert(movieReads === 1, `20 concurrent movie GET/HEAD requests made ${movieReads} Supabase reads instead of 1`);
   const browserMovieResponse = await cachedRuntime.handleRequest(new Request('http://portable.test/movie/cached-movie'));
   const browserMovieHtml = await browserMovieResponse.text();
+  const companySnapshot = browserMovieHtml.match(/<meta name="movie-company-links" content="([^"]+)">/)?.[1];
+  assert(companySnapshot?.includes('Company') && companySnapshot.includes('&lt;Other&gt;') &&
+    companySnapshot.includes('$&amp;'), 'relation-only companies must reach browser HTML with literal, escaped labels');
   assert(browserMovieHtml.includes('#moviePage:has(> .movie-page-server-fallback[data-server-rendered]) > .movie-page-stack-skeleton'), 'server movie intro must take the place of the startup skeleton');
   assert(/class="movie-page-title-main"[^>]*>[\s\S]*?class="movie-page-synopsis-text">A &lt;public&gt; synopsis/.test(browserMovieHtml), 'description must be escaped and in the shared intro');
   assert(/<img class="movie-page-poster"[^>]*data-original-poster-src="https:\/\/poster.test\/early.webp"/.test(browserMovieHtml), 'server poster must carry its original URL for reuse');
@@ -231,6 +239,13 @@ try {
   const readsBeforeEvictionCheck = movieReads;
   await fetchMovieBySlugOrId(cacheEnv, { slug: 'oldest-movie' });
   assert(movieReads === readsBeforeEvictionCheck + 1, 'SEO cache must evict old entries at its size limit');
+
+  globalThis.fetch = async url => new URL(url).searchParams.get('select').includes('movie_companies')
+    ? Response.json({ code: 'PGRST200' }, { status: 400 })
+    : Response.json([{ id: 'legacy-id', slug: 'legacy-movie', title: 'Legacy movie' }]);
+  const legacyHtml = await (await cachedRuntime.handleRequest(new Request('http://portable.test/movie/legacy-movie'))).text();
+  assert(legacyHtml.includes('data-server-rendered="true"') && !legacyHtml.includes('name="movie-company-links"'),
+    'A project without the optional company relation must still render the early movie intro');
 
   const poster = await sharp({ create: { width: 32, height: 48, channels: 3, background: '#402020' } }).webp().toBuffer();
   globalThis.fetch = async url => String(url).includes('/rest/v1/')

@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-21 — Include relation-only companies in the first movie render
+
+- Movie HTML carries public company links from the existing server movie read. The interactive page reuses them when the movie ID and company fields match. This includes companies that exist only through a relation, so the first render already has the full labels and links.
+- A bare or outdated movie shell reads companies alongside the other initial data and keeps the movie's plain names if that read fails.
+
 ## 2026-11-21 — Enable movie actions before company links arrive
 
 - The movie details page renders its controls and company names from the movie payload. Company links load independently and refresh only the company rows. Existing labels keep their width, including when a company page uses a different canonical spelling. Rows available only through relations retain their canonical names.

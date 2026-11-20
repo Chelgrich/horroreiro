@@ -181,20 +181,13 @@ export function createMoviePageOrchestratorController(context = {}) {
       loadTasks.push(bindings.ensureDirectorItemsLoaded(movie));
     }
 
-    const shouldLoadCompanies = (
-      bindings.getAreCompaniesAvailable() !== false &&
-      !Array.isArray(movie.movie_companies)
-    );
-    const previousMovie = bindings.getCurrentMovie();
-    if (
-      shouldLoadCompanies &&
-      previousMovie?.id === movie.id &&
-      Array.isArray(previousMovie.movie_companies) &&
-      ['production', 'distribution', 'russian_distribution'].every(
-        role => JSON.stringify(previousMovie[role]) === JSON.stringify(movie[role])
-      )
-    ) {
-      movie.movie_companies = previousMovie.movie_companies;
+    if (!Array.isArray(movie.movie_companies)) {
+      const initialRows = bindings.getInitialCompanyRows(movie);
+      if (initialRows) {
+        movie.movie_companies = initialRows;
+      } else if (bindings.getAreCompaniesAvailable() !== false) {
+        loadTasks.push(bindings.ensureCompanyItemsLoaded(movie).catch(bindings.onCompanyLoadError));
+      }
     }
 
     if (!isMoviePayloadLoadedByRpc) {
@@ -241,21 +234,6 @@ export function createMoviePageOrchestratorController(context = {}) {
         socialLoading: true,
         similarLoading: true
       });
-    }
-
-    if (shouldLoadCompanies) {
-      void bindings.fetchCompanyRows(movie.id).then(rows => {
-        if (bindings.getCurrentMovie() !== movie) {
-          return;
-        }
-
-        movie.movie_companies = rows;
-        bindings.renderCompanyMeta(movie);
-        bindings.persistSessionCache();
-      }).catch(bindings.onCompanyLoadError);
-    }
-
-    if (!shouldSkipRender) {
       await bindings.loadDeferredSections(movie, { shouldRender: true });
     }
 

@@ -300,7 +300,7 @@ Rules:
 - Apply `movie-companies-setup.sql` before using these pages in a fresh Supabase environment.
 - Movie modal fields `production`, `distribution`, and `russian_distribution` remain the source edited by admins.
 - On movie create/update, synchronize those arrays into `companies` and `movie_companies`.
-- Movie detail pages use `movie_companies -> companies` to link production, distribution, and Russian distribution names to `/company/<slug>` for all visitors. The movie array name stays visible as its link becomes available. Linked rows with no array value display the canonical `companies.name`.
+- Browser movie HTML carries public `movie_companies -> companies` rows from the existing server movie read. Movie detail pages link production, distribution, and Russian distribution names to `/company/<slug>` on the first interactive render. The movie array name stays visible, and linked rows with no array value display the canonical `companies.name`.
 - Matching is by normalized company name, not by role; one company can have several role sections on its detail page.
 - Remove stale `movie_companies` rows when a company value is removed from a movie.
 - Delete orphan company rows when no movie references remain.

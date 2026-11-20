@@ -7,6 +7,7 @@ import { doesMovieMatchCatalogFilters } from '../catalog-filters.js';
 import { createAdminActionTools } from '../admin-actions.js';
 import { createMovieUserStateController } from '../movie-user-state.js';
 import { createMoviePageOrchestratorController } from '../movie-page-orchestrator.js';
+import { createMoviePageShellController } from '../movie-page-shell.js';
 import { createProfileSettingsActions } from '../profile-settings-actions.js';
 import { createMovieEditorController } from '../movie-editor.js';
 
@@ -63,15 +64,20 @@ const page = createMoviePageOrchestratorController({ location: { pathname: '/mov
 await assert.rejects(page.initMoviePage({}), TypeError, 'Missing session/data initialization cannot silently succeed');
 
 const movie = { id: 'movie' };
-const companyResponse = Promise.withResolvers();
 const companyRows = [{ role: 'production' }];
+const initialCompanyRows = createMoviePageShellController().getInitialMovieCompanyRows;
+const companySnapshot = JSON.stringify({ id: movie.id, source: [null, null, null], rows: companyRows });
+assert.equal(initialCompanyRows({ id: 'wrong' }, companySnapshot), null);
+assert.equal(initialCompanyRows({ ...movie, production: ['Changed'] }, companySnapshot), null);
+assert.equal(initialCompanyRows(movie, 'invalid JSON'), null);
 let currentMovie;
 const moviePageEvents = [];
 const moviePageBindings = {
   fetchPayloadByRouteParams: async () => movie,
   getAreDirectorsAvailable: () => false,
   getAreCompaniesAvailable: () => true,
-  fetchCompanyRows: () => companyResponse.promise,
+  getInitialCompanyRows: value => initialCompanyRows(value, companySnapshot),
+  ensureCompanyItemsLoaded() { throw Error('Unexpected separate company request'); },
   getCurrentMovieId: () => currentMovie?.id,
   getCurrentMovie: () => currentMovie,
   setCurrentMovie: value => { currentMovie = value; },
@@ -80,29 +86,24 @@ const moviePageBindings = {
   getActiveSessionCacheSignature: () => '',
   renderMoviePage: value => moviePageEvents.push(['render', value.movie_companies]),
   loadDeferredSections: async () => {},
-  renderCompanyMeta: value => moviePageEvents.push(['companies', value.movie_companies]),
-  persistSessionCache: () => moviePageEvents.push(['cache']),
   onCompanyLoadError: error => moviePageEvents.push(['error', error])
 };
 await page.loadMoviePageByRouteParams({ slug: 'fixture' }, moviePageBindings);
-assert.deepEqual(moviePageEvents, [['render', undefined]], 'Company requests cannot delay movie rendering');
-companyResponse.resolve(companyRows);
-await companyResponse.promise;
-assert.deepEqual(moviePageEvents, [['render', undefined], ['companies', companyRows], ['cache']]);
+assert.deepEqual(moviePageEvents, [['render', companyRows]], 'Server company links are ready at first render');
 
 const refreshResponse = Promise.withResolvers();
-const refreshedMovie = { id: movie.id };
+const refreshedMovie = { id: movie.id, production: ['Changed'] };
 moviePageEvents.length = 0;
-await page.loadMoviePageByRouteParams({ slug: 'fixture' }, {
+const refresh = page.loadMoviePageByRouteParams({ slug: 'fixture' }, {
   ...moviePageBindings,
   fetchPayloadByRouteParams: async () => refreshedMovie,
-  fetchCompanyRows: () => refreshResponse.promise
+  ensureCompanyItemsLoaded: async value => { value.movie_companies = await refreshResponse.promise; }
 });
-assert.deepEqual(moviePageEvents, [['render', companyRows]], 'A refresh keeps existing links visible');
-currentMovie = { id: movie.id };
+await Promise.resolve();
+assert.deepEqual(moviePageEvents, [], 'A stale company snapshot must not produce an incomplete render');
 refreshResponse.resolve([]);
-await refreshResponse.promise;
-assert.deepEqual(moviePageEvents, [['render', companyRows]], 'A superseded response cannot patch the current movie');
+await refresh;
+assert.deepEqual(moviePageEvents, [['render', []]]);
 
 let avatarWrites = 0;
 const settings = createProfileSettingsActions({
