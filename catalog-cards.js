@@ -24,6 +24,7 @@ export function createCatalogCardController(context = {}) {
     getPaintedPoster,
     preservePaintedPoster,
     replaceSiblings,
+    replaceChildrenKeepingMounted,
     isRatingRequestInFlight,
     isWatchlistRequestInFlight
   } = context;
@@ -202,20 +203,77 @@ export function createCatalogCardController(context = {}) {
     return painted;
   }
 
-  function updateMountedMovieCard(previous, card) {
-    const painted = preserveMovieCardPoster(previous, card, { keepInPlace: true });
-    if (!painted) return false;
+  function updateMovieCardLinks(card, nextHolder) {
+    const holder = card.querySelector('[data-catalog-card-links]');
+    if (!holder || !nextHolder) return;
+    const deferred = '[data-catalog-links-pending], [data-catalog-links-retry]';
+    if (nextHolder.querySelector(deferred) && !holder.querySelector(deferred)) return;
 
+    const grid = holder.querySelector('.movie-external-links');
+    const nextGrid = nextHolder.querySelector('.movie-external-links');
+    if (grid && nextGrid) {
+      const currentLinks = [...grid.children];
+      const linksByProvider = new Map(currentLinks.map(link => [link.className, link]));
+      const nextLinks = [...nextGrid.children].map(link => {
+        const current = linksByProvider.get(link.className);
+        if (!current) return link;
+        const href = link.getAttribute('href');
+        if (href !== current.getAttribute('href')) current.setAttribute('href', href);
+        return current;
+      });
+      if (nextLinks.length !== currentLinks.length || nextLinks.some((link, index) => link !== currentLinks[index])) {
+        replaceChildrenKeepingMounted(grid, nextLinks);
+      }
+      return;
+    }
+
+    const toggle = nextHolder.querySelector('[data-external-links-toggle]');
+    const oldToggle = holder.querySelector('[data-external-links-toggle]');
+    if (toggle && oldToggle?.getAttribute('aria-expanded') === 'true') {
+      toggle.setAttribute('aria-expanded', 'true');
+      toggle.textContent = oldToggle.textContent;
+      nextHolder.querySelector('[data-external-links-collapsible]').classList.add('is-open');
+    }
+    if (holder.isEqualNode(nextHolder)) return;
+    const restoreFocus = holder.contains(documentRef.activeElement);
+    holder.replaceChildren(...nextHolder.childNodes);
+    if (!toggle) card.classList.remove('has-open-external-links');
+    if (restoreFocus) {
+      (toggle?.offsetWidth ? toggle : holder.querySelector('a, [data-catalog-links-retry]'))?.focus({ preventScroll: true });
+    }
+  }
+
+  function updateMountedMovieCard(previous, card) {
+    const holder = previous?.querySelector('[data-catalog-card-links]');
+    const nextHolder = card.querySelector('[data-catalog-card-links]');
+    if (!holder || !nextHolder) return false;
+
+    const painted = preserveMovieCardPoster(previous, card, { keepInPlace: true });
+    const nextParts = new Map();
+    if (painted) {
+      const posterBlock = updateMountedPoster(previous, card, painted);
+      nextParts.set(card.querySelector('.movie-poster-block'), posterBlock);
+    }
+    updateMovieCardLinks(previous, nextHolder);
+    const expanded = previous.classList.contains('has-open-external-links');
+    const nextRatingBlock = nextHolder.parentNode;
+    nextHolder.remove();
+    replaceSiblings(holder, ...nextRatingBlock.childNodes);
+    nextParts.set(nextRatingBlock, holder.parentNode);
+    replaceChildrenKeepingMounted(previous, [...card.childNodes].map(node => nextParts.get(node) || node));
+    previous.className = card.className;
+    previous.classList.toggle('has-open-external-links', expanded);
+    return true;
+  }
+
+  function updateMountedPoster(previous, card, painted) {
     const nextWrapper = card.querySelector('.movie-poster-wrapper');
     replaceSiblings(painted, ...nextWrapper.childNodes);
     const link = previous.querySelector('.movie-poster-link');
     const nextLink = nextWrapper.parentElement;
     link.setAttribute('href', nextLink.getAttribute('href'));
     link.setAttribute('aria-label', nextLink.getAttribute('aria-label'));
-    nextLink.parentElement.remove();
-    replaceSiblings(link.parentElement, ...card.childNodes);
-    previous.className = card.className;
-    return true;
+    return link.parentElement;
   }
 
   function getPosterHtml(
@@ -397,6 +455,7 @@ export function createCatalogCardController(context = {}) {
     createMovieCard,
     updateMovieCardRating,
     updateMovieCardPoster,
+    updateMovieCardLinks,
     updateMountedMovieCard,
     preserveMovieCardPoster
   };

@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-21 — Keep external link icons mounted in the catalog
+
+- Catalog returns and card refreshes keep the existing link panel visible while link data is checked in the background. Reconcile resolved links by provider, changing only the affected URL or icon. An already loaded panel stays visible if that check fails.
+
 ## 2026-11-21 — Keep the movie poster mounted during the interactive handoff
 
 - Movie details update the title, metadata, gallery controls and lower sections around the existing poster. The painted image and its ancestors stay connected during the server-to-interactive transition and subsequent renders. A different image replaces the visible preview after decoding.

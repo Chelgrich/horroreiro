@@ -44,6 +44,8 @@ const linkSandbox = vm.createContext({
   }) },
   throwIfSupabaseError(error) { if (error) throw error; },
   container: { querySelectorAll: () => [] },
+  getCatalogCardController: () => ({}),
+  document: { createElement: () => ({}) },
   syncOpenExternalLinksLayouts() {}, persistCatalogDomSnapshot() {}
 });
 for (const name of ['needsCatalogMovieLinkLookup', 'loadCatalogPageMovieLinks']) {

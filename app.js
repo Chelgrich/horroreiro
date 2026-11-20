@@ -5999,15 +5999,7 @@ function replaceCatalogCards(fragment) {
         const previous = cardsById.get(card.dataset.movieId);
         return updateMountedMovieCard(previous, card) ? previous : card;
       });
-      const retained = new Set(nextCards);
-      for (const node of [...container.childNodes]) {
-        if (!retained.has(node)) node.remove();
-      }
-      let position = container.firstChild;
-      for (const card of nextCards) {
-        if (card !== position) container.insertBefore(card, position);
-        position = card.nextSibling;
-      }
+      replaceChildrenKeepingMounted(container, nextCards);
       return;
     }
     for (const card of fragment.querySelectorAll('.movie-card[data-movie-id]')) {
@@ -8119,6 +8111,7 @@ function getCatalogCardControllerContext() {
     getPaintedPoster,
     preservePaintedPoster,
     replaceSiblings,
+    replaceChildrenKeepingMounted,
     isRatingRequestInFlight: movieId => ratingRequestInFlight.has(String(movieId)),
     isWatchlistRequestInFlight: movieId => watchlistRequestInFlight.has(String(movieId))
   };
@@ -12479,6 +12472,18 @@ function replaceSiblings(node, ...nextNodes) {
   if (nextNodes.length) parent.append(...nextNodes);
 }
 
+function replaceChildrenKeepingMounted(parent, nextNodes) {
+  const retained = new Set(nextNodes);
+  for (const node of [...parent.childNodes]) {
+    if (!retained.has(node)) node.remove();
+  }
+  let position = parent.firstChild;
+  for (const node of nextNodes) {
+    if (node !== position) parent.insertBefore(node, position);
+    position = node.nextSibling;
+  }
+}
+
 function preservePaintedPoster(previous, next, { keepInPlace = false } = {}) {
   if (!previous || !next || (previous.complete && previous.naturalWidth === 0)) return false;
 
@@ -14749,22 +14754,6 @@ function rerenderMovieCard(
     newCard.classList.add('is-state-appearing');
   }
 
-  if (wasExternalLinksExpanded) {
-    const newExternalLinksToggle = newCard.querySelector('[data-external-links-toggle="true"]');
-    const newExternalLinksCollapsible = newCard.querySelector('[data-external-links-collapsible]');
-
-    if (newExternalLinksToggle) {
-      newExternalLinksToggle.setAttribute('aria-expanded', 'true');
-      newExternalLinksToggle.textContent = 'Свернуть';
-    }
-
-    if (newExternalLinksCollapsible) {
-      newExternalLinksCollapsible.classList.add('is-open');
-    }
-
-    newCard.classList.add('has-open-external-links');
-  }
-
   const updatedCard = getCatalogCardController().updateMountedMovieCard(existingCard, newCard)
     ? existingCard
     : newCard;
@@ -15007,19 +14996,14 @@ async function loadCatalogPageMovieLinks({ retry = false } = {}) {
     updatedIds.add(id);
   }
 
+  const controller = getCatalogCardController();
+  const template = document.createElement('template');
   for (const card of container.querySelectorAll('.movie-card[data-movie-id]')) {
     const id = card.dataset.movieId;
     if (!updatedIds.has(id)) continue;
-    const holder = card.querySelector('[data-catalog-card-links]');
-    if (!holder || (!rows && !holder.querySelector('[data-catalog-links-pending], [data-catalog-links-retry]'))) continue;
-    const restoreFocus = holder.contains(document.activeElement);
     const expanded = card.classList.contains('has-open-external-links');
-    holder.innerHTML = getCatalogMovieCardLinksHtml(getCatalogMovieById(id), { expanded });
-    const toggle = holder.querySelector('[data-external-links-toggle]');
-    if (!toggle) card.classList.remove('has-open-external-links');
-    if (restoreFocus) {
-      (toggle?.offsetWidth ? toggle : holder.querySelector('a, [data-catalog-links-retry]'))?.focus({ preventScroll: true });
-    }
+    template.innerHTML = `<div data-catalog-card-links>${getCatalogMovieCardLinksHtml(getCatalogMovieById(id), { expanded })}</div>`;
+    controller.updateMovieCardLinks(card, template.content.firstElementChild);
   }
   syncOpenExternalLinksLayouts();
   persistCatalogDomSnapshot();

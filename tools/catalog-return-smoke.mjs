@@ -115,6 +115,27 @@ for (const name of ['syncOpenExternalLinksLayouts', 'bindRestoredCatalogDomState
 layoutSandbox.bindRestoredCatalogDomState();
 for (const callback of frames.splice(0)) callback(1234.5);
 assert.equal(layouts, 1, 'Warm catalog layout must use its DOM root rather than the rAF timestamp');
+const linkWrites = [];
+const makeLink = (className, href) => ({
+  className,
+  getAttribute: () => href,
+  setAttribute: (_name, value) => linkWrites.push([className, value])
+});
+const linksHolder = (children, pending = false) => ({
+  querySelector: selector => selector === '.movie-external-links'
+    ? { children }
+    : pending ? {} : null
+});
+const linksCard = { querySelector: () => linksHolder([makeLink('is-imdb', '/old'), makeLink('is-rt', '/same')]) };
+const { updateMovieCardLinks } = createCatalogCardController({
+  replaceChildrenKeepingMounted: () => assert.fail('Matching providers must stay mounted')
+});
+updateMovieCardLinks(linksCard, linksHolder([], true));
+updateMovieCardLinks(linksCard, linksHolder([makeLink('is-imdb', '/old'), makeLink('is-rt', '/same')]));
+assert.deepEqual(linkWrites, [], 'A pending read and identical results must leave restored links alone');
+updateMovieCardLinks(linksCard, linksHolder([makeLink('is-imdb', '/new'), makeLink('is-rt', '/same')]));
+assert.deepEqual(linkWrites, [['is-imdb', '/new']], 'Only the edited provider URL must change');
+
 const oldCard = { getBoundingClientRect: () => ({ top: 10 }), querySelector: () => null,
   classList: { contains: name => name === 'has-open-external-links' },
   replaceWith() { assert.fail('A card updated in place must remain mounted'); } };
