@@ -5259,7 +5259,7 @@ function getSanitizedMoviePageDomSnapshotHtml(movie = currentMoviePageMovieData)
     return '';
   }
 
-  const renderedStack = moviePage.querySelector('.movie-page-stack:not(.movie-page-stack-skeleton)');
+  const renderedStack = moviePage.querySelector('.movie-page-stack:not(.movie-page-stack-skeleton, .movie-page-server-fallback)');
 
   if (!renderedStack) {
     return '';
@@ -5269,7 +5269,7 @@ function getSanitizedMoviePageDomSnapshotHtml(movie = currentMoviePageMovieData)
   template.innerHTML = moviePage.innerHTML;
 
   template.content
-    .querySelectorAll('[data-movie-page-watchlist-icon-toggle="true"], .movie-page-watched-icon')
+    .querySelectorAll('[data-movie-page-watchlist-icon-toggle="true"], .movie-page-watched-icon, .movie-page-server-poster-preview')
     .forEach(element => {
       element.remove();
     });
@@ -7181,59 +7181,6 @@ function normalizeTmdbPersonUrl(value) {
   }
 }
 
-function getYouTubeVideoIdFromUrl(value) {
-  const normalizedUrl = normalizeOptionalUrl(value);
-
-  if (!normalizedUrl) {
-    return '';
-  }
-
-  try {
-    const parsedUrl = new URL(normalizedUrl);
-    const hostname = parsedUrl.hostname.replace(/^www\./i, '').toLowerCase();
-    const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
-
-    if (hostname === 'youtu.be') {
-      return pathParts[0] || '';
-    }
-
-    if (
-      hostname === 'youtube.com' ||
-      hostname === 'm.youtube.com' ||
-      hostname === 'music.youtube.com' ||
-      hostname === 'youtube-nocookie.com'
-    ) {
-      if (parsedUrl.pathname === '/watch') {
-        return parsedUrl.searchParams.get('v') || '';
-      }
-
-      if (['embed', 'shorts', 'live'].includes(pathParts[0])) {
-        return pathParts[1] || '';
-      }
-    }
-  } catch (error) {
-    const fallbackMatch = normalizedUrl.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([A-Za-z0-9_-]+)/i);
-    return fallbackMatch?.[1] || '';
-  }
-
-  return '';
-}
-
-function getYouTubeTrailerEmbedUrl(value) {
-  const videoId = getYouTubeVideoIdFromUrl(value).trim();
-
-  if (!/^[A-Za-z0-9_-]{6,}$/.test(videoId)) {
-    return '';
-  }
-
-  const embedUrl = new URL(`https://www.youtube.com/embed/${videoId}`);
-
-  embedUrl.searchParams.set('autoplay', '1');
-  embedUrl.searchParams.set('rel', '0');
-
-  return embedUrl.toString();
-}
-
 function normalizeRuntimeMinutesValue(value) {
   if (value === null || value === undefined || value === '') {
     return null;
@@ -8603,7 +8550,7 @@ function getMoviePageOrchestratorController() {
 function getMoviePageInteractionsControllerContext() {
   return {
     moviePage,
-    getYouTubeTrailerEmbedUrl,
+    getYouTubeTrailerEmbedUrl: value => getMoviePageShellController().getYouTubeTrailerEmbedUrl(value),
     getMoviePagePosterGalleryImages,
     getPosterImageData,
     bindPosterFallbackImages,
@@ -8664,7 +8611,6 @@ function getMoviePageShellControllerContext() {
     getCurrentUserRating,
     getCurrentUserMovieState,
     getMoviePageExternalLinksHtml,
-    getYouTubeTrailerEmbedUrl,
     getMoviePageReviewsSectionHtml,
     getMoviePageCommentsSectionHtml,
     getMoviePosterImages,
@@ -17320,7 +17266,7 @@ function renderMoviePage(movie, { socialLoading = false, similarLoading = false 
   setMoviePageDocumentMeta(movie);
 
   preserveWarmStartedPageScrollIfNeeded(() => {
-    moviePage.innerHTML = `
+    getMoviePageShellController().replaceMoviePageContent(moviePage, movie.id, `
       <div class="movie-page-stack">
         ${getMoviePageShellController().getMoviePageHeaderHtml(movie, viewModel)}
 
@@ -17330,7 +17276,7 @@ function renderMoviePage(movie, { socialLoading = false, similarLoading = false 
           ${similarSectionHtml}
         </div>
       </div>
-    `;
+    `);
   });
   document.documentElement.classList.add('movie-page-rendered');
 

@@ -1,4 +1,5 @@
 import { addAppBuildHint } from './_response-utils.js';
+import { getMoviePageIntroHtml, getMoviePageTrailerButtonHtml, getYouTubeTrailerEmbedUrl } from '../movie-page-shell.js';
 
 const SITE_ORIGIN = 'https://horroreiro.ru';
 const DEFAULT_SOCIAL_IMAGE = `${SITE_ORIGIN}/og-preview.jpg`;
@@ -44,6 +45,7 @@ const MOVIE_SELECT = `
   letterboxd_url,
   rottentomatoes_url,
   tmdb_url,
+  trailer_url,
   search_aliases,
   synopsis,
   formats,
@@ -473,22 +475,20 @@ function renderMovieFallbackHtml(movie) {
     ? getPosterTransformUrl(movie.poster_url, { width: 640, quality: POSTER_IMAGE_MIN_QUALITY })
     : '';
   const posterHtml = movie?.poster_url
-    ? `
-          <div class="movie-page-poster-wrapper">
-            <img class="movie-page-poster" src="${escapeHtml(posterUrl)}" alt="Постер фильма ${escapeHtml(movie.title)}" loading="eager" fetchpriority="high">
-          </div>`
+    ? `<img class="movie-page-poster" src="${escapeHtml(posterUrl)}" data-original-poster-src="${escapeHtml(movie.poster_url)}"${posterUrl !== movie.poster_url ? ` data-poster-fallback-src="${escapeHtml(movie.poster_url)}"` : ''} alt="Постер фильма ${escapeHtml(movie.title)}" loading="eager" decoding="async" fetchpriority="high">`
     : '<div class="movie-poster-placeholder">Нет постера</div>';
 
   return `        <div class="movie-page-stack movie-page-server-fallback" data-server-rendered="true">
           <article class="movie-page-layout" data-movie-id="${escapeHtml(movie.id)}">
             <div class="movie-page-poster-column">
-              ${posterHtml}
+              <div class="movie-page-poster-wrapper">${posterHtml}</div>
+              ${getYouTubeTrailerEmbedUrl(movie.trailer_url) ? getMoviePageTrailerButtonHtml({ pending: true }) : ''}
             </div>
             <div class="movie-page-main-column">
               <div class="movie-page-title-block">
-                <div class="movie-page-title-main">
-                  <h1 class="movie-page-title">${escapeHtml(movie.title)}</h1>
-                  ${movie.original_title ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>` : ''}
+                <div class="movie-page-title-row">
+                  ${getMoviePageIntroHtml(movie, escapeHtml)}
+                  <div class="movie-page-summary-panel" aria-hidden="true"></div>
                 </div>
                 <div class="movie-page-meta-list">
                   <div class="movie-page-meta-item"><span>Год:</span> <strong>${movie.year ?? '-'}</strong></div>
@@ -499,7 +499,6 @@ function renderMovieFallbackHtml(movie) {
                   ${distribution ? `<div class="movie-page-meta-item"><span>Дистрибуция:</span> ${escapeHtml(distribution)}</div>` : ''}
                   ${russianDistribution ? `<div class="movie-page-meta-item"><span>Дистрибуция в России:</span> ${escapeHtml(russianDistribution)}</div>` : ''}
                 </div>
-                ${movie.synopsis ? `<div class="movie-page-synopsis-block"><div class="movie-page-synopsis-text">${escapeHtml(movie.synopsis)}</div></div>` : ''}
               </div>
             </div>
           </article>

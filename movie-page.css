@@ -572,6 +572,12 @@ button:not(:where(
   transform-origin: center;
 }
 
+.movie-page-server-poster-preview{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .movie-page-poster.is-switching{
   animation: movie-page-poster-switch 280ms ease-out both;
 }
@@ -673,6 +679,11 @@ button:not(:where(
     0 0 14px var(--accent-alpha-18);
 }
 
+.movie-page-main-column,
+.movie-page-trailer-button{
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
 .movie-page-main-column{
   min-width: 0;
   display: flex;
@@ -700,12 +711,17 @@ button:not(:where(
 }
 
 .movie-page-summary-panel{
-  min-width: 160px;
+  width: 160px;
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 10px;
+}
+
+.movie-page-server-fallback .movie-page-summary-panel,
+.movie-page-server-fallback .movie-page-meta-list{
+  visibility: hidden;
 }
 
 .movie-page-rating-summary{
@@ -837,6 +853,7 @@ button:not(:where(
 }
 
 .movie-page-synopsis-block{
+  margin-top: 14px;
   padding-top: 14px;
   padding-bottom: 14px;
   border-top: 1px solid var(--border-divider);
@@ -863,6 +880,12 @@ button:not(:where(
   align-items: center;
   gap: 10px;
   flex-wrap: nowrap;
+}
+
+.movie-page-external-links-mixed .movie-rating-widget-image{
+  width: 102px;
+  height: 38px;
+  object-fit: contain;
 }
 
 @media (max-width: 680px) {
@@ -2266,6 +2289,10 @@ button:not(:where(
     gap: 12px;
   }
 
+  .movie-page-title-main{
+    width: 100%;
+  }
+
   .movie-page-summary-panel{
     width: 100%;
     min-width: 0;
@@ -2298,10 +2325,6 @@ button:not(:where(
   }}
 
 @media (max-width: 680px) {
-
-  .movie-page-main-column{
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  }
 
   .movie-page-title{
     font-size: var(--font-size-title-xl);

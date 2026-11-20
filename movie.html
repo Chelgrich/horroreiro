@@ -90,7 +90,8 @@
     html.app-load-failed #appStartupError { display: block; }
     html.app-load-failed .page-content-skeleton,
     html.app-load-failed .movie-page-stack-skeleton { display: none; }
-    #moviePage > .movie-page-server-fallback { display: none; }
+    #moviePage > .movie-page-server-fallback:not([data-server-rendered]),
+    #moviePage:has(> .movie-page-server-fallback[data-server-rendered]) > .movie-page-stack-skeleton { display: none; }
   </style>
 
   <script src="/boot-loader.js?v=30"></script>
@@ -159,6 +160,11 @@
                   <div class="movie-page-title-main">
                     <span class="movie-text-skeleton movie-page-skeleton-title"></span>
                     <span class="movie-text-skeleton movie-page-skeleton-original-title"></span>
+                    <div class="movie-page-synopsis-block movie-page-skeleton-synopsis">
+                      <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-1"></span>
+                      <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-2"></span>
+                      <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-3"></span>
+                    </div>
                   </div>
 
                   <div class="movie-page-summary-panel movie-page-skeleton-summary">
@@ -200,12 +206,6 @@
                     <span class="movie-text-skeleton movie-page-skeleton-label"></span>
                     <span class="movie-text-skeleton movie-page-skeleton-value movie-page-skeleton-value-8"></span>
                   </div>
-                </div>
-
-                <div class="movie-page-synopsis-block movie-page-skeleton-synopsis">
-                  <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-1"></span>
-                  <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-2"></span>
-                  <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-3"></span>
                 </div>
 
                 <div class="movie-page-external-links-block movie-page-skeleton-links">

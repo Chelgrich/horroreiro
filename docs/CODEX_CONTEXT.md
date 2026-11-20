@@ -319,7 +319,7 @@ Keep downloadable/report-heavy builders in `admin-actions.js`.
 
 `movie-detail-cache.js` is lazy-loaded only for movie detail pages and owns detail session-cache keys, signatures, entry creation, read/write, expiry, removal, and patching cached references to an updated movie in similar lists. `app.js` keeps the actual restoration of shared rating/watchlist/review/comment/similar state.
 
-`movie-page-shell.js` is lazy-loaded only for movie detail pages and owns detail view-model/header/skeleton HTML helpers.
+`movie-page-shell.js` is lazy-loaded only for movie detail pages and owns detail view-model/header/skeleton HTML helpers. The server movie route reuses its public intro and trailer button renderers to paint the poster, title and synopsis before client data arrives. The movie shell reuses matching intro and poster nodes during the interactive handoff.
 
 `movie-page-interactions.js` is lazy-loaded only for movie detail pages and owns trailer modal rendering/open-close behavior, poster gallery switching/load animation, and detail header event binding for watchlist, mobile rating, and trailer controls. `app.js` keeps payload loading, shared state restoration, user-state mutation bridges, and detail-module callbacks.
 

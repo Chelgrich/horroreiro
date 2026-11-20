@@ -1,3 +1,80 @@
+export function getYouTubeTrailerEmbedUrl(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const url = /^https?:\/\//i.test(text) ? text : `https://${text}`;
+  let videoId = '';
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./i, '').toLowerCase();
+    const [section, id] = parsed.pathname.split('/').filter(Boolean);
+    if (host === 'youtu.be') {
+      videoId = section || '';
+    } else if (['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtube-nocookie.com'].includes(host)) {
+      if (parsed.pathname === '/watch') videoId = parsed.searchParams.get('v') || '';
+      else if (['embed', 'shorts', 'live'].includes(section)) videoId = id || '';
+    }
+  } catch {
+    videoId = url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([A-Za-z0-9_-]+)/i)?.[1] || '';
+  }
+  videoId = videoId.trim();
+  return /^[A-Za-z0-9_-]{6,}$/.test(videoId)
+    ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`
+    : '';
+}
+
+export function getMoviePageTrailerButtonHtml({ pending = false } = {}) {
+  return `
+    <button type="button" class="secondary-button movie-page-rate-trigger movie-page-trailer-button" ${pending ? 'disabled' : 'data-movie-page-trailer-open="true"'}>
+      <span class="movie-page-trailer-play-icon" aria-hidden="true"></span>
+      <span>Смотреть трейлер</span>
+    </button>
+  `;
+}
+
+export function getMoviePageIntroHtml(movie, escapeHtml) {
+  const synopsis = String(movie?.synopsis || '').trim();
+  return `
+    <div class="movie-page-title-main">
+      <h1 class="movie-page-title">${escapeHtml(movie.title)}</h1>
+      ${movie.original_title ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>` : ''}
+      ${synopsis ? `<div class="movie-page-synopsis-block"><div class="movie-page-synopsis-text">${escapeHtml(synopsis)}</div></div>` : ''}
+    </div>
+  `;
+}
+
+function replaceMoviePageContent(root, movieId, html) {
+  const earlyLayout = root.querySelector('.movie-page-server-fallback[data-server-rendered] .movie-page-layout');
+  if (earlyLayout?.dataset.movieId !== String(movieId)) {
+    root.innerHTML = html;
+    return;
+  }
+
+  const template = root.ownerDocument.createElement('template');
+  template.innerHTML = html;
+  const intro = earlyLayout.querySelector('.movie-page-title-main');
+  const nextIntro = template.content.querySelector('.movie-page-title-main');
+  if (intro?.isEqualNode(nextIntro)) nextIntro.replaceWith(intro);
+
+  const poster = earlyLayout.querySelector('img.movie-page-poster');
+  const nextPoster = template.content.querySelector('img[data-movie-page-poster-image]');
+  if (poster && nextPoster && (!poster.complete || poster.naturalWidth > 0)) {
+    if (poster.dataset.originalPosterSrc === nextPoster.dataset.originalPosterSrc) {
+      poster.alt = nextPoster.alt;
+      poster.dataset.moviePagePosterImage = 'true';
+      nextPoster.replaceWith(poster);
+    } else if (poster.naturalWidth > 0) {
+      // Keep the painted poster in place until a preferred gallery image is ready.
+      poster.alt = '';
+      poster.setAttribute('aria-hidden', 'true');
+      poster.classList.add('movie-page-server-poster-preview');
+      nextPoster.after(poster);
+      nextPoster.addEventListener('load', () => { void nextPoster.decode().then(() => poster.remove(), () => {}); });
+    }
+  }
+
+  root.replaceChildren(template.content);
+}
+
 export function createMoviePageShellController(context = {}) {
   const {
     escapeHtml,
@@ -10,7 +87,6 @@ export function createMoviePageShellController(context = {}) {
     getCurrentUserRating,
     getCurrentUserMovieState,
     getMoviePageExternalLinksHtml,
-    getYouTubeTrailerEmbedUrl,
     getMoviePageReviewsSectionHtml,
     getMoviePageCommentsSectionHtml,
     getMoviePosterImages,
@@ -150,7 +226,6 @@ export function createMoviePageShellController(context = {}) {
       formatsLabel: getMoviePageFormatsLabel(movie),
       externalLinksHtml: getMoviePageExternalLinksHtml(movie),
       trailerEmbedUrl: getYouTubeTrailerEmbedUrl(movie?.trailer_url),
-      synopsis: String(movie?.synopsis || '').trim(),
       isRatingBusy: isMovieRatingBusy(movie?.id),
       isWatchlistBusy: isMovieWatchlistBusy(movie?.id),
       reviewsSectionHtml: includeSocialSections ? getMoviePageReviewsSectionHtml(movie) : '',
@@ -308,20 +383,7 @@ export function createMoviePageShellController(context = {}) {
               : ''
           }
           </div>
-          ${
-            trailerEmbedUrl
-              ? `
-                <button
-                  type="button"
-                  class="secondary-button movie-page-rate-trigger movie-page-trailer-button"
-                  data-movie-page-trailer-open="true"
-                >
-                  <span class="movie-page-trailer-play-icon" aria-hidden="true"></span>
-                  <span>Смотреть трейлер</span>
-                </button>
-              `
-              : ''
-          }
+          ${trailerEmbedUrl ? getMoviePageTrailerButtonHtml() : ''}
           </div>
         `;
   }
@@ -340,7 +402,6 @@ export function createMoviePageShellController(context = {}) {
       primaryPerceivedTagLabel,
       formatsLabel,
       externalLinksHtml,
-      synopsis,
       isRatingBusy
     } = viewModel;
 
@@ -348,15 +409,7 @@ export function createMoviePageShellController(context = {}) {
       <div class="movie-page-main-column">
         <div class="movie-page-title-block">
         <div class="movie-page-title-row">
-        <div class="movie-page-title-main">
-          <h1 class="movie-page-title">${escapeHtml(movie.title)}</h1>
-
-          ${
-            movie.original_title
-              ? `<div class="movie-page-original-title">${escapeHtml(movie.original_title)}</div>`
-              : ''
-          }
-        </div>
+        ${getMoviePageIntroHtml(movie, escapeHtml)}
 
             <div class="movie-page-summary-panel">
               <div class="movie-rating-summary movie-page-rating-summary">
@@ -421,16 +474,6 @@ export function createMoviePageShellController(context = {}) {
           </div>
 
           ${
-            synopsis
-              ? `
-                <div class="movie-page-synopsis-block">
-                  <div class="movie-page-synopsis-text">${escapeHtml(synopsis)}</div>
-                </div>
-              `
-              : ''
-          }
-
-          ${
             externalLinksHtml
               ? `
                 <div class="movie-page-external-links-block">
@@ -484,6 +527,11 @@ export function createMoviePageShellController(context = {}) {
                 <div class="movie-page-title-main">
                   <span class="movie-text-skeleton movie-page-skeleton-title"></span>
                   <span class="movie-text-skeleton movie-page-skeleton-original-title"></span>
+                  <div class="movie-page-synopsis-block movie-page-skeleton-synopsis">
+                    <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-1"></span>
+                    <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-2"></span>
+                    <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-3"></span>
+                  </div>
                 </div>
 
                 <div class="movie-page-summary-panel movie-page-skeleton-summary">
@@ -494,12 +542,6 @@ export function createMoviePageShellController(context = {}) {
 
               <div class="movie-page-meta-list movie-page-skeleton-meta-list">
                 ${metaLinesHtml}
-              </div>
-
-              <div class="movie-page-synopsis-block movie-page-skeleton-synopsis">
-                <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-1"></span>
-                <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-2"></span>
-                <span class="movie-text-skeleton movie-page-skeleton-synopsis-line movie-page-skeleton-synopsis-line-3"></span>
               </div>
 
               <div class="movie-page-external-links-block movie-page-skeleton-links">
@@ -523,6 +565,8 @@ export function createMoviePageShellController(context = {}) {
   }
 
   return {
+    getYouTubeTrailerEmbedUrl,
+    replaceMoviePageContent,
     getMoviePageSubgenreLabel,
     getMoviePageFormatsLabel,
     buildMoviePageViewModel,

@@ -168,7 +168,7 @@ try {
       failNextRead = false;
       return new Response('Unavailable', { status: 503 });
     }
-    return Response.json(movieExists ? [{ id: 'movie-cache-id', slug: 'cached-movie', title: movieTitle }] : []);
+    return Response.json(movieExists ? [{ id: 'movie-cache-id', slug: 'cached-movie', title: movieTitle, synopsis: 'A <public> synopsis', poster_url: 'https://poster.test/early.webp', trailer_url: 'https://youtu.be/abcde12345_' }] : []);
   };
 
   const cachedRuntime = createPortableRuntime({ env: cacheEnv });
@@ -180,6 +180,11 @@ try {
   assert(responses.every(response => response.status === 200), 'cached movie GET/HEAD must succeed');
   assert(movieReads === 1, `20 concurrent movie GET/HEAD requests made ${movieReads} Supabase reads instead of 1`);
   const browserMovieResponse = await cachedRuntime.handleRequest(new Request('http://portable.test/movie/cached-movie'));
+  const browserMovieHtml = await browserMovieResponse.text();
+  assert(browserMovieHtml.includes('#moviePage:has(> .movie-page-server-fallback[data-server-rendered]) > .movie-page-stack-skeleton'), 'server movie intro must take the place of the startup skeleton');
+  assert(/class="movie-page-title-main"[^>]*>[\s\S]*?class="movie-page-synopsis-text">A &lt;public&gt; synopsis/.test(browserMovieHtml), 'description must be escaped and in the shared intro');
+  assert(/<img class="movie-page-poster"[^>]*data-original-poster-src="https:\/\/poster.test\/early.webp"/.test(browserMovieHtml), 'server poster must carry its original URL for reuse');
+  assert(/class="secondary-button movie-page-rate-trigger movie-page-trailer-button" disabled/.test(browserMovieHtml), 'server trailer slot must be reserved and disabled');
   const telegramMovieResponse = await cachedRuntime.handleRequest(new Request('http://portable.test/movie/cached-movie', {
     headers: { 'User-Agent': 'TelegramBot (like TwitterBot)' }
   }));

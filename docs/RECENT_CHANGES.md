@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-21 — Show the movie intro from server HTML
+
+- Canonical movie pages show the server poster, title and synopsis once route CSS is ready. The shared intro puts the synopsis above dynamic metadata and reserves the trailer slot where needed. Interactive startup reuses matching intro and poster nodes and keeps the server poster visible while a different gallery image is decoded.
+- Movie detail rating badges reserve their image dimensions before their external responses arrive.
+
 ## 2026-11-20 — Measure editor poster transport
 
 - The existing opt-in `Server-Timing` response now also covers GETs for `movie_poster_images`, so the editor's movie and poster reads can be compared at the same points in the proxy.
