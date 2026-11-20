@@ -116,14 +116,16 @@ layoutSandbox.bindRestoredCatalogDomState();
 for (const callback of frames.splice(0)) callback(1234.5);
 assert.equal(layouts, 1, 'Warm catalog layout must use its DOM root rather than the rAF timestamp');
 const oldCard = { getBoundingClientRect: () => ({ top: 10 }), querySelector: () => null,
-  classList: { contains: name => name === 'has-open-external-links' }, replaceWith() {} };
+  classList: { contains: name => name === 'has-open-external-links' },
+  replaceWith() { assert.fail('A card updated in place must remain mounted'); } };
 const newCard = { classList: { contains: () => false, add() {} },
   querySelector: () => ({ setAttribute() {}, classList: { add() {} } }) };
 Object.assign(layoutSandbox, {
   getCatalogMovieById: () => ({ id: 'movie' }), createMovieCard: () => newCard,
-  getCatalogCardController: () => ({ preserveMovieCardPoster: (first, second) => {
+  getCatalogCardController: () => ({ updateMountedMovieCard: (first, second) => {
     assert.equal(first, oldCard);
     assert.equal(second, newCard);
+    return true;
   } }),
   persistCatalogDomSnapshot() {}
 });

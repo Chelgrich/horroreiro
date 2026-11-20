@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-21 — Keep the movie poster mounted during the interactive handoff
+
+- Movie details update the title, metadata, gallery controls and lower sections around the existing poster. The painted image and its ancestors stay connected during the server-to-interactive transition and subsequent renders. A different image replaces the visible preview after decoding.
+- The catalog grid updates existing cards in place on snapshot refreshes. Gallery hydration and single-card refreshes keep the displayed image mounted while its replacement decodes.
+
 ## 2026-11-21 — Pick the movie poster before painting the detail page
 
 - Server movie HTML carries the first public gallery image along with the base poster in the existing movie read. The early detail script selects the source using the preference last confirmed for the matching signed-in viewer. With no matching preference it waits for session restoration. Guest and default mode select the base poster.

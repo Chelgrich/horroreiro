@@ -23,6 +23,7 @@ export function createCatalogCardController(context = {}) {
     bindPosterLoadState,
     getPaintedPoster,
     preservePaintedPoster,
+    replaceSiblings,
     isRatingRequestInFlight,
     isWatchlistRequestInFlight
   } = context;
@@ -165,18 +166,20 @@ export function createCatalogCardController(context = {}) {
       wrapper.querySelector('[data-catalog-poster-pending]')?.remove();
       return;
     }
-    wrapper.querySelectorAll('.movie-poster').forEach(poster => poster.remove());
+    wrapper.querySelectorAll('.movie-poster').forEach(poster => {
+      if (poster !== painted || !posterUrl) poster.remove();
+    });
     skeleton?.remove();
     placeholder?.remove();
     wrapper.insertAdjacentHTML('afterbegin', getPosterMediaHtml(
       posterUrl, getCatalogMovieMeta(movie).cardRender.escapedPosterAlt, renderOptions
     ));
     const replacement = wrapper.querySelector('img.movie-poster');
-    preservePaintedPoster(painted, replacement);
+    preservePaintedPoster(painted, replacement, { keepInPlace: true });
     bindPosterLoadState(wrapper.querySelector('img.movie-poster:not(.poster-handoff-preview)'), wrapper.querySelector('.movie-poster-skeleton'));
   }
 
-  function preserveMovieCardPoster(previousCard, card) {
+  function preserveMovieCardPoster(previousCard, card, { keepInPlace = false } = {}) {
     const painted = getPaintedPoster(previousCard);
     if (!painted) return;
 
@@ -186,14 +189,33 @@ export function createCatalogCardController(context = {}) {
       painted.classList.remove('poster-handoff-preview');
       painted.classList.add('is-loaded');
       painted.removeAttribute('aria-hidden');
-      pending.after(painted);
-      return;
+      if (!keepInPlace) pending.after(painted);
+      return painted;
     }
 
-    if (preservePaintedPoster(painted, card.querySelector('img.movie-poster'))) {
+    const next = card.querySelector('img.movie-poster');
+    if (!next) return;
+    if (preservePaintedPoster(painted, next, { keepInPlace })) {
       painted.classList.add('is-loaded');
       card.querySelector('.movie-poster-skeleton')?.classList.add('is-hidden');
     }
+    return painted;
+  }
+
+  function updateMountedMovieCard(previous, card) {
+    const painted = preserveMovieCardPoster(previous, card, { keepInPlace: true });
+    if (!painted) return false;
+
+    const nextWrapper = card.querySelector('.movie-poster-wrapper');
+    replaceSiblings(painted, ...nextWrapper.childNodes);
+    const link = previous.querySelector('.movie-poster-link');
+    const nextLink = nextWrapper.parentElement;
+    link.setAttribute('href', nextLink.getAttribute('href'));
+    link.setAttribute('aria-label', nextLink.getAttribute('aria-label'));
+    nextLink.parentElement.remove();
+    replaceSiblings(link.parentElement, ...card.childNodes);
+    previous.className = card.className;
+    return true;
   }
 
   function getPosterHtml(
@@ -375,6 +397,7 @@ export function createCatalogCardController(context = {}) {
     createMovieCard,
     updateMovieCardRating,
     updateMovieCardPoster,
+    updateMountedMovieCard,
     preserveMovieCardPoster
   };
 }

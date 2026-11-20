@@ -2221,6 +2221,7 @@ a[data-current-page-link="true"]{
 .poster-handoff-preview{
   position: absolute;
   inset: 0;
+  z-index: 1;
   opacity: 1;
   pointer-events: none;
 }

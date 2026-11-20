@@ -83,6 +83,7 @@ export function createMoviePageShellController(context = {}) {
     getPosterImageAttributeHtml,
     getPaintedPoster,
     preservePaintedPoster,
+    replaceSiblings,
     getVotesLabel,
     getMoviePageDirectorHtml,
     buildCompanyPageUrl,
@@ -93,28 +94,56 @@ export function createMoviePageShellController(context = {}) {
     getStoredPosterGalleryIndex
   } = context;
 
-  function preserveMoviePageLayout(currentLayout, nextLayout) {
-    if (!currentLayout || !nextLayout || currentLayout.dataset.movieId !== nextLayout.dataset.movieId) return;
+  function updateMoviePageLayout(currentLayout, nextLayout) {
+    if (!currentLayout || !nextLayout || currentLayout.dataset.movieId !== nextLayout.dataset.movieId) return false;
+
+    const currentWrapper = currentLayout.querySelector('.movie-page-poster-wrapper');
+    const nextWrapper = nextLayout.querySelector('.movie-page-poster-wrapper');
+    if (!currentWrapper || !nextWrapper) return false;
+
+    const nextPoster = nextWrapper.querySelector('img[data-movie-page-poster-image]');
+    const currentPoster = currentWrapper.querySelector('img.movie-page-poster');
+    const poster = getPaintedPoster(currentWrapper) ||
+      (currentPoster?.dataset.originalPosterSrc === nextPoster?.dataset.originalPosterSrc ? currentPoster : null);
+    const keepPoster = nextPoster && (
+      preservePaintedPoster(poster, nextPoster, { keepInPlace: true }) ||
+      poster?.classList.contains('poster-handoff-preview')
+    );
+
+    // Keep the painted poster and its ancestors mounted during the handoff.
+    if (keepPoster) replaceSiblings(poster, ...nextWrapper.childNodes);
+    else currentWrapper.replaceChildren(...nextWrapper.childNodes);
+    currentWrapper.className = nextWrapper.className;
+    delete currentWrapper.dataset.moviePagePosterLoadToken;
+    Object.assign(currentWrapper.dataset, nextWrapper.dataset);
+    const nextColumn = nextWrapper.parentNode;
+    nextWrapper.remove();
+    replaceSiblings(currentWrapper, ...nextColumn.childNodes);
 
     const intro = currentLayout.querySelector('.movie-page-title-main');
     const nextIntro = nextLayout.querySelector('.movie-page-title-main');
     if (intro?.isEqualNode(nextIntro)) nextIntro.replaceWith(intro);
-
-    const nextPoster = nextLayout.querySelector('img[data-movie-page-poster-image]');
-    const currentPoster = currentLayout.querySelector('img.movie-page-poster');
-    const poster = getPaintedPoster(currentLayout) ||
-      (currentPoster?.dataset.originalPosterSrc === nextPoster?.dataset.originalPosterSrc ? currentPoster : null);
-    preservePaintedPoster(poster, nextPoster);
+    currentLayout.querySelector('.movie-page-main-column').replaceWith(nextLayout.querySelector('.movie-page-main-column'));
+    return true;
   }
 
   function replaceMoviePageContent(root, html) {
     const template = root.ownerDocument.createElement('template');
     template.innerHTML = html;
-    preserveMoviePageLayout(
-      root.querySelector('.movie-page-layout[data-movie-id]'),
-      template.content.querySelector('.movie-page-layout[data-movie-id]')
-    );
-    root.replaceChildren(template.content);
+    const currentLayout = root.querySelector('.movie-page-layout[data-movie-id]');
+    const nextStack = template.content.firstElementChild;
+    const nextLayout = nextStack.querySelector('.movie-page-layout[data-movie-id]');
+    if (!updateMoviePageLayout(currentLayout, nextLayout)) {
+      root.replaceChildren(template.content);
+      return;
+    }
+
+    const currentStack = currentLayout.parentNode;
+    nextLayout.remove();
+    replaceSiblings(currentLayout, ...nextStack.childNodes);
+    replaceSiblings(currentStack);
+    currentStack.className = nextStack.className;
+    delete currentStack.dataset.serverRendered;
   }
 
   function getMoviePageSubgenreLabel(movie) {
@@ -576,7 +605,7 @@ export function createMoviePageShellController(context = {}) {
   return {
     getYouTubeTrailerEmbedUrl,
     replaceMoviePageContent,
-    preserveMoviePageLayout,
+    updateMoviePageLayout,
     getInitialMovieCompanyRows,
     getMoviePageSubgenreLabel,
     getMoviePageFormatsLabel,

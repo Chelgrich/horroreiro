@@ -279,12 +279,7 @@ export function createMoviePageInteractionsController(context = {}) {
       return;
     }
 
-    if (wrapper.dataset.moviePagePosterGalleryBound === 'true') {
-      return;
-    }
-
-    wrapper.dataset.moviePagePosterGalleryBound = 'true';
-    wrapper.addEventListener('click', event => {
+    wrapper.onclick = event => {
       const button = event.target.closest('[data-movie-page-poster-gallery-step]');
 
       if (!button) {
@@ -296,7 +291,7 @@ export function createMoviePageInteractionsController(context = {}) {
         movie,
         Number(wrapper.dataset.moviePagePosterIndex || 0) + Number(button.dataset.moviePagePosterGalleryStep || 0)
       );
-    });
+    };
   }
 
   function bindMoviePageHeaderEvents(movie, rootElement = moviePage) {

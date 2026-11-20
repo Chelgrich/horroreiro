@@ -5991,7 +5991,25 @@ function replaceCatalogCards(fragment) {
     card => [card.dataset.movieId, card]
   ));
   if (cardsById.size) {
-    const { preserveMovieCardPoster } = getCatalogCardController();
+    const { updateMountedMovieCard, preserveMovieCardPoster } = getCatalogCardController();
+    const cards = [...fragment.children];
+    if (cards.length && cards.every(card => card.matches('.movie-card[data-movie-id]')) &&
+      [...cardsById.values()].every(card => card.parentNode === container)) {
+      const nextCards = cards.map(card => {
+        const previous = cardsById.get(card.dataset.movieId);
+        return updateMountedMovieCard(previous, card) ? previous : card;
+      });
+      const retained = new Set(nextCards);
+      for (const node of [...container.childNodes]) {
+        if (!retained.has(node)) node.remove();
+      }
+      let position = container.firstChild;
+      for (const card of nextCards) {
+        if (card !== position) container.insertBefore(card, position);
+        position = card.nextSibling;
+      }
+      return;
+    }
     for (const card of fragment.querySelectorAll('.movie-card[data-movie-id]')) {
       preserveMovieCardPoster(cardsById.get(card.dataset.movieId), card);
     }
@@ -8100,6 +8118,7 @@ function getCatalogCardControllerContext() {
     bindPosterLoadState,
     getPaintedPoster,
     preservePaintedPoster,
+    replaceSiblings,
     isRatingRequestInFlight: movieId => ratingRequestInFlight.has(String(movieId)),
     isWatchlistRequestInFlight: movieId => watchlistRequestInFlight.has(String(movieId))
   };
@@ -8672,6 +8691,7 @@ function getMoviePageShellControllerContext() {
     getPosterImageAttributeHtml,
     getPaintedPoster,
     preservePaintedPoster,
+    replaceSiblings,
     getVotesLabel,
     getMoviePageDirectorHtml,
     buildCompanyPageUrl,
@@ -12451,7 +12471,15 @@ function getPaintedPoster(root) {
   return poster?.complete && poster.naturalWidth > 0 ? poster : null;
 }
 
-function preservePaintedPoster(previous, next) {
+function replaceSiblings(node, ...nextNodes) {
+  const parent = node.parentNode;
+  for (const sibling of [...parent.childNodes]) {
+    if (sibling !== node) sibling.remove();
+  }
+  if (nextNodes.length) parent.append(...nextNodes);
+}
+
+function preservePaintedPoster(previous, next, { keepInPlace = false } = {}) {
   if (!previous || !next || (previous.complete && previous.naturalWidth === 0)) return false;
 
   if (previous.dataset.originalPosterSrc &&
@@ -12462,7 +12490,8 @@ function preservePaintedPoster(previous, next) {
     if (next.hasAttribute('data-movie-page-poster-image')) {
       previous.dataset.moviePagePosterImage = 'true';
     }
-    next.replaceWith(previous);
+    if (keepInPlace) next.remove();
+    else next.replaceWith(previous);
     return true;
   }
 
@@ -12473,7 +12502,7 @@ function preservePaintedPoster(previous, next) {
   previous.classList.add('poster-handoff-preview');
   previous.setAttribute('aria-hidden', 'true');
   delete previous.dataset.moviePagePosterImage;
-  next.after(previous);
+  if (!keepInPlace) next.after(previous);
   const retirePreview = () => {
     void next.decode().then(() => {
       next.removeEventListener('load', retirePreview);
@@ -14736,8 +14765,10 @@ function rerenderMovieCard(
     newCard.classList.add('has-open-external-links');
   }
 
-  getCatalogCardController().preserveMovieCardPoster(existingCard, newCard);
-  existingCard.replaceWith(newCard);
+  const updatedCard = getCatalogCardController().updateMountedMovieCard(existingCard, newCard)
+    ? existingCard
+    : newCard;
+  if (updatedCard === newCard) existingCard.replaceWith(newCard);
 
   if (wasExternalLinksExpanded) {
     requestAnimationFrame(() => syncOpenExternalLinksLayouts());
@@ -14748,7 +14779,7 @@ function rerenderMovieCard(
     return;
   }
 
-  const nextCardTop = newCard.getBoundingClientRect().top;
+  const nextCardTop = updatedCard.getBoundingClientRect().top;
   const scrollDelta = nextCardTop - previousCardTop;
 
   if (Math.abs(scrollDelta) >= 4) {
@@ -17357,8 +17388,9 @@ function renderMoviePageHeaderSection(movie) {
   const shell = getMoviePageShellController();
   const template = document.createElement('template');
   template.innerHTML = shell.getMoviePageHeaderHtml(movie, viewModel);
-  shell.preserveMoviePageLayout(headerElement, template.content.querySelector('.movie-page-layout'));
-  headerElement.replaceWith(template.content);
+  if (!shell.updateMoviePageLayout(headerElement, template.content.firstElementChild)) {
+    headerElement.replaceWith(template.content);
+  }
   bindMoviePageHeaderEvents(movie);
   document.documentElement.classList.add('movie-page-rendered');
 }

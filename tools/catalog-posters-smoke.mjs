@@ -69,8 +69,9 @@ function fixture() {
     getCatalogRenderController: () => ({ createCatalogMoviesFragment({ pageMovies, getCardRenderOptions }) {
       const fragment = pageMovies.map(movie => {
         const pending = getCardRenderOptions(movie).deferPoster;
-        return { dataset: { movieId: movie.id }, pending, poster: pending ? null : ctx.getMoviePreferredPosterUrl(movie) };
+        return { dataset: { movieId: movie.id }, matches: () => true, pending, poster: pending ? null : ctx.getMoviePreferredPosterUrl(movie) };
       });
+      fragment.children = fragment;
       fragment.querySelectorAll = () => fragment;
       return fragment;
     } }),
@@ -190,6 +191,14 @@ assert.equal(handoff.preservePaintedPoster(painted, {
 }), true);
 assert.equal(reused, painted, 'Identical sources keep the decoded image node');
 assert.equal(painted.alt, 'Updated title');
+
+let discarded = false;
+assert.equal(handoff.preservePaintedPoster(painted, {
+  dataset: { originalPosterSrc: 'original' }, alt: 'Mounted title',
+  hasAttribute: () => false, remove: () => { discarded = true; }
+}, { keepInPlace: true }), true);
+assert(discarded, 'The duplicate is discarded without moving the mounted poster');
+assert.equal(painted.parentNode, wrapper);
 
 let onLoad;
 const decoded = Promise.withResolvers();
