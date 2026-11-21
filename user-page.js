@@ -609,36 +609,7 @@ export function createUserPageController(context = {}) {
       return false;
     }
 
-    if (!hasExpectedUserPageActivityRanks(entry.data)) {
-      return false;
-    }
-
     return isPageDependencySnapshotFresh(entry.dependencySnapshot || {});
-  }
-
-  function hasExpectedUserPageActivityRanks(data) {
-    if (!data || typeof data !== 'object') {
-      return false;
-    }
-
-    const activityRanks = data.activityRanks || {};
-    const expectations = [
-      ['ratingCount', 'ratings'],
-      ['watchlistCount', 'watchlist'],
-      ['reviewCount', 'reviews']
-    ];
-
-    return expectations.every(([countKey, rankKey]) => {
-      const count = Number(data[countKey] || 0);
-
-      if (!Number.isFinite(count) || count <= 0) {
-        return true;
-      }
-
-      const place = Number(activityRanks?.[rankKey]?.place);
-
-      return Number.isFinite(place) && place > 0;
-    });
   }
 
   function readUserPageDataCacheEntry(handle) {
@@ -663,10 +634,6 @@ export function createUserPageController(context = {}) {
       return;
     }
 
-    if (!hasExpectedUserPageActivityRanks(data)) {
-      return;
-    }
-
     const entryKey = getUserPageDataCacheEntryKey(handle);
     const dependencyMovieIds = [...new Set(
       (Array.isArray(data.dependencyMovieIds) ? data.dependencyMovieIds : [])
@@ -681,10 +648,7 @@ export function createUserPageController(context = {}) {
         createdAt: Date.now(),
         mutationStamp: getDataMutationStamp(),
         dependencySnapshot: getPageDependencySnapshot(dependencyKeys),
-        data: {
-          ...data,
-          dependencyMovieIds
-        }
+        data
       }
     };
     const prunedEntries = Object.fromEntries(
@@ -1078,9 +1042,9 @@ export function createUserPageController(context = {}) {
     `;
   }
 
-  function getUserPageStatCardHtml(value, label, rank = null) {
+  function getUserPageStatCardHtml(value, label, rank = null, rankKey = '') {
     return `
-      <div class="user-page-stat">
+      <div class="user-page-stat"${rankKey ? ` data-user-page-rank-slot="${rankKey}"` : ''}>
         <span class="user-page-stat-value">${escapeHtml(String(value))}</span>
         <span class="user-page-stat-label">${escapeHtml(label)}</span>
         ${getUserPageStatRankHtml(rank)}
@@ -1186,8 +1150,7 @@ export function createUserPageController(context = {}) {
     const [
       ratingsResult,
       watchlistResult,
-      reviewsResult,
-      serverActivityRanksResult
+      reviewsResult
     ] = await Promise.all([
       fetchAllSupabaseRowsResult(() => supabaseClient
         .from('movie_ratings')
@@ -1206,8 +1169,7 @@ export function createUserPageController(context = {}) {
         .select('movie_id, created_at, updated_at')
         .eq('user_id', userId)
         .order('updated_at', { ascending: false })
-        .order('id', { ascending: true })),
-      fetchUserPageActivityRanks(userId)
+        .order('id', { ascending: true }))
     ]);
 
     throwIfSupabaseError(ratingsResult.error);
@@ -1235,18 +1197,6 @@ export function createUserPageController(context = {}) {
       ...previewMovieIds,
       ...tasteMovieIds
     ])];
-    const ownActivityCounts = {
-      ratings: ratingRows.length,
-      watchlist: activeWatchlistRows.length,
-      reviews: reviewRows.length
-    };
-    let activityRanks = normalizeUserPageServerActivityRanks(serverActivityRanksResult);
-
-    if (!activityRanks && isUserPageActivityRankFallbackEnabled()) {
-      const activityAggregateRows = await fetchUserPageActivityAggregateRows();
-      activityRanks = getUserPageActivityRanks(userId, activityAggregateRows, ownActivityCounts);
-    }
-
     const [previewMovies, tasteMovies] = await Promise.all([
       fetchMoviesByIdsWithSelect(previewMovieIds, movieUserPageCardSelect),
       fetchMoviesByIdsWithSelect(tasteMovieIds, movieUserPageTasteSelect)
@@ -1292,7 +1242,6 @@ export function createUserPageController(context = {}) {
       reviewCount: reviewRows.length,
       averageRating: getUserPageAverageRating(ratingRows),
       tasteStats: getUserPageTasteStats(tasteItems),
-      activityRanks,
       dependencyMovieIds
     };
   }
@@ -1355,10 +1304,10 @@ export function createUserPageController(context = {}) {
         </section>
 
         <section class="user-page-stats" aria-label="Статистика пользователя">
-          ${getUserPageStatCardHtml(ratingCount, 'Оценено', data.activityRanks?.ratings)}
+          ${getUserPageStatCardHtml(ratingCount, 'Оценено', data.activityRanks?.ratings, 'ratings')}
           ${getUserPageStatCardHtml(averageRating, 'Средняя оценка')}
-          ${getUserPageStatCardHtml(watchlistCount, 'Смотреть позже', data.activityRanks?.watchlist)}
-          ${getUserPageStatCardHtml(reviewCount, 'Рецензии', data.activityRanks?.reviews)}
+          ${getUserPageStatCardHtml(watchlistCount, 'Смотреть позже', data.activityRanks?.watchlist, 'watchlist')}
+          ${getUserPageStatCardHtml(reviewCount, 'Рецензии', data.activityRanks?.reviews, 'reviews')}
         </section>
       </div>
 
@@ -1398,6 +1347,46 @@ export function createUserPageController(context = {}) {
     syncUserPageProfileSettingsButton();
   }
 
+  function requestUserPageActivityRanks(userId) {
+    return fetchUserPageActivityRanks(userId).catch(error => {
+      console.warn('Не удалось загрузить места в рейтинге:', error);
+      return null;
+    });
+  }
+
+  async function loadUserPageMedals(handle, data, ranksRequest, isCurrentLoad) {
+    try {
+      let activityRanks = normalizeUserPageServerActivityRanks(await ranksRequest);
+      if (!isCurrentLoad()) return;
+
+      if (!activityRanks && isUserPageActivityRankFallbackEnabled()) {
+        const rows = await fetchUserPageActivityAggregateRows();
+        activityRanks = getUserPageActivityRanks(data.profile.id, rows, {
+          ratings: data.ratingCount,
+          watchlist: data.watchlistCount,
+          reviews: data.reviewCount
+        });
+      }
+
+      if (!activityRanks || !isCurrentLoad()) return;
+
+      const cache = readUserPageDataCacheRoot();
+      const entry = cache.entries[getUserPageDataCacheEntryKey(handle)];
+      if (entry?.data === data && isUserPageDataCacheEntryValid(entry)) {
+        data.activityRanks = activityRanks;
+        writeUserPageDataCacheRoot(cache);
+      }
+
+      for (const [key, rank] of Object.entries(activityRanks)) {
+        if (!rank) continue;
+        userPage.querySelector(`[data-user-page-rank-slot="${key}"]`)
+          ?.insertAdjacentHTML('beforeend', getUserPageStatRankHtml(rank));
+      }
+    } catch (error) {
+      console.warn('Не удалось обновить медали профиля:', error);
+    }
+  }
+
   async function loadUserPage({ useCache = true } = {}) {
     const handle = getUserPageRouteHandle();
     const viewerId = String(getCurrentUser()?.id || '');
@@ -1410,6 +1399,9 @@ export function createUserPageController(context = {}) {
 
         if (cachedData) {
           renderUserPage(cachedData);
+          if (!cachedData.activityRanks) {
+            void loadUserPageMedals(handle, cachedData, requestUserPageActivityRanks(cachedData.profile.id), isCurrentLoad);
+          }
           return;
         }
       }
@@ -1422,10 +1414,12 @@ export function createUserPageController(context = {}) {
         return;
       }
 
+      const ranksRequest = requestUserPageActivityRanks(profile.id);
       const data = await fetchPublicUserPageData(profile);
       if (!isCurrentLoad()) return;
       writeUserPageDataCacheEntry(handle, data);
       renderUserPage(data);
+      void loadUserPageMedals(handle, data, ranksRequest, isCurrentLoad);
     } catch (error) {
       if (isCurrentLoad()) throw error;
     }

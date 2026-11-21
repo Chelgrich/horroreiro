@@ -242,7 +242,7 @@ Secondary page-only CSS is loaded by `boot-loader.js` only for the matching shel
 
 Profile ranking note:
 
-- Do not calculate public activity medal places only from client-readable `movie_ratings`, `movie_watchlist`, or `movie_reviews` aggregate rows. RLS can make that aggregate incomplete for other profiles, causing multiple users to show as `#1`. Use the server aggregate endpoint first and keep the old client aggregate only as a local/fallback path.
+- Public profile medallions load separately from activity cards and update their own DOM nodes. The profile data cache remains usable while medals load or their request fails. The local-only aggregate fallback is for development because RLS may hide peers' activity rows from the browser.
 
 `profile-utils.js` is loaded during shared app init and owns pure profile display helpers: display-name normalization/validation, public profile display name and handle, current-user public handle/display-name derivation, safe avatar URL parsing, user-page avatar HTML, and the `prefer_russian_posters` boolean check. It owns no profile caches. `app.js` keeps auth state and poster-preference dependent rerender bridges; settings UI belongs to its on-demand controller.
 
@@ -388,7 +388,7 @@ After editing `src/directors-admin-app.jsx`, run `npm run build:directors` and c
 Server-only admin operation:
 
 - `functions/admin/users/[userId]/password.js` sets a user's password through Supabase Auth Admin API and requires server-side service role.
-- `functions/profile-activity-ranks/[userId].js` calculates public profile activity ranks server-side and returns only target-user counts/ranks, not raw activity rows. It prefers the service role key when configured and falls back to the publishable/anon key for environments where public activity rows are RLS-readable but no server secret is present.
+- `functions/profile-activity-ranks/[userId].js` calls the read-only `get_profile_activity_ranks` RPC with the server's service role key. PostgreSQL calculates the public counts and ranks for one target user. The endpoint does not transfer individual activity rows.
 
 ## Catalog
 

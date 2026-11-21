@@ -201,7 +201,7 @@ Profile page activity row payloads:
 Profile activity ranks:
 
 - Displayed medal places for ratings/watchlist/reviews should come from `/profile-activity-ranks/:userId` when available.
-- The endpoint calculates ranks server-side and returns only aggregate counts/ranks for the target profile. It prefers the service role key and falls back to the publishable/anon key if the environment has no server secret and public activity rows are RLS-readable.
+- The endpoint calls `get_profile_activity_ranks(p_user_id uuid)` with the service role key. The read-only security-invoker RPC is executable only by `service_role` and database owners. It returns counts and ranks for one target profile. Peers include profiles without activity, active watchlist counts exclude rated films, and equal counts share the same place. Apply `tools/profile-activity-ranks.sql` before the server release.
 - Client-side aggregate rank calculation is a fallback only; RLS can hide other users' activity rows from the browser and make fallback ranks incomplete.
 
 Admin-only server operation:
@@ -335,7 +335,7 @@ Cloudflare Functions:
 - `/env`: exposes public Supabase URL/anon key and `APP_BUILD_VERSION`.
 - `/supabase/rest/v1/*` and `/supabase/auth/v1/*`: same-origin transport for deployed browser requests to the configured project. It forwards the same publishable API key and user JWT, never the service role; existing table grants/RLS and Auth checks are unchanged. SDK URL/session storage keys remain the original project values. Auth/REST responses are never cached, site cookies are not forwarded, and incoming cross-origin requests are rejected.
 - `/app-assets/:version`: allowlisted current-deploy asset proxy with no-store cache headers.
-- `/profile-activity-ranks/:userId`: public aggregate helper for profile medal ranks; calculates server-side and does not expose raw rating/watchlist/review rows.
+- `/profile-activity-ranks/:userId`: public aggregate helper for profile medals. The server calls the service-role-only SQL ranking function and returns its target-user aggregate response.
 - `/admin/users/:userId/password`: admin password set endpoint.
 - dynamic route functions for app pages and SEO/sitemap.
 

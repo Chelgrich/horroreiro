@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-21 — Calculate profile medal places in PostgreSQL
+
+- The profile rank endpoint reads all three places and counts from one SQL request. Ranking still includes users with no activity, uses equal places for ties, and omits rated films from the active watchlist.
+- Profile movie rails and taste data load independently of medals. Successful medal responses update only the statistics cards, and the profile cache can retain cards while medals are pending or unavailable.
+
 ## 2026-11-21 — Keep confirmed rating aggregates when a refresh fails
 
 - Catalog and detail rating aggregates keep the last confirmed values on failure. Transient failures get at most one retry per load, with SDK retries disabled for these requests.

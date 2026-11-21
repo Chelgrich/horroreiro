@@ -173,6 +173,37 @@ try {
   assert.equal(typeof earlyAuthSync, 'function', 'Auth changes must be observed before the first pending profile read');
   finishInitialProfile(profile);
   await initialLoad;
+
+  globalThis.window.location.pathname = '/user/medals';
+  const rankInserts = [];
+  const previousSelector = page.querySelector;
+  page.querySelector = selector => selector.includes('data-user-page-rank-slot')
+    ? { insertAdjacentHTML: (position, html) => rankInserts.push({ selector, position, html }) }
+    : previousSelector(selector);
+  let resolveRanks;
+  const delayedRanks = new Promise(resolve => { resolveRanks = resolve; });
+  const medalPage = createUserPageController({ ...context,
+    fetchPublicUserProfileByHandle: async () => profile,
+    fetchUserPageActivityRanks: () => delayedRanks,
+    getUserPageMovieRailHtml: () => '<article>Profile movie card</article>'
+  });
+  await medalPage.initUserPage();
+  const cardMarkup = page.innerHTML;
+  assert.match(cardMarkup, /Profile movie card/);
+  assert.equal(rankInserts.length, 0, 'Pending medals must not hold up the profile');
+  const cacheKey = 'horroreiro_user_page_data_cache';
+  const cachedCards = () => Object.values(JSON.parse(storage.get(cacheKey)).entries)
+    .find(entry => entry.data.profile.id === profile.id && !entry.data.activityRanks);
+  assert.ok(cachedCards(), 'The cards must already be cached while medals are pending');
+  resolveRanks({ ratings: { place: 1, percent: 97 }, watchlist: { place: 9 }, reviews: null });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(rankInserts.length, 2);
+  assert.match(rankInserts[0].html, />1</);
+  assert.equal(page.innerHTML, cardMarkup, 'Updating medals must leave all profile cards mounted');
+  assert.ok(Object.values(JSON.parse(storage.get(cacheKey)).entries)
+    .some(entry => entry.data.activityRanks?.ratings.place === 1));
+  page.querySelector = previousSelector;
+
   globalThis.window.location.pathname = '/user/offline';
   const failedProfileLoad = createUserPageController({
     ...context,

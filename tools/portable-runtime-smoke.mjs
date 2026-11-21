@@ -158,6 +158,26 @@ assert(sitemapText.includes('<urlset'), '/sitemap.xml: missing urlset');
 
 // A crawler's concurrent GET/HEAD requests should share one public movie read.
 const originalFetch = globalThis.fetch;
+const rankFixtureId = '00000000-0000-0000-0000-000000000001';
+const ranksRuntime = createPortableRuntime({ env: {
+  SUPABASE_URL: 'https://database.test', SUPABASE_SERVICE_ROLE_KEY: 'fake-service-key'
+} });
+let rankReads = 0;
+try {
+  globalThis.fetch = async (url, options) => {
+    rankReads += 1;
+    assert(url.pathname === '/rest/v1/rpc/get_profile_activity_ranks', 'Profile medals must use the SQL RPC');
+    assert(url.searchParams.get('p_user_id') === rankFixtureId, 'Ranks must be computed for the requested profile');
+    assert(options.headers.apikey === 'fake-service-key', 'The RPC must use server credentials');
+    return Response.json({ ok: true, counts: { ratings: 5 }, ranks: { ratings: { place: 1, percent: 99 } } });
+  };
+  const ranksResponse = await ranksRuntime.handleRequest(new Request(`http://portable.test/profile-activity-ranks/${rankFixtureId}`));
+  assert(ranksResponse.status === 200 && (await ranksResponse.json()).ranks.ratings.place === 1, 'Public route returns the rank aggregate');
+  const invalidRanks = await ranksRuntime.handleRequest(new Request('http://portable.test/profile-activity-ranks/invalid'));
+  assert(invalidRanks.status === 400 && rankReads === 1, 'Only one SQL request is sent and invalid IDs stop before SQL');
+} finally {
+  globalThis.fetch = originalFetch;
+}
 const originalNow = Date.now;
 let now = 1000000;
 let movieReads = 0;
