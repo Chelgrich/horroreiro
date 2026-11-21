@@ -67,7 +67,7 @@ Injected domain callbacks in controller/action contexts are required operations.
 Page HTML is static shell plus shared scripts:
 
 - `boot-loader.js`
-  - starts the stylesheet bundle as soon as the HTML's `app-build-version` hint is available. `/env` loads in parallel. The same-build stylesheet cache can reveal the page immediately and avoid downloading the bundle again;
+  - starts the stylesheet bundle as soon as the HTML's `app-build-version` hint is available. `/env` loads in parallel. The same-build stylesheet cache can reveal the page immediately and avoid downloading the bundle again. If `/env` selects a different build, startup waits for that build's CSS and ignores responses from the superseded stylesheet request;
   - selects one configuration per document in `window.__APP_ENV__` for runtime and warm-start validation. A hosted `/env` timeout or network failure uses the document build hint or saved build marker with fallback credentials. A late response cannot change the selection in that document;
   - loads versioned `styles.css`;
   - loads page-specific CSS such as `catalog-page.css`, `movie-page.css`, shared `secondary-pages.css`, and secondary page-only CSS before app startup when the current shell needs it;
@@ -124,6 +124,7 @@ Production asset URL strategy:
 - Portable social image rendering accepts only this project's public Storage poster URLs, rejects redirects, bounds downloads to 8 MiB/five seconds, and limits decoding to 8 million pixels. Rejected inputs use `/og-preview.jpg`; details are in `docs/SERVER_RUNTIME.md`.
 
 - Core JS/CSS and lazy feature modules use `/app-assets/<APP_BUILD_VERSION>?file=<asset>`.
+- The first document opened after a release initializes the new runtime directly. It records the confirmed build in local storage and leaves each versioned cache to validate its own entries. App settings, scroll state and authentication data survive the release transition.
 - `functions/app-assets/[version].js` uses the shared versioned inventory. Current-build JavaScript uses `private, no-cache` and a weak SHA-256 ETag so the browser can revalidate across gateway compression. CSS and responses under a mismatched build URL use `no-store`.
 - `_headers` sets core app assets to `public, max-age=0, must-revalidate`.
 - Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `catalog-page.css`, `movie-page.css`, `secondary-pages.css`, secondary page-only CSS, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, warm-start scripts, lazy feature modules, or `assets/directors-admin-app.js`.

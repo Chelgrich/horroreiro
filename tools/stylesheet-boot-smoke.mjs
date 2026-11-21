@@ -13,7 +13,7 @@ const storage = (seed = []) => {
 };
 
 function boot({ source = loader, sessionStorage = storage(), build = 'release-a', fail = () => false,
-  contentType = 'text/css', file = false, holdEnv = false, storedBuild = build, documentBuild } = {}) {
+  contentType = 'text/css', file = false, holdEnv = false, storedBuild = build, documentBuild, beforeStyles } = {}) {
   const nodes = [];
   const transfers = [];
   const classes = new Set();
@@ -43,9 +43,10 @@ function boot({ source = loader, sessionStorage = storage(), build = 'release-a'
   };
   const fetch = async href => {
     transfers.push({ type: 'fetch', href });
+    if (beforeStyles) await beforeStyles(href);
     const failed = fail(href);
     return { ok: !failed, status: failed ? 503 : 200, headers: new Headers({ 'content-type': contentType }),
-      text: async () => `/* ${assetName(href)} */ :root { --fixture: 1; }` };
+      text: async () => `/* ${href} */ :root { --fixture: 1; }` };
   };
   const localStorage = storage([[buildKey, storedBuild]]);
   vm.runInNewContext(source, { window, document, sessionStorage, localStorage, fetch, URL });
@@ -106,6 +107,30 @@ const newEnv = boot({ sessionStorage: cold.sessionStorage, build: 'release-b', s
 await newEnv.window.__ENV_READY__;
 assert.equal(newEnv.window.__APP_ENV__.APP_BUILD_VERSION, 'release-b');
 assert(!newEnv.window.__APP_ENV__.isFallback);
+const inlineStyles = result => result.nodes.filter(node => node.tag === 'style');
+const racedCachedStyles = boot({ sessionStorage: cold.sessionStorage, documentBuild: 'release-a', build: 'release-b', storedBuild: 'release-a' });
+assert(inlineStyles(racedCachedStyles).every(node => node.textContent.includes('release-a')));
+await racedCachedStyles.window.__ENV_READY__;
+assert.deepEqual(racedCachedStyles.transfers.map(({ href }) => href), assets.map(asset => `/app-assets/release-b?file=${asset}`));
+assert.equal(inlineStyles(racedCachedStyles).length, 2);
+assert(inlineStyles(racedCachedStyles).every(node => node.textContent.includes('release-b')));
+
+let finishOldStyles;
+const pendingOldStyles = new Promise(resolve => { finishOldStyles = resolve; });
+const racedStyles = boot({ documentBuild: 'release-a', build: 'release-b', storedBuild: 'release-a',
+  beforeStyles: href => href.includes('release-a') ? pendingOldStyles : undefined });
+await racedStyles.window.__ENV_READY__;
+assert.equal(racedStyles.transfers.length, 4, 'A stale HTML hint and a fresh env may each start one stylesheet bundle');
+finishOldStyles();
+await racedStyles.flush();
+assert.equal(inlineStyles(racedStyles).length, 2);
+assert(inlineStyles(racedStyles).every(node => node.textContent.includes('release-b')), 'Late old responses must not replace current CSS');
+
+const failedUpgradeStyles = boot({ sessionStorage: cold.sessionStorage, documentBuild: 'release-a',
+  build: 'release-b', storedBuild: 'release-a', fail: href => href.includes('release-b') });
+await failedUpgradeStyles.flush();
+assert(failedUpgradeStyles.classes.has('app-load-failed'));
+assert(!failedUpgradeStyles.classes.has('app-styles-ready'), 'An older cached bundle must not mark a new build ready');
 
 const retry = boot({ fail: href => assetName(href) === 'catalog-page.css' && !href.includes('_retry=') });
 await retry.window.__ENV_READY__;

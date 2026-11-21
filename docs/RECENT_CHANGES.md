@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-22 — Continue startup when the build changes
+
+- The new runtime records its build and initializes the current document. Build-tagged snapshots validate themselves, and a release does not clear shared storage, preferences, or the CSS bundle already downloaded for the current build.
+- When `/env` and the early HTML hint disagree during a rollout, startup switches to the stylesheet bundle for the runtime version. Late responses from the previous stylesheet request cannot replace the new styles.
+
 ## 2026-11-22 — Revalidate versioned scripts with ETags
 
 - Current-build JavaScript responses use a weak SHA-256 content ETag and browser-only revalidation. Matching conditional requests return a bodyless `304`. CSS, errors, and fallback responses under old build URLs keep `no-store`.

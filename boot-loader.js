@@ -9,6 +9,8 @@
     const shouldUseLocalDevEnv = isLocalFile || isLocalHost;
     let hasStartedStylesheetLoad = false;
     let areStylesReady = false;
+    let stylesheetBuildVersion = '';
+    const startupStylesheets = [];
     let isEnvReadyResolved = false;
     let envFallbackTimer = null;
     let appStartupFallbackTimer = null;
@@ -203,10 +205,8 @@
       );
     }
 
-    function removeCachedStylesheets() {
-      document.querySelectorAll('style[data-horroreiro-style-cache="true"]').forEach(element => {
-        element.remove();
-      });
+    function removeStartupStylesheets() {
+      startupStylesheets.splice(0).forEach(element => element.remove());
     }
 
     function appendStylesheetTexts(assets, cssTextByAsset, cached = false) {
@@ -216,6 +216,7 @@
         style.dataset.asset = assetName;
         style.textContent = cssTextByAsset[assetName];
         document.head.appendChild(style);
+        startupStylesheets.push(style);
       });
     }
 
@@ -233,7 +234,6 @@
         return false;
       }
 
-      removeCachedStylesheets();
       appendStylesheetTexts(assets, entry.cssTextByAsset, true);
       document.documentElement.classList.add('app-styles-ready');
       return true;
@@ -249,8 +249,9 @@
 
     const storedBuildVersion = getStorageValue(localStorage, APP_VERSION_STORAGE_KEY);
     const documentBuildVersion = shouldUseLocalDevEnv ? '' : document.querySelector('meta[name="app-build-version"]')?.content;
-    const hasAppliedCachedStylesheets = (!documentBuildVersion || documentBuildVersion === storedBuildVersion) &&
+    let hasAppliedCachedStylesheets = (!documentBuildVersion || documentBuildVersion === storedBuildVersion) &&
       applyCachedStylesheets(storedBuildVersion);
+    if (hasAppliedCachedStylesheets) stylesheetBuildVersion = storedBuildVersion;
 
     function finishEnvReady() {
       if (isEnvReadyResolved || !areStylesReady || !window.__APP_ENV__) {
@@ -314,23 +315,33 @@
       try {
         const entries = await Promise.all(assets.map(async asset => {
           const href = getVersionedAssetUrl(asset, buildVersion);
-          const cssText = await fetchStylesheetText(href).catch(() =>
-            fetchStylesheetText(getRetryStylesheetUrl(href)));
+          const cssText = await fetchStylesheetText(href).catch(error => {
+            if (stylesheetBuildVersion !== buildVersion) throw error;
+            return fetchStylesheetText(getRetryStylesheetUrl(href));
+          });
           return [asset, cssText];
         }));
         const cssTextByAsset = Object.fromEntries(entries);
-        removeCachedStylesheets();
+        if (stylesheetBuildVersion !== buildVersion) return;
+        removeStartupStylesheets();
         appendStylesheetTexts(assets, cssTextByAsset);
         markStylesReady();
         cacheLoadedStylesheets(buildVersion, assets, cssTextByAsset);
       } catch (error) {
-        markStylesheetFailure();
+        if (stylesheetBuildVersion === buildVersion) markStylesheetFailure();
       }
     }
 
     function startStylesheetLoad(buildVersion) {
-      if (hasStartedStylesheetLoad) {
-        return;
+      if (stylesheetBuildVersion === buildVersion && hasStartedStylesheetLoad) return;
+
+      if (stylesheetBuildVersion !== buildVersion) {
+        window.clearTimeout(stylesheetFallbackTimer);
+        stylesheetBuildVersion = buildVersion;
+        areStylesReady = false;
+        hasAppliedCachedStylesheets = false;
+        removeStartupStylesheets();
+        document.documentElement.classList.remove('app-styles-ready');
       }
 
       hasStartedStylesheetLoad = true;
@@ -363,7 +374,7 @@
         }
 
         if (failedStylesheetAssets.size === 0) {
-          removeCachedStylesheets();
+          removeStartupStylesheets();
           markStylesReady();
           return;
         }
@@ -409,7 +420,8 @@
       if (window.__APP_ENV__) return;
       window.clearTimeout(envFallbackTimer);
       window.__APP_ENV__ = env;
-      if (!areStylesReady) startStylesheetLoad(env.APP_BUILD_VERSION || 'dev');
+      const buildVersion = env.APP_BUILD_VERSION || 'dev';
+      if (!areStylesReady || stylesheetBuildVersion !== buildVersion) startStylesheetLoad(buildVersion);
       finishEnvReady();
     }
 

@@ -190,41 +190,41 @@ function bootWithStoredVersion(savedBuildVersion, { denyRead = false, denyWrite 
   const initializedUrls = [];
   const location = new URL('https://fixture.test/?page=2#anchor');
   location.replace = target => replacements.push(target);
-  let resets = 0;
+  const session = new Map([['horroreiro_stylesheet_cache_v1', 'current styles'], ['horroreiro_catalog_dom_snapshot', 'old snapshot']]);
   const ctx = vm.createContext({
     appEnv: { isFallback }, APP_BUILD_VERSION: 'next-build', APP_VERSION_STORAGE_KEY: versionKey, localStorage: storage,
-    sessionStorage: { clear() { resets += 1; } }, console: { warn() {} }, window: { location },
+    sessionStorage: session, console: { warn() {} }, window: { location },
     loadProfileUtils() {}, loadAuthSessionController() {}, loadAuthUiController() {}, loadAccountHeaderController() {},
     bindWindowScrollIntentTracker() {}, bindCustomSelectGlobalEvents() {}, initCustomSelects() {},
     initCurrentPageLinkGuard() {}, bindSharedUiEvents() {}, bindSecondaryPageSnapshotEvents() {},
     getAuthUiController: () => ({ initializeRedirect: url => initializedUrls.push(url) })
   });
-  for (const name of ['applyBuildVersionSoftResetIfNeeded', 'initSharedApp']) {
+  for (const name of ['rememberAppBuildVersion', 'initSharedApp']) {
     const start = appSource.lastIndexOf('\n', appSource.indexOf(`function ${name}(`)) + 1;
     vm.runInContext(appSource.slice(start, appSource.indexOf('\n}', start) + 2), ctx);
   }
-  return { init: ctx.initSharedApp, storage, replacements, initializedUrls, resets: () => resets };
+  return { init: ctx.initSharedApp, storage, replacements, initializedUrls, session };
 }
 const firstVisit = bootWithStoredVersion(null);
 assert.equal(await firstVisit.init(), true, 'A missing saved build initializes without navigating again');
 assert.equal(firstVisit.storage[versionKey], 'next-build');
 assert.equal(firstVisit.storage.horroreiro_fixture, 'existing preference');
-assert.equal(firstVisit.resets(), 0);
 assert.deepEqual(firstVisit.replacements, []);
 assert.deepEqual(firstVisit.initializedUrls, ['https://fixture.test/?page=2#anchor']);
 const upgrade = bootWithStoredVersion('previous-build');
-assert.equal(await upgrade.init(), false, 'An actual build mismatch requests one reload');
-assert.deepEqual(upgrade.replacements, ['/?page=2#anchor']);
-assert.equal(await upgrade.init(), true);
-assert.equal(upgrade.resets(), 1);
-assert.equal(upgrade.storage.horroreiro_fixture, undefined);
+assert.equal(await upgrade.init(), true, 'A new build must continue startup in the current document');
+assert.deepEqual(upgrade.replacements, []);
+assert.deepEqual(upgrade.initializedUrls, ['https://fixture.test/?page=2#anchor']);
+assert.equal(upgrade.storage[versionKey], 'next-build');
+assert.equal(upgrade.storage.horroreiro_fixture, 'existing preference');
+assert.equal(upgrade.session.get('horroreiro_stylesheet_cache_v1'), 'current styles');
+assert.equal(upgrade.session.get('horroreiro_catalog_dom_snapshot'), 'old snapshot');
 assert.equal(upgrade.storage['sb-fixture-auth-token'], 'synthetic-session');
 for (const savedBuild of [null, 'previous-build']) {
   const fallback = bootWithStoredVersion(savedBuild, { isFallback: true });
   assert.equal(await fallback.init(), true, 'A fallback environment cannot trigger an upgrade reset');
   assert.equal(fallback.storage[versionKey], savedBuild ?? undefined);
   assert.equal(fallback.storage.horroreiro_fixture, 'existing preference');
-  assert.equal(fallback.resets(), 0);
   assert.deepEqual(fallback.replacements, []);
 }
 for (const options of [{ denyRead: true }, { denyWrite: true }]) {

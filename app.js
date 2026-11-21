@@ -733,36 +733,14 @@ function hasStoredSupabaseAuthSession() {
   }
 }
 
-function applyBuildVersionSoftResetIfNeeded() {
-  if (appEnv?.isFallback) {
-    return false;
-  }
-
+function rememberAppBuildVersion() {
+  if (appEnv?.isFallback) return;
   try {
-    const savedBuildVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
-
-    if (savedBuildVersion === APP_BUILD_VERSION) {
-      return false;
-    }
-
-    if (!savedBuildVersion) {
+    if (localStorage.getItem(APP_VERSION_STORAGE_KEY) !== APP_BUILD_VERSION) {
       localStorage.setItem(APP_VERSION_STORAGE_KEY, APP_BUILD_VERSION);
-      return false;
     }
-
-    sessionStorage.clear();
-
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('horroreiro_') && key !== APP_VERSION_STORAGE_KEY) {
-        localStorage.removeItem(key);
-      }
-    });
-
-    localStorage.setItem(APP_VERSION_STORAGE_KEY, APP_BUILD_VERSION);
-    return true;
   } catch (error) {
-    console.warn('Ошибка при soft-reset версии сборки:', error);
-    return false;
+    console.warn('Не удалось сохранить версию сборки:', error);
   }
 }
 
@@ -17664,12 +17642,7 @@ async function initDetectedPage() {
 
 async function initSharedApp() {
   const initialAuthUrl = window.location.href;
-  const wasResetApplied = applyBuildVersionSoftResetIfNeeded();
-
-  if (wasResetApplied) {
-    window.location.replace(window.location.pathname + window.location.search + window.location.hash);
-    return false;
-  }
+  rememberAppBuildVersion();
 
   await Promise.all([loadProfileUtils(), loadAuthSessionController(), loadAuthUiController(), loadAccountHeaderController()]);
 
