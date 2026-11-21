@@ -8,7 +8,7 @@ import { createPortableRuntime } from '../server/runtime.js';
 const root = new URL('../', import.meta.url);
 const assets = [...clientJsAssets, ...clientCssAssets, ...clientHtmlAssets];
 assert.equal(new Set(assets).size, assets.length, 'Asset registry must not have duplicates');
-const runtime = createPortableRuntime({ rootDir: fileURLToPath(root) });
+const runtime = createPortableRuntime({ rootDir: fileURLToPath(root), env: { APP_BUILD_VERSION: 'build', CF_PAGES_COMMIT_SHA: 'build' } });
 for (const file of assets) {
   await access(new URL(file, root));
   assert(!file.includes('..') && !file.startsWith('/'));
@@ -18,7 +18,12 @@ for (const file of assets) {
 for (const file of versionedClientAssets) {
   const response = await runtime.handleRequest(new Request(`https://fixture.invalid/app-assets/build?file=${encodeURIComponent(file)}`));
   assert.equal(response.status, 200, `Versioned file must be published: ${file}`);
-  assert.match(response.headers.get('cache-control'), /no-store/);
+  if (file.endsWith('.js')) {
+    assert.equal(response.headers.get('cache-control'), 'private, no-cache');
+    assert.match(response.headers.get('etag'), /^W\/"[a-f0-9]{64}"$/);
+  } else {
+    assert.match(response.headers.get('cache-control'), /no-store/);
+  }
 }
 for (const file of ['client-assets.js', 'package.json', 'server/runtime.js', '../app.js']) {
   const response = await runtime.handleRequest(new Request(`https://fixture.invalid/app-assets/build?file=${encodeURIComponent(file)}`));

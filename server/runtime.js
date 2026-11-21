@@ -502,6 +502,12 @@ export async function writeResponseToNodeMessage(nodeResponse, response, options
     headers[key] = value;
   });
 
+  if (response.status === 304) {
+    nodeResponse.writeHead(response.status, response.statusText, headers);
+    nodeResponse.end();
+    return;
+  }
+
   if (options.head) {
     const body = Buffer.from(await response.arrayBuffer());
 

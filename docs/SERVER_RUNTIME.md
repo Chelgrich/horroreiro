@@ -29,7 +29,7 @@ The runtime currently reuses the existing `functions/*` handlers by providing:
 Runtime/public configuration:
 
 - `/env` -> environment JS payload.
-- `/app-assets/:version?file=<asset>` -> allowlisted JS/CSS app asset with `no-store`.
+- `/app-assets/:version?file=<asset>` -> allowlisted JS/CSS. Current-build scripts use `private, no-cache` and weak content ETags. CSS and mismatched versions use `no-store`.
 - `/supabase/rest/v1/*` and `/supabase/auth/v1/*` -> `functions/supabase/[[path]].js`, fixed configured Supabase upstream for browser API access. Only the configured publishable key and caller bearer token are forwarded; RLS/Auth remain authoritative. Requests with a foreign Origin or a different API key are rejected. Site cookies are stripped, redirects are refused, bodies are bounded to 64 KiB, upstream requests time out after 15 seconds, and all replies are `no-store` without Set-Cookie/CORS headers. Storage/Realtime are outside this route. The official SDK supports this through its [custom fetch option](https://supabase.com/docs/reference/javascript/initializing).
 - `/assets/vendor/supabase-2.119.0.js` -> pinned browser SDK, served directly with immutable caching. Provenance/license/checksum are in `assets/vendor/README.md`; the transport smoke verifies the exact distribution and browser export.
 

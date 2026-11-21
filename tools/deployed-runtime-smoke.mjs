@@ -291,7 +291,12 @@ async function checkAssets(baseUrl, version, options) {
   });
 
   assert(assetResult.response.status === 200, `app asset: expected 200, got ${assetResult.response.status}`);
-  expectCacheIncludes(assetResult.response, 'no-store', 'app asset');
+  expectCacheIncludes(assetResult.response, 'no-cache', 'app asset');
+  const appTag = getHeader(assetResult.response, 'etag');
+  assert(/^W\/"[a-f0-9]{64}"$/.test(appTag), 'app asset: expected content-derived ETag');
+  const validated = await requestPath(baseUrl, assetPath, { ...options, headers: { 'If-None-Match': appTag } });
+  assert(validated.response.status === 304 && getHeader(validated.response, 'etag') === appTag && validated.text === '',
+    `app asset: expected bodyless 304 for matching ETag, got ${validated.response.status}`);
 
   const bootLoaderResult = await expectText(
     baseUrl,
@@ -301,7 +306,7 @@ async function checkAssets(baseUrl, version, options) {
     options
   );
 
-  expectCacheIncludes(bootLoaderResult.response, 'no-store', 'small app asset');
+  expectCacheIncludes(bootLoaderResult.response, 'no-cache', 'small app asset');
 
   const missingAsset = await requestPath(
     baseUrl,

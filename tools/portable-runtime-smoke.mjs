@@ -71,8 +71,18 @@ assert(envText.includes('portable-smoke'), '/env: missing build version');
 const assetResponse = await fetchPortable('/app-assets/portable-smoke?file=app.js');
 const assetText = await assetResponse.text();
 assert(assetResponse.status === 200, `/app-assets: expected 200, got ${assetResponse.status}`);
-assert(assetResponse.headers.get('cache-control')?.includes('no-store'), '/app-assets: expected no-store');
+assert(assetResponse.headers.get('cache-control') === 'private, no-cache', '/app-assets: expected browser revalidation');
 assert(assetText.includes('initCatalogPage'), '/app-assets: app.js payload looks wrong');
+const assetTag = assetResponse.headers.get('etag');
+assert(/^W\/"[a-f0-9]{64}"$/.test(assetTag), '/app-assets: expected content-derived ETag');
+for (const [method, validator] of [['GET', assetTag], ['HEAD', `"unmatched", ${assetTag.slice(2)}`], ['GET', '*']]) {
+  const response = await fetchPortable('/app-assets/portable-smoke?file=app.js', { method, headers: { 'If-None-Match': validator } });
+  assert(response.status === 304 && response.headers.get('etag') === assetTag && await response.text() === '',
+    '/app-assets: matching validators must return a bodyless 304');
+}
+const oldBuildAsset = await fetchPortable('/app-assets/previous-build?file=app.js', { headers: { 'If-None-Match': assetTag } });
+assert(oldBuildAsset.status === 200 && oldBuildAsset.headers.get('cache-control')?.includes('no-store') && await oldBuildAsset.text() === assetText,
+  '/app-assets: fallback under an old release URL must not become cacheable');
 
 const missingAssetResponse = await fetchPortable('/app-assets/portable-smoke?file=missing.js');
 assert(missingAssetResponse.status === 404, `/app-assets missing: expected 404, got ${missingAssetResponse.status}`);
@@ -97,7 +107,7 @@ try {
   await mkdir(join(fixtureRoot, 'private-icons'));
   await writeFile(join(fixtureRoot, 'private-icons', 'tmdb.svg'), 'fake-private-content');
   await symlink(join(fixtureRoot, 'private-icons'), join(fixtureRoot, 'icons'), 'junction');
-  const fixtureRuntime = createPortableRuntime({ rootDir: fixtureRoot });
+  const fixtureRuntime = createPortableRuntime({ rootDir: fixtureRoot, env: { APP_BUILD_VERSION: 'asset-fixture', CF_PAGES_COMMIT_SHA: 'asset-fixture' } });
   for (const path of [...privatePaths, '/icons/tmdb.svg', '/%ZZ', '/server%2Fprivate.js']) {
     for (const method of ['GET', 'HEAD']) {
       const response = await fixtureRuntime.handleRequest(new Request(`http://portable.test${path}`, { method }));
@@ -106,6 +116,16 @@ try {
   }
   const publicFixture = await fixtureRuntime.handleRequest(new Request('http://portable.test/app.js'));
   assert(publicFixture.status === 200 && await publicFixture.text() === 'public-app-fixture', 'public app asset must remain accessible');
+  const oldCode = await fixtureRuntime.handleRequest(new Request('http://portable.test/app-assets/asset-fixture?file=app.js'));
+  const oldTag = oldCode.headers.get('etag');
+  assert(oldTag, 'The first release must provide a validator');
+  await writeFile(join(fixtureRoot, 'app.js'), 'updated-app-fixture');
+  const updatedRuntime = createPortableRuntime({ rootDir: fixtureRoot, env: { APP_BUILD_VERSION: 'asset-fixture-next', CF_PAGES_COMMIT_SHA: 'asset-fixture-next' } });
+  const newCode = await updatedRuntime.handleRequest(new Request('http://portable.test/app-assets/asset-fixture-next?file=app.js', {
+    headers: { 'If-None-Match': oldTag }
+  }));
+  assert(newCode.status === 200 && newCode.headers.get('etag') !== oldTag && await newCode.text() === 'updated-app-fixture',
+    'Changed bytes in a new release must receive a fresh response and validator');
 } finally {
   assert(dirname(fixtureRoot) === resolve(tmpdir()) && basename(fixtureRoot).startsWith('horroreiro-static-'), 'unexpected fixture cleanup target');
   await rm(fixtureRoot, { recursive: true, force: true });

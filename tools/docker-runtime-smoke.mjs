@@ -118,6 +118,13 @@ try {
     'initCatalogPage',
     'app asset'
   );
+  const scriptUrl = `http://127.0.0.1:${port}/app-assets/docker-smoke?file=app.js`;
+  const script = await fetch(scriptUrl, { method: 'HEAD' });
+  const scriptTag = script.headers.get('etag');
+  assert(script.status === 200 && scriptTag, 'Script HEAD must return the same validator as GET');
+  const validatedScript = await fetch(scriptUrl, { headers: { 'If-None-Match': scriptTag } });
+  assert(validatedScript.status === 304 && !validatedScript.headers.has('content-length') && await validatedScript.text() === '',
+    'Portable HTTP adapter must send a bodyless 304 without a zero Content-Length');
   await waitForText(`http://127.0.0.1:${port}/sitemap.xml`, '<urlset', 'sitemap');
 
   for (const path of ['/package.json', '/server/runtime.js', '/functions/_seo-utils.js', '/node_modules/sharp/package.json']) {

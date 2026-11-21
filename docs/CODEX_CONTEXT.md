@@ -53,7 +53,7 @@ Horroreiro is a dark-mode horror movie catalog with user ratings, watchlists, re
 - Read `docs/YANDEX_STAGING_PLAN.md` before creating Yandex API Gateway, Serverless Container, Object Storage, Cloud DNS, Certificate Manager, or Container Registry artifacts. The first Yandex staging should route through the single portable container; split `/app-assets/*` to Object Storage only after the current query-string asset contract is explicitly tested.
 - Read `docs/YANDEX_CONTAINER_RELEASE.md` before building, tagging, pushing, or configuring the first Yandex Serverless Container revision.
 - Read `docs/YANDEX_PRODUCTION_CUTOVER.md` before changing production DNS, creating production Yandex resources, or moving `horroreiro.ru` traffic away from Cloudflare.
-- Recent production cache incident showed that `/env` can point to the current commit while old static assets are still served if assets are cached too aggressively. Core app assets now go through `/app-assets/<commit>?file=...` and are returned with `no-store`.
+- Core app assets use `/app-assets/<commit>?file=...`. Matching-build scripts are saved by the browser and revalidated with a content-derived ETag. A request for a different build keeps the existing `no-store` fallback so its response cannot populate the wrong cache key.
 - If the user reports a production-only issue, verify:
   - `https://horroreiro.ru/env`
   - whether prod `APP_BUILD_VERSION` matches the intended commit;
@@ -124,7 +124,7 @@ Production asset URL strategy:
 - Portable social image rendering accepts only this project's public Storage poster URLs, rejects redirects, bounds downloads to 8 MiB/five seconds, and limits decoding to 8 million pixels. Rejected inputs use `/og-preview.jpg`; details are in `docs/SERVER_RUNTIME.md`.
 
 - Core JS/CSS and lazy feature modules use `/app-assets/<APP_BUILD_VERSION>?file=<asset>`.
-- `functions/app-assets/[version].js` uses the shared versioned inventory and proxies app assets from current Pages assets with `no-store`.
+- `functions/app-assets/[version].js` uses the shared versioned inventory. Current-build JavaScript uses `private, no-cache` and a weak SHA-256 ETag so the browser can revalidate across gateway compression. CSS and responses under a mismatched build URL use `no-store`.
 - `_headers` sets core app assets to `public, max-age=0, must-revalidate`.
 - Do not reintroduce long-lived immutable caching on `app.js`, `styles.css`, `catalog-page.css`, `movie-page.css`, `secondary-pages.css`, secondary page-only CSS, `shared-layout.js`, `app-page-runtime.js`, `custom-select.js`, warm-start scripts, lazy feature modules, or `assets/directors-admin-app.js`.
 - The vendored Supabase SDK is the exception: its filename contains the upstream version, its bytes are checksum-verified, and it is immutable. Never overwrite it with a different version under the same filename.

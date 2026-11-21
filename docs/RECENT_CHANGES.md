@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-22 — Revalidate versioned scripts with ETags
+
+- Current-build JavaScript responses use a weak SHA-256 content ETag and browser-only revalidation. Matching conditional requests return a bodyless `304`. CSS, errors, and fallback responses under old build URLs keep `no-store`.
+- The portable HTTP writer omits its inferred body length on `304` responses. Smoke checks cover matching and outdated validators, a new build with changed bytes, and the deployed conditional response.
+
 ## 2026-11-21 — Calculate profile medal places in PostgreSQL
 
 - The profile rank endpoint reads all three places and counts from one SQL request. Ranking still includes users with no activity, uses equal places for ties, and omits rated films from the active watchlist.

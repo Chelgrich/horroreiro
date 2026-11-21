@@ -58,7 +58,7 @@ The host must preserve these cache and route expectations:
 
 - HTML app shells: `no-store`.
 - `/env`: `no-store`.
-- `/app-assets/<APP_BUILD_VERSION>?file=<asset>`: `no-store`.
+- Current-build JavaScript under `/app-assets/<APP_BUILD_VERSION>?file=<asset>`: `private, no-cache`, a content ETag, and `304` on a matching conditional request. CSS, missing assets and mismatched builds use `no-store`.
 - Root app JS/CSS fallback paths: `public, max-age=0, must-revalidate`.
 - Immutable public media: `/icons/*`, `/favicon.ico`, `/insidious.webp`, `/og-preview.jpg`.
 
@@ -186,7 +186,7 @@ Run this after a staging/prod URL is reachable:
 npm run smoke:deployed -- --base-url https://staging.horroreiro.ru --expected-version <APP_BUILD_VERSION>
 ```
 
-The deployed smoke keeps `/env` and `/app-assets/*` strict `no-store`.
+The deployed smoke checks `no-store` for `/env` and missing assets. It checks `ETag`, revalidation and a bodyless `304` for current-build JavaScript.
 For HTML shells it accepts either `no-store` or `max-age=0, must-revalidate`
 so the same check works against the current Cloudflare deployment and future
 portable-container staging.
