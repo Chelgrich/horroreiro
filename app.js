@@ -15744,7 +15744,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     });
   };
 
-  const refreshHydratedCatalogInBackground = () => {
+  const refreshHydratedCatalogInBackground = ({ fromBackForwardCache = false } = {}) => {
     const userIdAtRefreshStart = currentUser?.id || null;
 
     window.setTimeout(async () => {
@@ -15753,13 +15753,16 @@ async function initCatalogPage({ onShellReady = null } = {}) {
           return;
         }
 
+        const previousSignature = fromBackForwardCache
+          ? getCatalogDataSignatureHash(createCatalogSessionSnapshotPayload())
+          : hydrationState.hydratedCatalogSignature;
         const backgroundCatalogLoadState = await reloadCatalogData({
           showSkeleton: false,
           refreshFilters: true,
           awaitUserState: shouldAwaitInitialUserCatalogState,
           loadDeferredUserState: false,
-          movieIndexRevisionRequest,
-          allowMovieIndexReuse: performance.getEntriesByType('navigation')[0]?.type !== 'reload'
+          movieIndexRevisionRequest: fromBackForwardCache ? null : movieIndexRevisionRequest,
+          allowMovieIndexReuse: fromBackForwardCache || performance.getEntriesByType('navigation')[0]?.type !== 'reload'
         });
 
         if (!isCatalogPage() || userIdAtRefreshStart !== (currentUser?.id || null)) {
@@ -15767,11 +15770,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
         }
 
         const refreshedCatalogSignature = getCatalogDataSignatureHash(createCatalogSessionSnapshotPayload());
-        const canReuseHydratedCatalog = (
-          hydrationState.didHydrateCatalogFromSnapshot &&
-          hydrationState.hydratedCatalogSignature &&
-          hydrationState.hydratedCatalogSignature === refreshedCatalogSignature
-        );
+        const canReuseHydratedCatalog = previousSignature && previousSignature === refreshedCatalogSignature;
 
         if (!canReuseHydratedCatalog) {
           preserveWindowScrollPosition(renderMovies);
@@ -15786,6 +15785,10 @@ async function initCatalogPage({ onShellReady = null } = {}) {
       }
     }, 0);
   };
+
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) refreshHydratedCatalogInBackground({ fromBackForwardCache: true });
+  });
 
   if (canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot)) {
     applySavedCatalogState();
