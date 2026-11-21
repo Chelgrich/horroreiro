@@ -263,6 +263,7 @@ Important people fields:
 Rules:
 
 - Public person page path: `/name/<slug>`.
+- The server SEO lookup uses the public name, date, birthplace, and alias fields to omit empty placeholders from the first-render skeleton.
 - Admin people list path remains `/directors`.
 - Client person reads use explicit select profiles:
   - `PEOPLE_PUBLIC_SELECT` for public `/name/*` fallback data;
@@ -308,7 +309,7 @@ Rules:
 - Matching is by normalized company name, not by role; one company can have several role sections on its detail page.
 - Remove stale `movie_companies` rows when a company value is removed from a movie.
 - Delete orphan company rows when no movie references remain.
-- Company detail pages hide `country` when empty and hide any role section that has no movies.
+- Company detail pages hide `country` when empty in both the first-render skeleton and the interactive page. Role sections with no movies are hidden.
 - Company detail pages are public read-only.
 - Company role list pages (`/production`, `/distributors`, `/russian-distributors`) and company edit actions are admin-only.
 - RLS must allow public `select` on `companies` and `movie_companies` for `anon` and `authenticated`; writes stay restricted to admins.

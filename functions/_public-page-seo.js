@@ -4,16 +4,24 @@ import {
   getMoviePagePath, getMovieTitleWithYear, upsertJsonLd
 } from './_seo-utils.js';
 
+const hasText = value => Boolean(String(value || '').trim());
+
 const pages = {
   director: {
     asset: '/name.html',
     prefix: '/name/',
     table: 'people',
     key: 'slug',
-    select: 'slug,name,name_ru,movie_people(movies(id,slug,title,year))',
+    select: 'slug,name,name_ru,birth_date,death_date,birth_place,aliases,movie_people(movies(id,slug,title,year))',
     relation: 'movie_people',
     filters: { 'movie_people.role': 'eq.director' },
     name: row => row.name_ru || row.name,
+    skeletonFields: row => ({
+      'original-name': hasText(row.name),
+      dates: Boolean(row.birth_date || row.death_date),
+      'birth-place': hasText(row.birth_place),
+      aliases: Array.isArray(row.aliases) && row.aliases.some(hasText)
+    }),
     title: name => `${name} — фильмография режиссёра | Хоррорейро`,
     description: name => `Фильмография режиссёра ${name} в каталоге Хоррорейро. Карточки фильмов, оценки и рецензии зрителей.`,
     schema: (row, name) => ({ '@type': 'Person', name, jobTitle: 'Режиссёр', alternateName: row.name !== name ? row.name : undefined })
@@ -26,6 +34,7 @@ const pages = {
     select: 'slug,name,country,movie_companies(movies(id,slug,title,year))',
     relation: 'movie_companies',
     name: row => row.name,
+    skeletonFields: row => ({ country: hasText(row.country) }),
     title: name => `${name} — фильмы компании | Хоррорейро`,
     description: (name, row) => `Фильмы компании ${name} в каталоге Хоррорейро. Производство и дистрибуция фильмов ужасов.${row.country ? ` Страна: ${row.country}.` : ''}`,
     schema: (_row, name) => ({ '@type': 'Organization', name })
@@ -96,6 +105,11 @@ export async function getPublicPageResponse({ env, request }, pageType, identifi
     type: pageType === 'profile' ? 'profile' : 'website'
   };
   let html = applyPageSeoToHtml(await response.text(), seo);
+  if (page.skeletonFields) {
+    const fields = page.skeletonFields(row);
+    html = html.replace(/<span data-skeleton-field="([a-z-]+)"[^>]*><\/span>/g,
+      (markup, field) => fields[field] ? markup : '');
+  }
   html = upsertJsonLd(html, 'publicPageStructuredData', {
     '@context': 'https://schema.org', url: canonicalUrl, ...page.schema(row, name)
   });

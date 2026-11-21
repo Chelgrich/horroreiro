@@ -82,6 +82,10 @@
   gap: 10px;
 }
 
+.secondary-page-skeleton .director-page-meta-list:not(:has(> .director-page-meta-item)){
+  display: none;
+}
+
 .director-page-meta-item{
   color: var(--color-text-secondary);
   font-size: var(--font-size-body);

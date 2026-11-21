@@ -3,6 +3,7 @@
 ## 2026-11-22 — Match secondary skeletons to the page layouts
 
 - Profile, notifications, following, editor, directors, and company shells render styled placeholders in their real grids before app startup. The same static skeleton stays visible through the initial loading state, including the layout breakpoints and reduced-motion behavior.
+- The existing SEO lookups tell the public director and company shells which optional details are present. Filmography placeholders fill the first row on mobile.
 - Warm-start snapshots omit the decorative skeleton markup. When restoring a page, the startup script keeps its skeleton from the current document for future loading states. Deferred editor diagnostics show the six-card grid while their data loads.
 
 ## 2026-11-22 — Preserve poster proportions in previews and index public filmographies

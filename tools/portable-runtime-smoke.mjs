@@ -219,6 +219,10 @@ try {
       html.includes('name="robots" content="index, follow"') && html.includes(`<h1>${name}</h1>`) &&
       html.includes(`"@type":"${type}"`), `${path}: public SEO must reach the initial HTML`);
     if (type !== 'ProfilePage') assert(html.includes('<a href="/movie/seo-film">A &lt;Film&gt; (2026)</a>'), 'Filmography fallback must link to movies');
+    if (type === 'Person' || type === 'Organization') {
+      assert(html.includes('class="secondary-page-skeleton ') && !html.includes('data-skeleton-field='),
+        `${path}: the server skeleton must omit unavailable details`);
+    }
   }
   const personHead = await seoRequest('/name/seo-person', { method: 'HEAD' });
   assert(personHead.ok && personReads === 1 && await personHead.text() === '', 'Repeat requests must reuse public SEO data');

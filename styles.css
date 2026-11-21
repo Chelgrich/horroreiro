@@ -477,6 +477,18 @@ html:not(.app-load-failed) .secondary-page-skeleton:has(+ div > .page-content-sk
   }
 }
 
+@media (max-width: 680px) {
+  .secondary-page-skeleton :is(.director-page-movies-grid, .company-page-movies-grid) > :nth-child(n+3){
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .secondary-page-skeleton :is(.director-page-movies-grid, .company-page-movies-grid) > :nth-child(n+2){
+    display: none;
+  }
+}
+
 .page:has(.catalog-startup-skeleton) .seo-text-bottom,
 .page:has(.catalog-startup-skeleton, .page-content-skeleton, .movie-page-stack-skeleton) + #sharedFooterMount{
   visibility: hidden;
