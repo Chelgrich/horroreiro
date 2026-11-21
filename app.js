@@ -545,6 +545,7 @@ let isSecondaryPageWarmStartHydrationActive = false;
 let secondaryPageWarmStartScrollIntentBaseline = 0;
 let allMovies = [];
 let catalogMovieIndexRevision = null;
+let catalogLinksDeferredDuringRestore = false;
 let catalogMovieLinksById = new Map();
 let catalogMoviesById = new Map();
 let catalogMovieMetaById = new Map();
@@ -11532,7 +11533,7 @@ async function reloadCatalogData({
     }),
     deferRatingStats ? false : fetchMovieRatingStats(),
     deferReviewSummary ? null : fetchCatalogReviewSummary()
-  ]);
+  ]).finally(() => { catalogLinksDeferredDuringRestore = false; });
 
   const shouldAwaitCatalogUserState = shouldAwaitUserStateForCatalogLoad({
     forceAwaitUserState: awaitUserState
@@ -14994,6 +14995,7 @@ async function loadCatalogPagePosters(pageMovies) {
 }
 
 function scheduleCatalogPageMovieLinks() {
+  if (catalogLinksDeferredDuringRestore) return;
   requestAnimationFrame(() => window.setTimeout(loadCatalogPageMovieLinks, 0));
 }
 
@@ -15645,6 +15647,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     initialCatalogUrlState?.profileActivity
   );
   const hydratedSnapshot = shouldSkipSnapshotForProfileActivity ? null : readCatalogSessionSnapshot();
+  catalogLinksDeferredDuringRestore = Boolean(hydratedSnapshot);
   const preAuthUserId = currentUser?.id || null;
   const shouldWaitForSessionBeforeHydration = Boolean(
     hydratedSnapshot &&

@@ -4,6 +4,7 @@
 
 - On return, read one public revision from Supabase. A matching revision reuses the snapshot. A changed, unavailable or missing revision reads the full index in the background. Explicit reload also reads the full index.
 - A browser back/forward cache restore checks the current revision even when the browser keeps the previous catalog document alive.
+- Snapshot startup waits for revalidation before requesting external links, using the current visible movie IDs in one batch and retaining links already on screen.
 - The revision updates in the same transaction as movie, genre or country changes. The index read captures the revision before fetching rows, so a concurrent edit cannot mark old rows with a new revision.
 
 ## 2026-11-21 — Reuse the movie index on quick catalog returns

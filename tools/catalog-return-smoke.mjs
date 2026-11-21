@@ -19,10 +19,14 @@ let statsReads = 0;
 let completeReviews;
 let reviewReads = 0;
 const movieReads = [];
+let linkReads = 0;
 let revisionResponse = { data: { revision: 'first' } };
 const initialLoadSandbox = vm.createContext({
   container: { querySelector: () => null }, moviesLoadedSuccessfully: false, shouldFadeCatalogAfterSkeleton: false,
   currentUser: null, catalogMovieIndexRevision: null, AbortController, setTimeout, clearTimeout,
+  catalogLinksDeferredDuringRestore: true,
+  requestAnimationFrame: callback => callback(), window: { setTimeout: callback => callback() },
+  loadCatalogPageMovieLinks: () => { linkReads += 1; },
   supabaseClient: { from: table => {
     assert.equal(table, 'catalog_movie_index_revision');
     return { select: column => {
@@ -45,14 +49,18 @@ const initialLoadSandbox = vm.createContext({
   shouldAwaitUserStateForCatalogLoad: () => false, shouldUseAuthenticatedUi: () => false,
   fetchCatalogUserState: async () => {}, refreshDynamicFilterOptions() {}, persistCatalogSessionSnapshot() {}
 });
-for (const name of ['readCatalogMovieIndexRevision', 'refreshCatalogMovieIndex', 'reloadCatalogData']) {
+for (const name of ['readCatalogMovieIndexRevision', 'refreshCatalogMovieIndex', 'reloadCatalogData', 'scheduleCatalogPageMovieLinks']) {
   vm.runInContext(functionSource(name), initialLoadSandbox);
 }
+initialLoadSandbox.scheduleCatalogPageMovieLinks();
+assert.equal(linkReads, 0, 'Restored movie links must wait for the current movie index');
 const coldResult = await Promise.race([
   initialLoadSandbox.reloadCatalogData({ deferRatingStats: true, deferReviewSummary: true }),
   new Promise(resolve => setImmediate(() => resolve(null)))
 ]);
 assert.ok(coldResult, 'A cold date-sorted catalog must load without waiting for aggregate ratings');
+initialLoadSandbox.scheduleCatalogPageMovieLinks();
+assert.equal(linkReads, 1, 'The current catalog can load its links after revalidation');
 assert.deepEqual(movieReads, ['first']);
 const unchanged = { allowMovieIndexReuse: true, deferRatingStats: true, deferReviewSummary: true };
 await initialLoadSandbox.reloadCatalogData(unchanged);
