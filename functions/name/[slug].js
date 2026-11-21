@@ -1,7 +1,5 @@
-import { fetchNoStoreAsset } from '../_response-utils.js';
+import { getPublicPageResponse } from '../_public-page-seo.js';
 
 export async function onRequestGet(context) {
-  const { env, request } = context;
-
-  return fetchNoStoreAsset(env, request, '/name.html');
+  return getPublicPageResponse(context, 'director', context.params.slug);
 }

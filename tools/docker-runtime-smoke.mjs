@@ -125,7 +125,9 @@ try {
   const validatedScript = await fetch(scriptUrl, { headers: { 'If-None-Match': scriptTag } });
   assert(validatedScript.status === 304 && !validatedScript.headers.has('content-length') && await validatedScript.text() === '',
     'Portable HTTP adapter must send a bodyless 304 without a zero Content-Length');
-  await waitForText(`http://127.0.0.1:${port}/sitemap.xml`, '<urlset', 'sitemap');
+  const sitemap = await fetch(`http://127.0.0.1:${port}/sitemap.xml`);
+  assert(sitemap.status === 503 && sitemap.headers.get('cache-control') === 'no-store',
+    'An unconfigured container must not publish a partial sitemap');
 
   for (const path of ['/package.json', '/server/runtime.js', '/functions/_seo-utils.js', '/node_modules/sharp/package.json']) {
     const response = await fetch(`http://127.0.0.1:${port}${path}`);

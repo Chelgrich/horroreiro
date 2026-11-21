@@ -50,16 +50,16 @@ async function withMutedConsoleError(callback) {
 
 await expectText('/', 'id="movies"', 'catalog route');
 await expectText('/movie.html', 'id="moviePage"', 'movie shell route');
-await expectText('/user/profile000', 'id="userPage"', 'user detail route');
+await expectText('/user.html', 'id="userPage"', 'user shell route');
 await expectText('/following', 'id="followingPage"', 'following route');
 await expectText('/notifications', 'id="notificationsPage"', 'notifications route');
 await expectText('/editor', 'id="editorPage"', 'editor route');
 await expectText('/directors', 'id="directorsAdminPage"', 'directors route');
-await expectText('/name/test-director', 'id="directorPage"', 'person route');
+await expectText('/name.html', 'id="directorPage"', 'person shell route');
 await expectText('/production', 'id="companyAdminPage"', 'production route');
 await expectText('/distributors', 'id="companyAdminPage"', 'distributors route');
 await expectText('/russian-distributors', 'id="companyAdminPage"', 'russian distributors route');
-await expectText('/company/test-company', 'id="companyPage"', 'company route');
+await expectText('/company.html', 'id="companyPage"', 'company shell route');
 await expectText('/', '<meta name="app-build-version" content="portable-smoke">', 'early stylesheet build hint');
 
 const envResponse = await fetchPortable('/env');
@@ -172,12 +172,65 @@ try {
 assert(bodyRejected && !declaredBodyRead, 'oversized declared HTTP bodies must be rejected before reading');
 
 const sitemapResponse = await withMutedConsoleError(() => fetchPortable('/sitemap.xml'));
-const sitemapText = await sitemapResponse.text();
-assert(sitemapResponse.status === 200, `/sitemap.xml: expected 200, got ${sitemapResponse.status}`);
-assert(sitemapText.includes('<urlset'), '/sitemap.xml: missing urlset');
+assert(sitemapResponse.status === 503 && sitemapResponse.headers.get('cache-control') === 'no-store',
+  'An unavailable database must not publish a partial sitemap');
 
 // A crawler's concurrent GET/HEAD requests should share one public movie read.
 const originalFetch = globalThis.fetch;
+const seoRuntime = createPortableRuntime({ env: { SUPABASE_URL: 'https://seo.test', SUPABASE_ANON_KEY: 'seo-key' } });
+const seoRequest = (path, options) => seoRuntime.handleRequest(new Request(`http://portable.test${path}`, options));
+const relatedMovie = { id: 'film', slug: 'seo-film', title: 'A <Film>', year: 2026 };
+const movieOffsets = [];
+try {
+  globalThis.fetch = async (url, options) => {
+    assert(!options.headers.apikey.includes('service'), 'Public SEO uses the anon key');
+    const params = url.searchParams;
+    if (url.pathname.endsWith('/people')) {
+      return Response.json(params.get('slug') === 'not.is.null' ? [{ slug: 'seo-person' }] : [
+        { slug: 'seo-person', name_ru: 'A $& <Person>', movie_people: [{ movies: relatedMovie }] }
+      ]);
+    }
+    if (url.pathname.endsWith('/companies')) {
+      return Response.json(params.get('slug') === 'eq.absent' ? [] : [
+        { slug: 'seo-company', name: 'A Company', movie_companies: [{ movies: relatedMovie }] }
+      ]);
+    }
+    if (url.pathname.endsWith('/profiles')) {
+      return Response.json(params.get('default_display_name') === 'eq.absent' ? [] : [
+        { display_name: 'Public Profile', default_display_name: 'seo-user' }
+      ]);
+    }
+    assert(url.pathname.endsWith('/movies'), 'Unexpected SEO endpoint');
+    const offset = Number(params.get('offset'));
+    movieOffsets.push(offset);
+    return Response.json(offset ? [relatedMovie] : Array.from({ length: 500 }, (_, index) => ({ slug: `film-${index}` })));
+  };
+  for (const [path, name, type] of [
+    ['/name/seo-person', 'A $&amp; &lt;Person&gt;', 'Person'],
+    ['/company/seo-company', 'A Company', 'Organization'],
+    ['/user/seo-user', 'Public Profile', 'ProfilePage']
+  ]) {
+    const response = await seoRequest(`${path}?utm_source=ignored`);
+    const html = await response.text();
+    assert(response.status === 200 && html.includes(`<link rel="canonical" href="https://horroreiro.ru${path}">`) &&
+      html.includes('name="robots" content="index, follow"') && html.includes(`<h1>${name}</h1>`) &&
+      html.includes(`"@type":"${type}"`), `${path}: public SEO must reach the initial HTML`);
+    if (type !== 'ProfilePage') assert(html.includes('<a href="/movie/seo-film">A &lt;Film&gt; (2026)</a>'), 'Filmography fallback must link to movies');
+  }
+  for (const path of ['/company/absent', '/user/absent']) {
+    const response = await seoRequest(path);
+    assert(response.status === 404 && (await response.text()).includes('name="robots" content="noindex,'), `${path} must return a non-indexable 404`);
+  }
+  const [firstSitemap, secondSitemap] = await Promise.all([seoRequest('/sitemap.xml'), seoRequest('/sitemap.xml')]);
+  const sitemap = await firstSitemap.text();
+  assert(firstSitemap.ok && sitemap === await secondSitemap.text() && movieOffsets.join(',') === '0,500',
+    'Sitemap requests must share the same paged lookup');
+  assert((sitemap.match(/<loc>/g) || []).length === 504 && !sitemap.includes('<lastmod>'),
+    'Sitemap must include every movie and the public filmography routes');
+} finally {
+  globalThis.fetch = originalFetch;
+}
+
 const rankFixtureId = '00000000-0000-0000-0000-000000000001';
 const ranksRuntime = createPortableRuntime({ env: {
   SUPABASE_URL: 'https://database.test', SUPABASE_SERVICE_ROLE_KEY: 'fake-service-key'
@@ -255,6 +308,11 @@ try {
   const telegramHtml = await telegramMovieResponse.text();
   assert(telegramHtml.includes('property="og:title"') && telegramHtml.includes('property="og:image"'), 'Telegram must receive metadata in the initial HTML');
   assert(!telegramHtml.includes('<script'), 'Telegram preview HTML must work without JavaScript');
+  assert(telegramHtml.includes('/og/movie/cached-movie.jpg?v=2') &&
+    telegramHtml.includes('property="og:description" content="A &lt;public&gt; synopsis') &&
+    !telegramHtml.includes('og:image:width') && !browserMovieHtml.includes('og:image:height'),
+  'The preview must lead with the synopsis and avoid fixed dimensions for the poster');
+  assert(browserMovieHtml.includes('"@type":"BreadcrumbList"'), 'Movie HTML must expose catalog breadcrumbs');
   assert((await responses[0].text()).includes(movieTitle), 'cached movie must preserve SEO content');
 
   movieTitle = 'Updated movie';
@@ -308,7 +366,8 @@ try {
   const previewBuffer = Buffer.from(await previewResponse.arrayBuffer());
   const previewMetadata = await sharp(previewBuffer).metadata();
   assert(previewResponse.status === 200 && previewResponse.headers.get('content-type') === 'image/jpeg', 'social preview must return JPEG');
-  assert(previewMetadata.width === 1200 && previewMetadata.height === 630 && !previewMetadata.isProgressive, 'social preview must remain a 1200x630 baseline JPEG');
+  assert(previewMetadata.width === 32 && previewMetadata.height === 48 && !previewMetadata.isProgressive,
+    'social preview must preserve proportion and avoid upscaling');
 } finally {
   globalThis.fetch = originalFetch;
   Date.now = originalNow;

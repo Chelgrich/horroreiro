@@ -370,8 +370,6 @@ const MOVIE_COMMENTS_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205'])
 const MOVIE_COMMENT_LIKES_UNAVAILABLE_CODES = new Set(['42P01', '42501', 'PGRST205']);
 const SITE_ORIGIN = 'https://horroreiro.ru';
 const DEFAULT_SOCIAL_IMAGE_URL = `${SITE_ORIGIN}/og-preview.jpg`;
-const MOVIE_SOCIAL_IMAGE_WIDTH = 1200;
-const MOVIE_SOCIAL_IMAGE_HEIGHT = 630;
 const MOVIE_STRUCTURED_DATA_SCRIPT_ID = 'movieStructuredData';
 const CATALOG_STRUCTURED_DATA_SCRIPT_ID = 'catalogItemListStructuredData';
 const AUTH_REQUEST_TIMEOUT_MS = 20000;
@@ -16875,41 +16873,30 @@ function truncateSeoText(value, maxLength = 165) {
   return `${text.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
-function getMovieSeoTitle(movie) {
+function getMovieTitleWithYear(movie) {
   const yearSuffix = movie?.year ? ` (${movie.year})` : '';
 
-  return `${movie?.title || 'Фильм ужасов'}${yearSuffix} — Хоррорейро`;
+  return `${movie?.title || 'Фильм ужасов'}${yearSuffix}`;
 }
 
 function getMovieSeoDescription(movie) {
   const meta = getCatalogMovieMeta(movie);
-  const genresText = meta?.genresText ? `жанры: ${meta.genresText}` : '';
+  const director = movie?.director && !isIntentionalEmptyFieldMarker(movie.director) ? movie.director : '';
   const details = [
-    movie?.year ? `${movie.year}` : '',
-    movie?.director ? `режиссёр: ${movie.director}` : '',
-    genresText
+    movie?.original_title,
+    meta?.genresText,
+    director ? `Режиссёр: ${director}` : ''
   ].filter(Boolean).join(' · ');
-  const text = [
-    `${movie?.title || 'Фильм ужасов'} в каталоге Хоррорейро.`,
-    details,
-    movie?.synopsis
-  ].filter(Boolean).join(' ');
-
-  return truncateSeoText(text);
+  const synopsis = isIntentionalEmptyFieldMarker(movie?.synopsis) ? '' : normalizeSeoText(movie?.synopsis);
+  return truncateSeoText(synopsis || details || `${getMovieTitleWithYear(movie)} в каталоге Хоррорейро.`);
 }
 
 function getMovieSocialImage(movie) {
-  if (movie?.slug) {
-    return `${SITE_ORIGIN}/og/movie/${encodeURIComponent(movie.slug)}.jpg`;
+  if (movie?.slug && (movie.poster_url || getMoviePosterImages(movie.id).length)) {
+    return `${SITE_ORIGIN}/og/movie/${encodeURIComponent(movie.slug)}.jpg?v=2`;
   }
 
-  return movie?.poster_url
-    ? getPosterTransformUrl(movie.poster_url, {
-      width: MOVIE_SOCIAL_IMAGE_WIDTH,
-      height: MOVIE_SOCIAL_IMAGE_HEIGHT,
-      quality: POSTER_IMAGE_MIN_QUALITY
-    }) || movie.poster_url
-    : DEFAULT_SOCIAL_IMAGE_URL;
+  return DEFAULT_SOCIAL_IMAGE_URL;
 }
 
 function getMovieSameAsLinks(movie) {
@@ -16920,21 +16907,6 @@ function getMovieSameAsLinks(movie) {
     getPublicOptionalUrl(movie?.rottentomatoes_url),
     getPublicOptionalUrl(movie?.tmdb_url)
   ].filter(Boolean);
-}
-
-function getMovieDatePublished(movie) {
-  const releaseYear = movie?.release_year || movie?.year;
-  const releaseMonth = movie?.release_month;
-
-  if (!releaseYear) {
-    return null;
-  }
-
-  if (releaseMonth) {
-    return `${releaseYear}-${String(releaseMonth).padStart(2, '0')}-01`;
-  }
-
-  return String(releaseYear);
 }
 
 function upsertDocumentMeta({ name = '', property = '', content = '' }) {
@@ -16994,14 +16966,15 @@ function buildMovieStructuredData(movie) {
   const averageRating = getMovieAverageRating(movie.id);
   const genreNames = meta ? Array.from(meta.genreNames) : [];
   const countryNames = meta ? Array.from(meta.countryNames) : [];
+  const synopsis = isIntentionalEmptyFieldMarker(movie.synopsis) ? '' : normalizeSeoText(movie.synopsis);
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'Movie',
+    '@id': `${canonicalUrl}#movie`,
     name: movie.title,
     url: canonicalUrl,
     image: getMovieSocialImage(movie),
-    description: getMovieSeoDescription(movie),
-    inLanguage: 'ru-RU'
+    description: synopsis || getMovieSeoDescription(movie)
   };
 
   if (movie.original_title) {
@@ -17028,12 +17001,6 @@ function buildMovieStructuredData(movie) {
       '@type': 'Country',
       name
     }));
-  }
-
-  const datePublished = getMovieDatePublished(movie);
-
-  if (datePublished) {
-    structuredData.datePublished = datePublished;
   }
 
   const sameAs = getMovieSameAsLinks(movie);
@@ -17070,14 +17037,8 @@ function buildCatalogItemListStructuredData(pageMovies, paginationState) {
         url: buildMovieCanonicalUrl(movie),
         image: getMovieSocialImage(movie)
       };
-      const datePublished = getMovieDatePublished(movie);
-
       if (movie.original_title) {
         movieData.alternateName = movie.original_title;
-      }
-
-      if (datePublished) {
-        movieData.datePublished = datePublished;
       }
 
       if (meta?.genresText) {
@@ -17115,24 +17076,30 @@ function setMoviePageDocumentMeta(movie) {
     return;
   }
 
-  const title = getMovieSeoTitle(movie);
+  const socialTitle = getMovieTitleWithYear(movie);
   const description = getMovieSeoDescription(movie);
   const canonicalUrl = buildMovieCanonicalUrl(movie);
   const imageUrl = getMovieSocialImage(movie);
+  const imageAlt = imageUrl === DEFAULT_SOCIAL_IMAGE_URL
+    ? 'Хоррорейро — каталог фильмов ужасов'
+    : `Постер фильма «${movie.title}»`;
 
-  document.title = title;
+  document.title = `${socialTitle} — Хоррорейро`;
   upsertDocumentMeta({ name: 'description', content: description });
   upsertDocumentMeta({ name: 'robots', content: 'index, follow' });
   upsertDocumentCanonical(canonicalUrl);
   upsertDocumentMeta({ property: 'og:type', content: 'video.movie' });
-  upsertDocumentMeta({ property: 'og:title', content: title });
+  upsertDocumentMeta({ property: 'og:title', content: socialTitle });
   upsertDocumentMeta({ property: 'og:description', content: description });
   upsertDocumentMeta({ property: 'og:url', content: canonicalUrl });
   upsertDocumentMeta({ property: 'og:image', content: imageUrl });
   upsertDocumentMeta({ property: 'og:image:secure_url', content: imageUrl });
-  upsertDocumentMeta({ name: 'twitter:title', content: title });
+  upsertDocumentMeta({ property: 'og:image:alt', content: imageAlt });
+  upsertDocumentMeta({ name: 'twitter:card', content: imageUrl === DEFAULT_SOCIAL_IMAGE_URL ? 'summary_large_image' : 'summary' });
+  upsertDocumentMeta({ name: 'twitter:title', content: socialTitle });
   upsertDocumentMeta({ name: 'twitter:description', content: description });
   upsertDocumentMeta({ name: 'twitter:image', content: imageUrl });
+  upsertDocumentMeta({ name: 'twitter:image:alt', content: imageAlt });
   upsertDocumentMeta({ name: 'twitter:url', content: canonicalUrl });
   upsertStructuredDataScript(MOVIE_STRUCTURED_DATA_SCRIPT_ID, buildMovieStructuredData(movie));
 }

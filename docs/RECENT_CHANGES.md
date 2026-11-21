@@ -1,5 +1,11 @@
 # Recent Changes
 
+## 2026-11-22 — Preserve poster proportions in previews and index public filmographies
+
+- First-party movie previews serve the poster at its original aspect ratio, with a 1200 px long-edge cap, a new image URL version and a short synopsis-first snippet. Browser and crawler HTML expose the same Open Graph values. Movie JSON-LD uses the actual synopsis and the catalog breadcrumb without inferring a release day or a spoken language.
+- Public director, company and profile routes add canonical URLs, distinct titles and structured data to the initial HTML. Director and company pages include a short linked filmography for visitors without JavaScript. Legacy query URLs redirect to the clean routes. Missing companies and profiles return `404`; unsupported or legacy-only director URLs retain the client fallback with `noindex`.
+- The sitemap paginates movies and adds directors and companies linked to films. A five-minute process cache shares the reads. An upstream failure returns `503` and keeps incomplete XML out of caches. Admin and personal app screens keep their existing indexing directives.
+
 ## 2026-11-22 — Skip identical catalog snapshot writes
 
 - Catalog data and DOM snapshots skip storage writes while the saved payload is still fresh and every field except its timestamp matches. Changed and expired snapshots are saved normally.

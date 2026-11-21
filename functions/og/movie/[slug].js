@@ -1,6 +1,7 @@
 import {
   fetchMovieBySlugOrId,
-  getMovieRenderedSocialImage
+  getMoviePosterSource,
+  isPublicMoviePosterUrl
 } from '../../_seo-utils.js';
 
 async function fetchFallbackImage(env, request) {
@@ -23,13 +24,14 @@ export async function onRequestGet(context) {
 
   try {
     const movie = await fetchMovieBySlugOrId(env, { slug });
-    const imageUrl = getMovieRenderedSocialImage(movie);
+    const imageUrl = getMoviePosterSource(movie);
 
-    if (!movie || !imageUrl) {
+    if (!isPublicMoviePosterUrl(imageUrl, env)) {
       return fetchFallbackImage(env, request);
     }
 
     const imageResponse = await fetch(imageUrl, {
+      redirect: 'error',
       headers: {
         Accept: 'image/jpeg,image/*;q=0.8,*/*;q=0.5'
       }

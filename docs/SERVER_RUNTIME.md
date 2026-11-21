@@ -37,24 +37,25 @@ Dynamic/server-generated:
 
 - `/movie/:slug` -> movie SEO HTML through Supabase, fallback to `movie.html` shell on server data failure.
 - `/movie.html?slug=...|id=...` -> legacy movie SEO/redirect route.
-- `/sitemap.xml` -> dynamic sitemap XML.
+- `/sitemap.xml` -> paged canonical movie and linked director/company URLs, cached for five minutes per process.
+- `/name/:slug`, `/company/:slug`, `/user/:handle` -> public SEO metadata and a no-JS fallback in the existing interactive shell. Legacy `.html` URLs with identifiers redirect to the clean routes.
 - `/profile-activity-ranks/:userId` -> server-side profile ranking aggregate.
 - `/admin/users/:userId/password` -> admin password operation, POST only.
-- `/og/movie/:slug.jpg` -> baseline JPEG 1200x630, or the static fallback image. Poster downloads accept only HTTPS public `posters` object/render paths on `SUPABASE_URL`, without redirects; they stop after 8 MiB or five seconds (including the response body). Decoding is limited to 8 million input pixels. These limits do not alter uploaded files or browser poster display.
+- `/og/movie/:slug.jpg?v=2` -> baseline JPEG with a long edge of up to 1200 px, preserving the source aspect ratio, or the static fallback image. Poster downloads accept only HTTPS public `posters` object/render paths on `SUPABASE_URL`, without redirects, and stop after 8 MiB or five seconds (including the response body). Decoding is limited to 8 million input pixels.
 
 HTML shells:
 
 - `/`, `/index.html` -> `index.html`.
-- `/user/:handle`, `/user.html` -> `user.html`.
+- `/user.html` -> `user.html`.
 - `/following`, `/following.html` -> `following.html`.
 - `/notifications`, `/notifications.html` -> `notifications.html`.
 - `/editor`, `/editor.html` -> `editor.html`.
 - `/directors`, `/directors.html` -> `directors.html`.
-- `/name/:slug`, `/name.html` -> `name.html`.
+- `/name.html` -> `name.html`.
 - `/production`, `/production.html` -> `companies.html`.
 - `/distributors`, `/distributors.html` -> `companies.html`.
 - `/russian-distributors`, `/russian-distributors.html` -> `companies.html`.
-- `/company/:slug`, `/company.html` -> `company.html`.
+- `/company.html` -> `company.html`.
 
 Static fallback:
 

@@ -251,7 +251,7 @@ async function checkRoutes(baseUrl, options) {
       path: '/movie/deployed-smoke-missing-movie',
       statuses: [200, 404]
     },
-    { expected: 'id="userPage"', label: 'user profile route', path: '/user/profile000' },
+    { expected: 'id="userPage"', label: 'user profile route', path: '/user/profile000', statuses: [200, 404] },
     { expected: 'id="followingPage"', label: 'following route', path: '/following' },
     { expected: 'id="notificationsPage"', label: 'notifications route', path: '/notifications' },
     { expected: 'id="editorPage"', label: 'editor route', path: '/editor' },

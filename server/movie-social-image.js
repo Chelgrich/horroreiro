@@ -1,9 +1,9 @@
 import sharp from 'sharp';
 
 import {
-  MOVIE_SOCIAL_IMAGE_HEIGHT,
-  MOVIE_SOCIAL_IMAGE_WIDTH,
-  fetchMovieBySlugOrId
+  fetchMovieBySlugOrId,
+  getMoviePosterSource,
+  isPublicMoviePosterUrl
 } from '../functions/_seo-utils.js';
 
 const IMAGE_CACHE = new Map();
@@ -43,17 +43,7 @@ async function getFallbackImageResponse(env, request, method) {
 }
 
 async function fetchPosterBuffer(url, env) {
-  try {
-    const posterUrl = new URL(url);
-    const storageUrl = new URL(env.SUPABASE_URL);
-    const path = decodeURIComponent(posterUrl.pathname);
-    if (posterUrl.protocol !== 'https:' || storageUrl.protocol !== 'https:' ||
-      posterUrl.origin !== storageUrl.origin || posterUrl.username || posterUrl.password ||
-      !/^\/storage\/v1\/(?:object\/public|render\/image\/public)\/posters\/.+/.test(path) ||
-      path.split('/').some(segment => segment === '..' || segment === '.' || segment.includes('\\'))) {
-      return null;
-    }
-  } catch {
+  if (!isPublicMoviePosterUrl(url, env)) {
     return null;
   }
 
@@ -92,37 +82,11 @@ async function fetchPosterBuffer(url, env) {
   }
 }
 
-async function createMovieSocialImage(posterBuffer) {
-  const background = await sharp(posterBuffer, { limitInputPixels: MAX_POSTER_PIXELS })
-    .resize(MOVIE_SOCIAL_IMAGE_WIDTH, MOVIE_SOCIAL_IMAGE_HEIGHT, {
-      fit: 'cover',
-      position: 'centre'
-    })
-    .blur(22)
-    .modulate({ brightness: 0.38, saturation: 0.85 })
-    .jpeg({
-      quality: 90,
-      progressive: false,
-      mozjpeg: false
-    })
-    .toBuffer();
-
-  const foreground = await sharp(posterBuffer, { limitInputPixels: MAX_POSTER_PIXELS })
-    .resize(MOVIE_SOCIAL_IMAGE_WIDTH, MOVIE_SOCIAL_IMAGE_HEIGHT, {
-      fit: 'contain',
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-      withoutEnlargement: false
-    })
-    .png()
-    .toBuffer();
-
-  return sharp(background)
-    .composite([{ input: foreground, gravity: 'centre' }])
-    .jpeg({
-      quality: 90,
-      progressive: false,
-      mozjpeg: false
-    })
+function createMovieSocialImage(posterBuffer) {
+  return sharp(posterBuffer, { limitInputPixels: MAX_POSTER_PIXELS })
+    .autoOrient()
+    .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 88, progressive: false })
     .toBuffer();
 }
 
@@ -159,19 +123,20 @@ export async function handleMovieSocialImageRequest(context) {
 
   try {
     const movie = await fetchMovieBySlugOrId(env, { slug });
+    const poster = getMoviePosterSource(movie);
 
-    if (!movie?.poster_url) {
+    if (!poster) {
       return getFallbackImageResponse(env, request, method);
     }
 
-    const cacheKey = `${slug}:${movie.poster_url}`;
+    const cacheKey = `${slug}:${poster}`;
     const cachedBuffer = IMAGE_CACHE.get(cacheKey);
 
     if (cachedBuffer) {
       return createImageResponse(cachedBuffer, method);
     }
 
-    const posterBuffer = await fetchPosterBuffer(movie.poster_url, env);
+    const posterBuffer = await fetchPosterBuffer(poster, env);
 
     if (!posterBuffer) {
       return getFallbackImageResponse(env, request, method);

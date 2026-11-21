@@ -6,8 +6,6 @@ const DEFAULT_SOCIAL_IMAGE = `${SITE_ORIGIN}/og-preview.jpg`;
 const POSTER_STORAGE_PUBLIC_PATH = '/storage/v1/object/public/posters/';
 const POSTER_STORAGE_RENDER_PATH = '/storage/v1/render/image/public/posters/';
 const POSTER_IMAGE_MIN_QUALITY = 90;
-const MOVIE_SOCIAL_IMAGE_WIDTH = 1200;
-const MOVIE_SOCIAL_IMAGE_HEIGHT = 630;
 const SOCIAL_PREVIEW_CRAWLER_UA_PATTERNS = [
   'telegrambot',
   'twitterbot',
@@ -35,20 +33,14 @@ const MOVIE_SELECT = `
   production,
   distribution,
   russian_distribution,
-  rating,
   poster_url,
-  created_at,
-  release_year,
-  release_month,
   kinopoisk_url,
   imdb_url,
   letterboxd_url,
   rottentomatoes_url,
   tmdb_url,
   trailer_url,
-  search_aliases,
   synopsis,
-  formats,
   movie_genres (
     position,
     genres (name)
@@ -59,7 +51,6 @@ const MOVIE_SELECT = `
 `;
 
 const MOVIE_COMPANY_LINKS_SELECT = 'movie_companies(role,position,companies(id,slug,name))';
-const SITEMAP_MOVIE_SELECT = 'id, slug, created_at';
 const SEO_MOVIE_CACHE = new Map();
 const SEO_MOVIE_CACHE_TTL_MS = 60000;
 const SEO_MOVIE_CACHE_LIMIT = 100;
@@ -146,9 +137,10 @@ function getSupabaseTableUrl(env, tableName, params = {}) {
   return url;
 }
 
-async function fetchSupabaseRows(env, tableName, params = {}) {
+async function fetchSupabaseRows(env, tableName, params = {}, { signal } = {}) {
   const response = await fetch(getSupabaseTableUrl(env, tableName, params), {
-    headers: getSupabaseHeaders(env)
+    headers: getSupabaseHeaders(env),
+    signal
   });
 
   if (!response.ok) {
@@ -190,24 +182,29 @@ function getMovieCanonicalUrl(movie) {
   return `${SITE_ORIGIN}${getMoviePagePath(movie)}`;
 }
 
-function getMovieSocialImageProxyUrl(movie) {
-  return movie?.slug
-    ? `${SITE_ORIGIN}/og/movie/${encodeURIComponent(movie.slug)}.jpg`
-    : '';
-}
-
-function getMovieRenderedSocialImage(movie) {
-  return movie?.poster_url
-    ? getPosterTransformUrl(movie.poster_url, {
-      width: MOVIE_SOCIAL_IMAGE_WIDTH,
-      height: MOVIE_SOCIAL_IMAGE_HEIGHT,
-      quality: POSTER_IMAGE_MIN_QUALITY
-    })
-    : DEFAULT_SOCIAL_IMAGE;
+function getMoviePosterSource(movie) {
+  return getPublicOptionalValue(movie?.poster_url) || getPublicOptionalValue(movie?.movie_poster_images?.[0]?.image_url);
 }
 
 function getMovieSocialImage(movie) {
-  return getMovieSocialImageProxyUrl(movie) || getMovieRenderedSocialImage(movie);
+  return movie?.slug && getMoviePosterSource(movie)
+    ? `${SITE_ORIGIN}/og/movie/${encodeURIComponent(movie.slug)}.jpg?v=2`
+    : DEFAULT_SOCIAL_IMAGE;
+}
+
+function isPublicMoviePosterUrl(url, env) {
+  try {
+    const posterUrl = new URL(url);
+    const storageUrl = new URL(env.SUPABASE_URL);
+    const path = decodeURIComponent(posterUrl.pathname);
+    return posterUrl.protocol === 'https:' && posterUrl.origin === storageUrl.origin &&
+      !posterUrl.username && !posterUrl.password &&
+      (path.startsWith(POSTER_STORAGE_PUBLIC_PATH) || path.startsWith(POSTER_STORAGE_RENDER_PATH)) &&
+      Boolean(path.split('/').at(-1)) &&
+      !path.split('/').some(segment => segment === '..' || segment === '.' || segment.includes('\\'));
+  } catch {
+    return false;
+  }
 }
 
 function getPosterStoragePath(publicUrl) {
@@ -264,25 +261,17 @@ function getPosterTransformUrl(publicUrl, {
   return transformedUrl.toString();
 }
 
-function getMovieSeoTitle(movie) {
+function getMovieTitleWithYear(movie) {
   const yearSuffix = movie?.year ? ` (${movie.year})` : '';
-  return `${movie?.title || 'Фильм ужасов'}${yearSuffix} — Хоррорейро`;
+  return `${movie?.title || 'Фильм ужасов'}${yearSuffix}`;
 }
 
 function getMovieSeoDescription(movie) {
-  const details = [
-    movie?.year ? `${movie.year}` : '',
-    movie?.director ? `режиссёр: ${movie.director}` : '',
-    getMovieGenreNames(movie).length > 0 ? `жанры: ${getMovieGenreNames(movie).join(', ')}` : ''
-  ].filter(Boolean).join(' · ');
-  const synopsis = normalizeText(movie?.synopsis);
-  const text = [
-    `${movie?.title || 'Фильм ужасов'} в каталоге Хоррорейро.`,
-    details,
-    synopsis
-  ].filter(Boolean).join(' ');
-
-  return truncateText(text, 165);
+  const director = getPublicOptionalValue(movie?.director);
+  const genres = getMovieGenreNames(movie);
+  const details = [getPublicOptionalValue(movie?.original_title), genres.join(', '),
+    director ? `Режиссёр: ${director}` : ''].filter(Boolean).join(' · ');
+  return truncateText(getPublicOptionalValue(movie?.synopsis) || details || `${getMovieTitleWithYear(movie)} в каталоге Хоррорейро.`, 165);
 }
 
 function getMovieSameAs(movie) {
@@ -295,32 +284,16 @@ function getMovieSameAs(movie) {
   ].filter(Boolean);
 }
 
-function getMovieDatePublished(movie) {
-  const year = movie?.release_year || movie?.year;
-  const month = movie?.release_month;
-
-  if (!year) {
-    return undefined;
-  }
-
-  if (month) {
-    return `${year}-${String(month).padStart(2, '0')}-01`;
-  }
-
-  return String(year);
-}
-
 function buildMovieJsonLd(movie) {
-  const votesCount = Number(movie?.votes_count || 0);
-  const ratingValue = Number(movie?.average_rating || movie?.rating || 0);
+  const url = getMovieCanonicalUrl(movie);
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Movie',
+    '@id': `${url}#movie`,
     name: movie?.title || '',
-    url: getMovieCanonicalUrl(movie),
+    url,
     image: getMovieSocialImage(movie),
-    description: getMovieSeoDescription(movie),
-    inLanguage: 'ru-RU'
+    description: getPublicOptionalValue(movie?.synopsis) || getMovieSeoDescription(movie)
   };
 
   if (movie?.original_title) {
@@ -347,26 +320,10 @@ function buildMovieJsonLd(movie) {
     jsonLd.countryOfOrigin = countries.map(name => ({ '@type': 'Country', name }));
   }
 
-  const datePublished = getMovieDatePublished(movie);
-
-  if (datePublished) {
-    jsonLd.datePublished = datePublished;
-  }
-
   const sameAs = getMovieSameAs(movie);
 
   if (sameAs.length > 0) {
     jsonLd.sameAs = sameAs;
-  }
-
-  if (votesCount > 0 && ratingValue > 0) {
-    jsonLd.aggregateRating = {
-      '@type': 'AggregateRating',
-      ratingValue: Number(ratingValue.toFixed(1)),
-      bestRating: 10,
-      worstRating: 1,
-      ratingCount: votesCount
-    };
   }
 
   return jsonLd;
@@ -379,43 +336,20 @@ function isSocialPreviewCrawler(request) {
 }
 
 function createSocialPreviewHtml(movie) {
-  const canonicalUrl = getMovieCanonicalUrl(movie);
-  const title = getMovieSeoTitle(movie);
-  const description = getMovieSeoDescription(movie);
-  const image = getMovieSocialImage(movie);
+  const seo = getMoviePageSeo(movie);
 
-  return `<!doctype html>
+  return applyPageSeoToHtml(`<!doctype html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(title)}</title>
-  <meta name="description" content="${escapeHtml(description)}">
-  <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
-  <meta name="robots" content="index, follow">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="${escapeHtml(title)}">
-  <meta property="og:description" content="${escapeHtml(description)}">
-  <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
-  <meta property="og:image" content="${escapeHtml(image)}">
-  <meta property="og:image:secure_url" content="${escapeHtml(image)}">
-  <meta property="og:image:type" content="image/jpeg">
-  <meta property="og:image:width" content="${MOVIE_SOCIAL_IMAGE_WIDTH}">
-  <meta property="og:image:height" content="${MOVIE_SOCIAL_IMAGE_HEIGHT}">
-  <meta property="og:site_name" content="Хоррорейро">
-  <meta property="og:locale" content="ru_RU">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${escapeHtml(title)}">
-  <meta name="twitter:description" content="${escapeHtml(description)}">
-  <meta name="twitter:image" content="${escapeHtml(image)}">
-  <meta name="twitter:url" content="${escapeHtml(canonicalUrl)}">
 </head>
 <body>
-  <h1>${escapeHtml(title)}</h1>
-  <p>${escapeHtml(description)}</p>
-  <p><a href="${escapeHtml(canonicalUrl)}">${escapeHtml(canonicalUrl)}</a></p>
+  <h1>${escapeHtml(seo.socialTitle)}</h1>
+  <p>${escapeHtml(seo.description)}</p>
+  <p><a href="${escapeHtml(seo.canonicalUrl)}">Открыть карточку фильма</a></p>
 </body>
-</html>`;
+</html>`, seo);
 }
 
 function upsertHeadElement(html, pattern, elementHtml) {
@@ -450,6 +384,35 @@ function upsertCanonical(html, canonicalUrl) {
   );
 }
 
+function applyPageSeoToHtml(html, {
+  title,
+  socialTitle = title,
+  description,
+  canonicalUrl,
+  type = 'website',
+  image = DEFAULT_SOCIAL_IMAGE,
+  imageAlt = 'Хоррорейро — каталог фильмов ужасов'
+}) {
+  let nextHtml = upsertHeadElement(html, /<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)}</title>`);
+  nextHtml = upsertMetaName(nextHtml, 'description', description);
+  nextHtml = upsertCanonical(nextHtml, canonicalUrl);
+  nextHtml = upsertMetaName(nextHtml, 'robots', 'index, follow');
+  for (const [name, value] of Object.entries({
+    type, title: socialTitle, description, url: canonicalUrl, image,
+    'image:secure_url': image, 'image:alt': imageAlt, site_name: 'Хоррорейро', locale: 'ru_RU'
+  })) {
+    nextHtml = upsertMetaProperty(nextHtml, `og:${name}`, value);
+  }
+  for (const [name, value] of Object.entries({
+    card: type === 'video.movie' && image !== DEFAULT_SOCIAL_IMAGE ? 'summary' : 'summary_large_image',
+    title: socialTitle, description, image, 'image:alt': imageAlt, url: canonicalUrl
+  })) {
+    nextHtml = upsertMetaName(nextHtml, `twitter:${name}`, value);
+  }
+
+  return nextHtml;
+}
+
 function upsertJsonLd(html, scriptId, data) {
   const scriptHtml = `<script id="${scriptId}" type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
 
@@ -463,7 +426,7 @@ function upsertJsonLd(html, scriptId, data) {
 function injectMovieFallback(html, fallbackHtml) {
   return html.replace(
     /<!-- MOVIE_PAGE_FALLBACK_START -->[\s\S]*?<!-- MOVIE_PAGE_FALLBACK_END -->/,
-    `<!-- MOVIE_PAGE_FALLBACK_START -->\n${fallbackHtml}\n        <!-- MOVIE_PAGE_FALLBACK_END -->`
+    () => `<!-- MOVIE_PAGE_FALLBACK_START -->\n${fallbackHtml}\n        <!-- MOVIE_PAGE_FALLBACK_END -->`
   );
 }
 
@@ -529,28 +492,22 @@ function renderMovieNotFoundFallbackHtml() {
         </div>`;
 }
 
-function applyMovieSeoToHtml(html, movie) {
-  const canonicalUrl = getMovieCanonicalUrl(movie);
-  const title = getMovieSeoTitle(movie);
-  const description = getMovieSeoDescription(movie);
+function getMoviePageSeo(movie) {
+  const socialTitle = getMovieTitleWithYear(movie);
   const image = getMovieSocialImage(movie);
+  return {
+    title: `${socialTitle} — Хоррорейро`,
+    socialTitle,
+    description: getMovieSeoDescription(movie),
+    canonicalUrl: getMovieCanonicalUrl(movie),
+    type: 'video.movie',
+    image,
+    imageAlt: image === DEFAULT_SOCIAL_IMAGE ? undefined : `Постер фильма «${movie.title}»`
+  };
+}
 
-  let nextHtml = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)}</title>`);
-  nextHtml = upsertMetaName(nextHtml, 'description', description);
-  nextHtml = upsertCanonical(nextHtml, canonicalUrl);
-  nextHtml = upsertMetaName(nextHtml, 'robots', 'index, follow');
-  nextHtml = upsertMetaProperty(nextHtml, 'og:type', 'video.movie');
-  nextHtml = upsertMetaProperty(nextHtml, 'og:title', title);
-  nextHtml = upsertMetaProperty(nextHtml, 'og:description', description);
-  nextHtml = upsertMetaProperty(nextHtml, 'og:url', canonicalUrl);
-  nextHtml = upsertMetaProperty(nextHtml, 'og:image', image);
-  nextHtml = upsertMetaProperty(nextHtml, 'og:image:secure_url', image);
-  nextHtml = upsertMetaProperty(nextHtml, 'og:site_name', 'Хоррорейро');
-  nextHtml = upsertMetaName(nextHtml, 'twitter:card', 'summary_large_image');
-  nextHtml = upsertMetaName(nextHtml, 'twitter:title', title);
-  nextHtml = upsertMetaName(nextHtml, 'twitter:description', description);
-  nextHtml = upsertMetaName(nextHtml, 'twitter:image', image);
-  nextHtml = upsertMetaName(nextHtml, 'twitter:url', canonicalUrl);
+function applyMovieSeoToHtml(html, movie) {
+  let nextHtml = applyPageSeoToHtml(html, getMoviePageSeo(movie));
   if (Array.isArray(movie.movie_companies)) {
     nextHtml = upsertMetaName(nextHtml, 'movie-company-links', JSON.stringify({
       id: movie.id,
@@ -559,6 +516,14 @@ function applyMovieSeoToHtml(html, movie) {
     }));
   }
   nextHtml = upsertJsonLd(nextHtml, 'movieStructuredData', buildMovieJsonLd(movie));
+  nextHtml = upsertJsonLd(nextHtml, 'movieBreadcrumbs', {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Каталог фильмов ужасов', item: `${SITE_ORIGIN}/` },
+      { '@type': 'ListItem', position: 2, name: movie.title }
+    ]
+  });
   nextHtml = injectMovieFallback(nextHtml, renderMovieFallbackHtml(movie));
 
   return nextHtml;
@@ -690,42 +655,54 @@ async function fetchMovieBySlugOrId(env, { slug = '', id = '' } = {}) {
   return entry.promise;
 }
 
-async function fetchMoviesForSitemap(env) {
-  return fetchSupabaseRows(env, 'movies', {
-    select: SITEMAP_MOVIE_SELECT,
-    order: 'created_at.desc',
-    limit: '5000'
-  });
+async function fetchSitemapRows(env, tableName, params, signal) {
+  const pageSize = 500;
+  const rows = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const page = await fetchSupabaseRows(env, tableName, {
+      ...params, order: 'id.asc', limit: pageSize, offset
+    }, { signal });
+    rows.push(...page);
+    if (page.length < pageSize) return rows;
+  }
 }
 
-function createSitemapXml(movies) {
+async function createSitemapXml(env) {
+  const signal = AbortSignal.timeout(8000);
+  const [movies, directors, companies] = await Promise.all([
+    fetchSitemapRows(env, 'movies', { select: 'id,slug' }, signal),
+    fetchSitemapRows(env, 'people', {
+      select: 'slug,movie_people!inner(person_id)', slug: 'not.is.null',
+      'movie_people.role': 'eq.director', 'movie_people.limit': '1'
+    }, signal),
+    fetchSitemapRows(env, 'companies', {
+      select: 'slug,movie_companies!inner(company_id)', slug: 'not.is.null', 'movie_companies.limit': '1'
+    }, signal)
+  ]);
   const urls = [
-    { loc: `${SITE_ORIGIN}/` },
-    ...(Array.isArray(movies) ? movies : [])
-      .filter(movie => movie?.slug || movie?.id)
-      .map(movie => ({
-        loc: getMovieCanonicalUrl(movie),
-        lastmod: movie?.created_at ? String(movie.created_at).slice(0, 10) : ''
-      }))
+    `${SITE_ORIGIN}/`,
+    ...movies.filter(movie => movie.slug || movie.id).map(getMovieCanonicalUrl),
+    ...directors.filter(row => row.slug).map(row => `${SITE_ORIGIN}/name/${encodeURIComponent(row.slug)}`),
+    ...companies.filter(row => row.slug).map(row => `${SITE_ORIGIN}/company/${encodeURIComponent(row.slug)}`)
   ];
 
-  const urlEntries = urls.map(item => {
-    const lastmod = item.lastmod ? `\n    <lastmod>${escapeXml(item.lastmod)}</lastmod>` : '';
-
-    return `  <url>\n    <loc>${escapeXml(item.loc)}</loc>${lastmod}\n  </url>`;
-  }).join('\n');
+  const urlEntries = [...new Set(urls)].map(url => `  <url><loc>${escapeXml(url)}</loc></url>`).join('\n');
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlEntries}\n</urlset>\n`;
 }
 
 export {
-  MOVIE_SOCIAL_IMAGE_HEIGHT,
-  MOVIE_SOCIAL_IMAGE_WIDTH,
   SITE_ORIGIN,
+  applyPageSeoToHtml,
   createMovieHtmlResponse,
   createSitemapXml,
+  escapeHtml,
   fetchMovieBySlugOrId,
-  fetchMoviesForSitemap,
+  fetchSupabaseRows,
   getMovieCanonicalUrl,
-  getMovieRenderedSocialImage
+  getMoviePagePath,
+  getMoviePosterSource,
+  getMovieTitleWithYear,
+  isPublicMoviePosterUrl,
+  upsertJsonLd
 };
