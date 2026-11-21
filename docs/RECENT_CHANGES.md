@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-22 — Skip identical catalog snapshot writes
+
+- Catalog data and DOM snapshots skip storage writes while the saved payload is still fresh and every field except its timestamp matches. Changed and expired snapshots are saved normally.
+
 ## 2026-11-22 — Continue startup when the build changes
 
 - The new runtime records its build and initializes the current document. Build-tagged snapshots validate themselves, and a release does not clear shared storage, preferences, or the CSS bundle already downloaded for the current build.

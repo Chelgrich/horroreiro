@@ -163,6 +163,8 @@ export function readCatalogSnapshot({
 export function writeCatalogSnapshot(snapshot, {
   storage = globalThis.sessionStorage,
   key,
+  maxAgeMs,
+  now = Date.now,
   removeWhenEmpty = false,
   removeOnError = false,
   decorateSnapshot = null,
@@ -181,7 +183,20 @@ export function writeCatalogSnapshot(snapshot, {
       ? decorateSnapshot(snapshot)
       : snapshot;
 
-    setStorageValue(storage, key, JSON.stringify(nextSnapshot));
+    const { savedAt: _savedAt, ...content } = nextSnapshot;
+    const savedAt = now();
+    const nextValue = JSON.stringify({ savedAt, ...content });
+    const previousValue = getStorageValue(storage, key);
+    // Keep the timestamp first so comparing payloads doesn't require parsing the stored snapshot.
+    const previousTimestamp = previousValue?.match(/^\{"savedAt":(0|[1-9]\d*)(?=[,}])/);
+    const age = savedAt - Number(previousTimestamp?.[1]);
+
+    if (age >= 0 && age <= maxAgeMs &&
+        previousValue.slice(previousTimestamp[0].length) === nextValue.slice(`{"savedAt":${savedAt}`.length)) {
+      return false;
+    }
+
+    setStorageValue(storage, key, nextValue);
     return true;
   } catch (error) {
     notifyError(onError, error);

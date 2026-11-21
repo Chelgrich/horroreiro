@@ -347,6 +347,24 @@ const storage = () => {
   return { get length() { return values.size; }, key: index => [...values.keys()][index],
     getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) };
 };
+
+const snapshotStorage = storage();
+let snapshotTime = 1000;
+const snapshotOptions = { storage: snapshotStorage, key: 'snapshot', maxAgeMs: 100, now: () => snapshotTime };
+const initialSnapshot = { movieIndexRevision: 'before', movieLinks: [{ id: 'movie' }], containerHtml: '<article>1</article>' };
+assert.equal(cache.writeCatalogSnapshot(initialSnapshot, snapshotOptions), true);
+const firstSnapshotValue = snapshotStorage.getItem('snapshot');
+snapshotTime = 1050;
+assert.equal(cache.writeCatalogSnapshot({ ...initialSnapshot, savedAt: snapshotTime }, snapshotOptions), false);
+assert.equal(snapshotStorage.getItem('snapshot'), firstSnapshotValue);
+snapshotTime = 1101;
+assert.equal(cache.writeCatalogSnapshot(initialSnapshot, snapshotOptions), true);
+assert.equal(cache.readCatalogSnapshot(snapshotOptions).savedAt, snapshotTime);
+const withLinks = { ...initialSnapshot, movieLinks: [{ id: 'movie', imdb_url: 'https://www.imdb.com/title/tt123/' }] };
+assert.equal(cache.writeCatalogSnapshot(withLinks, snapshotOptions), true);
+assert.equal(cache.writeCatalogSnapshot({ ...withLinks, movieIndexRevision: 'after' }, snapshotOptions), true);
+assert.equal(cache.writeCatalogSnapshot({ ...withLinks, movieIndexRevision: 'after', containerHtml: '<article>2</article>' }, snapshotOptions), true);
+
 const sessionStorage = storage();
 let stamp = 'before';
 let rating = 9;

@@ -5032,13 +5032,13 @@ function writeCatalogSessionSnapshot(snapshot) {
   catalogReturnCacheTools.writeCatalogSnapshot(snapshot, {
     storage: sessionStorage,
     key: CATALOG_SESSION_SNAPSHOT_KEY,
+    maxAgeMs: CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS,
     decorateSnapshot: nextSnapshot => ({
       ...nextSnapshot,
       dataSignatureHash: catalogReturnCacheTools.getCatalogDataSignatureHash(nextSnapshot, {
         forceRefresh: true,
         cache: catalogSessionSnapshotDataHashCache
-      }),
-      savedAt: Date.now()
+      })
     }),
     onError: error => {
       console.warn('Ошибка сохранения снимка каталога:', error);
@@ -5582,12 +5582,9 @@ function writeCatalogDomSnapshot(snapshot) {
   catalogReturnCacheTools.writeCatalogSnapshot(snapshot, {
     storage: sessionStorage,
     key: CATALOG_DOM_SNAPSHOT_KEY,
+    maxAgeMs: CATALOG_SESSION_SNAPSHOT_MAX_AGE_MS,
     removeWhenEmpty: true,
     removeOnError: true,
-    decorateSnapshot: nextSnapshot => ({
-      ...nextSnapshot,
-      savedAt: Date.now()
-    }),
     onError: error => {
       console.warn('Ошибка сохранения DOM-снимка каталога:', error);
     }
