@@ -127,7 +127,6 @@ const sandbox = vm.createContext({
   throwIfSupabaseError(error) { if (error) throw error; },
   isMissingOptionalMovieColumnError: () => false,
   getMovieSelectByPurpose: () => 'id,title',
-  getDataMutationStamp: () => '', getRawLocalDataDependencyStamps: () => '',
   ensurePreferredPosterImagesForMovies: async () => {},
   rebuildCatalogMovieMeta() {}, markCatalogDataChanged() {}, rebuildCurrentUserWatchlistIndex() {},
   shouldUseAuthenticatedUi: () => Boolean(sandbox.currentUser),

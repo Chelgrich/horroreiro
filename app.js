@@ -544,7 +544,7 @@ let areSecondaryPageSnapshotEventsBound = false;
 let isSecondaryPageWarmStartHydrationActive = false;
 let secondaryPageWarmStartScrollIntentBaseline = 0;
 let allMovies = [];
-let catalogMovieIndexRead = null;
+let catalogMovieIndexRevision = null;
 let catalogMovieLinksById = new Map();
 let catalogMoviesById = new Map();
 let catalogMovieMetaById = new Map();
@@ -4846,7 +4846,7 @@ function createCatalogSessionSnapshotPayload() {
     userId: currentUser?.id || null,
     preferRussianPosters: shouldPreferRussianPosters(),
     movies: allMovies,
-    movieIndexRead: catalogMovieIndexRead,
+    movieIndexRevision: catalogMovieIndexRevision,
     movieRatings: getCurrentUserMovieRatingSnapshotRows(),
     movieRatingStats: getMovieRatingStatsSnapshotRows(),
     movieWatchlist: allMovieWatchlist,
@@ -5796,7 +5796,7 @@ function hydrateCatalogFromSessionSnapshot(snapshot = readCatalogSessionSnapshot
   const canUseUserScopedData = snapshotUserId === activeUserId;
 
   allMovies = snapshot.movies || [];
-  catalogMovieIndexRead = snapshot.movieIndexRead || null;
+  catalogMovieIndexRevision = snapshot.movieIndexRevision || null;
   moviesLoadedSuccessfully = allMovies.length > 0;
   rebuildCatalogMovieMeta();
   applyMovieRatingStatsSnapshotRows(snapshot.movieRatingStats);
@@ -10796,12 +10796,7 @@ function hasMovieEditorPayload(movie) {
   );
 }
 
-async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = 'catalog' } = {}) {
-  const indexRead = {
-    startedAt: Date.now(),
-    mutationStamp: getDataMutationStamp(),
-    dependencyStamps: getRawLocalDataDependencyStamps()
-  };
+async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = 'catalog', indexRevision = null } = {}) {
   const { data, error } = await runMovieSelectWithOptionalColumns(
     selectQuery => fetchAllSupabaseRowsResult(() => supabaseClient
       .from('movies')
@@ -10829,12 +10824,34 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
   }
 
   allMovies = data || [];
-  catalogMovieIndexRead = indexRead;
+  catalogMovieIndexRevision = indexRevision;
   catalogMovieLinksById = new Map();
   rebuildCatalogMovieMeta();
   moviesLoadedSuccessfully = true;
   markCatalogDataChanged();
   return true;
+}
+
+async function readCatalogMovieIndexRevision() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 1200);
+  try {
+    const { data, error } = await supabaseClient.from('catalog_movie_index_revision')
+      .select('revision').abortSignal(controller.signal).single();
+    return !error && typeof data?.revision === 'string' ? data.revision : null;
+  } catch (error) {
+    console.warn('Ошибка проверки версии каталога:', error);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function refreshCatalogMovieIndex({ allowReuse, preserveExistingCatalogOnError, revisionRequest }) {
+  // Read the revision first so a concurrent commit cannot label older rows with a newer revision.
+  const revision = await (revisionRequest ?? readCatalogMovieIndexRevision());
+  if (allowReuse && revision && revision === catalogMovieIndexRevision) return true;
+  return fetchMovies({ preserveExistingCatalogOnError, indexRevision: revision });
 }
 
 async function fetchMovieRatings() {
@@ -11489,7 +11506,8 @@ async function reloadCatalogData({
   refreshFilters = true,
   awaitUserState = false,
   loadDeferredUserState = true,
-  reuseMovieIndex = false,
+  allowMovieIndexReuse = false,
+  movieIndexRevisionRequest = null,
   deferRatingStats = false,
   deferReviewSummary = false
 } = {}) {
@@ -11507,7 +11525,9 @@ async function reloadCatalogData({
   }
 
   const [, hasFullRatingRows] = await Promise.all([
-    reuseMovieIndex ? null : fetchMovies({
+    refreshCatalogMovieIndex({
+      allowReuse: allowMovieIndexReuse,
+      revisionRequest: movieIndexRevisionRequest,
       preserveExistingCatalogOnError: shouldPreserveExistingCatalogOnMovieLoadError
     }),
     deferRatingStats ? false : fetchMovieRatingStats(),
@@ -15581,6 +15601,7 @@ function canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot) {
 
 async function initCatalogPage({ onShellReady = null } = {}) {
   const startupScrollIntentBaseline = getWarmStartScrollIntentBaseline();
+  const movieIndexRevisionRequest = readCatalogMovieIndexRevision();
   let didSignalShellReady = false;
   const signalCatalogShellReady = () => {
     if (didSignalShellReady) {
@@ -15737,12 +15758,8 @@ async function initCatalogPage({ onShellReady = null } = {}) {
           refreshFilters: true,
           awaitUserState: shouldAwaitInitialUserCatalogState,
           loadDeferredUserState: false,
-          reuseMovieIndex: catalogReturnCacheTools.canReuseCatalogMovieIndex(catalogMovieIndexRead, {
-            navigationType: performance.getEntriesByType('navigation')[0]?.type,
-            hasFastReturnHint,
-            mutationStamp: getDataMutationStamp(),
-            dependencyStamps: getRawLocalDataDependencyStamps()
-          })
+          movieIndexRevisionRequest,
+          allowMovieIndexReuse: performance.getEntriesByType('navigation')[0]?.type !== 'reload'
         });
 
         if (!isCatalogPage() || userIdAtRefreshStart !== (currentUser?.id || null)) {
@@ -15862,6 +15879,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     refreshFilters: false,
     awaitUserState: shouldAwaitInitialUserCatalogState,
     loadDeferredUserState: false,
+    movieIndexRevisionRequest,
     deferRatingStats,
     deferReviewSummary
   });

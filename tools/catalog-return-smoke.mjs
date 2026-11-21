@@ -6,18 +6,6 @@ import { createCatalogCardController } from '../catalog-cards.js';
 import { createMovieUserStateController } from '../movie-user-state.js';
 
 const source = (await readFile(new URL('../app.js', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
-const indexRead = { startedAt: 10_000, mutationStamp: 'catalog', dependencyStamps: 'movies' };
-const quickReturn = { now: 20_000, navigationType: 'back_forward', mutationStamp: 'catalog', dependencyStamps: 'movies' };
-assert(cache.canReuseCatalogMovieIndex(indexRead, quickReturn));
-assert(cache.canReuseCatalogMovieIndex(indexRead, { ...quickReturn, navigationType: 'navigate', hasFastReturnHint: true }));
-for (const changed of [
-  { navigationType: 'navigate' }, { navigationType: 'reload', hasFastReturnHint: true },
-  { now: 70_000 }, { now: 9_999 }, { mutationStamp: 'inserted' }, { dependencyStamps: 'edited' }
-]) {
-  assert.equal(cache.canReuseCatalogMovieIndex(indexRead, { ...quickReturn, ...changed }), false);
-}
-assert.equal(cache.canReuseCatalogMovieIndex(null, quickReturn), false, 'Older snapshots must read the index');
-
 function functionSource(name) {
   const start = source.lastIndexOf('\n', source.indexOf(`function ${name}(`)) + 1;
   const end = source.indexOf('\n}\n', start) + 2;
@@ -30,10 +18,22 @@ let completeStats;
 let statsReads = 0;
 let completeReviews;
 let reviewReads = 0;
-let movieReads = 0;
+const movieReads = [];
+let revisionResponse = { data: { revision: 'first' } };
 const initialLoadSandbox = vm.createContext({
   container: { querySelector: () => null }, moviesLoadedSuccessfully: false, shouldFadeCatalogAfterSkeleton: false,
-  currentUser: null, fetchMovies: async () => { movieReads += 1; },
+  currentUser: null, catalogMovieIndexRevision: null, AbortController, setTimeout, clearTimeout,
+  supabaseClient: { from: table => {
+    assert.equal(table, 'catalog_movie_index_revision');
+    return { select: column => {
+      assert.equal(column, 'revision');
+      return { abortSignal: () => ({ single: async () => revisionResponse }) };
+    } };
+  } },
+  fetchMovies: async ({ indexRevision }) => {
+    movieReads.push(indexRevision);
+    initialLoadSandbox.catalogMovieIndexRevision = indexRevision;
+  },
   fetchCatalogReviewSummary: () => {
     reviewReads += 1;
     return new Promise(resolve => { completeReviews = resolve; });
@@ -45,15 +45,24 @@ const initialLoadSandbox = vm.createContext({
   shouldAwaitUserStateForCatalogLoad: () => false, shouldUseAuthenticatedUi: () => false,
   fetchCatalogUserState: async () => {}, refreshDynamicFilterOptions() {}, persistCatalogSessionSnapshot() {}
 });
-vm.runInContext(functionSource('reloadCatalogData'), initialLoadSandbox);
+for (const name of ['readCatalogMovieIndexRevision', 'refreshCatalogMovieIndex', 'reloadCatalogData']) {
+  vm.runInContext(functionSource(name), initialLoadSandbox);
+}
 const coldResult = await Promise.race([
   initialLoadSandbox.reloadCatalogData({ deferRatingStats: true, deferReviewSummary: true }),
   new Promise(resolve => setImmediate(() => resolve(null)))
 ]);
 assert.ok(coldResult, 'A cold date-sorted catalog must load without waiting for aggregate ratings');
-assert.equal(movieReads, 1);
-await initialLoadSandbox.reloadCatalogData({ reuseMovieIndex: true, deferRatingStats: true, deferReviewSummary: true });
-assert.equal(movieReads, 1, 'A quick return can reuse the public index');
+assert.deepEqual(movieReads, ['first']);
+const unchanged = { allowMovieIndexReuse: true, deferRatingStats: true, deferReviewSummary: true };
+await initialLoadSandbox.reloadCatalogData(unchanged);
+assert.deepEqual(movieReads, ['first'], 'Matching revision keeps the index');
+revisionResponse = { data: { revision: 'second' } };
+await initialLoadSandbox.reloadCatalogData(unchanged);
+await initialLoadSandbox.reloadCatalogData({ ...unchanged, allowMovieIndexReuse: false });
+revisionResponse = { error: new Error('Revision unavailable') };
+await initialLoadSandbox.reloadCatalogData(unchanged);
+assert.deepEqual(movieReads, ['first', 'second', 'second', null], 'Changes, manual reload or failure read the index');
 assert.equal(statsReads, 0, 'Aggregate network traffic must start after the first independent render');
 assert.equal(reviewReads, 0, 'The review read must also start after the first independent render');
 let blockingFinished = false;

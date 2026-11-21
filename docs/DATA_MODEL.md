@@ -56,6 +56,7 @@ Client movie select profiles:
 - `MOVIE_CATALOG_LIST_SELECT`: whole catalog and movie picker rows. Keeps the search and filter fields, and orders the embedded genres without selecting their position.
 - `MOVIE_CATALOG_LINKS_SELECT`: movie ID and four external resource URLs for the rendered catalog page.
 - `MOVIE_CATALOG_SELECT`: the catalog list fields plus external URLs for secondary cards and single-movie updates.
+- `catalog_movie_index_revision`: a single public read-only UUID used to revalidate the same-tab movie index. Statement triggers advance it transactionally on changes to `movies`, `genres`, `movie_genres`, `countries`, and `movie_countries`. The client saves the revision read before the full index request. Browser roles can select only `revision` and cannot write or execute the trigger function. See `tools/catalog-movie-index-revision.sql`.
 - `MOVIE_DETAIL_SELECT`: public movie detail fallback payload.
 - `MOVIE_EDITOR_SELECT`: admin movie add/edit modal payload.
 - `MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT`: compact Letterboxd import matching index (`id`, labels/year, `letterboxd_url`, `letterboxd_short_url`); use this instead of loading the full catalog for ratings import.

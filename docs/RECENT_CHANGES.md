@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-21 — Revalidate the catalog movie index by database revision
+
+- On return, read one public revision from Supabase. A matching revision reuses the snapshot. A changed, unavailable or missing revision reads the full index in the background. Explicit reload also reads the full index.
+- The revision updates in the same transaction as movie, genre or country changes. The index read captures the revision before fetching rows, so a concurrent edit cannot mark old rows with a new revision.
+
 ## 2026-11-21 — Reuse the movie index on quick catalog returns
 
 - A catalog history or film-link return can reuse a complete movie index read less than one minute ago. An explicit reload, expiry, or a changed local data stamp reads the index again. The age comes from the server read, so rewriting a DOM or session snapshot cannot extend it.
