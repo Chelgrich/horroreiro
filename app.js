@@ -545,6 +545,8 @@ let isSecondaryPageWarmStartHydrationActive = false;
 let secondaryPageWarmStartScrollIntentBaseline = 0;
 let allMovies = [];
 let catalogMovieIndexRevision = null;
+let catalogRatingSummaryRevision = null;
+let catalogReviewSummaryRevision = null;
 let catalogLinksDeferredDuringRestore = false;
 let catalogMovieLinksById = new Map();
 let catalogMoviesById = new Map();
@@ -4848,6 +4850,8 @@ function createCatalogSessionSnapshotPayload() {
     preferRussianPosters: shouldPreferRussianPosters(),
     movies: allMovies,
     movieIndexRevision: catalogMovieIndexRevision,
+    ratingSummaryRevision: catalogRatingSummaryRevision,
+    reviewSummaryRevision: catalogReviewSummaryRevision,
     movieRatings: getCurrentUserMovieRatingSnapshotRows(),
     movieRatingStats: getMovieRatingStatsSnapshotRows(),
     movieWatchlist: allMovieWatchlist,
@@ -5798,6 +5802,8 @@ function hydrateCatalogFromSessionSnapshot(snapshot = readCatalogSessionSnapshot
 
   allMovies = snapshot.movies || [];
   catalogMovieIndexRevision = snapshot.movieIndexRevision || null;
+  catalogRatingSummaryRevision = snapshot.ratingSummaryRevision || null;
+  catalogReviewSummaryRevision = snapshot.reviewSummaryRevision || null;
   moviesLoadedSuccessfully = allMovies.length > 0;
   rebuildCatalogMovieMeta();
   applyMovieRatingStatsSnapshotRows(snapshot.movieRatingStats);
@@ -5846,20 +5852,22 @@ function syncCatalogSessionSnapshotMovieState(movieId, { syncReviews = false, sy
     );
   }
 
-  const nextStats = movieRatingStatsByMovieId.get(movieKey);
-  const movieRatingStats = (snapshot.movieRatingStats || [])
-    .filter(row => String(row?.movie_id) !== movieKey);
+  // Detail data may be partial or older than a verified catalog summary.
+  if (!snapshot.ratingSummaryRevision) {
+    const nextStats = movieRatingStatsByMovieId.get(movieKey);
+    const movieRatingStats = (snapshot.movieRatingStats || [])
+      .filter(row => String(row?.movie_id) !== movieKey);
 
-  if (nextStats && nextStats.count > 0) {
-    movieRatingStats.push({
-      movie_id: movieKey,
-      count: nextStats.count,
-      sum: nextStats.sum,
-      average: nextStats.average
-    });
+    if (nextStats && nextStats.count > 0) {
+      movieRatingStats.push({
+        movie_id: movieKey,
+        count: nextStats.count,
+        sum: nextStats.sum,
+        average: nextStats.average
+      });
+    }
+    snapshot.movieRatingStats = movieRatingStats;
   }
-
-  snapshot.movieRatingStats = movieRatingStats;
 
   if (canUpdateUserScopedData && currentUser) {
     const movieRatings = (snapshot.movieRatings || []).filter(row => !(
@@ -5893,7 +5901,7 @@ function syncCatalogSessionSnapshotMovieState(movieId, { syncReviews = false, sy
     snapshot.movieWatchlist = movieWatchlist;
   }
 
-  if (syncReviews) {
+  if (syncReviews && !snapshot.reviewSummaryRevision) {
     const reviewedMovieIds = new Set(
       (snapshot.reviewedMovieIds || [])
         .map(reviewedMovieId => String(reviewedMovieId || ''))
@@ -5929,6 +5937,9 @@ function removeMovieFromCatalogSessionSnapshot(movieId) {
   snapshot.reviewedMovieIds = (snapshot.reviewedMovieIds || []).filter(reviewedMovieId =>
     String(reviewedMovieId) !== movieKey
   );
+  snapshot.movieIndexRevision = null;
+  snapshot.ratingSummaryRevision = null;
+  snapshot.reviewSummaryRevision = null;
 
   writeCatalogSessionSnapshot(snapshot);
 }
@@ -10833,26 +10844,19 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
   return true;
 }
 
-async function readCatalogMovieIndexRevision() {
+async function readCatalogRevisions() {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 1200);
   try {
-    const { data, error } = await supabaseClient.from('catalog_movie_index_revision')
-      .select('revision').abortSignal(controller.signal).single();
-    return !error && typeof data?.revision === 'string' ? data.revision : null;
+    const { data, error } = await supabaseClient.from('catalog_revisions')
+      .select('movie_index,ratings,reviews').abortSignal(controller.signal).single();
+    return error ? null : data;
   } catch (error) {
     console.warn('Ошибка проверки версии каталога:', error);
     return null;
   } finally {
     clearTimeout(timer);
   }
-}
-
-async function refreshCatalogMovieIndex({ allowReuse, preserveExistingCatalogOnError, revisionRequest }) {
-  // Read the revision first so a concurrent commit cannot label older rows with a newer revision.
-  const revision = await (revisionRequest ?? readCatalogMovieIndexRevision());
-  if (allowReuse && revision && revision === catalogMovieIndexRevision) return true;
-  return fetchMovies({ preserveExistingCatalogOnError, indexRevision: revision });
 }
 
 async function fetchMovieRatings() {
@@ -11035,7 +11039,7 @@ function loadDeferredCatalogUserState({
     });
 }
 
-async function fetchMovieRatingStats() {
+async function fetchMovieRatingStats(summaryRevision = null) {
   const { isCurrent } = getAuthSessionController().captureSession();
   const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
     .from('movie_rating_stats')
@@ -11045,11 +11049,13 @@ async function fetchMovieRatingStats() {
   if (!isCurrent()) return false;
 
   if (error) {
+    catalogRatingSummaryRevision = null;
     console.warn('Не удалось загрузить агрегаты оценок, используем fallback:', error);
     return fetchFullMovieRatingsFallback();
   }
 
   applyMovieRatingStatsRows(data || []);
+  catalogRatingSummaryRevision = summaryRevision;
   return false;
 }
 
@@ -11243,13 +11249,16 @@ async function fetchMovieWatchlistForCurrentUser(movieId) {
   markCatalogDataChanged();
 }
 
-async function fetchCatalogReviewSummary() {
+async function fetchCatalogReviewSummary(summaryRevision = null) {
+  const { isCurrent } = getAuthSessionController().captureSession();
   const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
     .from('movie_reviews')
     .select('movie_id')
     .order('id', { ascending: true }));
 
+  if (!isCurrent()) return;
   if (error) {
+    catalogReviewSummaryRevision = null;
     console.error('Ошибка загрузки сводки рецензий:', error);
     return;
   }
@@ -11259,12 +11268,13 @@ async function fetchCatalogReviewSummary() {
       .map(item => String(item.movie_id || ''))
       .filter(Boolean)
   );
+  catalogReviewSummaryRevision = summaryRevision;
   markCatalogDataChanged();
 }
 
-async function loadDeferredInitialCatalogReviewSummary() {
+async function loadDeferredInitialCatalogReviewSummary(summaryRevision) {
   try {
-    await fetchCatalogReviewSummary();
+    await fetchCatalogReviewSummary(summaryRevision);
   } finally {
     initialCatalogReviewSummaryPending = false;
   }
@@ -11507,8 +11517,8 @@ async function reloadCatalogData({
   refreshFilters = true,
   awaitUserState = false,
   loadDeferredUserState = true,
-  allowMovieIndexReuse = false,
-  movieIndexRevisionRequest = null,
+  allowRevisionReuse = false,
+  catalogRevisionsRequest = null,
   deferRatingStats = false,
   deferReviewSummary = false
 } = {}) {
@@ -11525,14 +11535,16 @@ async function reloadCatalogData({
     renderMoviesSkeleton(getCatalogSkeletonCardsCount());
   }
 
+  // Capture revisions before reading rows so a concurrent commit cannot mark old data as fresh.
+  const revisions = await (catalogRevisionsRequest ?? readCatalogRevisions());
+  const canReuse = (revision, saved) => allowRevisionReuse && Boolean(revision) && revision === saved;
   const [, hasFullRatingRows] = await Promise.all([
-    refreshCatalogMovieIndex({
-      allowReuse: allowMovieIndexReuse,
-      revisionRequest: movieIndexRevisionRequest,
+    canReuse(revisions?.movie_index, catalogMovieIndexRevision) ? null : fetchMovies({
+      indexRevision: revisions?.movie_index,
       preserveExistingCatalogOnError: shouldPreserveExistingCatalogOnMovieLoadError
     }),
-    deferRatingStats ? false : fetchMovieRatingStats(),
-    deferReviewSummary ? null : fetchCatalogReviewSummary()
+    deferRatingStats || canReuse(revisions?.ratings, catalogRatingSummaryRevision) ? false : fetchMovieRatingStats(revisions?.ratings),
+    deferReviewSummary || canReuse(revisions?.reviews, catalogReviewSummaryRevision) ? null : fetchCatalogReviewSummary(revisions?.reviews)
   ]).finally(() => { catalogLinksDeferredDuringRestore = false; });
 
   const shouldAwaitCatalogUserState = shouldAwaitUserStateForCatalogLoad({
@@ -15603,7 +15615,7 @@ function canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot) {
 
 async function initCatalogPage({ onShellReady = null } = {}) {
   const startupScrollIntentBaseline = getWarmStartScrollIntentBaseline();
-  const movieIndexRevisionRequest = readCatalogMovieIndexRevision();
+  const catalogRevisionsRequest = readCatalogRevisions();
   let didSignalShellReady = false;
   const signalCatalogShellReady = () => {
     if (didSignalShellReady) {
@@ -15764,8 +15776,8 @@ async function initCatalogPage({ onShellReady = null } = {}) {
           refreshFilters: true,
           awaitUserState: shouldAwaitInitialUserCatalogState,
           loadDeferredUserState: false,
-          movieIndexRevisionRequest: fromBackForwardCache ? null : movieIndexRevisionRequest,
-          allowMovieIndexReuse: fromBackForwardCache || performance.getEntriesByType('navigation')[0]?.type !== 'reload'
+          catalogRevisionsRequest: fromBackForwardCache ? null : catalogRevisionsRequest,
+          allowRevisionReuse: fromBackForwardCache || performance.getEntriesByType('navigation')[0]?.type !== 'reload'
         });
 
         if (!isCatalogPage() || userIdAtRefreshStart !== (currentUser?.id || null)) {
@@ -15844,7 +15856,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
       ? new Promise(resolve => requestAnimationFrame(() => window.setTimeout(resolve, 0)))
       : null;
     if (deferReviewSummary) {
-      afterFirstRender.then(loadDeferredInitialCatalogReviewSummary)
+      afterFirstRender.then(async () => loadDeferredInitialCatalogReviewSummary((await catalogRevisionsRequest)?.reviews))
         .catch(error => console.error('Ошибка фонового обновления сводки рецензий:', error));
     }
 
@@ -15854,7 +15866,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     }
 
     ratingLoad.ready = afterFirstRender
-      .then(() => ratingLoad.isCurrent() && fetchMovieRatingStats())
+      .then(async () => ratingLoad.isCurrent() && fetchMovieRatingStats((await catalogRevisionsRequest)?.ratings))
       .catch(error => {
         console.error('Ошибка фоновой загрузки статистики оценок:', error);
         return false;
@@ -15885,7 +15897,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     refreshFilters: false,
     awaitUserState: shouldAwaitInitialUserCatalogState,
     loadDeferredUserState: false,
-    movieIndexRevisionRequest,
+    catalogRevisionsRequest,
     deferRatingStats,
     deferReviewSummary
   });

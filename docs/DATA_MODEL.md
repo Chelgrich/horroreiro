@@ -57,6 +57,7 @@ Client movie select profiles:
 - `MOVIE_CATALOG_LINKS_SELECT`: movie ID and four external resource URLs for the rendered catalog page.
 - `MOVIE_CATALOG_SELECT`: the catalog list fields plus external URLs for secondary cards and single-movie updates.
 - `catalog_movie_index_revision`: a single public read-only UUID used to revalidate the same-tab movie index. Statement triggers advance it transactionally on changes to `movies`, `genres`, `movie_genres`, `countries`, and `movie_countries`. The client saves the revision read before the full index request. Browser roles can select only `revision` and cannot write or execute the trigger function. See `tools/catalog-movie-index-revision.sql`.
+- `catalog_revisions`: a public read-only security-invoker view that returns the index revision and the `ratings` and `reviews` UUIDs from `catalog_activity_revision`. Rating writes advance the ratings UUID in the same transaction. Review inserts, deletes and movie reassignments advance the reviews UUID. Browser roles can read the markers and have no access to their mutation function. Apply `tools/catalog-activity-revisions.sql` after the movie index revision migration.
 - `MOVIE_DETAIL_SELECT`: public movie detail fallback payload.
 - `MOVIE_EDITOR_SELECT`: admin movie add/edit modal payload.
 - `MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT`: compact Letterboxd import matching index (`id`, labels/year, `letterboxd_url`, `letterboxd_short_url`); use this instead of loading the full catalog for ratings import.

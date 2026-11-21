@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-21 — Revalidate catalog rating and review summaries on return
+
+- A single Supabase read returns independent revisions for the movie index, rating aggregates and reviewed movie IDs. A same-viewer return reuses each matching snapshot and fetches only the changed datasets. Explicit reload or a failed revision check refreshes all three.
+- The ratings revision changes transactionally with rating writes. The reviews revision follows review creation, deletion and movie assignment because the catalog summary contains only reviewed movie IDs. Full reads retain the revision captured before the request.
+
 ## 2026-11-21 — Revalidate the catalog movie index by database revision
 
 - On return, read one public revision from Supabase. A matching revision reuses the snapshot. A changed, unavailable or missing revision reads the full index in the background. Explicit reload also reads the full index.

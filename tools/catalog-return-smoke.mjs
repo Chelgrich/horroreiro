@@ -18,38 +18,43 @@ let completeStats;
 let statsReads = 0;
 let completeReviews;
 let reviewReads = 0;
+let holdSummaries = false;
 const movieReads = [];
 let linkReads = 0;
-let revisionResponse = { data: { revision: 'first' } };
+let revisionResponse = { data: { movie_index: 'first', ratings: 'rating-1', reviews: 'review-1' } };
 const initialLoadSandbox = vm.createContext({
   container: { querySelector: () => null }, moviesLoadedSuccessfully: false, shouldFadeCatalogAfterSkeleton: false,
   currentUser: null, catalogMovieIndexRevision: null, AbortController, setTimeout, clearTimeout,
+  catalogRatingSummaryRevision: null, catalogReviewSummaryRevision: null,
   catalogLinksDeferredDuringRestore: true,
   requestAnimationFrame: callback => callback(), window: { setTimeout: callback => callback() },
   loadCatalogPageMovieLinks: () => { linkReads += 1; },
   supabaseClient: { from: table => {
-    assert.equal(table, 'catalog_movie_index_revision');
+    assert.equal(table, 'catalog_revisions');
     return { select: column => {
-      assert.equal(column, 'revision');
+      assert.equal(column, 'movie_index,ratings,reviews');
       return { abortSignal: () => ({ single: async () => revisionResponse }) };
     } };
   } },
-  fetchMovies: async ({ indexRevision }) => {
+  fetchMovies: async ({ indexRevision = null }) => {
     movieReads.push(indexRevision);
     initialLoadSandbox.catalogMovieIndexRevision = indexRevision;
   },
-  fetchCatalogReviewSummary: () => {
+  fetchCatalogReviewSummary: async (revision = null) => {
     reviewReads += 1;
-    return new Promise(resolve => { completeReviews = resolve; });
+    if (holdSummaries) await new Promise(resolve => { completeReviews = resolve; });
+    initialLoadSandbox.catalogReviewSummaryRevision = revision;
   },
-  fetchMovieRatingStats: () => {
+  fetchMovieRatingStats: async (revision = null) => {
     statsReads += 1;
-    return new Promise(resolve => { completeStats = resolve; });
+    if (holdSummaries) await new Promise(resolve => { completeStats = resolve; });
+    initialLoadSandbox.catalogRatingSummaryRevision = revision;
+    return false;
   },
   shouldAwaitUserStateForCatalogLoad: () => false, shouldUseAuthenticatedUi: () => false,
   fetchCatalogUserState: async () => {}, refreshDynamicFilterOptions() {}, persistCatalogSessionSnapshot() {}
 });
-for (const name of ['readCatalogMovieIndexRevision', 'refreshCatalogMovieIndex', 'reloadCatalogData', 'scheduleCatalogPageMovieLinks']) {
+for (const name of ['readCatalogRevisions', 'reloadCatalogData', 'scheduleCatalogPageMovieLinks']) {
   vm.runInContext(functionSource(name), initialLoadSandbox);
 }
 initialLoadSandbox.scheduleCatalogPageMovieLinks();
@@ -62,17 +67,9 @@ assert.ok(coldResult, 'A cold date-sorted catalog must load without waiting for 
 initialLoadSandbox.scheduleCatalogPageMovieLinks();
 assert.equal(linkReads, 1, 'The current catalog can load its links after revalidation');
 assert.deepEqual(movieReads, ['first']);
-const unchanged = { allowMovieIndexReuse: true, deferRatingStats: true, deferReviewSummary: true };
-await initialLoadSandbox.reloadCatalogData(unchanged);
-assert.deepEqual(movieReads, ['first'], 'Matching revision keeps the index');
-revisionResponse = { data: { revision: 'second' } };
-await initialLoadSandbox.reloadCatalogData(unchanged);
-await initialLoadSandbox.reloadCatalogData({ ...unchanged, allowMovieIndexReuse: false });
-revisionResponse = { error: new Error('Revision unavailable') };
-await initialLoadSandbox.reloadCatalogData(unchanged);
-assert.deepEqual(movieReads, ['first', 'second', 'second', null], 'Changes, manual reload or failure read the index');
 assert.equal(statsReads, 0, 'Aggregate network traffic must start after the first independent render');
 assert.equal(reviewReads, 0, 'The review read must also start after the first independent render');
+holdSummaries = true;
 let blockingFinished = false;
 const blockingLoad = initialLoadSandbox.reloadCatalogData().then(() => { blockingFinished = true; });
 await new Promise(resolve => setImmediate(resolve));
@@ -84,6 +81,25 @@ await new Promise(resolve => setImmediate(resolve));
 assert.equal(blockingFinished, false, 'A review-dependent load must await the review IDs');
 completeReviews();
 await blockingLoad;
+holdSummaries = false;
+movieReads.length = 0;
+const allowRevisionReuse = { allowRevisionReuse: true };
+await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
+assert.deepEqual([movieReads.length, statsReads, reviewReads], [0, 1, 1]);
+revisionResponse.data.ratings = 'rating-2';
+await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
+assert.deepEqual([movieReads.length, statsReads, reviewReads], [0, 2, 1]);
+revisionResponse.data.reviews = 'review-2';
+await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
+assert.deepEqual([movieReads.length, statsReads, reviewReads], [0, 2, 2]);
+revisionResponse.data.movie_index = 'second';
+await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
+assert.deepEqual([movieReads.length, statsReads, reviewReads], [1, 2, 2]);
+await initialLoadSandbox.reloadCatalogData();
+revisionResponse = { error: new Error('Revision unavailable') };
+await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
+assert.deepEqual(movieReads, ['second', 'second', null], 'Changes, manual reload and failure read the index');
+assert.deepEqual([statsReads, reviewReads], [4, 4], 'Explicit reload and failure read both summaries');
 
 const reviewUpdates = [];
 const reviewSandbox = vm.createContext({
