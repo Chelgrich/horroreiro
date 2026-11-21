@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-21 — Reuse resolved catalog card links on return
+
+- Store resolved link rows, including movies with no links, in the same-tab catalog snapshot. A matching movie index revision keeps those rows. Missing pages still load their own visible links in a batch.
+- A full index refresh invalidates resolved links. The visible cards retain their existing icons during the fetch, then reconcile updated provider URLs in place.
+
 ## 2026-11-21 — Revalidate catalog rating and review summaries on return
 
 - A single Supabase read returns independent revisions for the movie index, rating aggregates and reviewed movie IDs. A same-viewer return reuses each matching snapshot and fetches only the changed datasets. Explicit reload or a failed revision check refreshes all three.

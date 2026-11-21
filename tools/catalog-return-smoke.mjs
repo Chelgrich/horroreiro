@@ -101,6 +101,31 @@ await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
 assert.deepEqual(movieReads, ['second', 'second', null], 'Changes, manual reload and failure read the index');
 assert.deepEqual([statsReads, reviewReads], [4, 4], 'Explicit reload and failure read both summaries');
 
+const linkCacheSandbox = vm.createContext({
+  allMovies: [{ id: 'linked' }, { id: 'empty' }, { id: 'failed' }, { id: 'pending' }],
+  moviesLoadedSuccessfully: true, CATALOG_SESSION_SNAPSHOT_VERSION: 1, APP_BUILD_VERSION: 'test',
+  catalogMovieIndexRevision: 'first', catalogRatingSummaryRevision: null, catalogReviewSummaryRevision: null,
+  catalogMovieLinksById: new Map([
+    ['linked', { row: { id: 'linked', imdb_url: '/original' } }],
+    ['empty', { row: { id: 'empty' } }], ['failed', { failed: true }], ['pending', {}]
+  ]),
+  currentUser: null, allMovieWatchlist: [], catalogReviewedMovieIds: new Set(),
+  hasPendingInitialCatalogSnapshotData: () => false, getDataMutationStamp: () => '',
+  shouldPreferRussianPosters: () => false, canUseCatalogSnapshotForPosterPreference: () => true,
+  getCurrentUserMovieRatingSnapshotRows: () => [], getMovieRatingStatsSnapshotRows: () => [],
+  rebuildCatalogMovieMeta() {}, applyMovieRatingStatsSnapshotRows() {}, rebuildMovieRatingIndexes() {},
+  rebuildCurrentUserWatchlistIndex() {}, markCatalogDataChanged() {}
+});
+for (const name of ['createCatalogSessionSnapshotPayload', 'hydrateCatalogFromSessionSnapshot']) {
+  vm.runInContext(functionSource(name), linkCacheSandbox);
+}
+const linksSnapshot = JSON.parse(JSON.stringify(linkCacheSandbox.createCatalogSessionSnapshotPayload()));
+assert.deepEqual(linksSnapshot.movieLinks, [{ id: 'linked', imdb_url: '/original' }, { id: 'empty' }]);
+linkCacheSandbox.hydrateCatalogFromSessionSnapshot(linksSnapshot);
+assert.deepEqual([...linkCacheSandbox.catalogMovieLinksById.keys()], ['linked', 'empty']);
+assert.equal(linkCacheSandbox.catalogMovieLinksById.get('linked').row.imdb_url, '/original');
+assert.equal(linkCacheSandbox.catalogMovieLinksById.get('empty').row.id, 'empty');
+
 const reviewUpdates = [];
 const reviewSandbox = vm.createContext({
   initialCatalogReviewSummaryPending: true, moviesLoadedSuccessfully: true, reviewedOnlyFilter: false,

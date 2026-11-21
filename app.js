@@ -4850,6 +4850,7 @@ function createCatalogSessionSnapshotPayload() {
     preferRussianPosters: shouldPreferRussianPosters(),
     movies: allMovies,
     movieIndexRevision: catalogMovieIndexRevision,
+    movieLinks: Array.from(catalogMovieLinksById.values()).flatMap(({ row }) => row ? [row] : []),
     ratingSummaryRevision: catalogRatingSummaryRevision,
     reviewSummaryRevision: catalogReviewSummaryRevision,
     movieRatings: getCurrentUserMovieRatingSnapshotRows(),
@@ -5802,6 +5803,7 @@ function hydrateCatalogFromSessionSnapshot(snapshot = readCatalogSessionSnapshot
 
   allMovies = snapshot.movies || [];
   catalogMovieIndexRevision = snapshot.movieIndexRevision || null;
+  catalogMovieLinksById = new Map((snapshot.movieLinks || []).map(row => [String(row.id), { row }]));
   catalogRatingSummaryRevision = snapshot.ratingSummaryRevision || null;
   catalogReviewSummaryRevision = snapshot.reviewSummaryRevision || null;
   moviesLoadedSuccessfully = allMovies.length > 0;
@@ -5931,6 +5933,7 @@ function removeMovieFromCatalogSessionSnapshot(movieId) {
   const movieKey = String(movieId);
 
   snapshot.movies = (snapshot.movies || []).filter(movie => String(movie?.id) !== movieKey);
+  snapshot.movieLinks = (snapshot.movieLinks || []).filter(row => String(row.id) !== movieKey);
   snapshot.movieRatings = (snapshot.movieRatings || []).filter(row => String(row?.movie_id) !== movieKey);
   snapshot.movieRatingStats = (snapshot.movieRatingStats || []).filter(row => String(row?.movie_id) !== movieKey);
   snapshot.movieWatchlist = (snapshot.movieWatchlist || []).filter(row => String(row?.movie_id) !== movieKey);
@@ -10819,6 +10822,7 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
     getMovieSelectByPurpose(purpose)
   );
 
+  catalogMovieLinksById = new Map();
   if (error) {
     if (!preserveExistingCatalogOnError) {
       moviesLoadedSuccessfully = false;
@@ -10837,7 +10841,6 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
 
   allMovies = data || [];
   catalogMovieIndexRevision = indexRevision;
-  catalogMovieLinksById = new Map();
   rebuildCatalogMovieMeta();
   moviesLoadedSuccessfully = true;
   markCatalogDataChanged();
@@ -15036,7 +15039,7 @@ async function loadCatalogPageMovieLinks({ retry = false } = {}) {
   const updatedIds = new Set();
   for (const id of movieIds) {
     if (cache.get(id) !== pending) continue;
-    cache.set(id, rows ? { row: rows.get(id) || {} } : { failed: true });
+    cache.set(id, rows ? { row: rows.get(id) || { id } } : { failed: true });
     updatedIds.add(id);
   }
 
@@ -15050,7 +15053,7 @@ async function loadCatalogPageMovieLinks({ retry = false } = {}) {
     controller.updateMovieCardLinks(card, template.content.firstElementChild);
   }
   syncOpenExternalLinksLayouts();
-  persistCatalogDomSnapshot();
+  persistCatalogSessionSnapshot();
 }
 
 function loadCatalogPageDetails(pageMovies) {

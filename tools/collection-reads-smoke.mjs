@@ -46,7 +46,7 @@ const linkSandbox = vm.createContext({
   container: { querySelectorAll: () => [] },
   getCatalogCardController: () => ({}),
   document: { createElement: () => ({}) },
-  syncOpenExternalLinksLayouts() {}, persistCatalogDomSnapshot() {}
+  syncOpenExternalLinksLayouts() {}, persistCatalogSessionSnapshot() {}
 });
 for (const name of ['needsCatalogMovieLinkLookup', 'loadCatalogPageMovieLinks']) {
   vm.runInContext(functionSource(name), linkSandbox);
