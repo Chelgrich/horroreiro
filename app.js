@@ -579,6 +579,7 @@ let isMoviePagePayloadRpcAvailable = true;
 let allMovieRatings = [];
 let allMovieWatchlist = [];
 let movieRatingStatsByMovieId = new Map();
+let catalogRatingStatsAvailable = false;
 let initialCatalogRatingLoad = null;
 let movieRatingByMovieAndUserKey = new Map();
 let currentUserRatingsByMovieId = new Map();
@@ -1126,12 +1127,12 @@ function compareManualSimilarAuditMovies(firstMovie, secondMovie) {
   );
 }
 
-async function fetchAllSupabaseRows(createQuery, pageSize = 1000) {
+async function fetchAllSupabaseRows(createQuery, pageSize = 1000, requestPage = makeQuery => makeQuery()) {
   const rows = [];
   let from = 0;
 
   while (true) {
-    const { data, error } = await createQuery().range(from, from + pageSize - 1);
+    const { data, error } = await requestPage(() => createQuery().range(from, from + pageSize - 1));
 
     throwIfSupabaseError(error);
 
@@ -1148,9 +1149,9 @@ async function fetchAllSupabaseRows(createQuery, pageSize = 1000) {
   return rows;
 }
 
-async function fetchAllSupabaseRowsResult(createQuery) {
+async function fetchAllSupabaseRowsResult(createQuery, requestPage) {
   try {
-    return { data: await fetchAllSupabaseRows(createQuery), error: null };
+    return { data: await fetchAllSupabaseRows(createQuery, 1000, requestPage), error: null };
   } catch (error) {
     return { data: null, error };
   }
@@ -4855,6 +4856,7 @@ function createCatalogSessionSnapshotPayload() {
     reviewSummaryRevision: catalogReviewSummaryRevision,
     movieRatings: getCurrentUserMovieRatingSnapshotRows(),
     movieRatingStats: getMovieRatingStatsSnapshotRows(),
+    ratingStatsAvailable: catalogRatingStatsAvailable,
     movieWatchlist: allMovieWatchlist,
     reviewedMovieIds: Array.from(catalogReviewedMovieIds)
   };
@@ -5109,8 +5111,6 @@ function applyMoviePageSessionCacheEntry(entry) {
 
   if (entry.movieRatingStats) {
     upsertMovieRatingStatsRows([entry.movieRatingStats], [movieId]);
-  } else {
-    upsertMovieRatingStatsRows([], [movieId]);
   }
 
   upsertKnownMovieRatingRows(
@@ -5809,6 +5809,7 @@ function hydrateCatalogFromSessionSnapshot(snapshot = readCatalogSessionSnapshot
   moviesLoadedSuccessfully = allMovies.length > 0;
   rebuildCatalogMovieMeta();
   applyMovieRatingStatsSnapshotRows(snapshot.movieRatingStats);
+  catalogRatingStatsAvailable = snapshot.ratingStatsAvailable === true;
 
   allMovieRatings = canUseUserScopedData && Array.isArray(snapshot.movieRatings)
     ? snapshot.movieRatings
@@ -5855,7 +5856,7 @@ function syncCatalogSessionSnapshotMovieState(movieId, { syncReviews = false, sy
   }
 
   // Detail data may be partial or older than a verified catalog summary.
-  if (!snapshot.ratingSummaryRevision) {
+  if (!snapshot.ratingStatsAvailable && hasConfirmedMovieRatingStats(movieKey)) {
     const nextStats = movieRatingStatsByMovieId.get(movieKey);
     const movieRatingStats = (snapshot.movieRatingStats || [])
       .filter(row => String(row?.movie_id) !== movieKey);
@@ -7632,7 +7633,7 @@ function upsertMovieRatingStatsRows(rows, movieIdsToClear = []) {
   (Array.isArray(movieIdsToClear) ? movieIdsToClear : [])
     .map(movieId => String(movieId || ''))
     .filter(Boolean)
-    .forEach(movieId => movieRatingStatsByMovieId.delete(movieId));
+    .forEach(movieId => movieRatingStatsByMovieId.set(movieId, { count: 0, sum: 0, average: 0 }));
 
   (Array.isArray(rows) ? rows : []).forEach(row => {
     const movieId = String(row.movie_id ?? '');
@@ -7655,62 +7656,9 @@ function upsertMovieRatingStatsRows(rows, movieIdsToClear = []) {
   markCatalogDataChanged();
 }
 
-function applyMovieRatingStatsFromRows(rows) {
-  const statsByMovieId = new Map();
-
-  (Array.isArray(rows) ? rows : []).forEach(row => {
-    const movieId = String(row.movie_id ?? '');
-
-    if (!movieId) {
-      return;
-    }
-
-    const stats = statsByMovieId.get(movieId) || {
-      count: 0,
-      sum: 0,
-      average: 0
-    };
-
-    stats.count += 1;
-    stats.sum += Number(row.rating || 0);
-    stats.average = Number((stats.sum / stats.count).toFixed(1));
-    statsByMovieId.set(movieId, stats);
-  });
-
-  movieRatingStatsByMovieId = statsByMovieId;
-  markCatalogDataChanged();
-}
-
-function getMovieRatingStatsRowsFromRatingRows(rows) {
-  const statsByMovieId = new Map();
-
-  (Array.isArray(rows) ? rows : []).forEach(row => {
-    const movieId = String(row.movie_id ?? '');
-
-    if (!movieId) {
-      return;
-    }
-
-    const stats = statsByMovieId.get(movieId) || {
-      movie_id: movieId,
-      votes_count: 0,
-      rating_sum: 0,
-      average_rating: 0
-    };
-
-    stats.votes_count += 1;
-    stats.rating_sum += Number(row.rating || 0);
-    stats.average_rating = stats.votes_count > 0
-      ? Number((stats.rating_sum / stats.votes_count).toFixed(1))
-      : 0;
-    statsByMovieId.set(movieId, stats);
-  });
-
-  return Array.from(statsByMovieId.values());
-}
-
 function updateLocalMovieRatingStats(movieId, nextRating, previousRating = null) {
   const movieKey = String(movieId);
+  if (!hasConfirmedMovieRatingStats(movieKey)) return;
   const hadPreviousRating = previousRating !== null && previousRating !== undefined;
   const hasNextRating = nextRating !== null && nextRating !== undefined;
   const previousStats = movieRatingStatsByMovieId.get(movieKey) || {
@@ -7732,16 +7680,10 @@ function updateLocalMovieRatingStats(movieId, nextRating, previousRating = null)
     nextSum += Number(nextRating || 0);
   }
 
-  if (nextCount === 0) {
-    movieRatingStatsByMovieId.delete(movieKey);
-    markCatalogDataChanged();
-    return;
-  }
-
   movieRatingStatsByMovieId.set(movieKey, {
     count: nextCount,
     sum: nextSum,
-    average: Number((nextSum / nextCount).toFixed(1))
+    average: nextCount > 0 ? Number((nextSum / nextCount).toFixed(1)) : 0
   });
   markCatalogDataChanged();
 }
@@ -8122,6 +8064,7 @@ function getCatalogCardControllerContext() {
     getMovieAverageRating,
     getMovieVotesCount,
     areRatingStatsPending: areInitialCatalogRatingStatsPending,
+    hasConfirmedMovieRatingStats,
     getVotesLabel,
     getCatalogProfileRatingHtml,
     getMoviePreferredPosterUrl,
@@ -8168,7 +8111,7 @@ function getCatalogRenderControllerContext() {
     createMovieCard,
     getMovieAverageRating,
     getMovieVotesCount,
-    areRatingStatsPending: areInitialCatalogRatingStatsPending,
+    hasCatalogRatingStats: () => catalogRatingStatsAvailable,
     getMonthName
   };
 }
@@ -8528,12 +8471,12 @@ function getMoviePageSessionSnapshot(movie) {
   const movieRatingStats = movieRatingStatsByMovieId.get(movieId);
 
   return {
-    movieRatingStats: movieRatingStats
+    movieRatingStats: hasConfirmedMovieRatingStats(movieId)
       ? {
         movie_id: movieId,
-        votes_count: movieRatingStats.count,
-        rating_sum: movieRatingStats.sum,
-        average_rating: movieRatingStats.average
+        votes_count: movieRatingStats?.count ?? 0,
+        rating_sum: movieRatingStats?.sum ?? 0,
+        average_rating: movieRatingStats?.average ?? 0
       }
       : null,
     movieRatings: allMovieRatings.filter(row => String(row?.movie_id || '') === movieId),
@@ -8694,6 +8637,7 @@ function getMoviePageShellControllerContext() {
     formatRuntimeMinutes,
     getMovieAverageRating,
     getMovieVotesCount,
+    hasConfirmedMovieRatingStats,
     getCurrentUserRating,
     getCurrentUserMovieState,
     getMoviePageExternalLinksHtml,
@@ -10900,13 +10844,8 @@ async function revalidateCatalogMovieIndex(revisions, { allowRevisionReuse, pres
 
 async function fetchMovieRatings() {
   const { isCurrent } = getAuthSessionController().captureSession();
-  const hasFullRatingRows = await fetchMovieRatingStats();
-
-  if (!isCurrent() || hasFullRatingRows) {
-    return;
-  }
-
-  await fetchCurrentUserRatings();
+  await fetchMovieRatingStats();
+  if (isCurrent()) await fetchCurrentUserRatings();
 }
 
 function hasUserScopedCatalogControlsActive() {
@@ -10933,6 +10872,10 @@ function hasCatalogRatingRange(ratingFrom, ratingTo) {
   return getCatalogRangeBounds(ratingFrom, ratingTo, getCatalogRangeInputOptions('rating')).hasRange;
 }
 
+function isCatalogRatingRangeActive() {
+  return hasCatalogRatingRange(ratingFromFilter.value, ratingToFilter.value);
+}
+
 function areInitialCatalogRatingStatsPending() {
   return Boolean(initialCatalogRatingLoad?.statsPending && initialCatalogRatingLoad.isCurrent());
 }
@@ -10943,13 +10886,13 @@ function hasPendingInitialCatalogSnapshotData() {
 
 function isCatalogFilterDataPending() {
   return (initialCatalogReviewSummaryPending && reviewedOnlyFilter) ||
-    (areInitialCatalogRatingStatsPending() && hasCatalogRatingRange(ratingFromFilter.value, ratingToFilter.value));
+    (areInitialCatalogRatingStatsPending() && isCatalogRatingRangeActive());
 }
 
 function refreshCatalogAfterInitialRatingStats() {
   if (!moviesLoadedSuccessfully) return;
 
-  if (hasCatalogRatingRange(ratingFromFilter.value, ratingToFilter.value)) {
+  if (isCatalogRatingRangeActive()) {
     refreshDynamicFilterOptions();
     preserveWindowScrollPosition(renderMovies);
   } else {
@@ -10958,7 +10901,7 @@ function refreshCatalogAfterInitialRatingStats() {
       cardController.updateMovieCardRating(card);
     }
     for (const button of container.querySelectorAll('[data-catalog-month-rating-sort]')) {
-      button.disabled = false;
+      button.disabled = !catalogRatingStatsAvailable;
     }
     refreshCatalogDomSnapshotDataSignature();
   }
@@ -11022,31 +10965,26 @@ function shouldAwaitUserStateForCatalogLoad({
   );
 }
 
-async function fetchCatalogUserState({
-  skipCurrentUserRatings = false
-} = {}) {
+async function fetchCatalogUserState() {
   if (!shouldUseAuthenticatedUi()) {
     await fetchMovieWatchlist();
     return;
   }
 
   await Promise.all([
-    skipCurrentUserRatings ? Promise.resolve() : fetchCurrentUserRatings(),
+    fetchCurrentUserRatings(),
     fetchMovieWatchlist()
   ]);
 }
 
-function loadDeferredCatalogUserState({
-  userIdAtLoadStart = currentUser?.id || null,
-  skipCurrentUserRatings = false
-} = {}) {
+function loadDeferredCatalogUserState({ userIdAtLoadStart = currentUser?.id || null } = {}) {
   if (!shouldUseAuthenticatedUi()) {
     return;
   }
 
   const renderedUserStateBeforeLoad = getCatalogUserCardStateByMovieId(getRenderedCatalogMovieIds());
 
-  return fetchCatalogUserState({ skipCurrentUserRatings })
+  return fetchCatalogUserState()
     .then(() => {
       if (
         !isCatalogPage() ||
@@ -11078,24 +11016,35 @@ function loadDeferredCatalogUserState({
     });
 }
 
+function createRatingStatsRequest(isCurrent) {
+  let canRetry = true;
+  return async makeQuery => {
+    // Bound physical requests, including retries built into the Supabase client.
+    const result = await makeQuery().retry(false);
+    if (!result.error || !canRetry || !isCurrent() || ![0, 408, 502, 503, 504].includes(result.status)) return result;
+    canRetry = false;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return isCurrent() ? makeQuery().retry(false) : result;
+  };
+}
+
 async function fetchMovieRatingStats(summaryRevision = null) {
   const { isCurrent } = getAuthSessionController().captureSession();
   const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
     .from('movie_rating_stats')
     .select('movie_id, average_rating, votes_count, rating_sum')
-    .order('movie_id', { ascending: true }));
+    .order('movie_id', { ascending: true }), createRatingStatsRequest(isCurrent));
 
-  if (!isCurrent()) return false;
+  if (!isCurrent()) return;
 
   if (error) {
-    catalogRatingSummaryRevision = null;
-    console.warn('Не удалось загрузить агрегаты оценок, используем fallback:', error);
-    return fetchFullMovieRatingsFallback();
+    console.warn('Не удалось обновить агрегаты оценок:', error);
+    return;
   }
 
   applyMovieRatingStatsRows(data || []);
+  catalogRatingStatsAvailable = true;
   catalogRatingSummaryRevision = summaryRevision;
-  return false;
 }
 
 async function fetchMovieRatingStatsForMovie(movieId) {
@@ -11105,68 +11054,22 @@ async function fetchMovieRatingStatsForMovie(movieId) {
     return;
   }
 
-  const { data, error } = await supabaseClient
+  const { isCurrent } = getAuthSessionController().captureSession();
+  const request = createRatingStatsRequest(isCurrent);
+  const { data, error } = await request(() => supabaseClient
     .from('movie_rating_stats')
     .select('movie_id, average_rating, votes_count, rating_sum')
     .eq('movie_id', normalizedMovieId)
-    .limit(1);
+    .limit(1));
+
+  if (!isCurrent()) return;
 
   if (error) {
-    console.warn('Не удалось загрузить агрегат оценки фильма, используем fallback:', error);
-    await fetchFullMovieRatingsForMovieFallback(normalizedMovieId);
+    console.warn('Не удалось обновить агрегат оценки фильма:', error);
     return;
   }
 
   upsertMovieRatingStatsRows(data || [], [normalizedMovieId]);
-}
-
-async function fetchFullMovieRatingsFallback() {
-  const { isCurrent } = getAuthSessionController().captureSession();
-  const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
-    .from('movie_ratings')
-    .select('movie_id, user_id, rating')
-    .order('id', { ascending: true }));
-
-  if (!isCurrent()) return false;
-
-  if (error) {
-    console.error('Ошибка загрузки оценок фильмов:', error);
-    return false;
-  }
-
-  setKnownMovieRatingRows(data || []);
-  applyMovieRatingStatsFromRows(data || []);
-  return true;
-}
-
-async function fetchFullMovieRatingsForMovieFallback(movieId) {
-  const normalizedMovieId = String(movieId || '').trim();
-
-  if (!normalizedMovieId) {
-    return false;
-  }
-
-  const { data, error } = await fetchAllSupabaseRowsResult(() => supabaseClient
-    .from('movie_ratings')
-    .select('movie_id, user_id, rating')
-    .eq('movie_id', normalizedMovieId)
-    .order('id', { ascending: true }));
-
-  if (error) {
-    console.error('Ошибка загрузки оценок фильма:', error);
-    return false;
-  }
-
-  upsertKnownMovieRatingRows(
-    data || [],
-    row => String(row.movie_id) === normalizedMovieId
-  );
-  const existingRows = allMovieRatings.filter(row => String(row.movie_id) === normalizedMovieId);
-  upsertMovieRatingStatsRows(
-    getMovieRatingStatsRowsFromRatingRows(existingRows),
-    [normalizedMovieId]
-  );
-  return true;
 }
 
 async function fetchCurrentUserRatings() {
@@ -11579,12 +11482,12 @@ async function reloadCatalogData({
   const canReuse = (revision, saved) => allowRevisionReuse && Boolean(revision) && revision === saved;
   const reuseRatings = canReuse(revisions?.ratings, catalogRatingSummaryRevision);
   const reuseReviews = canReuse(revisions?.reviews, catalogReviewSummaryRevision);
-  const [updatedMovieIds, hasFullRatingRows] = await Promise.all([
+  const [updatedMovieIds] = await Promise.all([
     revalidateCatalogMovieIndex(revisions, {
       allowRevisionReuse,
       preserveExistingCatalogOnError: shouldPreserveExistingCatalogOnMovieLoadError
     }),
-    deferRatingStats || reuseRatings ? false : fetchMovieRatingStats(revisions?.ratings),
+    deferRatingStats || reuseRatings ? null : fetchMovieRatingStats(revisions?.ratings),
     deferReviewSummary || reuseReviews ? null : fetchCatalogReviewSummary(revisions?.reviews)
   ]).finally(() => { catalogLinksDeferredDuringRestore = false; });
 
@@ -11593,9 +11496,7 @@ async function reloadCatalogData({
   });
 
   if (shouldAwaitCatalogUserState || !shouldUseAuthenticatedUi()) {
-    await fetchCatalogUserState({
-      skipCurrentUserRatings: hasFullRatingRows
-    });
+    await fetchCatalogUserState();
   }
 
   if (refreshFilters) {
@@ -11607,7 +11508,6 @@ async function reloadCatalogData({
   const canSkipUnchangedCards = reuseRatings && reuseReviews && !shouldAwaitCatalogUserState;
   if (shouldAwaitCatalogUserState || !shouldUseAuthenticatedUi()) {
     return {
-      hasFullRatingRows,
       updatedMovieIds,
       canSkipUnchangedCards,
       didAwaitUserState: true
@@ -11615,14 +11515,10 @@ async function reloadCatalogData({
   }
 
   if (loadDeferredUserState) {
-    loadDeferredCatalogUserState({
-      userIdAtLoadStart,
-      skipCurrentUserRatings: hasFullRatingRows
-    });
+    loadDeferredCatalogUserState({ userIdAtLoadStart });
   }
 
   return {
-    hasFullRatingRows,
     updatedMovieIds,
     canSkipUnchangedCards,
     didAwaitUserState: false
@@ -11803,6 +11699,10 @@ function shouldRenderFullCatalogAfterRatingChange() {
     ratingFromFilter.value !== '' ||
     ratingToFilter.value !== ''
   );
+}
+
+function hasConfirmedMovieRatingStats(movieId) {
+  return catalogRatingStatsAvailable || movieRatingStatsByMovieId.has(String(movieId));
 }
 
 function getMovieVotesCount(movieId) {
@@ -14994,7 +14894,7 @@ function getDynamicFilterOptionCounts() {
 }
 
 function refreshDynamicFilterOptions() {
-  if (isCatalogFilterDataPending()) {
+  if (isCatalogFilterDataPending() || (!catalogRatingStatsAvailable && isCatalogRatingRangeActive())) {
     return;
   }
   const filterOptionCounts = getDynamicFilterOptionCounts();
@@ -15116,6 +15016,19 @@ function renderMovies({ loadPageDetails = true, updatedMovieIds = null } = {}) {
 
   if (isCatalogFilterDataPending()) {
     setCatalogBusyState(true);
+    return;
+  }
+
+  if (!catalogRatingStatsAvailable && isCatalogRatingRangeActive()) {
+    setCatalogBusyState(false);
+    hideMoviesResultCount();
+    clearCatalogPagination();
+    lastCatalogDomRenderSignature = '';
+    container.innerHTML = `
+      <div class="empty-state" role="status" data-catalog-ratings-unavailable>
+        <p>Не удалось загрузить рейтинг. Обновите страницу или снимите фильтр по рейтингу.</p>
+      </div>
+    `;
     return;
   }
 
@@ -15801,10 +15714,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
       return;
     }
 
-    return loadDeferredCatalogUserState({
-      userIdAtLoadStart: currentUser?.id || null,
-      skipCurrentUserRatings: Boolean(catalogLoadState?.hasFullRatingRows)
-    });
+    return loadDeferredCatalogUserState({ userIdAtLoadStart: currentUser?.id || null });
   };
 
   const refreshHydratedCatalogInBackground = ({ fromBackForwardCache = false } = {}) => {
@@ -15920,13 +15830,12 @@ async function initCatalogPage({ onShellReady = null } = {}) {
       .then(async () => ratingLoad.isCurrent() && fetchMovieRatingStats((await catalogRevisionsRequest)?.ratings))
       .catch(error => {
         console.error('Ошибка фоновой загрузки статистики оценок:', error);
-        return false;
       })
-      .then(hasFullRatingRows => {
+      .then(() => {
         ratingLoad.statsPending = false;
         if (!ratingLoad.isCurrent() || !isCatalogPage()) return;
         refreshCatalogAfterInitialRatingStats();
-        return loadDeferredInitialUserState({ ...catalogLoadState, hasFullRatingRows });
+        return loadDeferredInitialUserState(catalogLoadState);
       })
       .catch(error => console.error('Ошибка обновления карточек каталога:', error))
       .finally(() => {

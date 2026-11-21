@@ -85,6 +85,7 @@ function fixture() {
     getCatalogDomRenderSignature: ({ paginationState }) => `${paginationState.currentPage}:${prefer}`,
     getCatalogPaginationSlots() {}, renderActiveFilterChips() {}, syncQuickPresetButtons() {},
     isCatalogFilterDataPending: () => false,
+    catalogRatingStatsAvailable: true,
     createMovieCardRenderContext() {}, saveCatalogState() {}, showMoviesResultCount() {}, getMoviesResultCountText() {},
     setCatalogBusyState() {}, updateCatalogStructuredData() {}, renderCatalogPagination() {},
     scheduleCatalogPageMovieLinks() {},

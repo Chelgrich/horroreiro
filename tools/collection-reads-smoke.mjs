@@ -82,6 +82,7 @@ function query(table) {
   const orders = [];
   let offset = 0;
   let limit = 1000;
+  let isPaged = false;
   let select;
   let idCount;
   const builder = {
@@ -89,12 +90,17 @@ function query(table) {
     eq(key, value) { filters.push(row => row[key] === value); return this; },
     in(key, values) { idCount = values.length; filters.push(row => values.includes(row[key])); return this; },
     order(key, options = {}) { if (!options.foreignTable) orders.push([key, options.ascending !== false]); return this; },
-    range(from, to) { offset = from; limit = Math.min(1000, to - from + 1); return this; },
+    range(from, to) { offset = from; limit = Math.min(1000, to - from + 1); isPaged = true; return this; },
+    limit(size) { limit = size; return this; },
+    retry(enabled) { assert.equal(enabled, false); return this; },
     async then(resolve, reject) {
       try {
-        requests.push({ table, offset, limit, select, orders, idCount });
+        requests.push({ table, offset, limit, select, orders, idCount, isPaged });
         if (pausePage?.table === table && pausePage.offset === offset) await pausePage.wait;
-        if (failPage?.table === table && failPage.offset === offset) return resolve({ data: null, error: { message: 'Page failed' } });
+        if (failPage?.table === table && failPage.offset === offset && failPage.remaining !== 0) {
+          if (failPage.remaining > 0) failPage.remaining -= 1;
+          return resolve({ data: null, error: { message: 'Page failed' }, status: failPage.status ?? 403 });
+        }
         const rows = (fixtures[table] || []).filter(row => filters.every(filter => filter(row)));
         rows.sort((a, b) => {
           for (const [key, ascending] of orders) {
@@ -116,12 +122,14 @@ const sandbox = vm.createContext({
     return { isCurrent: () => version === authGeneration };
   } }),
   console: { error() {}, warn() {} },
+  setTimeout: callback => setImmediate(callback),
   supabaseClient: { from: query },
   currentUser: { id: 'user-a' },
   allMovies: [], allMovieRatings: [], allMovieWatchlist: [], catalogMovieLinksById: new Map(),
   catalogReviewedMovieIds: new Set(), catalogProfileActivityRatingsByMovieId: new Map(),
   CATALOG_PROFILE_ACTIVITY_KEYS: new Set(['ratings', 'watchlist', 'reviews']),
   moviesLoadedSuccessfully: false, container: null,
+  catalogRatingStatsAvailable: false, catalogRatingSummaryRevision: null,
   MOVIE_CATALOG_SELECT: 'id,title', MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT: 'id,title',
   letterboxdImportMatchMovies: null, letterboxdImportMatchMoviesPromise: null,
   throwIfSupabaseError(error) { if (error) throw error; },
@@ -132,7 +140,7 @@ const sandbox = vm.createContext({
   shouldUseAuthenticatedUi: () => Boolean(sandbox.currentUser),
   setKnownMovieRatingRows: rows => { sandbox.allMovieRatings = rows; },
   applyMovieRatingStatsRows: rows => { sandbox.stats = rows; },
-  applyMovieRatingStatsFromRows: rows => { sandbox.stats = rows; },
+  upsertMovieRatingStatsRows: rows => { sandbox.movieStats = rows; },
   normalizeManualSimilarMovieIds: ids => [...new Set(ids)],
   getMovieSelectRowsCacheBucket: () => sandbox.movieCache,
   cacheMovieSelectRows: (select, rows) => rows.forEach(row => sandbox.movieCache.set(row.id, row)),
@@ -142,18 +150,12 @@ const sandbox = vm.createContext({
 vm.runInContext(source.match(/const SUPABASE_ID_QUERY_CHUNK_SIZE = \d+;/)[0], sandbox);
 
 const names = ['fetchAllSupabaseRows', 'runMovieSelectWithOptionalColumns', 'fetchMovies',
-  'fetchMovieRatingStats', 'fetchFullMovieRatingsFallback', 'fetchCurrentUserRatings',
+  'createRatingStatsRequest', 'fetchMovieRatingStats', 'fetchMovieRatingStatsForMovie', 'fetchCurrentUserRatings',
   'fetchMovieWatchlist', 'fetchCatalogReviewSummary', 'getUniqueMovieIdsFromRows',
   'fetchCatalogProfileActivityMovieIds', 'fetchMoviesByIdsWithSelect', 'fetchSupabaseIdBatches', 'fetchLetterboxdImportMatchMovies'];
 // The adapter preserves Supabase's {data,error} contract for existing consumers.
 if (source.includes('function fetchAllSupabaseRowsResult(')) names.push('fetchAllSupabaseRowsResult');
 vm.runInContext(names.map(functionSource).join('\n'), sandbox);
-
-fixtures.movie_ratings = makeRows(2501);
-assert.equal(await sandbox.fetchFullMovieRatingsFallback(), true);
-assert.equal(sandbox.allMovieRatings.length, 2501, 'Fallback ratings must not stop at the server cap');
-assert.equal(new Set(sandbox.allMovieRatings.map(row => row.id)).size, 2501);
-assert.ok(requests.every(request => request.orders.length > 0), 'Paged queries need deterministic ordering');
 
 for (const count of [0, 1000, 2000, 2501]) {
   fixtures.movie_ratings = makeRows(count);
@@ -162,14 +164,42 @@ for (const count of [0, 1000, 2000, 2501]) {
   assert.equal(sandbox.allMovieRatings.length, count, `Current-user ratings: ${count}`);
   assert.equal(requests.length - start, Math.floor(count / 1000) + 1);
 }
+assert.equal(new Set(sandbox.allMovieRatings.map(row => row.id)).size, 2501);
 
 fixtures.movies = makeRows(2501);
 assert.equal(await sandbox.fetchMovies(), true);
 assert.equal(sandbox.allMovies.length, 2501, 'Full catalog must be complete');
 assert.equal((await sandbox.fetchLetterboxdImportMatchMovies()).length, 2501, 'Import match index must be complete');
 fixtures.movie_rating_stats = makeRows(2501);
-await sandbox.fetchMovieRatingStats();
+await sandbox.fetchMovieRatingStats('confirmed');
 assert.equal(sandbox.stats.length, 2501, 'Catalog aggregates must be complete');
+assert.equal(sandbox.catalogRatingStatsAvailable, true);
+const confirmedStats = sandbox.stats;
+let ratingRequestStart = requests.length;
+failPage = { table: 'movie_rating_stats', offset: 1000, status: 503 };
+await sandbox.fetchMovieRatingStats('changed');
+assert.deepEqual(requests.slice(ratingRequestStart).map(({ table, offset }) => [table, offset]),
+  [['movie_rating_stats', 0], ['movie_rating_stats', 1000], ['movie_rating_stats', 1000]]);
+assert.equal(sandbox.stats, confirmedStats, 'A failed refresh must retain the whole confirmed collection');
+assert.equal(sandbox.catalogRatingSummaryRevision, 'confirmed');
+ratingRequestStart = requests.length;
+failPage = { table: 'movie_rating_stats', offset: 0, status: 429 };
+await sandbox.fetchMovieRatingStats('changed');
+assert.equal(requests.length - ratingRequestStart, 1, 'Rate limits must not trigger retries');
+ratingRequestStart = requests.length;
+failPage = { table: 'movie_rating_stats', offset: 0, status: 503, remaining: 1 };
+await sandbox.fetchMovieRatingStats('changed');
+assert.equal(requests.slice(ratingRequestStart).filter(({ offset }) => offset === 0).length, 2);
+assert.equal(sandbox.catalogRatingSummaryRevision, 'changed');
+await sandbox.fetchMovieRatingStatsForMovie('movie-8');
+const confirmedMovie = sandbox.movieStats;
+assert.equal(confirmedMovie.length, 1);
+ratingRequestStart = requests.length;
+failPage = { table: 'movie_rating_stats', offset: 0, status: 503 };
+await sandbox.fetchMovieRatingStatsForMovie('movie-8');
+assert.deepEqual(requests.slice(ratingRequestStart).map(({ table }) => table), ['movie_rating_stats', 'movie_rating_stats']);
+assert.equal(sandbox.movieStats, confirmedMovie);
+failPage = null;
 fixtures.movie_ratings = makeRows(2501);
 fixtures.movie_watchlist = makeRows(2501).map((row, i) => ({ ...row, movie_id: `watch-${i}` }));
 fixtures.movie_reviews = makeRows(2501);
@@ -224,7 +254,6 @@ sandbox.currentUser = { id: 'user-a' };
 for (const [table, loader, stateKey] of [
   ['movie_ratings', 'fetchCurrentUserRatings', 'allMovieRatings'],
   ['movie_watchlist', 'fetchMovieWatchlist', 'allMovieWatchlist'],
-  ['movie_ratings', 'fetchFullMovieRatingsFallback', 'allMovieRatings'],
   ['movie_rating_stats', 'fetchMovieRatingStats', 'stats']
 ]) {
   const previousRows = fixtures[table];
@@ -301,7 +330,7 @@ const profile = await profileController.fetchPublicUserPageData({ id: 'user-a' }
 assert.equal(profile.ratingCount, 2501);
 assert.equal(profile.watchlistCount, 2501);
 assert.equal(profile.reviewCount, 2501);
-assert.ok(requests.every(request => request.orders.length > 0));
-assert.ok(requests.every(request => request.orders.some(([key]) => key === (request.table === 'movie_rating_stats' ? 'movie_id' : 'id'))));
+const pagedRequests = requests.filter(request => request.isPaged);
+assert.ok(pagedRequests.every(request => request.orders.some(([key]) => key === (request.table === 'movie_rating_stats' ? 'movie_id' : 'id'))), 'Paged reads need deterministic ordering');
 assert.ok(requests.every(request => request.idCount === undefined || request.idCount <= 100));
 console.log('Collection reads smoke passed: complete catalog/profile/import data, 1000-row boundaries, failure and session isolation.');

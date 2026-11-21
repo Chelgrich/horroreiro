@@ -4,7 +4,7 @@ export function createCatalogRenderController(context = {}) {
     createMovieCard,
     getMovieAverageRating,
     getMovieVotesCount,
-    areRatingStatsPending = () => false,
+    hasCatalogRatingStats = () => true,
     getMonthName
   } = context;
 
@@ -80,7 +80,7 @@ export function createCatalogRenderController(context = {}) {
     ratingSortButton.type = 'button';
     ratingSortButton.className = 'month-sort-btn';
     ratingSortButton.dataset.catalogMonthRatingSort = '';
-    ratingSortButton.disabled = areRatingStatsPending();
+    ratingSortButton.disabled = !hasCatalogRatingStats();
 
     monthControls.appendChild(dateSortButton);
     monthControls.appendChild(ratingSortButton);
@@ -146,6 +146,7 @@ export function createCatalogRenderController(context = {}) {
     });
 
     ratingSortButton.addEventListener('click', () => {
+      if (!hasCatalogRatingStats()) return;
       if (monthSortState.activeMode === 'rating') {
         monthSortState.directions.rating = monthSortState.directions.rating === 'desc' ? 'asc' : 'desc';
       } else {

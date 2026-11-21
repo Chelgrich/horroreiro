@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-21 — Keep confirmed rating aggregates when a refresh fails
+
+- Catalog and detail rating aggregates keep the last confirmed values on failure. Transient failures get at most one retry per load, with SDK retries disabled for these requests.
+- Cold rating filters and month rating sorting wait for confirmed aggregates. After a terminal failure, the filter shows an unavailable state and rating sorting stays disabled. Personal ratings still use the existing user-scoped reads and writes.
+
 ## 2026-11-21 — Refresh edited catalog cards by movie ID
 
 - The version check returns the IDs changed since the saved movie index revision when recent single-movie changes cover that revision. Fetch those rows with their catalog links in one batch and keep other rows and visible list cards mounted.

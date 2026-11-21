@@ -88,6 +88,7 @@ export function getCatalogSessionSnapshotSignature(snapshot) {
     movieRatingStats: [...(snapshot.movieRatingStats || [])].sort((firstItem, secondItem) =>
       String(firstItem?.movie_id || '').localeCompare(String(secondItem?.movie_id || ''))
     ),
+    ratingStatsAvailable: snapshot.ratingStatsAvailable === true,
     movieWatchlist: [...(snapshot.movieWatchlist || [])].sort(sortByMovieAndUser),
     reviewedMovieIds: [...(snapshot.reviewedMovieIds || [])].sort()
   });

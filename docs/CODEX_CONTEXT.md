@@ -260,7 +260,7 @@ Profile ranking note:
 
 `catalog-render.js` is lazy-loaded only on catalog pages and owns list/month DOM fragment creation, year titles, month section controls, month-local release/rating sorting, and catalog DOM render signatures. `app.js` keeps the high-level `renderMovies()` bridge: active chips, quick presets, pagination, empty state, priority-poster budgeting, structured data, DOM replacement, and snapshot persistence.
 
-On a cold start without an effective rating range, `initCatalogPage()` starts the aggregate rating read after the first catalog render. Card summaries and month rating-sort controls reflect the pending read. The completion updates rating text in place and saves the complete snapshot, or renders the requested rating-filtered results if the filter was switched on during loading.
+On a cold start without an effective rating range, `initCatalogPage()` starts the aggregate rating read after the first catalog render. Rating filters and month rating sorting require a confirmed aggregate snapshot. A failed refresh keeps confirmed values and their revision. If both attempts fail without confirmed data, rating summaries show unavailable, month sorting stays disabled, and a rating-filtered catalog shows an error state. The aggregate read has a single retry budget for transient transport failures across all its pages. Detail cards follow the same retry policy and keep their last confirmed aggregate, including a verified zero-vote result.
 
 The initial catalog also defers the review ID summary until after render when the effective review filter is off. A review filter selected while the read is pending waits for the full set of IDs before updating results or filter counts. Catalog snapshots wait for both deferred summaries.
 

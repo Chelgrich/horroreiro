@@ -73,6 +73,7 @@ export function createMoviePageShellController(context = {}) {
     formatRuntimeMinutes,
     getMovieAverageRating,
     getMovieVotesCount,
+    hasConfirmedMovieRatingStats,
     getCurrentUserRating,
     getCurrentUserMovieState,
     getMoviePageExternalLinksHtml,
@@ -274,6 +275,7 @@ export function createMoviePageShellController(context = {}) {
       runtimeLabel: formatRuntimeMinutes(movie?.runtime_minutes),
       averageRating: getMovieAverageRating(movie?.id),
       votesCount: getMovieVotesCount(movie?.id),
+      hasRatingStats: hasConfirmedMovieRatingStats(movie?.id),
       currentUserRating: getCurrentUserRating(movie?.id),
       userMovieState: getCurrentUserMovieState(movie?.id),
       primaryPerceivedTagLabel: getMoviePageSubgenreLabel(movie),
@@ -450,6 +452,7 @@ export function createMoviePageShellController(context = {}) {
       runtimeLabel,
       averageRating,
       votesCount,
+      hasRatingStats,
       currentUserRating,
       primaryPerceivedTagLabel,
       formatsLabel,
@@ -466,8 +469,8 @@ export function createMoviePageShellController(context = {}) {
             <div class="movie-page-summary-panel">
               <div class="movie-rating-summary movie-page-rating-summary">
                 <div class="movie-rating-summary-main movie-page-rating-summary-main">
-                  <span class="movie-rating-value">${averageRating.toFixed(1)}</span>
-                  <span class="movie-rating-meta">(${votesCount} ${getVotesLabel(votesCount)})</span>
+                  <span class="movie-rating-value">${hasRatingStats ? averageRating.toFixed(1) : '—'}</span>
+                  <span class="movie-rating-meta">${hasRatingStats ? `(${votesCount} ${getVotesLabel(votesCount)})` : '(недоступно)'}</span>
                 </div>
               </div>
 

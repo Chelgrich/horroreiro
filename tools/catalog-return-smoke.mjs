@@ -134,6 +134,7 @@ const linkCacheSandbox = vm.createContext({
   allMovies: [{ id: 'linked' }, { id: 'empty' }, { id: 'failed' }, { id: 'pending' }],
   moviesLoadedSuccessfully: true, CATALOG_SESSION_SNAPSHOT_VERSION: 1, APP_BUILD_VERSION: 'test',
   catalogMovieIndexRevision: 'first', catalogRatingSummaryRevision: null, catalogReviewSummaryRevision: null,
+  catalogRatingStatsAvailable: true,
   catalogMovieLinksById: new Map([
     ['linked', { row: { id: 'linked', imdb_url: '/original' } }],
     ['empty', { row: { id: 'empty' } }], ['failed', { failed: true }], ['pending', {}]
@@ -150,6 +151,7 @@ for (const name of ['createCatalogSessionSnapshotPayload', 'hydrateCatalogFromSe
 }
 const linksSnapshot = JSON.parse(JSON.stringify(linkCacheSandbox.createCatalogSessionSnapshotPayload()));
 assert.deepEqual(linksSnapshot.movieLinks, [{ id: 'linked', imdb_url: '/original' }, { id: 'empty' }]);
+assert.equal(linksSnapshot.ratingStatsAvailable, true, 'A complete snapshot can confirm a catalog with zero ratings');
 linkCacheSandbox.hydrateCatalogFromSessionSnapshot(linksSnapshot);
 assert.deepEqual([...linkCacheSandbox.catalogMovieLinksById.keys()], ['linked', 'empty']);
 assert.equal(linkCacheSandbox.catalogMovieLinksById.get('linked').row.imdb_url, '/original');
@@ -186,6 +188,7 @@ await unfilteredReviews;
 assert.deepEqual(reviewUpdates, ['signature', 'snapshot'], 'An unchecked review filter must keep its rendered cards');
 
 let ratingsPending = true;
+let ratingsConfirmed = true;
 const ratingValue = {};
 const ratingMeta = {};
 const ratingCard = {
@@ -194,6 +197,7 @@ const ratingCard = {
 };
 const { updateMovieCardRating } = createCatalogCardController({
   areRatingStatsPending: () => ratingsPending,
+  hasConfirmedMovieRatingStats: () => ratingsConfirmed,
   getMovieAverageRating: () => 7.4, getMovieVotesCount: () => 3, getVotesLabel: () => 'votes'
 });
 updateMovieCardRating(ratingCard);
@@ -202,6 +206,10 @@ ratingsPending = false;
 updateMovieCardRating(ratingCard);
 assert.equal(ratingValue.textContent, '7.4');
 assert.equal(ratingMeta.textContent, '(3 votes)');
+ratingsConfirmed = false;
+updateMovieCardRating(ratingCard);
+assert.equal(ratingValue.textContent, '—', 'Failed aggregates must not become zero ratings');
+assert.equal(ratingMeta.textContent, '(недоступно)');
 
 // Browser rAF callbacks receive a timestamp, never a DOM root.
 const frames = [];
@@ -375,7 +383,7 @@ for (const name of ['readCatalogSessionSnapshot', 'writeCatalogSessionSnapshot',
 function seed() {
   sessionStorage.setItem('data', JSON.stringify({
     version: 9, buildVersion: 'build', dataMutationStamp: stamp, savedAt: Date.now(),
-    userId: 'user', movies: [{ id: 'movie' }], movieRatings: [], movieWatchlist: []
+    userId: 'user', movies: [{ id: 'movie' }], movieRatings: [], movieWatchlist: [], ratingStatsAvailable: true
   }));
 }
 seed();

@@ -15,6 +15,7 @@ export function createCatalogCardController(context = {}) {
     getMovieAverageRating,
     getMovieVotesCount,
     areRatingStatsPending = () => false,
+    hasConfirmedMovieRatingStats = () => true,
     getVotesLabel,
     getCatalogProfileRatingHtml,
     getMoviePreferredPosterUrl,
@@ -347,6 +348,7 @@ export function createCatalogCardController(context = {}) {
     if (areRatingStatsPending()) {
       return { value: '—', meta: '(загрузка…)' };
     }
+    if (!hasConfirmedMovieRatingStats(movieId)) return { value: '—', meta: '(недоступно)' };
 
     const votesCount = getMovieVotesCount(movieId);
     return {
