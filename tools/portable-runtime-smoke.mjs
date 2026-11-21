@@ -181,12 +181,15 @@ const seoRuntime = createPortableRuntime({ env: { SUPABASE_URL: 'https://seo.tes
 const seoRequest = (path, options) => seoRuntime.handleRequest(new Request(`http://portable.test${path}`, options));
 const relatedMovie = { id: 'film', slug: 'seo-film', title: 'A <Film>', year: 2026 };
 const movieOffsets = [];
+let personReads = 0;
 try {
   globalThis.fetch = async (url, options) => {
     assert(!options.headers.apikey.includes('service'), 'Public SEO uses the anon key');
     const params = url.searchParams;
     if (url.pathname.endsWith('/people')) {
-      return Response.json(params.get('slug') === 'not.is.null' ? [{ slug: 'seo-person' }] : [
+      if (params.get('slug') === 'not.is.null') return Response.json([{ slug: 'seo-person' }]);
+      personReads += 1;
+      return Response.json([
         { slug: 'seo-person', name_ru: 'A $& <Person>', movie_people: [{ movies: relatedMovie }] }
       ]);
     }
@@ -217,6 +220,8 @@ try {
       html.includes(`"@type":"${type}"`), `${path}: public SEO must reach the initial HTML`);
     if (type !== 'ProfilePage') assert(html.includes('<a href="/movie/seo-film">A &lt;Film&gt; (2026)</a>'), 'Filmography fallback must link to movies');
   }
+  const personHead = await seoRequest('/name/seo-person', { method: 'HEAD' });
+  assert(personHead.ok && personReads === 1 && await personHead.text() === '', 'Repeat requests must reuse public SEO data');
   for (const path of ['/company/absent', '/user/absent']) {
     const response = await seoRequest(path);
     assert(response.status === 404 && (await response.text()).includes('name="robots" content="noindex,'), `${path} must return a non-indexable 404`);

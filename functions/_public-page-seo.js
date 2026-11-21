@@ -1,6 +1,6 @@
 import { fetchNoStoreAsset } from './_response-utils.js';
 import {
-  SITE_ORIGIN, applyPageSeoToHtml, escapeHtml, fetchSupabaseRows,
+  SITE_ORIGIN, applyPageSeoToHtml, escapeHtml, fetchCachedSeoRow,
   getMoviePagePath, getMovieTitleWithYear, upsertJsonLd
 } from './_seo-utils.js';
 
@@ -70,14 +70,13 @@ export async function getPublicPageResponse({ env, request }, pageType, identifi
         [`${page.relation}.limit`]: '12',
         [`${page.relation}.order`]: 'movie_id.asc'
       } : {};
-      const rows = await fetchSupabaseRows(env, page.table, {
+      row = await fetchCachedSeoRow(env, page.table, {
         select: page.select,
         [page.key]: `eq.${value}`,
         limit: '1',
         ...page.filters,
         ...relationParams
-      }, { signal: AbortSignal.timeout(2500) });
-      row = rows[0];
+      });
     }
   } catch (error) {
     console.error('Public page SEO lookup failed:', error.message);

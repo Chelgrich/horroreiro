@@ -51,9 +51,9 @@ const MOVIE_SELECT = `
 `;
 
 const MOVIE_COMPANY_LINKS_SELECT = 'movie_companies(role,position,companies(id,slug,name))';
-const SEO_MOVIE_CACHE = new Map();
-const SEO_MOVIE_CACHE_TTL_MS = 60000;
-const SEO_MOVIE_CACHE_LIMIT = 100;
+const SEO_ROW_CACHE = new Map();
+const SEO_ROW_CACHE_TTL_MS = 60000;
+const SEO_ROW_CACHE_LIMIT = 100;
 
 function normalizeText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -613,17 +613,8 @@ async function fetchMovieBySlugOrId(env, { slug = '', id = '' } = {}) {
     'movie_poster_images.order': 'position.asc',
     'movie_poster_images.limit': '1'
   };
-  const cacheKey = JSON.stringify([getSupabaseTableUrl(env, 'movies', paramsWithPoster).toString(), env.SUPABASE_ANON_KEY]);
-  const cached = SEO_MOVIE_CACHE.get(cacheKey);
-
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.promise;
-  }
-
-  // Cache only public SEO data; client movie/user state reads stay fresh.
-  const entry = { expiresAt: Date.now() + SEO_MOVIE_CACHE_TTL_MS, promise: null };
   const isMissingOptionalRelation = error => ['42P01', '42501', 'PGRST200', 'PGRST205'].includes(error.code);
-  entry.promise = fetchSupabaseRows(env, 'movies', paramsWithPoster)
+  return fetchCachedSeoRow(env, 'movies', paramsWithPoster, () => fetchSupabaseRows(env, 'movies', paramsWithPoster)
     .catch(error => {
       if (!isMissingOptionalRelation(error)) throw error;
       return fetchSupabaseRows(env, 'movies', paramsWithCompanies);
@@ -631,25 +622,37 @@ async function fetchMovieBySlugOrId(env, { slug = '', id = '' } = {}) {
     .catch(error => {
       if (!isMissingOptionalRelation(error)) throw error;
       return fetchSupabaseRows(env, 'movies', params);
-    })
+    }));
+}
+
+function fetchCachedSeoRow(env, tableName, params, loadRows = () =>
+  fetchSupabaseRows(env, tableName, params, { signal: AbortSignal.timeout(6500) })
+) {
+  const cacheKey = JSON.stringify([getSupabaseTableUrl(env, tableName, params).toString(), env.SUPABASE_ANON_KEY]);
+  const cached = SEO_ROW_CACHE.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.promise;
+
+  // Cache only public SEO data; client detail/user state reads stay fresh.
+  const entry = { expiresAt: Date.now() + SEO_ROW_CACHE_TTL_MS, promise: null };
+  entry.promise = loadRows()
     .then(rows => {
-      const movie = Array.isArray(rows) ? rows[0] || null : null;
-      if (!movie && SEO_MOVIE_CACHE.get(cacheKey) === entry) {
-        SEO_MOVIE_CACHE.delete(cacheKey);
+      const row = Array.isArray(rows) ? rows[0] || null : null;
+      if (!row && SEO_ROW_CACHE.get(cacheKey) === entry) {
+        SEO_ROW_CACHE.delete(cacheKey);
       }
-      return movie;
+      return row;
     })
     .catch(error => {
-      if (SEO_MOVIE_CACHE.get(cacheKey) === entry) {
-        SEO_MOVIE_CACHE.delete(cacheKey);
+      if (SEO_ROW_CACHE.get(cacheKey) === entry) {
+        SEO_ROW_CACHE.delete(cacheKey);
       }
       throw error;
     });
-  SEO_MOVIE_CACHE.delete(cacheKey);
-  SEO_MOVIE_CACHE.set(cacheKey, entry);
+  SEO_ROW_CACHE.delete(cacheKey);
+  SEO_ROW_CACHE.set(cacheKey, entry);
 
-  while (SEO_MOVIE_CACHE.size > SEO_MOVIE_CACHE_LIMIT) {
-    SEO_MOVIE_CACHE.delete(SEO_MOVIE_CACHE.keys().next().value);
+  while (SEO_ROW_CACHE.size > SEO_ROW_CACHE_LIMIT) {
+    SEO_ROW_CACHE.delete(SEO_ROW_CACHE.keys().next().value);
   }
 
   return entry.promise;
@@ -697,8 +700,8 @@ export {
   createMovieHtmlResponse,
   createSitemapXml,
   escapeHtml,
+  fetchCachedSeoRow,
   fetchMovieBySlugOrId,
-  fetchSupabaseRows,
   getMovieCanonicalUrl,
   getMoviePagePath,
   getMoviePosterSource,
