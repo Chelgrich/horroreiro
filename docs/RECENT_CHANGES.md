@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-22 — Animate catalog placeholders without repainting their backgrounds
+
+- Catalog poster, text and link placeholders sweep a translated highlight across a static fill during both early and interactive loading. The highlight starts inside the card on first paint. It stops once a poster is hidden and is omitted when the visitor prefers reduced motion.
+
 ## 2026-11-22 — Match secondary skeletons to the page layouts
 
 - Profile, notifications, following, editor, directors, and company shells render styled placeholders in their real grids before app startup. The same static skeleton stays visible through the initial loading state, including the layout breakpoints and reduced-motion behavior.

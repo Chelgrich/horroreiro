@@ -883,6 +883,31 @@
   opacity: 1;
 }
 
+#movies :is(.movie-poster-skeleton, .movie-text-skeleton, .movie-external-link-skeleton){
+  overflow: hidden;
+  background: var(--color-surface-skeleton);
+  animation: none;
+}
+
+#movies :is(.movie-text-skeleton, .movie-external-link-skeleton){
+  position: relative;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  #movies :is(.movie-poster-skeleton:not(.is-hidden), .movie-text-skeleton, .movie-external-link-skeleton)::before{
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, var(--overlay-white-09), transparent);
+    animation: catalog-skeleton-sweep 1.6s linear -0.55s infinite;
+  }
+}
+
+@keyframes catalog-skeleton-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
 .movies-year-title{
   grid-column: 1 / -1;
   font-size: var(--movies-year-title-font-size);
