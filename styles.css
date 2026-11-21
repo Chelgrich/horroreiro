@@ -416,23 +416,65 @@ h3{
   box-shadow: 0 34px var(--color-surface-skeleton), 0 68px var(--color-surface-skeleton);
 }
 
-.user-page-loading-state.page-content-skeleton,
-.director-page-loading-state.page-content-skeleton{
-  grid-template-columns: 72px minmax(0, 1fr);
+.secondary-page-skeleton,
+.secondary-page-skeleton + div:has(> .page-content-skeleton){
+  display: none;
+}
+
+html:not(.app-load-failed) .secondary-page-skeleton:has(+ div > .page-content-skeleton){
+  display: block;
+  pointer-events: none;
+}
+
+.skeleton-line{
+  display: block;
+  inline-size: min(100%, var(--skeleton-width, 100%));
+  block-size: 1lh;
   align-content: center;
-  align-items: start;
 }
 
-.user-page-loading-state.page-content-skeleton::before,
-.director-page-loading-state.page-content-skeleton::before{
-  inline-size: 72px;
-  block-size: 72px;
-  border-radius: 50%;
+.skeleton-line::before{
+  content: '';
+  display: block;
+  inline-size: 100%;
+  block-size: 0.72em;
+  border-radius: 4px;
 }
 
-.user-page-loading-state.page-content-skeleton::after,
-.director-page-loading-state.page-content-skeleton::after{
-  box-shadow: 0 28px var(--color-surface-skeleton), 0 56px var(--color-surface-skeleton);
+.secondary-page-skeleton .skeleton-block,
+.skeleton-line::before{
+  background: var(--color-surface-skeleton);
+}
+
+.secondary-page-skeleton .secondary-button.skeleton-block{
+  inline-size: var(--skeleton-width);
+  max-inline-size: 100%;
+  background: var(--color-surface-skeleton);
+  border-color: transparent;
+}
+
+.skeleton-stack{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  inline-size: var(--skeleton-stack-width, 24rem);
+  max-inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.skeleton-toggle{
+  inline-size: 16px;
+  block-size: 16px;
+  flex: 0 0 16px;
+  /* Match the native checkbox footprint in the loaded preference rows. */
+  margin: 3px 3px 3px 4px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton-block,
+  .skeleton-line::before{
+    animation: page-skeleton-pulse 2.4s ease-in-out infinite;
+  }
 }
 
 .page:has(.catalog-startup-skeleton) .seo-text-bottom,

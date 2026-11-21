@@ -59,8 +59,68 @@
 
     <section class="section user-page">
       <a href="/" class="secondary-button user-page-back-link"><span class="back-link-arrow" aria-hidden="true">←</span><span>Назад в каталог</span></a>
-      <h1 class="user-page-main-title">Мой профиль</h1>
+      <h1 class="user-page-main-title">Профиль зрителя</h1>
 
+      <div class="secondary-page-skeleton user-page-content-shell" role="status" aria-label="Загрузка профиля">
+        <div aria-hidden="true">
+          <div class="user-page-overview">
+            <div class="user-page-hero">
+              <div class="user-page-avatar-shell user-page-avatar skeleton-block"></div>
+              <div class="user-page-identity skeleton-stack">
+                <span class="skeleton-line user-page-display-name" style="--skeleton-width:11rem"></span><span class="skeleton-line user-page-handle" style="--skeleton-width:6rem"></span>
+                <div class="user-page-follow-actions">
+                  <span class="secondary-button secondary-button-compact user-page-follow-button skeleton-block" style="--skeleton-width:7rem"></span>
+                </div>
+              </div>
+            </div>
+            <div class="user-page-stats">
+              <div class="user-page-stat"><span class="skeleton-line user-page-stat-value" style="--skeleton-width:3rem"></span><span class="skeleton-line user-page-stat-label" style="--skeleton-width:6rem"></span></div>
+              <div class="user-page-stat"><span class="skeleton-line user-page-stat-value" style="--skeleton-width:3rem"></span><span class="skeleton-line user-page-stat-label" style="--skeleton-width:6rem"></span></div>
+              <div class="user-page-stat"><span class="skeleton-line user-page-stat-value" style="--skeleton-width:3rem"></span><span class="skeleton-line user-page-stat-label" style="--skeleton-width:6rem"></span></div>
+              <div class="user-page-stat"><span class="skeleton-line user-page-stat-value" style="--skeleton-width:3rem"></span><span class="skeleton-line user-page-stat-label" style="--skeleton-width:6rem"></span></div>
+            </div>
+          </div>
+          <div class="user-page-taste-stats">
+            <div class="user-page-taste-card"><span class="skeleton-line user-page-taste-label" style="--skeleton-width:3rem"></span><span class="skeleton-line user-page-taste-value" style="--skeleton-width:6rem"></span></div>
+            <div class="user-page-taste-card"><span class="skeleton-line user-page-taste-label" style="--skeleton-width:3rem"></span><span class="skeleton-line user-page-taste-value" style="--skeleton-width:6rem"></span></div>
+            <div class="user-page-taste-card"><span class="skeleton-line user-page-taste-label" style="--skeleton-width:3rem"></span><span class="skeleton-line user-page-taste-value" style="--skeleton-width:6rem"></span></div>
+            <div class="user-page-taste-card"><span class="skeleton-line user-page-taste-label" style="--skeleton-width:3rem"></span><span class="skeleton-line user-page-taste-value" style="--skeleton-width:6rem"></span></div>
+          </div>
+          <div class="user-page-section">
+            <div class="user-page-section-header"><h2 class="skeleton-line" style="--skeleton-width:12rem"></h2></div>
+            <div class="user-page-movie-rail">
+              <div class="user-page-movie-card">
+                <div class="user-page-movie-poster-wrapper skeleton-block"></div>
+                <div class="user-page-movie-card-body"><span class="skeleton-line user-page-movie-card-title" style="--skeleton-width:85%"></span><span class="skeleton-line user-page-movie-card-meta" style="--skeleton-width:40%"></span></div>
+              </div>
+              <div class="user-page-movie-card">
+                <div class="user-page-movie-poster-wrapper skeleton-block"></div>
+                <div class="user-page-movie-card-body"><span class="skeleton-line user-page-movie-card-title" style="--skeleton-width:85%"></span><span class="skeleton-line user-page-movie-card-meta" style="--skeleton-width:40%"></span></div>
+              </div>
+              <div class="user-page-movie-card">
+                <div class="user-page-movie-poster-wrapper skeleton-block"></div>
+                <div class="user-page-movie-card-body"><span class="skeleton-line user-page-movie-card-title" style="--skeleton-width:85%"></span><span class="skeleton-line user-page-movie-card-meta" style="--skeleton-width:40%"></span></div>
+              </div>
+              <div class="user-page-movie-card">
+                <div class="user-page-movie-poster-wrapper skeleton-block"></div>
+                <div class="user-page-movie-card-body"><span class="skeleton-line user-page-movie-card-title" style="--skeleton-width:85%"></span><span class="skeleton-line user-page-movie-card-meta" style="--skeleton-width:40%"></span></div>
+              </div>
+              <div class="user-page-movie-card">
+                <div class="user-page-movie-poster-wrapper skeleton-block"></div>
+                <div class="user-page-movie-card-body"><span class="skeleton-line user-page-movie-card-title" style="--skeleton-width:85%"></span><span class="skeleton-line user-page-movie-card-meta" style="--skeleton-width:40%"></span></div>
+              </div>
+              <div class="user-page-movie-card">
+                <div class="user-page-movie-poster-wrapper skeleton-block"></div>
+                <div class="user-page-movie-card-body"><span class="skeleton-line user-page-movie-card-title" style="--skeleton-width:85%"></span><span class="skeleton-line user-page-movie-card-meta" style="--skeleton-width:40%"></span></div>
+              </div>
+              <div class="user-page-movie-card">
+                <div class="user-page-movie-poster-wrapper skeleton-block"></div>
+                <div class="user-page-movie-card-body"><span class="skeleton-line user-page-movie-card-title" style="--skeleton-width:85%"></span><span class="skeleton-line user-page-movie-card-meta" style="--skeleton-width:40%"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div id="userPage" class="user-page-content-shell">
         <div class="user-page-loading-state page-content-skeleton" role="status" aria-label="Загрузка профиля..."></div>
       </div>
@@ -69,7 +129,7 @@
 
   <div id="sharedFooterMount"></div>
 
-  <script src="/page-warm-start.js?v=27"></script>
+  <script src="/page-warm-start.js?v=28"></script>
 
 
   <script src="/app-script-loader.js?v=27"></script>

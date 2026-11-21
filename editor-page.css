@@ -582,4 +582,8 @@
 .editor-page-toolbar-actions .secondary-button{
     width: 100%;
   }
+
+  .secondary-page-skeleton .editor-page-toolbar-actions .skeleton-block{
+    inline-size: 100%;
+  }
 }

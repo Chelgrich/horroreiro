@@ -5497,6 +5497,7 @@ function getSanitizedSecondaryPageDomSnapshotHtml() {
 
   const clone = pageElement.cloneNode(true);
 
+  clone.querySelector('.secondary-page-skeleton')?.remove();
   clone
     .querySelectorAll('#sharedAuthModalMount, #sharedDisplayNameModalMount, #sharedMovieModalMount')
     .forEach(element => {

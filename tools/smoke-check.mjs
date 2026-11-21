@@ -517,8 +517,9 @@ async function checkStaticGuards() {
     }
     if (secondaryWarmStartPages.has(file)) {
       assert(
-        html.includes('page-content-skeleton" role="status"') && html.includes('id="appStartupError"'),
-        `${file}: secondary pages need in-content skeletons and an inline startup error`
+        html.includes('class="secondary-page-skeleton ') && html.includes('page-content-skeleton" role="status"') &&
+          html.includes('id="appStartupError"'),
+        `${file}: secondary pages need a structured skeleton, a loading marker and an inline startup error`
       );
     }
     assert(

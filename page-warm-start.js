@@ -203,7 +203,10 @@
       return;
     }
 
+    const skeleton = pageElement.querySelector('.secondary-page-skeleton');
+    const contentId = skeleton?.nextElementSibling?.id;
     pageElement.outerHTML = snapshot.pageHtml;
+    if (contentId) document.getElementById(contentId)?.before(skeleton);
     document.documentElement.classList.add('app-page-warm-started');
     bindWarmStartScrollIntentTracker();
     const scrollIntentBaseline = getWindowScrollIntentVersion();

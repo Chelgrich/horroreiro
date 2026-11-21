@@ -84,6 +84,14 @@
   min-width: 0;
 }
 
+.secondary-page-skeleton .user-page-identity{
+  --skeleton-stack-width: 11rem;
+}
+
+.secondary-page-skeleton .user-page-movie-rail{
+  overflow: hidden;
+}
+
 .user-page-title-row{
   min-width: 0;
   display: flex;

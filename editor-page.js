@@ -616,7 +616,16 @@ export function createEditorPageController(context = {}) {
       return `
         <section class="editor-page-block editor-page-auto-related-block" data-editor-diagnostics-loading>
           <div class="editor-page-section-header"><h2>Автопохожие</h2></div>
-          <div class="page-content-skeleton" role="status" aria-label="Загрузка диагностики автопохожих"></div>
+          <div role="status" aria-label="Загрузка диагностики автопохожих">
+            <div class="editor-page-auto-related-summary-grid" aria-hidden="true">
+              ${Array.from({ length: 6 }, () => `
+                <div class="editor-page-auto-related-stat">
+                  <span class="skeleton-line" style="--skeleton-width:3rem"></span>
+                  <span class="skeleton-line" style="--skeleton-width:8rem"></span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
         </section>
       `;
     }

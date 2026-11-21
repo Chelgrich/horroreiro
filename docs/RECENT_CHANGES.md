@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-22 — Match secondary skeletons to the page layouts
+
+- Profile, notifications, following, editor, directors, and company shells render styled placeholders in their real grids before app startup. The same static skeleton stays visible through the initial loading state, including the layout breakpoints and reduced-motion behavior.
+- Warm-start snapshots omit the decorative skeleton markup. When restoring a page, the startup script keeps its skeleton from the current document for future loading states. Deferred editor diagnostics show the six-card grid while their data loads.
+
 ## 2026-11-22 — Preserve poster proportions in previews and index public filmographies
 
 - First-party movie previews serve the poster at its original aspect ratio, with a 1200 px long-edge cap, a new image URL version and a short synopsis-first snippet. Browser and crawler HTML expose the same Open Graph values. Movie JSON-LD uses the actual synopsis and the catalog breadcrumb without inferring a release day or a spoken language.
