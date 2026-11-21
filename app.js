@@ -6003,7 +6003,7 @@ function bindRestoredCatalogDomState() {
   requestAnimationFrame(() => syncOpenExternalLinksLayouts());
 }
 
-function replaceCatalogCards(fragment) {
+function replaceCatalogCards(fragment, updatedMovieIds = null) {
   const cardsById = new Map(Array.from(
     container.querySelectorAll('.movie-card[data-movie-id]'),
     card => [card.dataset.movieId, card]
@@ -6014,7 +6014,9 @@ function replaceCatalogCards(fragment) {
     if (cards.length && cards.every(card => card.matches('.movie-card[data-movie-id]')) &&
       [...cardsById.values()].every(card => card.parentNode === container)) {
       const nextCards = cards.map(card => {
-        const previous = cardsById.get(card.dataset.movieId);
+        const id = card.dataset.movieId;
+        const previous = cardsById.get(id);
+        if (previous && updatedMovieIds && !updatedMovieIds.has(id)) return previous;
         return updateMountedMovieCard(previous, card) ? previous : card;
       });
       replaceChildrenKeepingMounted(container, nextCards);
@@ -10847,19 +10849,53 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
   return true;
 }
 
-async function readCatalogRevisions() {
+async function readCatalogRevisions(previousMovieIndex = null) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 1200);
   try {
-    const { data, error } = await supabaseClient.from('catalog_revisions')
-      .select('movie_index,ratings,reviews').abortSignal(controller.signal).single();
-    return error ? null : data;
+    const args = previousMovieIndex ? { p_movie_index: previousMovieIndex } : {};
+    const { data, error } = await supabaseClient.rpc('get_catalog_revisions', args, { get: true })
+      .abortSignal(controller.signal).single();
+    return error ? null : { ...data, previousMovieIndex };
   } catch (error) {
     console.warn('Ошибка проверки версии каталога:', error);
     return null;
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function revalidateCatalogMovieIndex(revisions, { allowRevisionReuse, preserveExistingCatalogOnError }) {
+  const indexRevision = revisions?.movie_index;
+  const previousRevision = catalogMovieIndexRevision;
+  if (allowRevisionReuse && indexRevision && indexRevision === previousRevision) return null;
+
+  const changedMovieIds = revisions?.movie_ids;
+  if (allowRevisionReuse && indexRevision && previousRevision && previousRevision === revisions.previousMovieIndex &&
+      changedMovieIds?.length && changedMovieIds.every(id => getCatalogMovieById(id))) {
+    const { data, error } = await runMovieSelectWithOptionalColumns(
+      selectQuery => supabaseClient.from('movies').select(selectQuery).in('id', changedMovieIds)
+        .order('position', { foreignTable: 'movie_genres', ascending: true }),
+      MOVIE_CATALOG_SELECT
+    );
+    const changedMovies = new Map((data || []).map(movie => [String(movie.id), movie]));
+    if (!error && previousRevision === catalogMovieIndexRevision && changedMovieIds.every(id => changedMovies.has(id))) {
+      allMovies = allMovies.map(movie => changedMovies.get(String(movie.id)) || movie);
+      for (const id of changedMovieIds) {
+        catalogMovieLinksById.delete(id);
+        moviePosterImagesByMovieId.delete(id);
+        moviePosterImagesLoadedByMovieId.delete(id);
+        moviePosterImagesLoadPromisesByMovieId.delete(id);
+      }
+      catalogMovieIndexRevision = indexRevision;
+      rebuildCatalogMovieMeta();
+      markCatalogDataChanged();
+      return new Set(changedMovieIds);
+    }
+  }
+
+  await fetchMovies({ indexRevision, preserveExistingCatalogOnError });
+  return null;
 }
 
 async function fetchMovieRatings() {
@@ -11539,15 +11575,17 @@ async function reloadCatalogData({
   }
 
   // Capture revisions before reading rows so a concurrent commit cannot mark old data as fresh.
-  const revisions = await (catalogRevisionsRequest ?? readCatalogRevisions());
+  const revisions = await (catalogRevisionsRequest ?? readCatalogRevisions(allowRevisionReuse ? catalogMovieIndexRevision : null));
   const canReuse = (revision, saved) => allowRevisionReuse && Boolean(revision) && revision === saved;
-  const [, hasFullRatingRows] = await Promise.all([
-    canReuse(revisions?.movie_index, catalogMovieIndexRevision) ? null : fetchMovies({
-      indexRevision: revisions?.movie_index,
+  const reuseRatings = canReuse(revisions?.ratings, catalogRatingSummaryRevision);
+  const reuseReviews = canReuse(revisions?.reviews, catalogReviewSummaryRevision);
+  const [updatedMovieIds, hasFullRatingRows] = await Promise.all([
+    revalidateCatalogMovieIndex(revisions, {
+      allowRevisionReuse,
       preserveExistingCatalogOnError: shouldPreserveExistingCatalogOnMovieLoadError
     }),
-    deferRatingStats || canReuse(revisions?.ratings, catalogRatingSummaryRevision) ? false : fetchMovieRatingStats(revisions?.ratings),
-    deferReviewSummary || canReuse(revisions?.reviews, catalogReviewSummaryRevision) ? null : fetchCatalogReviewSummary(revisions?.reviews)
+    deferRatingStats || reuseRatings ? false : fetchMovieRatingStats(revisions?.ratings),
+    deferReviewSummary || reuseReviews ? null : fetchCatalogReviewSummary(revisions?.reviews)
   ]).finally(() => { catalogLinksDeferredDuringRestore = false; });
 
   const shouldAwaitCatalogUserState = shouldAwaitUserStateForCatalogLoad({
@@ -11566,9 +11604,12 @@ async function reloadCatalogData({
 
   persistCatalogSessionSnapshot();
 
+  const canSkipUnchangedCards = reuseRatings && reuseReviews && !shouldAwaitCatalogUserState;
   if (shouldAwaitCatalogUserState || !shouldUseAuthenticatedUi()) {
     return {
       hasFullRatingRows,
+      updatedMovieIds,
+      canSkipUnchangedCards,
       didAwaitUserState: true
     };
   }
@@ -11582,6 +11623,8 @@ async function reloadCatalogData({
 
   return {
     hasFullRatingRows,
+    updatedMovieIds,
+    canSkipUnchangedCards,
     didAwaitUserState: false
   };
 }
@@ -15061,7 +15104,7 @@ function loadCatalogPageDetails(pageMovies) {
   scheduleCatalogPageMovieLinks();
 }
 
-function renderMovies({ loadPageDetails = true } = {}) {
+function renderMovies({ loadPageDetails = true, updatedMovieIds = null } = {}) {
   if (!moviesLoadedSuccessfully) {
     return;
   }
@@ -15136,7 +15179,8 @@ function renderMovies({ loadPageDetails = true } = {}) {
       sortMode: sortMode.value,
       renderContext: cardRenderContext,
       getCardRenderOptions
-    })
+    }),
+    updatedMovieIds
   );
 
   lastCatalogDomRenderSignature = domRenderSignature;
@@ -15618,7 +15662,6 @@ function canUseHydratedCatalogWithoutReload(hydrationState, hydratedSnapshot) {
 
 async function initCatalogPage({ onShellReady = null } = {}) {
   const startupScrollIntentBaseline = getWarmStartScrollIntentBaseline();
-  const catalogRevisionsRequest = readCatalogRevisions();
   let didSignalShellReady = false;
   const signalCatalogShellReady = () => {
     if (didSignalShellReady) {
@@ -15642,6 +15685,8 @@ async function initCatalogPage({ onShellReady = null } = {}) {
   const catalogUrlStateToolsReady = loadCatalogUrlStateTools();
   const catalogPresetToolsReady = loadCatalogPresetTools();
   const catalogReturnCacheToolsReady = loadCatalogReturnCacheTools();
+  const catalogSessionSnapshotReady = catalogReturnCacheToolsReady.then(() => readCatalogSessionSnapshot());
+  const catalogRevisionsRequest = catalogSessionSnapshotReady.then(snapshot => readCatalogRevisions(snapshot?.movieIndexRevision));
   await Promise.all([
     catalogCardControllerReady,
     catalogRenderControllerReady,
@@ -15661,7 +15706,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     initialCatalogUrlState?.profileHandle &&
     initialCatalogUrlState?.profileActivity
   );
-  const hydratedSnapshot = shouldSkipSnapshotForProfileActivity ? null : readCatalogSessionSnapshot();
+  const hydratedSnapshot = shouldSkipSnapshotForProfileActivity ? null : await catalogSessionSnapshotReady;
   catalogLinksDeferredDuringRestore = Boolean(hydratedSnapshot);
   const preAuthUserId = currentUser?.id || null;
   const shouldWaitForSessionBeforeHydration = Boolean(
@@ -15774,6 +15819,7 @@ async function initCatalogPage({ onShellReady = null } = {}) {
         const previousSignature = fromBackForwardCache
           ? getCatalogDataSignatureHash(createCatalogSessionSnapshotPayload())
           : hydrationState.hydratedCatalogSignature;
+        const previousRenderState = getCatalogRenderStateSignature();
         const backgroundCatalogLoadState = await reloadCatalogData({
           showSkeleton: false,
           refreshFilters: true,
@@ -15790,8 +15836,10 @@ async function initCatalogPage({ onShellReady = null } = {}) {
         const refreshedCatalogSignature = getCatalogDataSignatureHash(createCatalogSessionSnapshotPayload());
         const canReuseHydratedCatalog = previousSignature && previousSignature === refreshedCatalogSignature;
 
-        if (!canReuseHydratedCatalog) {
-          preserveWindowScrollPosition(renderMovies);
+        const { updatedMovieIds, canSkipUnchangedCards } = backgroundCatalogLoadState;
+        if (!canReuseHydratedCatalog || updatedMovieIds) {
+          const canPatchCards = canSkipUnchangedCards && previousRenderState === getCatalogRenderStateSignature();
+          preserveWindowScrollPosition(() => renderMovies({ updatedMovieIds: canPatchCards ? updatedMovieIds : null }));
         } else {
           scheduleCatalogPageMovieLinks();
         }

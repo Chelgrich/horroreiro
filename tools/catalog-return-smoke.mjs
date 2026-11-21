@@ -20,6 +20,8 @@ let completeReviews;
 let reviewReads = 0;
 let holdSummaries = false;
 const movieReads = [];
+const targetedReads = [];
+let changedRows = [];
 let linkReads = 0;
 let revisionResponse = { data: { movie_index: 'first', ratings: 'rating-1', reviews: 'review-1' } };
 const initialLoadSandbox = vm.createContext({
@@ -29,13 +31,21 @@ const initialLoadSandbox = vm.createContext({
   catalogLinksDeferredDuringRestore: true,
   requestAnimationFrame: callback => callback(), window: { setTimeout: callback => callback() },
   loadCatalogPageMovieLinks: () => { linkReads += 1; },
-  supabaseClient: { from: table => {
-    assert.equal(table, 'catalog_revisions');
-    return { select: column => {
-      assert.equal(column, 'movie_index,ratings,reviews');
-      return { abortSignal: () => ({ single: async () => revisionResponse }) };
-    } };
+  supabaseClient: { rpc(name, _args, options) {
+    assert.equal(name, 'get_catalog_revisions');
+    assert.equal(options.get, true);
+    return { abortSignal: () => ({ single: async () => revisionResponse }) };
   } },
+  allMovies: [{ id: 'edited', title: 'Before' }, { id: 'neighbor', title: 'Neighbor' }],
+  getCatalogMovieById: id => initialLoadSandbox.allMovies.find(movie => movie.id === id),
+  MOVIE_CATALOG_SELECT: 'with-links',
+  runMovieSelectWithOptionalColumns: async (_query, select) => {
+    targetedReads.push(select);
+    return { data: changedRows };
+  },
+  catalogMovieLinksById: new Map([['edited', 'old'], ['neighbor', 'keep']]),
+  moviePosterImagesByMovieId: new Map(), moviePosterImagesLoadedByMovieId: new Set(),
+  moviePosterImagesLoadPromisesByMovieId: new Map(), rebuildCatalogMovieMeta() {}, markCatalogDataChanged() {},
   fetchMovies: async ({ indexRevision = null }) => {
     movieReads.push(indexRevision);
     initialLoadSandbox.catalogMovieIndexRevision = indexRevision;
@@ -54,7 +64,7 @@ const initialLoadSandbox = vm.createContext({
   shouldAwaitUserStateForCatalogLoad: () => false, shouldUseAuthenticatedUi: () => false,
   fetchCatalogUserState: async () => {}, refreshDynamicFilterOptions() {}, persistCatalogSessionSnapshot() {}
 });
-for (const name of ['readCatalogRevisions', 'reloadCatalogData', 'scheduleCatalogPageMovieLinks']) {
+for (const name of ['readCatalogRevisions', 'revalidateCatalogMovieIndex', 'reloadCatalogData', 'scheduleCatalogPageMovieLinks']) {
   vm.runInContext(functionSource(name), initialLoadSandbox);
 }
 initialLoadSandbox.scheduleCatalogPageMovieLinks();
@@ -100,6 +110,25 @@ revisionResponse = { error: new Error('Revision unavailable') };
 await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
 assert.deepEqual(movieReads, ['second', 'second', null], 'Changes, manual reload and failure read the index');
 assert.deepEqual([statsReads, reviewReads], [4, 4], 'Explicit reload and failure read both summaries');
+
+initialLoadSandbox.catalogMovieIndexRevision = 'saved';
+initialLoadSandbox.catalogRatingSummaryRevision = 'rating-2';
+initialLoadSandbox.catalogReviewSummaryRevision = 'review-2';
+const neighbor = initialLoadSandbox.allMovies[1];
+revisionResponse = { data: { movie_index: 'edited-revision', ratings: 'rating-2', reviews: 'review-2', movie_ids: ['edited'] } };
+changedRows = [{ id: 'edited', title: 'After' }];
+const targetedResult = await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
+assert.deepEqual([...targetedResult.updatedMovieIds], ['edited']);
+assert.equal(targetedResult.canSkipUnchangedCards, true);
+assert.equal(movieReads.length, 3, 'An edit covered by the journal must not read the full catalog');
+assert.deepEqual(targetedReads, ['with-links']);
+assert.equal(initialLoadSandbox.allMovies[0].title, 'After');
+assert.equal(initialLoadSandbox.allMovies[1], neighbor);
+assert.deepEqual([...initialLoadSandbox.catalogMovieLinksById], [['neighbor', 'keep']]);
+revisionResponse.data.movie_index = 'missing';
+changedRows = [];
+await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
+assert.equal(movieReads.at(-1), 'missing', 'An incomplete delta must fall back to the full index');
 
 const linkCacheSandbox = vm.createContext({
   allMovies: [{ id: 'linked' }, { id: 'empty' }, { id: 'failed' }, { id: 'pending' }],

@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-21 — Refresh edited catalog cards by movie ID
+
+- The version check returns the IDs changed since the saved movie index revision when recent single-movie changes cover that revision. Fetch those rows with their catalog links in one batch and keep other rows and visible list cards mounted.
+- The journal holds up to 32 single-movie statements. Movie creation, deletion, bulk edits and shared genre or country edits clear it. Unknown revisions and incomplete targeted responses use a full refresh.
+
 ## 2026-11-21 — Reuse resolved catalog card links on return
 
 - Store resolved link rows, including movies with no links, in the same-tab catalog snapshot. A matching movie index revision keeps those rows. Missing pages still load their own visible links in a batch.
