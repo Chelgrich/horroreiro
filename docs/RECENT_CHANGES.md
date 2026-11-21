@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-21 — Reuse the movie index on quick catalog returns
+
+- A catalog history or film-link return can reuse a complete movie index read less than one minute ago. An explicit reload, expiry, or a changed local data stamp reads the index again. The age comes from the server read, so rewriting a DOM or session snapshot cannot extend it.
+- Rating aggregates, review IDs, visible external links and viewer-scoped data keep their existing refresh behavior. Changes from another browser appear on the first return after the freshness window or on manual refresh.
+
 ## 2026-11-21 — Keep external link icons mounted in the catalog
 
 - Catalog returns and card refreshes keep the existing link panel visible while link data is checked in the background. Reconcile resolved links by provider, changing only the affected URL or icon. An already loaded panel stays visible if that check fails.

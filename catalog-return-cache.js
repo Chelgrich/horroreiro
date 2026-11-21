@@ -63,6 +63,15 @@ export function canUseCatalogSnapshotForPosterPreference(snapshot, preferRussian
   return Boolean(snapshot?.preferRussianPosters) === Boolean(preferRussianPosters);
 }
 
+export function canReuseCatalogMovieIndex(read, {
+  navigationType, hasFastReturnHint, mutationStamp, dependencyStamps, now = Date.now()
+}) {
+  if (!read || navigationType === 'reload' || (!hasFastReturnHint && navigationType !== 'back_forward')) return false;
+  const age = now - read.startedAt;
+  return age >= 0 && age < 60_000 &&
+    read.mutationStamp === mutationStamp && read.dependencyStamps === dependencyStamps;
+}
+
 export function getCatalogSessionSnapshotSignature(snapshot) {
   if (!snapshot) {
     return '';

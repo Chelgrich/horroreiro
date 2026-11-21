@@ -544,6 +544,7 @@ let areSecondaryPageSnapshotEventsBound = false;
 let isSecondaryPageWarmStartHydrationActive = false;
 let secondaryPageWarmStartScrollIntentBaseline = 0;
 let allMovies = [];
+let catalogMovieIndexRead = null;
 let catalogMovieLinksById = new Map();
 let catalogMoviesById = new Map();
 let catalogMovieMetaById = new Map();
@@ -4845,6 +4846,7 @@ function createCatalogSessionSnapshotPayload() {
     userId: currentUser?.id || null,
     preferRussianPosters: shouldPreferRussianPosters(),
     movies: allMovies,
+    movieIndexRead: catalogMovieIndexRead,
     movieRatings: getCurrentUserMovieRatingSnapshotRows(),
     movieRatingStats: getMovieRatingStatsSnapshotRows(),
     movieWatchlist: allMovieWatchlist,
@@ -5794,6 +5796,7 @@ function hydrateCatalogFromSessionSnapshot(snapshot = readCatalogSessionSnapshot
   const canUseUserScopedData = snapshotUserId === activeUserId;
 
   allMovies = snapshot.movies || [];
+  catalogMovieIndexRead = snapshot.movieIndexRead || null;
   moviesLoadedSuccessfully = allMovies.length > 0;
   rebuildCatalogMovieMeta();
   applyMovieRatingStatsSnapshotRows(snapshot.movieRatingStats);
@@ -10794,6 +10797,11 @@ function hasMovieEditorPayload(movie) {
 }
 
 async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = 'catalog' } = {}) {
+  const indexRead = {
+    startedAt: Date.now(),
+    mutationStamp: getDataMutationStamp(),
+    dependencyStamps: getRawLocalDataDependencyStamps()
+  };
   const { data, error } = await runMovieSelectWithOptionalColumns(
     selectQuery => fetchAllSupabaseRowsResult(() => supabaseClient
       .from('movies')
@@ -10821,6 +10829,7 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
   }
 
   allMovies = data || [];
+  catalogMovieIndexRead = indexRead;
   catalogMovieLinksById = new Map();
   rebuildCatalogMovieMeta();
   moviesLoadedSuccessfully = true;
@@ -11480,6 +11489,7 @@ async function reloadCatalogData({
   refreshFilters = true,
   awaitUserState = false,
   loadDeferredUserState = true,
+  reuseMovieIndex = false,
   deferRatingStats = false,
   deferReviewSummary = false
 } = {}) {
@@ -11497,7 +11507,7 @@ async function reloadCatalogData({
   }
 
   const [, hasFullRatingRows] = await Promise.all([
-    fetchMovies({
+    reuseMovieIndex ? null : fetchMovies({
       preserveExistingCatalogOnError: shouldPreserveExistingCatalogOnMovieLoadError
     }),
     deferRatingStats ? false : fetchMovieRatingStats(),
@@ -15726,7 +15736,13 @@ async function initCatalogPage({ onShellReady = null } = {}) {
           showSkeleton: false,
           refreshFilters: true,
           awaitUserState: shouldAwaitInitialUserCatalogState,
-          loadDeferredUserState: false
+          loadDeferredUserState: false,
+          reuseMovieIndex: catalogReturnCacheTools.canReuseCatalogMovieIndex(catalogMovieIndexRead, {
+            navigationType: performance.getEntriesByType('navigation')[0]?.type,
+            hasFastReturnHint,
+            mutationStamp: getDataMutationStamp(),
+            dependencyStamps: getRawLocalDataDependencyStamps()
+          })
         });
 
         if (!isCatalogPage() || userIdAtRefreshStart !== (currentUser?.id || null)) {
