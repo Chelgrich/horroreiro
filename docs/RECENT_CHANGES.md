@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-22 — Serve a compact social preview for the catalog
+
+- The catalog and its `/index.html` alias use the same script-free response builder as movie previews for social crawlers. The preview uses the existing catalog image and canonical homepage URL. Browser requests still receive the catalog shell.
+
 ## 2026-11-22 — Animate catalog placeholders without repainting their backgrounds
 
 - Catalog poster, text and link placeholders sweep a translated highlight across a static fill during both early and interactive loading. The highlight starts inside the card on first paint. It stops once a poster is hidden and is omitted when the visitor prefers reduced motion.

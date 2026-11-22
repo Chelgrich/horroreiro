@@ -508,7 +508,7 @@ Following:
 
 - `movie.html` contains SEO fallback markers.
 - `functions/_seo-utils.js` renders movie metadata and fallback content and builds the sitemap. `functions/_public-page-seo.js` renders metadata for public director, company and profile routes using anon-key lookups. It adds a no-JS fallback outside the app shell so warm startup keeps its existing DOM contract.
-- Social preview crawlers for movie detail pages receive minimal no-JS HTML with the same Open Graph metadata as the browser. The first-party `/og/movie/<slug>.jpg?v=2` route serves a baseline JPEG resized to at most 1200 px on its long edge. It preserves the source proportions and omits fixed dimensions in Open Graph metadata.
+- Social preview crawlers for the catalog and movie detail pages receive minimal no-JS HTML with the same main Open Graph values as the browser. The catalog uses `/og-preview.jpg`. The first-party `/og/movie/<slug>.jpg?v=2` route serves a baseline JPEG resized to at most 1200 px on its long edge. It preserves the source proportions and omits fixed dimensions in Open Graph metadata.
 - `/preview-test/*` is a temporary diagnostics-only portable route for social unfurl debugging with static OG images, used to separate crawler/network behavior from dynamic image generation.
 - While the Telegram/VK unfurl issue is being diagnosed, portable runtime logs structured `social_preview_diagnostic` events for `/preview-test/*`, `/assets/og/*`, and `/og/movie/*`. Remove or reduce this logging after the crawler path is understood.
 - `sitemap.xml` lists the catalog, movies and public directors/companies linked to movies. The route serves cached, complete XML, or `503` when the data source fails. There must not be a static `sitemap.xml` shadowing it.

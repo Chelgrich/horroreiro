@@ -335,21 +335,28 @@ function isSocialPreviewCrawler(request) {
   return SOCIAL_PREVIEW_CRAWLER_UA_PATTERNS.some(pattern => userAgent.includes(pattern));
 }
 
-function createSocialPreviewHtml(movie) {
-  const seo = getMoviePageSeo(movie);
-
-  return applyPageSeoToHtml(`<!doctype html>
+function createSocialPreviewResponse(seo, linkLabel, status = 200) {
+  const html = applyPageSeoToHtml(`<!doctype html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-  <h1>${escapeHtml(seo.socialTitle)}</h1>
+  <h1>${escapeHtml(seo.socialTitle ?? seo.title)}</h1>
   <p>${escapeHtml(seo.description)}</p>
-  <p><a href="${escapeHtml(seo.canonicalUrl)}">Открыть карточку фильма</a></p>
+  <p><a href="${escapeHtml(seo.canonicalUrl)}">${escapeHtml(linkLabel)}</a></p>
 </body>
 </html>`, seo);
+
+  return new Response(html, {
+    status,
+    headers: {
+      'Cache-Control': 'public, max-age=300, s-maxage=300, must-revalidate',
+      'Vary': 'User-Agent',
+      'Content-Type': 'text/html; charset=UTF-8'
+    }
+  });
 }
 
 function upsertHeadElement(html, pattern, elementHtml) {
@@ -570,14 +577,7 @@ async function createMovieHtmlResponse({ env, request, movie, status = 200 }) {
   }
 
   if (isSocialPreviewCrawler(request)) {
-    return new Response(createSocialPreviewHtml(movie), {
-      status,
-      headers: {
-        'Cache-Control': 'public, max-age=300, s-maxage=300, must-revalidate',
-        'Vary': 'User-Agent',
-        'Content-Type': 'text/html; charset=UTF-8'
-      }
-    });
+    return createSocialPreviewResponse(getMoviePageSeo(movie), 'Открыть карточку фильма', status);
   }
 
   return createHtmlResponse(applyMovieSeoToHtml(html, movie), assetResponse, { status });
@@ -699,6 +699,7 @@ export {
   applyPageSeoToHtml,
   createMovieHtmlResponse,
   createSitemapXml,
+  createSocialPreviewResponse,
   escapeHtml,
   fetchCachedSeoRow,
   fetchMovieBySlugOrId,
@@ -707,5 +708,6 @@ export {
   getMoviePosterSource,
   getMovieTitleWithYear,
   isPublicMoviePosterUrl,
+  isSocialPreviewCrawler,
   upsertJsonLd
 };

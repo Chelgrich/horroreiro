@@ -48,7 +48,22 @@ async function withMutedConsoleError(callback) {
   }
 }
 
-await expectText('/', 'id="movies"', 'catalog route');
+const catalogResponse = await expectText('/', 'id="movies"', 'catalog route');
+assert(catalogResponse.headers.get('vary') === 'User-Agent', 'catalog: expected separate browser and crawler responses');
+const catalogHtml = await (await fetchPortable('/')).text();
+for (const path of ['/?preview_check=smoke', '/index.html']) {
+  const response = await fetchPortable(path, {
+    headers: { 'User-Agent': 'TelegramBot (like TwitterBot)' }
+  });
+  const html = await response.text();
+  assert(response.status === 200 && response.headers.get('vary') === 'User-Agent', `${path}: expected a crawler-specific response`);
+  assert(html.includes('<link rel="canonical" href="https://horroreiro.ru/">')
+    && !html.includes('<script'), `${path}: expected canonical catalog preview metadata without scripts`);
+  for (const property of ['og:title', 'og:description', 'og:image']) {
+    const meta = html.match(new RegExp(`<meta property="${property}" [^>]*>`))?.[0];
+    assert(meta && catalogHtml.includes(meta), `${path}: ${property} differs from the catalog shell`);
+  }
+}
 await expectText('/movie.html', 'id="moviePage"', 'movie shell route');
 await expectText('/user.html', 'id="userPage"', 'user shell route');
 await expectText('/following', 'id="followingPage"', 'following route');
