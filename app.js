@@ -10800,19 +10800,24 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
 }
 
 async function readCatalogRevisions(previousMovieIndex = null) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 1200);
-  try {
-    const args = previousMovieIndex ? { p_movie_index: previousMovieIndex } : {};
-    const { data, error } = await supabaseClient.rpc('get_catalog_revisions', args, { get: true })
-      .abortSignal(controller.signal).single();
-    return error ? null : { ...data, previousMovieIndex };
-  } catch (error) {
-    console.warn('Ошибка проверки версии каталога:', error);
-    return null;
-  } finally {
-    clearTimeout(timer);
+  const args = previousMovieIndex ? { p_movie_index: previousMovieIndex } : {};
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1200);
+    try {
+      const { data, error } = await supabaseClient.rpc('get_catalog_revisions', args, { get: true })
+        .retry(false).abortSignal(controller.signal).single();
+      if (!controller.signal.aborted) return error ? null : { ...data, previousMovieIndex };
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        console.warn('Ошибка проверки версии каталога:', error);
+        return null;
+      }
+    } finally {
+      clearTimeout(timer);
+    }
   }
+  return null;
 }
 
 async function revalidateCatalogMovieIndex(revisions, { allowRevisionReuse, preserveExistingCatalogOnError, onFirstPage }) {

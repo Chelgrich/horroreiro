@@ -58,18 +58,41 @@ const movieReads = [];
 const targetedReads = [];
 let changedRows = [];
 let linkReads = 0;
+let revisionTimeout;
+let revisionTimeouts = 0;
+const revisionReads = [];
 let revisionResponse = { data: { movie_index: 'first', ratings: 'rating-1', reviews: 'review-1' } };
 const initialLoadSandbox = vm.createContext({
   container: { querySelector: () => null }, moviesLoadedSuccessfully: false, shouldFadeCatalogAfterSkeleton: false,
-  currentUser: null, catalogMovieIndexRevision: null, AbortController, setTimeout, clearTimeout,
+  currentUser: null, catalogMovieIndexRevision: null, AbortController,
+  setTimeout(callback, ms) {
+    assert.equal(ms, 1200);
+    assert.equal(revisionTimeout, undefined);
+    return revisionTimeout = callback;
+  },
+  clearTimeout(callback) {
+    assert.equal(callback, revisionTimeout);
+    revisionTimeout = undefined;
+  },
   catalogRatingSummaryRevision: null, catalogReviewSummaryRevision: null,
   catalogLinksDeferredDuringRestore: true,
   requestAnimationFrame: callback => callback(), window: { setTimeout: callback => callback() },
   loadCatalogPageMovieLinks: () => { linkReads += 1; },
-  supabaseClient: { rpc(name, _args, options) {
+  supabaseClient: { rpc(name, args, options) {
     assert.equal(name, 'get_catalog_revisions');
     assert.equal(options.get, true);
-    return { abortSignal: () => ({ single: async () => revisionResponse }) };
+    const query = {
+      retry(enabled) { assert.equal(enabled, false); return query; },
+      abortSignal: signal => ({ single: async () => {
+        revisionReads.push({ previous: args.p_movie_index, signal });
+        assert.equal(signal.aborted, false);
+        if (revisionTimeouts === 0) return revisionResponse;
+        revisionTimeouts -= 1;
+        revisionTimeout();
+        return { error: signal.reason };
+      } })
+    };
+    return query;
   } },
   allMovies: [{ id: 'edited', title: 'Before' }, { id: 'neighbor', title: 'Neighbor' }],
   getCatalogMovieById: id => initialLoadSandbox.allMovies.find(movie => movie.id === id),
@@ -129,7 +152,10 @@ await blockingLoad;
 holdSummaries = false;
 movieReads.length = 0;
 const allowRevisionReuse = { allowRevisionReuse: true };
+revisionReads.length = 0;
+revisionTimeouts = 1;
 await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
+assert.deepEqual(revisionReads.map(({ previous, signal }) => [previous, signal.aborted]), [['first', true], ['first', false]]);
 assert.deepEqual([movieReads.length, statsReads, reviewReads], [0, 1, 1]);
 revisionResponse.data.ratings = 'rating-2';
 await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
@@ -142,7 +168,9 @@ await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
 assert.deepEqual([movieReads.length, statsReads, reviewReads], [1, 2, 2]);
 await initialLoadSandbox.reloadCatalogData();
 revisionResponse = { error: new Error('Revision unavailable') };
+revisionReads.length = 0;
 await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
+assert.equal(revisionReads.length, 1, 'Only a timeout can trigger another revision read');
 assert.deepEqual(movieReads, ['second', 'second', null], 'Changes, manual reload and failure read the index');
 assert.deepEqual([statsReads, reviewReads], [4, 4], 'Explicit reload and failure read both summaries');
 
@@ -152,6 +180,7 @@ initialLoadSandbox.catalogReviewSummaryRevision = 'review-2';
 const neighbor = initialLoadSandbox.allMovies[1];
 revisionResponse = { data: { movie_index: 'edited-revision', ratings: 'rating-2', reviews: 'review-2', movie_ids: ['edited'] } };
 changedRows = [{ id: 'edited', title: 'After' }];
+revisionTimeouts = 1;
 const targetedResult = await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
 assert.deepEqual([...targetedResult.updatedMovieIds], ['edited']);
 assert.equal(targetedResult.canSkipUnchangedCards, true);
@@ -164,6 +193,11 @@ revisionResponse.data.movie_index = 'missing';
 changedRows = [];
 await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
 assert.equal(movieReads.at(-1), 'missing', 'An incomplete delta must fall back to the full index');
+
+revisionReads.length = 0;
+revisionTimeouts = 2;
+assert.equal(await initialLoadSandbox.readCatalogRevisions(), null);
+assert.deepEqual(revisionReads.map(({ signal }) => signal.aborted), [true, true], 'Stop after two timeouts');
 
 const linkCacheSandbox = vm.createContext({
   allMovies: [{ id: 'linked' }, { id: 'empty' }, { id: 'failed' }, { id: 'pending' }],

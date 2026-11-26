@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-26 — Retry timed-out catalog revision checks
+
+- Catalog revision reads retry once on the 1.2-second client timeout and keep the same previous revision for the change journal. A successful retry can reuse matching catalog data or refresh changed films. Two timeouts or an immediate RPC error still fall back to the full index read.
+
 ## 2026-11-26 — Build catalog card HTML only when used
 
 - Catalog metadata still indexes every movie for search and filters. Card formatting and HTML are computed on their first use by the renderer and reused until the corresponding movie metadata is rebuilt.
