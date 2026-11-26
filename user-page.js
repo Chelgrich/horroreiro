@@ -30,9 +30,7 @@ export function createUserPageController(context = {}) {
     fetchUserPageActivityRanks,
     isUserPageActivityRankFallbackEnabled,
     addCount,
-    fetchMoviesByIdsWithSelect,
     ensurePreferredPosterImagesForMovies,
-    movieUserPageCardSelect = '',
     throwIfSupabaseError,
     getManualSimilarMovieLabel,
     getUserPageAvatarHtml,
@@ -1069,11 +1067,10 @@ export function createUserPageController(context = {}) {
   async function fetchPublicUserPageData(profile) {
     const { data, error } = await supabaseClient.rpc('get_profile_activity_preview', { p_user_id: profile.id }, { get: true });
     throwIfSupabaseError(error);
-    const { ratings, watchlist, reviews } = data;
+    const { ratings, watchlist, reviews, movies } = data;
     const previewMovieIds = getUserPageMovieIds([...ratings, ...watchlist, ...reviews]);
-    const previewMovies = await fetchMoviesByIdsWithSelect(previewMovieIds, movieUserPageCardSelect);
-    await ensurePreferredPosterImagesForMovies(previewMovies);
-    const previewMoviesById = new Map(previewMovies.map(movie => [String(movie.id), movie]));
+    await ensurePreferredPosterImagesForMovies(movies);
+    const previewMoviesById = new Map(movies.map(movie => [String(movie.id), movie]));
     const buildItems = (rows, compare) => rows
       .map(row => ({ ...row, movie: previewMoviesById.get(String(row.movie_id)) }))
       .filter(item => item.movie)

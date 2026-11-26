@@ -317,28 +317,26 @@ let profileSource = await readFile(new URL('../user-page.js', import.meta.url), 
 profileSource = profileSource.replace('export function createUserPageController', 'function createUserPageController')
   .replace('    initUserPage,', '    fetchPublicUserPageData,\n    initUserPage,');
 vm.runInContext(profileSource, sandbox);
-let previewMovieIds;
+let posterMovieIds;
+const watchlist = makeRows(8).map(row => ({ ...row, movie_id: `saved-${row.id}` }));
+const previewMovies = [...makeRows(9), ...watchlist].map(({ movie_id }) => ({ id: movie_id, title: movie_id }));
 const profileController = sandbox.createUserPageController({
   throwIfSupabaseError: error => { if (error) throw error; },
-  fetchMoviesByIdsWithSelect: async ids => {
-    previewMovieIds = [...ids];
-    return ids.map(id => ({ id, title: id }));
-  },
-  ensurePreferredPosterImagesForMovies: async () => {},
+  ensurePreferredPosterImagesForMovies: async movies => { posterMovieIds = movies.map(movie => movie.id); },
   getManualSimilarMovieLabel: movie => movie.title,
   supabaseClient: { async rpc(name, args, options) {
     assert.equal(name, 'get_profile_activity_preview');
     assert.equal(args.p_user_id, 'user-a');
     assert.equal(options.get, true);
     return { data: {
-      ratings: makeRows(10), reviews: makeRows(10),
-      watchlist: makeRows(8).map(row => ({ ...row, movie_id: `saved-${row.id}` }))
+      ratings: makeRows(10), reviews: makeRows(10), watchlist, movies: previewMovies
     } };
   } }
 });
 const profile = await profileController.fetchPublicUserPageData({ id: 'user-a' });
-assert.deepEqual([profile.ratingItems.length, profile.watchlistItems.length, profile.reviewItems.length], [10, 8, 10]);
-assert.equal(previewMovieIds.length, 18, 'The profile loads only unique IDs from the three previews');
+assert.deepEqual([profile.ratingItems.length, profile.watchlistItems.length, profile.reviewItems.length], [9, 8, 9]);
+assert.deepEqual(posterMovieIds, previewMovies.map(movie => movie.id), 'Only visible films are used for poster lookup');
+assert.equal(profile.dependencyMovieIds.length, 18, 'Activity for an unavailable movie keeps its cache dependency');
 const pagedRequests = requests.filter(request => request.isPaged);
 assert.ok(pagedRequests.every(request => request.orders.some(([key]) => key === (request.table === 'movie_rating_stats' ? 'movie_id' : 'id'))), 'Paged reads need deterministic ordering');
 assert.ok(requests.every(request => request.idCount === undefined || request.idCount <= 100));

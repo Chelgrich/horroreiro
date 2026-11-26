@@ -30,7 +30,7 @@ const tooltip = { hidden: true, style: {}, textContent: '',
   setAttribute() {}, getBoundingClientRect: () => ({ width: 200, height: 40 }),
   classList: { add() {}, remove() {}, contains: () => !tooltip.hidden }
 };
-const preview = { ratings: [], watchlist: [], reviews: [] };
+const preview = { ratings: [], watchlist: [], reviews: [], movies: [] };
 const summary = { counts: { ratings: 264, watchlist: 8, reviews: 47 }, averageRating: 4.9,
   tasteCandidates: { year: [{ label: '2024', count: 9 }, { label: '2025', count: 9 }] }
 };
@@ -46,7 +46,7 @@ const context = {
   fetchPublicUserProfileByHandle: async () => profile,
   fetchUserPageActivityRanks: async () => null, isUserPageActivityRankFallbackEnabled: () => false,
   supabaseClient: { rpc: async name => ({ data: name === 'get_profile_activity_preview' ? preview : summary }) },
-  fetchMoviesByIdsWithSelect: async () => [], ensurePreferredPosterImagesForMovies: async () => {},
+  ensurePreferredPosterImagesForMovies: async () => {},
   throwIfSupabaseError: error => { if (error) throw error; },
   getUserPageAvatarHtml: () => '', getUserPageAvatarMediaHtml: row => `avatar:${row.id}`,
   getUserPageAdminPasswordPanelHtml: () => '', setUserPageDocumentMeta: row => metadata.push(row),

@@ -6,32 +6,32 @@ language sql stable strict
 security invoker
 set search_path = ''
 as $$
+  with ratings as (
+    select id, movie_id, rating, created_at from public.movie_ratings
+    where user_id = p_user_id order by created_at desc, id limit 10
+  ), watchlist as (
+    select id, movie_id, created_at from public.movie_watchlist w
+    where w.user_id = p_user_id and w.movie_id is not null
+      and not exists (
+        select 1 from public.movie_ratings r where r.user_id = p_user_id and r.movie_id = w.movie_id
+      )
+    order by created_at desc, id limit 10
+  ), reviews as (
+    select id, movie_id, created_at, updated_at from public.movie_reviews
+    where user_id = p_user_id order by updated_at desc, id limit 10
+  ), preview_ids as (
+    select movie_id from ratings
+    union select movie_id from watchlist
+    union select movie_id from reviews
+  ), cards as (
+    select m.id, m.slug, m.title, m.original_title, m.year, m.poster_url
+    from preview_ids p join public.movies m on m.id = p.movie_id
+  )
   select jsonb_build_object(
-    'ratings', coalesce((
-      select jsonb_agg(to_jsonb(r) - 'id' order by r.created_at desc, r.id)
-      from (
-        select id, movie_id, rating, created_at from public.movie_ratings
-        where user_id = p_user_id order by created_at desc, id limit 10
-      ) r
-    ), '[]'::jsonb),
-    'watchlist', coalesce((
-      select jsonb_agg(to_jsonb(w) - 'id' order by w.created_at desc, w.id)
-      from (
-        select id, movie_id, created_at from public.movie_watchlist w
-        where w.user_id = p_user_id and w.movie_id is not null
-          and not exists (
-            select 1 from public.movie_ratings r where r.user_id = p_user_id and r.movie_id = w.movie_id
-          )
-        order by created_at desc, id limit 10
-      ) w
-    ), '[]'::jsonb),
-    'reviews', coalesce((
-      select jsonb_agg(to_jsonb(r) - 'id' order by r.updated_at desc, r.id)
-      from (
-        select id, movie_id, created_at, updated_at from public.movie_reviews
-        where user_id = p_user_id order by updated_at desc, id limit 10
-      ) r
-    ), '[]'::jsonb)
+    'ratings', coalesce((select jsonb_agg(to_jsonb(r) - 'id' order by r.created_at desc, r.id) from ratings r), '[]'::jsonb),
+    'watchlist', coalesce((select jsonb_agg(to_jsonb(w) - 'id' order by w.created_at desc, w.id) from watchlist w), '[]'::jsonb),
+    'reviews', coalesce((select jsonb_agg(to_jsonb(r) - 'id' order by r.updated_at desc, r.id) from reviews r), '[]'::jsonb),
+    'movies', coalesce((select jsonb_agg(to_jsonb(m) order by m.id) from cards m), '[]'::jsonb)
   );
 $$;
 

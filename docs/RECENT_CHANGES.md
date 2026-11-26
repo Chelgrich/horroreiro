@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-26 — Include film cards in the profile activity preview
+
+- The profile activity RPC now includes one compact movie row per distinct visible film across the three activity sections. The profile uses those rows to build cards with their existing ordering and poster preferences. Taste summaries and medals still load independently.
+
 ## 2026-11-26 — Trace latency of profile activity reads
 
 - The existing opt-in proxy timing header also covers GET requests for profile previews and summaries. It reports upstream header wait, proxy body and total time, and Node worker age. The trace flag stays in the proxy.
