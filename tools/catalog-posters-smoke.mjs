@@ -10,7 +10,7 @@ const functions = [
   'fetchMoviePosterImagesForMoviesSafe', 'ensurePreferredPosterImagesForMovies', 'getMoviePreferredPosterUrl',
   'createCatalogPosterOptions', 'loadCatalogPagePosters', 'loadCatalogPageDetails', 'replaceCatalogCards',
   'renderCatalogMovieCards', 'getInitialCatalogCardsSignature', 'renderInitialCatalogPage', 'renderMovies', 'goToCatalogPage',
-  'preservePaintedPoster'
+  'preservePaintedPoster', 'normalizeSearchText', 'getCatalogMovieMeta', 'buildCatalogMovieMeta', 'rebuildCatalogMovieMeta'
 ].map(name => {
   const start = source.lastIndexOf('\n', source.indexOf(`function ${name}(`)) + 1;
   const end = source.indexOf('\n}', start) + 2;
@@ -19,6 +19,32 @@ const functions = [
 }).join('\n');
 
 const baseline = Array.from({ length: 670 }, (_, i) => ({ id: String(i), poster_url: `base-${i}` }));
+const preparedCards = [];
+const indexMovies = baseline.map((movie, index) => ({ ...movie, title: `Movie ${index}`, search_aliases: [`Alias ${index}`] }));
+const index = vm.createContext({
+  allMovies: indexMovies, catalogMoviesById: new Map(), catalogMovieMetaById: new Map(),
+  catalogSortedMoviesByMode: {}, allGenreNames: [], allCountryNames: [], BASE_HORROR_GENRE_NORMALIZED: 'horror',
+  formatGenreNamesForPublicDisplay: names => names.join(', '), getSortedMoviesCopy: movies => [...movies],
+  buildCatalogMovieCardRenderMeta(movie) {
+    preparedCards.push(movie.id);
+    return { title: movie.title };
+  }
+});
+vm.runInContext(functions, index);
+index.rebuildCatalogMovieMeta();
+assert.equal(index.getCatalogMovieMeta(indexMovies[659]).searchableText, 'movie 659 alias 659');
+assert.deepEqual(preparedCards, [], 'Building or reading the search index must not format any card HTML');
+for (const movie of indexMovies.slice(0, 40)) assert.equal(index.getCatalogMovieMeta(movie).cardRender.title, movie.title);
+assert.deepEqual(preparedCards, indexMovies.slice(0, 40).map(movie => movie.id));
+for (const movie of indexMovies.slice(40, 80)) assert.equal(index.getCatalogMovieMeta(movie).cardRender.title, movie.title);
+for (const movie of indexMovies.slice(0, 40)) assert.equal(index.getCatalogMovieMeta(movie).cardRender.title, movie.title);
+assert.equal(preparedCards.length, 80, 'Returning to a previously rendered page must reuse its formatting');
+const edited = { ...indexMovies[0], title: 'Edited title' };
+index.allMovies = [edited, ...indexMovies.slice(1)];
+index.rebuildCatalogMovieMeta();
+assert.equal(preparedCards.length, 80, 'Rebuilding metadata must not format the changed card eagerly');
+assert.equal(index.getCatalogMovieMeta(edited).cardRender.title, 'Edited title');
+
 const flush = () => new Promise(setImmediate);
 function fixture() {
   const requests = [];

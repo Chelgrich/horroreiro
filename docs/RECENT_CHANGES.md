@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-26 — Build catalog card HTML only when used
+
+- Catalog metadata still indexes every movie for search and filters. Card formatting and HTML are computed on their first use by the renderer and reused until the corresponding movie metadata is rebuilt.
+
 ## 2026-11-26 — Keep unchanged catalog cards mounted when the index finishes
 
 - The first page skips rebuilding and reconciling its card DOM when the complete index supplies the same rows in the same order with the same card controls. The catalog still updates counts, pagination, links and its snapshot. Changed rows, view or viewer state follow the existing render path.

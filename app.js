@@ -9660,6 +9660,7 @@ function buildCatalogMovieMeta(movie) {
   const filterableGenreNames = genreNames.filter(genreName =>
     normalizeSearchText(genreName) !== BASE_HORROR_GENRE_NORMALIZED
   );
+  let cardRender;
 
   return {
     genreNames: new Set(genreNames),
@@ -9681,7 +9682,9 @@ function buildCatalogMovieMeta(movie) {
       movie?.director,
       ...searchAliases
     ].join(' ')),
-    cardRender: buildCatalogMovieCardRenderMeta(movie, genresText, countriesText)
+    get cardRender() {
+      return cardRender ??= buildCatalogMovieCardRenderMeta(movie, genresText, countriesText);
+    }
   };
 }
 
