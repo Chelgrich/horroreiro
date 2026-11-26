@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-26 — Keep unchanged catalog cards mounted when the index finishes
+
+- The first page skips rebuilding and reconciling its card DOM when the complete index supplies the same rows in the same order with the same card controls. The catalog still updates counts, pagination, links and its snapshot. Changed rows, view or viewer state follow the existing render path.
+
 ## 2026-11-26 — Download the SDK and app scripts in parallel
 
 - Preload the pinned Supabase SDK and the current build of `app.js` as soon as startup selects its configuration. Both downloads overlap the shared startup scripts. The loader still mounts the shared layout, waits for the page scripts and SDK, then executes `app.js` using its preload URL.

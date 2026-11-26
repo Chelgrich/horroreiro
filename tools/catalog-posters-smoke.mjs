@@ -9,7 +9,7 @@ const functions = [
   'loadMoviePosterImagesChunk', 'fetchAllSupabaseRows', 'fetchAllSupabaseRowsResult',
   'fetchMoviePosterImagesForMoviesSafe', 'ensurePreferredPosterImagesForMovies', 'getMoviePreferredPosterUrl',
   'createCatalogPosterOptions', 'loadCatalogPagePosters', 'loadCatalogPageDetails', 'replaceCatalogCards',
-  'renderCatalogMovieCards', 'renderMovies', 'goToCatalogPage',
+  'renderCatalogMovieCards', 'getInitialCatalogCardsSignature', 'renderInitialCatalogPage', 'renderMovies', 'goToCatalogPage',
   'preservePaintedPoster'
 ].map(name => {
   const start = source.lastIndexOf('\n', source.indexOf(`function ${name}(`)) + 1;
@@ -27,6 +27,8 @@ function fixture() {
   let prefer = true;
   let generation = 0;
   let galleryPrefix = 'ru-';
+  let movies = baseline;
+  let linkLoads = 0;
   const rendered = [];
   const posterUpdates = [];
   const cards = { children: [], classList: { remove() {} },
@@ -70,18 +72,23 @@ function fixture() {
     getCatalogRenderController: () => ({ createCatalogMoviesFragment({ pageMovies, getCardRenderOptions }) {
       const fragment = pageMovies.map(movie => {
         const pending = getCardRenderOptions(movie).deferPoster;
-        return { dataset: { movieId: movie.id }, matches: () => true, pending, poster: pending ? null : ctx.getMoviePreferredPosterUrl(movie) };
+        return { dataset: { movieId: movie.id }, matches: () => true, pending, title: movie.title, poster: pending ? null : ctx.getMoviePreferredPosterUrl(movie) };
       });
       fragment.children = fragment;
       fragment.querySelectorAll = () => fragment;
       return fragment;
     } }),
     moviesLoadedSuccessfully: true, container: cards, currentCatalogPage: 1, lastCatalogDomRenderSignature: '',
+    initialCatalogCards: null, shouldFadeCatalogAfterSkeleton: true, currentUser: null, isAdmin: false,
+    shouldUseAuthenticatedUi: () => Boolean(ctx.currentUser), getCurrentUserRating: () => null,
+    getCurrentUserMovieState: () => ({ isInWatchlist: false }), areInitialCatalogRatingStatsPending: () => true,
+    ratingRequestInFlight: new Set(), watchlistRequestInFlight: new Set(), movieRatingStatsByMovieId: new Map(),
     searchInput: { value: '' }, viewMode: { value: 'list' }, sortMode: { value: 'default' },
     getCatalogDerivedState: () => ({
-      filteredTotal: baseline.length,
+      filteredTotal: movies.length,
       paginationState: { currentPage: ctx.currentCatalogPage },
-      pageMovies: baseline.slice((ctx.currentCatalogPage - 1) * 40, ctx.currentCatalogPage * 40)
+      pageMovies: movies.slice((ctx.currentCatalogPage - 1) * 40, ctx.currentCatalogPage * 40),
+      filterState: { hasProfileActivityFilter: false }
     }),
     getCatalogDomRenderSignature: ({ paginationState }) => `${paginationState.currentPage}:${prefer}`,
     getCatalogPaginationSlots() {}, renderActiveFilterChips() {}, syncQuickPresetButtons() {},
@@ -89,15 +96,40 @@ function fixture() {
     catalogRatingStatsAvailable: true,
     createMovieCardRenderContext() {}, saveCatalogState() {}, showMoviesResultCount() {}, getMoviesResultCountText() {},
     setCatalogBusyState() {}, updateCatalogStructuredData() {}, renderCatalogPagination() {},
-    scheduleCatalogPageMovieLinks() {},
+    scheduleCatalogPageMovieLinks() { linkLoads += 1; },
     recordCatalogDomSnapshotRender() {}, persistCatalogDomSnapshot() {},
     requestAnimationFrame() {}
   });
   vm.runInContext(functions, ctx);
-  return { ctx, requests, cards, rendered, posterUpdates,
+  return { ctx, requests, cards, rendered, posterUpdates, linkLoads: () => linkLoads, setMovies: value => { movies = value; },
     pause: fn => { pause = fn; }, fail: value => { fail = value; },
     prefer: value => { prefer = value; generation += 1; }, prefix: value => { galleryPrefix = value; } };
 }
+
+const unchangedFirstPage = fixture();
+unchangedFirstPage.ctx.renderInitialCatalogPage(baseline.slice(0, 40));
+await flush();
+const firstCards = unchangedFirstPage.cards.children;
+unchangedFirstPage.setMovies(baseline.map(movie => ({ ...movie })));
+unchangedFirstPage.ctx.renderMovies();
+assert.equal(unchangedFirstPage.rendered.length, 1, 'Equivalent index rows must skip card creation and patching');
+assert.equal(unchangedFirstPage.cards.children, firstCards);
+assert.equal(unchangedFirstPage.linkLoads(), 1, 'Handing off mounted cards must still request their links');
+assert.notEqual(unchangedFirstPage.ctx.lastCatalogDomRenderSignature, '', 'Hand-off must publish the final render signature');
+assert.equal(unchangedFirstPage.ctx.initialCatalogCards, null, 'The first-page hand-off must run once');
+
+const changedFirstPage = fixture();
+changedFirstPage.ctx.renderInitialCatalogPage(baseline.slice(0, 40));
+changedFirstPage.setMovies([{ ...baseline[0], title: 'Edited while loading' }, ...baseline.slice(1)]);
+changedFirstPage.ctx.renderMovies();
+assert.equal(changedFirstPage.rendered.length, 2);
+assert.equal(changedFirstPage.cards.children[0].title, 'Edited while loading');
+
+const changedViewer = fixture();
+changedViewer.ctx.renderInitialCatalogPage(baseline.slice(0, 40));
+changedViewer.ctx.currentUser = { id: 'new-viewer' };
+changedViewer.ctx.renderMovies();
+assert.equal(changedViewer.rendered.length, 2, 'A different viewer must get fresh card controls');
 
 const normal = fixture();
 const bulk = fixture();

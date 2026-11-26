@@ -696,6 +696,7 @@ let catalogProfileActivityError = null;
 let catalogDataVersion = 0;
 let catalogDerivedStateCache = null;
 let lastCatalogDomRenderSignature = '';
+let initialCatalogCards = null;
 let catalogDomSnapshotRenderState = null;
 let localDataDependencyStamps = null;
 const catalogSessionSnapshotDataHashCache = new WeakMap();
@@ -15026,11 +15027,30 @@ function renderCatalogMovieCards(pageMovies, cardRenderContext, { loadPageDetail
   catalogPosterView = null;
 }
 
+function getInitialCatalogCardsSignature(pageMovies, searchQuery) {
+  const statsPending = areInitialCatalogRatingStatsPending();
+  return JSON.stringify([
+    viewMode.value, sortMode.value, searchQuery, currentUser?.id, isAdmin,
+    shouldUseAuthenticatedUi(), shouldPreferRussianPosters(), statsPending, catalogRatingStatsAvailable,
+    pageMovies.map(movie => {
+      const id = String(movie.id);
+      return [movie, getCurrentUserRating(id), getCurrentUserMovieState(id).isInWatchlist,
+        ratingRequestInFlight.has(id), watchlistRequestInFlight.has(id),
+        statsPending ? null : movieRatingStatsByMovieId.get(id)];
+    })
+  ]);
+}
+
 function renderInitialCatalogPage(pageMovies) {
   if (!pageMovies.length) return;
 
   catalogMoviesById = new Map(pageMovies.map(movie => [String(movie.id), movie]));
   renderCatalogMovieCards(pageMovies, createMovieCardRenderContext(''), { loadPageDetails: true });
+  initialCatalogCards = {
+    signature: getInitialCatalogCardsSignature(pageMovies, ''),
+    nodes: [...container.children]
+  };
+  shouldFadeCatalogAfterSkeleton = false;
   setCatalogBusyState(false);
   void loadCatalogPagePosters(pageMovies);
 }
@@ -15040,6 +15060,8 @@ function renderMovies({ loadPageDetails = true, updatedMovieIds = null } = {}) {
     return;
   }
 
+  const firstPageCards = initialCatalogCards;
+  initialCatalogCards = null;
   currentCatalogPaginationSlots = getCatalogPaginationSlots();
 
   renderActiveFilterChips();
@@ -15071,7 +15093,6 @@ function renderMovies({ loadPageDetails = true, updatedMovieIds = null } = {}) {
     selectedSortMode,
     filterState
   } = getCatalogDerivedState();
-  const cardRenderContext = createMovieCardRenderContext(searchInput.value);
 
   if (paginationState.currentPage !== requestedCatalogPage) {
     saveCatalogState();
@@ -15101,18 +15122,19 @@ function renderMovies({ loadPageDetails = true, updatedMovieIds = null } = {}) {
     filterState
   });
 
-  if (
+  const alreadyRendered = (
     lastCatalogDomRenderSignature === domRenderSignature &&
     container.children.length > 0 &&
     !container.querySelector('.movie-card-skeleton')
-  ) {
-    recordCatalogDomSnapshotRender();
-    persistCatalogDomSnapshot();
-    if (loadPageDetails) loadCatalogPageDetails(pageMovies);
-    return;
-  }
+  );
+  const canKeepFirstPage = firstPageCards && !filterState.hasProfileActivityFilter &&
+    firstPageCards.nodes.length === container.children.length &&
+    firstPageCards.nodes.every((card, index) => card === container.children[index]) &&
+    firstPageCards.signature === getInitialCatalogCardsSignature(pageMovies, searchInput.value);
 
-  renderCatalogMovieCards(pageMovies, cardRenderContext, { loadPageDetails, updatedMovieIds });
+  if (!alreadyRendered && !canKeepFirstPage) {
+    renderCatalogMovieCards(pageMovies, createMovieCardRenderContext(searchInput.value), { loadPageDetails, updatedMovieIds });
+  }
   lastCatalogDomRenderSignature = domRenderSignature;
   recordCatalogDomSnapshotRender();
   persistCatalogDomSnapshot();
