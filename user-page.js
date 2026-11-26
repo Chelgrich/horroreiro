@@ -1,7 +1,7 @@
 const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_VERSION = 1;
 const USER_PAGE_ACTIVITY_AGGREGATE_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 const USER_PAGE_ACTIVITY_AGGREGATE_LIMIT = 10000;
-const USER_PAGE_DATA_CACHE_VERSION = 2;
+const USER_PAGE_DATA_CACHE_VERSION = 3;
 const USER_PAGE_DATA_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
 const USER_PAGE_DATA_CACHE_MAX_ENTRIES = 12;
 
@@ -15,7 +15,6 @@ export function createUserPageController(context = {}) {
     showAppMessage,
     getUserPageAvatarMediaHtml,
     supabaseClient = null,
-    fetchAllSupabaseRowsResult,
     getCurrentUser,
     hasWarmStartedPageDom,
     shouldUseAuthenticatedUi,
@@ -30,12 +29,10 @@ export function createUserPageController(context = {}) {
     fetchPublicUserProfileByHandle,
     fetchUserPageActivityRanks,
     isUserPageActivityRankFallbackEnabled,
-    getCatalogMovieMeta,
     addCount,
     fetchMoviesByIdsWithSelect,
     ensurePreferredPosterImagesForMovies,
     movieUserPageCardSelect = '',
-    movieUserPageTasteSelect = '',
     throwIfSupabaseError,
     getManualSimilarMovieLabel,
     getUserPageAvatarHtml,
@@ -43,13 +40,13 @@ export function createUserPageController(context = {}) {
     setUserPageDocumentMeta,
     bindUserPageRailControls,
     getUserPageMovieRailHtml,
+    getUserPageMoreCardHtml,
     appBuildVersion = 'dev',
     getDataMutationStamp,
     getPageDependencySnapshot,
     isPageDependencySnapshotFresh,
     userPageActivityAggregateCacheKey = 'horroreiro_user_page_activity_aggregate_cache',
-    userPageDataCacheKey = 'horroreiro_user_page_data_cache',
-    userPagePreviewLimit = 10
+    userPageDataCacheKey = 'horroreiro_user_page_data_cache'
   } = context;
 
   let userPageActivityAggregateRowsCache = null;
@@ -351,78 +348,6 @@ export function createUserPageController(context = {}) {
         .map(row => String(row?.movie_id || ''))
         .filter(Boolean)
     )];
-  }
-
-  function getUserPageAverageRating(ratingRows) {
-    const values = (Array.isArray(ratingRows) ? ratingRows : [])
-      .map(row => Number(row.rating))
-      .filter(rating => Number.isFinite(rating) && rating > 0);
-
-    if (!values.length) {
-      return null;
-    }
-
-    return values.reduce((sum, rating) => sum + rating, 0) / values.length;
-  }
-
-  function getUserPageTopCountItem(counts, options = {}) {
-    const items = Array.from(counts.entries())
-      .filter(([value, count]) => value && Number(count) > 0);
-
-    if (!items.length) {
-      return null;
-    }
-
-    items.sort(([firstValue, firstCount], [secondValue, secondCount]) => {
-      if (firstCount !== secondCount) {
-        return secondCount - firstCount;
-      }
-
-      if (options.numeric) {
-        return Number(secondValue) - Number(firstValue);
-      }
-
-      return String(firstValue).localeCompare(String(secondValue), 'ru');
-    });
-
-    const [label, count] = items[0];
-
-    return {
-      label: String(label),
-      count
-    };
-  }
-
-  function getUserPageTasteStats(items = []) {
-    const genreCounts = new Map();
-    const subgenreCounts = new Map();
-    const countryCounts = new Map();
-    const yearCounts = new Map();
-
-    (Array.isArray(items) ? items : []).forEach(item => {
-      const movie = item?.movie;
-
-      if (!movie) {
-        return;
-      }
-
-      const meta = getCatalogMovieMeta(movie);
-
-      meta.filterableGenreNames.forEach(genreName => addCount(genreCounts, genreName));
-      meta.subgenreKeys.forEach(subgenreKey => addCount(subgenreCounts, subgenreKey));
-      meta.countryNames.forEach(countryName => addCount(countryCounts, countryName));
-
-      if (movie.year) {
-        addCount(yearCounts, Number(movie.year));
-      }
-    });
-
-    return {
-      extraGenre: getUserPageTopCountItem(genreCounts),
-      subgenre: getUserPageTopCountItem(subgenreCounts),
-      country: getUserPageTopCountItem(countryCounts),
-      year: getUserPageTopCountItem(yearCounts, { numeric: true })
-    };
   }
 
   function getOptionalUserPageAggregateRows(result, label) {
@@ -1042,9 +967,9 @@ export function createUserPageController(context = {}) {
     `;
   }
 
-  function getUserPageStatCardHtml(value, label, rank = null, rankKey = '') {
+  function getUserPageStatCardHtml(value, label, key, rank = null) {
     return `
-      <div class="user-page-stat"${rankKey ? ` data-user-page-rank-slot="${rankKey}"` : ''}>
+      <div class="user-page-stat" data-user-page-stat="${key}">
         <span class="user-page-stat-value">${escapeHtml(String(value))}</span>
         <span class="user-page-stat-label">${escapeHtml(label)}</span>
         ${getUserPageStatRankHtml(rank)}
@@ -1141,109 +1066,75 @@ export function createUserPageController(context = {}) {
   }
 
   async function fetchPublicUserPageData(profile) {
-    const userId = profile?.id;
-
-    if (!userId) {
-      return null;
-    }
-
-    const [
-      ratingsResult,
-      watchlistResult,
-      reviewsResult
-    ] = await Promise.all([
-      fetchAllSupabaseRowsResult(() => supabaseClient
-        .from('movie_ratings')
-        .select('movie_id, rating, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: true })),
-      fetchAllSupabaseRowsResult(() => supabaseClient
-        .from('movie_watchlist')
-        .select('movie_id, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: true })),
-      fetchAllSupabaseRowsResult(() => supabaseClient
-        .from('movie_reviews')
-        .select('movie_id, created_at, updated_at')
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false })
-        .order('id', { ascending: true }))
-    ]);
-
-    throwIfSupabaseError(ratingsResult.error);
-    throwIfSupabaseError(watchlistResult.error);
-    throwIfSupabaseError(reviewsResult.error);
-
-    const ratingRows = ratingsResult.data || [];
-    const watchlistRows = watchlistResult.data || [];
-    const reviewRows = reviewsResult.data || [];
-    const ratedMovieIds = new Set(getUserPageMovieIds(ratingRows));
-    const activeWatchlistRows = watchlistRows.filter(row => (
-      row?.movie_id && !ratedMovieIds.has(String(row.movie_id))
-    ));
-
-    const previewRatingRows = ratingRows.slice(0, userPagePreviewLimit);
-    const previewWatchlistRows = activeWatchlistRows.slice(0, userPagePreviewLimit);
-    const previewReviewRows = reviewRows.slice(0, userPagePreviewLimit);
-    const previewMovieIds = [...new Set([
-      ...getUserPageMovieIds(previewRatingRows),
-      ...getUserPageMovieIds(previewWatchlistRows),
-      ...getUserPageMovieIds(previewReviewRows)
-    ])];
-    const tasteMovieIds = getUserPageMovieIds(ratingRows);
-    const dependencyMovieIds = [...new Set([
-      ...previewMovieIds,
-      ...tasteMovieIds
-    ])];
-    const [previewMovies, tasteMovies] = await Promise.all([
-      fetchMoviesByIdsWithSelect(previewMovieIds, movieUserPageCardSelect),
-      fetchMoviesByIdsWithSelect(tasteMovieIds, movieUserPageTasteSelect)
-    ]);
+    const { data, error } = await supabaseClient.rpc('get_profile_activity_preview', { p_user_id: profile.id }, { get: true });
+    throwIfSupabaseError(error);
+    const { ratings, watchlist, reviews } = data;
+    const previewMovieIds = getUserPageMovieIds([...ratings, ...watchlist, ...reviews]);
+    const previewMovies = await fetchMoviesByIdsWithSelect(previewMovieIds, movieUserPageCardSelect);
     await ensurePreferredPosterImagesForMovies(previewMovies);
     const previewMoviesById = new Map(previewMovies.map(movie => [String(movie.id), movie]));
-    const tasteMoviesById = new Map(tasteMovies.map(movie => [String(movie.id), movie]));
-    const ratingItems = previewRatingRows
-      .map(row => ({
-        ...row,
-        movie: previewMoviesById.get(String(row.movie_id))
-      }))
+    const buildItems = (rows, compare) => rows
+      .map(row => ({ ...row, movie: previewMoviesById.get(String(row.movie_id)) }))
       .filter(item => item.movie)
-      .sort(sortUserPageItemsByNewestAdded);
-    const watchlistItems = previewWatchlistRows
-      .map(row => ({
-        ...row,
-        movie: previewMoviesById.get(String(row.movie_id))
-      }))
-      .filter(item => item.movie)
-      .sort(sortUserPageItemsByNewestAdded);
-    const reviewItems = previewReviewRows
-      .map(row => ({
-        ...row,
-        movie: previewMoviesById.get(String(row.movie_id))
-      }))
-      .filter(item => item.movie)
-      .sort(sortUserPageReviewsByNewestActivity);
-    const tasteItems = ratingRows
-      .map(row => ({
-        ...row,
-        movie: tasteMoviesById.get(String(row.movie_id))
-      }))
-      .filter(item => item.movie);
+      .sort(compare);
 
     return {
       profile,
-      ratingItems,
-      watchlistItems,
-      reviewItems,
-      ratingCount: ratingRows.length,
-      watchlistCount: activeWatchlistRows.length,
-      reviewCount: reviewRows.length,
-      averageRating: getUserPageAverageRating(ratingRows),
-      tasteStats: getUserPageTasteStats(tasteItems),
-      dependencyMovieIds
+      ratingItems: buildItems(ratings, sortUserPageItemsByNewestAdded),
+      watchlistItems: buildItems(watchlist, sortUserPageItemsByNewestAdded),
+      reviewItems: buildItems(reviews, sortUserPageReviewsByNewestActivity),
+      dependencyMovieIds: previewMovieIds
     };
+  }
+
+  async function requestUserPageSummary(userId) {
+    const dependencySnapshot = getPageDependencySnapshot(['profile-taste']);
+    try {
+      const { data, error } = await supabaseClient.rpc('get_profile_activity_summary', { p_user_id: userId }, { get: true });
+      throwIfSupabaseError(error);
+      const tasteStats = Object.fromEntries(Object.entries(data.tasteCandidates).map(([kind, items]) => [
+        kind,
+        items.sort((a, b) => kind === 'year' ? Number(b.label) - Number(a.label) : a.label.localeCompare(b.label, 'ru'))[0]
+      ]));
+      return { counts: data.counts, averageRating: data.averageRating, tasteStats, dependencySnapshot };
+    } catch (error) {
+      console.warn('Не удалось загрузить статистику профиля:', error);
+      return null;
+    }
+  }
+
+  function getUserPageAverageRatingLabel(summary) {
+    return summary ? summary.averageRating?.toFixed(1) ?? '-' : '—';
+  }
+
+  async function loadUserPageSummary(handle, data, summaryRequest, isCurrentLoad) {
+    const summary = await summaryRequest;
+    if (!summary || !isCurrentLoad()) return;
+    data.summary = summary;
+    const cache = readUserPageDataCacheRoot();
+    if (cache.entries[getUserPageDataCacheEntryKey(handle)]?.data === data) writeUserPageDataCacheRoot(cache);
+
+    const values = { ...summary.counts, average: getUserPageAverageRatingLabel(summary) };
+    for (const [key, value] of Object.entries(values)) {
+      const node = userPage.querySelector(`[data-user-page-stat="${key}"] .user-page-stat-value`);
+      if (node) node.textContent = String(value);
+    }
+    const tasteSection = userPage.querySelector('.user-page-taste-stats');
+    if (tasteSection) tasteSection.outerHTML = getUserPageTasteStatsHtml(summary.tasteStats);
+
+    for (const [key, count] of Object.entries(summary.counts)) {
+      const rail = userPage.querySelector(`[data-user-page-activity="${key}"] [data-user-page-rail]`);
+      if (!rail) continue;
+      const existing = rail.querySelector('.user-page-more-card');
+      const remaining = count - rail.querySelectorAll('.user-page-movie-card').length;
+      if (remaining <= 0) existing?.remove();
+      else {
+        const moreHtml = getUserPageMoreCardHtml(remaining, buildCatalogProfileActivityUrl(getPublicProfileHandle(data.profile), key));
+        if (existing) existing.outerHTML = moreHtml;
+        else rail.insertAdjacentHTML('beforeend', moreHtml);
+      }
+    }
+    bindUserPageRailControls();
   }
 
   function renderUserPage(data) {
@@ -1255,10 +1146,7 @@ export function createUserPageController(context = {}) {
     hideUserPageRankTooltip();
     const displayName = getPublicProfileDisplayName(data.profile);
     const handle = getPublicProfileHandle(data.profile);
-    const averageRating = data.averageRating === null ? '-' : data.averageRating.toFixed(1);
-    const ratingCount = Number(data.ratingCount ?? data.ratingItems.length) || 0;
-    const watchlistCount = Number(data.watchlistCount ?? data.watchlistItems.length) || 0;
-    const reviewCount = Number(data.reviewCount ?? data.reviewItems.length) || 0;
+    const { ratings: ratingCount, watchlist: watchlistCount, reviews: reviewCount } = data.summary?.counts || {};
     const ratingsCatalogUrl = buildCatalogProfileActivityUrl(handle, 'ratings');
     const watchlistCatalogUrl = buildCatalogProfileActivityUrl(handle, 'watchlist');
     const reviewsCatalogUrl = buildCatalogProfileActivityUrl(handle, 'reviews');
@@ -1304,16 +1192,16 @@ export function createUserPageController(context = {}) {
         </section>
 
         <section class="user-page-stats" aria-label="Статистика пользователя">
-          ${getUserPageStatCardHtml(ratingCount, 'Оценено', data.activityRanks?.ratings, 'ratings')}
-          ${getUserPageStatCardHtml(averageRating, 'Средняя оценка')}
-          ${getUserPageStatCardHtml(watchlistCount, 'Смотреть позже', data.activityRanks?.watchlist, 'watchlist')}
-          ${getUserPageStatCardHtml(reviewCount, 'Рецензии', data.activityRanks?.reviews, 'reviews')}
+          ${getUserPageStatCardHtml(ratingCount ?? '—', 'Оценено', 'ratings', data.activityRanks?.ratings)}
+          ${getUserPageStatCardHtml(getUserPageAverageRatingLabel(data.summary), 'Средняя оценка', 'average')}
+          ${getUserPageStatCardHtml(watchlistCount ?? '—', 'Смотреть позже', 'watchlist', data.activityRanks?.watchlist)}
+          ${getUserPageStatCardHtml(reviewCount ?? '—', 'Рецензии', 'reviews', data.activityRanks?.reviews)}
         </section>
       </div>
 
-      ${getUserPageTasteStatsHtml(data.tasteStats)}
+      ${getUserPageTasteStatsHtml(data.summary?.tasteStats)}
 
-      <section class="user-page-section">
+      <section class="user-page-section" data-user-page-activity="ratings">
         ${getUserPageSectionHeaderHtml('Оценки и просмотры', ratingsCatalogUrl)}
         ${getUserPageMovieRailHtml(
             data.ratingItems,
@@ -1324,12 +1212,12 @@ export function createUserPageController(context = {}) {
           )}
       </section>
 
-      <section class="user-page-section">
+      <section class="user-page-section" data-user-page-activity="watchlist">
         ${getUserPageSectionHeaderHtml('Смотреть позже', watchlistCatalogUrl)}
         ${getUserPageMovieRailHtml(data.watchlistItems, 'Список просмотра пуст.', null, watchlistCatalogUrl, watchlistCount)}
       </section>
 
-      <section class="user-page-section">
+      <section class="user-page-section" data-user-page-activity="reviews">
         ${getUserPageSectionHeaderHtml('Рецензии', reviewsCatalogUrl)}
         ${getUserPageMovieRailHtml(
             data.reviewItems,
@@ -1354,18 +1242,14 @@ export function createUserPageController(context = {}) {
     });
   }
 
-  async function loadUserPageMedals(handle, data, ranksRequest, isCurrentLoad) {
+  async function loadUserPageMedals(handle, data, ranksRequest, summaryRequest, isCurrentLoad) {
     try {
       let activityRanks = normalizeUserPageServerActivityRanks(await ranksRequest);
       if (!isCurrentLoad()) return;
 
       if (!activityRanks && isUserPageActivityRankFallbackEnabled()) {
-        const rows = await fetchUserPageActivityAggregateRows();
-        activityRanks = getUserPageActivityRanks(data.profile.id, rows, {
-          ratings: data.ratingCount,
-          watchlist: data.watchlistCount,
-          reviews: data.reviewCount
-        });
+        const [rows, summary] = await Promise.all([fetchUserPageActivityAggregateRows(), summaryRequest]);
+        if (summary) activityRanks = getUserPageActivityRanks(data.profile.id, rows, summary.counts);
       }
 
       if (!activityRanks || !isCurrentLoad()) return;
@@ -1379,7 +1263,7 @@ export function createUserPageController(context = {}) {
 
       for (const [key, rank] of Object.entries(activityRanks)) {
         if (!rank) continue;
-        userPage.querySelector(`[data-user-page-rank-slot="${key}"]`)
+        userPage.querySelector(`[data-user-page-stat="${key}"]`)
           ?.insertAdjacentHTML('beforeend', getUserPageStatRankHtml(rank));
       }
     } catch (error) {
@@ -1399,8 +1283,11 @@ export function createUserPageController(context = {}) {
 
         if (cachedData) {
           renderUserPage(cachedData);
+          const needsSummary = !cachedData.summary || !isPageDependencySnapshotFresh(cachedData.summary.dependencySnapshot);
+          const summaryRequest = needsSummary ? requestUserPageSummary(cachedData.profile.id) : Promise.resolve(cachedData.summary);
+          if (needsSummary) void loadUserPageSummary(handle, cachedData, summaryRequest, isCurrentLoad);
           if (!cachedData.activityRanks) {
-            void loadUserPageMedals(handle, cachedData, requestUserPageActivityRanks(cachedData.profile.id), isCurrentLoad);
+            void loadUserPageMedals(handle, cachedData, requestUserPageActivityRanks(cachedData.profile.id), summaryRequest, isCurrentLoad);
           }
           return;
         }
@@ -1415,11 +1302,13 @@ export function createUserPageController(context = {}) {
       }
 
       const ranksRequest = requestUserPageActivityRanks(profile.id);
+      const summaryRequest = requestUserPageSummary(profile.id);
       const data = await fetchPublicUserPageData(profile);
       if (!isCurrentLoad()) return;
       writeUserPageDataCacheEntry(handle, data);
       renderUserPage(data);
-      void loadUserPageMedals(handle, data, ranksRequest, isCurrentLoad);
+      void loadUserPageSummary(handle, data, summaryRequest, isCurrentLoad);
+      void loadUserPageMedals(handle, data, ranksRequest, summaryRequest, isCurrentLoad);
     } catch (error) {
       if (isCurrentLoad()) throw error;
     }

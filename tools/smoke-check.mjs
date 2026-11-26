@@ -1117,8 +1117,8 @@ async function checkStaticGuards() {
     appJs.includes('function addCount(counts, key)') &&
       appJs.includes('addCount,') &&
       userPageJs.includes('    addCount,') &&
-      userPageJs.includes('addCount(genreCounts, genreName)'),
-    'app.js/user-page.js: user page count helper must stay available in controller context'
+      userPageJs.includes('addCount(counts, normalizeUserPageUserId(row?.user_id))'),
+    'app.js/user-page.js: the local rank fallback must receive its count helper'
   );
   assert(
     appJs.includes("import(getLazyFeatureModuleUrl('profile-utils.js'))") &&

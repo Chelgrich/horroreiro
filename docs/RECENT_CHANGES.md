@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-26 — Load profile cards independently of taste statistics
+
+- Profile previews read at most ten activity rows per section, with already-rated watchlist films removed before limiting the result. Two read-only SQL functions use the viewer's existing permissions. The summary fills exact totals, average rating, favorite tags, and remaining-item links without rebuilding cards or medals. The profile summary cache refreshes after local movie edits.
+
 ## 2026-11-26 — Measure catalog revision timeouts in the browser
 
 - Each completed version check queues one `catalog_revision_check` event when the existing Yandex Metrica counter is available. The event records whether a saved revision was sent and distinguishes first-attempt success, immediate error, retry success, retry error, and two timeouts. Use all events with this parameter as the denominator and `double_timeout` as the numerator for the fallback rate due to timeouts among tracked checks. The event sends only these categories and runs outside the catalog read.

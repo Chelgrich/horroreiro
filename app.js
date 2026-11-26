@@ -10607,19 +10607,6 @@ const MOVIE_NOTIFICATION_LINK_SELECT = `
   year
 `;
 
-const MOVIE_USER_PAGE_TASTE_SELECT = `
-  id,
-  year,
-  tags_perceived,
-  movie_genres (
-    position,
-    genres (name)
-  ),
-  movie_countries (
-    countries (name)
-  )
-`;
-
 const MOVIE_SIMILAR_CARD_SELECT = `
   id,
   slug,
@@ -11439,7 +11426,7 @@ async function refreshCatalogMovieAfterUpdate(movieId, {
   invalidateMovieSelectRowsCache([movieKey]);
   catalogMovieLinksById.delete(movieKey);
   invalidateLetterboxdImportMatchMoviesCache();
-  markLocalDataDependencyMutation([getDataDependencyMovieKey(movieKey)], `movie-update:${movieKey}`);
+  markLocalDataDependencyMutation([getDataDependencyMovieKey(movieKey), 'profile-taste'], `movie-update:${movieKey}`);
 
   if (shouldRefreshPosterImages) {
     await fetchMoviePosterImagesForMovieSafe(movieKey, { force: true });
@@ -12590,7 +12577,7 @@ async function deletePosterFileByUrl(publicUrl) {
 
 async function refreshMovieEditorCommittedData(movieId, savePlan) {
   invalidateMovieSelectRowsCache([movieId]);
-  markLocalDataDependencyMutation([getDataDependencyMovieKey(movieId)], `movie-save:${movieId}`);
+  markLocalDataDependencyMutation([getDataDependencyMovieKey(movieId), 'profile-taste'], `movie-save:${movieId}`);
   if (savePlan.posterImagesChanged) {
     moviePosterImagesByMovieId.delete(String(movieId));
     moviePosterImagesLoadedByMovieId.delete(String(movieId));
@@ -16691,7 +16678,6 @@ function getUserPageControllerContext() {
     showAuthMessage,
     showAppMessage,
     getUserPageAvatarMediaHtml,
-    fetchAllSupabaseRowsResult,
     supabaseClient,
     getCurrentUser: () => currentUser,
     hasWarmStartedPageDom: hasWarmStartedSecondaryPageDom,
@@ -16705,12 +16691,10 @@ function getUserPageControllerContext() {
     getPublicProfileDisplayName,
     getPublicProfileHandle,
     fetchPublicUserProfileByHandle,
-    getCatalogMovieMeta,
     addCount,
     fetchMoviesByIdsWithSelect,
     ensurePreferredPosterImagesForMovies,
     movieUserPageCardSelect: MOVIE_USER_PAGE_CARD_SELECT,
-    movieUserPageTasteSelect: MOVIE_USER_PAGE_TASTE_SELECT,
     throwIfSupabaseError,
     getManualSimilarMovieLabel,
     getUserPageAvatarHtml,
@@ -16720,13 +16704,13 @@ function getUserPageControllerContext() {
     isUserPageActivityRankFallbackEnabled: isLocalDevRouteHost,
     bindUserPageRailControls,
     getUserPageMovieRailHtml,
+    getUserPageMoreCardHtml,
     appBuildVersion: APP_BUILD_VERSION,
     getDataMutationStamp,
     getPageDependencySnapshot: getLocalDataDependencySnapshot,
     isPageDependencySnapshotFresh: isLocalDataDependencySnapshotFresh,
     userPageActivityAggregateCacheKey: USER_PAGE_ACTIVITY_AGGREGATE_CACHE_KEY,
-    userPageDataCacheKey: USER_PAGE_DATA_CACHE_KEY,
-    userPagePreviewLimit: USER_PAGE_PREVIEW_LIMIT
+    userPageDataCacheKey: USER_PAGE_DATA_CACHE_KEY
   };
 }
 

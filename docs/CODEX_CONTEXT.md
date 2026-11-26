@@ -245,6 +245,7 @@ Secondary page-only CSS is loaded by `boot-loader.js` only for the matching shel
 Profile ranking note:
 
 - Public profile medallions load separately from activity cards and update their own DOM nodes. The profile data cache remains usable while medals load or their request fails. The local-only aggregate fallback is for development because RLS may hide peers' activity rows from the browser.
+- The profile loads up to ten activity rows per section and fetches movie details for those cards. A separate SQL summary supplies exact totals, average rating, and favorite tags. It fills the statistic values and remaining-item links without rebuilding rails. Cached rails retain their per-movie dependencies, and cached taste summaries refresh after local catalog edits.
 
 `profile-utils.js` is loaded during shared app init and owns pure profile display helpers: display-name normalization/validation, public profile display name and handle, current-user public handle/display-name derivation, safe avatar URL parsing, user-page avatar HTML, and the `prefer_russian_posters` boolean check. It owns no profile caches. `app.js` keeps auth state and poster-preference dependent rerender bridges; settings UI belongs to its on-demand controller.
 

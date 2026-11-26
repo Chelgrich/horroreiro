@@ -30,6 +30,10 @@ const tooltip = { hidden: true, style: {}, textContent: '',
   setAttribute() {}, getBoundingClientRect: () => ({ width: 200, height: 40 }),
   classList: { add() {}, remove() {}, contains: () => !tooltip.hidden }
 };
+const preview = { ratings: [], watchlist: [], reviews: [] };
+const summary = { counts: { ratings: 264, watchlist: 8, reviews: 47 }, averageRating: 4.9,
+  tasteCandidates: { year: [{ label: '2024', count: 9 }, { label: '2025', count: 9 }] }
+};
 const context = {
   userPage: page, getCurrentUser: () => viewer,
   hasWarmStartedPageDom: () => false, shouldUseAuthenticatedUi: () => Boolean(viewer),
@@ -41,7 +45,7 @@ const context = {
   getPublicProfileHandle: row => row.default_display_name,
   fetchPublicUserProfileByHandle: async () => profile,
   fetchUserPageActivityRanks: async () => null, isUserPageActivityRankFallbackEnabled: () => false,
-  fetchAllSupabaseRowsResult: async () => ({ data: [] }), supabaseClient: {},
+  supabaseClient: { rpc: async name => ({ data: name === 'get_profile_activity_preview' ? preview : summary }) },
   fetchMoviesByIdsWithSelect: async () => [], ensurePreferredPosterImagesForMovies: async () => {},
   throwIfSupabaseError: error => { if (error) throw error; },
   getUserPageAvatarHtml: () => '', getUserPageAvatarMediaHtml: row => `avatar:${row.id}`,
@@ -148,12 +152,18 @@ try {
   const rowPromise = new Promise(resolve => { finishRows = resolve; });
   const staleData = createUserPageController({ ...context,
     fetchPublicUserProfileByHandle: async () => profile,
-    fetchAllSupabaseRowsResult: async () => { rowReads += 1; await rowPromise; return { data: [] }; }
+    supabaseClient: { async rpc(name) {
+      if (name === 'get_profile_activity_summary') return { data: summary };
+      assert.equal(name, 'get_profile_activity_preview');
+      rowReads += 1;
+      await rowPromise;
+      return { data: preview };
+    } }
   });
   const readingData = staleData.reloadUserPage();
   await Promise.resolve();
   await Promise.resolve();
-  assert.equal(rowReads, 3);
+  assert.equal(rowReads, 1);
   viewer = { id: 'fourth' };
   finishRows();
   await readingData;
@@ -177,19 +187,30 @@ try {
   globalThis.window.location.pathname = '/user/medals';
   const rankInserts = [];
   const previousSelector = page.querySelector;
-  page.querySelector = selector => selector.includes('data-user-page-rank-slot')
-    ? { insertAdjacentHTML: (position, html) => rankInserts.push({ selector, position, html }) }
-    : previousSelector(selector);
+  const ratingTotal = { textContent: '' };
+  const tasteSection = { outerHTML: '' };
+  page.querySelector = selector => {
+    if (selector === '[data-user-page-stat="ratings"] .user-page-stat-value') return ratingTotal;
+    if (selector === '.user-page-taste-stats') return tasteSection;
+    if (selector.startsWith('[data-user-page-stat=') && !selector.includes(' .')) {
+      return { insertAdjacentHTML: (position, html) => rankInserts.push({ selector, position, html }) };
+    }
+    return previousSelector(selector);
+  };
   let resolveRanks;
   const delayedRanks = new Promise(resolve => { resolveRanks = resolve; });
+  let resolveSummary;
+  const delayedSummary = new Promise(resolve => { resolveSummary = resolve; });
   const medalPage = createUserPageController({ ...context,
     fetchPublicUserProfileByHandle: async () => profile,
     fetchUserPageActivityRanks: () => delayedRanks,
+    supabaseClient: { rpc: name => name === 'get_profile_activity_summary' ? delayedSummary : context.supabaseClient.rpc(name) },
     getUserPageMovieRailHtml: () => '<article>Profile movie card</article>'
   });
   await medalPage.initUserPage();
   const cardMarkup = page.innerHTML;
   assert.match(cardMarkup, /Profile movie card/);
+  assert.equal(ratingTotal.textContent, '', 'Pending summary must leave the preview rendered with a placeholder');
   assert.equal(rankInserts.length, 0, 'Pending medals must not hold up the profile');
   const cacheKey = 'horroreiro_user_page_data_cache';
   const cachedCards = () => Object.values(JSON.parse(storage.get(cacheKey)).entries)
@@ -202,6 +223,26 @@ try {
   assert.equal(page.innerHTML, cardMarkup, 'Updating medals must leave all profile cards mounted');
   assert.ok(Object.values(JSON.parse(storage.get(cacheKey)).entries)
     .some(entry => entry.data.activityRanks?.ratings.place === 1));
+  resolveSummary({ data: summary });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(ratingTotal.textContent, '264');
+  assert.match(tasteSection.outerHTML, /title="2025"/);
+  assert.equal(page.innerHTML, cardMarkup, 'Applying a summary must keep the cards and medals mounted');
+  assert.ok(Object.values(JSON.parse(storage.get(cacheKey)).entries)
+    .some(entry => entry.data.summary?.counts.ratings === 264 && entry.data.activityRanks?.ratings.place === 1));
+  let finishStaleSummary;
+  const pendingSummary = new Promise(resolve => { finishStaleSummary = resolve; });
+  const newProfile = createUserPageController({ ...context,
+    fetchPublicUserProfileByHandle: async () => profile,
+    supabaseClient: { rpc: name => name === 'get_profile_activity_summary' ? pendingSummary : context.supabaseClient.rpc(name) }
+  });
+  await newProfile.reloadUserPage();
+  const cacheWithoutSummary = storage.get(cacheKey);
+  viewer = { id: 'different-viewer' };
+  finishStaleSummary({ data: { ...summary, counts: { ...summary.counts, ratings: 99 } } });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(ratingTotal.textContent, '264', 'An obsolete summary cannot update the current DOM');
+  assert.equal(storage.get(cacheKey), cacheWithoutSummary, 'An obsolete summary cannot update the cache');
   page.querySelector = previousSelector;
 
   globalThis.window.location.pathname = '/user/offline';

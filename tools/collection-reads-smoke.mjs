@@ -272,7 +272,7 @@ for (const [table, loader, stateKey] of [
 }
 
 const movies = await sandbox.fetchMoviesByIdsWithSelect(fixtures.movies.map(row => row.id));
-assert.equal(movies.length, 2501, 'Large profile taste lookups must be split into bounded ID queries');
+assert.equal(movies.length, 2501, 'Large movie lookups must be split into bounded ID queries');
 assert(requests.filter(request => request.table === 'movies' && request.idCount).every(request => request.idCount <= 100),
   'Movie-ID requests must leave room for the projection and HTTP headers through the production gateway');
 
@@ -317,20 +317,29 @@ let profileSource = await readFile(new URL('../user-page.js', import.meta.url), 
 profileSource = profileSource.replace('export function createUserPageController', 'function createUserPageController')
   .replace('    initUserPage,', '    fetchPublicUserPageData,\n    initUserPage,');
 vm.runInContext(profileSource, sandbox);
+let previewMovieIds;
 const profileController = sandbox.createUserPageController({
-  fetchUserPageActivityRanks: async () => null,
   throwIfSupabaseError: error => { if (error) throw error; },
-  fetchMoviesByIdsWithSelect: async () => [],
+  fetchMoviesByIdsWithSelect: async ids => {
+    previewMovieIds = [...ids];
+    return ids.map(id => ({ id, title: id }));
+  },
   ensurePreferredPosterImagesForMovies: async () => {},
-  supabaseClient: sandbox.supabaseClient,
-  fetchAllSupabaseRowsResult: sandbox.fetchAllSupabaseRowsResult,
-  isUserPageActivityRankFallbackEnabled: () => false
+  getManualSimilarMovieLabel: movie => movie.title,
+  supabaseClient: { async rpc(name, args, options) {
+    assert.equal(name, 'get_profile_activity_preview');
+    assert.equal(args.p_user_id, 'user-a');
+    assert.equal(options.get, true);
+    return { data: {
+      ratings: makeRows(10), reviews: makeRows(10),
+      watchlist: makeRows(8).map(row => ({ ...row, movie_id: `saved-${row.id}` }))
+    } };
+  } }
 });
 const profile = await profileController.fetchPublicUserPageData({ id: 'user-a' });
-assert.equal(profile.ratingCount, 2501);
-assert.equal(profile.watchlistCount, 2501);
-assert.equal(profile.reviewCount, 2501);
+assert.deepEqual([profile.ratingItems.length, profile.watchlistItems.length, profile.reviewItems.length], [10, 8, 10]);
+assert.equal(previewMovieIds.length, 18, 'The profile loads only unique IDs from the three previews');
 const pagedRequests = requests.filter(request => request.isPaged);
 assert.ok(pagedRequests.every(request => request.orders.some(([key]) => key === (request.table === 'movie_rating_stats' ? 'movie_id' : 'id'))), 'Paged reads need deterministic ordering');
 assert.ok(requests.every(request => request.idCount === undefined || request.idCount <= 100));
-console.log('Collection reads smoke passed: complete catalog/profile/import data, 1000-row boundaries, failure and session isolation.');
+console.log('Collection reads smoke passed: catalog and import paging, bounded profile previews, failure and session isolation.');

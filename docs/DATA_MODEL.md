@@ -64,7 +64,6 @@ Client movie select profiles:
 - `MOVIE_LETTERBOXD_IMPORT_MATCH_SELECT`: compact Letterboxd import matching index (`id`, labels/year, `letterboxd_url`, `letterboxd_short_url`); use this instead of loading the full catalog for ratings import.
 - `MOVIE_USER_PAGE_CARD_SELECT`: profile rails and notification new-movie digest cards.
 - `MOVIE_NOTIFICATION_LINK_SELECT`: lightweight movie links in non-digest notifications.
-- `MOVIE_USER_PAGE_TASTE_SELECT`: profile taste statistics.
 - `MOVIE_SIMILAR_CARD_SELECT`: movie detail manual similar cards; use this instead of full catalog payload when only similar-card fields are needed.
 
 Automatic related movies:
@@ -196,7 +195,8 @@ Profile page activity row payloads:
 - ratings need `movie_id`, `rating`, and `created_at`;
 - watchlist rows need `movie_id` and `created_at`;
 - review rails need `movie_id`, `created_at`, and `updated_at`;
-- movie card/taste details are loaded through the dedicated movie select profiles above, not by widening activity table selects.
+- `get_profile_activity_preview(p_user_id uuid)` returns up to ten rows per section in recency order. The watchlist excludes already-rated films before applying the limit. Only preview movie IDs are used to fetch card and poster data.
+- `get_profile_activity_summary(p_user_id uuid)` returns exact activity totals, the average positive rating, and the highest-count taste labels. The browser resolves equal counts with Russian alphabetic ordering and uses the later year for a tie. Both RPCs are read-only `SECURITY INVOKER` functions callable by `anon` and `authenticated` under existing table grants and RLS. Apply `tools/profile-activity-summary.sql` before the matching app release.
 
 Profile activity ranks:
 
