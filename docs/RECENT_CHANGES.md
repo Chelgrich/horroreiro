@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-26 — Measure catalog revision timeouts in the browser
+
+- Each completed version check queues one `catalog_revision_check` event when the existing Yandex Metrica counter is available. The event records whether a saved revision was sent and distinguishes first-attempt success, immediate error, retry success, retry error, and two timeouts. Use all events with this parameter as the denominator and `double_timeout` as the numerator for the fallback rate due to timeouts among tracked checks. The event sends only these categories and runs outside the catalog read.
+
 ## 2026-11-26 — Retry timed-out catalog revision checks
 
 - Catalog revision reads retry once on the 1.2-second client timeout and keep the same previous revision for the change journal. A successful retry can reuse matching catalog data or refresh changed films. Two timeouts or an immediate RPC error still fall back to the full index read.

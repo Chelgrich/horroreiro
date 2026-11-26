@@ -10801,23 +10801,31 @@ async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = '
 
 async function readCatalogRevisions(previousMovieIndex = null) {
   const args = previousMovieIndex ? { p_movie_index: previousMovieIndex } : {};
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  let revisions = null;
+  let timeouts = 0;
+  for (; timeouts < 2; timeouts += 1) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 1200);
     try {
       const { data, error } = await supabaseClient.rpc('get_catalog_revisions', args, { get: true })
         .retry(false).abortSignal(controller.signal).single();
-      if (!controller.signal.aborted) return error ? null : { ...data, previousMovieIndex };
+      if (!controller.signal.aborted && !error) revisions = { ...data, previousMovieIndex };
     } catch (error) {
       if (!controller.signal.aborted) {
         console.warn('Ошибка проверки версии каталога:', error);
-        return null;
       }
     } finally {
       clearTimeout(timer);
     }
+    if (!controller.signal.aborted) break;
   }
-  return null;
+  if (typeof ym === 'function') {
+    const mode = previousMovieIndex ? 'saved_revision' : 'no_saved_revision';
+    const status = revisions ? 'ok' : 'error';
+    const outcome = timeouts === 2 ? 'double_timeout' : `${timeouts ? 'retry_' : ''}${status}`;
+    window.setTimeout(() => ym(108369182, 'params', { catalog_revision_check: { [mode]: outcome } }), 0);
+  }
+  return revisions;
 }
 
 async function revalidateCatalogMovieIndex(revisions, { allowRevisionReuse, preserveExistingCatalogOnError, onFirstPage }) {

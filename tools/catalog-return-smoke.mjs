@@ -61,6 +61,7 @@ let linkReads = 0;
 let revisionTimeout;
 let revisionTimeouts = 0;
 const revisionReads = [];
+const revisionEvents = [];
 let revisionResponse = { data: { movie_index: 'first', ratings: 'rating-1', reviews: 'review-1' } };
 const initialLoadSandbox = vm.createContext({
   container: { querySelector: () => null }, moviesLoadedSuccessfully: false, shouldFadeCatalogAfterSkeleton: false,
@@ -77,6 +78,12 @@ const initialLoadSandbox = vm.createContext({
   catalogRatingSummaryRevision: null, catalogReviewSummaryRevision: null,
   catalogLinksDeferredDuringRestore: true,
   requestAnimationFrame: callback => callback(), window: { setTimeout: callback => callback() },
+  ym(counterId, method, params) {
+    assert.equal(counterId, 108369182);
+    assert.equal(method, 'params');
+    assert.deepEqual(Object.keys(params), ['catalog_revision_check']);
+    revisionEvents.push(Object.entries(params.catalog_revision_check));
+  },
   loadCatalogPageMovieLinks: () => { linkReads += 1; },
   supabaseClient: { rpc(name, args, options) {
     assert.equal(name, 'get_catalog_revisions');
@@ -156,6 +163,7 @@ revisionReads.length = 0;
 revisionTimeouts = 1;
 await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
 assert.deepEqual(revisionReads.map(({ previous, signal }) => [previous, signal.aborted]), [['first', true], ['first', false]]);
+assert.deepEqual(revisionEvents.at(-1), [['saved_revision', 'retry_ok']]);
 assert.deepEqual([movieReads.length, statsReads, reviewReads], [0, 1, 1]);
 revisionResponse.data.ratings = 'rating-2';
 await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
@@ -171,6 +179,7 @@ revisionResponse = { error: new Error('Revision unavailable') };
 revisionReads.length = 0;
 await initialLoadSandbox.reloadCatalogData(allowRevisionReuse);
 assert.equal(revisionReads.length, 1, 'Only a timeout can trigger another revision read');
+assert.deepEqual(revisionEvents.at(-1), [['saved_revision', 'error']]);
 assert.deepEqual(movieReads, ['second', 'second', null], 'Changes, manual reload and failure read the index');
 assert.deepEqual([statsReads, reviewReads], [4, 4], 'Explicit reload and failure read both summaries');
 
@@ -196,8 +205,10 @@ assert.equal(movieReads.at(-1), 'missing', 'An incomplete delta must fall back t
 
 revisionReads.length = 0;
 revisionTimeouts = 2;
+const eventsBeforeDoubleTimeout = revisionEvents.length;
 assert.equal(await initialLoadSandbox.readCatalogRevisions(), null);
 assert.deepEqual(revisionReads.map(({ signal }) => signal.aborted), [true, true], 'Stop after two timeouts');
+assert.deepEqual(revisionEvents.slice(eventsBeforeDoubleTimeout), [[['no_saved_revision', 'double_timeout']]]);
 
 const linkCacheSandbox = vm.createContext({
   allMovies: [{ id: 'linked' }, { id: 'empty' }, { id: 'failed' }, { id: 'pending' }],
