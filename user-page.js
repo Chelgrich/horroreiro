@@ -56,6 +56,7 @@ export function createUserPageController(context = {}) {
   let userPageRankTooltipTarget = null;
   let renderedProfile = null;
   let pageLoadVersion = 0;
+  let profileIdentityVersion = 0;
   let arePageEventsBound = false;
 
   function isOwnUserProfile(profile) {
@@ -65,7 +66,7 @@ export function createUserPageController(context = {}) {
 
   function syncOwnProfileIdentity(profile) {
     if (!isOwnUserProfile(renderedProfile) || !isOwnUserProfile(profile)) return;
-    pageLoadVersion += 1;
+    profileIdentityVersion += 1;
     renderedProfile = profile;
     const name = userPage.querySelector('[data-user-page-display-name="true"]');
     if (name) name.textContent = getPublicProfileDisplayName(profile);
@@ -1275,8 +1276,10 @@ export function createUserPageController(context = {}) {
     const handle = getUserPageRouteHandle();
     const viewerId = String(getCurrentUser()?.id || '');
     const loadVersion = ++pageLoadVersion;
+    const identityVersion = profileIdentityVersion;
     const isCurrentLoad = () => loadVersion === pageLoadVersion &&
       viewerId === String(getCurrentUser()?.id || '') && handle === getUserPageRouteHandle();
+    const canRenderProfile = () => isCurrentLoad() && identityVersion === profileIdentityVersion;
     try {
       if (useCache) {
         const cachedData = readUserPageDataCacheEntry(handle);
@@ -1294,7 +1297,7 @@ export function createUserPageController(context = {}) {
       }
 
       const profile = await fetchPublicUserProfileByHandle(handle);
-      if (!isCurrentLoad()) return;
+      if (!canRenderProfile()) return;
 
       if (!profile) {
         renderUserPageUnavailable('Пользователь не найден.');
@@ -1304,13 +1307,13 @@ export function createUserPageController(context = {}) {
       const ranksRequest = requestUserPageActivityRanks(profile.id);
       const summaryRequest = requestUserPageSummary(profile.id);
       const data = await fetchPublicUserPageData(profile);
-      if (!isCurrentLoad()) return;
+      if (!canRenderProfile()) return;
       writeUserPageDataCacheEntry(handle, data);
       renderUserPage(data);
       void loadUserPageSummary(handle, data, summaryRequest, isCurrentLoad);
       void loadUserPageMedals(handle, data, ranksRequest, summaryRequest, isCurrentLoad);
     } catch (error) {
-      if (isCurrentLoad()) throw error;
+      if (canRenderProfile()) throw error;
     }
   }
 

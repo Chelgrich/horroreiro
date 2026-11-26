@@ -2,7 +2,7 @@
 
 ## 2026-11-26 — Load profile cards independently of taste statistics
 
-- Profile previews read at most ten activity rows per section, with already-rated watchlist films removed before limiting the result. Two read-only SQL functions use the viewer's existing permissions. The summary fills exact totals, average rating, favorite tags, and remaining-item links without rebuilding cards or medals. The profile summary cache refreshes after local movie edits.
+- Profile previews read at most ten activity rows per section, with already-rated watchlist films removed before limiting the result. Two read-only SQL functions use the viewer's existing permissions. The summary fills exact totals, average rating, favorite tags, and remaining-item links without rebuilding cards or medals. The profile summary cache refreshes after local movie edits. Saving profile identity settings while the summary is pending lets that summary finish for the displayed profile.
 
 ## 2026-11-26 — Measure catalog revision timeouts in the browser
 

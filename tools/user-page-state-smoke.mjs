@@ -185,6 +185,7 @@ try {
   await initialLoad;
 
   globalThis.window.location.pathname = '/user/medals';
+  viewer = { id: profile.id };
   const rankInserts = [];
   const previousSelector = page.querySelector;
   const ratingTotal = { textContent: '' };
@@ -223,6 +224,8 @@ try {
   assert.equal(page.innerHTML, cardMarkup, 'Updating medals must leave all profile cards mounted');
   assert.ok(Object.values(JSON.parse(storage.get(cacheKey)).entries)
     .some(entry => entry.data.activityRanks?.ratings.place === 1));
+  medalPage.syncOwnProfileIdentity({ ...profile, display_name: 'Renamed during summary' });
+  assert.equal(name.textContent, 'Renamed during summary');
   resolveSummary({ data: summary });
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(ratingTotal.textContent, '264');
