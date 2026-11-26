@@ -2,13 +2,14 @@
   const envReadyPromise = window.__ENV_READY__ || Promise.resolve();
   const page = document.body?.dataset?.appPage || '';
   const needsCustomSelect = page === 'catalog';
+  const supabaseSdk = 'assets/vendor/supabase-2.119.0.js';
   let isAppStarted = false;
 
   function getVersionedScriptUrl(src, buildVersion) {
     const isLocalFile = window.location.protocol === 'file:';
     const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-    if (src === 'assets/vendor/supabase-2.119.0.js') {
+    if (src === supabaseSdk) {
       return `${isLocalFile ? '' : '/'}${src}`;
     }
 
@@ -19,6 +20,18 @@
     }
 
     return `/app-assets/${encodeURIComponent(buildVersion)}?file=${encodeURIComponent(src)}`;
+  }
+
+  function preloadStartupScripts(buildVersion) {
+    if (window.location.protocol === 'file:') return;
+
+    for (const src of [supabaseSdk, 'app.js']) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'script';
+      link.href = getVersionedScriptUrl(src, buildVersion);
+      document.head.appendChild(link);
+    }
   }
 
   function loadScript(src, buildVersion) {
@@ -101,6 +114,7 @@
   envReadyPromise
     .then(() => {
       const buildVersion = (window.__APP_ENV__ || window.__ENV__)?.APP_BUILD_VERSION || 'dev';
+      preloadStartupScripts(buildVersion);
 
       const sharedLayoutPromise = loadScript('shared-layout.js', buildVersion);
       const pageRuntimePromise = loadScript('app-page-runtime.js', buildVersion);
@@ -109,7 +123,7 @@
         .then(mountSharedLayout)
         .then(() => (needsCustomSelect ? loadScript('custom-select.js', buildVersion) : undefined))
         .then(() => pageRuntimePromise)
-        .then(() => loadScript('assets/vendor/supabase-2.119.0.js', buildVersion))
+        .then(() => loadScript(supabaseSdk, buildVersion))
         .then(() => loadScript('app.js', buildVersion))
         .then(runAppRuntime);
     })

@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-26 — Download the SDK and app scripts in parallel
+
+- Preload the pinned Supabase SDK and the current build of `app.js` as soon as startup selects its configuration. Both downloads overlap the shared startup scripts. The loader still mounts the shared layout, waits for the page scripts and SDK, then executes `app.js` using its preload URL.
+
 ## 2026-11-26 — Render the first catalog page while the index loads
 
 - A cold catalog in the default list view reads the newest 40 films first and mounts their posters. The rest of the index starts in the background from row 40. The toolbar and pagination use the complete index so searches, counts and filters include every film. Catalog URLs with filters or a saved view use the normal startup path.

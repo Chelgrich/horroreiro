@@ -176,6 +176,40 @@ assert.throws(() => startup.mountSharedLayout(), /mountSharedHeader/);
 startup.window.HorroreiroApp = { init() { throw Error('Legacy init must not replace a missing runtime'); } };
 assert.throws(() => startup.runAppRuntime(), /run/);
 
+const preloads = [];
+const scripts = [];
+const advanceLoader = () => new Promise(resolve => setImmediate(resolve));
+const layoutMethods = ['mountSharedHeader', 'mountSharedAuthModal', 'mountSharedDisplayNameModal', 'mountSharedFooter'];
+vm.runInNewContext(loader, {
+  window: {
+    __APP_ENV__: { APP_BUILD_VERSION: 'confirmed-build' },
+    location: new URL('https://fixture.test/'),
+    addEventListener() {},
+    SharedLayout: Object.fromEntries(layoutMethods.map(name => [name, () => {}]))
+  },
+  document: {
+    createElement: tag => ({ tag }),
+    head: { appendChild: link => preloads.push(link) },
+    body: { dataset: { appPage: 'catalog' }, appendChild: script => scripts.push(script) }
+  }
+});
+await advanceLoader();
+const appScriptUrl = '/app-assets/confirmed-build?file=app.js';
+const sdkScriptUrl = '/assets/vendor/supabase-2.119.0.js';
+assert.deepEqual(preloads.map(link => [link.rel, link.as, link.href]), [
+  ['preload', 'script', sdkScriptUrl], ['preload', 'script', appScriptUrl]
+]);
+scripts.find(script => script.src.endsWith('file=shared-layout.js')).onload();
+await advanceLoader();
+scripts.find(script => script.src.endsWith('file=custom-select.js')).onload();
+scripts.find(script => script.src.endsWith('file=app-page-runtime.js')).onload();
+await advanceLoader();
+assert.equal(scripts.at(-1).src, sdkScriptUrl, 'Only the SDK executes while it is pending');
+assert(!scripts.some(script => script.src === appScriptUrl));
+scripts.at(-1).onload();
+await advanceLoader();
+assert.equal(scripts.at(-1).src, appScriptUrl, 'App executes using its preload URL after the SDK');
+
 const appSource = await readFile(new URL('../app.js', import.meta.url), 'utf8');
 const versionKey = 'horroreiro_app_build_version';
 function bootWithStoredVersion(savedBuildVersion, { denyRead = false, denyWrite = false, isFallback = false } = {}) {

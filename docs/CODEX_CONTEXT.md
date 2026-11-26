@@ -90,6 +90,7 @@ Page HTML is static shell plus shared scripts:
   - is the default warm-return mechanism for future non-catalog/non-movie pages unless a page has a stronger custom warm-start reason.
 - `app-script-loader.js`
   - waits for `window.__ENV_READY__`;
+  - preloads the pinned Supabase SDK and the selected build of `app.js` in parallel using their execution URLs;
   - loads `shared-layout.js`;
   - mounts shared header, auth modal, display-name modal, footer;
   - loads `custom-select.js` upfront only for the catalog page;
