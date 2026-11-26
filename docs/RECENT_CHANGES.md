@@ -1,5 +1,10 @@
 # Recent Changes
 
+## 2026-11-26 — Render the first catalog page while the index loads
+
+- A cold catalog in the default list view reads the newest 40 films first and mounts their posters. The rest of the index starts in the background from row 40. The toolbar and pagination use the complete index so searches, counts and filters include every film. Catalog URLs with filters or a saved view use the normal startup path.
+- The split read only becomes a complete snapshot if the movie revision still matches after both reads. Missing revisions, interrupted reads and concurrent edits fall back to the normal index query.
+
 ## 2026-11-22 — Serve a compact social preview for the catalog
 
 - The catalog and its `/index.html` alias use the same script-free response builder as movie previews for social crawlers. The preview uses the existing catalog image and canonical homepage URL. Browser requests still receive the catalog shell.

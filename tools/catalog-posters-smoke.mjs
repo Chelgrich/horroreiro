@@ -8,7 +8,8 @@ const functions = [
   'getNormalizedMovieIdsFromMovies', 'fetchMoviePosterImagesForMovie', 'fetchMoviePosterImagesForMovies',
   'loadMoviePosterImagesChunk', 'fetchAllSupabaseRows', 'fetchAllSupabaseRowsResult',
   'fetchMoviePosterImagesForMoviesSafe', 'ensurePreferredPosterImagesForMovies', 'getMoviePreferredPosterUrl',
-  'createCatalogPosterOptions', 'loadCatalogPagePosters', 'loadCatalogPageDetails', 'replaceCatalogCards', 'renderMovies', 'goToCatalogPage',
+  'createCatalogPosterOptions', 'loadCatalogPagePosters', 'loadCatalogPageDetails', 'replaceCatalogCards',
+  'renderCatalogMovieCards', 'renderMovies', 'goToCatalogPage',
   'preservePaintedPoster'
 ].map(name => {
   const start = source.lastIndexOf('\n', source.indexOf(`function ${name}(`)) + 1;

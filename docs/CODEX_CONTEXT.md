@@ -398,6 +398,7 @@ Catalog features:
 - filters persisted in URL params;
 - quick presets;
 - pagination, 40 cards per page;
+- cold startup in the default list view renders the first public page while reading the remaining index. Filter and pagination state and session snapshots only use a complete index. Split reads recheck the movie revision before combining ranges;
 - month grouping toggle;
 - profile activity slices through `profile=<handle>&activity=ratings|watchlist|reviews`;
 - range filters for year, rating, runtime;

@@ -1103,9 +1103,9 @@ function compareManualSimilarAuditMovies(firstMovie, secondMovie) {
   );
 }
 
-async function fetchAllSupabaseRows(createQuery, pageSize = 1000, requestPage = makeQuery => makeQuery()) {
+async function fetchAllSupabaseRows(createQuery, pageSize = 1000, requestPage = makeQuery => makeQuery(), startAt = 0) {
   const rows = [];
-  let from = 0;
+  let from = startAt;
 
   while (true) {
     const { data, error } = await requestPage(() => createQuery().range(from, from + pageSize - 1));
@@ -1125,9 +1125,9 @@ async function fetchAllSupabaseRows(createQuery, pageSize = 1000, requestPage = 
   return rows;
 }
 
-async function fetchAllSupabaseRowsResult(createQuery, requestPage) {
+async function fetchAllSupabaseRowsResult(createQuery, requestPage, startAt = 0) {
   try {
-    return { data: await fetchAllSupabaseRows(createQuery, 1000, requestPage), error: null };
+    return { data: await fetchAllSupabaseRows(createQuery, 1000, requestPage, startAt), error: null };
   } catch (error) {
     return { data: null, error };
   }
@@ -10731,15 +10731,43 @@ function hasMovieEditorPayload(movie) {
   );
 }
 
-async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = 'catalog', indexRevision = null } = {}) {
-  const { data, error } = await runMovieSelectWithOptionalColumns(
-    selectQuery => fetchAllSupabaseRowsResult(() => supabaseClient
-      .from('movies')
-      .select(selectQuery)
+async function fetchCatalogIndexWithFirstPage(createQuery, indexRevision, onFirstPage) {
+  const first = await createQuery().range(0, CATALOG_PAGE_SIZE - 1);
+  if (first.error) return first;
+
+  onFirstPage(first.data);
+  if (first.data.length < CATALOG_PAGE_SIZE) return first;
+  if (!indexRevision) return { data: null, error: null };
+
+  const remaining = await fetchAllSupabaseRowsResult(createQuery, undefined, CATALOG_PAGE_SIZE);
+  if (remaining.error) return remaining;
+
+  // An edit between the range reads can move a film across the page boundary.
+  const revisions = await readCatalogRevisions();
+  const data = revisions?.movie_index === indexRevision ? first.data.concat(remaining.data) : null;
+  return { data, error: null };
+}
+
+async function fetchMovies({ preserveExistingCatalogOnError = false, purpose = 'catalog', indexRevision = null, onFirstPage = null } = {}) {
+  const select = getMovieSelectByPurpose(purpose);
+  const createQuery = (selectQuery, newestFirst = false) => {
+    let query = supabaseClient.from('movies').select(selectQuery);
+    if (newestFirst) {
+      const order = { ascending: false, nullsFirst: false };
+      query = query.order('release_year', order).order('release_month', order).order('sort_order', order);
+    }
+
+    return query
       .order('title', { ascending: true })
       .order('id', { ascending: true })
-      .order('position', { foreignTable: 'movie_genres', ascending: true })),
-    getMovieSelectByPurpose(purpose)
+      .order('position', { foreignTable: 'movie_genres', ascending: true });
+  };
+  const splitResult = onFirstPage && await runMovieSelectWithOptionalColumns(
+    selectQuery => fetchCatalogIndexWithFirstPage(() => createQuery(selectQuery, true), indexRevision, onFirstPage),
+    select
+  );
+  const { data, error } = splitResult?.data ? splitResult : await runMovieSelectWithOptionalColumns(
+    selectQuery => fetchAllSupabaseRowsResult(() => createQuery(selectQuery)), select
   );
 
   catalogMovieLinksById = new Map();
@@ -10783,7 +10811,7 @@ async function readCatalogRevisions(previousMovieIndex = null) {
   }
 }
 
-async function revalidateCatalogMovieIndex(revisions, { allowRevisionReuse, preserveExistingCatalogOnError }) {
+async function revalidateCatalogMovieIndex(revisions, { allowRevisionReuse, preserveExistingCatalogOnError, onFirstPage }) {
   const indexRevision = revisions?.movie_index;
   const previousRevision = catalogMovieIndexRevision;
   if (allowRevisionReuse && indexRevision && indexRevision === previousRevision) return null;
@@ -10812,7 +10840,7 @@ async function revalidateCatalogMovieIndex(revisions, { allowRevisionReuse, pres
     }
   }
 
-  await fetchMovies({ indexRevision, preserveExistingCatalogOnError });
+  await fetchMovies({ indexRevision, preserveExistingCatalogOnError, onFirstPage });
   return null;
 }
 
@@ -11436,7 +11464,8 @@ async function reloadCatalogData({
   allowRevisionReuse = false,
   catalogRevisionsRequest = null,
   deferRatingStats = false,
-  deferReviewSummary = false
+  deferReviewSummary = false,
+  onFirstPage = null
 } = {}) {
   const shouldShowCatalogSkeleton = showSkeleton && Boolean(container);
   const shouldPreserveExistingCatalogOnMovieLoadError = (
@@ -11459,6 +11488,7 @@ async function reloadCatalogData({
   const [updatedMovieIds] = await Promise.all([
     revalidateCatalogMovieIndex(revisions, {
       allowRevisionReuse,
+      onFirstPage,
       preserveExistingCatalogOnError: shouldPreserveExistingCatalogOnMovieLoadError
     }),
     deferRatingStats || reuseRatings ? null : fetchMovieRatingStats(revisions?.ratings),
@@ -14978,6 +15008,33 @@ function loadCatalogPageDetails(pageMovies) {
   scheduleCatalogPageMovieLinks();
 }
 
+function renderCatalogMovieCards(pageMovies, cardRenderContext, { loadPageDetails, updatedMovieIds = null }) {
+  const getCardRenderOptions = createCatalogPosterOptions({
+    deferMissing: loadPageDetails && shouldPreferRussianPosters()
+  });
+
+  replaceCatalogCards(
+    getCatalogRenderController().createCatalogMoviesFragment({
+      pageMovies,
+      viewMode: viewMode.value,
+      sortMode: sortMode.value,
+      renderContext: cardRenderContext,
+      getCardRenderOptions
+    }),
+    updatedMovieIds
+  );
+  catalogPosterView = null;
+}
+
+function renderInitialCatalogPage(pageMovies) {
+  if (!pageMovies.length) return;
+
+  catalogMoviesById = new Map(pageMovies.map(movie => [String(movie.id), movie]));
+  renderCatalogMovieCards(pageMovies, createMovieCardRenderContext(''), { loadPageDetails: true });
+  setCatalogBusyState(false);
+  void loadCatalogPagePosters(pageMovies);
+}
+
 function renderMovies({ loadPageDetails = true, updatedMovieIds = null } = {}) {
   if (!moviesLoadedSuccessfully) {
     return;
@@ -15055,23 +15112,8 @@ function renderMovies({ loadPageDetails = true, updatedMovieIds = null } = {}) {
     return;
   }
 
-  const getCardRenderOptions = createCatalogPosterOptions({
-    deferMissing: loadPageDetails && shouldPreferRussianPosters()
-  });
-
-  replaceCatalogCards(
-    getCatalogRenderController().createCatalogMoviesFragment({
-      pageMovies,
-      viewMode: viewMode.value,
-      sortMode: sortMode.value,
-      renderContext: cardRenderContext,
-      getCardRenderOptions
-    }),
-    updatedMovieIds
-  );
-
+  renderCatalogMovieCards(pageMovies, cardRenderContext, { loadPageDetails, updatedMovieIds });
   lastCatalogDomRenderSignature = domRenderSignature;
-  catalogPosterView = null;
   recordCatalogDomSnapshotRender();
   persistCatalogDomSnapshot();
   if (loadPageDetails) loadCatalogPageDetails(pageMovies);
@@ -15826,6 +15868,8 @@ async function initCatalogPage({ onShellReady = null } = {}) {
   );
   if (canKeepEarlyDom) bindRestoredCatalogDomState();
 
+  const canShowFirstPage = !hydratedSnapshot && !canKeepEarlyDom && !routePresetKey &&
+    Object.entries(getDefaultCatalogState()).every(([key, value]) => !initialCatalogState || initialCatalogState[key] === value);
   const catalogLoadState = await reloadCatalogData({
     showSkeleton: !(hydrationState.didHydrateCatalogFromSnapshot || canKeepEarlyDom),
     refreshFilters: false,
@@ -15833,7 +15877,8 @@ async function initCatalogPage({ onShellReady = null } = {}) {
     loadDeferredUserState: false,
     catalogRevisionsRequest,
     deferRatingStats,
-    deferReviewSummary
+    deferReviewSummary,
+    onFirstPage: canShowFirstPage ? renderInitialCatalogPage : null
   });
 
   applySavedCatalogState();

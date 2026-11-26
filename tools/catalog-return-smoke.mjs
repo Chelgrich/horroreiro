@@ -13,6 +13,41 @@ function functionSource(name) {
   return source.slice(start, end);
 }
 
+const firstPage = Array.from({ length: 40 }, (_, index) => ({ id: index + 1 }));
+const lastPage = [{ id: 41 }];
+const ranges = [];
+const firstPageStates = [];
+let resolveRemainder;
+let currentRevision = 'same';
+const splitScope = vm.createContext({
+  CATALOG_PAGE_SIZE: 40,
+  throwIfSupabaseError: error => { if (error) throw error; },
+  readCatalogRevisions: async () => ({ movie_index: currentRevision })
+});
+for (const name of ['fetchAllSupabaseRows', 'fetchAllSupabaseRowsResult', 'fetchCatalogIndexWithFirstPage']) {
+  vm.runInContext(functionSource(name), splitScope);
+}
+const createSplitQuery = () => ({ range(from, to) {
+  ranges.push([from, to]);
+  if (from === 0) return { data: firstPage, error: null };
+  return new Promise(resolve => { resolveRemainder = resolve; });
+} });
+let splitFinished = false;
+const split = splitScope.fetchCatalogIndexWithFirstPage(createSplitQuery, 'same', rows => firstPageStates.push(rows))
+  .then(result => { splitFinished = true; return result; });
+await new Promise(resolve => setImmediate(resolve));
+assert.equal(splitFinished, false, 'The first page must be publishable while the index is still loading');
+assert.deepEqual(firstPageStates, [firstPage]);
+assert.deepEqual(ranges, [[0, 39], [40, 1039]], 'The remainder must skip the rows already fetched');
+resolveRemainder({ data: lastPage, error: null });
+assert.deepEqual((await split).data, [...firstPage, ...lastPage]);
+
+const editedSplit = splitScope.fetchCatalogIndexWithFirstPage(createSplitQuery, 'same', () => {});
+await new Promise(resolve => setImmediate(resolve));
+currentRevision = 'changed';
+resolveRemainder({ data: lastPage, error: null });
+assert.equal((await editedSplit).data, null, 'A changed revision must force a normal index read');
+
 // Cold date-sorted data should settle while the rating request is still outstanding.
 let completeStats;
 let statsReads = 0;
