@@ -48,6 +48,14 @@ try {
   const probeOptions = { headers: { apikey: env.SUPABASE_ANON_KEY, 'X-Horroreiro-Perf': '1' } };
   const posterProbe = await onRequest({ env, request: request('/rest/v1/movie_poster_images', probeOptions) });
   assert.match(posterProbe.headers.get('Server-Timing'), /^supabase_headers;dur=\d+$/);
+  for (const rpc of ['get_profile_activity_preview', 'get_profile_activity_summary']) {
+    const path = `/rest/v1/rpc/${rpc}?p_user_id=fixture`;
+    const profileRead = await onRequest({ env, request: request(path, { headers: { apikey: env.SUPABASE_ANON_KEY } }) });
+    assert.equal(profileRead.headers.get('Server-Timing'), null);
+    const profileProbe = await onRequest({ env, request: request(path, probeOptions) });
+    assert.match(profileProbe.headers.get('Server-Timing'), /^supabase_headers;dur=\d+$/);
+    assert.equal(forwarded.at(-1).headers.get('X-Horroreiro-Perf'), null);
+  }
   const startedAt = performance.now();
   const probe = await onRequest({ env, request: request('/rest/v1/movie_rating_stats', probeOptions) });
   assert.match(probe.headers.get('Server-Timing'), /^supabase_headers;dur=\d+$/);

@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-26 — Trace latency of profile activity reads
+
+- The existing opt-in proxy timing header also covers GET requests for profile previews and summaries. It reports upstream header wait, proxy body and total time, and Node worker age. The trace flag stays in the proxy.
+
 ## 2026-11-26 — Load profile cards independently of taste statistics
 
 - Profile previews read at most ten activity rows per section, with already-rated watchlist films removed before limiting the result. Two read-only SQL functions use the viewer's existing permissions. The summary fills exact totals, average rating, favorite tags, and remaining-item links without rebuilding cards or medals. The profile summary cache refreshes after local movie edits. Saving profile identity settings while the summary is pending lets that summary finish for the displayed profile.

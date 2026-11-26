@@ -1,6 +1,10 @@
 const MAX_BODY_BYTES = 64 * 1024;
 const REQUEST_HEADERS = ['authorization', 'apikey', 'content-type', 'accept', 'prefer', 'range', 'range-unit', 'accept-profile', 'content-profile', 'x-client-info', 'x-supabase-api-version'];
 const RESPONSE_HEADERS = ['content-type', 'content-range', 'range-unit', 'preference-applied', 'retry-after', 'www-authenticate'];
+const PERF_READ_PATHS = new Set([
+  '/rest/v1/movies', '/rest/v1/movie_rating_stats', '/rest/v1/movie_poster_images',
+  '/rest/v1/rpc/get_profile_activity_preview', '/rest/v1/rpc/get_profile_activity_summary'
+]);
 
 function failure(status, message) {
   return new Response(JSON.stringify({ message }), { status, headers: {
@@ -48,8 +52,7 @@ export async function onRequest({ request, env }) {
     for (const name of REQUEST_HEADERS) {
       if (request.headers.has(name)) headers.set(name, request.headers.get(name));
     }
-    const measure = request.method === 'GET' && request.headers.get('x-horroreiro-perf') === '1'
-      && (path === '/rest/v1/movies' || path === '/rest/v1/movie_rating_stats' || path === '/rest/v1/movie_poster_images');
+    const measure = request.method === 'GET' && request.headers.get('x-horroreiro-perf') === '1' && PERF_READ_PATHS.has(path);
     const upstreamStartedAt = measure ? performance.now() : 0;
     const response = await fetch(upstream, {
       method: request.method, headers, body: await readBody(request),
