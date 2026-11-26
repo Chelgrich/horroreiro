@@ -195,6 +195,7 @@ const originalFetch = globalThis.fetch;
 const seoRuntime = createPortableRuntime({ env: { SUPABASE_URL: 'https://seo.test', SUPABASE_ANON_KEY: 'seo-key' } });
 const seoRequest = (path, options) => seoRuntime.handleRequest(new Request(`http://portable.test${path}`, options));
 const relatedMovie = { id: 'film', slug: 'seo-film', title: 'A <Film>', year: 2026 };
+const seoUserId = '00000000-0000-0000-0000-000000000001';
 const movieOffsets = [];
 let personReads = 0;
 try {
@@ -214,8 +215,9 @@ try {
       ]);
     }
     if (url.pathname.endsWith('/profiles')) {
+      assert(params.get('select') === 'id,display_name,default_display_name', 'The profile SEO read includes the public ID');
       return Response.json(params.get('default_display_name') === 'eq.absent' ? [] : [
-        { display_name: 'Public Profile', default_display_name: 'seo-user' }
+        { id: seoUserId, display_name: 'Public Profile', default_display_name: 'seo-user' }
       ]);
     }
     assert(url.pathname.endsWith('/movies'), 'Unexpected SEO endpoint');
@@ -234,6 +236,8 @@ try {
       html.includes('name="robots" content="index, follow"') && html.includes(`<h1>${name}</h1>`) &&
       html.includes(`"@type":"${type}"`), `${path}: public SEO must reach the initial HTML`);
     if (type !== 'ProfilePage') assert(html.includes('<a href="/movie/seo-film">A &lt;Film&gt; (2026)</a>'), 'Filmography fallback must link to movies');
+    assert(html.includes(`<meta name="app-profile-id" content="${seoUserId}" data-profile-handle="seo-user">`) === (type === 'ProfilePage'),
+      'The ID and handle hint must appear only on profile pages');
     if (type === 'Person' || type === 'Organization') {
       assert(html.includes('class="secondary-page-skeleton ') && !html.includes('data-skeleton-field='),
         `${path}: the server skeleton must omit unavailable details`);
@@ -243,7 +247,9 @@ try {
   assert(personHead.ok && personReads === 1 && await personHead.text() === '', 'Repeat requests must reuse public SEO data');
   for (const path of ['/company/absent', '/user/absent']) {
     const response = await seoRequest(path);
-    assert(response.status === 404 && (await response.text()).includes('name="robots" content="noindex,'), `${path} must return a non-indexable 404`);
+    const html = await response.text();
+    assert(response.status === 404 && html.includes('name="robots" content="noindex,'), `${path} must return a non-indexable 404`);
+    assert(!html.includes('app-profile-id'), 'A missing profile must not publish an activity hint');
   }
   const [firstSitemap, secondSitemap] = await Promise.all([seoRequest('/sitemap.xml'), seoRequest('/sitemap.xml')]);
   const sitemap = await firstSitemap.text();

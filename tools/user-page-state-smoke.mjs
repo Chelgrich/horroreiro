@@ -248,6 +248,43 @@ try {
   assert.equal(storage.get(cacheKey), cacheWithoutSummary, 'An obsolete summary cannot update the cache');
   page.querySelector = previousSelector;
 
+  const currentProfileId = '00000000-0000-0000-0000-000000000001';
+  const oldProfileId = '00000000-0000-0000-0000-000000000002';
+  for (const [scenario, hintId, matchingHandle, earlyIds] of [
+    ['same', currentProfileId, true, [currentProfileId]],
+    ['stale', oldProfileId, true, [oldProfileId]],
+    ['other', oldProfileId, false, []],
+    ['invalid', 'not-a-uuid', true, []],
+    ['missing', null, true, []]
+  ]) {
+    const handle = `hint-${scenario}`;
+    window.location.pathname = `/user/${handle}`;
+    document.querySelector = selector => selector === 'meta[name="app-profile-id"]'
+      ? hintId && { content: hintId, dataset: { profileHandle: matchingHandle ? handle : 'different-profile' } }
+      : title;
+    let resolveLookup;
+    const lookup = new Promise(resolve => { resolveLookup = resolve; });
+    const previewIds = [];
+    const hintPage = createUserPageController({ ...context,
+      fetchPublicUserProfileByHandle: () => lookup,
+      supabaseClient: { rpc: async (rpc, { p_user_id }) => {
+        if (rpc === 'get_profile_activity_summary') return { data: summary };
+        previewIds.push(p_user_id);
+        return { data: { ...preview, ratings: [{ movie_id: p_user_id }], movies: [{ id: p_user_id, title: p_user_id }] } };
+      } },
+      getUserPageMovieRailHtml: items => items.map(item => item.movie.title).join('')
+    });
+    const loading = hintPage.initUserPage();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(previewIds, earlyIds, scenario);
+    assert(!page.innerHTML.includes(currentProfileId), 'Unconfirmed activity must stay off screen');
+    resolveLookup({ ...profile, id: currentProfileId, default_display_name: handle });
+    await loading;
+    assert.deepEqual(previewIds, scenario === 'same' ? earlyIds : [...earlyIds, currentProfileId]);
+    assert(page.innerHTML.includes(currentProfileId) && !page.innerHTML.includes(oldProfileId));
+  }
+  document.querySelector = () => title;
+
   globalThis.window.location.pathname = '/user/offline';
   const failedProfileLoad = createUserPageController({
     ...context,

@@ -1,5 +1,9 @@
 # Recent Changes
 
+## 2026-11-26 — Start profile cards from the server profile ID
+
+- Profile HTML carries the public ID and handle from the existing SEO lookup. On a cold load a matching hint starts the activity preview in parallel with the live profile lookup. The client uses the result only after that lookup confirms the ID. Missing or mismatched hints use the live identity and the existing preview path.
+
 ## 2026-11-26 — Include film cards in the profile activity preview
 
 - The profile activity RPC now includes one compact movie row per distinct visible film across the three activity sections. The profile uses those rows to build cards with their existing ordering and poster preferences. Taste summaries and medals still load independently.

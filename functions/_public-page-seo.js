@@ -44,7 +44,7 @@ const pages = {
     prefix: '/user/',
     table: 'profiles',
     key: 'default_display_name',
-    select: 'display_name,default_display_name',
+    select: 'id,display_name,default_display_name',
     name: row => row.display_name || row.default_display_name,
     title: name => `${name} — профиль пользователя Хоррорейро`,
     description: name => `Профиль пользователя ${name}: оценки, список просмотра и рецензии в каталоге Хоррорейро.`,
@@ -105,6 +105,9 @@ export async function getPublicPageResponse({ env, request }, pageType, identifi
     type: pageType === 'profile' ? 'profile' : 'website'
   };
   let html = applyPageSeoToHtml(await response.text(), seo);
+  if (pageType === 'profile' && row.id) {
+    html = html.replace('</head>', () => `  <meta name="app-profile-id" content="${escapeHtml(row.id)}" data-profile-handle="${escapeHtml(row[page.key])}">\n</head>`);
+  }
   if (page.skeletonFields) {
     const fields = page.skeletonFields(row);
     html = html.replace(/<span data-skeleton-field="([a-z-]+)"[^>]*><\/span>/g,

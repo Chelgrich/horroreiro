@@ -137,6 +137,12 @@ export function createUserPageController(context = {}) {
     return pathHandle || queryHandle || '';
   }
 
+  function getUserPageServerProfileId(handle) {
+    const hint = document.querySelector('meta[name="app-profile-id"]');
+    if (hint?.dataset?.profileHandle !== handle) return null;
+    return /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(hint.content) ? hint.content : null;
+  }
+
   function getUserPageFollowButtonHtml(profile) {
     const profileId = String(profile?.id || '').trim();
 
@@ -1064,8 +1070,12 @@ export function createUserPageController(context = {}) {
     `;
   }
 
-  async function fetchPublicUserPageData(profile) {
-    const { data, error } = await supabaseClient.rpc('get_profile_activity_preview', { p_user_id: profile.id }, { get: true });
+  async function requestUserPageActivityPreview(userId) {
+    return supabaseClient.rpc('get_profile_activity_preview', { p_user_id: userId }, { get: true });
+  }
+
+  async function fetchPublicUserPageData(profile, previewRequest) {
+    const { data, error } = (await previewRequest) ?? await requestUserPageActivityPreview(profile.id);
     throwIfSupabaseError(error);
     const { ratings, watchlist, reviews, movies } = data;
     const previewMovieIds = getUserPageMovieIds([...ratings, ...watchlist, ...reviews]);
@@ -1293,6 +1303,8 @@ export function createUserPageController(context = {}) {
         }
       }
 
+      const hintedProfileId = useCache ? getUserPageServerProfileId(handle) : null;
+      const earlyPreview = hintedProfileId && requestUserPageActivityPreview(hintedProfileId).catch(() => null);
       const profile = await fetchPublicUserProfileByHandle(handle);
       if (!canRenderProfile()) return;
 
@@ -1303,7 +1315,7 @@ export function createUserPageController(context = {}) {
 
       const ranksRequest = requestUserPageActivityRanks(profile.id);
       const summaryRequest = requestUserPageSummary(profile.id);
-      const data = await fetchPublicUserPageData(profile);
+      const data = await fetchPublicUserPageData(profile, profile.id === hintedProfileId ? earlyPreview : null);
       if (!canRenderProfile()) return;
       writeUserPageDataCacheEntry(handle, data);
       renderUserPage(data);
